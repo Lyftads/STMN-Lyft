@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
   customerLifespan:  1.57,
   grossMargin:       30,
   newCustomers:      10718,
+  aovOverride:       85.18,
 }
 
 function loadSettings() {
@@ -85,6 +86,7 @@ function SettingsModal({ settings, onSave, onClose }) {
           { key:'customerLifespan',  label:'Vita media cliente (anni)',      step:'0.01', suffix:'anni' },
           { key:'grossMargin',       label:'Margine lordo (%)',              step:'1',    suffix:'%' },
           { key:'newCustomers',      label:'Nuovi clienti/anno',             step:'1',    suffix:'clienti' },
+          { key:'aovOverride',       label:'AOV medio (€) — usa se Shopify non disponibile', step:'0.01', suffix:'€' },
         ].map(({ key, label, step, suffix }) => (
           <div key={key} className="mb-4">
             <label className="text-gray-300 text-sm block mb-1">{label}</label>
@@ -141,7 +143,7 @@ export default function Dashboard() {
 
   // Usa dati API (calcolati automaticamente da Shopify + Meta)
   // Settings = solo fallback se API non ha ancora dati
-  const aov      = data?.aov || 0
+  const aov      = (data?.aov && data.aov > 0) ? data.aov : settings.aovOverride
   const margin   = (data?.grossMargin || settings.grossMargin / 100)
   const freq     = data?.purchaseFrequency > 0 ? data.purchaseFrequency : settings.purchaseFrequency
   const lifespan = data?.customerLifespan  > 0 ? data.customerLifespan  : settings.customerLifespan

@@ -1,117 +1,208 @@
-// app/api/metrics/route.js
-// Aggrega Shopify + Meta + Google e calcola LTV, CAC, ratio
 import { NextResponse } from 'next/server'
+import { subDays, formatISO, format } from 'date-fns'
 
-const GROSS_MARGIN = parseFloat(process.env.GROSS_MARGIN || '0.40') // default 40%
-const BASE_URL     = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+// ── Configurazione ─────────────────────────────────────────────
+const SHOPIFY_STORE   = process.env.SHOPIFY_STORE_URL
+const SHOPIFY_TOKEN   = process.env.SHOPIFY_ADMIN_TOKEN
+const META_TOKEN      = process.env.META_ACCESS_TOKEN
+const META_ACCOUNT    = process.env.META_AD_ACCOUNT_ID
+const GROSS_MARGIN    = parseFloat(process.env.GROSS_MARGIN || '0.40')
+const CHURN_WINDOW    = 365
+const LOOKBACK_DAYS   = 730
 
+// ── Auth Shopify (supporta atkn_ e shpat_) ────────────────────
+function shopifyHeaders() {
+  const token = SHOPIFY_TOKEN || ''
+  if (token.startsWith('atkn_')) return { 'Authorization': `Bearer ${token}` }
+  return { 'X-Shopify-Access-Token': token }
+}
+
+// ── Fetch tutti gli ordini Shopify ────────────────────────────
+async function fetchShopifyOrders() {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) throw new Error('Shopify non configurato')
+  const since = formatISO(subDays(new Date(), LOOKBACK_DAYS))
+  let orders = []
+  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=id,email,created_at,total_price`
+
+  while (url) {
+    const res = await fetch(url, { headers: shopifyHeaders() })
+    if (!res.ok) throw new Error(`Shopify ${res.status}: ${await res.text().then(t => t.slice(0,100))}`)
+    const data = await res.json()
+    orders = orders.concat(data.orders || [])
+    const link = res.headers.get('Link')
+    url = link?.includes('rel="next"') ? link.match(/<([^>]+)>;\s*rel="next"/)?.[1] ?? null : null
+  }
+  return orders
+}
+
+// ── Elabora ordini Shopify ─────────────────────────────────────
+function processShopifyOrders(orders) {
+  const totalOrders  = orders.length
+  const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_price || 0), 0)
+  const aov          = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+  // Mappa email → date ordini
+  const emailMap = {}
+  for (const o of orders) {
+    const email = o.email?.toLowerCase()?.trim()
+    if (!email) continue
+    if (!emailMap[email]) emailMap[email] = []
+    emailMap[email].push(new Date(o.created_at))
+  }
+  const uniqueCustomers   = Object.keys(emailMap).length
+  const purchaseFrequency = uniqueCustomers > 0 ? totalOrders / uniqueCustomers : 0
+
+  // Nuovi clienti (primo ordine ultimi 365gg)
+  const oneYearAgo = subDays(new Date(), 365)
+  let newCustomers = 0
+  for (const dates of Object.values(emailMap)) {
+    const firstOrder = new Date(Math.min(...dates.map(d => d.getTime())))
+    if (firstOrder >= oneYearAgo) newCustomers++
+  }
+
+  // Churn (nessun ordine negli ultimi 365gg)
+  const churnCutoff = subDays(new Date(), CHURN_WINDOW)
+  let churned = 0
+  for (const dates of Object.values(emailMap)) {
+    const lastOrder = new Date(Math.max(...dates.map(d => d.getTime())))
+    if (lastOrder < churnCutoff) churned++
+  }
+  const churnRate       = uniqueCustomers > 0 ? churned / uniqueCustomers : 0
+  const retentionRate   = 1 - churnRate
+  const customerLifespan = churnRate > 0 ? 1 / churnRate : 0
+
+  // Trend mensile (ultimi 12 mesi)
+  const monthlyData = {}
+  for (const o of orders) {
+    const d = new Date(o.created_at)
+    if (d < oneYearAgo) continue
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+    if (!monthlyData[key]) monthlyData[key] = { orders: 0, revenue: 0, customers: new Set() }
+    monthlyData[key].orders++
+    monthlyData[key].revenue += parseFloat(o.total_price || 0)
+    const email = o.email?.toLowerCase()?.trim()
+    if (email) monthlyData[key].customers.add(email)
+  }
+  const monthly = Object.entries(monthlyData)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([month, d]) => ({
+      month,
+      orders:    d.orders,
+      revenue:   Math.round(d.revenue),
+      customers: d.customers.size,
+      aov:       Math.round(d.revenue / d.orders)
+    }))
+
+  // Returning rate
+  const last12Orders = orders.filter(o => new Date(o.created_at) >= oneYearAgo)
+  let returningCount = 0
+  for (const o of last12Orders) {
+    const email = o.email?.toLowerCase()?.trim()
+    if (!email) continue
+    const allDates = emailMap[email] || []
+    const orderDate = new Date(o.created_at)
+    if (allDates.some(d => d < orderDate)) returningCount++
+  }
+  const returningRate = last12Orders.length > 0 ? returningCount / last12Orders.length : 0
+
+  return {
+    totalOrders, totalRevenue: Math.round(totalRevenue * 100) / 100,
+    aov: Math.round(aov * 100) / 100,
+    uniqueCustomers, newCustomers,
+    purchaseFrequency: Math.round(purchaseFrequency * 100) / 100,
+    churnRate:         Math.round(churnRate * 1000) / 10,
+    retentionRate:     Math.round(retentionRate * 1000) / 10,
+    customerLifespan:  Math.round(customerLifespan * 100) / 100,
+    returningRate:     Math.round(returningRate * 1000) / 10,
+    monthly,
+  }
+}
+
+// ── Fetch spesa Meta ──────────────────────────────────────────
+async function fetchMetaSpend() {
+  if (!META_TOKEN || !META_ACCOUNT) return null
+  const since = format(subDays(new Date(), 365), 'yyyy-MM-dd')
+  const until = format(new Date(), 'yyyy-MM-dd')
+  const url = `https://graph.facebook.com/v19.0/${META_ACCOUNT}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=monthly&access_token=${META_TOKEN}`
+  const res  = await fetch(url)
+  const data = await res.json()
+  if (data.error) throw new Error(data.error.message)
+  const monthly = (data.data || []).map(d => ({
+    month: d.date_start?.slice(0,7),
+    spend: Math.round(parseFloat(d.spend || 0) * 100) / 100,
+  }))
+  return { totalSpend: Math.round(monthly.reduce((s,m) => s+m.spend, 0)*100)/100, monthly }
+}
+
+// ── Handler principale ────────────────────────────────────────
 export async function GET() {
   try {
-    // Fetch parallelo da tutte le sorgenti
-    const [shopifyRes, metaRes, googleRes] = await Promise.allSettled([
-      fetch(`${BASE_URL}/api/shopify`, { next: { revalidate: 3600 } }),
-      fetch(`${BASE_URL}/api/meta`,    { next: { revalidate: 3600 } }),
-      fetch(`${BASE_URL}/api/google`,  { next: { revalidate: 3600 } }),
-    ])
+    // Shopify obbligatorio
+    const orders = await fetchShopifyOrders()
+    const shopify = processShopifyOrders(orders)
 
-    const shopify = shopifyRes.status === 'fulfilled' && shopifyRes.value.ok
-      ? await shopifyRes.value.json() : null
-    const meta = metaRes.status === 'fulfilled' && metaRes.value.ok
-      ? await metaRes.value.json() : null
-    const google = googleRes.status === 'fulfilled' && googleRes.value.ok
-      ? await googleRes.value.json() : null
+    // Meta opzionale
+    let meta = null
+    try { meta = await fetchMetaSpend() } catch(e) { console.log('Meta non disponibile:', e.message) }
 
-    if (!shopify) {
-      return NextResponse.json({ error: 'Shopify non disponibile' }, { status: 500 })
-    }
+    // ── Calcoli LTV ───────────────────────────────────────────
+    const ltvGross = shopify.aov * shopify.purchaseFrequency * shopify.customerLifespan
+    const ltvNet   = ltvGross * GROSS_MARGIN
 
-    // ── Calcolo LTV ────────────────────────────────────────────
-    const aov               = shopify.aov || 0
-    const purchaseFrequency = shopify.purchaseFrequency || 0
-    const customerLifespan  = shopify.customerLifespan || 0
-    const ltvGross          = aov * purchaseFrequency * customerLifespan
-    const ltvNet            = ltvGross * GROSS_MARGIN
+    // ── Calcoli CAC ───────────────────────────────────────────
+    const metaSpend    = meta?.totalSpend || 0
+    const totalAdSpend = metaSpend
+    const cac = totalAdSpend > 0 && shopify.newCustomers > 0
+      ? Math.round(totalAdSpend / shopify.newCustomers * 100) / 100 : null
 
-    // ── Calcolo CAC ────────────────────────────────────────────
-    const metaSpend   = meta?.totalSpend   || 0
-    const googleSpend = google?.totalSpend || 0
-    const totalAdSpend = metaSpend + googleSpend
-    const newCustomers = shopify.newCustomers || 1
-    const cac = totalAdSpend > 0 ? totalAdSpend / newCustomers : null
+    // ── Ratio ─────────────────────────────────────────────────
+    const ratio = cac && cac > 0 ? Math.round(ltvNet / cac * 100) / 100 : null
+    const ratioStatus = ratio == null ? 'no_data'
+      : ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent'
 
-    // ── Ratio LTV:CAC ──────────────────────────────────────────
-    const ratio = cac && cac > 0 ? ltvNet / cac : null
-
-    // ── Status ─────────────────────────────────────────────────
-    let ratioStatus = 'no_data'
-    if (ratio !== null) {
-      if (ratio < 1)      ratioStatus = 'critical'
-      else if (ratio < 3) ratioStatus = 'warning'
-      else if (ratio <= 7) ratioStatus = 'good'
-      else                 ratioStatus = 'excellent'
-    }
-
-    // ── Trend mensile combinato ────────────────────────────────
-    const monthlyShopify = shopify.monthly || []
-    const monthlyMeta    = meta?.monthly   || []
-    const monthlyGoogle  = google?.monthly || []
-
+    // ── Trend mensile combinato ───────────────────────────────
     const monthlyMap = {}
-    for (const m of monthlyShopify) {
-      monthlyMap[m.month] = { ...m, metaSpend: 0, googleSpend: 0, totalSpend: 0 }
+    for (const m of shopify.monthly) {
+      monthlyMap[m.month] = { ...m, metaSpend: 0, totalSpend: 0 }
     }
-    for (const m of monthlyMeta) {
+    for (const m of (meta?.monthly || [])) {
       if (monthlyMap[m.month]) monthlyMap[m.month].metaSpend = m.spend
-      else monthlyMap[m.month] = { month: m.month, metaSpend: m.spend, googleSpend: 0, totalSpend: m.spend }
-    }
-    for (const m of monthlyGoogle) {
-      if (monthlyMap[m.month]) monthlyMap[m.month].googleSpend = m.spend
-      else monthlyMap[m.month] = { month: m.month, metaSpend: 0, googleSpend: m.spend, totalSpend: m.spend }
+      else monthlyMap[m.month] = { month: m.month, metaSpend: m.spend, totalSpend: m.spend }
     }
     const monthly = Object.values(monthlyMap)
-      .map(m => ({
-        ...m,
-        totalSpend: (m.metaSpend || 0) + (m.googleSpend || 0),
-        cac: m.customers > 0 && ((m.metaSpend||0) + (m.googleSpend||0)) > 0
-          ? Math.round(((m.metaSpend||0)+(m.googleSpend||0)) / (m.customers||1) * 100) / 100
-          : null,
-      }))
+      .map(m => ({ ...m, totalSpend: m.metaSpend || 0 }))
       .sort((a,b) => a.month.localeCompare(b.month))
 
     return NextResponse.json({
-      // LTV
-      aov,
-      purchaseFrequency: Math.round(purchaseFrequency * 100) / 100,
-      customerLifespan:  Math.round(customerLifespan * 100) / 100,
+      aov:              shopify.aov,
+      purchaseFrequency: shopify.purchaseFrequency,
+      customerLifespan:  shopify.customerLifespan,
       grossMargin:       GROSS_MARGIN,
       ltvGross:          Math.round(ltvGross * 100) / 100,
       ltvNet:            Math.round(ltvNet * 100) / 100,
-      // CAC
-      metaSpend:         Math.round(metaSpend * 100) / 100,
-      googleSpend:       Math.round(googleSpend * 100) / 100,
-      totalAdSpend:      Math.round(totalAdSpend * 100) / 100,
-      newCustomers,
-      cac:               cac ? Math.round(cac * 100) / 100 : null,
-      // Ratio
-      ratio:             ratio ? Math.round(ratio * 100) / 100 : null,
+      metaSpend,
+      googleSpend:       0,
+      totalAdSpend,
+      newCustomers:      shopify.newCustomers,
+      cac,
+      ratio,
       ratioStatus,
-      // Shopify details
       totalOrders:       shopify.totalOrders,
       uniqueCustomers:   shopify.uniqueCustomers,
       churnRate:         shopify.churnRate,
       retentionRate:     shopify.retentionRate,
       returningRate:     shopify.returningRate,
-      // Sorgenti attive
       sources: {
-        shopify: !!shopify && !shopify.error,
-        meta:    !!meta    && !meta.error,
-        google:  !!google  && !google.error,
+        shopify: true,
+        meta:    !!meta,
+        google:  false,
       },
       monthly,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    console.error('Metrics error:', err)
+    console.error('Metrics error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+

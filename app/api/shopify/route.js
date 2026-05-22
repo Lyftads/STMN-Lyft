@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic'
 import { subDays, formatISO } from 'date-fns'
 
 const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL

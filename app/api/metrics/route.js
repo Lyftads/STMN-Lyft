@@ -7,9 +7,13 @@ const SHOPIFY_STORE   = process.env.SHOPIFY_STORE_URL
 const SHOPIFY_TOKEN   = process.env.SHOPIFY_ADMIN_TOKEN
 const META_TOKEN      = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT    = process.env.META_AD_ACCOUNT_ID
-const GROSS_MARGIN    = parseFloat(process.env.GROSS_MARGIN || '0.40')
-const CHURN_WINDOW    = 365
-const LOOKBACK_DAYS   = 730
+const GROSS_MARGIN         = parseFloat(process.env.GROSS_MARGIN || '0.30')
+const CHURN_WINDOW         = 365
+const LOOKBACK_DAYS        = 730
+// Valori reali da analisi CSV (override quando Shopify non ha storico completo)
+const FREQ_OVERRIDE        = parseFloat(process.env.PURCHASE_FREQUENCY  || '1.69')
+const LIFESPAN_OVERRIDE    = parseFloat(process.env.CUSTOMER_LIFESPAN   || '1.57')
+const NEW_CUSTOMERS_OVERRIDE = parseInt(process.env.NEW_CUSTOMERS_ANNUAL || '0')
 
 // ── Auth Shopify (supporta atkn_ e shpat_) ────────────────────
 function shopifyHeaders() {
@@ -150,6 +154,36 @@ async function fetchMetaSpend() {
   return { totalSpend: Math.round(monthly.reduce((s,m) => s+m.spend, 0)*100)/100, monthly }
 }
 
+
+// ── Nuovi clienti per mese da Shopify ────────────────────────
+async function fetchMonthlyNewCustomers() {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return {}
+  const now = new Date()
+  const monthlyMap = {}
+
+  // Fetch ultimi 12 mesi in parallelo
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
+    const start = new Date(d.getFullYear(), d.getMonth(), 1)
+    const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+    const key   = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+    return { key, start: start.toISOString(), end: end.toISOString() }
+  })
+
+  const results = await Promise.all(months.map(async ({ key, start, end }) => {
+    try {
+      const url = `https://${SHOPIFY_STORE}/admin/api/2024-01/customers/count.json?created_at_min=${start}&created_at_max=${end}`
+      const res = await fetch(url, { headers: shopifyHeaders() })
+      if (!res.ok) return { key, count: 0 }
+      const data = await res.json()
+      return { key, count: data.count || 0 }
+    } catch { return { key, count: 0 } }
+  }))
+
+  for (const { key, count } of results) monthlyMap[key] = count
+  return monthlyMap
+}
+
 // ── Handler principale ────────────────────────────────────────
 export async function GET() {
   try {
@@ -161,15 +195,23 @@ export async function GET() {
     let meta = null
     try { meta = await fetchMetaSpend() } catch(e) { console.log('Meta non disponibile:', e.message) }
 
-    // ── Calcoli LTV ───────────────────────────────────────────
-    const ltvGross = shopify.aov * shopify.purchaseFrequency * shopify.customerLifespan
+    // Nuovi clienti mensili da Shopify
+    let monthlyNewCustomers = {}
+    try { monthlyNewCustomers = await fetchMonthlyNewCustomers() } catch(e) { console.log('Nuovi clienti mensili:', e.message) }
+
+    // ── Calcoli LTV (usa override se Shopify non ha storico completo) ──
+    const freq     = shopify.purchaseFrequency > 0.5 ? shopify.purchaseFrequency : FREQ_OVERRIDE
+    const lifespan = shopify.customerLifespan  > 0   ? shopify.customerLifespan  : LIFESPAN_OVERRIDE
+    const ltvGross = shopify.aov * freq * lifespan
     const ltvNet   = ltvGross * GROSS_MARGIN
 
     // ── Calcoli CAC ───────────────────────────────────────────
     const metaSpend    = meta?.totalSpend || 0
     const totalAdSpend = metaSpend
-    const cac = totalAdSpend > 0 && shopify.newCustomers > 0
-      ? Math.round(totalAdSpend / shopify.newCustomers * 100) / 100 : null
+    // Usa override se disponibile, altrimenti valore Shopify
+    const newCustomersForCAC = NEW_CUSTOMERS_OVERRIDE > 0 ? NEW_CUSTOMERS_OVERRIDE : shopify.newCustomers
+    const cac = totalAdSpend > 0 && newCustomersForCAC > 0
+      ? Math.round(totalAdSpend / newCustomersForCAC * 100) / 100 : null
 
     // ── Ratio ─────────────────────────────────────────────────
     const ratio = cac && cac > 0 ? Math.round(ltvNet / cac * 100) / 100 : null
@@ -186,7 +228,11 @@ export async function GET() {
       else monthlyMap[m.month] = { month: m.month, metaSpend: m.spend, totalSpend: m.spend }
     }
     const monthly = Object.values(monthlyMap)
-      .map(m => ({ ...m, totalSpend: m.metaSpend || 0 }))
+      .map(m => ({
+        ...m,
+        totalSpend:  m.metaSpend || 0,
+        newCustomers: monthlyNewCustomers[m.month] || 0
+      }))
       .sort((a,b) => a.month.localeCompare(b.month))
 
     return NextResponse.json({
@@ -199,7 +245,9 @@ export async function GET() {
       metaSpend,
       googleSpend:       0,
       totalAdSpend,
-      newCustomers:      shopify.newCustomers,
+      newCustomers:      newCustomersForCAC,
+      purchaseFrequencyUsed: freq,
+      customerLifespanUsed:  lifespan,
       cac,
       ratio,
       ratioStatus,

@@ -1,6 +1,8 @@
 // app/api/auth/route.js
 // Gestisce OAuth Shopify: redirect + callback + mostra token
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import crypto from 'crypto'
 
 const CLIENT_ID     = process.env.SHOPIFY_CLIENT_ID

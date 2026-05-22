@@ -1,6 +1,8 @@
 // app/api/meta/route.js
 // Pulls ad spend from Meta Marketing API — supporta più account pubblicitari
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { subDays, format } from 'date-fns'
 
 const META_TOKEN    = process.env.META_ACCESS_TOKEN

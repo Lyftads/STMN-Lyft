@@ -119,19 +119,34 @@ function processShopifyOrders(orders) {
   }
 }
 
-// ── Fetch spesa Meta ──────────────────────────────────────────
+// ── Fetch spesa Meta (più account separati da virgola) ───────
 async function fetchMetaSpend() {
   if (!META_TOKEN || !META_ACCOUNT) return null
+  const accounts = META_ACCOUNT.split(',').map(s => s.trim()).filter(Boolean)
   const since = format(subDays(new Date(), 365), 'yyyy-MM-dd')
   const until = format(new Date(), 'yyyy-MM-dd')
-  const url = `https://graph.facebook.com/v19.0/${META_ACCOUNT}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=monthly&access_token=${META_TOKEN}`
-  const res  = await fetch(url)
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  const monthly = (data.data || []).map(d => ({
-    month: d.date_start?.slice(0,7),
-    spend: Math.round(parseFloat(d.spend || 0) * 100) / 100,
-  }))
+
+  async function fetchOne(accountId) {
+    const url = `https://graph.facebook.com/v19.0/${accountId}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=monthly&access_token=${META_TOKEN}`
+    const res  = await fetch(url)
+    const data = await res.json()
+    if (data.error) throw new Error(`[${accountId}] ${data.error.message}`)
+    return data.data || []
+  }
+
+  const results = await Promise.all(accounts.map(fetchOne))
+  const monthlyMap = {}
+  for (const accountData of results) {
+    for (const d of accountData) {
+      const month = d.date_start?.slice(0,7)
+      if (!month) continue
+      if (!monthlyMap[month]) monthlyMap[month] = 0
+      monthlyMap[month] += parseFloat(d.spend || 0)
+    }
+  }
+  const monthly = Object.entries(monthlyMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([month, spend]) => ({ month, spend: Math.round(spend * 100) / 100 }))
   return { totalSpend: Math.round(monthly.reduce((s,m) => s+m.spend, 0)*100)/100, monthly }
 }
 

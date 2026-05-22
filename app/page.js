@@ -139,21 +139,20 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Calcoli con settings locali
+  // Usa dati API (calcolati automaticamente da Shopify + Meta)
+  // Settings = solo fallback se API non ha ancora dati
   const aov      = data?.aov || 0
-  const margin   = settings.grossMargin / 100
-  const freq     = settings.purchaseFrequency
-  const lifespan = settings.customerLifespan
-  const newCust  = settings.newCustomers
-
-  const ltvGross = aov * freq * lifespan
-  const ltvNet   = ltvGross * margin
-  const metaSpend = data?.metaSpend || 0
+  const margin   = (data?.grossMargin || settings.grossMargin / 100)
+  const freq     = data?.purchaseFrequency > 0 ? data.purchaseFrequency : settings.purchaseFrequency
+  const lifespan = data?.customerLifespan  > 0 ? data.customerLifespan  : settings.customerLifespan
+  const newCust  = data?.newCustomers      > 0 ? data.newCustomers       : settings.newCustomers
+  const ltvGross = data?.ltvGross || (aov * freq * lifespan)
+  const ltvNet   = data?.ltvNet   || (ltvGross * margin)
+  const metaSpend  = data?.metaSpend || 0
   const totalSpend = data?.totalAdSpend || 0
-  const cac      = newCust > 0 && totalSpend > 0 ? Math.round(totalSpend / newCust * 100) / 100 : null
-  const ratio    = cac && ltvNet ? Math.round(ltvNet / cac * 100) / 100 : null
-  const ratioStatus = ratio == null ? 'no_data'
-    : ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent'
+  const cac      = data?.cac || (newCust > 0 && totalSpend > 0 ? Math.round(totalSpend / newCust * 100) / 100 : null)
+  const ratio    = data?.ratio || (cac && ltvNet ? Math.round(ltvNet / cac * 100) / 100 : null)
+  const ratioStatus = data?.ratioStatus || (ratio == null ? 'no_data' : ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent')
   const rc = RATIO_CONFIG[ratioStatus]
 
   return (
@@ -242,7 +241,7 @@ export default function Dashboard() {
           {/* Info settings */}
           <div className="bg-dark rounded-lg px-4 py-3 mb-6 flex items-center justify-between">
             <p className="text-gray-500 text-xs">
-              ⚙️ Frequenza, vita media e nuovi clienti vengono da analisi manuale — aggiornali ogni trimestre
+              ⚙️ Frequenza, vita media e churn calcolati automaticamente da Shopify • Aggiorna le impostazioni solo come override manuale
             </p>
             <button onClick={() => setShowSettings(true)}
               className="text-gold text-xs hover:underline ml-4">

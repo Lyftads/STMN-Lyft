@@ -19,14 +19,16 @@ function shopifyHeaders() {
 
 // ── AOV: ultimi 30 giorni, max 1 pagina ────────────────────────
 async function fetchAOV() {
-  const since = subDays(new Date(), 30).toISOString()
-  const url   = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`
-  const res   = await fetch(url, { headers: shopifyHeaders() })
-  if (!res.ok) throw new Error(`Shopify ${res.status}: ${await res.text().then(t => t.slice(0,100))}`)
-  const data    = await res.json()
-  const orders  = data.orders || []
-  const revenue = orders.reduce((s, o) => s + parseFloat(o.total_price || 0), 0)
-  return { orders: orders.length, aov: orders.length > 0 ? revenue / orders.length : 0 }
+  try {
+    const since = subDays(new Date(), 30).toISOString()
+    const url   = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`
+    const res   = await fetch(url, { headers: shopifyHeaders() })
+    if (!res.ok) { console.log('Shopify AOV:', res.status); return { orders: 0, aov: 0 } }
+    const data    = await res.json()
+    const orders  = data.orders || []
+    const revenue = orders.reduce((s, o) => s + parseFloat(o.total_price || 0), 0)
+    return { orders: orders.length, aov: orders.length > 0 ? revenue / orders.length : 0 }
+  } catch(e) { console.log('Shopify AOV error:', e.message); return { orders: 0, aov: 0 } }
 }
 
 // ── Nuovi clienti per mese (12 chiamate /count) ────────────────
@@ -74,8 +76,6 @@ async function fetchMeta() {
 // ── Handler principale ────────────────────────────────────────
 export async function GET() {
   try {
-    if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return NextResponse.json({ error: 'Shopify non configurato' }, { status: 500 })
-
     // Tutte le chiamate in parallelo
     const [aovResult, newCustResult, metaResult] = await Promise.allSettled([
       fetchAOV(),
@@ -83,13 +83,10 @@ export async function GET() {
       fetchMeta(),
     ])
 
-    // AOV — fondamentale, se fallisce mostra errore
-    if (aovResult.status === 'rejected') {
-      return NextResponse.json({ error: `Shopify: ${aovResult.reason?.message}` }, { status: 500 })
-    }
-
-    const { orders: totalOrders, aov: rawAov } = aovResult.value
-    const aov          = Math.round(rawAov * 100) / 100
+    const shopifyOk = aovResult.status === 'fulfilled'
+    const { orders: totalOrders = 0, aov: rawAov = 0 } = shopifyOk ? aovResult.value : {}
+    if (!shopifyOk) console.log('Shopify:', aovResult.reason?.message)
+    const aov          = rawAov > 0 ? Math.round(rawAov * 100) / 100 : AOV_OVERRIDE
     const newCustMonth = newCustResult.status === 'fulfilled' ? newCustResult.value : []
     const meta         = metaResult.status    === 'fulfilled' ? metaResult.value    : null
     if (metaResult.status === 'rejected') console.log('Meta:', metaResult.reason?.message)
@@ -130,7 +127,7 @@ export async function GET() {
       churnRate:     Math.round((1 - 1/lifespan)*1000)/10,
       retentionRate: Math.round((1/lifespan)*1000)/10,
       returningRate: 0,
-      sources: { shopify: true, meta: !!meta, google: false },
+      sources: { shopify: shopifyOk && totalOrders > 0, meta: !!meta, google: false },
       monthly,
       updatedAt: new Date().toISOString(),
     })

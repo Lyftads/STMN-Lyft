@@ -10,7 +10,6 @@ const META_ACCOUNT  = process.env.META_AD_ACCOUNT_ID
 function shopifyAuth() {
   return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
 }
-}
 
 // ── Genera ultimi N mesi ───────────────────────────────────────
 function getMonths(n = 12) {

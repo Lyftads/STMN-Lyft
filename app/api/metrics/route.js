@@ -1,28 +1,30 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60 // Vercel Pro
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { subDays, format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths, eachMonthOfInterval, parseISO } from 'date-fns'
 
 const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
 const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 const META_TOKEN    = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT  = process.env.META_AD_ACCOUNT_ID
+const START_DATE    = '2026-04-01'
 
 function shopifyAuth() {
   return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
 }
 
-// ── Paginazione completa ordini con date range ─────────────────
-async function fetchAllOrders(startISO, endISO) {
+// ── Fetch tutti gli ordini dal 1 aprile (dentro finestra 60gg) ─
+async function fetchAllOrders() {
   let orders = []
   let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?` +
     `status=any&financial_status=any` +
-    `&created_at_min=${startISO}&created_at_max=${endISO}` +
-    `&limit=250&fields=id,total_price,current_total_price,customer_id,email,created_at,financial_status`
+    `&created_at_min=${START_DATE}T00:00:00Z` +
+    `&limit=250` +
+    `&fields=id,total_price,current_total_price,customer_id,email,created_at,financial_status,line_items`
   while (url) {
     const res = await fetch(url, { headers: shopifyAuth() })
-    if (!res.ok) break
+    if (!res.ok) { console.log('Orders error:', res.status); break }
     const data = await res.json()
     if (!data.orders?.length) break
     orders = orders.concat(data.orders)
@@ -30,82 +32,17 @@ async function fetchAllOrders(startISO, endISO) {
     const next = link.match(/<([^>]+)>;\s*rel="next"/)
     url = next ? next[1] : null
   }
+  console.log(`Fetched ${orders.length} orders from ${START_DATE}`)
   return orders
 }
 
-// ── Dati ESATTI per periodo selezionato (paginazione completa) ─
-async function fetchPeriodData(startISO, endISO) {
-  const orders = await fetchAllOrders(startISO, endISO)
-  const validOrders = orders.filter(o => o.financial_status !== 'voided')
-
-  // Analisi cross-periodo per nuovi vs returning
-  const customerFirstSeen = {}
-  for (const o of validOrders.sort((a,b) => new Date(a.created_at) - new Date(b.created_at))) {
-    const cid = o.customer_id || o.email?.toLowerCase()
-    if (cid && !customerFirstSeen[cid]) customerFirstSeen[cid] = o.created_at
-  }
-
-  const totalOrders  = validOrders.length
-  const grossRevenue = validOrders.reduce((s,o) => s + parseFloat(o.total_price || 0), 0)
-  const netRevenue   = validOrders.reduce((s,o) => s + parseFloat(o.current_total_price || o.total_price || 0), 0)
-  const returns      = grossRevenue - netRevenue
-  const aov          = totalOrders > 0 ? netRevenue / totalOrders : 0
-
-  // Nuovi clienti = clienti il cui primo ordine cade in questo periodo
-  const newCustIds   = new Set(Object.keys(customerFirstSeen))
-  const retCustIds   = new Set()
-  let revenueNew = 0, revenueRet = 0, ordersNew = 0, ordersRet = 0
-
-  for (const o of validOrders) {
-    const cid   = o.customer_id || o.email?.toLowerCase()
-    const price = parseFloat(o.current_total_price || o.total_price || 0)
-    if (cid && newCustIds.has(cid)) { ordersNew++; revenueNew += price }
-    else                             { ordersRet++; revenueRet += price; if(cid) retCustIds.add(cid) }
-  }
-
-  return {
-    totalOrders,
-    grossRevenue: Math.round(grossRevenue * 100) / 100,
-    netRevenue:   Math.round(netRevenue   * 100) / 100,
-    returns:      Math.round(returns      * 100) / 100,
-    aov:          Math.round(aov          * 100) / 100,
-    newCustomers: newCustIds.size,
-    returningCustomers: retCustIds.size,
-    ordersNew, ordersRet,
-    revenueNew:   Math.round(revenueNew * 100) / 100,
-    revenueRet:   Math.round(revenueRet * 100) / 100,
-    aovNew:       ordersNew > 0 ? Math.round(revenueNew / ordersNew * 100) / 100 : 0,
-    aovRet:       ordersRet > 0 ? Math.round(revenueRet / ordersRet * 100) / 100 : 0,
-  }
-}
-
-// ── Dati mensili: count per ogni mese (veloci, esatti per ordini+clienti) ─
-async function fetchMonthlyCounts() {
-  const now    = new Date()
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const d = subMonths(now, 11 - i)
-    return { key: format(d, 'yyyy-MM'), startISO: startOfMonth(d).toISOString(), endISO: endOfMonth(d).toISOString() }
-  })
-  // 24 chiamate leggere in parallelo
-  const results = await Promise.all(months.map(async ({ key, startISO, endISO }) => {
-    const [ordRes, custRes] = await Promise.all([
-      fetch(`https://${SHOPIFY_STORE}/admin/api/2024-01/orders/count.json?status=any&financial_status=paid&created_at_min=${startISO}&created_at_max=${endISO}`, { headers: shopifyAuth() }).then(r=>r.json()).catch(()=>({count:0})),
-      fetch(`https://${SHOPIFY_STORE}/admin/api/2024-01/customers/count.json?created_at_min=${startISO}&created_at_max=${endISO}`, { headers: shopifyAuth() }).then(r=>r.json()).catch(()=>({count:0})),
-    ])
-    return { key, orders: ordRes.count||0, newCustomersRegistered: custRes.count||0 }
-  }))
-  return results
-}
-
-// ── Meta spesa mensile ─────────────────────────────────────────
+// ── Meta spesa mensile da aprile ───────────────────────────────
 async function fetchMeta() {
   if (!META_TOKEN || !META_ACCOUNT) return null
-  const accounts = META_ACCOUNT.split(',').map(s=>s.trim()).filter(Boolean)
-  const since = format(subDays(new Date(), 380), 'yyyy-MM-dd')
-  const until = format(new Date(), 'yyyy-MM-dd')
+  const accounts = META_ACCOUNT.split(',').map(s => s.trim()).filter(Boolean)
   try {
     const results = await Promise.all(accounts.map(async id => {
-      const res  = await fetch(`https://graph.facebook.com/v19.0/${id}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=monthly&access_token=${META_TOKEN}`)
+      const res  = await fetch(`https://graph.facebook.com/v19.0/${id}/insights?fields=spend&time_range={"since":"${START_DATE}","until":"${format(new Date(),'yyyy-MM-dd')}"}&time_increment=monthly&access_token=${META_TOKEN}`)
       const data = await res.json()
       if (data.error) { console.log('Meta:', data.error.message); return [] }
       return data.data || []
@@ -116,102 +53,136 @@ async function fetchMeta() {
         const m = d.date_start?.slice(0,7)
         if (m) map[m] = (map[m]||0) + parseFloat(d.spend||0)
       }
-    const monthly    = Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).map(([month,spend])=>({month,spend:Math.round(spend*100)/100}))
-    const totalSpend = Math.round(monthly.reduce((s,m)=>s+m.spend,0)*100)/100
-    return { totalSpend, monthly }
-  } catch(e) { return null }
+    return Object.entries(map).sort(([a],[b]) => a.localeCompare(b)).map(([month,spend]) => ({ month, spend: Math.round(spend*100)/100 }))
+  } catch(e) { return [] }
 }
 
-// ── Handler principale ─────────────────────────────────────────
-export async function GET(request) {
+// ── Processa ordini → metriche mensili ─────────────────────────
+function processOrders(orders) {
+  const validOrders = orders.filter(o => o.financial_status !== 'voided' && o.financial_status !== 'refunded' || parseFloat(o.current_total_price||0) > 0)
+
+  // Mappa customer → primo mese di acquisto (nel nostro dataset)
+  const customerFirstMonth = {}
+  const ordersByDate = [...validOrders].sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+  for (const o of ordersByDate) {
+    const cid   = String(o.customer_id || o.email || o.id)
+    const month = o.created_at.slice(0,7)
+    if (!customerFirstMonth[cid]) customerFirstMonth[cid] = month
+  }
+
+  // Raggruppa per mese
+  const byMonth = {}
+  for (const o of validOrders) {
+    const month = o.created_at.slice(0,7)
+    if (!byMonth[month]) byMonth[month] = []
+    byMonth[month].push(o)
+  }
+
+  // Analisi prodotti (tutti i mesi)
+  const productMap = {}
+  for (const o of validOrders) {
+    for (const li of (o.line_items||[])) {
+      const pid   = li.product_id || li.title
+      const price = parseFloat(li.price||0) * parseInt(li.quantity||1)
+      if (!productMap[pid]) productMap[pid] = { id: pid, title: li.title, vendor: li.vendor||'', qty: 0, revenue: 0 }
+      productMap[pid].qty     += parseInt(li.quantity||1)
+      productMap[pid].revenue += price
+    }
+  }
+  const products = Object.values(productMap)
+    .map(p => ({ ...p, revenue: Math.round(p.revenue*100)/100, aov: Math.round(p.revenue/p.qty*100)/100 }))
+    .sort((a,b) => b.revenue - a.revenue)
+    .slice(0, 20)
+
+  // Calcola metriche per mese
+  const months = Object.entries(byMonth).sort(([a],[b]) => a.localeCompare(b)).map(([month, ords]) => {
+    const gross  = ords.reduce((s,o) => s + parseFloat(o.total_price||0), 0)
+    const net    = ords.reduce((s,o) => s + parseFloat(o.current_total_price||o.total_price||0), 0)
+    const resi   = gross - net
+    const total  = ords.length
+    const aov    = total > 0 ? net/total : 0
+
+    const newCustSet = new Set()
+    const retCustSet = new Set()
+    let revenueNew = 0, revenueRet = 0, ordersNew = 0, ordersRet = 0
+
+    for (const o of ords) {
+      const cid   = String(o.customer_id || o.email || o.id)
+      const price = parseFloat(o.current_total_price||o.total_price||0)
+      if (customerFirstMonth[cid] === month) {
+        newCustSet.add(cid); revenueNew += price; ordersNew++
+      } else {
+        retCustSet.add(cid); revenueRet += price; ordersRet++
+      }
+    }
+
+    return {
+      month,
+      orders:           total,
+      grossRevenue:     Math.round(gross*100)/100,
+      netRevenue:       Math.round(net*100)/100,
+      returns:          Math.round(resi*100)/100,
+      aov:              Math.round(aov*100)/100,
+      newCustomers:     newCustSet.size,
+      returningCustomers: retCustSet.size,
+      ordersNew, ordersRet,
+      revenueNew:       Math.round(revenueNew*100)/100,
+      revenueRet:       Math.round(revenueRet*100)/100,
+      aovNew:           ordersNew > 0 ? Math.round(revenueNew/ordersNew*100)/100 : 0,
+      aovRet:           ordersRet > 0 ? Math.round(revenueRet/ordersRet*100)/100 : 0,
+    }
+  })
+
+  // Totali periodo
+  const totalOrders  = months.reduce((s,m) => s+m.orders, 0)
+  const totalRevenue = months.reduce((s,m) => s+m.netRevenue, 0)
+  const totalGross   = months.reduce((s,m) => s+m.grossRevenue, 0)
+  const totalReturns = months.reduce((s,m) => s+m.returns, 0)
+  const totalNewCust = months.reduce((s,m) => s+m.newCustomers, 0)
+  const totalRetCust = months.reduce((s,m) => s+m.returningCustomers, 0)
+  const aovGlobal    = totalOrders > 0 ? Math.round(totalRevenue/totalOrders*100)/100 : 0
+
+  return { months, products, totalOrders, totalRevenue, totalGross, totalReturns, totalNewCust, totalRetCust, aovGlobal }
+}
+
+// ── Handler ────────────────────────────────────────────────────
+export async function GET() {
   try {
-    // Leggi periodo CAC dalla query string (passato dal frontend)
-    const url      = new URL(request.url)
-    const cacStart = url.searchParams.get('cacStart') || '2026-01-01'
-    const cacEnd   = url.searchParams.get('cacEnd')   || format(new Date(), 'yyyy-MM-dd')
-
-    const cacStartISO = new Date(cacStart + 'T00:00:00Z').toISOString()
-    const cacEndISO   = new Date(cacEnd   + 'T23:59:59Z').toISOString()
-
-    console.log(`Fetching period: ${cacStart} → ${cacEnd}`)
-
-    // Fetch tutto in parallelo
-    const [periodResult, monthlyResult, metaResult] = await Promise.allSettled([
-      fetchPeriodData(cacStartISO, cacEndISO),
-      fetchMonthlyCounts(),
+    const [orders, metaMonthly] = await Promise.all([
+      fetchAllOrders(),
       fetchMeta(),
     ])
 
-    const period  = periodResult.status  === 'fulfilled' ? periodResult.value  : null
-    const monthly = monthlyResult.status === 'fulfilled' ? monthlyResult.value : []
-    const meta    = metaResult.status    === 'fulfilled' ? metaResult.value    : null
+    const shopify  = processOrders(orders)
+    const metaMap  = {}
+    for (const m of (metaMonthly||[])) metaMap[m.month] = m.spend
+    const metaTotal = (metaMonthly||[]).reduce((s,m) => s+m.spend, 0)
 
-    // Spesa Meta nel periodo CAC
-    const cacStartMonth = cacStart.slice(0,7)
-    const cacEndMonth   = cacEnd.slice(0,7)
-    const metaByMonth   = {}
-    for (const m of (meta?.monthly||[])) metaByMonth[m.month] = m.spend
-    const metaSpendPeriod = Object.entries(metaByMonth)
-      .filter(([m]) => m >= cacStartMonth && m <= cacEndMonth)
-      .reduce((s,[,v]) => s + v, 0)
-
-    // Dati mensili combinati
-    const monthlyData = monthly.map(m => ({
-      month:                 m.key,
-      orders:                m.orders,
-      revenue:               0,   // richiede paginazione full — mostra "—"
-      grossRevenue:          0,
-      returns:               0,
-      aov:                   0,
-      newCustomers:          m.newCustomersRegistered, // registrazioni (esatto)
-      returningCustomers:    0,
-      ordersNew:             0,
-      ordersReturning:       0,
-      revenueNew:            0,
-      revenueReturning:      0,
-      aovNew:                0,
-      aovReturning:          0,
-      metaSpend:             metaByMonth[m.key] || 0,
-      totalSpend:            metaByMonth[m.key] || 0,
-      isExact:               false, // dati dal periodo esatto sono separati
+    const monthly = shopify.months.map(m => ({
+      ...m,
+      metaSpend: metaMap[m.month] || 0,
     }))
 
     return NextResponse.json({
-      // ── Metriche globali dal periodo selezionato (ESATTE) ──
-      aov:               period?.aov            || 0,
-      grossRevenue:      period?.grossRevenue   || 0,
-      netRevenue:        period?.netRevenue     || 0,
-      returns:           period?.returns        || 0,
-      newCustomers:      period?.newCustomers   || 0,
-      returningCustomers: period?.returningCustomers || 0,
-      ordersNew:         period?.ordersNew      || 0,
-      ordersRet:         period?.ordersRet      || 0,
-      revenueNew:        period?.revenueNew     || 0,
-      revenueRet:        period?.revenueRet     || 0,
-      aovNew:            period?.aovNew         || 0,
-      aovRet:            period?.aovRet         || 0,
-      totalOrders:       period?.totalOrders    || 0,
-      // ── CAC con dati periodo ──
-      purchaseFrequency: 1.69,
-      customerLifespan:  1.57,
-      grossMargin:       0.30,
-      ltvGross:          0, ltvNet: 0,
-      metaSpend:         meta?.totalSpend       || 0,
-      metaSpendPeriod:   Math.round(metaSpendPeriod * 100) / 100,
-      googleSpend:       0,
-      totalAdSpend:      meta?.totalSpend       || 0,
-      totalAdSpendPeriod: Math.round(metaSpendPeriod * 100) / 100,
-      cac:               null, ratio: null, ratioStatus: 'no_data',
-      totalRevenue:      period?.netRevenue     || 0,
-      uniqueCustomers:   0,
-      churnRate: 36.3, retentionRate: 63.7, returningRate: 0,
-      cacPeriod: { start: cacStart, end: cacEnd },
-      sources: { shopify: !!period, meta: !!meta, google: false },
-      monthly: monthlyData,
+      // Globali periodo
+      aov:               shopify.aovGlobal,
+      totalOrders:       shopify.totalOrders,
+      totalRevenue:      shopify.totalRevenue,
+      totalGross:        shopify.totalGross,
+      totalReturns:      shopify.totalReturns,
+      newCustomers:      shopify.totalNewCust,
+      returningCustomers: shopify.totalRetCust,
+      metaSpend:         Math.round(metaTotal*100)/100,
+      // Mensili
+      monthly,
+      // Prodotti
+      products:          shopify.products,
+      // Meta
+      sources: { shopify: orders.length > 0, meta: (metaMonthly||[]).length > 0, google: false },
+      startDate: START_DATE,
       updatedAt: new Date().toISOString(),
     })
-  } catch (err) {
-    console.error('Metrics error:', err.message)
+  } catch(err) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

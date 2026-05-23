@@ -8,9 +8,8 @@ const META_TOKEN    = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT  = process.env.META_AD_ACCOUNT_ID
 
 function shopifyAuth() {
-  const t = SHOPIFY_TOKEN || ''
-  if (t.startsWith('atkn_') || t.startsWith('shpca_')) return { 'Authorization': `Bearer ${t}` }
-  return { 'X-Shopify-Access-Token': t }
+  return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
+}
 }
 
 // ── Genera ultimi N mesi ───────────────────────────────────────

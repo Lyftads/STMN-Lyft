@@ -19,9 +19,11 @@ const DEFAULT_SETTINGS = {
   purchaseFrequency: 1.69,
   customerLifespan:  1.57,
   grossMargin:       30,
-  newCustomers:      10718,
+  newCustomers:      0,       // 0 = automatico da Shopify
   aovOverride:       85.18,
   googleAdsSpend:    0,
+  cacPeriodStart:    '2026-01-01',  // inizio periodo CAC
+  cacPeriodEnd:      '',            // vuoto = oggi
 }
 
 function loadSettings() {
@@ -105,6 +107,25 @@ function SettingsModal({ settings, onSave, onClose }) {
           </div>
         ))}
 
+        <div className="mb-4 border-t border-accent pt-4">
+          <p className="text-gray-300 text-sm font-medium mb-2">📅 Periodo calcolo CAC</p>
+          <p className="text-gray-500 text-xs mb-3">Usa lo stesso periodo per spesa Meta e nuovi clienti</p>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <label className="text-gray-400 text-xs block mb-1">Dal</label>
+              <input type="date" value={form.cacPeriodStart}
+                onChange={e => set('cacPeriodStart', e.target.value)}
+                className="bg-dark border border-accent rounded-lg px-3 py-2 text-white w-full text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-gray-400 text-xs block mb-1">Al (vuoto = oggi)</label>
+              <input type="date" value={form.cacPeriodEnd}
+                onChange={e => set('cacPeriodEnd', e.target.value)}
+                className="bg-dark border border-accent rounded-lg px-3 py-2 text-white w-full text-sm" />
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-3 mt-6">
           <button onClick={onClose}
             className="flex-1 bg-dark border border-accent text-gray-300 rounded-lg py-2 hover:bg-accent transition-colors">
@@ -157,11 +178,28 @@ export default function Dashboard() {
   const newCust  = (data?.newCustomers && data.newCustomers > 0) ? data.newCustomers : settings.newCustomers
   const ltvGross = aov * freq * lifespan
   const ltvNet   = Math.round(ltvGross * margin * 100) / 100
-  const metaSpend   = data?.metaSpend || 0
-  const googleSpend = settings.googleAdsSpend || 0
-  const totalSpend  = metaSpend + googleSpend
-  const cac         = totalSpend > 0 && newCust > 0
-    ? Math.round(totalSpend / newCust * 100) / 100 : null
+  // Calcola spesa Meta nel periodo selezionato
+  const cacStart = settings.cacPeriodStart || '2026-01-01'
+  const cacEnd   = settings.cacPeriodEnd   || new Date().toISOString().slice(0,10)
+  const metaSpendPeriod = data?.monthly
+    ? data.monthly
+        .filter(m => m.month >= cacStart.slice(0,7) && m.month <= cacEnd.slice(0,7))
+        .reduce((s, m) => s + (m.metaSpend || 0), 0)
+    : (data?.metaSpend || 0)
+  const googleSpend   = settings.googleAdsSpend || 0
+  const metaSpend     = data?.metaSpend || 0
+  const totalSpend    = metaSpend + googleSpend
+  const totalSpendPeriod = metaSpendPeriod + googleSpend
+
+  // Nuovi clienti nel periodo
+  const newCustPeriod = data?.monthly
+    ? data.monthly
+        .filter(m => m.month >= cacStart.slice(0,7) && m.month <= cacEnd.slice(0,7))
+        .reduce((s, m) => s + (m.newCustomers || 0), 0)
+    : newCust
+
+  const cac = totalSpendPeriod > 0 && newCustPeriod > 0
+    ? Math.round(totalSpendPeriod / newCustPeriod * 100) / 100 : null
   const ratio = (cac && cac > 0 && ltvNet > 0) ? Math.round(ltvNet / cac * 100) / 100 : null
   const ratioStatus = (ratio != null)
     ? (ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent')
@@ -239,16 +277,16 @@ export default function Dashboard() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <MetricCard label="LTV Netto"        value={fmt(ltvNet)}       sub={`Lordo: ${fmt(ltvGross)}`} big />
-            <MetricCard label="CAC"              value={cac ? fmt(cac) : '—'} sub={`${fmtn(newCust)} nuovi clienti/anno`} />
+            <MetricCard label="CAC"              value={cac ? fmt(cac) : '—'} sub={`${fmtn(newCustPeriod)} nuovi clienti (${cacStart.slice(0,7)} → ${cacEnd.slice(0,7)})`} />
             <MetricCard label="AOV Reale"        value={fmt(aov)}          sub={`${fmtn(data?.totalOrders)} ordini`} color="#3498DB" />
-            <MetricCard label="Spesa Ads Totale" value={fmt(totalSpend)}   sub={`Meta ${fmt(metaSpend)} + Google ${fmt(googleSpend)}`} color="#9B59B6" />
+            <MetricCard label="Spesa Ads Totale" value={fmt(totalSpendPeriod)}   sub={`Periodo CAC • Meta ${fmt(metaSpendPeriod)} + Google ${fmt(googleSpend)}`} color="#9B59B6" />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <MetricCard label="Frequenza Acquisti" value={fmtx(freq)}     sub="ordini per cliente/anno"   color="#1ABC9C" />
             <MetricCard label="Vita Media Cliente" value={`${lifespan.toFixed(2).replace('.',',')} anni`} sub="1 ÷ churn rate" color="#F39C12" />
             <MetricCard label="Margine Lordo"      value={fmtp(settings.grossMargin)} sub="sui costi variabili" color="#27AE60" />
-            <MetricCard label="Nuovi Clienti/Anno" value={fmtn(newCust)}  sub="da analisi Shopify" color="#E94560" />
+            <MetricCard label="Nuovi Clienti/Anno" value={fmtn(newCust)}  sub={`${fmtn(newCustPeriod)} nel periodo CAC`} color="#E94560" />
           </div>
 
           {/* Info settings */}

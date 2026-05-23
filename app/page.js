@@ -323,7 +323,7 @@ export default function Dashboard() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-accent">
-                      {['Mese','Fatturato','Spesa Mktg','Nuovi Clienti','AOV','CAC','LTV','Ratio'].map(h => (
+                      {['Mese','Fatturato Netto','Resi','Spesa Mktg','Nuovi Clienti','Clienti Ret.','AOV','AOV Nuovi','AOV Ret.','CAC','Ratio'].map(h => (
                         <th key={h} className="py-2 px-3 text-left text-gold font-medium">{h}</th>
                       ))}
                     </tr>
@@ -344,15 +344,19 @@ export default function Dashboard() {
                         : '#27AE60'
                       return (
                         <tr key={m.month} className={i%2===0 ? 'bg-dark' : ''}>
-                          <td className="py-2 px-3 font-medium text-gray-300">{m.month}{m.sampled && <span className="text-yellow-600 text-xs ml-1">~</span>}</td>
+                          <td className="py-2 px-3 font-medium text-gray-300">{m.month}</td>
                           <td className="py-2 px-3 text-green-400">{m.revenue > 0 ? fmt(m.revenue, 0) : <span className="text-gray-600">—</span>}</td>
+                          <td className="py-2 px-3 text-red-400 text-xs">{m.returns > 0 ? `-${fmt(m.returns, 0)}` : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3 text-purple-400">{m.totalSpend > 0 ? fmt(m.totalSpend) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3 text-gray-400">{monthlyNewClients.toLocaleString('it-IT')}</td>
-                          <td className="py-2 px-3 text-blue-400">{m.aov > 0 ? fmt(m.aov) : <span className="text-gray-500 text-xs">da impost.</span>}</td>
+                          <td className="py-2 px-3 text-gray-400 text-xs">{m.returningCustomers > 0 ? m.returningCustomers.toLocaleString('it-IT') : <span className="text-gray-600">—</span>}</td>
+                          <td className="py-2 px-3 text-blue-400">{m.aov > 0 ? fmt(m.aov) : <span className="text-gray-500 text-xs">—</span>}</td>
+                          <td className="py-2 px-3 text-cyan-400 text-xs">{m.aovNew > 0 ? fmt(m.aovNew) : <span className="text-gray-600">—</span>}</td>
+                          <td className="py-2 px-3 text-indigo-400 text-xs">{m.aovReturning > 0 ? fmt(m.aovReturning) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3">{monthlyCac ? fmt(monthlyCac) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3">{monthlyLtv ? fmt(monthlyLtv) : <span className="text-gray-600">—</span>}</td>
-                          <td className="py-2 px-3 font-bold" style={{ color: ratioColor }}>
-                            {monthlyRatio ? `${monthlyRatio.toFixed(2).replace('.',',')} : 1` : <span className="text-gray-600">—</span>}
+                          <td className="py-2 px-3 font-bold text-xs" style={{ color: ratioColor }}>
+                            {monthlyRatio ? `${monthlyRatio.toFixed(1).replace('.',',')}:1` : <span className="text-gray-600">—</span>}
                           </td>
                         </tr>
                       )

@@ -61,9 +61,11 @@ const ChartTooltip = ({ active, payload, label }) => {
   return (
     <div className="bg-dark border border-accent rounded-lg p-3 text-xs shadow-xl">
       <p className="text-gold font-bold mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color }}>{p.name}: {typeof p.value === 'number' && p.value > 100 ? fmt(p.value) : p.value}</p>
-      ))}
+      {payload.map((p, i) => {
+        const isCount = ['Ordini','Clienti unici'].includes(p.name)
+        const val = isCount ? fmtn(p.value) : (typeof p.value === 'number' ? fmt(p.value) : p.value)
+        return <p key={i} style={{ color: p.color }}>{p.name}: {val}</p>
+      })}
     </div>
   )
 }
@@ -127,7 +129,10 @@ export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings]   = useState(DEFAULT_SETTINGS)
 
-  useEffect(() => { setSettings(loadSettings()) }, [])
+  useEffect(() => {
+    const s = loadSettings()
+    setSettings(s)
+  }, [])
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null)
@@ -143,23 +148,24 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Usa dati API (calcolati automaticamente da Shopify + Meta)
-  // Settings = solo fallback se API non ha ancora dati
-  const aov      = (data?.aov && data.aov > 0) ? data.aov : settings.aovOverride
-  const margin   = (data?.grossMargin || settings.grossMargin / 100)
-  const freq     = data?.purchaseFrequency > 0 ? data.purchaseFrequency : settings.purchaseFrequency
-  const lifespan = data?.customerLifespan  > 0 ? data.customerLifespan  : settings.customerLifespan
-  const newCust  = data?.newCustomers      > 0 ? data.newCustomers       : settings.newCustomers
-  const ltvGross = data?.ltvGross || (aov * freq * lifespan)
-  const ltvNet   = data?.ltvNet   || (ltvGross * margin)
+  // Le impostazioni hanno SEMPRE priorità sui dati API
+  // L'API fornisce solo: Meta spend (automatico) e AOV se Shopify funziona
+  const aov      = settings.aovOverride > 0 ? settings.aovOverride : (data?.aov || 0)
+  const margin   = settings.grossMargin / 100
+  const freq     = settings.purchaseFrequency
+  const lifespan = settings.customerLifespan
+  const newCust  = (data?.newCustomers && data.newCustomers > 0) ? data.newCustomers : settings.newCustomers
+  const ltvGross = aov * freq * lifespan
+  const ltvNet   = Math.round(ltvGross * margin * 100) / 100
   const metaSpend   = data?.metaSpend || 0
   const googleSpend = settings.googleAdsSpend || 0
   const totalSpend  = metaSpend + googleSpend
-  const cac         = data?.cac
-    ? (googleSpend > 0 ? Math.round((metaSpend + googleSpend) / newCust * 100) / 100 : data.cac)
-    : (newCust > 0 && totalSpend > 0 ? Math.round(totalSpend / newCust * 100) / 100 : null)
-  const ratio    = data?.ratio || (cac && ltvNet ? Math.round(ltvNet / cac * 100) / 100 : null)
-  const ratioStatus = data?.ratioStatus || (ratio == null ? 'no_data' : ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent')
+  const cac         = totalSpend > 0 && newCust > 0
+    ? Math.round(totalSpend / newCust * 100) / 100 : null
+  const ratio = (cac && cac > 0 && ltvNet > 0) ? Math.round(ltvNet / cac * 100) / 100 : null
+  const ratioStatus = (ratio != null)
+    ? (ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent')
+    : (metaSpend > 0 || data?.totalAdSpend > 0 ? 'no_data' : 'no_data')
   const rc = RATIO_CONFIG[ratioStatus]
 
   return (
@@ -317,7 +323,7 @@ export default function Dashboard() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-accent">
-                      {['Mese','Spesa Mktg','Nuovi Clienti','AOV','CAC','LTV','Ratio'].map(h => (
+                      {['Mese','Fatturato','Spesa Mktg','Nuovi Clienti','AOV','CAC','LTV','Ratio'].map(h => (
                         <th key={h} className="py-2 px-3 text-left text-gold font-medium">{h}</th>
                       ))}
                     </tr>
@@ -325,21 +331,24 @@ export default function Dashboard() {
                   <tbody>
                     {data.monthly.map((m, i) => {
                       const monthlyNewClients = m.newCustomers > 0 ? m.newCustomers : Math.round(newCust / 12)
+                      const isRealNC = m.newCustomers > 0
                       const monthlyGoogle = googleSpend > 0 ? Math.round(googleSpend / 12 * 100) / 100 : 0
                       const monthlyCac = (m.totalSpend + monthlyGoogle) > 0 && monthlyNewClients > 0
                         ? (m.totalSpend + monthlyGoogle) / monthlyNewClients : null
-                      const monthlyLtv = m.aov > 0 ? m.aov * freq * lifespan * margin : null
-                      const monthlyRatio = monthlyCac && monthlyLtv ? monthlyLtv / monthlyCac : null
+                      const monthlyAOV = m.aov > 0 ? m.aov : aov
+                      const monthlyLtv = monthlyAOV > 0 ? monthlyAOV * freq * lifespan * margin : null
+                      const monthlyRatio = monthlyCac && monthlyLtv && monthlyLtv > 0 ? monthlyLtv / monthlyCac : null
                       const ratioColor = monthlyRatio == null ? '#B0B0C0'
                         : monthlyRatio < 1 ? '#E74C3C'
                         : monthlyRatio < 3 ? '#E67E22'
                         : '#27AE60'
                       return (
                         <tr key={m.month} className={i%2===0 ? 'bg-dark' : ''}>
-                          <td className="py-2 px-3 font-medium text-gray-300">{m.month}</td>
+                          <td className="py-2 px-3 font-medium text-gray-300">{m.month}{m.sampled && <span className="text-yellow-600 text-xs ml-1">~</span>}</td>
+                          <td className="py-2 px-3 text-green-400">{m.revenue > 0 ? fmt(m.revenue, 0) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3 text-purple-400">{m.totalSpend > 0 ? fmt(m.totalSpend) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3 text-gray-400">{monthlyNewClients.toLocaleString('it-IT')}</td>
-                          <td className="py-2 px-3 text-blue-400">{m.aov > 0 ? fmt(m.aov) : <span className="text-gray-600">—</span>}</td>
+                          <td className="py-2 px-3 text-blue-400">{m.aov > 0 ? fmt(m.aov) : <span className="text-gray-500 text-xs">da impost.</span>}</td>
                           <td className="py-2 px-3">{monthlyCac ? fmt(monthlyCac) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3">{monthlyLtv ? fmt(monthlyLtv) : <span className="text-gray-600">—</span>}</td>
                           <td className="py-2 px-3 font-bold" style={{ color: ratioColor }}>
@@ -362,6 +371,7 @@ export default function Dashboard() {
                       return (
                         <tr className="border-t-2 border-accent bg-accent">
                           <td className="py-2 px-3 font-bold text-gold">📊 MEDIE</td>
+                          <td className="py-2 px-3 font-bold text-green-400">{fmt(withData.reduce((s,m) => s+m.revenue,0)/withData.length, 0)}</td>
                           <td className="py-2 px-3 font-bold text-purple-400">{fmt(avgSpend)}</td>
                           <td className="py-2 px-3 font-bold text-gray-300">{avgNewCl.toLocaleString('it-IT')}</td>
                           <td className="py-2 px-3 font-bold text-blue-400">{fmt(avgAov)}</td>

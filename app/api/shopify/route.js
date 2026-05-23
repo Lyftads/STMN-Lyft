@@ -11,7 +11,7 @@ const CHURN_WINDOW   = 365
 function getAuthHeader() {
   const token = SHOPIFY_TOKEN || ''
   if (token.startsWith('atkn_')) {
-    return { 'Authorization': `Bearer ${token}` }
+    return { 'X-Shopify-Access-Token': token }
   }
   return { 'X-Shopify-Access-Token': token }
 }

@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
   grossMargin:       30,
   newCustomers:      10718,
   aovOverride:       85.18,
+  googleAdsSpend:    0,
 }
 
 function loadSettings() {
@@ -87,6 +88,7 @@ function SettingsModal({ settings, onSave, onClose }) {
           { key:'grossMargin',       label:'Margine lordo (%)',              step:'1',    suffix:'%' },
           { key:'newCustomers',      label:'Nuovi clienti/anno',             step:'1',    suffix:'clienti' },
           { key:'aovOverride',       label:'AOV medio (€) — usa se Shopify non disponibile', step:'0.01', suffix:'€' },
+          { key:'googleAdsSpend',    label:'Spesa Google Ads annuale (€)',                    step:'1',    suffix:'€/anno' },
         ].map(({ key, label, step, suffix }) => (
           <div key={key} className="mb-4">
             <label className="text-gray-300 text-sm block mb-1">{label}</label>
@@ -150,9 +152,12 @@ export default function Dashboard() {
   const newCust  = data?.newCustomers      > 0 ? data.newCustomers       : settings.newCustomers
   const ltvGross = data?.ltvGross || (aov * freq * lifespan)
   const ltvNet   = data?.ltvNet   || (ltvGross * margin)
-  const metaSpend  = data?.metaSpend || 0
-  const totalSpend = data?.totalAdSpend || 0
-  const cac      = data?.cac || (newCust > 0 && totalSpend > 0 ? Math.round(totalSpend / newCust * 100) / 100 : null)
+  const metaSpend   = data?.metaSpend || 0
+  const googleSpend = settings.googleAdsSpend || 0
+  const totalSpend  = metaSpend + googleSpend
+  const cac         = data?.cac
+    ? (googleSpend > 0 ? Math.round((metaSpend + googleSpend) / newCust * 100) / 100 : data.cac)
+    : (newCust > 0 && totalSpend > 0 ? Math.round(totalSpend / newCust * 100) / 100 : null)
   const ratio    = data?.ratio || (cac && ltvNet ? Math.round(ltvNet / cac * 100) / 100 : null)
   const ratioStatus = data?.ratioStatus || (ratio == null ? 'no_data' : ratio < 1 ? 'critical' : ratio < 3 ? 'warning' : ratio <= 7 ? 'good' : 'excellent')
   const rc = RATIO_CONFIG[ratioStatus]
@@ -230,7 +235,7 @@ export default function Dashboard() {
             <MetricCard label="LTV Netto"        value={fmt(ltvNet)}       sub={`Lordo: ${fmt(ltvGross)}`} big />
             <MetricCard label="CAC"              value={cac ? fmt(cac) : '—'} sub={`${fmtn(newCust)} nuovi clienti/anno`} />
             <MetricCard label="AOV Reale"        value={fmt(aov)}          sub={`${fmtn(data?.totalOrders)} ordini`} color="#3498DB" />
-            <MetricCard label="Spesa Ads Totale" value={fmt(totalSpend)}   sub={`Meta ${fmt(metaSpend)} + Google €0`} color="#9B59B6" />
+            <MetricCard label="Spesa Ads Totale" value={fmt(totalSpend)}   sub={`Meta ${fmt(metaSpend)} + Google ${fmt(googleSpend)}`} color="#9B59B6" />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -264,7 +269,8 @@ export default function Dashboard() {
                     <Tooltip content={<ChartTooltip />} />
                     <Legend wrapperStyle={{ color:'#B0B0C0', fontSize:12 }} />
                     <Bar dataKey="revenue"    name="Fatturato €" fill="#0F3460" radius={[3,3,0,0]} />
-                    <Bar dataKey="totalSpend" name="Spesa Ads €" fill="#E94560" radius={[3,3,0,0]} />
+                    <Bar dataKey="totalSpend" name="Spesa Meta €" fill="#E94560" radius={[3,3,0,0]} />
+                    {googleSpend > 0 && <Bar dataKey="googleSpendMonthly" name="Spesa Google €" fill="#4285F4" radius={[3,3,0,0]} />}
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
@@ -319,8 +325,9 @@ export default function Dashboard() {
                   <tbody>
                     {data.monthly.map((m, i) => {
                       const monthlyNewClients = m.newCustomers > 0 ? m.newCustomers : Math.round(newCust / 12)
-                      const monthlyCac = m.totalSpend > 0 && monthlyNewClients > 0
-                        ? m.totalSpend / monthlyNewClients : null
+                      const monthlyGoogle = googleSpend > 0 ? Math.round(googleSpend / 12 * 100) / 100 : 0
+                      const monthlyCac = (m.totalSpend + monthlyGoogle) > 0 && monthlyNewClients > 0
+                        ? (m.totalSpend + monthlyGoogle) / monthlyNewClients : null
                       const monthlyLtv = m.aov > 0 ? m.aov * freq * lifespan * margin : null
                       const monthlyRatio = monthlyCac && monthlyLtv ? monthlyLtv / monthlyCac : null
                       const ratioColor = monthlyRatio == null ? '#B0B0C0'
@@ -399,26 +406,30 @@ export default function Dashboard() {
           </Card>
 
 
-          {/* LOOKER STUDIO — Google Ads */}
+          {/* GOOGLE ADS — Link a Looker Studio */}
           <Card className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-300">📊 Google Ads — Looker Studio</p>
-                <p className="text-xs text-gray-500 mt-1">Report completo campagne Google Ads • aggiornamento automatico</p>
+                <p className="text-sm font-medium text-gray-300 mb-1">🔍 Google Ads — Report campagne</p>
+                <p className="text-xs text-gray-500">Spesa, conversioni, ROAS e performance campagne in tempo reale</p>
               </div>
               <a href="https://datastudio.google.com/u/0/reporting/922f6dea-56c4-451d-bbc7-c528ec21f5a1/page/5oMrD"
                 target="_blank" rel="noopener noreferrer"
-                className="text-xs text-gold hover:underline">
-                Apri in Looker Studio ↗
+                className="flex items-center gap-2 bg-accent hover:bg-gold text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium whitespace-nowrap">
+                📊 Apri Looker Studio ↗
               </a>
             </div>
-            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: '8px', overflow: 'hidden' }}>
-              <iframe
-                src="https://lookerstudio.google.com/embed/reporting/922f6dea-56c4-451d-bbc7-c528ec21f5a1/page/5oMrD"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
-                allowFullScreen
-                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              />
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {[
+                { label: 'Campagne attive', value: 'Search + Pmax', color: '#3498DB' },
+                { label: 'Spesa Google', value: '⚙️ da Looker Studio', color: '#B0B0C0' },
+                { label: 'Customer ID', value: '515-224-5976', color: '#27AE60' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-dark rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">{label}</p>
+                  <p className="text-sm font-bold" style={{ color }}>{value}</p>
+                </div>
+              ))}
             </div>
           </Card>
           {/* BENCHMARK */}

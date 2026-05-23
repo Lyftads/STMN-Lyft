@@ -82,15 +82,28 @@ async function fetchShopifyQL() {
     console.log('ShopifyQL sales:', JSON.stringify(salesJson).slice(0, 300))
     console.log('ShopifyQL customers:', JSON.stringify(custJson).slice(0, 300))
 
-    // Parsing risposta ShopifyQL
+    // Parsing risposta ShopifyQL — gestisce diversi formati risposta
     const parseTable = (json) => {
-      const data = json?.data?.shopifyqlQuery?.tableData
-      if (!data) return []
+      const qResult = json?.data?.shopifyqlQuery
+      if (!qResult) { console.log('No shopifyqlQuery in response'); return [] }
+      if (qResult.__typename === 'AnalyticsQueryErrorResponse') {
+        console.log('ShopifyQL error:', JSON.stringify(qResult.errors))
+        return []
+      }
+      const data = qResult.tableData
+      if (!data) { console.log('No tableData, typename:', qResult.__typename); return [] }
       const headers = data.headers || []
-      const rows    = data.unformattedData || data.rowData || []
+      // Prova prima unformattedData (valori raw), poi rowData
+      const rows = data.unformattedData || data.rowData || []
+      console.log('ShopifyQL headers:', headers.join(','))
+      console.log('ShopifyQL first row:', JSON.stringify(rows[0]))
       return rows.map(row => {
         const obj = {}
-        headers.forEach((h, i) => { obj[h] = row[i] })
+        headers.forEach((h, i) => {
+          // Normalizza chiavi: "average_order_value" → "average_order_value"
+          const key = h.toLowerCase().replace(/ /g, '_')
+          obj[key] = row[i]
+        })
         return obj
       })
     }
@@ -107,10 +120,12 @@ async function fetchShopifyQL() {
 
     // Combina dati sales + customers
     const months = salesRows.map(row => {
-      const month   = (row.month || row.date || '').slice(0,7)
-      const orders  = parseInt(row.orders || 0)
-      const revenue = parseFloat(row.gross_sales || 0)
-      const aov     = parseFloat(row.average_order_value || (orders > 0 ? revenue / orders : 0))
+      const month   = (row.month || row.date || row.time || Object.values(row)[0] || '').toString().slice(0,7)
+      const orders  = parseInt(row.orders || row.order_count || 0)
+      const revenue = parseFloat(row.gross_sales || row.total_sales || row.net_sales || 0)
+      // AOV: usa campo diretto o calcola da revenue/orders
+      const aovRaw  = parseFloat(row.average_order_value || row.aov || 0)
+      const aov     = aovRaw > 1 ? aovRaw : (orders > 0 ? revenue / orders : 0)
       return {
         key:          month,
         orders,

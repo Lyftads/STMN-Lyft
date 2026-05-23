@@ -183,11 +183,10 @@ export default function App() {
             <KPI label="AOV Reale"     value={f2(aov)}   sub={`${fn(data?.totalOrders)} ordini`} color="#3498DB" />
             <KPI label="Spesa Ads"     value={f0(spend)} sub={`Meta ${f0(meta)} + Google ${f0(google)}`} color="#9B59B6" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <KPI label="Fatturato Netto"    value={f0(data?.totalRevenue)} sub={`Lordo ${f0(data?.totalGross)}`} color="#27AE60" />
-            <KPI label="Resi Totali"        value={f0(data?.totalReturns)} sub="dal 01/04/2026" color="#E74C3C" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+            <KPI label="Fatturato Netto"    value={f0(data?.totalRevenue)} sub={`Lordo ${f0(data?.totalGross)} • Resi ${f0(data?.totalReturns)}`} color="#27AE60" />
+            <KPI label="Ordini Totali"      value={fn(data?.totalOrders)}  sub={`dal ${data?.startDate||'2026-04-01'}`} color="#3498DB" />
             <KPI label="Nuovi Clienti"      value={fn(data?.newCustomers)} sub="primo acquisto nel periodo" color="#1ABC9C" />
-            <KPI label="Clienti di Ritorno" value={fn(data?.returningCustomers)} sub="già acquirenti" color="#F39C12" />
           </div>
 
           {/* Grafico ratio mensile */}
@@ -225,7 +224,7 @@ export default function App() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-accent">
-                  {['Mese','Ordini','Fatt. Lordo','Resi','Fatt. Netto','AOV','AOV Nuovi','AOV Ritorno','Nuovi Cl.','Cl. Ritorno','Spesa Meta','CAC','LTV','Ratio'].map(h=>(
+                  {['Mese','Ordini','Fatt. Lordo','Resi','Fatt. Netto','AOV','Nuovi Cl.','Spesa Meta','CAC','LTV','Ratio'].map(h=>(
                     <th key={h} className="py-2 px-2 text-left text-gold font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -244,10 +243,7 @@ export default function App() {
                       <td className="py-2 px-2 text-red-400">{m.returns>0?`-${f0(m.returns)}`:'—'}</td>
                       <td className="py-2 px-2 text-green-400 font-bold">{f0(m.netRevenue)}</td>
                       <td className="py-2 px-2 text-blue-400">{f2(m.aov)}</td>
-                      <td className="py-2 px-2 text-cyan-400">{f2(m.aovNew)}</td>
-                      <td className="py-2 px-2 text-indigo-400">{f2(m.aovRet)}</td>
                       <td className="py-2 px-2 text-cyan-300">{fn(m.newCustomers)}</td>
-                      <td className="py-2 px-2 text-indigo-300">{fn(m.returningCustomers)}</td>
                       <td className="py-2 px-2 text-purple-400">{f0(m.metaSpend)}</td>
                       <td className="py-2 px-2">{f2(mc)}</td>
                       <td className="py-2 px-2">{f2(ml)}</td>
@@ -273,10 +269,7 @@ export default function App() {
                       <td className="py-2 px-2 text-red-400">-{f0(tot.reduce((s,m)=>s+m.returns,0))}</td>
                       <td className="py-2 px-2 text-green-400">{f0(tot.reduce((s,m)=>s+m.netRevenue,0))}</td>
                       <td className="py-2 px-2 text-blue-400">{f2(avgAov)}</td>
-                      <td className="py-2 px-2 text-cyan-400">{f2(Math.round(tot.reduce((s,m)=>s+m.aovNew,0)/tot.filter(m=>m.aovNew>0).length*100)/100)}</td>
-                      <td className="py-2 px-2 text-indigo-400">{f2(Math.round(tot.reduce((s,m)=>s+m.aovRet,0)/tot.filter(m=>m.aovRet>0).length*100)/100)}</td>
                       <td className="py-2 px-2 text-cyan-300">{fn(tot.reduce((s,m)=>s+m.newCustomers,0))}</td>
-                      <td className="py-2 px-2 text-indigo-300">{fn(tot.reduce((s,m)=>s+m.returningCustomers,0))}</td>
                       <td className="py-2 px-2 text-purple-400">{f0(totalMeta)}</td>
                       <td className="py-2 px-2">{f2(avgCac)}</td>
                       <td className="py-2 px-2">{f2(avgLtv)}</td>

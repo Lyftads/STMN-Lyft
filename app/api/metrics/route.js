@@ -101,40 +101,30 @@ function processOrders(orders) {
     const net   = ords.reduce((s,o)=>s+parseFloat(o.current_total_price||o.total_price||0),0)
     const total = ords.length
     const aov   = total>0 ? net/total : 0
-
-    const newCust = new Set(), retCust = new Set()
-    let rNew=0, rRet=0, oNew=0, oRet=0
+    const newCust = new Set()
     for (const o of ords) {
       const cid = String(o.customer_id||o.email||o.id)
-      const p   = parseFloat(o.current_total_price||o.total_price||0)
-      if (firstMonth[cid]===month) { newCust.add(cid); rNew+=p; oNew++ }
-      else                          { retCust.add(cid); rRet+=p; oRet++ }
+      if (firstMonth[cid]===month) newCust.add(cid)
     }
     return {
       month,
-      orders: total,
+      orders:       total,
       grossRevenue: Math.round(gross*100)/100,
       netRevenue:   Math.round(net*100)/100,
       returns:      Math.round((gross-net)*100)/100,
       aov:          Math.round(aov*100)/100,
       newCustomers: newCust.size,
-      returningCustomers: retCust.size,
-      revenueNew: Math.round(rNew*100)/100,
-      revenueRet: Math.round(rRet*100)/100,
-      aovNew: oNew>0 ? Math.round(rNew/oNew*100)/100 : 0,
-      aovRet: oRet>0 ? Math.round(rRet/oRet*100)/100 : 0,
     }
   })
 
   return {
     months,
-    totalOrders:   valid.length,
-    totalRevenue:  Math.round(months.reduce((s,m)=>s+m.netRevenue,0)*100)/100,
-    totalGross:    Math.round(months.reduce((s,m)=>s+m.grossRevenue,0)*100)/100,
-    totalReturns:  Math.round(months.reduce((s,m)=>s+m.returns,0)*100)/100,
-    newCustomers:  months.reduce((s,m)=>s+m.newCustomers,0),
-    returning:     months.reduce((s,m)=>s+m.returningCustomers,0),
-    aovGlobal:     valid.length>0 ? Math.round(months.reduce((s,m)=>s+m.netRevenue,0)/valid.length*100)/100 : 0,
+    totalOrders:  valid.length,
+    totalRevenue: Math.round(months.reduce((s,m)=>s+m.netRevenue,0)*100)/100,
+    totalGross:   Math.round(months.reduce((s,m)=>s+m.grossRevenue,0)*100)/100,
+    totalReturns: Math.round(months.reduce((s,m)=>s+m.returns,0)*100)/100,
+    newCustomers: months.reduce((s,m)=>s+m.newCustomers,0),
+    aovGlobal:    valid.length>0 ? Math.round(months.reduce((s,m)=>s+m.netRevenue,0)/valid.length*100)/100 : 0,
   }
 }
 
@@ -179,7 +169,7 @@ export async function GET(request) {
       totalGross:        shopify.totalGross,
       totalReturns:      shopify.totalReturns,
       newCustomers:      shopify.newCustomers,
-      returningCustomers: shopify.returning,
+
       metaSpend:         Math.round(metaTotal*100)/100,
       monthly,
       products,

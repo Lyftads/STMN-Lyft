@@ -91,10 +91,11 @@ export default function App() {
 
   useEffect(()=>{ setCfg(loadCfg()) },[])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (loadProducts=false) => {
     setLoading(true); setError(null)
     try {
-      const r = await fetch('/api/metrics')
+      const url = loadProducts ? '/api/metrics?products=1' : '/api/metrics'
+      const r = await fetch(url)
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const d = await r.json()
       if (d.error) throw new Error(d.error)
@@ -120,6 +121,11 @@ export default function App() {
   const ratio   = cac&&ltv>0 ? Math.round(ltv/cac*100)/100 : null
   const rs      = ratio==null?'no_data':ratio<1?'critical':ratio<3?'warning':ratio<=7?'good':'excellent'
   const rc      = RATIO[rs]
+
+  const handleTabChange = (t) => {
+    setTab(t)
+    if (t === 'products' && (!data?.products?.length)) load(true)
+  }
 
   const TABS = [
     { id:'dashboard', label:'📊 Dashboard' },
@@ -151,7 +157,7 @@ export default function App() {
       {/* TABS */}
       <div className="flex gap-1 mb-6 bg-dark rounded-xl p-1">
         {TABS.map(t => (
-          <button key={t.id} onClick={()=>setTab(t.id)}
+          <button key={t.id} onClick={()=>handleTabChange(t.id)}
             className={`flex-1 text-sm py-2 px-3 rounded-lg transition-all font-medium ${tab===t.id?'bg-accent text-white':'text-gray-500 hover:text-gray-300'}`}>
             {t.label}
           </button>

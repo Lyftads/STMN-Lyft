@@ -398,6 +398,29 @@ export default function Dashboard() {
             </div>
           </Card>
 
+
+          {/* LOOKER STUDIO — Google Ads */}
+          <Card className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-300">📊 Google Ads — Looker Studio</p>
+                <p className="text-xs text-gray-500 mt-1">Report completo campagne Google Ads • aggiornamento automatico</p>
+              </div>
+              <a href="https://datastudio.google.com/u/0/reporting/922f6dea-56c4-451d-bbc7-c528ec21f5a1/page/5oMrD"
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs text-gold hover:underline">
+                Apri in Looker Studio ↗
+              </a>
+            </div>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: '8px', overflow: 'hidden' }}>
+              <iframe
+                src="https://lookerstudio.google.com/embed/reporting/922f6dea-56c4-451d-bbc7-c528ec21f5a1/page/5oMrD"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
+                allowFullScreen
+                sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              />
+            </div>
+          </Card>
           {/* BENCHMARK */}
           <Card>
             <p className="text-sm font-medium text-gray-300 mb-3">Tabella benchmark</p>

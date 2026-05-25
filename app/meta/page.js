@@ -14,1118 +14,1061 @@ import {
 
 const WHITE = '#f8fafc'
 const MUTED = '#94a3b8'
-const RED = '#ef4444'
+const RED = '#ff4d4d'
 const GREEN = '#22c55e'
 const BLUE = '#60a5fa'
 const CYAN = '#22d3ee'
 const PURPLE = '#818cf8'
 const CARD = '#070f22'
-const CARD_2 = '#050b18'
-const BORDER = '#172554'
+const BORDER = '#1e3a8a'
 
-const euro0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
+const euro0 = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 0,
+})
+
 const euro2 = new Intl.NumberFormat('it-IT', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
-const num0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
+
+const num0 = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 0,
+})
+
+const num2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
 const pct2 = new Intl.NumberFormat('it-IT', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
-const dec2 = new Intl.NumberFormat('it-IT', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
 
-const columns = [
-  ['spend', 'Speso', 'euro0'],
-  ['roas', 'ROAS', 'roas'],
-  ['purchaseValue', 'Valore acquisti', 'euro0'],
-  ['aov', 'AOV', 'euro2'],
-  ['purchases', 'Acquisti', 'int'],
-  ['purchaseConversions', 'Conv. acquisti', 'int'],
-  ['addToCart', 'Add to cart', 'int'],
-  ['cro', 'CRO campagna', 'pct'],
-  ['ctrLink', 'CTR link', 'pct'],
-  ['cpcLink', 'CPC link', 'euro2'],
-  ['cpm', 'CPM', 'euro2'],
-  ['impressions', 'Impression', 'int'],
-  ['reach', 'Copertura', 'int'],
-  ['frequency', 'Freq.', 'number'],
-  ['costPerResult', 'Costo risultato', 'euro2'],
-]
-
-const cardStyle = {
-  background: CARD,
-  border: `1px solid ${BORDER}`,
-  borderRadius: 18,
-  padding: 18,
-  boxShadow: '0 20px 60px rgba(0,0,0,.24)',
+function n(value) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
-const titleStyle = {
-  margin: '0 0 16px',
-  color: WHITE,
-  fontSize: 15,
-  letterSpacing: '.12em',
-  textTransform: 'uppercase',
-  fontWeight: 900,
+function isoDate(date) {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function addDaysIso(baseIso, days) {
-  const d = new Date(`${baseIso}T00:00:00`)
+function addDays(date, days) {
+  const d = new Date(date)
   d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
+  return d
 }
 
-function formatInputDate(iso) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
+function formatDateLabel(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+
+  return d.toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+  })
 }
 
-function hasVal(v) {
-  return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
+function formatFullDate(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+
+  return d.toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 }
 
-function fmt(v, kind) {
-  if (!hasVal(v)) return '—'
+function formatMetric(value, type) {
+  const v = n(value)
 
-  const x = Number(v)
+  if (type === 'euro0') return `€${euro0.format(v)}`
+  if (type === 'euro2') return `€${euro2.format(v)}`
+  if (type === 'pct') return `${pct2.format(v)}%`
+  if (type === 'x') return `${num2.format(v)}×`
+  if (type === 'dec') return num2.format(v)
 
-  if (kind === 'euro0') return `€${euro0.format(x)}`
-  if (kind === 'euro2') return `€${euro2.format(x)}`
-  if (kind === 'int') return num0.format(x)
-  if (kind === 'pct') return `${pct2.format(x)}%`
-  if (kind === 'roas') return `${dec2.format(x)}×`
-  if (kind === 'number') return dec2.format(x)
-
-  return dec2.format(x)
+  return num0.format(v)
 }
 
-function delta(curr, prev) {
-  if (!hasVal(curr) || !hasVal(prev)) return null
+function getDelta(current, previous) {
+  const curr = n(current)
+  const prev = n(previous)
 
-  const c = Number(curr)
-  const p = Number(prev)
-  const diff = c - p
+  if (!previous && previous !== 0) {
+    return {
+      value: null,
+      pct: null,
+      hasPrevious: false,
+    }
+  }
 
-  if (Math.abs(diff) < 0.000001) return null
-
-  const pct = p !== 0 ? (diff / p) * 100 : null
+  const value = curr - prev
+  const pct = prev !== 0 ? (value / Math.abs(prev)) * 100 : null
 
   return {
-    diff,
+    value,
     pct,
-    negative: diff < 0,
+    hasPrevious: true,
   }
 }
 
-function Delta({ current, previous, kind }) {
-  const d = delta(current, previous)
-  if (!d) return null
+function DeltaBlock({ current, previous, type = 'num' }) {
+  const delta = getDelta(current, previous)
 
-  const sign = d.diff > 0 ? '+' : '−'
-  const color = d.negative ? RED : WHITE
+  if (!delta.hasPrevious) {
+    return (
+      <div className="mt-2 text-[13px] leading-tight text-slate-500">
+        <div>—</div>
+        <div>—</div>
+      </div>
+    )
+  }
+
+  const isNegative = delta.value < 0
+  const color = isNegative ? RED : WHITE
 
   return (
-    <div
-      style={{
-        marginTop: 7,
-        display: 'grid',
-        gridTemplateRows: 'auto auto',
-        rowGap: 3,
-        color,
-        fontSize: 12,
-        fontWeight: 900,
-        lineHeight: 1.15,
-      }}
-    >
+    <div className="mt-2 text-[13px] leading-tight font-bold" style={{ color }}>
       <div>
-        {sign}
-        {fmt(Math.abs(d.diff), kind)}
+        {delta.value > 0 ? '+' : ''}
+        {formatMetric(delta.value, type)}
       </div>
-
-      {d.pct !== null && (
-        <div>
-          {sign}
-          {pct2.format(Math.abs(d.pct))}%
-        </div>
-      )}
+      <div>
+        {delta.pct === null ? '—' : `${delta.pct > 0 ? '+' : ''}${pct2.format(delta.pct)}%`}
+      </div>
     </div>
   )
 }
 
-function Metric({ value, previous, kind = 'int' }) {
+function metricPrevious(row, key) {
+  if (!row) return null
+
+  if (row.previous && row.previous[key] !== undefined) {
+    return row.previous[key]
+  }
+
+  const weeks = Array.isArray(row.weeks) ? row.weeks : []
+
+  if (weeks.length >= 2) {
+    const sorted = [...weeks].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    return sorted[sorted.length - 2]?.[key] ?? null
+  }
+
+  return null
+}
+
+function getLatest(row) {
+  return row?.latest || row || {}
+}
+
+function getWeeks(row) {
+  const weeks = Array.isArray(row?.weeks) ? row.weeks : []
+
+  return [...weeks]
+    .filter(Boolean)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+}
+
+function buildChartData(campaigns) {
+  const firstCampaign = campaigns?.[0]
+  const weeks = getWeeks(firstCampaign)
+
+  return weeks.map((w) => ({
+    date: formatDateLabel(w.date || w.dateStart),
+    roas: n(w.roas),
+    spend: n(w.spend),
+    purchases: n(w.purchases),
+    ctrLink: n(w.ctrLink),
+    cpcLink: n(w.cpcLink),
+    cpm: n(w.cpm),
+    frequency: n(w.frequency),
+  }))
+}
+
+function sortByMetric(items, metric, direction = 'desc') {
+  const cloned = [...items]
+  cloned.sort((a, b) => {
+    const av = n(getLatest(a)[metric])
+    const bv = n(getLatest(b)[metric])
+
+    return direction === 'desc' ? bv - av : av - bv
+  })
+
+  return cloned
+}
+
+function flattenRows(campaigns) {
+  const rows = []
+
+  campaigns.forEach((campaign) => {
+    rows.push({
+      ...campaign,
+      level: 'campaign',
+      depth: 0,
+    })
+
+    const adsets = Array.isArray(campaign.adsets) ? campaign.adsets : []
+
+    adsets.forEach((adset) => {
+      rows.push({
+        ...adset,
+        level: 'adset',
+        depth: 1,
+      })
+
+      const ads = Array.isArray(adset.ads) ? adset.ads : []
+
+      ads.forEach((ad) => {
+        rows.push({
+          ...ad,
+          level: 'ad',
+          depth: 2,
+        })
+      })
+    })
+  })
+
+  return rows
+}
+
+function extractProductName(row) {
+  const creative = row.creative || {}
+  const possible = [
+    creative.productName,
+    creative.product_name,
+    creative.name,
+    row.productName,
+    row.product_name,
+    row.adName,
+    row.name,
+  ]
+
+  const found = possible.find((x) => typeof x === 'string' && x.trim())
+
+  if (!found) return null
+
+  return found
+    .replace('{{product.name}}', 'Prodotto catalogo')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractAngle(row) {
+  const text = [
+    row.name,
+    row.adName,
+    row.adsetName,
+    row.campaignName,
+    row.creative?.headline,
+    row.creative?.body,
+    row.creative?.primaryText,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (text.includes('tof') || text.includes('broad') || text.includes('cold')) return 'Prospecting / Broad'
+  if (text.includes('mofu') || text.includes('middle')) return 'MOFU / Considerazione'
+  if (text.includes('bofu') || text.includes('ret') || text.includes('remarketing')) return 'BOFU / Remarketing'
+  if (text.includes('upsell')) return 'Upselling'
+  if (text.includes('stock')) return 'Disponibilità / In stock'
+  if (text.includes('daba') || text.includes('catalog')) return 'Catalogo / Advantage+'
+  if (text.includes('ugc')) return 'UGC'
+  if (text.includes('fomo')) return 'FOMO'
+  if (text.includes('bundle')) return 'Bundle'
+
+  return 'Non classificato'
+}
+
+function buildProductInsights(campaigns) {
+  const rows = flattenRows(campaigns).filter((row) => row.level === 'ad')
+
+  const grouped = new Map()
+
+  rows.forEach((row) => {
+    const latest = getLatest(row)
+    const product = extractProductName(row)
+
+    if (!product) return
+
+    const key = product
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        product,
+        spend: 0,
+        purchases: 0,
+        purchaseValue: 0,
+        addToCart: 0,
+        linkClicks: 0,
+        roas: 0,
+        aov: 0,
+        rows: [],
+      })
+    }
+
+    const item = grouped.get(key)
+
+    item.spend += n(latest.spend)
+    item.purchases += n(latest.purchases)
+    item.purchaseValue += n(latest.purchaseValue)
+    item.addToCart += n(latest.addToCart)
+    item.linkClicks += n(latest.linkClicks)
+    item.rows.push(row)
+  })
+
+  return [...grouped.values()]
+    .map((item) => ({
+      ...item,
+      roas: item.spend > 0 ? item.purchaseValue / item.spend : 0,
+      aov: item.purchases > 0 ? item.purchaseValue / item.purchases : 0,
+      cro: item.linkClicks > 0 ? (item.purchases / item.linkClicks) * 100 : 0,
+    }))
+    .sort((a, b) => b.purchaseValue - a.purchaseValue)
+    .slice(0, 10)
+}
+
+function buildAngleInsights(campaigns) {
+  const rows = flattenRows(campaigns).filter((row) => row.level === 'ad')
+
+  const grouped = new Map()
+
+  rows.forEach((row) => {
+    const latest = getLatest(row)
+    const angle = extractAngle(row)
+
+    if (!grouped.has(angle)) {
+      grouped.set(angle, {
+        angle,
+        spend: 0,
+        purchases: 0,
+        purchaseValue: 0,
+        addToCart: 0,
+        linkClicks: 0,
+        rows: [],
+      })
+    }
+
+    const item = grouped.get(angle)
+
+    item.spend += n(latest.spend)
+    item.purchases += n(latest.purchases)
+    item.purchaseValue += n(latest.purchaseValue)
+    item.addToCart += n(latest.addToCart)
+    item.linkClicks += n(latest.linkClicks)
+    item.rows.push(row)
+  })
+
+  return [...grouped.values()]
+    .map((item) => ({
+      ...item,
+      roas: item.spend > 0 ? item.purchaseValue / item.spend : 0,
+      aov: item.purchases > 0 ? item.purchaseValue / item.purchases : 0,
+      cro: item.linkClicks > 0 ? (item.purchases / item.linkClicks) * 100 : 0,
+    }))
+    .sort((a, b) => b.purchaseValue - a.purchaseValue)
+}
+
+function buildDescriptiveInsights(campaigns) {
+  const rows = flattenRows(campaigns)
+  const campaignRows = rows.filter((row) => row.level === 'campaign')
+  const adRows = rows.filter((row) => row.level === 'ad')
+
+  const topCampaigns = sortByMetric(campaignRows, 'purchaseValue', 'desc').slice(0, 3)
+  const worstSpend = sortByMetric(
+    campaignRows.filter((row) => n(getLatest(row).spend) > 0),
+    'roas',
+    'asc'
+  ).slice(0, 3)
+
+  const bestAds = sortByMetric(adRows, 'purchaseValue', 'desc').slice(0, 5)
+  const badAds = adRows
+    .filter((row) => n(getLatest(row).spend) > 20 && n(getLatest(row).purchases) === 0)
+    .sort((a, b) => n(getLatest(b).spend) - n(getLatest(a).spend))
+    .slice(0, 5)
+
+  const totalSpend = campaignRows.reduce((sum, row) => sum + n(getLatest(row).spend), 0)
+  const totalPurchaseValue = campaignRows.reduce((sum, row) => sum + n(getLatest(row).purchaseValue), 0)
+  const totalPurchases = campaignRows.reduce((sum, row) => sum + n(getLatest(row).purchases), 0)
+  const totalClicks = campaignRows.reduce((sum, row) => sum + n(getLatest(row).linkClicks), 0)
+  const totalRoas = totalSpend > 0 ? totalPurchaseValue / totalSpend : 0
+  const totalCro = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0
+  const totalAov = totalPurchases > 0 ? totalPurchaseValue / totalPurchases : 0
+
+  const todos = []
+
+  if (totalRoas < 2) {
+    todos.push('ROAS complessivo basso: ridurre budget sugli adset con ROAS sotto media e concentrare spesa su campagne/adset profittevoli.')
+  } else if (totalRoas >= 3) {
+    todos.push('ROAS complessivo positivo: valutare scaling progressivo sui migliori adset mantenendo sotto controllo frequenza e CPA.')
+  }
+
+  if (totalCro < 2) {
+    todos.push('CRO campagna basso: il traffico clicca ma converte poco. Migliorare coerenza tra creatività, prodotto, landing e offerta.')
+  }
+
+  if (badAds.length > 0) {
+    todos.push('Spegnere o rifare le creatività che spendono senza acquisti: stanno consumando budget senza generare output.')
+  }
+
+  if (bestAds.length > 0) {
+    todos.push('Duplicare gli angoli delle migliori creatività e creare nuove varianti su hook, headline, visual e prodotto.')
+  }
+
+  return {
+    totalSpend,
+    totalPurchaseValue,
+    totalPurchases,
+    totalClicks,
+    totalRoas,
+    totalCro,
+    totalAov,
+    topCampaigns,
+    worstSpend,
+    bestAds,
+    badAds,
+    todos,
+  }
+}
+
+function CreativePreview({ row }) {
+  const creative = row.creative || {}
+  const thumb = creative.thumbnailUrl || creative.imageUrl || creative.url || null
+  const headline = creative.headline || creative.title || ''
+  const body = creative.body || creative.primaryText || creative.message || ''
+  const link = creative.linkUrl || creative.objectUrl || creative.url || ''
+
+  if (!thumb && !headline && !body && !link) {
+    return null
+  }
+
   return (
-    <div>
+    <div className="mt-3 grid grid-cols-[72px_1fr] gap-3 rounded-xl border border-blue-900/50 bg-slate-950/40 p-3">
+      <div className="h-[72px] w-[72px] overflow-hidden rounded-lg bg-slate-900">
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
+            no img
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0">
+        {headline ? (
+          <div className="text-sm font-bold text-white">{headline}</div>
+        ) : null}
+
+        {body ? (
+          <div className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-400">
+            {body}
+          </div>
+        ) : null}
+
+        {link ? (
+          <div className="mt-1 truncate text-xs text-blue-300">
+            {link}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function MetricCell({ row, metric, type = 'num' }) {
+  const latest = getLatest(row)
+  const current = latest[metric]
+  const previous = metricPrevious(row, metric)
+
+  return (
+    <td className="min-w-[130px] px-4 py-5 align-top text-white">
+      <div className="text-[19px] font-black leading-none">
+        {formatMetric(current, type)}
+      </div>
+      <DeltaBlock current={current} previous={previous} type={type} />
+    </td>
+  )
+}
+
+function RowNameCell({ row }) {
+  const latest = getLatest(row)
+  const depth = row.depth || 0
+  const isAd = row.level === 'ad'
+
+  const name =
+    row.name ||
+    latest.adName ||
+    latest.adsetName ||
+    latest.campaignName ||
+    row.adName ||
+    row.adsetName ||
+    row.campaignName ||
+    'Senza nome'
+
+  const id = row.id || latest.adId || latest.adsetId || latest.campaignId || ''
+
+  return (
+    <td className="sticky left-0 z-10 min-w-[470px] bg-[#071225] px-4 py-5 align-top text-white">
       <div
-        style={{
-          color: WHITE,
-          fontSize: 15,
-          fontWeight: 900,
-          lineHeight: 1.1,
-        }}
+        className="flex items-start gap-2"
+        style={{ paddingLeft: depth * 26 }}
       >
-        {fmt(value, kind)}
+        <span className="mt-[2px] text-xs text-slate-400">
+          {row.level === 'campaign' ? '▾' : row.level === 'adset' ? '▸' : '•'}
+        </span>
+
+        <div className="min-w-0">
+          <div className="text-[18px] font-black leading-snug">
+            {name}
+          </div>
+
+          {id ? (
+            <div className="mt-2 text-xs text-slate-500">
+              {id}
+            </div>
+          ) : null}
+
+          {isAd ? <CreativePreview row={row} /> : null}
+        </div>
+      </div>
+    </td>
+  )
+}
+
+function InsightsPanel({ campaigns }) {
+  const insights = useMemo(() => buildDescriptiveInsights(campaigns), [campaigns])
+  const products = useMemo(() => buildProductInsights(campaigns), [campaigns])
+  const angles = useMemo(() => buildAngleInsights(campaigns), [campaigns])
+
+  return (
+    <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-6">
+      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.18em] text-white">
+        Insight performance e azioni consigliate
+      </h2>
+
+      <div className="grid gap-4 lg:grid-cols-4">
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Speso</div>
+          <div className="mt-2 text-2xl font-black text-white">
+            {formatMetric(insights.totalSpend, 'euro0')}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">ROAS</div>
+          <div className="mt-2 text-2xl font-black text-white">
+            {formatMetric(insights.totalRoas, 'x')}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">CRO campagna</div>
+          <div className="mt-2 text-2xl font-black text-white">
+            {formatMetric(insights.totalCro, 'pct')}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">AOV</div>
+          <div className="mt-2 text-2xl font-black text-white">
+            {formatMetric(insights.totalAov, 'euro2')}
+          </div>
+        </div>
       </div>
 
-      <Delta current={value} previous={previous} kind={kind} />
-    </div>
-  )
-}
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
+          <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
+            Cosa sta funzionando
+          </h3>
 
-function ChartTip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
+          <ul className="space-y-3 text-sm leading-relaxed text-slate-300">
+            {insights.topCampaigns.length ? (
+              insights.topCampaigns.map((row) => {
+                const latest = getLatest(row)
 
-  return (
-    <div
-      style={{
-        background: '#020617',
-        border: `1px solid ${BORDER}`,
-        borderRadius: 12,
-        padding: 10,
-        color: WHITE,
-        fontSize: 12,
-      }}
-    >
-      <div style={{ fontWeight: 900, marginBottom: 6 }}>{label}</div>
-
-      {payload.map(p => (
-        <div
-          key={p.dataKey}
-          style={{
-            display: 'flex',
-            gap: 8,
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>{p.name}</span>
-          <strong>{p.value}</strong>
+                return (
+                  <li key={row.id || latest.campaignId}>
+                    <strong className="text-white">{row.name || latest.campaignName}</strong>
+                    {' '}sta generando {formatMetric(latest.purchaseValue, 'euro0')} di valore acquisti,
+                    con ROAS {formatMetric(latest.roas, 'x')} e {formatMetric(latest.purchases)} acquisti.
+                  </li>
+                )
+              })
+            ) : (
+              <li>Nessuna campagna con dati sufficienti.</li>
+            )}
+          </ul>
         </div>
-      ))}
-    </div>
+
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
+          <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
+            Cosa non sta funzionando
+          </h3>
+
+          <ul className="space-y-3 text-sm leading-relaxed text-slate-300">
+            {insights.worstSpend.length ? (
+              insights.worstSpend.map((row) => {
+                const latest = getLatest(row)
+
+                return (
+                  <li key={row.id || latest.campaignId}>
+                    <strong className="text-white">{row.name || latest.campaignName}</strong>
+                    {' '}ha ROAS {formatMetric(latest.roas, 'x')} con spesa {formatMetric(latest.spend, 'euro0')}.
+                    Da verificare budget, pubblico, creatività e prodotto spinto.
+                  </li>
+                )
+              })
+            ) : (
+              <li>Nessuna criticità evidente dai dati disponibili.</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
+        <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
+          To do operativi
+        </h3>
+
+        <ul className="space-y-2 text-sm leading-relaxed text-slate-300">
+          {insights.todos.length ? (
+            insights.todos.map((todo, index) => (
+              <li key={index}>• {todo}</li>
+            ))
+          ) : (
+            <li>Continuare a monitorare scaling, frequenza e CPA. I dati non mostrano ancora azioni prioritarie evidenti.</li>
+          )}
+
+          <li>
+            • [Inferenza] Con campagne catalogo, Meta può mostrare prodotti dinamici. Questa dashboard può leggere creatività,
+            nomi, thumbnail e performance, ma per sapere con certezza quale SKU/prodotto ha venduto serve collegare anche il dato prodotto da Shopify oppure un breakdown Meta compatibile.
+          </li>
+        </ul>
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
+          <h3 className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-white">
+            Prodotti / creatività catalogo più forti
+          </h3>
+
+          <div className="space-y-3">
+            {products.length ? (
+              products.map((item) => (
+                <div key={item.product} className="rounded-lg border border-blue-900/40 p-3">
+                  <div className="font-bold text-white">{item.product}</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    Valore {formatMetric(item.purchaseValue, 'euro0')} · ROAS {formatMetric(item.roas, 'x')} ·
+                    Acquisti {formatMetric(item.purchases)} · AOV {formatMetric(item.aov, 'euro2')}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-slate-400">
+                Non vedo ancora nomi prodotto leggibili nei dati creatività. [Non verificato]
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
+          <h3 className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-white">
+            Angoli comunicativi
+          </h3>
+
+          <div className="space-y-3">
+            {angles.length ? (
+              angles.map((item) => (
+                <div key={item.angle} className="rounded-lg border border-blue-900/40 p-3">
+                  <div className="font-bold text-white">{item.angle}</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    Valore {formatMetric(item.purchaseValue, 'euro0')} · ROAS {formatMetric(item.roas, 'x')} ·
+                    CRO {formatMetric(item.cro, 'pct')} · Spesa {formatMetric(item.spend, 'euro0')}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-slate-400">
+                Nessun angolo classificabile dai naming attuali. [Inferenza]
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
-function DateInput({ value, onChange }) {
-  return (
-    <input
-      type="date"
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{
-        background: '#020617',
-        border: `1px solid ${BORDER}`,
-        color: WHITE,
-        borderRadius: 10,
-        padding: '13px 14px',
-        fontWeight: 900,
-        fontSize: 15,
-        minWidth: 170,
-      }}
-    />
-  )
-}
-
-function TimeFrameSelector({ preset, setPreset, since, setSince, until, setUntil, onApply, loading }) {
+function TimeFrameSelector({
+  preset,
+  setPreset,
+  since,
+  setSince,
+  until,
+  setUntil,
+  onApply,
+}) {
   function applyPreset(value) {
     setPreset(value)
 
-    const t = todayIso()
+    const today = new Date()
 
     if (value === 'today') {
-      setSince(t)
-      setUntil(t)
+      setSince(isoDate(today))
+      setUntil(isoDate(today))
+      return
     }
 
     if (value === 'yesterday') {
-      const y = addDaysIso(t, -1)
-      setSince(y)
-      setUntil(y)
+      const yesterday = addDays(today, -1)
+      setSince(isoDate(yesterday))
+      setUntil(isoDate(yesterday))
+      return
     }
 
-    if (value === 'last7') {
-      setSince(addDaysIso(t, -6))
-      setUntil(t)
+    if (value === 'last_7d') {
+      setSince(isoDate(addDays(today, -6)))
+      setUntil(isoDate(today))
+      return
     }
 
-    if (value === 'last14') {
-      setSince(addDaysIso(t, -13))
-      setUntil(t)
+    if (value === 'last_14d') {
+      setSince(isoDate(addDays(today, -13)))
+      setUntil(isoDate(today))
+      return
     }
 
-    if (value === 'last30') {
-      setSince(addDaysIso(t, -29))
-      setUntil(t)
+    if (value === 'last_30d') {
+      setSince(isoDate(addDays(today, -29)))
+      setUntil(isoDate(today))
+      return
     }
 
-    if (value === 'thisMonth') {
-      const d = new Date()
-      const first = new Date(d.getFullYear(), d.getMonth(), 1)
-      setSince(first.toISOString().slice(0, 10))
-      setUntil(t)
+    if (value === 'this_month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      setSince(isoDate(start))
+      setUntil(isoDate(today))
+      return
+    }
+
+    if (value === 'last_month') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const end = new Date(today.getFullYear(), today.getMonth(), 0)
+      setSince(isoDate(start))
+      setUntil(isoDate(end))
+      return
     }
   }
 
   return (
-    <div
-      style={{
-        ...cardStyle,
-        marginBottom: 18,
-        display: 'flex',
-        alignItems: 'end',
-        gap: 14,
-        flexWrap: 'wrap',
-      }}
-    >
-      <div>
-        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>Time frame</div>
-        <select
-          value={preset}
-          onChange={e => applyPreset(e.target.value)}
-          style={{
-            background: '#020617',
-            border: `1px solid ${BORDER}`,
-            color: WHITE,
-            borderRadius: 10,
-            padding: '13px 14px',
-            fontWeight: 900,
-            fontSize: 15,
-            minWidth: 210,
-          }}
-        >
-          <option value="today">Oggi</option>
-          <option value="yesterday">Ieri</option>
-          <option value="last7">Ultimi 7 giorni</option>
-          <option value="last14">Ultimi 14 giorni</option>
-          <option value="last30">Ultimi 30 giorni</option>
-          <option value="thisMonth">Questo mese</option>
-          <option value="custom">Personalizzato</option>
-        </select>
-      </div>
-
-      <div>
-        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>Da</div>
-        <DateInput
-          value={since}
-          onChange={v => {
-            setPreset('custom')
-            setSince(v)
-          }}
-        />
-      </div>
-
-      <div>
-        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>A</div>
-        <DateInput
-          value={until}
-          onChange={v => {
-            setPreset('custom')
-            setUntil(v)
-          }}
-        />
-      </div>
-
-      <button
-        onClick={onApply}
-        disabled={loading}
-        style={{
-          background: GREEN,
-          color: '#020617',
-          border: 0,
-          borderRadius: 10,
-          padding: '14px 20px',
-          fontWeight: 950,
-          fontSize: 15,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-        }}
-      >
-        {loading ? 'Carico...' : 'Aggiorna'}
-      </button>
-
-      <div
-        style={{
-          marginLeft: 'auto',
-          color: MUTED,
-          fontSize: 13,
-        }}
-      >
-        Periodo: {since} → {until}
-      </div>
-    </div>
-  )
-}
-
-function SummaryCharts({ data = [] }) {
-  const chartData = useMemo(() => {
-    return [...data].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(x => ({
-      ...x,
-      label: String(x.date || '').slice(5),
-    }))
-  }, [data])
-
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 16,
-        marginBottom: 20,
-      }}
-    >
-      <div style={cardStyle}>
-        <h2 style={titleStyle}>ROAS, spesa e acquisti</h2>
-
-        <ResponsiveContainer width="100%" height={270}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<ChartTip />} />
-            <Legend />
-
-            <Line
-              type="monotone"
-              dataKey="roas"
-              name="ROAS"
-              stroke={WHITE}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="spend"
-              name="Spesa"
-              stroke={BLUE}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="purchases"
-              name="Acquisti"
-              stroke={GREEN}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div style={cardStyle}>
-        <h2 style={titleStyle}>KPI Meta: CTR, CPC, CPM, frequenza</h2>
-
-        <ResponsiveContainer width="100%" height={270}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<ChartTip />} />
-            <Legend />
-
-            <Line
-              type="monotone"
-              dataKey="ctrLink"
-              name="CTR link %"
-              stroke={BLUE}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="cpcLink"
-              name="CPC link"
-              stroke={CYAN}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="cpm"
-              name="CPM"
-              stroke={PURPLE}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="frequency"
-              name="Frequenza"
-              stroke={WHITE}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  )
-}
-
-function InsightsPanel({ insights, catalogProducts, catalogProductsError }) {
-  if (!insights) return null
-
-  return (
-    <div style={{ ...cardStyle, marginBottom: 20 }}>
-      <h2 style={titleStyle}>Insight descrittivi e to do</h2>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-          gap: 12,
-          marginBottom: 18,
-        }}
-      >
-        <MiniStat label="Speso" value={fmt(insights.totals?.spend, 'euro0')} />
-        <MiniStat label="ROAS" value={fmt(insights.totals?.roas, 'roas')} />
-        <MiniStat label="AOV" value={fmt(insights.totals?.aov, 'euro2')} />
-        <MiniStat label="CRO" value={fmt(insights.totals?.cro, 'pct')} />
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1.1fr 1fr 1fr',
-          gap: 16,
-        }}
-      >
+    <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
+      <div className="grid gap-4 lg:grid-cols-[260px_210px_210px_140px_1fr] lg:items-end">
         <div>
-          <h3 style={subTitle}>Analisi performance</h3>
+          <label className="mb-2 block text-sm text-slate-400">
+            Time frame
+          </label>
 
-          <div style={{ display: 'grid', gap: 10 }}>
-            {(insights.notes || []).map((note, i) => (
-              <div
-                key={i}
-                style={{
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 14,
-                  padding: 14,
-                  background: CARD_2,
-                }}
-              >
-                <div style={{ color: WHITE, fontWeight: 950, marginBottom: 6 }}>
-                  {note.title}
-                </div>
-                <div style={{ color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
-                  {note.text}
-                </div>
-              </div>
-            ))}
-          </div>
+          <select
+            value={preset}
+            onChange={(event) => applyPreset(event.target.value)}
+            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
+          >
+            <option value="today">Oggi</option>
+            <option value="yesterday">Ieri</option>
+            <option value="last_7d">Ultimi 7 giorni</option>
+            <option value="last_14d">Ultimi 14 giorni</option>
+            <option value="last_30d">Ultimi 30 giorni</option>
+            <option value="this_month">Questo mese</option>
+            <option value="last_month">Mese scorso</option>
+            <option value="custom">Personalizzato</option>
+          </select>
         </div>
 
         <div>
-          <h3 style={subTitle}>To do operativi</h3>
+          <label className="mb-2 block text-sm text-slate-400">
+            Da
+          </label>
 
-          <ol
-            style={{
-              margin: 0,
-              paddingLeft: 18,
-              color: WHITE,
-              display: 'grid',
-              gap: 10,
-              fontSize: 13,
-              lineHeight: 1.45,
-              fontWeight: 800,
+          <input
+            type="date"
+            value={since}
+            onChange={(event) => {
+              setPreset('custom')
+              setSince(event.target.value)
             }}
-          >
-            {(insights.todos || []).map((todo, i) => (
-              <li key={i}>{todo}</li>
-            ))}
-          </ol>
+            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
+          />
         </div>
 
         <div>
-          <h3 style={subTitle}>Prodotti catalogo venduti</h3>
+          <label className="mb-2 block text-sm text-slate-400">
+            A
+          </label>
 
-          {catalogProductsError && (
-            <div style={{ color: RED, fontSize: 12, lineHeight: 1.4, marginBottom: 10 }}>
-              {catalogProductsError}
-            </div>
-          )}
-
-          {!catalogProducts?.length && !catalogProductsError && (
-            <div style={{ color: MUTED, fontSize: 13 }}>
-              Nessun prodotto catalogo recuperato per questo periodo.
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gap: 8 }}>
-            {(catalogProducts || []).slice(0, 8).map((p, i) => (
-              <div
-                key={`${p.productId}-${i}`}
-                style={{
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  padding: 10,
-                  background: CARD_2,
-                }}
-              >
-                <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
-                  {p.productId || 'Prodotto senza ID'}
-                </div>
-                <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-                  Valore: {fmt(p.purchaseValue, 'euro0')} · Acquisti: {fmt(p.purchases, 'int')} · ROAS:{' '}
-                  {fmt(p.roas, 'roas')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 18 }}>
-        <h3 style={subTitle}>Creatività e angoli comunicativi</h3>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 16,
-          }}
-        >
-          <CreativeList
-            title="Creatività da scalare"
-            items={insights.bestCreatives || []}
-          />
-          <CreativeList
-            title="Creatività da rivedere"
-            items={insights.weakCreatives || []}
+          <input
+            type="date"
+            value={until}
+            onChange={(event) => {
+              setPreset('custom')
+              setUntil(event.target.value)
+            }}
+            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
           />
         </div>
-      </div>
-    </div>
-  )
-}
 
-const subTitle = {
-  margin: '0 0 10px',
-  color: WHITE,
-  fontSize: 13,
-  textTransform: 'uppercase',
-  letterSpacing: '.1em',
-  fontWeight: 950,
-}
-
-function MiniStat({ label, value }) {
-  return (
-    <div
-      style={{
-        background: CARD_2,
-        border: `1px solid ${BORDER}`,
-        borderRadius: 14,
-        padding: 14,
-      }}
-    >
-      <div style={{ color: MUTED, fontSize: 12, marginBottom: 6 }}>{label}</div>
-      <div style={{ color: WHITE, fontSize: 21, fontWeight: 950 }}>{value}</div>
-    </div>
-  )
-}
-
-function CreativeList({ title, items }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${BORDER}`,
-        borderRadius: 14,
-        padding: 14,
-        background: CARD_2,
-      }}
-    >
-      <div style={{ color: WHITE, fontWeight: 950, marginBottom: 12 }}>{title}</div>
-
-      <div style={{ display: 'grid', gap: 12 }}>
-        {items.slice(0, 5).map((x, i) => (
-          <div key={`${x.adName}-${i}`} style={{ display: 'flex', gap: 10 }}>
-            {x.creative?.thumbnailUrl || x.creative?.imageUrl ? (
-              <img
-                src={x.creative.thumbnailUrl || x.creative.imageUrl}
-                alt=""
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 10,
-                  objectFit: 'cover',
-                  border: `1px solid ${BORDER}`,
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 10,
-                  border: `1px solid ${BORDER}`,
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: MUTED,
-                  fontSize: 10,
-                }}
-              >
-                NO IMG
-              </div>
-            )}
-
-            <div>
-              <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
-                {x.adName}
-              </div>
-              <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-                ROAS {fmt(x.roas, 'roas')} · Speso {fmt(x.spend, 'euro0')} · Acquisti{' '}
-                {fmt(x.purchases, 'int')}
-              </div>
-              {x.creative?.headline && (
-                <div style={{ color: WHITE, fontSize: 12, marginTop: 5 }}>
-                  Headline: {x.creative.headline}
-                </div>
-              )}
-              {x.creative?.copy && (
-                <div
-                  style={{
-                    color: MUTED,
-                    fontSize: 12,
-                    marginTop: 4,
-                    lineHeight: 1.35,
-                  }}
-                >
-                  Copy: {x.creative.copy.slice(0, 160)}
-                  {x.creative.copy.length > 160 ? '...' : ''}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {!items.length && (
-          <div style={{ color: MUTED, fontSize: 13 }}>Nessun dato sufficiente.</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function PerformanceRow({ item, depth = 0, children }) {
-  const [open, setOpen] = useState(depth === 0)
-
-  return (
-    <>
-      <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-        <td
-          style={{
-            position: 'sticky',
-            left: 0,
-            zIndex: 5,
-            background: CARD,
-            minWidth: 380,
-            padding: '14px 14px',
-          }}
+        <button
+          type="button"
+          onClick={onApply}
+          className="h-[54px] rounded-xl bg-green-500 px-5 text-lg font-black text-slate-950"
         >
-          <button
-            onClick={() => setOpen(!open)}
-            style={{
-              background: 'transparent',
-              border: 0,
-              color: WHITE,
-              cursor: 'pointer',
-              fontWeight: 900,
-              textAlign: 'left',
-              fontSize: depth === 0 ? 15 : 14,
-              paddingLeft: depth * 22,
-            }}
-          >
-            <span style={{ color: MUTED, marginRight: 8 }}>{open ? '▾' : '▸'}</span>
-            {item.name || 'Senza nome'}
-          </button>
+          Aggiorna
+        </button>
 
-          <div
-            style={{
-              color: MUTED,
-              fontSize: 11,
-              marginTop: 5,
-              paddingLeft: depth * 22 + 28,
-            }}
-          >
-            {item.id}
-          </div>
-        </td>
-
-        {columns.map(([key, , kind]) => (
-          <td
-            key={key}
-            style={{
-              padding: '14px 14px',
-              verticalAlign: 'top',
-              minWidth: 130,
-            }}
-          >
-            <Metric
-              value={item.latest?.[key]}
-              previous={item.previous?.[key]}
-              kind={kind}
-            />
-          </td>
-        ))}
-      </tr>
-
-      {open && children}
-    </>
-  )
-}
-
-function AdRow({ ad }) {
-  const img = ad.creative?.thumbnailUrl || ad.creative?.imageUrl
-
-  return (
-    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-      <td
-        style={{
-          position: 'sticky',
-          left: 0,
-          zIndex: 4,
-          background: CARD_2,
-          minWidth: 420,
-          padding: '14px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            alignItems: 'flex-start',
-            paddingLeft: 44,
-          }}
-        >
-          {img ? (
-            <img
-              src={img}
-              alt=""
-              style={{
-                width: 64,
-                height: 64,
-                objectFit: 'cover',
-                borderRadius: 10,
-                border: `1px solid ${BORDER}`,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 10,
-                border: `1px solid ${BORDER}`,
-                display: 'grid',
-                placeItems: 'center',
-                color: MUTED,
-                fontSize: 10,
-              }}
-            >
-              NO IMG
-            </div>
-          )}
-
-          <div>
-            <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
-              {ad.name || 'Creatività senza nome'}
-            </div>
-
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
-              {ad.creative?.creativeName || ad.creative?.creativeId || ad.id}
-            </div>
-
-            {ad.creative?.headline && (
-              <div style={{ color: WHITE, fontSize: 12, marginTop: 8 }}>
-                {ad.creative.headline}
-              </div>
-            )}
-
-            {ad.creative?.copy && (
-              <div style={{ color: MUTED, fontSize: 12, marginTop: 5, lineHeight: 1.35 }}>
-                {ad.creative.copy.slice(0, 180)}
-                {ad.creative.copy.length > 180 ? '...' : ''}
-              </div>
-            )}
-          </div>
+        <div className="text-right text-sm text-slate-400">
+          Periodo: {since} → {until}
         </div>
-      </td>
-
-      {columns.map(([key, , kind]) => (
-        <td
-          key={key}
-          style={{
-            padding: '14px 14px',
-            verticalAlign: 'top',
-            minWidth: 130,
-          }}
-        >
-          <Metric
-            value={ad.latest?.[key]}
-            previous={ad.previous?.[key]}
-            kind={kind}
-          />
-        </td>
-      ))}
-    </tr>
-  )
-}
-
-function MetaTable({ campaigns }) {
-  return (
-    <div style={cardStyle}>
-      <h2 style={titleStyle}>Campagne attive, adset e creatività</h2>
-
-      <div
-        style={{
-          overflow: 'auto',
-          maxHeight: '76vh',
-          borderRadius: 14,
-          border: `1px solid ${BORDER}`,
-        }}
-      >
-        <table style={{ borderCollapse: 'collapse', minWidth: 2450, width: '100%' }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  position: 'sticky',
-                  top: 0,
-                  left: 0,
-                  zIndex: 20,
-                  background: '#081226',
-                  color: WHITE,
-                  textAlign: 'left',
-                  padding: '14px',
-                  minWidth: 420,
-                }}
-              >
-                Campagna / Adset / Creatività
-              </th>
-
-              {columns.map(([, label]) => (
-                <th
-                  key={label}
-                  style={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 10,
-                    background: '#081226',
-                    color: WHITE,
-                    textAlign: 'left',
-                    padding: '14px',
-                    minWidth: 130,
-                    fontSize: 12,
-                    letterSpacing: '.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {campaigns.length === 0 && (
-              <tr>
-                <td
-                  colSpan={columns.length + 1}
-                  style={{ padding: 18, color: MUTED }}
-                >
-                  Nessuna campagna attiva trovata.
-                </td>
-              </tr>
-            )}
-
-            {campaigns.map(campaign => (
-              <PerformanceRow key={campaign.id} item={campaign} depth={0}>
-                {campaign.adsets.map(adset => (
-                  <PerformanceRow key={adset.id} item={adset} depth={1}>
-                    {adset.ads.map(ad => (
-                      <AdRow key={ad.id} ad={ad} />
-                    ))}
-                  </PerformanceRow>
-                ))}
-              </PerformanceRow>
-            ))}
-          </tbody>
-        </table>
       </div>
-    </div>
+    </section>
   )
 }
 
-export default function MetaDetailPage() {
-  const initialUntil = todayIso()
-  const initialSince = addDaysIso(initialUntil, -6)
-
-  const [preset, setPreset] = useState('last7')
-  const [since, setSince] = useState(initialSince)
-  const [until, setUntil] = useState(initialUntil)
+export default function MetaPage() {
+  const [preset, setPreset] = useState('last_7d')
+  const [since, setSince] = useState(() => isoDate(addDays(new Date(), -6)))
+  const [until, setUntil] = useState(() => isoDate(new Date()))
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
+  const [updatedAt, setUpdatedAt] = useState('')
 
-  async function load() {
+  async function loadData() {
     try {
       setLoading(true)
-      setError(null)
+      setError('')
 
-      const params = new URLSearchParams({
-        since,
-        until,
-      })
-
-      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
+      const res = await fetch(`/api/meta-detail?since=${since}&until=${until}`, {
         cache: 'no-store',
       })
 
-      const json = await res.json()
+      const text = await res.text()
 
-      if (!res.ok) {
-        throw new Error(json.error || 'Errore caricamento Meta')
+      let json = null
+
+      try {
+        json = JSON.parse(text)
+      } catch (err) {
+        throw new Error(`Risposta API non valida: ${text.slice(0, 300)}`)
       }
 
-      if (json.error) {
-        throw new Error(json.error)
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || `Errore API ${res.status}`)
       }
 
       setData(json)
-    } catch (e) {
-      setError(e.message)
+      setUpdatedAt(new Date().toLocaleString('it-IT'))
+    } catch (err) {
+      setError(err?.message || 'Errore sconosciuto')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    load()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const campaigns = data?.campaigns || []
-  const chartDaily = data?.chartDaily || []
+  const campaigns = Array.isArray(data?.campaigns) ? data.campaigns : []
+  const chartData = useMemo(() => buildChartData(campaigns), [campaigns])
+  const rows = useMemo(() => flattenRows(campaigns), [campaigns])
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#020617',
-        color: WHITE,
-        padding: 28,
-        fontFamily: 'Barlow, system-ui, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: 16,
-          marginBottom: 22,
-        }}
-      >
-        <div>
-          <a
-            href="/"
-            style={{
-              color: MUTED,
-              textDecoration: 'none',
-              fontSize: 13,
-            }}
-          >
-            ← Torna alla dashboard
-          </a>
+    <main className="min-h-screen bg-[#020817] px-5 py-8 text-white">
+      <div className="mx-auto max-w-[1800px]">
+        <a href="/" className="text-sm text-slate-400 hover:text-white">
+          ← Torna alla dashboard
+        </a>
 
-          <h1
-            style={{
-              margin: '10px 0 0',
-              fontSize: 28,
-              letterSpacing: '.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Analisi Meta dettagliata
-          </h1>
+        <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-[34px] uppercase tracking-[0.18em] text-white">
+              Analisi Meta dettagliata
+            </h1>
 
-          <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 14 }}>
-            Campagne attive → adset → creatività, con confronto sul periodo precedente.
-          </p>
+            <p className="mt-3 text-slate-400">
+              Campagne attive → adset → creatività, con variazioni rispetto al periodo precedente.
+            </p>
+          </div>
+
+          {updatedAt ? (
+            <div className="text-sm text-green-400">
+              Aggiornato: {updatedAt}
+            </div>
+          ) : null}
         </div>
 
-        <div style={{ color: GREEN, fontSize: 12 }}>
-          {data?.updatedAt
-            ? `Aggiornato: ${new Date(data.updatedAt).toLocaleString('it-IT')}`
-            : ''}
-        </div>
-      </div>
-
-      <TimeFrameSelector
-        preset={preset}
-        setPreset={setPreset}
-        since={since}
-        setSince={setSince}
-        until={until}
-        setUntil={setUntil}
-        onApply={load}
-        loading={loading}
-      />
-
-      {loading && <div style={cardStyle}>Caricamento dati Meta...</div>}
-
-      {error && (
-        <div style={{ ...cardStyle, color: RED, marginBottom: 20 }}>
-          Errore: {error}
-        </div>
-      )}
-
-      {!loading && !error && (
-        <>
-          <SummaryCharts data={chartDaily} />
-
-          <InsightsPanel
-            insights={data?.insights}
-            catalogProducts={data?.catalogProducts}
-            catalogProductsError={data?.catalogProductsError}
+        <div className="mt-8">
+          <TimeFrameSelector
+            preset={preset}
+            setPreset={setPreset}
+            since={since}
+            setSince={setSince}
+            until={until}
+            setUntil={setUntil}
+            onApply={loadData}
           />
+        </div>
 
-          <MetaTable campaigns={campaigns} />
-        </>
-      )}
+        {loading ? (
+          <div className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6 text-white">
+            Caricamento dati Meta...
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6 text-red-400">
+            Errore: {error}
+          </div>
+        ) : null}
+
+        {!loading && !error ? (
+          <>
+            <div className="mt-6 grid gap-5 lg:grid-cols-2">
+              <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
+                <h2 className="mb-4 text-[20px] font-black uppercase tracking-[0.18em] text-white">
+                  ROAS, spesa e acquisti
+                </h2>
+
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#102040" />
+                      <XAxis dataKey="date" stroke={MUTED} />
+                      <YAxis stroke={MUTED} />
+                      <Tooltip
+                        contentStyle={{
+                          background: CARD,
+                          border: `1px solid ${BORDER}`,
+                          color: WHITE,
+                        }}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="roas" name="ROAS" stroke={WHITE} strokeWidth={2} dot />
+                      <Line type="monotone" dataKey="spend" name="Spesa" stroke={BLUE} strokeWidth={2} dot />
+                      <Line type="monotone" dataKey="purchases" name="Acquisti" stroke={GREEN} strokeWidth={2} dot />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
+                <h2 className="mb-4 text-[20px] font-black uppercase tracking-[0.18em] text-white">
+                  KPI Meta: CTR, CPC, CPM, frequenza
+                </h2>
+
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#102040" />
+                      <XAxis dataKey="date" stroke={MUTED} />
+                      <YAxis stroke={MUTED} />
+                      <Tooltip
+                        contentStyle={{
+                          background: CARD,
+                          border: `1px solid ${BORDER}`,
+                          color: WHITE,
+                        }}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="ctrLink" name="CTR link %" stroke={BLUE} strokeWidth={2} dot />
+                      <Line type="monotone" dataKey="cpcLink" name="CPC link" stroke={CYAN} strokeWidth={2} dot />
+                      <Line type="monotone" dataKey="cpm" name="CPM" stroke={PURPLE} strokeWidth={2} dot />
+                      <Line type="monotone" dataKey="frequency" name="Frequenza" stroke={WHITE} strokeWidth={2} dot />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+            </div>
+
+            <div className="mt-6">
+              <InsightsPanel campaigns={campaigns} />
+            </div>
+
+            <section className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6">
+              <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.18em] text-white">
+                Campagne attive, adset e creatività
+              </h2>
+
+              <div className="overflow-auto rounded-2xl border border-blue-900/70">
+                <table className="w-full min-w-[2100px] border-collapse bg-[#071225]">
+                  <thead className="sticky top-0 z-20 bg-[#071225]">
+                    <tr className="border-b border-blue-900/70 text-left text-sm uppercase tracking-[0.16em] text-white">
+                      <th className="sticky left-0 z-30 min-w-[470px] bg-[#071225] px-4 py-4">
+                        Campagna / Adset / Creatività
+                      </th>
+                      <th className="px-4 py-4">Speso</th>
+                      <th className="px-4 py-4">ROAS</th>
+                      <th className="px-4 py-4">Valore acquisti</th>
+                      <th className="px-4 py-4">AOV</th>
+                      <th className="px-4 py-4">Acquisti</th>
+                      <th className="px-4 py-4">Conv. acquisti</th>
+                      <th className="px-4 py-4">Add to cart</th>
+                      <th className="px-4 py-4">CRO campagna</th>
+                      <th className="px-4 py-4">CTR link</th>
+                      <th className="px-4 py-4">CPC link</th>
+                      <th className="px-4 py-4">CPM</th>
+                      <th className="px-4 py-4">Impression</th>
+                      <th className="px-4 py-4">Copertura</th>
+                      <th className="px-4 py-4">Frequenza</th>
+                      <th className="px-4 py-4">Costo risultato</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {rows.map((row, index) => {
+                      const key =
+                        `${row.level}-${row.id || row.adId || row.adsetId || row.campaignId || index}`
+
+                      return (
+                        <tr key={key} className="border-b border-blue-900/50">
+                          <RowNameCell row={row} />
+                          <MetricCell row={row} metric="spend" type="euro0" />
+                          <MetricCell row={row} metric="roas" type="x" />
+                          <MetricCell row={row} metric="purchaseValue" type="euro0" />
+                          <MetricCell row={row} metric="aov" type="euro2" />
+                          <MetricCell row={row} metric="purchases" />
+                          <MetricCell row={row} metric="purchaseConversions" />
+                          <MetricCell row={row} metric="addToCart" />
+                          <MetricCell row={row} metric="cro" type="pct" />
+                          <MetricCell row={row} metric="ctrLink" type="pct" />
+                          <MetricCell row={row} metric="cpcLink" type="euro2" />
+                          <MetricCell row={row} metric="cpm" type="euro2" />
+                          <MetricCell row={row} metric="impressions" />
+                          <MetricCell row={row} metric="reach" />
+                          <MetricCell row={row} metric="frequency" type="dec" />
+                          <MetricCell row={row} metric="costPerResult" type="euro2" />
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        ) : null}
+      </div>
     </main>
   )
 }

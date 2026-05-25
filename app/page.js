@@ -701,7 +701,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
               {avgRatio != null ? `${dec2(avgRatio)}:1` : '—'}
             </td>
           </tr>
-        </tbody>
+               </tbody>
       </table>
     </div>
   </div>
@@ -710,14 +710,14 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
-  const [tab,    setTab]    = useState('dashboard')
-  const [live,   setLive]   = useState(null)
-  const [loading,setLoading]= useState(true)
-  const [cfg,    setCfg]    = useState(DEF)
-  const [showCfg,setShowCfg]= useState(false)
+  const [tab, setTab] = useState('dashboard')
+  const [live, setLive] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [cfg, setCfg] = useState(DEF)
+  const [showCfg, setShowCfg] = useState(false)
   const [months, setMonths] = useState({})
-  const [weeks,  setWeeks]  = useState({})
-  const [updated,setUpdated]= useState(null)
+  const [weeks, setWeeks] = useState({})
+  const [updated, setUpdated] = useState(null)
 
   const avail = getMonths()
 

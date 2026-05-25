@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -29,42 +28,137 @@ const num0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
 const pct2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const dec2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+const TIMEFRAME_OPTIONS = [
+  { value: 'last_7d', label: 'Ultimi 7 giorni' },
+  { value: 'last_14d', label: 'Ultimi 14 giorni' },
+  { value: 'last_30d', label: 'Ultimi 30 giorni' },
+  { value: 'this_month', label: 'Questo mese' },
+  { value: 'last_month', label: 'Mese scorso' },
+  { value: 'maximum', label: 'Massimo disponibile' },
+  { value: 'custom', label: 'Personalizzato' },
+]
+
+function pad(n) {
+  return String(n).padStart(2, '0')
+}
+
+function toISODate(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function addDays(date, days) {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+function getPresetRange(preset) {
+  const today = new Date()
+
+  if (preset === 'last_7d') {
+    return {
+      since: toISODate(addDays(today, -6)),
+      until: toISODate(today),
+    }
+  }
+
+  if (preset === 'last_14d') {
+    return {
+      since: toISODate(addDays(today, -13)),
+      until: toISODate(today),
+    }
+  }
+
+  if (preset === 'last_30d') {
+    return {
+      since: toISODate(addDays(today, -29)),
+      until: toISODate(today),
+    }
+  }
+
+  if (preset === 'this_month') {
+    return {
+      since: toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
+      until: toISODate(today),
+    }
+  }
+
+  if (preset === 'last_month') {
+    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const end = new Date(today.getFullYear(), today.getMonth(), 0)
+    return {
+      since: toISODate(start),
+      until: toISODate(end),
+    }
+  }
+
+  return {
+    since: '',
+    until: '',
+  }
+}
+
 function hasVal(v) {
   return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
 }
 
 function fmt(v, kind) {
   if (!hasVal(v)) return '—'
+
   const n = Number(v)
+
   if (kind === 'euro0') return `€${euro0.format(n)}`
   if (kind === 'euro2') return `€${euro2.format(n)}`
   if (kind === 'int') return num0.format(n)
   if (kind === 'pct') return `${pct2.format(n)}%`
   if (kind === 'roas') return `${dec2.format(n)}×`
+
   return dec2.format(n)
 }
 
 function delta(curr, prev) {
   if (!hasVal(curr) || !hasVal(prev)) return null
+
   const c = Number(curr)
   const p = Number(prev)
   const diff = c - p
+
   if (Math.abs(diff) < 0.000001) return null
+
   const pct = p !== 0 ? (diff / p) * 100 : null
-  return { diff, pct, negative: diff < 0 }
+
+  return {
+    diff,
+    pct,
+    negative: diff < 0,
+  }
 }
 
 function Delta({ current, previous, kind }) {
   const d = delta(current, previous)
+
   if (!d) return null
 
   const sign = d.diff > 0 ? '+' : '−'
   const color = d.negative ? RED : WHITE
 
   return (
-    <div style={{ marginTop: 7, display: 'grid', gridTemplateRows: 'auto auto', rowGap: 3, color, fontSize: 12, fontWeight: 900, lineHeight: 1.15 }}>
+    <div
+      style={{
+        marginTop: 7,
+        display: 'grid',
+        gridTemplateRows: 'auto auto',
+        rowGap: 3,
+        color,
+        fontSize: 12,
+        fontWeight: 900,
+        lineHeight: 1.15,
+      }}
+    >
       <div>{sign}{fmt(Math.abs(d.diff), kind)}</div>
-      {d.pct != null && <div>{sign}{pct2.format(Math.abs(d.pct))}%</div>}
+      {d.pct !== null && d.pct !== undefined && (
+        <div>{sign}{pct2.format(Math.abs(d.pct))}%</div>
+      )}
     </div>
   )
 }
@@ -72,7 +166,17 @@ function Delta({ current, previous, kind }) {
 function Metric({ value, previous, kind = 'int' }) {
   return (
     <div>
-      <div style={{ color: WHITE, fontSize: 15, fontWeight: 900, lineHeight: 1.1 }}>{fmt(value, kind)}</div>
+      <div
+        style={{
+          color: WHITE,
+          fontSize: 15,
+          fontWeight: 900,
+          lineHeight: 1.1,
+        }}
+      >
+        {fmt(value, kind)}
+      </div>
+
       <Delta current={value} previous={previous} kind={kind} />
     </div>
   )
@@ -82,10 +186,27 @@ function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null
 
   return (
-    <div style={{ background: '#020617', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 10, color: WHITE, fontSize: 12 }}>
+    <div
+      style={{
+        background: '#020617',
+        border: `1px solid ${BORDER}`,
+        borderRadius: 12,
+        padding: 10,
+        color: WHITE,
+        fontSize: 12,
+      }}
+    >
       <div style={{ fontWeight: 900, marginBottom: 6 }}>{label}</div>
-      {payload.map(p => (
-        <div key={p.dataKey} style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+
+      {payload.map((p) => (
+        <div
+          key={p.dataKey}
+          style={{
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'space-between',
+          }}
+        >
           <span>{p.name}</span>
           <strong>{p.value}</strong>
         </div>
@@ -95,7 +216,8 @@ function ChartTip({ active, payload, label }) {
 }
 
 function latestAndPrevious(weeks = []) {
-  const valid = [...weeks].sort((a, b) => a.date.localeCompare(b.date))
+  const valid = [...weeks].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+
   return {
     latest: valid[valid.length - 1] || {},
     previous: valid[valid.length - 2] || {},
@@ -127,19 +249,61 @@ function PerformanceRow({ item, depth = 0, children }) {
   return (
     <>
       <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-        <td style={{ position: 'sticky', left: 0, zIndex: 5, background: CARD, minWidth: depth === 0 ? 280 : 320, padding: '14px 14px' }}>
-          <button onClick={() => setOpen(!open)} style={{ background: 'transparent', border: 0, color: WHITE, cursor: 'pointer', fontWeight: 900, textAlign: 'left', fontSize: depth === 0 ? 15 : 14, paddingLeft: depth * 20 }}>
-            <span style={{ color: MUTED, marginRight: 8 }}>{open ? '▾' : '▸'}</span>
+        <td
+          style={{
+            position: 'sticky',
+            left: 0,
+            zIndex: 5,
+            background: CARD,
+            minWidth: depth === 0 ? 280 : 320,
+            padding: '14px 14px',
+          }}
+        >
+          <button
+            onClick={() => setOpen(!open)}
+            style={{
+              background: 'transparent',
+              border: 0,
+              color: WHITE,
+              cursor: 'pointer',
+              fontWeight: 900,
+              textAlign: 'left',
+              fontSize: depth === 0 ? 15 : 14,
+              paddingLeft: depth * 20,
+            }}
+          >
+            <span style={{ color: MUTED, marginRight: 8 }}>
+              {open ? '▾' : '▸'}
+            </span>
             {item.name || 'Senza nome'}
           </button>
-          <div style={{ color: MUTED, fontSize: 11, marginTop: 5, paddingLeft: depth * 20 + 28 }}>{item.id}</div>
+
+          <div
+            style={{
+              color: MUTED,
+              fontSize: 11,
+              marginTop: 5,
+              paddingLeft: depth * 20 + 28,
+            }}
+          >
+            {item.id}
+          </div>
         </td>
+
         {columns.map(([key, , kind]) => (
-          <td key={key} style={{ padding: '14px 14px', verticalAlign: 'top', minWidth: 120 }}>
+          <td
+            key={key}
+            style={{
+              padding: '14px 14px',
+              verticalAlign: 'top',
+              minWidth: 120,
+            }}
+          >
             <Metric value={latest[key]} previous={previous[key]} kind={kind} />
           </td>
         ))}
       </tr>
+
       {open && children}
     </>
   )
@@ -151,21 +315,74 @@ function AdRow({ ad }) {
 
   return (
     <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-      <td style={{ position: 'sticky', left: 0, zIndex: 4, background: '#050b18', minWidth: 360, padding: '14px 14px' }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingLeft: 42 }}>
+      <td
+        style={{
+          position: 'sticky',
+          left: 0,
+          zIndex: 4,
+          background: '#050b18',
+          minWidth: 360,
+          padding: '14px 14px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            paddingLeft: 42,
+          }}
+        >
           {img ? (
-            <img src={img} alt="Creative" style={{ width: 54, height: 54, objectFit: 'cover', borderRadius: 10, border: `1px solid ${BORDER}` }} />
+            <img
+              src={img}
+              alt="Creative"
+              style={{
+                width: 54,
+                height: 54,
+                objectFit: 'cover',
+                borderRadius: 10,
+                border: `1px solid ${BORDER}`,
+              }}
+            />
           ) : (
-            <div style={{ width: 54, height: 54, borderRadius: 10, border: `1px solid ${BORDER}`, display: 'grid', placeItems: 'center', color: MUTED, fontSize: 10 }}>NO IMG</div>
+            <div
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 10,
+                border: `1px solid ${BORDER}`,
+                display: 'grid',
+                placeItems: 'center',
+                color: MUTED,
+                fontSize: 10,
+              }}
+            >
+              NO IMG
+            </div>
           )}
+
           <div>
-            <div style={{ color: WHITE, fontWeight: 900, fontSize: 13 }}>{ad.name || 'Creatività senza nome'}</div>
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>{ad.creative?.creativeName || ad.creative?.creativeId || ad.id}</div>
+            <div style={{ color: WHITE, fontWeight: 900, fontSize: 13 }}>
+              {ad.name || 'Creatività senza nome'}
+            </div>
+
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
+              {ad.creative?.creativeName || ad.creative?.creativeId || ad.id}
+            </div>
           </div>
         </div>
       </td>
+
       {columns.map(([key, , kind]) => (
-        <td key={key} style={{ padding: '14px 14px', verticalAlign: 'top', minWidth: 120 }}>
+        <td
+          key={key}
+          style={{
+            padding: '14px 14px',
+            verticalAlign: 'top',
+            minWidth: 120,
+          }}
+        >
           <Metric value={latest[key]} previous={previous[key]} kind={kind} />
         </td>
       ))}
@@ -176,48 +393,93 @@ function AdRow({ ad }) {
 function SummaryCharts({ campaigns }) {
   const data = useMemo(() => {
     const map = {}
+
     for (const c of campaigns) {
       for (const w of c.weeks || []) {
-        if (!map[w.date]) map[w.date] = { date: w.date, spend: 0, purchases: 0, purchaseValue: 0, roasNumerator: 0, roasDenominator: 0, ctrLink: [], cpcLink: [], cpm: [], frequency: [] }
+        if (!map[w.date]) {
+          map[w.date] = {
+            date: w.date,
+            spend: 0,
+            purchases: 0,
+            purchaseValue: 0,
+            roasNumerator: 0,
+            roasDenominator: 0,
+            ctrLink: [],
+            cpcLink: [],
+            cpm: [],
+            frequency: [],
+          }
+        }
+
         map[w.date].spend += Number(w.spend || 0)
         map[w.date].purchases += Number(w.purchases || 0)
         map[w.date].purchaseValue += Number(w.purchaseValue || 0)
-        if (w.spend > 0) {
+
+        if (Number(w.spend || 0) > 0) {
           map[w.date].roasNumerator += Number(w.purchaseValue || 0)
           map[w.date].roasDenominator += Number(w.spend || 0)
         }
+
         for (const k of ['ctrLink', 'cpcLink', 'cpm', 'frequency']) {
-          if (w[k] != null && Number(w[k]) > 0) map[w.date][k].push(Number(w[k]))
+          if (w[k] !== null && w[k] !== undefined && Number(w[k]) > 0) {
+            map[w.date][k].push(Number(w[k]))
+          }
         }
       }
     }
 
-    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+    const avg = (arr) => {
+      if (!arr.length) return null
+      return arr.reduce((a, b) => a + b, 0) / arr.length
+    }
 
-    return Object.values(map).sort((a, b) => a.date.localeCompare(b.date)).map(w => ({
-      date: w.date.slice(5),
-      spend: Math.round(w.spend),
-      purchases: Math.round(w.purchases),
-      purchaseValue: Math.round(w.purchaseValue),
-      roas: w.roasDenominator > 0 ? Math.round((w.roasNumerator / w.roasDenominator) * 100) / 100 : null,
-      ctrLink: avg(w.ctrLink),
-      cpcLink: avg(w.cpcLink),
-      cpm: avg(w.cpm),
-      frequency: avg(w.frequency),
-    }))
+    return Object.values(map)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .map((w) => ({
+        date: String(w.date).slice(5),
+        spend: Math.round(w.spend),
+        purchases: Math.round(w.purchases),
+        purchaseValue: Math.round(w.purchaseValue),
+        roas:
+          w.roasDenominator > 0
+            ? Math.round((w.roasNumerator / w.roasDenominator) * 100) / 100
+            : null,
+        ctrLink: avg(w.ctrLink),
+        cpcLink: avg(w.cpcLink),
+        cpm: avg(w.cpm),
+        frequency: avg(w.frequency),
+      }))
   }, [campaigns])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 16,
+        marginBottom: 20,
+      }}
+    >
       <div style={cardStyle}>
         <h2 style={titleStyle}>ROAS, spesa e acquisti</h2>
+
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis dataKey="date" tick={{ fill: MUTED, fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: MUTED, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip content={<ChartTip />} />
             <Legend />
+
             <Line dataKey="roas" name="ROAS" stroke={WHITE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line dataKey="spend" name="Spesa" stroke={BLUE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line dataKey="purchases" name="Acquisti" stroke={GREEN} strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -227,13 +489,24 @@ function SummaryCharts({ campaigns }) {
 
       <div style={cardStyle}>
         <h2 style={titleStyle}>KPI Meta: CTR, CPC, CPM, frequenza</h2>
+
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis dataKey="date" tick={{ fill: MUTED, fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: MUTED, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip content={<ChartTip />} />
             <Legend />
+
             <Line dataKey="ctrLink" name="CTR link %" stroke={BLUE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line dataKey="cpcLink" name="CPC link" stroke={CYAN} strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line dataKey="cpm" name="CPM" stroke={PURPLE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -262,47 +535,233 @@ const titleStyle = {
   fontWeight: 900,
 }
 
+const inputStyle = {
+  background: '#020617',
+  border: `1px solid ${BORDER}`,
+  borderRadius: 10,
+  color: WHITE,
+  padding: '10px 12px',
+  fontWeight: 800,
+  outline: 'none',
+}
+
+const buttonStyle = {
+  background: GREEN,
+  color: '#020617',
+  border: 0,
+  borderRadius: 10,
+  padding: '10px 14px',
+  fontWeight: 900,
+  cursor: 'pointer',
+}
+
 export default function MetaDetailPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    let alive = true
+  const [preset, setPreset] = useState('last_30d')
+  const initialRange = getPresetRange('last_30d')
+  const [since, setSince] = useState(initialRange.since)
+  const [until, setUntil] = useState(initialRange.until)
 
-    async function load() {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/meta-detail', { cache: 'no-store' })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Errore caricamento Meta')
-        if (alive) setData(json)
-      } catch (e) {
-        if (alive) setError(e.message)
-      } finally {
-        if (alive) setLoading(false)
-      }
+  function applyPreset(nextPreset) {
+    setPreset(nextPreset)
+
+    if (nextPreset !== 'custom') {
+      const range = getPresetRange(nextPreset)
+      setSince(range.since)
+      setUntil(range.until)
     }
+  }
 
-    load()
-    return () => { alive = false }
+  async function loadMeta() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+
+      params.set('preset', preset)
+
+      if (preset !== 'maximum') {
+        if (since) params.set('since', since)
+        if (until) params.set('until', until)
+      }
+
+      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
+        cache: 'no-store',
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Errore caricamento Meta')
+      }
+
+      setData(json)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadMeta()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const campaigns = data?.campaigns || []
 
   return (
-    <main style={{ minHeight: '100vh', background: '#020617', color: WHITE, padding: 28, fontFamily: 'Barlow, system-ui, sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginBottom: 22 }}>
+    <main
+      style={{
+        minHeight: '100vh',
+        background: '#020617',
+        color: WHITE,
+        padding: 28,
+        fontFamily: 'Barlow, system-ui, sans-serif',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: 16,
+          marginBottom: 22,
+        }}
+      >
         <div>
-          <a href="/" style={{ color: MUTED, textDecoration: 'none', fontSize: 13 }}>← Torna alla dashboard</a>
-          <h1 style={{ margin: '10px 0 0', fontSize: 28, letterSpacing: '.08em', textTransform: 'uppercase' }}>Analisi Meta dettagliata</h1>
-          <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 14 }}>Campagne attive → adset → creatività, con variazioni settimanali.</p>
+          <a
+            href="/"
+            style={{
+              color: MUTED,
+              textDecoration: 'none',
+              fontSize: 13,
+            }}
+          >
+            ← Torna alla dashboard
+          </a>
+
+          <h1
+            style={{
+              margin: '10px 0 0',
+              fontSize: 28,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Analisi Meta dettagliata
+          </h1>
+
+          <p
+            style={{
+              margin: '8px 0 0',
+              color: MUTED,
+              fontSize: 14,
+            }}
+          >
+            Campagne attive → adset → creatività, con variazioni settimanali.
+          </p>
         </div>
-        <div style={{ color: GREEN, fontSize: 12 }}>{data?.updatedAt ? `Aggiornato: ${new Date(data.updatedAt).toLocaleString('it-IT')}` : ''}</div>
+
+        <div style={{ color: GREEN, fontSize: 12 }}>
+          {data?.updatedAt
+            ? `Aggiornato: ${new Date(data.updatedAt).toLocaleString('it-IT')}`
+            : ''}
+        </div>
+      </div>
+
+      <div
+        style={{
+          ...cardStyle,
+          marginBottom: 20,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'end',
+          gap: 12,
+        }}
+      >
+        <div>
+          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
+            Time frame
+          </label>
+
+          <select
+            value={preset}
+            onChange={(e) => applyPreset(e.target.value)}
+            style={inputStyle}
+          >
+            {TIMEFRAME_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
+            Da
+          </label>
+
+          <input
+            type="date"
+            value={since}
+            disabled={preset === 'maximum'}
+            onChange={(e) => {
+              setPreset('custom')
+              setSince(e.target.value)
+            }}
+            style={{
+              ...inputStyle,
+              opacity: preset === 'maximum' ? 0.45 : 1,
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
+            A
+          </label>
+
+          <input
+            type="date"
+            value={until}
+            disabled={preset === 'maximum'}
+            onChange={(e) => {
+              setPreset('custom')
+              setUntil(e.target.value)
+            }}
+            style={{
+              ...inputStyle,
+              opacity: preset === 'maximum' ? 0.45 : 1,
+            }}
+          />
+        </div>
+
+        <button onClick={loadMeta} style={buttonStyle}>
+          Aggiorna
+        </button>
+
+        <div style={{ color: MUTED, fontSize: 12, marginLeft: 'auto' }}>
+          {preset === 'maximum'
+            ? 'Periodo: massimo disponibile'
+            : since && until
+              ? `Periodo: ${since} → ${until}`
+              : 'Periodo non selezionato'}
+        </div>
       </div>
 
       {loading && <div style={cardStyle}>Caricamento dati Meta...</div>}
-      {error && <div style={{ ...cardStyle, color: RED }}>Errore: {error}</div>}
+
+      {error && (
+        <div style={{ ...cardStyle, color: RED }}>
+          Errore: {error}
+        </div>
+      )}
 
       {!loading && !error && (
         <>
@@ -310,26 +769,85 @@ export default function MetaDetailPage() {
 
           <div style={cardStyle}>
             <h2 style={titleStyle}>Campagne attive, adset e creatività</h2>
-            <div style={{ overflow: 'auto', maxHeight: '76vh', borderRadius: 14, border: `1px solid ${BORDER}` }}>
-              <table style={{ borderCollapse: 'collapse', minWidth: 2200, width: '100%' }}>
+
+            <div
+              style={{
+                overflow: 'auto',
+                maxHeight: '76vh',
+                borderRadius: 14,
+                border: `1px solid ${BORDER}`,
+              }}
+            >
+              <table
+                style={{
+                  borderCollapse: 'collapse',
+                  minWidth: 2200,
+                  width: '100%',
+                }}
+              >
                 <thead>
                   <tr>
-                    <th style={{ position: 'sticky', top: 0, left: 0, zIndex: 20, background: '#081226', color: WHITE, textAlign: 'left', padding: '14px', minWidth: 360 }}>Campagna / Adset / Creatività</th>
+                    <th
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        left: 0,
+                        zIndex: 20,
+                        background: '#081226',
+                        color: WHITE,
+                        textAlign: 'left',
+                        padding: '14px',
+                        minWidth: 360,
+                      }}
+                    >
+                      Campagna / Adset / Creatività
+                    </th>
+
                     {columns.map(([, label]) => (
-                      <th key={label} style={{ position: 'sticky', top: 0, zIndex: 10, background: '#081226', color: WHITE, textAlign: 'left', padding: '14px', minWidth: 120, fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase' }}>{label}</th>
+                      <th
+                        key={label}
+                        style={{
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 10,
+                          background: '#081226',
+                          color: WHITE,
+                          textAlign: 'left',
+                          padding: '14px',
+                          minWidth: 120,
+                          fontSize: 12,
+                          letterSpacing: '.08em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
+
                 <tbody>
                   {campaigns.length === 0 && (
-                    <tr><td colSpan={columns.length + 1} style={{ padding: 18, color: MUTED }}>Nessuna campagna attiva trovata.</td></tr>
+                    <tr>
+                      <td
+                        colSpan={columns.length + 1}
+                        style={{
+                          padding: 18,
+                          color: MUTED,
+                        }}
+                      >
+                        Nessuna campagna attiva trovata.
+                      </td>
+                    </tr>
                   )}
 
-                  {campaigns.map(campaign => (
+                  {campaigns.map((campaign) => (
                     <PerformanceRow key={campaign.id} item={campaign} depth={0}>
-                      {campaign.adsets.map(adset => (
+                      {(campaign.adsets || []).map((adset) => (
                         <PerformanceRow key={adset.id} item={adset} depth={1}>
-                          {adset.ads.map(ad => <AdRow key={ad.id} ad={ad} />)}
+                          {(adset.ads || []).map((ad) => (
+                            <AdRow key={ad.id} ad={ad} />
+                          ))}
                         </PerformanceRow>
                       ))}
                     </PerformanceRow>

@@ -606,19 +606,19 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   const totSes = sum('ses')
 
   const avgMER = div(totFat, totAdv)
-  const avgAMER = div(totFatNC, totAdv)
-  const avgCAC = div(totAdv, totNC)
-  const avgCPO = div(totAdv, totOrd)
+const avgAMER = div(totFatNC, totAdv)
+const avgCAC = div(totAdv, totNC)
+const avgCPO = div(totAdv, totOrd)
 
-  const avgAOV = div(totFat, totOrd)
-  const avgAOVNC = div(totFatNC, totNC)
-  const avgAOVRC = div(totFatRC, totRC)
+const avgAOV = div(totFat, totOrd)
+const avgAOVNC = div(totFatNC, totNC)
+const avgAOVRC = div(totFatRC, totRC)
 
-  const avgRet = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
-  const avgCRO = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
+const avgRet = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
+const avgCRO = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
 
-  const avgLTV = avgAOV ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
-  const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
+const avgLTV = avgAOV ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
 
   const chartData = filled.map(w => ({
     label: w.label,

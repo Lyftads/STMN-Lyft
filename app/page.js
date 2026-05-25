@@ -1120,30 +1120,60 @@ export default function App() {
   }
 
   // ── Calcola dati per ogni mese ────────────────────────────
- // ── Calcola dati automatici mensili ────────────────────────────
-const n = v => Number.isFinite(Number(v)) ? Number(v) : 0
-const safeDiv = (a, b) => b > 0 ? a / b : null
+// ── Calcola dati automatici mensili da Shopify + Meta Weekly ───────────────
 
-const monthKeys = getMonths()
+const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
+const div = (a, b) => b > 0 ? a / b : null
+
+const monthFromDate = date => {
+  if (!date) return null
+  return String(date).slice(0, 7)
+}
 
 const metaMonthlyMap = {}
-;(live?.metaMonthly || []).forEach(x => {
-  if (!x?.month) return
-  metaMonthlyMap[x.month] = {
-    spend: n(x.spend),
-  }
-})
-
-;(live?.metaWeekly || []).forEach(x => {
-  const month = String(x.date || '').slice(0, 7)
+;(live?.metaWeekly || []).forEach(w => {
+  const month = monthFromDate(w.date)
   if (!month) return
-  if (!metaMonthlyMap[month]) metaMonthlyMap[month] = { spend: 0 }
-  metaMonthlyMap[month].spend += n(x.spend)
+
+  if (!metaMonthlyMap[month]) {
+    metaMonthlyMap[month] = {
+      spend: 0,
+      impressions: 0,
+      reach: 0,
+      linkClicks: 0,
+      purchases: 0,
+      purchaseValue: 0,
+      frequencyWeightedSum: 0,
+      cpmWeightedSum: 0,
+      ctrWeightedSum: 0,
+      cpcWeightedSum: 0,
+      weight: 0,
+    }
+  }
+
+  const m = metaMonthlyMap[month]
+  const spend = asNum(w.spend)
+  const impressions = asNum(w.impressions)
+  const linkClicks = asNum(w.linkClicks)
+
+  m.spend += spend
+  m.impressions += impressions
+  m.reach += asNum(w.reach)
+  m.linkClicks += linkClicks
+  m.purchases += asNum(w.purchases || w.purchaseConversions)
+  m.purchaseValue += asNum(w.purchaseValue)
+
+  const weight = impressions > 0 ? impressions : 1
+  m.frequencyWeightedSum += asNum(w.frequency) * weight
+  m.cpmWeightedSum += asNum(w.cpm) * weight
+  m.ctrWeightedSum += asNum(w.ctrLink || w.ctr) * weight
+  m.cpcWeightedSum += asNum(w.cpcLink || w.cpc) * weight
+  m.weight += weight
 })
 
 const shopifyMonthlyMap = {}
-;(live?.shopifyWeekly || []).forEach(x => {
-  const month = String(x.date || '').slice(0, 7)
+;(live?.shopifyWeekly || []).forEach(w => {
+  const month = monthFromDate(w.date)
   if (!month) return
 
   if (!shopifyMonthlyMap[month]) {
@@ -1158,110 +1188,156 @@ const shopifyMonthlyMap = {}
     }
   }
 
-  shopifyMonthlyMap[month].fatturato += n(x.fatturato)
-  shopifyMonthlyMap[month].fatturNC += n(x.fatturNC)
-  shopifyMonthlyMap[month].fatturRC += n(x.fatturRC)
-  shopifyMonthlyMap[month].ordini += n(x.ordini)
-  shopifyMonthlyMap[month].nc += n(x.nc)
-  shopifyMonthlyMap[month].rc += n(x.rc)
-  shopifyMonthlyMap[month].sessioni += n(x.uniqueSessions || x.online_store_visitors || x.sessioni)
+  const s = shopifyMonthlyMap[month]
+
+  s.fatturato += asNum(w.fatturato)
+  s.fatturNC += asNum(w.fatturNC)
+  s.fatturRC += asNum(w.fatturRC)
+  s.ordini += asNum(w.ordini)
+  s.nc += asNum(w.nc)
+  s.rc += asNum(w.rc)
+  s.sessioni += asNum(w.uniqueSessions || w.online_store_visitors || w.sessioni)
 })
 
-const data = monthKeys.map(month => {
-  const manual = months[month] || EMPTY
-  const metaAuto = metaMonthlyMap[month] || {}
-  const shopifyAuto = shopifyMonthlyMap[month] || {}
+const allMonthsSet = new Set([
+  ...avail,
+  ...Object.keys(metaMonthlyMap),
+  ...Object.keys(shopifyMonthlyMap),
+])
 
-  const fatturato = shopifyAuto.fatturato > 0
-    ? n(shopifyAuto.fatturato)
-    : n(manual.fatturato)
+const data = Array.from(allMonthsSet)
+  .sort()
+  .map(month => {
+    const manual = months[month] || EMPTY
+    const metaAuto = metaMonthlyMap[month] || {}
+    const shopAuto = shopifyMonthlyMap[month] || {}
 
-  const fatturNC = shopifyAuto.fatturNC > 0
-    ? n(shopifyAuto.fatturNC)
-    : n(manual.fatturNC)
+    const fatturato =
+      asNum(shopAuto.fatturato) > 0
+        ? asNum(shopAuto.fatturato)
+        : asNum(manual.fatturato)
 
-  const fatturRC = shopifyAuto.fatturRC > 0
-    ? n(shopifyAuto.fatturRC)
-    : Math.max(fatturato - fatturNC, 0)
+    const fatturNC =
+      asNum(shopAuto.fatturNC) > 0
+        ? asNum(shopAuto.fatturNC)
+        : asNum(manual.fatturNC)
 
-  const ordini = shopifyAuto.ordini > 0
-    ? n(shopifyAuto.ordini)
-    : n(manual.ordini)
+    const fatturRC =
+      asNum(shopAuto.fatturRC) > 0
+        ? asNum(shopAuto.fatturRC)
+        : Math.max(fatturato - fatturNC, 0)
 
-  const nc = shopifyAuto.nc > 0
-    ? n(shopifyAuto.nc)
-    : n(manual.nuoviClienti)
+    const ordini =
+      asNum(shopAuto.ordini) > 0
+        ? asNum(shopAuto.ordini)
+        : asNum(manual.ordini)
 
-  const rc = shopifyAuto.rc > 0
-    ? n(shopifyAuto.rc)
-    : n(manual.rc)
+    const nc =
+      asNum(shopAuto.nc) > 0
+        ? asNum(shopAuto.nc)
+        : asNum(manual.nuoviClienti)
 
-  const sessioni = shopifyAuto.sessioni > 0
-    ? n(shopifyAuto.sessioni)
-    : n(manual.sessioni)
+    const rc =
+      asNum(shopAuto.rc) > 0
+        ? asNum(shopAuto.rc)
+        : Math.max(ordini - nc, 0)
 
-  const metaSpend = metaAuto.spend > 0
-    ? n(metaAuto.spend)
-    : 0
+    const sessioni =
+      asNum(shopAuto.sessioni) > 0
+        ? asNum(shopAuto.sessioni)
+        : asNum(manual.sessioni)
 
-  const googleSpend = n(manual.googleSpend)
+    const metaSpend =
+      asNum(metaAuto.spend) > 0
+        ? asNum(metaAuto.spend)
+        : asNum((live?.metaMonthly || []).find(x => x.month === month)?.spend)
 
-  const totalSpend = metaSpend + googleSpend
+    const googleSpend = asNum(manual.googleSpend)
+    const totalSpend = metaSpend + googleSpend
 
-  const aov = safeDiv(fatturato, ordini)
-  const aovNC = safeDiv(fatturNC, nc)
-  const aovRC = safeDiv(fatturRC, rc)
+    const aov = div(fatturato, ordini)
+    const aovNC = div(fatturNC, nc)
+    const aovRC = div(fatturRC, rc)
 
-  const ltv = aov
-    ? aov * cfg.freq * cfg.life * cfg.margin / 100
-    : null
+    const ltv = aov != null
+      ? aov * cfg.freq * cfg.life * cfg.margin / 100
+      : null
 
-  const cac = safeDiv(totalSpend, nc)
-  const cpo = safeDiv(totalSpend, ordini)
-  const ratio = ltv && cac ? ltv / cac : null
-  const mer = safeDiv(fatturato, totalSpend)
-  const aMer = safeDiv(fatturNC, totalSpend)
+    const cac = div(totalSpend, nc)
+    const cpo = div(totalSpend, ordini)
 
-  const retention = (nc + rc) > 0
-    ? rc / (nc + rc) * 100
-    : null
+    const ratio = ltv != null && cac != null
+      ? div(ltv, cac)
+      : null
 
-  const cro = sessioni > 0 && ordini > 0
-    ? ordini / sessioni * 100
-    : null
+    const mer = div(fatturato, totalSpend)
+    const aMer = div(fatturNC, totalSpend)
 
-  return {
-    month,
+    const retention =
+      nc + rc > 0
+        ? rc / (nc + rc) * 100
+        : null
 
-    fatturato,
-    fatturNC,
-    fatturRC,
+    const cro =
+      sessioni > 0 && ordini > 0
+        ? ordini / sessioni * 100
+        : null
 
-    ordini,
-    nc,
-    rc,
-    sessioni,
+    const metaWeight = asNum(metaAuto.weight)
 
-    metaSpend,
-    googleSpend,
-    totalSpend,
+    const ctr = metaWeight > 0 ? metaAuto.ctrWeightedSum / metaWeight : null
+    const cpc = metaWeight > 0 ? metaAuto.cpcWeightedSum / metaWeight : null
+    const cpm = metaWeight > 0 ? metaAuto.cpmWeightedSum / metaWeight : null
+    const frequency = metaWeight > 0 ? metaAuto.frequencyWeightedSum / metaWeight : null
 
-    aov,
-    aovNC,
-    aovRC,
-    ltv,
-    cac,
-    cpo,
-    ratio,
-    mer,
-    aMer,
-    retention,
-    cro,
+    return {
+      month,
 
-    shopifyAuto: shopifyAuto.fatturato > 0 || shopifyAuto.ordini > 0 || shopifyAuto.nc > 0,
-    metaAuto: metaSpend > 0,
-  }
-})
+      fatturato,
+      fatturNC,
+      fatturRC,
+
+      ordini,
+      nc,
+      rc,
+      sessioni,
+
+      metaSpend,
+      googleSpend,
+      totalSpend,
+
+      aov,
+      aovNC,
+      aovRC,
+
+      ltv,
+      cac,
+      cpo,
+      ratio,
+      mer,
+      aMer,
+      retention,
+      cro,
+
+      ctr,
+      cpc,
+      cpm,
+      frequency,
+
+      impressions: asNum(metaAuto.impressions),
+      reach: asNum(metaAuto.reach),
+      linkClicks: asNum(metaAuto.linkClicks),
+      metaPurchases: asNum(metaAuto.purchases),
+      metaPurchaseValue: asNum(metaAuto.purchaseValue),
+
+      shopifyAuto:
+        asNum(shopAuto.fatturato) > 0 ||
+        asNum(shopAuto.ordini) > 0 ||
+        asNum(shopAuto.nc) > 0,
+
+      metaAuto: asNum(metaAuto.spend) > 0,
+    }
+  })
 
 // ── Totali periodo ────────────────────────────────────────────
 const totFat = data.reduce((s, m) => s + n(m.fatturato), 0)

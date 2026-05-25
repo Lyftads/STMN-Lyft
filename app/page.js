@@ -1013,12 +1013,13 @@ const TABS = [
         </div>
       )}
 
-      {/* ── SIMULATORE ── */}
-      {tab==='simulator' && (
-        <div className="fade-up">
-          <Simulator cfg={cfg} />
-        </div>
-      )}
+{/* ── SIMULATORE ── */}
+{tab==='simulator' && (
+  <div className="fade-up">
+    <Simulator cfg={cfg} />
+  </div>
+)}
+
 {/* ── META DETAIL ── */}
 {tab==='metaDetail' && (
   <div className="fade-up" style={{minHeight:'calc(100vh - 220px)'}}>
@@ -1044,34 +1045,7 @@ const TABS = [
     </div>
   </div>
 )}
-      <div style={{textAlign:'center',fontSize:10,color:'#2a2a2a',marginTop:40,fontFamily:'Barlow',fontWeight:700}}>
-        STMN FITNESS · LTV:CAC DASHBOARD · {new Date().getFullYear()}
-      </div>
-    </div>
-  )
-}
-{/* ── META DETAIL ── */}
-{tab==='metaDetail' && (
-  <div className="fade-up" style={{minHeight:'calc(100vh - 220px)'}}>
-    <div style={{
-      ...S.card,
-      padding:0,
-      overflow:'hidden',
-      border:'1px solid #1d3260',
-      minHeight:'calc(100vh - 240px)'
-    }}>
-      <iframe
-        title="Analisi Meta dettagliata"
-        src="/meta"
-        style={{
-          width:'100%',
-          height:'calc(100vh - 240px)',
-          minHeight:720,
-          border:0,
-          display:'block',
-          background:'#030817'
-        }}
-      />
-    </div>
-  </div>
-)}
+
+<div style={{textAlign:'center',fontSize:10,color:'#2a2a2a',marginTop:40,fontFamily:'Barlow',fontWeight:700}}>
+  STMN FITNESS · LTV:CAC DASHBOARD · {new Date().getFullYear()}
+</div>

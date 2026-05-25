@@ -606,7 +606,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   const totSes = sum('ses')
 
   const avgMER = div(totFat, totAdv)
-const avgAMer = div(totFatNC, totAdv)
+const avgAMER = div(totFatNC, totAdv)
+const avgAMer = avgAMER
+
 const avgCAC = div(totAdv, totNC)
 const avgCPO = div(totAdv, totOrd)
 

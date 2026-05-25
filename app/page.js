@@ -41,7 +41,7 @@ function getMonths() {
 }
 
 const EMPTY  = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
-const WEMPTY = { fatturato:0, fatturNC:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
+const WEMPTY = { fatturato:0, fatturNC:0, fatturRC:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
 const DEF   = { freq:1.69, life:1.57, margin:62 }
 
 function load() {
@@ -266,209 +266,287 @@ function Simulator({ cfg }) {
 
 // ── WeeklyTab ─────────────────────────────────────────────────
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
-  // Mappa Meta settimanale per data (YYYY-MM-DD)
+  const WHITE = '#f8fafc'
+  const RED = '#ef4444'
+  const YELLOW = '#eab308'
+  const GREEN = '#22c55e'
+
+  const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT')}` : '—'
+  const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+  const int0 = n => n != null && Number(n) > 0 ? Math.round(Number(n)).toLocaleString('it-IT') : '—'
+  const pct1 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'
+  const pct2 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '—'
+  const dec2 = n => n != null ? Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
+  const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
+  const div = (a, b) => b > 0 ? a / b : null
+
+  const delta = (curr, prev) => {
+    if (curr == null || prev == null) return null
+    const c = Number(curr)
+    const p = Number(prev)
+    if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+    const diff = c - p
+    const pct = p !== 0 ? diff / p * 100 : null
+    const equal = Math.abs(diff) < 0.000001
+    return { diff, pct, equal, over20: pct != null && Math.abs(pct) >= 20, positive: diff > 0 }
+  }
+
+  const dataColor = (curr, prev) => {
+    const d = delta(curr, prev)
+    if (!d) return WHITE
+    if (d.equal) return YELLOW
+    if (d.over20) return RED
+    return WHITE
+  }
+
+  const formatDelta = (v, kind) => {
+    const abs = Math.abs(Number(v || 0))
+    if (kind === 'euro0') return `€${Math.round(abs).toLocaleString('it-IT')}`
+    if (kind === 'euro2') return `€${abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    if (kind === 'int') return Math.round(abs).toLocaleString('it-IT')
+    if (kind === 'percent') return `${abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+    return abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  const Delta = ({ current, previous, kind='number' }) => {
+    const d = delta(current, previous)
+    if (!d || d.equal) return null
+    const sign = d.diff > 0 ? '+' : '−'
+    const color = d.positive ? GREEN : RED
+    return (
+      <div style={{marginTop:6, display:'flex', flexDirection:'column', gap:2, color, fontSize:11, lineHeight:1.12, fontWeight:800, whiteSpace:'nowrap'}}>
+        <span>{sign}{formatDelta(d.diff, kind)}</span>
+        {d.pct != null && <span>{sign}{Math.abs(d.pct).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>}
+      </div>
+    )
+  }
+
   const metaMap = {}
-  for (const m of (metaWeekly||[])) metaMap[m.date] = m
+  for (const m of (metaWeekly || [])) metaMap[m.date] = m
 
   const shopifyMap = {}
   for (const s of (shopifyWeekly || [])) shopifyMap[s.date] = s
 
   const allWeeks = weeks.map(({ key, label }) => {
-    const d   = data[key] || WEMPTY
-    const mw  = metaMap[key] || {}
-    const sw  = shopifyMap[key] || {}
-    // Meta spend: usa API se disponibile, altrimenti manuale
-    const metaSpend = mw.spend > 0 ? mw.spend : (d.meta||0)
-    const adv = metaSpend + (d.google||0)
-    const fat   = sw.fatturato > 0 ? sw.fatturato : (d.fatturato || 0)
-    const fatNC = sw.fatturNC > 0 ? sw.fatturNC : (d.fatturNC || 0)
-    const ord   = sw.ordini > 0 ? sw.ordini : (d.ordini || 0)
-    const nc    = sw.nc > 0 ? sw.nc : (d.nc || 0)
-    const rc    = sw.rc > 0 ? sw.rc : (d.rc || 0)
-    const ses  = d.sessioni   || 0
-    const mer       = adv>0&&fat>0    ? fat/adv    : null
-    const aMer      = adv>0&&fatNC>0  ? fatNC/adv  : null
-    const cac       = adv>0&&nc>0     ? adv/nc     : null
-    const cpo       = adv>0&&ord>0    ? adv/ord    : null
-    const aov       = ord>0&&fat>0    ? fat/ord    : null
-    const aovNC     = nc>0&&fatNC>0   ? fatNC/nc   : null
-    const retention = (nc+rc)>0       ? rc/(nc+rc)*100 : null
-    const cro       = ses>0&&ord>0    ? ord/ses*100    : null
-    const ltv       = aov ? aov * cfg.freq * cfg.life * cfg.margin/100 : null
-    const ratio     = ltv&&cac ? ltv/cac : null
+    const d = data[key] || WEMPTY
+    const mw = metaMap[key] || {}
+    const sw = shopifyMap[key] || {}
+
+    const fat = sw.fatturato > 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
+    const fatNC = sw.fatturNC > 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
+    const fatRC = sw.fatturRC > 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
+
+    const meta = mw.spend > 0 ? asNum(mw.spend) : asNum(d.meta)
+    const google = asNum(d.google)
+    const adv = meta + google
+
+    const ord = sw.ordini > 0 ? asNum(sw.ordini) : asNum(d.ordini)
+    const nc = sw.nc > 0 ? asNum(sw.nc) : asNum(d.nc)
+    const rc = sw.rc > 0 ? asNum(sw.rc) : asNum(d.rc)
+    const ses = sw.uniqueSessions > 0 ? asNum(sw.uniqueSessions) : sw.online_store_visitors > 0 ? asNum(sw.online_store_visitors) : asNum(d.sessioni)
+
+    const mer = div(fat, adv)
+    const aMer = div(fatNC, adv)
+    const cac = div(adv, nc)
+    const cpo = div(adv, ord)
+    const aov = div(fat, ord)
+    const aovNC = div(fatNC, nc)
+    const aovRC = div(fatRC, rc)
+    const retention = (nc + rc) > 0 ? rc / (nc + rc) * 100 : null
+    const cro = ses > 0 && ord > 0 ? ord / ses * 100 : null
+    const ltv = aov ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+    const ratio = ltv && cac ? ltv / cac : null
+
     return {
-      key, label, fat, fatNC, meta:metaSpend, google:d.google||0, adv,
-      ord, nc, rc, ses, mer, aMer, cac, cpo, aov, aovNC,
-      retention, cro, ltv, ratio,
-      // Meta KPIs auto
+      key, label, fat, fatNC, fatRC, meta, google, adv, ord, nc, rc, ses,
+      mer, aMer, cac, cpo, aov, aovNC, aovRC, retention, cro, ltv, ratio,
       metaAuto: mw.spend > 0,
-      shopifyAuto: sw.fatturato > 0 || sw.fatturNC > 0 || sw.ordini > 0 || sw.nc > 0 || sw.rc > 0,
-      spend:     mw.spend,
-      ctr:       mw.ctr,
-      cpcLink:   mw.cpcLink,
-      cpc:       mw.cpcLink,
-      cpm:       mw.cpm,
-      frequency: mw.frequency,
-      freq:      mw.frequency,
+      shopifyAuto: sw.fatturato > 0 || sw.fatturNC > 0 || sw.fatturRC > 0 || sw.ordini > 0 || sw.nc > 0 || sw.rc > 0 || sw.uniqueSessions > 0 || sw.online_store_visitors > 0,
+      ctr: mw.ctr,
+      cpc: mw.cpcLink,
+      cpm: mw.cpm,
+      freq: mw.frequency,
       impressions: mw.impressions,
-      reach:     mw.reach,
+      reach: mw.reach,
       linkClicks: mw.linkClicks,
     }
   })
 
-  const filled  = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto)
-  const totFat   = filled.reduce((s,w)=>s+w.fat,0)
-  const totFatNC = filled.reduce((s,w)=>s+w.fatNC,0)
-  const totAdv   = filled.reduce((s,w)=>s+w.adv,0)
-  const totMeta  = filled.reduce((s,w)=>s+w.meta,0)
-  const totGoog  = filled.reduce((s,w)=>s+w.google,0)
-  const totOrd   = filled.reduce((s,w)=>s+w.ord,0)
-  const totNC    = filled.reduce((s,w)=>s+w.nc,0)
-  const totRC    = filled.reduce((s,w)=>s+w.rc,0)
-  const totSes   = filled.reduce((s,w)=>s+w.ses,0)
-  const totImpr  = filled.reduce((s,w)=>s+(w.impressions||0),0)
-  const totReach = filled.reduce((s,w)=>s+(w.reach||0),0)
-  const totLinks = filled.reduce((s,w)=>s+(w.linkClicks||0),0)
-  const avgMER   = totAdv>0&&totFat>0   ? totFat/totAdv    : null
-  const avgAMER  = totAdv>0&&totFatNC>0 ? totFatNC/totAdv  : null
-  const avgCAC   = totAdv>0&&totNC>0    ? totAdv/totNC     : null
-  const avgCPO   = totAdv>0&&totOrd>0   ? totAdv/totOrd    : null
-  const avgAOV   = totOrd>0&&totFat>0   ? totFat/totOrd    : null
-  const avgRet   = (totNC+totRC)>0      ? totRC/(totNC+totRC)*100 : null
-  const avgCRO   = totSes>0&&totOrd>0   ? totOrd/totSes*100 : null
-  const avgLTV   = avgAOV ? avgAOV*cfg.freq*cfg.life*cfg.margin/100 : null
-  const avgRatio = avgLTV&&avgCAC ? avgLTV/avgCAC : null
-  // Media KPI Meta (solo settimane con dati Meta)
-  const metaFilled = filled.filter(w=>w.metaAuto)
-  const avg = (arr,fn) => arr.length>0 ? arr.reduce((s,w)=>s+fn(w),0)/arr.length : null
-  const avgCTR  = avg(metaFilled, w=>w.ctr||0)
-  const avgCPC  = avg(metaFilled, w=>w.cpcLink||0)
-  const avgCPM  = avg(metaFilled, w=>w.cpm||0)
-  const avgFreq = avg(metaFilled, w=>w.frequency||0)
+  const filled = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
+  const sum = key => filled.reduce((s,w)=>s+asNum(w[key]),0)
 
-  const TH  = { ...S.th, fontSize:12, padding:'10px 12px' }
-  const TD  = { ...S.td, fontSize:15, padding:'9px 12px' }
-  const col = r => r==null?'#555':r<1?'#ef4444':r<3?'#f59e0b':'#22c55e'
+  const totFat = sum('fat')
+  const totFatNC = sum('fatNC')
+  const totFatRC = sum('fatRC')
+  const totAdv = sum('adv')
+  const totMeta = sum('meta')
+  const totGoog = sum('google')
+  const totOrd = sum('ord')
+  const totNC = sum('nc')
+  const totRC = sum('rc')
+  const totSes = sum('ses')
+
+  const avgMER = div(totFat, totAdv)
+  const avgAMER = div(totFatNC, totAdv)
+  const avgCAC = div(totAdv, totNC)
+  const avgCPO = div(totAdv, totOrd)
+  const avgAOV = div(totFat, totOrd)
+  const avgAOVNC = div(totFatNC, totNC)
+  const avgAOVRC = div(totFatRC, totRC)
+  const avgRet = (totNC + totRC) > 0 ? totRC / (totNC + totRC) * 100 : null
+  const avgCRO = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
+  const avgLTV = avgAOV ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+  const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
+
+  const metaFilled = filled.filter(w => w.metaAuto)
+  const avgMeta = key => metaFilled.length ? metaFilled.reduce((s,w)=>s+asNum(w[key]),0) / metaFilled.length : null
+
+  const tableWrap = { overflow:'auto', maxHeight:'72vh', position:'relative' }
+  const TH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'#081226', boxShadow:'0 1px 0 #1e2d47', fontSize:12, padding:'12px 14px' }
+  const TD = { ...S.td, fontSize:15, padding:'10px 14px', verticalAlign:'top' }
+  const valueStyle = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15 }
+
+  const Value = ({ value, prev, kind='euro0', suffix='' }) => {
+    let shown = '—'
+    if (kind === 'euro0') shown = money0(value)
+    else if (kind === 'euro2') shown = money2(value)
+    else if (kind === 'int') shown = int0(value)
+    else if (kind === 'percent1') shown = pct1(value)
+    else if (kind === 'percent2') shown = pct2(value)
+    else if (kind === 'ratio') shown = value != null ? `${dec2(value)}${suffix}` : '—'
+    else shown = value != null ? String(value) : '—'
+
+    return (
+      <div>
+        <div style={{...valueStyle, color:dataColor(value, prev)}}>{shown}</div>
+        <Delta current={value} previous={prev} kind={kind === 'percent1' || kind === 'percent2' ? 'percent' : kind} />
+      </div>
+    )
+  }
+
+  const InputOrValue = ({ week, field, value, prev, disabled, isCount=false }) => (
+    disabled ? (
+      <Value value={value} prev={prev} kind={isCount ? 'int' : 'euro0'} />
+    ) : (
+      <div>
+        <NumInput value={value} onChange={val=>onUpdate(week, field, val)} placeholder="0" color={WHITE} isCount={isCount} />
+        <Delta current={value} previous={prev} kind={isCount ? 'int' : 'euro0'} />
+      </div>
+    )
+  )
 
   return (
     <>
-      {/* INPUT TABLE */}
       <div style={{...S.card, marginBottom:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
           <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>Inserimento dati settimanali</span>
-          <span style={{fontSize:10,color:'#22c55e'}}>Dal 29 dic 2025 ad oggi — aggiornamento automatico ✓</span>
+          <span style={{fontSize:10,color:'#22c55e'}}>Shopify + Meta automatici · Google manuale</span>
         </div>
-        <div style={{overflowX:'auto'}}>
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
+        <div style={tableWrap}>
+          <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
             <thead>
               <tr>
-                {['Settimana','Fatturato €','Fatt. NC €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                {['Settimana','Fatturato €','Fatt. NC €','Fatt. RC €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Visitatori online'].map(h=>(
                   <th key={h} style={TH}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {allWeeks.map(({ key, label, fat, fatNC, meta, google, ord, nc, rc, ses, metaAuto, shopifyAuto }, i) => (
-                <tr key={key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                  <td style={{...TD,color:'#94a3b8',fontWeight:600,whiteSpace:'nowrap',fontSize:11}}>{label}</td>
-                  {[
-                    {k:'fatturato',   v:fat,    color:'#22c55e', disabled:shopifyAuto},
-                    {k:'fatturNC',    v:fatNC,  color:'#16a34a', disabled:shopifyAuto},
-                    {k:'meta',        v:meta,   color:'#3b82f6', disabled:metaAuto},
-                    {k:'google',      v:google, color:'#eab308'},
-                    {k:'ordini',      v:ord,    color:'#e8e8e8', isCount:true, disabled:shopifyAuto},
-                    {k:'nc',          v:nc,     color:'#06b6d4', isCount:true, disabled:shopifyAuto},
-                    {k:'rc',          v:rc,     color:'#818cf8', isCount:true, disabled:shopifyAuto},
-                    {k:'sessioni',    v:ses,    color:'#94a3b8', isCount:true},
-                  ].map(({k,v,color,isCount,disabled}) => (
-                    <td key={k} style={{...TD,padding:'5px 8px'}}>
-                      {disabled
-                        ? <span style={{fontFamily:'Barlow',fontWeight:800,color,fontSize:15}}>{v > 0 ? (isCount ? fn(v) : f0(v)) : '—'}</span>
-                        : <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
-                      }
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {/* TOTALI */}
+              {allWeeks.map((w,i) => {
+                const p = i > 0 ? allWeeks[i-1] : null
+                return (
+                  <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                    <td style={{...TD,color:'#94a3b8',fontWeight:700,whiteSpace:'nowrap',fontSize:12}}>{w.label}</td>
+                    <td style={TD}><InputOrValue week={w.key} field="fatturato" value={w.fat} prev={p?.fat} disabled={w.shopifyAuto} /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="fatturNC" value={w.fatNC} prev={p?.fatNC} disabled={w.shopifyAuto} /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="fatturRC" value={w.fatRC} prev={p?.fatRC} disabled={w.shopifyAuto} /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="meta" value={w.meta} prev={p?.meta} disabled={w.metaAuto} /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={false} /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="ordini" value={w.ord} prev={p?.ord} disabled={w.shopifyAuto} isCount /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="nc" value={w.nc} prev={p?.nc} disabled={w.shopifyAuto} isCount /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="rc" value={w.rc} prev={p?.rc} disabled={w.shopifyAuto} isCount /></td>
+                    <td style={TD}><InputOrValue week={w.key} field="sessioni" value={w.ses} prev={p?.ses} disabled={w.shopifyAuto && w.ses > 0} isCount /></td>
+                  </tr>
+                )
+              })}
               <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
-                <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat)}</td>
-                <td style={{...TD,color:'#16a34a',fontWeight:800}}>{totFatNC>0?f0(totFatNC):'—'}</td>
-                <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{f0(totMeta)}</td>
-                <td style={{...TD,color:'#eab308',fontWeight:800}}>{totGoog>0?f0(totGoog):'—'}</td>
-                <td style={{...TD,color:'#e8e8e8',fontWeight:800}}>{fn(totOrd)}</td>
-                <td style={{...TD,color:'#06b6d4',fontWeight:800}}>{fn(totNC)}</td>
-                <td style={{...TD,color:'#818cf8',fontWeight:800}}>{fn(totRC)}</td>
-                <td style={{...TD,color:'#94a3b8',fontWeight:800}}>{fn(totSes)}</td>
+                <td style={{...TD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFat)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFatNC)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFatRC)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totMeta)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{totGoog>0?money0(totGoog):'—'}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totOrd)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totNC)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totRC)}</td>
+                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totSes)}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* KPI CALCOLATI */}
       {filled.length > 0 && (
         <div style={{...S.card, marginBottom:20}}>
           <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>KPI calcolati</p>
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <div style={tableWrap}>
+            <table style={{width:'100%',minWidth:1850,borderCollapse:'collapse'}}>
               <thead>
                 <tr>
-                  {['Sett.','Fatturato','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','Ret%','CRO%','CTR%','CPC','CPM','Freq.','LTV','Ratio'].map(h=>(
-                    <th key={h} style={{...TH,fontSize:11}}>{h}</th>
+                  {['Sett.','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','CTR%','CPC','CPM','Freq.','LTV','Ratio'].map(h=>(
+                    <th key={h} style={TH}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {allWeeks.filter(w=>w.fat>0||w.adv>0).map((w,i)=>(
-                  <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                    <td style={{...TD,color:'#94a3b8',fontSize:10,fontWeight:600,whiteSpace:'nowrap'}}>{w.label}</td>
-                    <td style={{...TD,color:'#22c55e',fontWeight:700}}>{f0(w.fat)}</td>
-                    <td style={{...TD,color:'#888',fontSize:11}}>{w.adv>0?f0(w.adv):'—'}</td>
-                    <td style={{...TD,color:w.mer!=null?(w.mer>=3?'#22c55e':w.mer>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:700}}>{w.mer!=null?`${fr(w.mer)}×`:'—'}</td>
-                    <td style={{...TD,color:w.aMer!=null?(w.aMer>=2?'#22c55e':w.aMer>=1.5?'#f59e0b':'#ef4444'):'#555',fontWeight:700}}>{w.aMer!=null?`${fr(w.aMer)}×`:'—'}</td>
-                    <td style={{...TD}}>{w.cac?f2(w.cac):'—'}</td>
-                    <td style={{...TD}}>{w.cpo?f2(w.cpo):'—'}</td>
-                    <td style={{...TD,color:'#3b82f6'}}>{w.aov?f2(w.aov):'—'}</td>
-                    <td style={{...TD,color:'#16a34a'}}>{w.aovNC?f2(w.aovNC):'—'}</td>
-                    <td style={{...TD,color:'#818cf8',fontSize:11}}>{w.retention!=null?`${w.retention.toFixed(1)}%`:'—'}</td>
-                    <td style={{...TD,color:'#94a3b8',fontSize:11}}>{w.cro!=null?`${w.cro.toFixed(2)}%`:'—'}</td>
-                    <td style={{...TD,color:'#60a5fa',fontSize:11}}>{w.ctr!=null?`${w.ctr.toFixed(2)}%`:'—'}</td>
-                    <td style={{...TD,color:'#93c5fd',fontSize:11}}>{w.cpc!=null?f2(w.cpc):'—'}</td>
-                    <td style={{...TD,color:'#7dd3fc',fontSize:11}}>{w.cpm!=null?f2(w.cpm):'—'}</td>
-                    <td style={{...TD,color:'#bae6fd',fontSize:11}}>{w.freq!=null?w.freq.toFixed(2):'—'}</td>
-                    <td style={{...TD}}>{w.ltv?f2(w.ltv):'—'}</td>
-                    <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:14,color:col(w.ratio)}}>{w.ratio?`${fr(w.ratio)}:1`:'—'}</td>
-                  </tr>
-                ))}
+                {filled.map((w,i) => {
+                  const p = i > 0 ? filled[i-1] : null
+                  return (
+                    <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                      <td style={{...TD,color:'#94a3b8',fontSize:12,fontWeight:700,whiteSpace:'nowrap'}}>{w.label}</td>
+                      <td style={TD}><Value value={w.fat} prev={p?.fat} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.fatNC} prev={p?.fatNC} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.fatRC} prev={p?.fatRC} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.adv} prev={p?.adv} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
+                      <td style={TD}><Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
+                      <td style={TD}><Value value={w.cac} prev={p?.cac} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.cpo} prev={p?.cpo} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aov} prev={p?.aov} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aovNC} prev={p?.aovNC} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aovRC} prev={p?.aovRC} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.retention} prev={p?.retention} kind="percent1" /></td>
+                      <td style={TD}><Value value={w.cro} prev={p?.cro} kind="percent2" /></td>
+                      <td style={TD}><Value value={w.ctr} prev={p?.ctr} kind="percent2" /></td>
+                      <td style={TD}><Value value={w.cpc} prev={p?.cpc} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.cpm} prev={p?.cpm} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.freq} prev={p?.freq} kind="ratio" /></td>
+                      <td style={TD}><Value value={w.ltv} prev={p?.ltv} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
+                    </tr>
+                  )
+                })}
                 <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                  <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
-                  <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat/filled.length)}</td>
-                  <td style={{...TD,color:'#888',fontWeight:800}}>{totAdv>0?f0(totAdv/filled.length):'—'}</td>
-                  <td style={{...TD,color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:800}}>{avgMER!=null?`${fr(avgMER)}×`:'—'}</td>
-                  <td style={{...TD,color:avgAMER!=null?(avgAMER>=2?'#22c55e':avgAMER>=1.5?'#f59e0b':'#ef4444'):'#555',fontWeight:800}}>{avgAMER!=null?`${fr(avgAMER)}×`:'—'}</td>
-                  <td style={{...TD,fontWeight:800}}>{avgCAC?f2(avgCAC):'—'}</td>
-                  <td style={{...TD,fontWeight:800}}>{avgCPO?f2(avgCPO):'—'}</td>
-                  <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{avgAOV?f2(avgAOV):'—'}</td>
-                  <td style={{...TD,color:'#16a34a',fontWeight:800}}>—</td>
-                  <td style={{...TD,color:'#818cf8',fontWeight:800}}>{avgRet!=null?`${avgRet.toFixed(1)}%`:'—'}</td>
-                  <td style={{...TD,color:'#94a3b8',fontWeight:800}}>{avgCRO!=null?`${avgCRO.toFixed(2)}%`:'—'}</td>
-                  {(() => {
-                    const fw = filled.filter(w=>w.ctr!=null)
-                    const avgCTR = fw.length>0 ? fw.reduce((s,w)=>s+w.ctr,0)/fw.length : null
-                    const avgCPC = fw.length>0 ? fw.reduce((s,w)=>s+(w.cpc||0),0)/fw.length : null
-                    const avgCPM = fw.length>0 ? fw.reduce((s,w)=>s+(w.cpm||0),0)/fw.length : null
-                    const avgFreq= fw.length>0 ? fw.reduce((s,w)=>s+(w.freq||0),0)/fw.length : null
-                    return <>
-                      <td style={{...TD,color:'#60a5fa',fontWeight:800}}>{avgCTR!=null?`${avgCTR.toFixed(2)}%`:'—'}</td>
-                      <td style={{...TD,color:'#93c5fd',fontWeight:800}}>{avgCPC!=null?f2(avgCPC):'—'}</td>
-                      <td style={{...TD,color:'#7dd3fc',fontWeight:800}}>{avgCPM!=null?f2(avgCPM):'—'}</td>
-                      <td style={{...TD,color:'#bae6fd',fontWeight:800}}>{avgFreq!=null?avgFreq.toFixed(2):'—'}</td>
-                    </>
-                  })()}
-                  <td style={{...TD,fontWeight:800}}>{avgLTV?f2(avgLTV):'—'}</td>
-                  <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:16,color:col(avgRatio)}}>{avgRatio?`${fr(avgRatio)}:1`:'—'}</td>
+                  <td style={{...TD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFat/filled.length):'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFatNC/filled.length):'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFatRC/filled.length):'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totAdv/filled.length):'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgMER!=null?`${dec2(avgMER)}×`:'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgAMER!=null?`${dec2(avgAMER)}×`:'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgCAC)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgCPO)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOV)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOVNC)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOVRC)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct1(avgRet)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct2(avgCRO)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct2(avgMeta('ctr'))}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgMeta('cpc'))}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgMeta('cpm'))}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgMeta('freq')!=null?dec2(avgMeta('freq')):'—'}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgLTV)}</td>
+                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgRatio!=null?`${dec2(avgRatio)}:1`:'—'}</td>
                 </tr>
               </tbody>
             </table>
@@ -476,7 +554,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
         </div>
       )}
 
-      {/* GRAFICI WEEKLY */}
       {filled.length > 0 && (
         <>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
@@ -488,37 +565,11 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   <XAxis dataKey="label" tick={{fill:'#555',fontSize:8,fontFamily:'Barlow'}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
                   <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTip />} />
-                  <Bar dataKey="fat"  name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
-                  <Bar dataKey="meta" name="Meta ADS"  fill="#3b82f6" radius={[2,2,0,0]} />
-                  <Bar dataKey="google" name="Google ADS" fill="#eab308" radius={[2,2,0,0]} />
+                  <Bar dataKey="fat" name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
+                  <Bar dataKey="fatNC" name="Fatt. NC" fill="#16a34a" radius={[2,2,0,0]} />
+                  <Bar dataKey="fatRC" name="Fatt. RC" fill="#84cc16" radius={[2,2,0,0]} />
+                  <Bar dataKey="meta" name="Meta ADS" fill="#3b82f6" radius={[2,2,0,0]} />
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>MER settimanale</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
-                  <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="mer" name="MER" stroke="#22c55e" strokeWidth={2} dot={{r:3,fill:'#22c55e'}} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>CAC settimanale</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="cac" name="CAC €" stroke="#e8e8e8" strokeWidth={2} dot={{r:3}} connectNulls />
-                </LineChart>
               </ResponsiveContainer>
             </div>
             <div style={S.card}>
@@ -529,14 +580,14 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
                   <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}%`} />
                   <Tooltip content={<ChartTip />} />
-                  <Line dataKey="cro"       name="CRO %"       stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
-                  <Line dataKey="retention" name="Retention %"  stroke="#818cf8" strokeWidth={2} dot={{r:3}} connectNulls />
+                  <Line dataKey="cro" name="CRO %" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
+                  <Line dataKey="retention" name="Retention %" stroke="#818cf8" strokeWidth={2} dot={{r:3}} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
           <div style={S.card}>
-            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Nuovi Clienti (NC) vs Clienti Ritorno (RC) settimanali</p>
+            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Nuovi Clienti vs Clienti di Ritorno</p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={filled} margin={{top:0,right:8,left:0,bottom:0}} barGap={2}>
                 <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />

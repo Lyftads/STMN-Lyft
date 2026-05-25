@@ -499,153 +499,213 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
       {filled.length > 0 && (
         <div style={{...S.card, marginBottom:20}}>
           <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>KPI calcolati</p>
-          <div style={tableWrap}>
-            <table style={{width:'100%',minWidth:1850,borderCollapse:'collapse'}}>
-              <thead>
-                <tr>
-                  {['Sett.','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','CTR%','CPC','CPM','Freq.','LTV','Ratio'].map(h=>(
-                    <th key={h} style={TH}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filled.map((w,i) => {
-                  const p = i > 0 ? filled[i-1] : null
-                  return (
-                    <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                      <td style={{...TD,color:WHITE,fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{w.label}</td>
-                      <td style={TD}><Value value={w.fat} prev={p?.fat} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.fatNC} prev={p?.fatNC} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.fatRC} prev={p?.fatRC} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.adv} prev={p?.adv} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
-                      <td style={TD}><Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
-                      <td style={TD}><Value value={w.cac} prev={p?.cac} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.cpo} prev={p?.cpo} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aov} prev={p?.aov} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aovNC} prev={p?.aovNC} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aovRC} prev={p?.aovRC} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.retention} prev={p?.retention} kind="percent1" /></td>
-                      <td style={TD}><Value value={w.cro} prev={p?.cro} kind="percent2" /></td>
-                      <td style={TD}><Value value={w.ctr} prev={p?.ctr} kind="percent2" /></td>
-                      <td style={TD}><Value value={w.cpc} prev={p?.cpc} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.cpm} prev={p?.cpm} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.freq} prev={p?.freq} kind="ratio" /></td>
-                      <td style={TD}><Value value={w.ltv} prev={p?.ltv} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
-                    </tr>
-                  )
-                })}
-                <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                  <td style={{...TD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFat/filled.length):'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFatNC/filled.length):'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totFatRC/filled.length):'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{filled.length?money0(totAdv/filled.length):'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgMER!=null?`${dec2(avgMER)}×`:'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgAMER!=null?`${dec2(avgAMER)}×`:'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgCAC)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgCPO)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOV)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOVNC)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgAOVRC)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct1(avgRet)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct2(avgCRO)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{pct2(avgMeta('ctr'))}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgMeta('cpc'))}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgMeta('cpm'))}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgMeta('freq')!=null?dec2(avgMeta('freq')):'—'}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{money2(avgLTV)}</td>
-                  <td style={{...TD,color:WHITE,fontWeight:900}}>{avgRatio!=null?`${dec2(avgRatio)}:1`:'—'}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+         {filled.length > 0 && (
+  <div style={{...S.card, marginBottom:20}}>
+    <p style={{
+      fontSize:11,
+      color:'#fff',
+      fontWeight:700,
+      fontFamily:'Barlow Condensed',
+      letterSpacing:'0.12em',
+      textTransform:'uppercase',
+      marginBottom:16
+    }}>
+      KPI calcolati
+    </p>
 
-      {filled.length > 0 && (
-        <>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Fatturato vs Investimento ADV</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={filled} margin={{top:0,right:8,left:0,bottom:0}} barGap={2}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
-                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8,fontFamily:'Barlow'}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<ChartTip />} />
-                  <Bar dataKey="fat" name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
-                  <Bar dataKey="fatNC" name="Fatt. NC" fill="#16a34a" radius={[2,2,0,0]} />
-                  <Bar dataKey="fatRC" name="Fatt. RC" fill="#84cc16" radius={[2,2,0,0]} />
-                  <Bar dataKey="meta" name="Meta ADS" fill="#3b82f6" radius={[2,2,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>CRO % + Retention %</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}%`} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="cro" name="CRO %" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
-                  <Line dataKey="retention" name="Retention %" stroke="#818cf8" strokeWidth={2} dot={{r:3}} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div style={{...S.card, marginBottom:16}}>
-            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>MER settimanale</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
-                <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.45} label={{value:'3×',fill:'#22c55e',fontSize:9}} />
-                <Tooltip content={<ChartTip />} />
-                <Line dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line dataKey="aMer" name="aMER" stroke="#94a3b8" strokeWidth={2} dot={{r:3}} strokeDasharray="4 3" connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{...S.card, marginBottom:16}}>
-            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>KPI Meta settimanali · CTR, CPM, CPC e Frequenza</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={filled.filter(w => w.ctr != null || w.cpm != null || w.cpc != null || w.freq != null)} margin={{top:0,right:18,left:0,bottom:0}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                <YAxis yAxisId="left" tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" orientation="right" tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTip />} />
-                <Legend wrapperStyle={{fontSize:11,fontFamily:'Barlow'}} />
-                <Line yAxisId="left" dataKey="ctr" name="CTR %" stroke="#60a5fa" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="right" dataKey="cpm" name="CPM €" stroke="#7dd3fc" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="left" dataKey="cpc" name="CPC €" stroke="#93c5fd" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="left" dataKey="freq" name="Frequenza" stroke="#c4b5fd" strokeWidth={2} dot={{r:3}} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={S.card}>
-            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Nuovi Clienti vs Clienti di Ritorno</p>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={filled} margin={{top:0,right:8,left:0,bottom:0}} barGap={2}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
-                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
-                <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTip />} />
-                <Bar dataKey="nc" name="NC" fill="#06b6d4" radius={[2,2,0,0]} />
-                <Bar dataKey="rc" name="RC" fill="#818cf8" radius={[2,2,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
-    </>
-  )
-}
+    <div style={tableWrap}>
+      <table style={{
+        width:'100%',
+        minWidth:1500,
+        borderCollapse:'collapse'
+      }}>
+        <thead>
+          <tr>
+            {[
+              'Sett.',
+              'Fatturato',
+              'Fatt. NC',
+              'Fatt. RC',
+              'ADV',
+              'MER',
+              'aMER',
+              'CAC',
+              'CPO',
+              'AOV',
+              'AOV NC',
+              'AOV RC',
+              'Ret%',
+              'CRO%',
+              'LTV',
+              'Ratio'
+            ].map(h => (
+              <th key={h} style={TH}>{h}</th>
+            ))}
+          </tr>
+        </thead>
 
+        <tbody>
+          {filled.map((w, i) => {
+            const p = i > 0 ? filled[i - 1] : null
+
+            return (
+              <tr key={w.key} style={{
+                background:i % 2 === 0 ? 'transparent' : '#080f1e'
+              }}>
+                <td style={{
+                  ...TD,
+                  color:WHITE,
+                  fontSize:16,
+                  fontWeight:900,
+                  whiteSpace:'nowrap'
+                }}>
+                  {w.label}
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.fat} prev={p?.fat} kind="euro0" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.fatNC} prev={p?.fatNC} kind="euro0" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.fatRC} prev={p?.fatRC} kind="euro0" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.adv} prev={p?.adv} kind="euro0" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.cac} prev={p?.cac} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.cpo} prev={p?.cpo} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.aov} prev={p?.aov} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.aovNC} prev={p?.aovNC} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.aovRC} prev={p?.aovRC} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.retention} prev={p?.retention} kind="percent1" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.cro} prev={p?.cro} kind="percent2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.ltv} prev={p?.ltv} kind="euro2" />
+                </td>
+
+                <td style={TD}>
+                  <Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" />
+                </td>
+              </tr>
+            )
+          })}
+
+          <tr style={{
+            background:'#0a1020',
+            borderTop:'1px solid #1e2d47'
+          }}>
+            <td style={{
+              ...TD,
+              color:'#94a3b8',
+              fontWeight:900,
+              fontSize:10,
+              textTransform:'uppercase',
+              letterSpacing:'0.1em',
+              fontFamily:'Barlow Condensed'
+            }}>
+              MEDIA / TOTALE
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money0(totFat)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money0(totFatNC)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money0(totFatRC)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money0(totAdv)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {avgMER != null ? `${dec2(avgMER)}×` : '—'}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {avgAMER != null ? `${dec2(avgAMER)}×` : '—'}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgCAC)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgCPO)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgAOV)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgAOVNC)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgAOVRC)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {avgRet != null ? pct1(avgRet) : '—'}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {avgCRO != null ? pct2(avgCRO) : '—'}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {money2(avgLTV)}
+            </td>
+
+            <td style={{...TD, color:WHITE, fontWeight:900}}>
+              {avgRatio != null ? `${dec2(avgRatio)}:1` : '—'}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
   const [tab,    setTab]    = useState('dashboard')

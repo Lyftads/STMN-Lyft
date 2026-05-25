@@ -38,7 +38,7 @@ const saveC = c => { try { localStorage.setItem('stmn_c', JSON.stringify(c)) } c
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{background:'#0f0f0f',border:'1px solid #242424',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
+    <div style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
       <p style={{color:'#888',marginBottom:4}}>{label}</p>
       {payload.map((p,i) => (
         <p key={i} style={{color:p.color}}>
@@ -77,8 +77,8 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
         value={raw}
         onChange={handleChange}
         style={{
-          background:'#0f0f0f',
-          border:'1px solid #1a1a1a',
+          background:'#0a1020',
+          border:'1px solid #111827',
           borderRadius:4,
           padding:'4px 8px',
           width:110,
@@ -91,7 +91,7 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
         onFocus={e => e.target.style.borderColor='#333'}
         onBlur={e => e.target.style.borderColor='#1a1a1a'}
       />
-      {preview && <span style={{fontSize:10,textAlign:'right',color,opacity:0.5,fontFamily:'Barlow',fontWeight:700}}>{preview}</span>}
+      {preview && <span style={{fontSize:11,textAlign:'right',color,opacity:0.7,fontFamily:'Barlow',fontWeight:600}}>{preview}</span>}
     </div>
   )
 }
@@ -100,14 +100,14 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 function Stat({ label, value, sub, color='#e8e8e8', mono, dim }) {
   return (
     <div style={{
-      background:'#0f0f0f',
-      border:'1px solid #1a1a1a',
+      background:'#0a1020',
+      border:'1px solid #111827',
       borderRadius:8,
       padding:'14px 16px',
     }}>
-      <div style={{fontSize:10,color:'#aaa',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
-      <div style={{fontSize:dim?18:24,fontWeight:700,color,fontFamily:'Barlow',letterSpacing:'-0.01em'}}>{value}</div>
-      {sub && <div style={{fontSize:11,color:'#444',marginTop:4}}>{sub}</div>}
+      <div style={{fontSize:11,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
+      <div style={{fontSize:dim?22:30,fontWeight:800,color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{value}</div>
+      {sub && <div style={{fontSize:12,color:'#64748b',marginTop:5}}>{sub}</div>}
     </div>
   )
 }
@@ -159,8 +159,8 @@ function RatioWidget({ ratio, mer }) {
 function Settings({ cfg, onSave, onClose }) {
   const [f, setF] = useState({...cfg})
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#0f0f0f',border:'1px solid #242424',borderRadius:10,padding:28,width:340}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(3,5,15,0.92)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:10,padding:28,width:340}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
           <span style={{fontWeight:600,fontSize:15}}>Parametri LTV</span>
           <button onClick={onClose} style={{color:'#555',background:'none',border:'none',fontSize:18,cursor:'pointer'}}>✕</button>
@@ -175,13 +175,13 @@ function Settings({ cfg, onSave, onClose }) {
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <input type="number" step={s} value={f[k]}
                 onChange={e=>setF(x=>({...x,[k]:parseFloat(e.target.value)||0}))}
-                style={{flex:1,background:'#080808',border:'1px solid #242424',borderRadius:4,padding:'6px 10px',color:'#e8e8e8',fontSize:14,fontFamily:'Barlow',fontWeight:700,textAlign:'right',outline:'none'}} />
+                style={{flex:1,background:'transparent',border:'1px solid #1e2d47',borderRadius:4,padding:'6px 10px',color:'#e8e8e8',fontSize:14,fontFamily:'Barlow',fontWeight:700,textAlign:'right',outline:'none'}} />
               <span style={{fontSize:12,color:'#444',width:48}}>{u}</span>
             </div>
           </div>
         ))}
         <div style={{display:'flex',gap:10,marginTop:24}}>
-          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid #242424',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>Annulla</button>
+          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid #1e2d47',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>Annulla</button>
           <button onClick={()=>{saveC(f);onSave(f);onClose()}} style={{flex:1,padding:'8px',border:'none',borderRadius:6,background:'#22c55e',color:'#000',fontWeight:700,cursor:'pointer',fontSize:13}}>Salva</button>
         </div>
       </div>
@@ -201,7 +201,7 @@ function Simulator({ cfg }) {
 
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
-      <div style={{background:'#0f0f0f',border:'1px solid #1a1a1a',borderRadius:8,padding:24}}>
+      <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:8,padding:24}}>
         <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Muovi i cursori</p>
         {[
           {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
@@ -223,13 +223,13 @@ function Simulator({ cfg }) {
 
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
-        <div style={{background:'#0f0f0f',border:'1px solid #1a1a1a',borderRadius:8,padding:20}}>
-          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Per raggiungere 3:1</p>
+        <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:8,padding:20}}>
+          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Per raggiungere 3:1</p>
           {[
             {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
             {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
           ].map(({l,v,sub}) => (
-            <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1a1a1a'}}>
+            <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #111827'}}>
               <div>
                 <div style={{fontSize:13,color:'#e8e8e8'}}>{l}</div>
                 <div style={{fontSize:11,color:'#444',marginTop:2}}>{sub}</div>
@@ -322,13 +322,13 @@ export default function App() {
   ]
 
   const S = { // shared styles
-    card: { background:'#0f0f0f', border:'1px solid #1a1a1a', borderRadius:8, padding:20 },
-    th:   { padding:'8px 12px', fontSize:10, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #242424', whiteSpace:'nowrap' },
-    td:   { padding:'8px 12px', fontSize:12, borderBottom:'1px solid #111', fontFamily:'Barlow',fontWeight:700, fontWeight:500 },
+    card: { background:'#0a1020', border:'1px solid #111827', borderRadius:10, padding:24 },
+    th:   { padding:'10px 14px', fontSize:11, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #1e2d47', whiteSpace:'nowrap' },
+    td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid #0d1628', fontFamily:'Barlow',fontWeight:700, fontWeight:500 },
   }
 
   return (
-    <div style={{minHeight:'100vh',background:'#080808',padding:'20px 24px',maxWidth:1400,margin:'0 auto'}}>
+    <div style={{minHeight:'100vh',background:'transparent',padding:'20px 24px',maxWidth:1400,margin:'0 auto'}}>
       {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
       {/* HEADER */}
@@ -346,7 +346,7 @@ export default function App() {
           <span style={{fontSize:10,padding:'3px 8px',borderRadius:20,background: live?.sources?.meta?'#172554':'#111', color: live?.sources?.meta?'#3b82f6':'#555', border:`1px solid ${live?.sources?.meta?'#1e40af':'#1a1a1a'}`}}>
             Meta {live?.sources?.meta?'✓':'○'}
           </span>
-          <button onClick={()=>setShowCfg(true)} style={{padding:'4px 10px',fontSize:11,background:'none',border:'1px solid #242424',borderRadius:6,color:'#888',cursor:'pointer'}}>⚙ LTV</button>
+          <button onClick={()=>setShowCfg(true)} style={{padding:'4px 10px',fontSize:11,background:'none',border:'1px solid #1e2d47',borderRadius:6,color:'#888',cursor:'pointer'}}>⚙ LTV</button>
           <button onClick={fetchLive} disabled={loading} style={{padding:'4px 12px',fontSize:11,background:'#22c55e',color:'#000',border:'none',borderRadius:6,fontWeight:700,cursor:'pointer',opacity:loading?.5:1}}>
             {loading ? '...' : '↻ Aggiorna'}
           </button>
@@ -354,10 +354,10 @@ export default function App() {
       </div>
 
       {/* TABS */}
-      <div style={{display:'flex',gap:2,marginBottom:24,borderBottom:'1px solid #1a1a1a',paddingBottom:0}}>
+      <div style={{display:'flex',gap:2,marginBottom:24,borderBottom:'1px solid #111827',paddingBottom:0}}>
         {TABS.map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
-            padding:'8px 18px', fontSize:12, background:'none', border:'none', cursor:'pointer',
+            padding:'10px 20px', fontSize:13, background:'none', border:'none', cursor:'pointer',
             color: tab===t.id ? '#e8e8e8' : '#555',
             fontWeight: tab===t.id ? 600 : 400,
             borderBottom: tab===t.id ? '2px solid #22c55e' : '2px solid transparent',
@@ -390,10 +390,10 @@ export default function App() {
           {/* Grafico Ratio mensile */}
           {data.some(m=>m.ratio!=null) && (
             <div style={{...S.card, marginBottom:16}}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={data} margin={{top:4,right:16,left:0,bottom:4}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
@@ -408,10 +408,10 @@ export default function App() {
           {/* Grafico Fatturato vs Spesa */}
           {data.some(m=>m.fatturato>0) && (
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={data} margin={{top:4,right:16,left:0,bottom:4}} barGap={4}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" vertical={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTip />} />
@@ -448,8 +448,8 @@ export default function App() {
                     const d = months[month] || EMPTY
                     const metaSpend = (live?.metaMonthly||[]).find(x=>x.month===month)?.spend || 0
                     return (
-                      <tr key={month} style={{borderBottom:'1px solid #111'}}>
-                        <td style={{...S.td,color:'#ccc',fontWeight:700}}>{month}</td>
+                      <tr key={month} style={{borderBottom:'1px solid #0d1628'}}>
+                        <td style={{...S.td,color:'#fff',fontWeight:800}}>{month}</td>
                         <td style={{...S.td,padding:'6px 8px'}}>
                           <NumInput value={d.fatturato||0} onChange={v=>updateMonth(month,'fatturato',v)} placeholder="es. 149473" color="#22c55e" />
                         </td>
@@ -468,7 +468,7 @@ export default function App() {
                     )
                   })}
                   {/* TOTALE */}
-                  <tr style={{background:'#0a0a0a',borderTop:'1px solid #242424'}}>
+                  <tr style={{background:'#070e1c',borderTop:'1px solid #1e2d47'}}>
                     <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
                     <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(totFat)}</td>
                     <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{fn(totOrd)}</td>
@@ -485,7 +485,7 @@ export default function App() {
           {/* Tabella KPI calcolati */}
           {data.some(m=>m.ratio!=null||m.mer!=null) && (
             <div style={{...S.card, marginBottom:24}}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>KPI calcolati</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>KPI calcolati</p>
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead>
@@ -498,7 +498,7 @@ export default function App() {
                   <tbody>
                     {data.map((m,i) => (
                       <tr key={m.month} style={{background:i%2===0?'transparent':'#0a0a0a'}}>
-                        <td style={{...S.td,color:'#ccc',fontWeight:700}}>{m.month}</td>
+                        <td style={{...S.td,color:'#fff',fontWeight:800}}>{m.month}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.aov>0?f2(m.aov):'—'}</td>
                         <td style={{...S.td,color:'#888'}}>{m.totalSpend>0?f0(m.totalSpend):'—'}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.cac?f2(m.cac):'—'}</td>
@@ -507,7 +507,7 @@ export default function App() {
                         <td style={{...S.td,color:'#22c55e',fontWeight:600}}>{m.mer?`${fr(m.mer)}×`:'—'}</td>
                       </tr>
                     ))}
-                    <tr style={{background:'#0a0a0a',borderTop:'1px solid #242424'}}>
+                    <tr style={{background:'#070e1c',borderTop:'1px solid #1e2d47'}}>
                       <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
                       <td style={{...S.td,color:'#e8e8e8',fontWeight:700}}>{avgAOV>0?f2(avgAOV):'—'}</td>
                       <td style={{...S.td,color:'#888',fontWeight:700}}>{totSpend>0?f0(Math.round(totSpend/avail.length)):'—'}</td>
@@ -525,10 +525,10 @@ export default function App() {
           {/* Grafici dinamici */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={data} barGap={3} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" vertical={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTip />} />
@@ -539,10 +539,10 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>CAC mensile</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>CAC mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
                   <Tooltip content={<ChartTip />} />
@@ -554,10 +554,10 @@ export default function App() {
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>MER mensile</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>MER mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} />
@@ -567,10 +567,10 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
+              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
                   <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} label={{value:'3:1',fill:'#22c55e',fontSize:9}} />

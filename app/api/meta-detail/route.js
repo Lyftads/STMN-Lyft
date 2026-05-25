@@ -45,18 +45,19 @@ function getActionValue(actions, keys) {
     .reduce((sum, action) => sum + n(action.value), 0)
 }
 
-function getOutboundClicks(row) {
-  if (!Array.isArray(row.outbound_clicks)) return 0
-
-  const found = row.outbound_clicks.find(item => item.action_type === 'outbound_click')
-  return n(found?.value)
+function getLinkClicks(row) {
+  return n(row.inline_link_clicks)
 }
 
-function getCostPerOutboundClick(row) {
-  if (!Array.isArray(row.cost_per_outbound_click)) return 0
+function getCostPerLinkClick(row) {
+  const apiValue = n(row.cost_per_inline_link_click)
 
-  const found = row.cost_per_outbound_click.find(item => item.action_type === 'outbound_click')
-  return n(found?.value)
+  if (apiValue > 0) return apiValue
+
+  const spend = n(row.spend)
+  const clicks = getLinkClicks(row)
+
+  return clicks > 0 ? spend / clicks : 0
 }
 
 function getPurchaseValue(row) {
@@ -84,7 +85,7 @@ function getCostPerPurchase(row) {
 }
 
 function normalizeInsight(row, level) {
-  const linkClicks = getOutboundClicks(row)
+  const linkClicks = getLinkClicks(row)
   const purchases = getActionValue(row.actions, PURCHASE_KEYS)
   const addToCart = getActionValue(row.actions, ADD_TO_CART_KEYS)
   const purchaseValue = getPurchaseValue(row)
@@ -111,11 +112,18 @@ function normalizeInsight(row, level) {
     frequency: r4(row.frequency),
     cpm: r2(row.cpm),
 
-    ctrLink: r4(row.outbound_ctr?.[0]?.value || 0),
-    cpcLink: r2(getCostPerOutboundClick(row)),
+    // CTR click sul link
+    ctrLink: r4(row.inline_link_click_ctr || 0),
+
+    // CPC costo per click sul link
+    cpcLink: r2(getCostPerLinkClick(row)),
+
+    // Click sul link
     linkClicks: Math.round(linkClicks),
 
+    // Costo per risultato = costo per acquisto
     costPerResult: r2(getCostPerPurchase(row)),
+
     roas: r4(getPurchaseRoas(row)),
 
     purchaseValue: r2(purchaseValue),
@@ -160,7 +168,9 @@ async function metaFetch(path, params = {}) {
   try {
     json = text ? JSON.parse(text) : null
   } catch (error) {
-    throw new Error(`Meta ha risposto con un contenuto non JSON. Status: ${response.status}`)
+    throw new Error(
+      `Meta ha risposto con un contenuto non JSON. Status: ${response.status}`
+    )
   }
 
   if (!response.ok || json?.error) {
@@ -184,7 +194,9 @@ async function fetchPaged(path, params = {}) {
     try {
       json = text ? JSON.parse(text) : null
     } catch (error) {
-      throw new Error(`Meta pagination ha risposto con contenuto non JSON. Status: ${response.status}`)
+      throw new Error(
+        `Meta pagination ha risposto con contenuto non JSON. Status: ${response.status}`
+      )
     }
 
     if (json?.error) {
@@ -215,9 +227,9 @@ async function fetchInsights(level, since, until) {
     'reach',
     'frequency',
     'cpm',
-    'outbound_ctr',
-    'outbound_clicks',
-    'cost_per_outbound_click',
+    'inline_link_click_ctr',
+    'inline_link_clicks',
+    'cost_per_inline_link_click',
     'cost_per_action_type',
     'actions',
     'action_values',
@@ -256,7 +268,7 @@ async function fetchAdsCreativeMap(adIds) {
   const ids = [...new Set(adIds.filter(Boolean))]
   const map = {}
 
-  // Limite di sicurezza: evita troppe chiamate contemporanee
+  // Limite di sicurezza: evita troppe chiamate Meta contemporanee
   const limitedIds = ids.slice(0, 80)
 
   for (const adId of limitedIds) {

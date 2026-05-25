@@ -705,7 +705,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
       </table>
     </div>
   </div>
-)}
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
   const [tab,    setTab]    = useState('dashboard')

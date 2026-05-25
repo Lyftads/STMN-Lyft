@@ -2,8 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #1A1A2E;
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #080808;
+  --surface:  #0f0f0f;
+  --border:   #1a1a1a;
+  --border2:  #242424;
+  --text:     #e8e8e8;
+  --muted:    #555;
+  --faint:    #2a2a2a;
+  --green:    #22c55e;
+  --green-d:  #16a34a;
+  --blue:     #3b82f6;
+  --blue-d:   #1d4ed8;
+  --yellow:   #eab308;
+  --yellow-d: #a16207;
+  --red:      #ef4444;
+  --white:    #ffffff;
+  --ratio-ok: #22c55e;
+  --ratio-warn: #f59e0b;
+  --ratio-bad:  #ef4444;
 }
+
+html, body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+
+.mono { font-family: 'DM Mono', monospace; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Inputs */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=range] { accent-color: var(--green); }
+
+/* Animations */
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.fade-up { animation: fadeUp .35s ease forwards; }

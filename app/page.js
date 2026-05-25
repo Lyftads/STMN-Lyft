@@ -1340,38 +1340,49 @@ const data = Array.from(allMonthsSet)
   })
 
 // ── Totali periodo ────────────────────────────────────────────
-const totFat = data.reduce((s, m) => s + n(m.fatturato), 0)
-const totFatNC = data.reduce((s, m) => s + n(m.fatturNC), 0)
-const totFatRC = data.reduce((s, m) => s + n(m.fatturRC), 0)
+// ── Totali periodo mensile ─────────────────────────────────────
+const totFat = data.reduce((s, m) => s + Number(m.fatturato || 0), 0)
+const totFatNC = data.reduce((s, m) => s + Number(m.fatturNC || 0), 0)
+const totFatRC = data.reduce((s, m) => s + Number(m.fatturRC || 0), 0)
 
-const totOrd = data.reduce((s, m) => s + n(m.ordini), 0)
-const totNC = data.reduce((s, m) => s + n(m.nc), 0)
-const totRC = data.reduce((s, m) => s + n(m.rc), 0)
-const totSes = data.reduce((s, m) => s + n(m.sessioni), 0)
+const totOrd = data.reduce((s, m) => s + Number(m.ordini || 0), 0)
+const totNC = data.reduce((s, m) => s + Number(m.nc || 0), 0)
+const totRC = data.reduce((s, m) => s + Number(m.rc || 0), 0)
+const totSes = data.reduce((s, m) => s + Number(m.sessioni || 0), 0)
 
-const totMeta = data.reduce((s, m) => s + n(m.metaSpend), 0)
-const totGoog = data.reduce((s, m) => s + n(m.googleSpend), 0)
-const totSpend = data.reduce((s, m) => s + n(m.totalSpend), 0)
+const totMeta = data.reduce((s, m) => s + Number(m.metaSpend || 0), 0)
+const totGoog = data.reduce((s, m) => s + Number(m.googleSpend || 0), 0)
+const totSpend = data.reduce((s, m) => s + Number(m.totalSpend || 0), 0)
 
-const avgAOV = safeDiv(totFat, totOrd) || 0
-const avgAOVNC = safeDiv(totFatNC, totNC)
-const avgAOVRC = safeDiv(totFatRC, totRC)
+const avgAOV = totOrd > 0 ? totFat / totOrd : 0
+const avgAOVNC = totNC > 0 ? totFatNC / totNC : 0
+const avgAOVRC = totRC > 0 ? totFatRC / totRC : 0
 
 const ltvG = avgAOV > 0
   ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
   : null
 
-const cacG = safeDiv(totSpend, totNC)
-const cpoG = safeDiv(totSpend, totOrd)
+const cacG = totSpend > 0 && totNC > 0
+  ? totSpend / totNC
+  : null
+
+const cpoG = totSpend > 0 && totOrd > 0
+  ? totSpend / totOrd
+  : null
 
 const ratioG = ltvG && cacG
   ? ltvG / cacG
   : null
 
-const merG = safeDiv(totFat, totSpend)
-const aMerG = safeDiv(totFatNC, totSpend)
+const merG = totFat > 0 && totSpend > 0
+  ? totFat / totSpend
+  : null
 
-const retentionG = (totNC + totRC) > 0
+const aMerG = totFatNC > 0 && totSpend > 0
+  ? totFatNC / totSpend
+  : null
+
+const retG = totNC + totRC > 0
   ? totRC / (totNC + totRC) * 100
   : null
 

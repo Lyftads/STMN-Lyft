@@ -9,8 +9,8 @@ const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 const API_VERSION = process.env.META_API_VERSION || 'v19.0'
 
-// Data di partenza analisi settimanale
-const WEEKLY_START_DATE = '2025-12-29'
+// Default: ultime 8 settimane
+const DEFAULT_WEEKS_BACK = 8
 
 const PURCHASE_KEYS = [
   'purchase',
@@ -35,6 +35,39 @@ function r2(value) {
 
 function r4(value) {
   return Math.round(n(value) * 10000) / 10000
+}
+
+function isValidDateString(value) {
+  if (!value) return false
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function getDefaultDateRange() {
+  const untilDate = new Date()
+  const sinceDate = new Date()
+
+  sinceDate.setDate(untilDate.getDate() - DEFAULT_WEEKS_BACK * 7)
+
+  return {
+    since: sinceDate.toISOString().slice(0, 10),
+    until: untilDate.toISOString().slice(0, 10),
+  }
+}
+
+function getDateRangeFromRequest(request) {
+  const { searchParams } = new URL(request.url)
+
+  const customSince = searchParams.get('since')
+  const customUntil = searchParams.get('until')
+
+  let { since, until } = getDefaultDateRange()
+
+  if (isValidDateString(customSince) && isValidDateString(customUntil)) {
+    since = customSince
+    until = customUntil
+  }
+
+  return { since, until }
 }
 
 function getActionValue(actions, keys) {
@@ -124,11 +157,17 @@ function normalizeInsight(row, level) {
     // Costo per risultato = costo per acquisto
     costPerResult: r2(getCostPerPurchase(row)),
 
+    // ROAS Meta
     roas: r4(getPurchaseRoas(row)),
 
+    // Valore acquisti
     purchaseValue: r2(purchaseValue),
+
+    // Conversioni acquisti / acquisti
     purchaseConversions: r2(purchases),
     purchases: r2(purchases),
+
+    // Aggiunte al carrello
     addToCart: r2(addToCart),
 
     // CRO campagna = Acquisti / Click sul link × 100
@@ -137,13 +176,6 @@ function normalizeInsight(row, level) {
     // AOV campagna = Valore acquisti / Acquisti
     aov: purchases > 0 ? r2(purchaseValue / purchases) : null,
   }
-}
-
-function getDateRange() {
-  const since = WEEKLY_START_DATE
-  const until = new Date().toISOString().slice(0, 10)
-
-  return { since, until }
 }
 
 async function metaFetch(path, params = {}) {
@@ -169,7 +201,7 @@ async function metaFetch(path, params = {}) {
     json = text ? JSON.parse(text) : null
   } catch (error) {
     throw new Error(
-      `Meta ha risposto con un contenuto non JSON. Status: ${response.status}`
+      `Meta ha risposto con contenuto non JSON. Status: ${response.status}`
     )
   }
 
@@ -178,35 +210,6 @@ async function metaFetch(path, params = {}) {
   }
 
   return json
-}
-
-async function fetchPaged(path, params = {}) {
-  let json = await metaFetch(path, params)
-  const data = [...(json?.data || [])]
-
-  while (json?.paging?.next) {
-    const response = await fetch(json.paging.next, {
-      cache: 'no-store',
-    })
-
-    const text = await response.text()
-
-    try {
-      json = text ? JSON.parse(text) : null
-    } catch (error) {
-      throw new Error(
-        `Meta pagination ha risposto con contenuto non JSON. Status: ${response.status}`
-      )
-    }
-
-    if (json?.error) {
-      throw new Error(json.error.message)
-    }
-
-    data.push(...(json?.data || []))
-  }
-
-  return data
 }
 
 async function fetchInsights(level, since, until) {
@@ -243,12 +246,12 @@ async function fetchInsights(level, since, until) {
   for (const account of accounts) {
     const accountId = account.startsWith('act_') ? account : `act_${account}`
 
-    const data = await fetchPaged(`${accountId}/insights`, {
+    const json = await metaFetch(`${accountId}/insights`, {
       fields,
       level,
       time_range: JSON.stringify({ since, until }),
       time_increment: 7,
-      limit: 500,
+      limit: 300,
       filtering: JSON.stringify([
         {
           field: `${level}.effective_status`,
@@ -258,46 +261,10 @@ async function fetchInsights(level, since, until) {
       ]),
     })
 
-    rows.push(...data.map(row => normalizeInsight(row, level)))
+    rows.push(...(json?.data || []).map(row => normalizeInsight(row, level)))
   }
 
   return rows
-}
-
-async function fetchAdsCreativeMap(adIds) {
-  const ids = [...new Set(adIds.filter(Boolean))]
-  const map = {}
-
-  // Limite di sicurezza: evita troppe chiamate Meta contemporanee
-  const limitedIds = ids.slice(0, 80)
-
-  for (const adId of limitedIds) {
-    try {
-      const ad = await metaFetch(adId, {
-        fields:
-          'id,name,effective_status,creative{id,name,thumbnail_url,image_url,object_story_spec,asset_feed_spec}',
-      })
-
-      map[adId] = {
-        adId,
-        adName: ad.name || null,
-        effectiveStatus: ad.effective_status || null,
-        creativeId: ad.creative?.id || null,
-        creativeName: ad.creative?.name || null,
-        thumbnailUrl: ad.creative?.thumbnail_url || null,
-        imageUrl: ad.creative?.image_url || null,
-        objectStorySpec: ad.creative?.object_story_spec || null,
-        assetFeedSpec: ad.creative?.asset_feed_spec || null,
-      }
-    } catch (error) {
-      map[adId] = {
-        adId,
-        error: error.message,
-      }
-    }
-  }
-
-  return map
 }
 
 function latestById(rows, idKey) {
@@ -315,7 +282,7 @@ function latestById(rows, idKey) {
   return map
 }
 
-function buildTree(campaignRows, adsetRows, adRows, creativeMap) {
+function buildTree(campaignRows, adsetRows, adRows) {
   const latestCampaign = latestById(campaignRows, 'campaignId')
   const latestAdset = latestById(adsetRows, 'adsetId')
   const latestAd = latestById(adRows, 'adId')
@@ -365,7 +332,7 @@ function buildTree(campaignRows, adsetRows, adRows, creativeMap) {
       id: ad.adId,
       name: ad.adName,
       latest: ad,
-      creative: creativeMap[ad.adId] || null,
+      creative: null,
       weeks: adRows
         .filter(row => row.adId === ad.adId)
         .sort((a, b) => a.date.localeCompare(b.date)),
@@ -383,7 +350,7 @@ function buildTree(campaignRows, adsetRows, adRows, creativeMap) {
   return campaigns.sort((a, b) => b.latest.spend - a.latest.spend)
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
     if (!META_TOKEN || !META_ACCOUNT) {
       return NextResponse.json(
@@ -395,14 +362,13 @@ export async function GET() {
       )
     }
 
-    const { since, until } = getDateRange()
+    const { since, until } = getDateRangeFromRequest(request)
 
     const campaignRows = await fetchInsights('campaign', since, until)
     const adsetRows = await fetchInsights('adset', since, until)
     const adRows = await fetchInsights('ad', since, until)
 
-    const creativeMap = await fetchAdsCreativeMap(adRows.map(row => row.adId))
-    const campaigns = buildTree(campaignRows, adsetRows, adRows, creativeMap)
+    const campaigns = buildTree(campaignRows, adsetRows, adRows)
 
     return NextResponse.json(
       {
@@ -411,6 +377,10 @@ export async function GET() {
           campaignWeeks: campaignRows.length,
           adsetWeeks: adsetRows.length,
           adWeeks: adRows.length,
+        },
+        dateRange: {
+          since,
+          until,
         },
         updatedAt: new Date().toISOString(),
       },

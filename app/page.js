@@ -18,15 +18,15 @@ const MONTHS_START = '2026-04'
 // Genera settimane dal 29/12/2025 a oggi (lunedì → domenica)
 function getWeeks() {
   const weeks = []
-  // Prima settimana: lun 29 dic 2025
   let d = new Date('2025-12-29T00:00:00Z')
   const now = new Date()
   while (d <= now) {
-    const end = new Date(d); end.setDate(end.getDate() + 6)
+    const end = new Date(d); end.setUTCDate(end.getUTCDate() + 6)
     const fmt = dt => `${String(dt.getUTCDate()).padStart(2,'0')}/${String(dt.getUTCMonth()+1).padStart(2,'0')}`
-    const key = `${d.getUTCFullYear()}-${fmt(d).replace('/','')}`
+    // key = data lunedì in YYYY-MM-DD (compatibile con Meta date_start)
+    const key = d.toISOString().slice(0,10)
     weeks.push({ key, label: `${fmt(d)} → ${fmt(end)}` })
-    d.setDate(d.getDate() + 7)
+    d = new Date(d); d.setUTCDate(d.getUTCDate() + 7)
   }
   return weeks
 }
@@ -41,7 +41,7 @@ function getMonths() {
 }
 
 const EMPTY  = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
-const WEMPTY = { fatturato:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
+const WEMPTY = { fatturato:0, fatturNC:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
 const DEF   = { freq:1.69, life:1.57, margin:62 }
 
 function load() {
@@ -265,44 +265,79 @@ function Simulator({ cfg }) {
 }
 
 // ── WeeklyTab ─────────────────────────────────────────────────
-function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
+function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
+  // Mappa Meta settimanale per data (YYYY-MM-DD)
+  const metaMap = {}
+  for (const m of (metaWeekly||[])) metaMap[m.date] = m
+
   const allWeeks = weeks.map(({ key, label }) => {
     const d   = data[key] || WEMPTY
-    const adv = (d.meta||0) + (d.google||0)
-    const fat = d.fatturato || 0
-    const ord = d.ordini    || 0
-    const nc  = d.nc        || 0
-    const rc  = d.rc        || 0
-    const ses = d.sessioni  || 0
-    const mer       = adv>0&&fat>0   ? fat/adv : null
-    const cac       = adv>0&&nc>0    ? adv/nc  : null
-    const cpo       = adv>0&&ord>0   ? adv/ord : null
-    const aov       = ord>0&&fat>0   ? fat/ord : null
-    const retention = (nc+rc)>0      ? rc/(nc+rc)*100 : null
-    const cro       = ses>0&&ord>0   ? ord/ses*100    : null
+    const mw  = metaMap[key] || {}
+    // Meta spend: usa API se disponibile, altrimenti manuale
+    const metaSpend = mw.spend > 0 ? mw.spend : (d.meta||0)
+    const adv = metaSpend + (d.google||0)
+    const fat  = d.fatturato  || 0
+    const fatNC = d.fatturNC  || 0
+    const ord  = d.ordini     || 0
+    const nc   = d.nc         || 0
+    const rc   = d.rc         || 0
+    const ses  = d.sessioni   || 0
+    const mer       = adv>0&&fat>0    ? fat/adv    : null
+    const aMer      = adv>0&&fatNC>0  ? fatNC/adv  : null
+    const cac       = adv>0&&nc>0     ? adv/nc     : null
+    const cpo       = adv>0&&ord>0    ? adv/ord    : null
+    const aov       = ord>0&&fat>0    ? fat/ord    : null
+    const aovNC     = nc>0&&fatNC>0   ? fatNC/nc   : null
+    const retention = (nc+rc)>0       ? rc/(nc+rc)*100 : null
+    const cro       = ses>0&&ord>0    ? ord/ses*100    : null
     const ltv       = aov ? aov * cfg.freq * cfg.life * cfg.margin/100 : null
     const ratio     = ltv&&cac ? ltv/cac : null
-    return { key, label, fat, meta:d.meta||0, google:d.google||0, adv, ord, nc, rc, ses, mer, cac, cpo, aov, retention, cro, ltv, ratio }
+    return {
+      key, label, fat, fatNC, meta:metaSpend, google:d.google||0, adv,
+      ord, nc, rc, ses, mer, aMer, cac, cpo, aov, aovNC,
+      retention, cro, ltv, ratio,
+      // Meta KPIs auto
+      metaAuto: mw.spend > 0,
+      spend:     mw.spend,
+      ctr:       mw.ctr,
+      cpcLink:   mw.cpcLink,
+      cpm:       mw.cpm,
+      frequency: mw.frequency,
+      impressions: mw.impressions,
+      reach:     mw.reach,
+      linkClicks: mw.linkClicks,
+    }
   })
 
-  // Totali solo settimane con dati
-  const filled = allWeeks.filter(w => w.fat > 0 || w.adv > 0)
-  const totFat  = filled.reduce((s,w)=>s+w.fat,0)
-  const totAdv  = filled.reduce((s,w)=>s+w.adv,0)
-  const totMeta = filled.reduce((s,w)=>s+w.meta,0)
-  const totGoog = filled.reduce((s,w)=>s+w.google,0)
-  const totOrd  = filled.reduce((s,w)=>s+w.ord,0)
-  const totNC   = filled.reduce((s,w)=>s+w.nc,0)
-  const totRC   = filled.reduce((s,w)=>s+w.rc,0)
-  const totSes  = filled.reduce((s,w)=>s+w.ses,0)
-  const avgMER  = totAdv>0&&totFat>0 ? totFat/totAdv : null
-  const avgCAC  = totAdv>0&&totNC>0  ? totAdv/totNC  : null
-  const avgCPO  = totAdv>0&&totOrd>0 ? totAdv/totOrd : null
-  const avgAOV  = totOrd>0&&totFat>0 ? totFat/totOrd : null
-  const avgRet  = (totNC+totRC)>0    ? totRC/(totNC+totRC)*100 : null
-  const avgCRO  = totSes>0&&totOrd>0 ? totOrd/totSes*100 : null
-  const avgLTV  = avgAOV ? avgAOV*cfg.freq*cfg.life*cfg.margin/100 : null
-  const avgRatio= avgLTV&&avgCAC ? avgLTV/avgCAC : null
+  const filled  = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto)
+  const totFat   = filled.reduce((s,w)=>s+w.fat,0)
+  const totFatNC = filled.reduce((s,w)=>s+w.fatNC,0)
+  const totAdv   = filled.reduce((s,w)=>s+w.adv,0)
+  const totMeta  = filled.reduce((s,w)=>s+w.meta,0)
+  const totGoog  = filled.reduce((s,w)=>s+w.google,0)
+  const totOrd   = filled.reduce((s,w)=>s+w.ord,0)
+  const totNC    = filled.reduce((s,w)=>s+w.nc,0)
+  const totRC    = filled.reduce((s,w)=>s+w.rc,0)
+  const totSes   = filled.reduce((s,w)=>s+w.ses,0)
+  const totImpr  = filled.reduce((s,w)=>s+(w.impressions||0),0)
+  const totReach = filled.reduce((s,w)=>s+(w.reach||0),0)
+  const totLinks = filled.reduce((s,w)=>s+(w.linkClicks||0),0)
+  const avgMER   = totAdv>0&&totFat>0   ? totFat/totAdv    : null
+  const avgAMER  = totAdv>0&&totFatNC>0 ? totFatNC/totAdv  : null
+  const avgCAC   = totAdv>0&&totNC>0    ? totAdv/totNC     : null
+  const avgCPO   = totAdv>0&&totOrd>0   ? totAdv/totOrd    : null
+  const avgAOV   = totOrd>0&&totFat>0   ? totFat/totOrd    : null
+  const avgRet   = (totNC+totRC)>0      ? totRC/(totNC+totRC)*100 : null
+  const avgCRO   = totSes>0&&totOrd>0   ? totOrd/totSes*100 : null
+  const avgLTV   = avgAOV ? avgAOV*cfg.freq*cfg.life*cfg.margin/100 : null
+  const avgRatio = avgLTV&&avgCAC ? avgLTV/avgCAC : null
+  // Media KPI Meta (solo settimane con dati Meta)
+  const metaFilled = filled.filter(w=>w.metaAuto)
+  const avg = (arr,fn) => arr.length>0 ? arr.reduce((s,w)=>s+fn(w),0)/arr.length : null
+  const avgCTR  = avg(metaFilled, w=>w.ctr||0)
+  const avgCPC  = avg(metaFilled, w=>w.cpcLink||0)
+  const avgCPM  = avg(metaFilled, w=>w.cpm||0)
+  const avgFreq = avg(metaFilled, w=>w.frequency||0)
 
   const TH  = { ...S.th, fontSize:10, padding:'8px 10px' }
   const TD  = { ...S.td, fontSize:12, padding:'7px 10px' }
@@ -320,7 +355,7 @@ function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <thead>
               <tr>
-                {['Settimana','Fatturato €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                {['Settimana','Fatturato €','Fatt. NC €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
                   <th key={h} style={TH}>{h}</th>
                 ))}
               </tr>
@@ -330,16 +365,20 @@ function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
                 <tr key={key} style={{background:i%2===0?'transparent':'#080f1e'}}>
                   <td style={{...TD,color:'#94a3b8',fontWeight:600,whiteSpace:'nowrap',fontSize:11}}>{label}</td>
                   {[
-                    {k:'fatturato', v:fat,    color:'#22c55e'},
-                    {k:'meta',      v:meta,   color:'#3b82f6'},
-                    {k:'google',    v:google, color:'#eab308'},
-                    {k:'ordini',    v:ord,    color:'#e8e8e8', isCount:true},
-                    {k:'nc',        v:nc,     color:'#06b6d4', isCount:true},
-                    {k:'rc',        v:rc,     color:'#818cf8', isCount:true},
-                    {k:'sessioni',  v:ses,    color:'#94a3b8', isCount:true},
-                  ].map(({k,v,color,isCount}) => (
+                    {k:'fatturato',   v:fat,    color:'#22c55e'},
+                    {k:'fatturatoNC', v:fatNC,  color:'#16a34a'},
+                    {k:'meta',        v:meta,   color:'#3b82f6', disabled:!!m?.spend},
+                    {k:'google',      v:google, color:'#eab308'},
+                    {k:'ordini',      v:ord,    color:'#e8e8e8', isCount:true},
+                    {k:'nc',          v:nc,     color:'#06b6d4', isCount:true},
+                    {k:'rc',          v:rc,     color:'#818cf8', isCount:true},
+                    {k:'sessioni',    v:ses,    color:'#94a3b8', isCount:true},
+                  ].map(({k,v,color,isCount,disabled}) => (
                     <td key={k} style={{...TD,padding:'5px 8px'}}>
-                      <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
+                      {disabled
+                        ? <span style={{fontFamily:'Barlow',fontWeight:700,color,fontSize:12}}>{k==='meta'&&m?.spend?f0(m.spend):'—'}</span>
+                        : <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
+                      }
                     </td>
                   ))}
                 </tr>
@@ -348,6 +387,7 @@ function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
               <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
                 <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
                 <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat)}</td>
+                <td style={{...TD,color:'#16a34a',fontWeight:800}}>{totFatNC>0?f0(totFatNC):'—'}</td>
                 <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{f0(totMeta)}</td>
                 <td style={{...TD,color:'#eab308',fontWeight:800}}>{totGoog>0?f0(totGoog):'—'}</td>
                 <td style={{...TD,color:'#e8e8e8',fontWeight:800}}>{fn(totOrd)}</td>
@@ -368,8 +408,8 @@ function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead>
                 <tr>
-                  {['Sett.','Fatturato','Invest. ADV','MER','CAC','CPO','AOV','Retention%','CRO%','LTV','Ratio'].map(h=>(
-                    <th key={h} style={TH}>{h}</th>
+                  {['Sett.','Fatturato','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','Ret%','CRO%','CTR%','CPC','CPM','Freq.','LTV','Ratio'].map(h=>(
+                    <th key={h} style={{...TH,fontSize:9}}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -378,37 +418,50 @@ function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
                   <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
                     <td style={{...TD,color:'#94a3b8',fontSize:10,fontWeight:600,whiteSpace:'nowrap'}}>{w.label}</td>
                     <td style={{...TD,color:'#22c55e',fontWeight:700}}>{f0(w.fat)}</td>
-                    <td style={{...TD,color:'#888'}}>{w.adv>0?f0(w.adv):'—'}</td>
-                    <td style={{...TD,color:w.mer!=null?(w.mer>=3?'#22c55e':w.mer>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:700,fontFamily:'Barlow'}}>
-                      {w.mer!=null?`${fr(w.mer)}×`:'—'}
-                    </td>
+                    <td style={{...TD,color:'#888',fontSize:11}}>{w.adv>0?f0(w.adv):'—'}</td>
+                    <td style={{...TD,color:w.mer!=null?(w.mer>=3?'#22c55e':w.mer>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:700}}>{w.mer!=null?`${fr(w.mer)}×`:'—'}</td>
+                    <td style={{...TD,color:w.aMer!=null?(w.aMer>=2?'#22c55e':w.aMer>=1.5?'#f59e0b':'#ef4444'):'#555',fontWeight:700}}>{w.aMer!=null?`${fr(w.aMer)}×`:'—'}</td>
                     <td style={{...TD}}>{w.cac?f2(w.cac):'—'}</td>
                     <td style={{...TD}}>{w.cpo?f2(w.cpo):'—'}</td>
                     <td style={{...TD,color:'#3b82f6'}}>{w.aov?f2(w.aov):'—'}</td>
-                    <td style={{...TD,color:'#818cf8'}}>{w.retention!=null?`${w.retention.toFixed(1)}%`:'—'}</td>
-                    <td style={{...TD,color:'#94a3b8'}}>{w.cro!=null?`${w.cro.toFixed(2)}%`:'—'}</td>
+                    <td style={{...TD,color:'#16a34a'}}>{w.aovNC?f2(w.aovNC):'—'}</td>
+                    <td style={{...TD,color:'#818cf8',fontSize:11}}>{w.retention!=null?`${w.retention.toFixed(1)}%`:'—'}</td>
+                    <td style={{...TD,color:'#94a3b8',fontSize:11}}>{w.cro!=null?`${w.cro.toFixed(2)}%`:'—'}</td>
+                    <td style={{...TD,color:'#60a5fa',fontSize:11}}>{w.ctr!=null?`${w.ctr.toFixed(2)}%`:'—'}</td>
+                    <td style={{...TD,color:'#93c5fd',fontSize:11}}>{w.cpc!=null?f2(w.cpc):'—'}</td>
+                    <td style={{...TD,color:'#7dd3fc',fontSize:11}}>{w.cpm!=null?f2(w.cpm):'—'}</td>
+                    <td style={{...TD,color:'#bae6fd',fontSize:11}}>{w.freq!=null?w.freq.toFixed(2):'—'}</td>
                     <td style={{...TD}}>{w.ltv?f2(w.ltv):'—'}</td>
-                    <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:15,color:col(w.ratio)}}>
-                      {w.ratio?`${fr(w.ratio)}:1`:'—'}
-                    </td>
+                    <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:14,color:col(w.ratio)}}>{w.ratio?`${fr(w.ratio)}:1`:'—'}</td>
                   </tr>
                 ))}
                 <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
                   <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
                   <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat/filled.length)}</td>
                   <td style={{...TD,color:'#888',fontWeight:800}}>{totAdv>0?f0(totAdv/filled.length):'—'}</td>
-                  <td style={{...TD,color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:800,fontFamily:'Barlow',fontSize:15}}>
-                    {avgMER!=null?`${fr(avgMER)}×`:'—'}
-                  </td>
+                  <td style={{...TD,color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:800}}>{avgMER!=null?`${fr(avgMER)}×`:'—'}</td>
+                  <td style={{...TD,color:avgAMER!=null?(avgAMER>=2?'#22c55e':avgAMER>=1.5?'#f59e0b':'#ef4444'):'#555',fontWeight:800}}>{avgAMER!=null?`${fr(avgAMER)}×`:'—'}</td>
                   <td style={{...TD,fontWeight:800}}>{avgCAC?f2(avgCAC):'—'}</td>
                   <td style={{...TD,fontWeight:800}}>{avgCPO?f2(avgCPO):'—'}</td>
                   <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{avgAOV?f2(avgAOV):'—'}</td>
+                  <td style={{...TD,color:'#16a34a',fontWeight:800}}>—</td>
                   <td style={{...TD,color:'#818cf8',fontWeight:800}}>{avgRet!=null?`${avgRet.toFixed(1)}%`:'—'}</td>
                   <td style={{...TD,color:'#94a3b8',fontWeight:800}}>{avgCRO!=null?`${avgCRO.toFixed(2)}%`:'—'}</td>
+                  {(() => {
+                    const fw = filled.filter(w=>w.ctr!=null)
+                    const avgCTR = fw.length>0 ? fw.reduce((s,w)=>s+w.ctr,0)/fw.length : null
+                    const avgCPC = fw.length>0 ? fw.reduce((s,w)=>s+w.cpc,0)/fw.length : null
+                    const avgCPM = fw.length>0 ? fw.reduce((s,w)=>s+w.cpm,0)/fw.length : null
+                    const avgFreq= fw.length>0 ? fw.reduce((s,w)=>s+w.freq,0)/fw.length : null
+                    return <>
+                      <td style={{...TD,color:'#60a5fa',fontWeight:800}}>{avgCTR!=null?`${avgCTR.toFixed(2)}%`:'—'}</td>
+                      <td style={{...TD,color:'#93c5fd',fontWeight:800}}>{avgCPC!=null?f2(avgCPC):'—'}</td>
+                      <td style={{...TD,color:'#7dd3fc',fontWeight:800}}>{avgCPM!=null?f2(avgCPM):'—'}</td>
+                      <td style={{...TD,color:'#bae6fd',fontWeight:800}}>{avgFreq!=null?avgFreq.toFixed(2):'—'}</td>
+                    </>
+                  })()}
                   <td style={{...TD,fontWeight:800}}>{avgLTV?f2(avgLTV):'—'}</td>
-                  <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:18,color:col(avgRatio)}}>
-                    {avgRatio?`${fr(avgRatio)}:1`:'—'}
-                  </td>
+                  <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:16,color:col(avgRatio)}}>{avgRatio?`${fr(avgRatio)}:1`:'—'}</td>
                 </tr>
               </tbody>
             </table>
@@ -854,6 +907,7 @@ export default function App() {
             onUpdate={updateWeek}
             cfg={cfg}
             S={S}
+            metaWeekly={live?.metaWeekly||[]}
           />
         </div>
       )}

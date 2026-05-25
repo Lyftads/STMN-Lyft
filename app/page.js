@@ -728,12 +728,13 @@ export default function App() {
   const ratioG   = ltvG && cacG ? ltvG/cacG : null
   const merG     = totFat > 0 && totSpend > 0 ? totFat/totSpend : null
 
-  const TABS = [
-    {id:'dashboard', l:'Dashboard'},
-    {id:'monthly',   l:'Mensile'},
-    {id:'weekly',    l:'Weekly'},
-    {id:'simulator', l:'Simulatore'},
-  ]
+const tabs = [
+  {id:'dashboard', l:'Dashboard'},
+  {id:'monthly', l:'Mensile'},
+  {id:'weekly', l:'Weekly'},
+  {id:'simulator', l:'Simulatore'},
+  {id:'metaDetail', l:'Meta Detail'},
+]
 
   const S = { // shared styles
     card: { background:'#0a1020', border:'1px solid #111827', borderRadius:10, padding:24 },
@@ -1025,3 +1026,28 @@ export default function App() {
     </div>
   )
 }
+{/* ── META DETAIL ── */}
+{tab==='metaDetail' && (
+  <div className="fade-up" style={{minHeight:'calc(100vh - 220px)'}}>
+    <div style={{
+      ...S.card,
+      padding:0,
+      overflow:'hidden',
+      border:'1px solid #1d3260',
+      minHeight:'calc(100vh - 240px)'
+    }}>
+      <iframe
+        title="Analisi Meta dettagliata"
+        src="/meta"
+        style={{
+          width:'100%',
+          height:'calc(100vh - 240px)',
+          minHeight:720,
+          border:0,
+          display:'block',
+          background:'#030817'
+        }}
+      />
+    </div>
+  </div>
+)}

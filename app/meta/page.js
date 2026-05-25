@@ -14,791 +14,890 @@ import {
 
 const WHITE = '#f8fafc'
 const MUTED = '#94a3b8'
-const RED = '#ff4444'
+const RED = '#ef4444'
 const GREEN = '#22c55e'
 const BLUE = '#60a5fa'
 const CYAN = '#22d3ee'
 const PURPLE = '#818cf8'
 const CARD = '#070f22'
+const CARD_2 = '#050b18'
 const BORDER = '#172554'
-const AMBER = '#f59e0b'
 
 const euro0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
-const euro2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const euro2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
 const num0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
-const num2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const pct2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+const dec2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
 
-function todayISO() {
+const columns = [
+  ['spend', 'Speso', 'euro0'],
+  ['roas', 'ROAS', 'roas'],
+  ['purchaseValue', 'Valore acquisti', 'euro0'],
+  ['aov', 'AOV', 'euro2'],
+  ['purchases', 'Acquisti', 'int'],
+  ['purchaseConversions', 'Conv. acquisti', 'int'],
+  ['addToCart', 'Add to cart', 'int'],
+  ['cro', 'CRO campagna', 'pct'],
+  ['ctrLink', 'CTR link', 'pct'],
+  ['cpcLink', 'CPC link', 'euro2'],
+  ['cpm', 'CPM', 'euro2'],
+  ['impressions', 'Impression', 'int'],
+  ['reach', 'Copertura', 'int'],
+  ['frequency', 'Freq.', 'number'],
+  ['costPerResult', 'Costo risultato', 'euro2'],
+]
+
+const cardStyle = {
+  background: CARD,
+  border: `1px solid ${BORDER}`,
+  borderRadius: 18,
+  padding: 18,
+  boxShadow: '0 20px 60px rgba(0,0,0,.24)',
+}
+
+const titleStyle = {
+  margin: '0 0 16px',
+  color: WHITE,
+  fontSize: 15,
+  letterSpacing: '.12em',
+  textTransform: 'uppercase',
+  fontWeight: 900,
+}
+
+function todayIso() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function addDays(dateString, days) {
-  const date = new Date(`${dateString}T00:00:00`)
-  date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
+function addDaysIso(baseIso, days) {
+  const d = new Date(`${baseIso}T00:00:00`)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
 }
 
-function formatITDate(dateString) {
-  if (!dateString) return '—'
-  const d = new Date(`${dateString}T00:00:00`)
-  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+function formatInputDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
 }
 
-function formatShortDate(dateString) {
-  if (!dateString) return '—'
-  const d = new Date(`${dateString}T00:00:00`)
-  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+function hasVal(v) {
+  return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
 }
 
-function formatMetric(value, type) {
-  const v = Number(value || 0)
+function fmt(v, kind) {
+  if (!hasVal(v)) return '—'
 
-  if (type === 'currency0') return `€${euro0.format(v)}`
-  if (type === 'currency2') return `€${euro2.format(v)}`
-  if (type === 'percent') return `${num2.format(v)}%`
-  if (type === 'ratio') return `${num2.format(v)}×`
-  if (type === 'number2') return num2.format(v)
+  const x = Number(v)
 
-  return num0.format(v)
+  if (kind === 'euro0') return `€${euro0.format(x)}`
+  if (kind === 'euro2') return `€${euro2.format(x)}`
+  if (kind === 'int') return num0.format(x)
+  if (kind === 'pct') return `${pct2.format(x)}%`
+  if (kind === 'roas') return `${dec2.format(x)}×`
+  if (kind === 'number') return dec2.format(x)
+
+  return dec2.format(x)
 }
 
-function calcDelta(current, previous) {
-  const c = Number(current || 0)
-  const p = Number(previous || 0)
+function delta(curr, prev) {
+  if (!hasVal(curr) || !hasVal(prev)) return null
 
-  if (!p && !c) {
-    return {
-      abs: 0,
-      pct: 0,
-      hasDelta: false,
-      positive: false,
-      negative: false,
-    }
-  }
+  const c = Number(curr)
+  const p = Number(prev)
+  const diff = c - p
 
-  const abs = c - p
-  const pct = p !== 0 ? (abs / p) * 100 : 100
+  if (Math.abs(diff) < 0.000001) return null
+
+  const pct = p !== 0 ? (diff / p) * 100 : null
 
   return {
-    abs,
+    diff,
     pct,
-    hasDelta: abs !== 0,
-    positive: abs > 0,
-    negative: abs < 0,
+    negative: diff < 0,
   }
 }
 
-function DeltaRows({ current, previous, type = 'number' }) {
-  const delta = calcDelta(current, previous)
+function Delta({ current, previous, kind }) {
+  const d = delta(current, previous)
+  if (!d) return null
 
-  if (!delta.hasDelta) return null
-
-  const color = delta.negative ? RED : WHITE
+  const sign = d.diff > 0 ? '+' : '−'
+  const color = d.negative ? RED : WHITE
 
   return (
-    <div className="mt-2 leading-tight">
-      <div style={{ color }} className="text-[14px] font-bold">
-        {delta.abs > 0 ? '+' : ''}
-        {formatMetric(delta.abs, type)}
+    <div
+      style={{
+        marginTop: 7,
+        display: 'grid',
+        gridTemplateRows: 'auto auto',
+        rowGap: 3,
+        color,
+        fontSize: 12,
+        fontWeight: 900,
+        lineHeight: 1.15,
+      }}
+    >
+      <div>
+        {sign}
+        {fmt(Math.abs(d.diff), kind)}
       </div>
 
-      <div style={{ color }} className="mt-1 text-[14px] font-bold">
-        {delta.pct > 0 ? '+' : ''}
-        {num2.format(delta.pct)}%
-      </div>
+      {d.pct !== null && (
+        <div>
+          {sign}
+          {pct2.format(Math.abs(d.pct))}%
+        </div>
+      )}
     </div>
   )
 }
 
-function MetricCell({ current, previous, type = 'number' }) {
+function Metric({ value, previous, kind = 'int' }) {
   return (
-    <td className="min-w-[130px] px-4 py-5 align-top">
-      <div className="text-[22px] font-extrabold text-white">
-        {formatMetric(current, type)}
+    <div>
+      <div
+        style={{
+          color: WHITE,
+          fontSize: 15,
+          fontWeight: 900,
+          lineHeight: 1.1,
+        }}
+      >
+        {fmt(value, kind)}
       </div>
 
-      <DeltaRows current={current} previous={previous} type={type} />
-    </td>
-  )
-}
-
-function TextCell({ children, sub }) {
-  return (
-    <td className="min-w-[340px] px-4 py-5 align-top">
-      <div className="text-[21px] font-extrabold text-white">{children}</div>
-      {sub ? <div className="mt-2 text-[14px] text-slate-400">{sub}</div> : null}
-    </td>
-  )
-}
-
-function ChartCard({ title, children }) {
-  return (
-    <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 shadow-xl">
-      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.2em] text-white">
-        {title}
-      </h2>
-
-      <div className="h-[330px]">{children}</div>
+      <Delta current={value} previous={previous} kind={kind} />
     </div>
   )
 }
 
-function CustomTooltip({ active, payload, label }) {
+function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null
 
   return (
-    <div className="rounded-xl border border-blue-900 bg-[#020817] p-4 shadow-xl">
-      <div className="mb-2 text-sm font-bold text-white">{label}</div>
+    <div
+      style={{
+        background: '#020617',
+        border: `1px solid ${BORDER}`,
+        borderRadius: 12,
+        padding: 10,
+        color: WHITE,
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 900, marginBottom: 6 }}>{label}</div>
 
-      {payload.map((item) => (
+      {payload.map(p => (
         <div
-          key={item.dataKey}
-          className="text-sm font-semibold"
-          style={{ color: item.color }}
+          key={p.dataKey}
+          style={{
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'space-between',
+          }}
         >
-          {item.name}: {num2.format(Number(item.value || 0))}
+          <span>{p.name}</span>
+          <strong>{p.value}</strong>
         </div>
       ))}
     </div>
   )
 }
 
-function aggregateTrend(campaigns = []) {
-  const map = new Map()
-
-  campaigns.forEach((campaign) => {
-    ;(campaign.weeks || campaign.trend || []).forEach((week) => {
-      const key = week.date || week.dateStart
-      if (!key) return
-
-      if (!map.has(key)) {
-        map.set(key, {
-          date: key,
-          label: formatShortDate(key),
-          spend: 0,
-          roasWeightedValue: 0,
-          roasWeightedSpend: 0,
-          purchases: 0,
-          ctrLinkWeightedClicks: 0,
-          ctrLinkWeightedImpressions: 0,
-          cpcSpend: 0,
-          cpcClicks: 0,
-          cpmSpend: 0,
-          cpmImpressions: 0,
-          frequencyReach: 0,
-          frequencyImpressions: 0,
-        })
-      }
-
-      const row = map.get(key)
-
-      const spend = Number(week.spend || 0)
-      const purchaseValue = Number(week.purchaseValue || 0)
-      const purchases = Number(week.purchases || 0)
-      const impressions = Number(week.impressions || 0)
-      const reach = Number(week.reach || 0)
-      const linkClicks = Number(week.linkClicks || 0)
-
-      row.spend += spend
-      row.purchases += purchases
-      row.roasWeightedValue += purchaseValue
-      row.roasWeightedSpend += spend
-      row.ctrLinkWeightedClicks += linkClicks
-      row.ctrLinkWeightedImpressions += impressions
-      row.cpcSpend += spend
-      row.cpcClicks += linkClicks
-      row.cpmSpend += spend
-      row.cpmImpressions += impressions
-      row.frequencyImpressions += impressions
-      row.frequencyReach += reach
-    })
-  })
-
-  return Array.from(map.values())
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((row) => ({
-      ...row,
-      roas: row.roasWeightedSpend > 0 ? row.roasWeightedValue / row.roasWeightedSpend : 0,
-      ctrLink: row.ctrLinkWeightedImpressions > 0 ? (row.ctrLinkWeightedClicks / row.ctrLinkWeightedImpressions) * 100 : 0,
-      cpcLink: row.cpcClicks > 0 ? row.cpcSpend / row.cpcClicks : 0,
-      cpm: row.cpmImpressions > 0 ? (row.cpmSpend / row.cpmImpressions) * 1000 : 0,
-      frequency: row.frequencyReach > 0 ? row.frequencyImpressions / row.frequencyReach : 0,
-    }))
+function DateInput({ value, onChange }) {
+  return (
+    <input
+      type="date"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        background: '#020617',
+        border: `1px solid ${BORDER}`,
+        color: WHITE,
+        borderRadius: 10,
+        padding: '13px 14px',
+        fontWeight: 900,
+        fontSize: 15,
+        minWidth: 170,
+      }}
+    />
+  )
 }
 
-function TimeframeControls({
-  preset,
-  setPreset,
-  since,
-  setSince,
-  until,
-  setUntil,
-  onApply,
-}) {
-  function handlePreset(value) {
+function TimeFrameSelector({ preset, setPreset, since, setSince, until, setUntil, onApply, loading }) {
+  function applyPreset(value) {
     setPreset(value)
 
-    const today = todayISO()
+    const t = todayIso()
 
     if (value === 'today') {
-      setSince(today)
-      setUntil(today)
+      setSince(t)
+      setUntil(t)
     }
 
     if (value === 'yesterday') {
-      const y = addDays(today, -1)
+      const y = addDaysIso(t, -1)
       setSince(y)
       setUntil(y)
     }
 
     if (value === 'last7') {
-      setSince(addDays(today, -6))
-      setUntil(today)
+      setSince(addDaysIso(t, -6))
+      setUntil(t)
     }
 
     if (value === 'last14') {
-      setSince(addDays(today, -13))
-      setUntil(today)
+      setSince(addDaysIso(t, -13))
+      setUntil(t)
     }
 
     if (value === 'last30') {
-      setSince(addDays(today, -29))
-      setUntil(today)
+      setSince(addDaysIso(t, -29))
+      setUntil(t)
     }
 
     if (value === 'thisMonth') {
       const d = new Date()
       const first = new Date(d.getFullYear(), d.getMonth(), 1)
-        .toISOString()
-        .slice(0, 10)
-
-      setSince(first)
-      setUntil(today)
+      setSince(first.toISOString().slice(0, 10))
+      setUntil(t)
     }
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-blue-950 bg-[#070f22] p-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">Time frame</label>
-          <select
-            value={preset}
-            onChange={(e) => handlePreset(e.target.value)}
-            className="h-[58px] min-w-[250px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
-          >
-            <option value="today">Oggi</option>
-            <option value="yesterday">Ieri</option>
-            <option value="last7">Ultimi 7 giorni</option>
-            <option value="last14">Ultimi 14 giorni</option>
-            <option value="last30">Ultimi 30 giorni</option>
-            <option value="thisMonth">Questo mese</option>
-            <option value="custom">Personalizzato</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">Da</label>
-          <input
-            type="date"
-            value={since}
-            onChange={(e) => {
-              setPreset('custom')
-              setSince(e.target.value)
-            }}
-            className="h-[58px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">A</label>
-          <input
-            type="date"
-            value={until}
-            onChange={(e) => {
-              setPreset('custom')
-              setUntil(e.target.value)
-            }}
-            className="h-[58px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
-          />
-        </div>
-
-        <button
-          onClick={onApply}
-          className="h-[58px] rounded-xl bg-green-500 px-7 text-[20px] font-black text-black transition hover:bg-green-400"
+    <div
+      style={{
+        ...cardStyle,
+        marginBottom: 18,
+        display: 'flex',
+        alignItems: 'end',
+        gap: 14,
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>Time frame</div>
+        <select
+          value={preset}
+          onChange={e => applyPreset(e.target.value)}
+          style={{
+            background: '#020617',
+            border: `1px solid ${BORDER}`,
+            color: WHITE,
+            borderRadius: 10,
+            padding: '13px 14px',
+            fontWeight: 900,
+            fontSize: 15,
+            minWidth: 210,
+          }}
         >
-          Aggiorna
-        </button>
-
-        <div className="ml-auto text-sm text-slate-400">
-          Periodo: {formatITDate(since)} → {formatITDate(until)}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const metrics = [
-  { key: 'spend', label: 'Speso', type: 'currency0' },
-  { key: 'roas', label: 'ROAS', type: 'ratio' },
-  { key: 'purchaseValue', label: 'Valore acquisti', type: 'currency0' },
-  { key: 'aov', label: 'AOV', type: 'currency2' },
-  { key: 'purchases', label: 'Acquisti', type: 'number' },
-  { key: 'purchaseConversions', label: 'Conv. acquisti', type: 'number' },
-  { key: 'addToCart', label: 'Add to cart', type: 'number' },
-  { key: 'cro', label: 'CRO campagna', type: 'percent' },
-  { key: 'ctrLink', label: 'CTR link', type: 'percent' },
-  { key: 'cpcLink', label: 'CPC link', type: 'currency2' },
-  { key: 'cpm', label: 'CPM', type: 'currency2' },
-  { key: 'impressions', label: 'Impression', type: 'number' },
-  { key: 'reach', label: 'Copertura', type: 'number' },
-  { key: 'frequency', label: 'Frequenza', type: 'number2' },
-  { key: 'costPerResult', label: 'Costo risultato', type: 'currency2' },
-  { key: 'linkClicks', label: 'Click link', type: 'number' },
-]
-
-function safeNum(value) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function avg(values) {
-  const clean = values.map(safeNum).filter((v) => v > 0)
-  if (!clean.length) return 0
-  return clean.reduce((a, b) => a + b, 0) / clean.length
-}
-
-function flattenAds(campaigns = []) {
-  const ads = []
-
-  campaigns.forEach((campaign) => {
-    ;(campaign.adsets || []).forEach((adset) => {
-      ;(adset.ads || []).forEach((ad) => {
-        ads.push({
-          ...ad,
-          campaignName: campaign.name,
-          adsetName: adset.name,
-          campaignId: campaign.id,
-          adsetId: adset.id,
-        })
-      })
-    })
-  })
-
-  return ads
-}
-
-function getNameText(item) {
-  return `${item?.name || ''} ${item?.campaignName || ''} ${item?.adsetName || ''}`.toLowerCase()
-}
-
-function detectProduct(item) {
-  const text = getNameText(item)
-
-  const rules = [
-    ['shorts', ['short', 'shorts', 'bermuda']],
-    ['leggings', ['legging', 'leggings']],
-    ['t-shirt', ['tshirt', 't-shirt', 'maglia']],
-    ['canotta', ['canotta', 'tank']],
-    ['felpa', ['felpa', 'hoodie']],
-    ['top', ['top', 'bra', 'reggiseno']],
-    ['set', ['set', 'completo', 'bundle']],
-  ]
-
-  for (const [label, keys] of rules) {
-    if (keys.some((k) => text.includes(k))) return label
-  }
-
-  return 'Non rilevato'
-}
-
-function detectAngle(item) {
-  const text = getNameText(item)
-
-  const rules = [
-    ['UGC / creator', ['ugc', 'creator', 'testimonial', 'review']],
-    ['Offerta / promo', ['promo', 'sconto', 'sale', 'offerta', 'black', 'deal']],
-    ['Comfort / vestibilità', ['comfort', 'fit', 'vestibilità', 'comodo', 'comodità']],
-    ['Performance / workout', ['performance', 'workout', 'training', 'gym', 'allenamento']],
-    ['Lifestyle', ['lifestyle', 'daily', 'giornata', 'outfit']],
-    ['Prova sociale', ['social proof', 'recensione', 'review', 'clienti']],
-    ['Problem / solution', ['problema', 'soluzione', 'pain', 'prima', 'dopo']],
-    ['Prezzo / convenienza', ['prezzo', 'economico', 'convenienza', 'risparmia']],
-  ]
-
-  for (const [label, keys] of rules) {
-    if (keys.some((k) => text.includes(k))) return label
-  }
-
-  return 'Non classificato'
-}
-
-function getBenchmarks(campaigns = []) {
-  const ads = flattenAds(campaigns)
-  const latestAds = ads.map((ad) => ad.latest || {})
-
-  return {
-    avgRoas: avg(latestAds.map((x) => x.roas)),
-    avgCtr: avg(latestAds.map((x) => x.ctrLink)),
-    avgCpc: avg(latestAds.map((x) => x.cpcLink)),
-    avgCpm: avg(latestAds.map((x) => x.cpm)),
-    avgCro: avg(latestAds.map((x) => x.cro)),
-    avgFreq: avg(latestAds.map((x) => x.frequency)),
-    avgAov: avg(latestAds.map((x) => x.aov)),
-  }
-}
-
-function scoreAd(ad, bench) {
-  const l = ad.latest || {}
-  const p = ad.previous || {}
-
-  let score = 0
-
-  if (safeNum(l.roas) >= bench.avgRoas && safeNum(l.roas) > 0) score += 3
-  if (safeNum(l.cro) >= bench.avgCro && safeNum(l.cro) > 0) score += 2
-  if (safeNum(l.ctrLink) >= bench.avgCtr && safeNum(l.ctrLink) > 0) score += 2
-  if (safeNum(l.cpcLink) <= bench.avgCpc && safeNum(l.cpcLink) > 0) score += 1
-  if (safeNum(l.purchases) > safeNum(p.purchases)) score += 2
-  if (safeNum(l.frequency) > 3 && safeNum(l.ctrLink) < safeNum(p.ctrLink)) score -= 2
-  if (safeNum(l.spend) > 20 && safeNum(l.purchases) === 0) score -= 4
-
-  return score
-}
-
-function buildInsightData(campaigns = []) {
-  const bench = getBenchmarks(campaigns)
-  const ads = flattenAds(campaigns)
-
-  const enrichedAds = ads.map((ad) => ({
-    ...ad,
-    product: detectProduct(ad),
-    angle: detectAngle(ad),
-    score: scoreAd(ad, bench),
-  }))
-
-  const topAds = [...enrichedAds]
-    .filter((ad) => safeNum(ad.latest?.spend) > 0)
-    .sort((a, b) => b.score - a.score || safeNum(b.latest?.roas) - safeNum(a.latest?.roas))
-    .slice(0, 5)
-
-  const weakAds = [...enrichedAds]
-    .filter((ad) => safeNum(ad.latest?.spend) > 0)
-    .sort((a, b) => a.score - b.score || safeNum(b.latest?.spend) - safeNum(a.latest?.spend))
-    .slice(0, 5)
-
-  const campaignsSorted = [...campaigns]
-    .filter((c) => safeNum(c.latest?.spend) > 0)
-    .sort((a, b) => safeNum(b.latest?.roas) - safeNum(a.latest?.roas))
-
-  const topCampaigns = campaignsSorted.slice(0, 3)
-  const weakCampaigns = [...campaignsSorted]
-    .sort((a, b) => safeNum(a.latest?.roas) - safeNum(b.latest?.roas))
-    .slice(0, 3)
-
-  const angleMap = new Map()
-  const productMap = new Map()
-
-  enrichedAds.forEach((ad) => {
-    const l = ad.latest || {}
-
-    if (!angleMap.has(ad.angle)) {
-      angleMap.set(ad.angle, {
-        name: ad.angle,
-        spend: 0,
-        purchases: 0,
-        purchaseValue: 0,
-        linkClicks: 0,
-        impressions: 0,
-        count: 0,
-      })
-    }
-
-    if (!productMap.has(ad.product)) {
-      productMap.set(ad.product, {
-        name: ad.product,
-        spend: 0,
-        purchases: 0,
-        purchaseValue: 0,
-        linkClicks: 0,
-        impressions: 0,
-        count: 0,
-      })
-    }
-
-    const angle = angleMap.get(ad.angle)
-    const product = productMap.get(ad.product)
-
-    for (const target of [angle, product]) {
-      target.spend += safeNum(l.spend)
-      target.purchases += safeNum(l.purchases)
-      target.purchaseValue += safeNum(l.purchaseValue)
-      target.linkClicks += safeNum(l.linkClicks)
-      target.impressions += safeNum(l.impressions)
-      target.count += 1
-    }
-  })
-
-  function finalizeGroup(group) {
-    return {
-      ...group,
-      roas: group.spend > 0 ? group.purchaseValue / group.spend : 0,
-      cro: group.linkClicks > 0 ? (group.purchases / group.linkClicks) * 100 : 0,
-      ctr: group.impressions > 0 ? (group.linkClicks / group.impressions) * 100 : 0,
-      aov: group.purchases > 0 ? group.purchaseValue / group.purchases : 0,
-    }
-  }
-
-  const topAngles = Array.from(angleMap.values())
-    .map(finalizeGroup)
-    .filter((x) => x.name !== 'Non classificato' && x.spend > 0)
-    .sort((a, b) => b.roas - a.roas || b.purchases - a.purchases)
-    .slice(0, 4)
-
-  const topProducts = Array.from(productMap.values())
-    .map(finalizeGroup)
-    .filter((x) => x.name !== 'Non rilevato' && x.spend > 0)
-    .sort((a, b) => b.roas - a.roas || b.purchaseValue - a.purchaseValue)
-    .slice(0, 4)
-
-  return {
-    bench,
-    topAds,
-    weakAds,
-    topCampaigns,
-    weakCampaigns,
-    topAngles,
-    topProducts,
-    enrichedAds,
-  }
-}
-
-function InsightCard({ title, children, accent = GREEN }) {
-  return (
-    <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 shadow-xl">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="h-3 w-3 rounded-full" style={{ background: accent }} />
-        <h2 className="text-[20px] font-black uppercase tracking-[0.18em] text-white">
-          {title}
-        </h2>
+          <option value="today">Oggi</option>
+          <option value="yesterday">Ieri</option>
+          <option value="last7">Ultimi 7 giorni</option>
+          <option value="last14">Ultimi 14 giorni</option>
+          <option value="last30">Ultimi 30 giorni</option>
+          <option value="thisMonth">Questo mese</option>
+          <option value="custom">Personalizzato</option>
+        </select>
       </div>
 
-      <div className="space-y-3 text-[16px] leading-relaxed text-slate-200">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function SmallMetric({ label, value }) {
-  return (
-    <div className="rounded-xl border border-blue-950 bg-[#020817] p-4">
-      <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
-      <div className="mt-2 text-[22px] font-black text-white">{value}</div>
-    </div>
-  )
-}
-
-function CreativeIntelligence({ campaigns }) {
-  const data = useMemo(() => buildInsightData(campaigns), [campaigns])
-  const { bench, topAds, weakAds, topCampaigns, weakCampaigns, topAngles, topProducts } = data
-
-  const totalSpend = campaigns.reduce((sum, c) => sum + safeNum(c.latest?.spend), 0)
-  const totalPurchases = campaigns.reduce((sum, c) => sum + safeNum(c.latest?.purchases), 0)
-  const totalRevenue = campaigns.reduce((sum, c) => sum + safeNum(c.latest?.purchaseValue), 0)
-  const accountRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0
-
-  const strategicSummary = (() => {
-    if (accountRoas >= 3 && totalPurchases > 0) {
-      return 'Le performance complessive sono positive: il rapporto tra valore acquisti e spesa indica che ci sono asset su cui ha senso ragionare in ottica scaling controllato.'
-    }
-
-    if (accountRoas >= 2 && totalPurchases > 0) {
-      return 'Le performance sono in una zona intermedia: ci sono segnali utili, ma prima di aumentare budget conviene capire quali creatività stanno davvero generando acquisti e CRO.'
-    }
-
-    if (totalSpend > 0 && totalPurchases === 0) {
-      return 'La spesa sta generando traffico ma non acquisti: la priorità è rivedere creatività, promessa, offerta e coerenza con la landing.'
-    }
-
-    return 'Il periodo selezionato ha pochi dati utili per una decisione forte. Conviene ampliare il time frame o leggere i segnali a livello creativo/adset.'
-  })()
-
-  return (
-    <div className="mb-6 space-y-6">
-      <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 shadow-xl">
-        <div className="mb-5">
-          <h2 className="text-[24px] font-black uppercase tracking-[0.18em] text-white">
-            Insight & To Do
-          </h2>
-          <p className="mt-2 text-[16px] text-slate-400">
-            Lettura automatica basata sui dati Meta, utile per capire cosa scalare, cosa rifare e quali angoli/prodotti stanno funzionando.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <SmallMetric label="ROAS account" value={`${num2.format(accountRoas)}×`} />
-          <SmallMetric label="Spesa" value={`€${euro0.format(totalSpend)}`} />
-          <SmallMetric label="Acquisti" value={num0.format(totalPurchases)} />
-          <SmallMetric label="Valore acquisti" value={`€${euro0.format(totalRevenue)}`} />
-        </div>
-
-        <div className="mt-5 rounded-xl border border-blue-950 bg-[#020817] p-5 text-[17px] font-semibold leading-relaxed text-white">
-          {strategicSummary}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <InsightCard title="Cosa funziona" accent={GREEN}>
-          {topCampaigns.length ? (
-            <ul className="space-y-3">
-              {topCampaigns.map((c) => (
-                <li key={c.id}>
-                  <strong className="text-white">{c.name}</strong>: ROAS {formatMetric(c.latest?.roas, 'ratio')}, acquisti {formatMetric(c.latest?.purchases, 'number')}, CRO {formatMetric(c.latest?.cro, 'percent')}. Da monitorare per possibile scaling graduale.
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Non ci sono abbastanza campagne con spesa per identificare un vincitore chiaro.</p>
-          )}
-        </InsightCard>
-
-        <InsightCard title="Cosa non funziona" accent={RED}>
-          {weakCampaigns.length ? (
-            <ul className="space-y-3">
-              {weakCampaigns.map((c) => (
-                <li key={c.id}>
-                  <strong className="text-white">{c.name}</strong>: ROAS {formatMetric(c.latest?.roas, 'ratio')}, spesa {formatMetric(c.latest?.spend, 'currency0')}, acquisti {formatMetric(c.latest?.purchases, 'number')}. Priorità: rivedere creatività, offerta o ridurre budget.
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Non emergono campagne chiaramente deboli nel periodo selezionato.</p>
-          )}
-        </InsightCard>
-
-        <InsightCard title="Creatività da scalare / replicare" accent={GREEN}>
-          {topAds.length ? (
-            <ul className="space-y-3">
-              {topAds.map((ad) => (
-                <li key={ad.id}>
-                  <strong className="text-white">{ad.name}</strong>
-                  <div className="text-slate-400">
-                    Prodotto: {ad.product} · Angolo: {ad.angle}
-                  </div>
-                  <div>
-                    CTR {formatMetric(ad.latest?.ctrLink, 'percent')}, CPC {formatMetric(ad.latest?.cpcLink, 'currency2')}, CRO {formatMetric(ad.latest?.cro, 'percent')}, ROAS {formatMetric(ad.latest?.roas, 'ratio')}.
-                  </div>
-                  <div className="text-slate-300">
-                    To do: creare 3 nuove varianti mantenendo lo stesso angolo, cambiando hook iniziale, visual e CTA.
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Non ci sono creatività sufficientemente forti da classificare come replicabili.</p>
-          )}
-        </InsightCard>
-
-        <InsightCard title="Creatività da rifare" accent={AMBER}>
-          {weakAds.length ? (
-            <ul className="space-y-3">
-              {weakAds.map((ad) => (
-                <li key={ad.id}>
-                  <strong className="text-white">{ad.name}</strong>
-                  <div className="text-slate-400">
-                    Prodotto: {ad.product} · Angolo: {ad.angle}
-                  </div>
-                  <div>
-                    Spesa {formatMetric(ad.latest?.spend, 'currency0')}, CTR {formatMetric(ad.latest?.ctrLink, 'percent')}, CRO {formatMetric(ad.latest?.cro, 'percent')}, acquisti {formatMetric(ad.latest?.purchases, 'number')}.
-                  </div>
-                  <div className="text-slate-300">
-                    To do: non duplicare questa creatività uguale. Rifare hook, promessa e primo visual. Se CTR è buono ma CRO basso, rendere la promessa più coerente con prodotto/offerta.
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Non emergono creatività chiaramente deboli nel periodo selezionato.</p>
-          )}
-        </InsightCard>
-
-        <InsightCard title="Prodotti più promettenti" accent={CYAN}>
-          {topProducts.length ? (
-            <ul className="space-y-3">
-              {topProducts.map((p) => (
-                <li key={p.name}>
-                  <strong className="text-white">{p.name}</strong>: ROAS {formatMetric(p.roas, 'ratio')}, AOV {formatMetric(p.aov, 'currency2')}, acquisti {formatMetric(p.purchases, 'number')}.
-                  <div className="text-slate-300">
-                    To do: produrre più creatività dedicate a questo prodotto con angoli differenti.
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>[Inferenza] I nomi delle creatività/campagne non contengono abbastanza informazioni prodotto per una classificazione affidabile.</p>
-          )}
-        </InsightCard>
-
-        <InsightCard title="Angoli comunicativi vincenti" accent={PURPLE}>
-          {topAngles.length ? (
-            <ul className="space-y-3">
-              {topAngles.map((a) => (
-                <li key={a.name}>
-                  <strong className="text-white">{a.name}</strong>: ROAS {formatMetric(a.roas, 'ratio')}, CTR {formatMetric(a.ctr, 'percent')}, CRO {formatMetric(a.cro, 'percent')}.
-                  <div className="text-slate-300">
-                    To do: alimentare Meta con più varianti creative su questo angolo, senza duplicare lo stesso asset.
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>[Inferenza] Gli angoli non sono abbastanza riconoscibili dai naming. Per migliorare l’analisi, usa nomi creatività con tag tipo UGC, comfort, offerta, prova sociale, problem solution.</p>
-          )}
-        </InsightCard>
-      </div>
-
-      <InsightCard title="To do operativi prossima settimana" accent={WHITE}>
-        <ol className="list-decimal space-y-3 pl-6">
-          <li>
-            Replicare le migliori creatività creando varianti reali: nuovo hook, nuovo visual, nuova CTA, stesso angolo vincente.
-          </li>
-          <li>
-            Ridurre o mettere in revisione le creatività con spesa significativa, CTR basso e zero acquisti.
-          </li>
-          <li>
-            Se una creatività ha CTR alto ma CRO basso, non spegnerla subito: testare una promessa più coerente con la landing/offerta.
-          </li>
-          <li>
-            Se frequenza sale e CTR cala, produrre nuovi asset per evitare saturazione.
-          </li>
-          <li>
-            In ottica Andromeda, aumentare varietà creativa strutturata: più angoli, più formati, più prodotti, naming più chiaro.
-          </li>
-        </ol>
-      </InsightCard>
-    </div>
-  )
-}
-
-function DataRow({ item, level = 0 }) {
-  const latest = item.latest || {}
-  const previous = item.previous || {}
-
-  return (
-    <tr className="border-b border-blue-950">
-      <TextCell sub={item.id}>
-        <span style={{ paddingLeft: `${level * 28}px` }}>
-          {level === 0 ? '▾' : '▸'} {item.name}
-        </span>
-      </TextCell>
-
-      {metrics.map((metric) => (
-        <MetricCell
-          key={metric.key}
-          current={latest[metric.key]}
-          previous={previous[metric.key]}
-          type={metric.type}
+      <div>
+        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>Da</div>
+        <DateInput
+          value={since}
+          onChange={v => {
+            setPreset('custom')
+            setSince(v)
+          }}
         />
+      </div>
+
+      <div>
+        <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>A</div>
+        <DateInput
+          value={until}
+          onChange={v => {
+            setPreset('custom')
+            setUntil(v)
+          }}
+        />
+      </div>
+
+      <button
+        onClick={onApply}
+        disabled={loading}
+        style={{
+          background: GREEN,
+          color: '#020617',
+          border: 0,
+          borderRadius: 10,
+          padding: '14px 20px',
+          fontWeight: 950,
+          fontSize: 15,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? 'Carico...' : 'Aggiorna'}
+      </button>
+
+      <div
+        style={{
+          marginLeft: 'auto',
+          color: MUTED,
+          fontSize: 13,
+        }}
+      >
+        Periodo: {since} → {until}
+      </div>
+    </div>
+  )
+}
+
+function SummaryCharts({ data = [] }) {
+  const chartData = useMemo(() => {
+    return [...data].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(x => ({
+      ...x,
+      label: String(x.date || '').slice(5),
+    }))
+  }, [data])
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 16,
+        marginBottom: 20,
+      }}
+    >
+      <div style={cardStyle}>
+        <h2 style={titleStyle}>ROAS, spesa e acquisti</h2>
+
+        <ResponsiveContainer width="100%" height={270}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<ChartTip />} />
+            <Legend />
+
+            <Line
+              type="monotone"
+              dataKey="roas"
+              name="ROAS"
+              stroke={WHITE}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="spend"
+              name="Spesa"
+              stroke={BLUE}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="purchases"
+              name="Acquisti"
+              stroke={GREEN}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={cardStyle}>
+        <h2 style={titleStyle}>KPI Meta: CTR, CPC, CPM, frequenza</h2>
+
+        <ResponsiveContainer width="100%" height={270}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: MUTED, fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<ChartTip />} />
+            <Legend />
+
+            <Line
+              type="monotone"
+              dataKey="ctrLink"
+              name="CTR link %"
+              stroke={BLUE}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="cpcLink"
+              name="CPC link"
+              stroke={CYAN}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="cpm"
+              name="CPM"
+              stroke={PURPLE}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+            <Line
+              type="monotone"
+              dataKey="frequency"
+              name="Frequenza"
+              stroke={WHITE}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+function InsightsPanel({ insights, catalogProducts, catalogProductsError }) {
+  if (!insights) return null
+
+  return (
+    <div style={{ ...cardStyle, marginBottom: 20 }}>
+      <h2 style={titleStyle}>Insight descrittivi e to do</h2>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
+        <MiniStat label="Speso" value={fmt(insights.totals?.spend, 'euro0')} />
+        <MiniStat label="ROAS" value={fmt(insights.totals?.roas, 'roas')} />
+        <MiniStat label="AOV" value={fmt(insights.totals?.aov, 'euro2')} />
+        <MiniStat label="CRO" value={fmt(insights.totals?.cro, 'pct')} />
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.1fr 1fr 1fr',
+          gap: 16,
+        }}
+      >
+        <div>
+          <h3 style={subTitle}>Analisi performance</h3>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {(insights.notes || []).map((note, i) => (
+              <div
+                key={i}
+                style={{
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 14,
+                  padding: 14,
+                  background: CARD_2,
+                }}
+              >
+                <div style={{ color: WHITE, fontWeight: 950, marginBottom: 6 }}>
+                  {note.title}
+                </div>
+                <div style={{ color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
+                  {note.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 style={subTitle}>To do operativi</h3>
+
+          <ol
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              color: WHITE,
+              display: 'grid',
+              gap: 10,
+              fontSize: 13,
+              lineHeight: 1.45,
+              fontWeight: 800,
+            }}
+          >
+            {(insights.todos || []).map((todo, i) => (
+              <li key={i}>{todo}</li>
+            ))}
+          </ol>
+        </div>
+
+        <div>
+          <h3 style={subTitle}>Prodotti catalogo venduti</h3>
+
+          {catalogProductsError && (
+            <div style={{ color: RED, fontSize: 12, lineHeight: 1.4, marginBottom: 10 }}>
+              {catalogProductsError}
+            </div>
+          )}
+
+          {!catalogProducts?.length && !catalogProductsError && (
+            <div style={{ color: MUTED, fontSize: 13 }}>
+              Nessun prodotto catalogo recuperato per questo periodo.
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: 8 }}>
+            {(catalogProducts || []).slice(0, 8).map((p, i) => (
+              <div
+                key={`${p.productId}-${i}`}
+                style={{
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 12,
+                  padding: 10,
+                  background: CARD_2,
+                }}
+              >
+                <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
+                  {p.productId || 'Prodotto senza ID'}
+                </div>
+                <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+                  Valore: {fmt(p.purchaseValue, 'euro0')} · Acquisti: {fmt(p.purchases, 'int')} · ROAS:{' '}
+                  {fmt(p.roas, 'roas')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <h3 style={subTitle}>Creatività e angoli comunicativi</h3>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+          }}
+        >
+          <CreativeList
+            title="Creatività da scalare"
+            items={insights.bestCreatives || []}
+          />
+          <CreativeList
+            title="Creatività da rivedere"
+            items={insights.weakCreatives || []}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const subTitle = {
+  margin: '0 0 10px',
+  color: WHITE,
+  fontSize: 13,
+  textTransform: 'uppercase',
+  letterSpacing: '.1em',
+  fontWeight: 950,
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div
+      style={{
+        background: CARD_2,
+        border: `1px solid ${BORDER}`,
+        borderRadius: 14,
+        padding: 14,
+      }}
+    >
+      <div style={{ color: MUTED, fontSize: 12, marginBottom: 6 }}>{label}</div>
+      <div style={{ color: WHITE, fontSize: 21, fontWeight: 950 }}>{value}</div>
+    </div>
+  )
+}
+
+function CreativeList({ title, items }) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${BORDER}`,
+        borderRadius: 14,
+        padding: 14,
+        background: CARD_2,
+      }}
+    >
+      <div style={{ color: WHITE, fontWeight: 950, marginBottom: 12 }}>{title}</div>
+
+      <div style={{ display: 'grid', gap: 12 }}>
+        {items.slice(0, 5).map((x, i) => (
+          <div key={`${x.adName}-${i}`} style={{ display: 'flex', gap: 10 }}>
+            {x.creative?.thumbnailUrl || x.creative?.imageUrl ? (
+              <img
+                src={x.creative.thumbnailUrl || x.creative.imageUrl}
+                alt=""
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 10,
+                  objectFit: 'cover',
+                  border: `1px solid ${BORDER}`,
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 10,
+                  border: `1px solid ${BORDER}`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: MUTED,
+                  fontSize: 10,
+                }}
+              >
+                NO IMG
+              </div>
+            )}
+
+            <div>
+              <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
+                {x.adName}
+              </div>
+              <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+                ROAS {fmt(x.roas, 'roas')} · Speso {fmt(x.spend, 'euro0')} · Acquisti{' '}
+                {fmt(x.purchases, 'int')}
+              </div>
+              {x.creative?.headline && (
+                <div style={{ color: WHITE, fontSize: 12, marginTop: 5 }}>
+                  Headline: {x.creative.headline}
+                </div>
+              )}
+              {x.creative?.copy && (
+                <div
+                  style={{
+                    color: MUTED,
+                    fontSize: 12,
+                    marginTop: 4,
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Copy: {x.creative.copy.slice(0, 160)}
+                  {x.creative.copy.length > 160 ? '...' : ''}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {!items.length && (
+          <div style={{ color: MUTED, fontSize: 13 }}>Nessun dato sufficiente.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PerformanceRow({ item, depth = 0, children }) {
+  const [open, setOpen] = useState(depth === 0)
+
+  return (
+    <>
+      <tr style={{ borderTop: `1px solid ${BORDER}` }}>
+        <td
+          style={{
+            position: 'sticky',
+            left: 0,
+            zIndex: 5,
+            background: CARD,
+            minWidth: 380,
+            padding: '14px 14px',
+          }}
+        >
+          <button
+            onClick={() => setOpen(!open)}
+            style={{
+              background: 'transparent',
+              border: 0,
+              color: WHITE,
+              cursor: 'pointer',
+              fontWeight: 900,
+              textAlign: 'left',
+              fontSize: depth === 0 ? 15 : 14,
+              paddingLeft: depth * 22,
+            }}
+          >
+            <span style={{ color: MUTED, marginRight: 8 }}>{open ? '▾' : '▸'}</span>
+            {item.name || 'Senza nome'}
+          </button>
+
+          <div
+            style={{
+              color: MUTED,
+              fontSize: 11,
+              marginTop: 5,
+              paddingLeft: depth * 22 + 28,
+            }}
+          >
+            {item.id}
+          </div>
+        </td>
+
+        {columns.map(([key, , kind]) => (
+          <td
+            key={key}
+            style={{
+              padding: '14px 14px',
+              verticalAlign: 'top',
+              minWidth: 130,
+            }}
+          >
+            <Metric
+              value={item.latest?.[key]}
+              previous={item.previous?.[key]}
+              kind={kind}
+            />
+          </td>
+        ))}
+      </tr>
+
+      {open && children}
+    </>
+  )
+}
+
+function AdRow({ ad }) {
+  const img = ad.creative?.thumbnailUrl || ad.creative?.imageUrl
+
+  return (
+    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
+      <td
+        style={{
+          position: 'sticky',
+          left: 0,
+          zIndex: 4,
+          background: CARD_2,
+          minWidth: 420,
+          padding: '14px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            alignItems: 'flex-start',
+            paddingLeft: 44,
+          }}
+        >
+          {img ? (
+            <img
+              src={img}
+              alt=""
+              style={{
+                width: 64,
+                height: 64,
+                objectFit: 'cover',
+                borderRadius: 10,
+                border: `1px solid ${BORDER}`,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 10,
+                border: `1px solid ${BORDER}`,
+                display: 'grid',
+                placeItems: 'center',
+                color: MUTED,
+                fontSize: 10,
+              }}
+            >
+              NO IMG
+            </div>
+          )}
+
+          <div>
+            <div style={{ color: WHITE, fontWeight: 950, fontSize: 13 }}>
+              {ad.name || 'Creatività senza nome'}
+            </div>
+
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
+              {ad.creative?.creativeName || ad.creative?.creativeId || ad.id}
+            </div>
+
+            {ad.creative?.headline && (
+              <div style={{ color: WHITE, fontSize: 12, marginTop: 8 }}>
+                {ad.creative.headline}
+              </div>
+            )}
+
+            {ad.creative?.copy && (
+              <div style={{ color: MUTED, fontSize: 12, marginTop: 5, lineHeight: 1.35 }}>
+                {ad.creative.copy.slice(0, 180)}
+                {ad.creative.copy.length > 180 ? '...' : ''}
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+
+      {columns.map(([key, , kind]) => (
+        <td
+          key={key}
+          style={{
+            padding: '14px 14px',
+            verticalAlign: 'top',
+            minWidth: 130,
+          }}
+        >
+          <Metric
+            value={ad.latest?.[key]}
+            previous={ad.previous?.[key]}
+            kind={kind}
+          />
+        </td>
       ))}
     </tr>
   )
@@ -806,33 +905,81 @@ function DataRow({ item, level = 0 }) {
 
 function MetaTable({ campaigns }) {
   return (
-    <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6">
-      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.2em] text-white">
-        Campagne attive, adset e creatività
-      </h2>
+    <div style={cardStyle}>
+      <h2 style={titleStyle}>Campagne attive, adset e creatività</h2>
 
-      <div className="max-h-[780px] overflow-auto rounded-2xl border border-blue-950">
-        <table className="w-full min-w-[2700px] border-collapse">
-          <thead className="sticky top-0 z-20 bg-[#071225]">
+      <div
+        style={{
+          overflow: 'auto',
+          maxHeight: '76vh',
+          borderRadius: 14,
+          border: `1px solid ${BORDER}`,
+        }}
+      >
+        <table style={{ borderCollapse: 'collapse', minWidth: 2450, width: '100%' }}>
+          <thead>
             <tr>
-              <th className="min-w-[340px] px-4 py-5 text-left text-[17px] font-black uppercase tracking-[0.14em] text-white">
+              <th
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  left: 0,
+                  zIndex: 20,
+                  background: '#081226',
+                  color: WHITE,
+                  textAlign: 'left',
+                  padding: '14px',
+                  minWidth: 420,
+                }}
+              >
                 Campagna / Adset / Creatività
               </th>
 
-              {metrics.map((metric) => (
+              {columns.map(([, label]) => (
                 <th
-                  key={metric.key}
-                  className="min-w-[130px] px-4 py-5 text-left text-[15px] font-black uppercase tracking-[0.14em] text-white"
+                  key={label}
+                  style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    background: '#081226',
+                    color: WHITE,
+                    textAlign: 'left',
+                    padding: '14px',
+                    minWidth: 130,
+                    fontSize: 12,
+                    letterSpacing: '.08em',
+                    textTransform: 'uppercase',
+                  }}
                 >
-                  {metric.label}
+                  {label}
                 </th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {campaigns.map((campaign) => (
-              <FragmentRows key={campaign.id} campaign={campaign} />
+            {campaigns.length === 0 && (
+              <tr>
+                <td
+                  colSpan={columns.length + 1}
+                  style={{ padding: 18, color: MUTED }}
+                >
+                  Nessuna campagna attiva trovata.
+                </td>
+              </tr>
+            )}
+
+            {campaigns.map(campaign => (
+              <PerformanceRow key={campaign.id} item={campaign} depth={0}>
+                {campaign.adsets.map(adset => (
+                  <PerformanceRow key={adset.id} item={adset} depth={1}>
+                    {adset.ads.map(ad => (
+                      <AdRow key={ad.id} ad={ad} />
+                    ))}
+                  </PerformanceRow>
+                ))}
+              </PerformanceRow>
             ))}
           </tbody>
         </table>
@@ -841,64 +988,45 @@ function MetaTable({ campaigns }) {
   )
 }
 
-function FragmentRows({ campaign }) {
-  return (
-    <>
-      <DataRow item={campaign} level={0} />
-
-      {(campaign.adsets || []).map((adset) => (
-        <FragmentAdset key={adset.id} adset={adset} />
-      ))}
-    </>
-  )
-}
-
-function FragmentAdset({ adset }) {
-  return (
-    <>
-      <DataRow item={adset} level={1} />
-
-      {(adset.ads || []).map((ad) => (
-        <DataRow key={ad.id} item={ad} level={2} />
-      ))}
-    </>
-  )
-}
-
 export default function MetaDetailPage() {
-  const initialUntil = todayISO()
-  const initialSince = addDays(initialUntil, -6)
+  const initialUntil = todayIso()
+  const initialSince = addDaysIso(initialUntil, -6)
 
   const [preset, setPreset] = useState('last7')
   const [since, setSince] = useState(initialSince)
   const [until, setUntil] = useState(initialUntil)
 
-  const [appliedSince, setAppliedSince] = useState(initialSince)
-  const [appliedUntil, setAppliedUntil] = useState(initialUntil)
-
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
 
   async function load() {
     try {
       setLoading(true)
-      setError('')
+      setError(null)
 
-      const res = await fetch(
-        `/api/meta-detail?since=${appliedSince}&until=${appliedUntil}`,
-        { cache: 'no-store' }
-      )
+      const params = new URLSearchParams({
+        since,
+        until,
+      })
+
+      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
+        cache: 'no-store',
+      })
 
       const json = await res.json()
 
+      if (!res.ok) {
+        throw new Error(json.error || 'Errore caricamento Meta')
+      }
+
       if (json.error) {
-        setError(json.error)
+        throw new Error(json.error)
       }
 
       setData(json)
-    } catch (err) {
-      setError(err?.message || 'Errore caricamento dati Meta')
+    } catch (e) {
+      setError(e.message)
     } finally {
       setLoading(false)
     }
@@ -906,108 +1034,98 @@ export default function MetaDetailPage() {
 
   useEffect(() => {
     load()
-  }, [appliedSince, appliedUntil])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const campaigns = data?.campaigns || []
-  const chartData = useMemo(() => aggregateTrend(campaigns), [campaigns])
-
-  function applyTimeframe() {
-    setAppliedSince(since)
-    setAppliedUntil(until)
-  }
+  const chartDaily = data?.chartDaily || []
 
   return (
-    <main className="min-h-screen bg-[#020817] p-6 text-white">
-      <a href="/" className="text-slate-400 hover:text-white">
-        ← Torna alla dashboard
-      </a>
-
-      <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+    <main
+      style={{
+        minHeight: '100vh',
+        background: '#020617',
+        color: WHITE,
+        padding: 28,
+        fontFamily: 'Barlow, system-ui, sans-serif',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: 16,
+          marginBottom: 22,
+        }}
+      >
         <div>
-          <h1 className="text-[34px] font-light uppercase tracking-[0.18em] text-white">
+          <a
+            href="/"
+            style={{
+              color: MUTED,
+              textDecoration: 'none',
+              fontSize: 13,
+            }}
+          >
+            ← Torna alla dashboard
+          </a>
+
+          <h1
+            style={{
+              margin: '10px 0 0',
+              fontSize: 28,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+            }}
+          >
             Analisi Meta dettagliata
           </h1>
 
-          <p className="mt-3 text-[17px] text-slate-400">
-            Campagne attive → adset → creatività, con variazioni rispetto al periodo precedente.
+          <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 14 }}>
+            Campagne attive → adset → creatività, con confronto sul periodo precedente.
           </p>
         </div>
 
-        {data?.meta?.updatedAt ? (
-          <div className="text-green-400">
-            Aggiornato: {new Date(data.meta.updatedAt).toLocaleString('it-IT')}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-8">
-        <TimeframeControls
-          preset={preset}
-          setPreset={setPreset}
-          since={since}
-          setSince={setSince}
-          until={until}
-          setUntil={setUntil}
-          onApply={applyTimeframe}
-        />
-      </div>
-
-      {loading ? (
-        <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 text-[20px] text-white">
-          Caricamento dati Meta...
+        <div style={{ color: GREEN, fontSize: 12 }}>
+          {data?.updatedAt
+            ? `Aggiornato: ${new Date(data.updatedAt).toLocaleString('it-IT')}`
+            : ''}
         </div>
-      ) : null}
+      </div>
 
-      {error ? (
-        <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 text-[20px] text-red-400">
+      <TimeFrameSelector
+        preset={preset}
+        setPreset={setPreset}
+        since={since}
+        setSince={setSince}
+        until={until}
+        setUntil={setUntil}
+        onApply={load}
+        loading={loading}
+      />
+
+      {loading && <div style={cardStyle}>Caricamento dati Meta...</div>}
+
+      {error && (
+        <div style={{ ...cardStyle, color: RED, marginBottom: 20 }}>
           Errore: {error}
         </div>
-      ) : null}
+      )}
 
-      {!loading && !error ? (
+      {!loading && !error && (
         <>
-          <CreativeIntelligence campaigns={campaigns} />
+          <SummaryCharts data={chartDaily} />
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <ChartCard title="ROAS, spesa e acquisti">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid stroke="#102044" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" stroke={MUTED} />
-                  <YAxis stroke={MUTED} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
+          <InsightsPanel
+            insights={data?.insights}
+            catalogProducts={data?.catalogProducts}
+            catalogProductsError={data?.catalogProductsError}
+          />
 
-                  <Line type="monotone" dataKey="roas" name="ROAS" stroke={WHITE} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="spend" name="Spesa" stroke={BLUE} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="purchases" name="Acquisti" stroke={GREEN} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="KPI Meta: CTR, CPC, CPM, Frequenza">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid stroke="#102044" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" stroke={MUTED} />
-                  <YAxis stroke={MUTED} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-
-                  <Line type="monotone" dataKey="ctrLink" name="CTR link %" stroke={BLUE} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="cpcLink" name="CPC link" stroke={CYAN} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="cpm" name="CPM" stroke={PURPLE} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="frequency" name="Frequenza" stroke={WHITE} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-
-          <div className="mt-6">
-            <MetaTable campaigns={campaigns} />
-          </div>
+          <MetaTable campaigns={campaigns} />
         </>
-      ) : null}
+      )}
     </main>
   )
 }

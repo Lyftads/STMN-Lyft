@@ -268,45 +268,111 @@ function Simulator({ cfg }) {
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
-  const YELLOW = '#eab308'
-  const GREEN = '#f8fafc'
 
-  const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT')}` : '—'
-  const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
-  const int0 = n => n != null && Number(n) > 0 ? Math.round(Number(n)).toLocaleString('it-IT') : '—'
-  const pct1 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'
-  const pct2 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '—'
-  const dec2 = n => n != null ? Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
-  const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
-  const div = (a, b) => b > 0 ? a / b : null
+  const money0 = n =>
+    n != null && Number(n) > 0
+      ? `€${Math.round(Number(n)).toLocaleString('it-IT')}`
+      : '—'
+
+  const money2 = n =>
+    n != null && Number(n) > 0
+      ? `€${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+      : '—'
+
+  const int0 = n =>
+    n != null && Number(n) > 0
+      ? Math.round(Number(n)).toLocaleString('it-IT')
+      : '—'
+
+  const pct1 = n =>
+    n != null
+      ? `${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })}%`
+      : '—'
+
+  const pct2 = n =>
+    n != null
+      ? `${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}%`
+      : '—'
+
+  const dec2 = n =>
+    n != null
+      ? Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : '—'
+
+  const asNum = v => (Number.isFinite(Number(v)) ? Number(v) : 0)
+  const div = (a, b) => (b > 0 ? a / b : null)
 
   const delta = (curr, prev) => {
     if (curr == null || prev == null) return null
+
     const c = Number(curr)
     const p = Number(prev)
-    if (!Number.isFinite(c) || !Number.isFinite(p)) return null
-    const diff = c - p
-    const pct = p !== 0 ? diff / p * 100 : null
-    const equal = Math.abs(diff) < 0.000001
-    return { diff, pct, equal, over20: pct != null && Math.abs(pct) >= 20, positive: diff > 0 }
-  }
 
-  const dataColor = () => WHITE
+    if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+
+    const diff = c - p
+    const pct = p !== 0 ? (diff / p) * 100 : null
+    const equal = Math.abs(diff) < 0.000001
+
+    return {
+      diff,
+      pct,
+      equal,
+      positive: diff > 0,
+    }
+  }
 
   const formatDelta = (v, kind) => {
     const abs = Math.abs(Number(v || 0))
-    if (kind === 'euro0') return `€${Math.round(abs).toLocaleString('it-IT')}`
-    if (kind === 'euro2') return `€${abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    if (kind === 'int') return Math.round(abs).toLocaleString('it-IT')
-    if (kind === 'percent') return `${abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
-    return abs.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+    if (kind === 'euro0') {
+      return `€${Math.round(abs).toLocaleString('it-IT')}`
+    }
+
+    if (kind === 'euro2') {
+      return `€${abs.toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    }
+
+    if (kind === 'int') {
+      return Math.round(abs).toLocaleString('it-IT')
+    }
+
+    if (kind === 'percent') {
+      return `${abs.toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}%`
+    }
+
+    return abs.toLocaleString('it-IT', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
   }
 
-  const Delta = ({ current, previous, kind='number' }) => {
+  const Delta = ({ current, previous, kind = 'number' }) => {
     const d = delta(current, previous)
+
     if (!d || d.equal) return null
+
     const sign = d.diff > 0 ? '+' : '−'
     const color = d.diff < 0 ? RED : WHITE
+
     return (
       <div
         style={{
@@ -321,10 +387,16 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
           whiteSpace: 'nowrap',
         }}
       >
-        <div style={{ display: 'block' }}>{sign}{formatDelta(d.diff, kind)}</div>
+        <div>{sign}{formatDelta(d.diff, kind)}</div>
+
         {d.pct != null && (
-          <div style={{ display: 'block' }}>
-            {sign}{Math.abs(d.pct).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+          <div>
+            {sign}
+            {Math.abs(d.pct).toLocaleString('it-IT', {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })}
+            %
           </div>
         )}
       </div>
@@ -332,28 +404,64 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   }
 
   const metaMap = {}
-  for (const m of (metaWeekly || [])) metaMap[m.date] = m
+  for (const m of metaWeekly || []) {
+    metaMap[m.date] = m
+  }
 
   const shopifyMap = {}
-  for (const s of (shopifyWeekly || [])) shopifyMap[s.date] = s
+  for (const s of shopifyWeekly || []) {
+    shopifyMap[s.date] = s
+  }
 
   const allWeeks = weeks.map(({ key, label }) => {
     const d = data[key] || WEMPTY
     const mw = metaMap[key] || {}
     const sw = shopifyMap[key] || {}
 
-    const fat = sw.fatturato > 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
-    const fatNC = sw.fatturNC > 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
-    const fatRC = sw.fatturRC > 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
+    const fat =
+      sw.fatturato > 0
+        ? asNum(sw.fatturato)
+        : asNum(d.fatturato)
 
-    const meta = mw.spend > 0 ? asNum(mw.spend) : asNum(d.meta)
+    const fatNC =
+      sw.fatturNC > 0
+        ? asNum(sw.fatturNC)
+        : asNum(d.fatturNC)
+
+    const fatRC =
+      sw.fatturRC > 0
+        ? asNum(sw.fatturRC)
+        : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
+
+    const meta =
+      mw.spend > 0
+        ? asNum(mw.spend)
+        : asNum(d.meta)
+
     const google = asNum(d.google)
     const adv = meta + google
 
-    const ord = sw.ordini > 0 ? asNum(sw.ordini) : asNum(d.ordini)
-    const nc = sw.nc > 0 ? asNum(sw.nc) : asNum(d.nc)
-    const rc = sw.rc > 0 ? asNum(sw.rc) : asNum(d.rc)
-    const ses = sw.uniqueSessions > 0 ? asNum(sw.uniqueSessions) : sw.online_store_visitors > 0 ? asNum(sw.online_store_visitors) : asNum(d.sessioni)
+    const ord =
+      sw.ordini > 0
+        ? asNum(sw.ordini)
+        : asNum(d.ordini)
+
+    const nc =
+      sw.nc > 0
+        ? asNum(sw.nc)
+        : asNum(d.nc)
+
+    const rc =
+      sw.rc > 0
+        ? asNum(sw.rc)
+        : asNum(d.rc)
+
+    const ses =
+      sw.uniqueSessions > 0
+        ? asNum(sw.uniqueSessions)
+        : sw.online_store_visitors > 0
+          ? asNum(sw.online_store_visitors)
+          : asNum(d.sessioni)
 
     const mer = div(fat, adv)
     const aMer = div(fatNC, adv)
@@ -362,28 +470,75 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     const aov = div(fat, ord)
     const aovNC = div(fatNC, nc)
     const aovRC = div(fatRC, rc)
-    const retention = (nc + rc) > 0 ? rc / (nc + rc) * 100 : null
-    const cro = ses > 0 && ord > 0 ? ord / ses * 100 : null
-    const ltv = aov ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
-    const ratio = ltv && cac ? ltv / cac : null
+
+    const retention =
+      nc + rc > 0
+        ? (rc / (nc + rc)) * 100
+        : null
+
+    const cro =
+      ses > 0 && ord > 0
+        ? (ord / ses) * 100
+        : null
+
+    const ltv =
+      aov
+        ? aov * cfg.freq * cfg.life * cfg.margin / 100
+        : null
+
+    const ratio =
+      ltv && cac
+        ? ltv / cac
+        : null
 
     return {
-      key, label, fat, fatNC, fatRC, meta, google, adv, ord, nc, rc, ses,
-      mer, aMer, cac, cpo, aov, aovNC, aovRC, retention, cro, ltv, ratio,
+      key,
+      label,
+
+      fat,
+      fatNC,
+      fatRC,
+
+      meta,
+      google,
+      adv,
+
+      ord,
+      nc,
+      rc,
+      ses,
+
+      mer,
+      aMer,
+      cac,
+      cpo,
+      aov,
+      aovNC,
+      aovRC,
+      retention,
+      cro,
+      ltv,
+      ratio,
+
       metaAuto: mw.spend > 0,
-      shopifyAuto: sw.fatturato > 0 || sw.fatturNC > 0 || sw.fatturRC > 0 || sw.ordini > 0 || sw.nc > 0 || sw.rc > 0 || sw.uniqueSessions > 0 || sw.online_store_visitors > 0,
-      ctr: mw.ctr,
-      cpc: mw.cpcLink,
-      cpm: mw.cpm,
-      freq: mw.frequency,
-      impressions: mw.impressions,
-      reach: mw.reach,
-      linkClicks: mw.linkClicks,
+
+      shopifyAuto:
+        sw.fatturato > 0 ||
+        sw.fatturNC > 0 ||
+        sw.fatturRC > 0 ||
+        sw.ordini > 0 ||
+        sw.nc > 0 ||
+        sw.rc > 0 ||
+        sw.uniqueSessions > 0 ||
+        sw.online_store_visitors > 0,
     }
   })
 
-  const filled = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
-  const sum = key => filled.reduce((s,w)=>s+asNum(w[key]),0)
+  const filled = allWeeks.filter(
+    w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto
+  )
+
+  const sum = key => filled.reduce((s, w) => s + asNum(w[key]), 0)
 
   const totFat = sum('fat')
   const totFatNC = sum('fatNC')
@@ -403,21 +558,61 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   const avgAOV = div(totFat, totOrd)
   const avgAOVNC = div(totFatNC, totNC)
   const avgAOVRC = div(totFatRC, totRC)
-  const avgRet = (totNC + totRC) > 0 ? totRC / (totNC + totRC) * 100 : null
-  const avgCRO = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
-  const avgLTV = avgAOV ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
-  const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
 
-  const metaFilled = filled.filter(w => w.metaAuto)
-  const avgMeta = key => metaFilled.length ? metaFilled.reduce((s,w)=>s+asNum(w[key]),0) / metaFilled.length : null
+  const avgRet =
+    totNC + totRC > 0
+      ? (totRC / (totNC + totRC)) * 100
+      : null
 
-  const tableWrap = { overflow:'auto', maxHeight:'72vh', position:'relative' }
-  const TH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'#081226', boxShadow:'0 1px 0 #1e2d47', fontSize:12, padding:'12px 14px' }
-  const TD = { ...S.td, fontSize:15, padding:'10px 14px', verticalAlign:'top' }
-  const valueStyle = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15 }
+  const avgCRO =
+    totSes > 0 && totOrd > 0
+      ? (totOrd / totSes) * 100
+      : null
 
-  const Value = ({ value, prev, kind='euro0', suffix='' }) => {
+  const avgLTV =
+    avgAOV
+      ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
+      : null
+
+  const avgRatio =
+    avgLTV && avgCAC
+      ? avgLTV / avgCAC
+      : null
+
+  const tableWrap = {
+    overflow: 'auto',
+    maxHeight: '72vh',
+    position: 'relative',
+  }
+
+  const TH = {
+    ...S.th,
+    position: 'sticky',
+    top: 0,
+    zIndex: 20,
+    background: '#081226',
+    boxShadow: '0 1px 0 #1e2d47',
+    fontSize: 12,
+    padding: '12px 14px',
+  }
+
+  const TD = {
+    ...S.td,
+    fontSize: 15,
+    padding: '10px 14px',
+    verticalAlign: 'top',
+  }
+
+  const valueStyle = {
+    fontFamily: 'Barlow',
+    fontWeight: 900,
+    fontSize: 16,
+    lineHeight: 1.15,
+  }
+
+  const Value = ({ value, prev, kind = 'euro0', suffix = '' }) => {
     let shown = '—'
+
     if (kind === 'euro0') shown = money0(value)
     else if (kind === 'euro2') shown = money2(value)
     else if (kind === 'int') shown = int0(value)
@@ -428,68 +623,261 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
     return (
       <div>
-        <div style={{...valueStyle, color:WHITE}}>{shown}</div>
-        <Delta current={value} previous={prev} kind={kind === 'percent1' || kind === 'percent2' ? 'percent' : kind} />
+        <div style={{ ...valueStyle, color: WHITE }}>
+          {shown}
+        </div>
+
+        <Delta
+          current={value}
+          previous={prev}
+          kind={
+            kind === 'percent1' || kind === 'percent2'
+              ? 'percent'
+              : kind
+          }
+        />
       </div>
     )
   }
 
-  const InputOrValue = ({ week, field, value, prev, disabled, isCount=false }) => (
+  const InputOrValue = ({
+    week,
+    field,
+    value,
+    prev,
+    disabled,
+    isCount = false,
+  }) => (
     disabled ? (
-      <Value value={value} prev={prev} kind={isCount ? 'int' : 'euro0'} />
+      <Value
+        value={value}
+        prev={prev}
+        kind={isCount ? 'int' : 'euro0'}
+      />
     ) : (
       <div>
-        <NumInput value={value} onChange={val=>onUpdate(week, field, val)} placeholder="0" color={WHITE} isCount={isCount} />
-        <Delta current={value} previous={prev} kind={isCount ? 'int' : 'euro0'} />
+        <NumInput
+          value={value}
+          onChange={val => onUpdate(week, field, val)}
+          placeholder="0"
+          color={WHITE}
+          isCount={isCount}
+        />
+
+        <Delta
+          current={value}
+          previous={prev}
+          kind={isCount ? 'int' : 'euro0'}
+        />
       </div>
     )
   )
 
   return (
     <>
-      <div style={{...S.card, marginBottom:20}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-          <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>Inserimento dati settimanali</span>
-          <span style={{fontSize:10,color:'#22c55e'}}>Shopify + Meta automatici · Google manuale</span>
+      <div style={{ ...S.card, marginBottom: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 13,
+              color: '#fff',
+              fontWeight: 700,
+              fontFamily: 'Barlow Condensed',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Inserimento dati settimanali
+          </span>
+
+          <span style={{ fontSize: 10, color: '#22c55e' }}>
+            Shopify + Meta automatici · Google manuale
+          </span>
         </div>
+
         <div style={tableWrap}>
-          <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
+          <table
+            style={{
+              width: '100%',
+              minWidth: 1450,
+              borderCollapse: 'collapse',
+            }}
+          >
             <thead>
               <tr>
-                {['Settimana','Fatturato €','Fatt. NC €','Fatt. RC €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Visitatori online'].map(h=>(
+                {[
+                  'Settimana',
+                  'Fatturato €',
+                  'Fatt. NC €',
+                  'Fatt. RC €',
+                  'Meta ADS €',
+                  'Google ADS €',
+                  'Tot Ordini',
+                  'NC #',
+                  'RC #',
+                  'Visitatori online',
+                ].map(h => (
                   <th key={h} style={TH}>{h}</th>
                 ))}
               </tr>
             </thead>
+
             <tbody>
-              {allWeeks.map((w,i) => {
-                const p = i > 0 ? allWeeks[i-1] : null
+              {allWeeks.map((w, i) => {
+                const p = i > 0 ? allWeeks[i - 1] : null
+
                 return (
-                  <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                    <td style={{...TD,color:WHITE,fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{w.label}</td>
-                    <td style={TD}><InputOrValue week={w.key} field="fatturato" value={w.fat} prev={p?.fat} disabled={w.shopifyAuto} /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="fatturNC" value={w.fatNC} prev={p?.fatNC} disabled={w.shopifyAuto} /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="fatturRC" value={w.fatRC} prev={p?.fatRC} disabled={w.shopifyAuto} /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="meta" value={w.meta} prev={p?.meta} disabled={w.metaAuto} /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={false} /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="ordini" value={w.ord} prev={p?.ord} disabled={w.shopifyAuto} isCount /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="nc" value={w.nc} prev={p?.nc} disabled={w.shopifyAuto} isCount /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="rc" value={w.rc} prev={p?.rc} disabled={w.shopifyAuto} isCount /></td>
-                    <td style={TD}><InputOrValue week={w.key} field="sessioni" value={w.ses} prev={p?.ses} disabled={w.shopifyAuto && w.ses > 0} isCount /></td>
+                  <tr
+                    key={w.key}
+                    style={{
+                      background: i % 2 === 0 ? 'transparent' : '#080f1e',
+                    }}
+                  >
+                    <td
+                      style={{
+                        ...TD,
+                        color: WHITE,
+                        fontWeight: 900,
+                        whiteSpace: 'nowrap',
+                        fontSize: 16,
+                      }}
+                    >
+                      {w.label}
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="fatturato"
+                        value={w.fat}
+                        prev={p?.fat}
+                        disabled={w.shopifyAuto}
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="fatturNC"
+                        value={w.fatNC}
+                        prev={p?.fatNC}
+                        disabled={w.shopifyAuto}
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="fatturRC"
+                        value={w.fatRC}
+                        prev={p?.fatRC}
+                        disabled={w.shopifyAuto}
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="meta"
+                        value={w.meta}
+                        prev={p?.meta}
+                        disabled={w.metaAuto}
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="google"
+                        value={w.google}
+                        prev={p?.google}
+                        disabled={false}
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="ordini"
+                        value={w.ord}
+                        prev={p?.ord}
+                        disabled={w.shopifyAuto}
+                        isCount
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="nc"
+                        value={w.nc}
+                        prev={p?.nc}
+                        disabled={w.shopifyAuto}
+                        isCount
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="rc"
+                        value={w.rc}
+                        prev={p?.rc}
+                        disabled={w.shopifyAuto}
+                        isCount
+                      />
+                    </td>
+
+                    <td style={TD}>
+                      <InputOrValue
+                        week={w.key}
+                        field="sessioni"
+                        value={w.ses}
+                        prev={p?.ses}
+                        disabled={w.shopifyAuto && w.ses > 0}
+                        isCount
+                      />
+                    </td>
                   </tr>
                 )
               })}
-              <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                <td style={{...TD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFat)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFatNC)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totFatRC)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{money0(totMeta)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{totGoog>0?money0(totGoog):'—'}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totOrd)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totNC)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totRC)}</td>
-                <td style={{...TD,color:WHITE,fontWeight:900}}>{int0(totSes)}</td>
+
+              <tr
+                style={{
+                  background: '#0a1020',
+                  borderTop: '1px solid #1e2d47',
+                }}
+              >
+                <td
+                  style={{
+                    ...TD,
+                    color: '#94a3b8',
+                    fontWeight: 900,
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    fontFamily: 'Barlow Condensed',
+                  }}
+                >
+                  TOTALE
+                </td>
+
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatNC)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatRC)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totMeta)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{totGoog > 0 ? money0(totGoog) : '—'}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totOrd)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totNC)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totRC)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totSes)}</td>
               </tr>
             </tbody>
           </table>
@@ -497,217 +885,140 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
       </div>
 
       {filled.length > 0 && (
-        <div style={{...S.card, marginBottom:20}}>
-          <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>KPI calcolati</p>
-         {filled.length > 0 && (
-  <div style={{...S.card, marginBottom:20}}>
-    <p style={{
-      fontSize:11,
-      color:'#fff',
-      fontWeight:700,
-      fontFamily:'Barlow Condensed',
-      letterSpacing:'0.12em',
-      textTransform:'uppercase',
-      marginBottom:16
-    }}>
-      KPI calcolati
-    </p>
+        <div style={{ ...S.card, marginBottom: 20 }}>
+          <p
+            style={{
+              fontSize: 11,
+              color: '#fff',
+              fontWeight: 700,
+              fontFamily: 'Barlow Condensed',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              marginBottom: 16,
+            }}
+          >
+            KPI calcolati
+          </p>
 
-    <div style={tableWrap}>
-      <table style={{
-        width:'100%',
-        minWidth:1500,
-        borderCollapse:'collapse'
-      }}>
-        <thead>
-          <tr>
-            {[
-              'Sett.',
-              'Fatturato',
-              'Fatt. NC',
-              'Fatt. RC',
-              'ADV',
-              'MER',
-              'aMER',
-              'CAC',
-              'CPO',
-              'AOV',
-              'AOV NC',
-              'AOV RC',
-              'Ret%',
-              'CRO%',
-              'LTV',
-              'Ratio'
-            ].map(h => (
-              <th key={h} style={TH}>{h}</th>
-            ))}
-          </tr>
-        </thead>
+          <div style={tableWrap}>
+            <table
+              style={{
+                width: '100%',
+                minWidth: 1500,
+                borderCollapse: 'collapse',
+              }}
+            >
+              <thead>
+                <tr>
+                  {[
+                    'Sett.',
+                    'Fatturato',
+                    'Fatt. NC',
+                    'Fatt. RC',
+                    'ADV',
+                    'MER',
+                    'aMER',
+                    'CAC',
+                    'CPO',
+                    'AOV',
+                    'AOV NC',
+                    'AOV RC',
+                    'Ret%',
+                    'CRO%',
+                    'LTV',
+                    'Ratio',
+                  ].map(h => (
+                    <th key={h} style={TH}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
 
-        <tbody>
-          {filled.map((w, i) => {
-            const p = i > 0 ? filled[i - 1] : null
+              <tbody>
+                {filled.map((w, i) => {
+                  const p = i > 0 ? filled[i - 1] : null
 
-            return (
-              <tr key={w.key} style={{
-                background:i % 2 === 0 ? 'transparent' : '#080f1e'
-              }}>
-                <td style={{
-                  ...TD,
-                  color:WHITE,
-                  fontSize:16,
-                  fontWeight:900,
-                  whiteSpace:'nowrap'
-                }}>
-                  {w.label}
-                </td>
+                  return (
+                    <tr
+                      key={w.key}
+                      style={{
+                        background: i % 2 === 0 ? 'transparent' : '#080f1e',
+                      }}
+                    >
+                      <td
+                        style={{
+                          ...TD,
+                          color: WHITE,
+                          fontSize: 16,
+                          fontWeight: 900,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {w.label}
+                      </td>
 
-                <td style={TD}>
-                  <Value value={w.fat} prev={p?.fat} kind="euro0" />
-                </td>
+                      <td style={TD}><Value value={w.fat} prev={p?.fat} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.fatNC} prev={p?.fatNC} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.fatRC} prev={p?.fatRC} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.adv} prev={p?.adv} kind="euro0" /></td>
+                      <td style={TD}><Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
+                      <td style={TD}><Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
+                      <td style={TD}><Value value={w.cac} prev={p?.cac} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.cpo} prev={p?.cpo} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aov} prev={p?.aov} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aovNC} prev={p?.aovNC} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.aovRC} prev={p?.aovRC} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.retention} prev={p?.retention} kind="percent1" /></td>
+                      <td style={TD}><Value value={w.cro} prev={p?.cro} kind="percent2" /></td>
+                      <td style={TD}><Value value={w.ltv} prev={p?.ltv} kind="euro2" /></td>
+                      <td style={TD}><Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
+                    </tr>
+                  )
+                })}
 
-                <td style={TD}>
-                  <Value value={w.fatNC} prev={p?.fatNC} kind="euro0" />
-                </td>
+                <tr
+                  style={{
+                    background: '#0a1020',
+                    borderTop: '1px solid #1e2d47',
+                  }}
+                >
+                  <td
+                    style={{
+                      ...TD,
+                      color: '#94a3b8',
+                      fontWeight: 900,
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      fontFamily: 'Barlow Condensed',
+                    }}
+                  >
+                    MEDIA / TOTALE
+                  </td>
 
-                <td style={TD}>
-                  <Value value={w.fatRC} prev={p?.fatRC} kind="euro0" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.adv} prev={p?.adv} kind="euro0" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.cac} prev={p?.cac} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.cpo} prev={p?.cpo} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.aov} prev={p?.aov} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.aovNC} prev={p?.aovNC} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.aovRC} prev={p?.aovRC} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.retention} prev={p?.retention} kind="percent1" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.cro} prev={p?.cro} kind="percent2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.ltv} prev={p?.ltv} kind="euro2" />
-                </td>
-
-                <td style={TD}>
-                  <Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" />
-                </td>
-              </tr>
-            )
-          })}
-
-          <tr style={{
-            background:'#0a1020',
-            borderTop:'1px solid #1e2d47'
-          }}>
-            <td style={{
-              ...TD,
-              color:'#94a3b8',
-              fontWeight:900,
-              fontSize:10,
-              textTransform:'uppercase',
-              letterSpacing:'0.1em',
-              fontFamily:'Barlow Condensed'
-            }}>
-              MEDIA / TOTALE
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money0(totFat)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money0(totFatNC)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money0(totFatRC)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money0(totAdv)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {avgMER != null ? `${dec2(avgMER)}×` : '—'}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {avgAMER != null ? `${dec2(avgAMER)}×` : '—'}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgCAC)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgCPO)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgAOV)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgAOVNC)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgAOVRC)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {avgRet != null ? pct1(avgRet) : '—'}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {avgCRO != null ? pct2(avgCRO) : '—'}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {money2(avgLTV)}
-            </td>
-
-            <td style={{...TD, color:WHITE, fontWeight:900}}>
-              {avgRatio != null ? `${dec2(avgRatio)}:1` : '—'}
-            </td>
-          </tr>
-               </tbody>
-      </table>
-    </div>
-  </div>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatNC)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatRC)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totAdv)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgMER != null ? `${dec2(avgMER)}×` : '—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgAMER != null ? `${dec2(avgAMER)}×` : '—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCAC)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCPO)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOV)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOVNC)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOVRC)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgRet != null ? pct1(avgRet) : '—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgCRO != null ? pct2(avgCRO) : '—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgLTV)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgRatio != null ? `${dec2(avgRatio)}:1` : '—'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
-
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('dashboard')

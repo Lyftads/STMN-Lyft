@@ -1502,162 +1502,711 @@ const TABS = [
       )}
 
       {/* ── MENSILE ── */}
-      {tab==='monthly' && (
-        <div className="fade-up">
-          {/* Tabella input */}
-          <div style={{...S.card, marginBottom:24}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>Inserimento dati mensili</span>
-              <span style={{fontSize:10,color:'#22c55e'}}>📘 Meta automatica · ⌨ Manuale</span>
-            </div>
-            <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead>
-                  <tr>
-                    {['Mese','Fatturato Netto €','Ordini','Nuovi Clienti','Google Ads €','✓ Totale','📘 Meta Auto'].map(h=>(
-                      <th key={h} style={S.th}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {avail.map(month => {
-                    const d = months[month] || EMPTY
-                    const metaSpend = (live?.metaMonthly||[]).find(x=>x.month===month)?.spend || 0
-                    return (
-                      <tr key={month} style={{borderBottom:'1px solid #0d1628'}}>
-                        <td style={{...S.td,color:'#fff',fontWeight:800}}>{month}</td>
-                        <td style={{...S.td,padding:'6px 8px'}}>
-                          <NumInput value={d.fatturato||0} onChange={v=>updateMonth(month,'fatturato',v)} placeholder="es. 149473" color="#22c55e" />
-                        </td>
-                        <td style={{...S.td,padding:'6px 8px'}}>
-                          <NumInput value={d.ordini||0} onChange={v=>updateMonth(month,'ordini',v)} placeholder="es. 1856" color="#3b82f6" isCount />
-                        </td>
-                        <td style={{...S.td,padding:'6px 8px'}}>
-                          <NumInput value={d.nuoviClienti||0} onChange={v=>updateMonth(month,'nuoviClienti',v)} placeholder="es. 768" color="#06b6d4" isCount />
-                        </td>
-                        <td style={{...S.td,padding:'6px 8px'}}>
-                          <NumInput value={d.googleSpend||0} onChange={v=>updateMonth(month,'googleSpend',v)} placeholder="es. 4383" color="#eab308" />
-                        </td>
-                        <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{d.fatturato>0?f0(d.fatturato):'—'}</td>
-                        <td style={{...S.td,color:'#3b82f6'}}>{metaSpend>0?f0(metaSpend):'—'}</td>
-                      </tr>
-                    )
-                  })}
-                  {/* TOTALE */}
-                  <tr style={{background:'#070e1c',borderTop:'1px solid #1e2d47'}}>
-                    <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
-                    <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(totFat)}</td>
-                    <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{fn(totOrd)}</td>
-                    <td style={{...S.td,color:'#06b6d4',fontWeight:700}}>{fn(totNC)}</td>
-                    <td style={{...S.td,color:'#eab308',fontWeight:700}}>{totGoog>0?f0(totGoog):'—'}</td>
-                    <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(totFat)}</td>
-                    <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{f0(totMeta)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+     {/* ── MENSILE ── */}
+{tab === 'monthly' && (
+  <div className="fade-up">
 
-          {/* Tabella KPI calcolati */}
-          {data.some(m=>m.ratio!=null||m.mer!=null) && (
-            <div style={{...S.card, marginBottom:24}}>
-              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>KPI calcolati</p>
-              <div style={{overflowX:'auto'}}>
-                <table style={{width:'100%',borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>
-                      {['Mese','AOV','Spesa Totale','CAC','LTV','Ratio','MER'].map(h=>(
-                        <th key={h} style={{...S.th,color:'#ffffff',fontWeight:700}}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.map((m,i) => (
-                      <tr key={m.month} style={{background:i%2===0?'transparent':'#0a0a0a'}}>
-                        <td style={{...S.td,color:'#fff',fontWeight:800}}>{m.month}</td>
-                        <td style={{...S.td,color:'#e8e8e8'}}>{m.aov>0?f2(m.aov):'—'}</td>
-                        <td style={{...S.td,color:'#888'}}>{m.totalSpend>0?f0(m.totalSpend):'—'}</td>
-                        <td style={{...S.td,color:'#e8e8e8'}}>{m.cac?f2(m.cac):'—'}</td>
-                        <td style={{...S.td,color:'#e8e8e8'}}>{m.ltv?f2(m.ltv):'—'}</td>
-                        <td style={{...S.td,fontWeight:700,fontFamily:'Barlow',color:ratioColor(m.ratio)}}>{m.ratio?`${fr(m.ratio)}:1`:'—'}</td>
-                        <td style={{...S.td,color:'#22c55e',fontWeight:600}}>{m.mer?`${fr(m.mer)}×`:'—'}</td>
-                      </tr>
-                    ))}
-                    <tr style={{background:'#070e1c',borderTop:'1px solid #1e2d47'}}>
-                      <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
-                      <td style={{...S.td,color:'#e8e8e8',fontWeight:700}}>{avgAOV>0?f2(avgAOV):'—'}</td>
-                      <td style={{...S.td,color:'#888',fontWeight:700}}>{totSpend>0?f0(Math.round(totSpend/avail.length)):'—'}</td>
-                      <td style={{...S.td,fontWeight:700}}>{cacG?f2(cacG):'—'}</td>
-                      <td style={{...S.td,fontWeight:700}}>{ltvG?f2(ltvG):'—'}</td>
-                      <td style={{...S.td,fontWeight:800,fontFamily:'Barlow',fontSize:16,color:ratioColor(ratioG)}}>{ratioG?`${fr(ratioG)}:1`:'—'}</td>
-                      <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{merG?`${fr(merG)}×`:'—'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+    {/* Tabella dati mensili automatica */}
+    <div style={{ ...S.card, marginBottom: 24 }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16
+      }}>
+        <span style={{
+          fontSize: 13,
+          color: '#fff',
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase'
+        }}>
+          Inserimento dati mensili
+        </span>
 
-          {/* Grafici dinamici */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div style={S.card}>
-              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={data} barGap={3} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                  <Tooltip content={<ChartTip />} />
-                  <Bar dataKey="fatturato"  name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
-                  <Bar dataKey="metaSpend"  name="Meta"      fill="#3b82f6" radius={[2,2,0,0]} />
-                  <Bar dataKey="googleSpend" name="Google"   fill="#eab308" radius={[2,2,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={S.card}>
-              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>CAC mensile</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="cac" name="CAC €" stroke="#e8e8e8" strokeWidth={2} dot={{r:4,fill:'#e8e8e8'}} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        <span style={{ fontSize: 10, color: '#22c55e' }}>
+          Shopify + Meta automatici · Google manuale
+        </span>
+      </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-            <div style={S.card}>
-              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>MER mensile</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
-                  <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="mer" name="MER" stroke="#22c55e" strokeWidth={2} dot={{r:4,fill:'#22c55e'}} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={S.card}>
-              <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                  <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} label={{value:'3:1',fill:'#22c55e',fontSize:9}} />
-                  <Tooltip content={<ChartTip />} />
-                  <Line dataKey="ratio" name="Ratio" stroke="#e8e8e8" strokeWidth={2} dot={{r:4}} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{
+          width: '100%',
+          minWidth: 1450,
+          borderCollapse: 'collapse'
+        }}>
+          <thead>
+            <tr>
+              {[
+                'Mese',
+                'Fatturato €',
+                'Fatt. NC €',
+                'Fatt. RC €',
+                'Meta ADS €',
+                'Google ADS €',
+                'Tot Ordini',
+                'NC #',
+                'RC #',
+                'Visitatori online'
+              ].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {data.map((m, i) => {
+              const prev = i > 0 ? data[i - 1] : null
+              const manual = months[m.month] || EMPTY
+
+              const DeltaMini = ({ curr, old, type = 'number' }) => {
+                if (curr == null || old == null) return null
+
+                const c = Number(curr)
+                const p = Number(old)
+
+                if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+
+                const diff = c - p
+                if (Math.abs(diff) < 0.000001) return null
+
+                const pct = p !== 0 ? diff / p * 100 : null
+                const positive = diff > 0
+
+                const color = positive ? '#f8fafc' : '#ef4444'
+                const sign = positive ? '+' : '−'
+                const abs = Math.abs(diff)
+
+                let shown = abs.toLocaleString('it-IT', {
+                  maximumFractionDigits: 0
+                })
+
+                if (type === 'euro') {
+                  shown = `€${Math.round(abs).toLocaleString('it-IT')}`
+                }
+
+                if (type === 'euro2') {
+                  shown = `€${abs.toLocaleString('it-IT', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}`
+                }
+
+                return (
+                  <div style={{
+                    marginTop: 8,
+                    color,
+                    fontSize: 12,
+                    lineHeight: 1.25,
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    <div>{sign}{shown}</div>
+                    {pct != null && (
+                      <div>
+                        {sign}{Math.abs(pct).toLocaleString('it-IT', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1
+                        })}%
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              const CellValue = ({ value, prevValue, type = 'euro' }) => {
+                let shown = '—'
+
+                if (type === 'euro') shown = value > 0 ? f0(value) : '—'
+                if (type === 'euro2') shown = value > 0 ? f2(value) : '—'
+                if (type === 'int') shown = value > 0 ? fn(value) : '—'
+
+                return (
+                  <div>
+                    <div style={{
+                      color: '#f8fafc',
+                      fontFamily: 'Barlow',
+                      fontWeight: 900,
+                      fontSize: 16,
+                      lineHeight: 1.15
+                    }}>
+                      {shown}
+                    </div>
+                    <DeltaMini
+                      curr={value}
+                      old={prevValue}
+                      type={type === 'int' ? 'number' : type}
+                    />
+                  </div>
+                )
+              }
+
+              return (
+                <tr key={m.month} style={{
+                  background: i % 2 === 0 ? 'transparent' : '#080f1e'
+                }}>
+                  <td style={{
+                    ...S.td,
+                    color: '#fff',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    fontSize: 16
+                  }}>
+                    {m.month}
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.fatturato} prevValue={prev?.fatturato} />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.fatturNC} prevValue={prev?.fatturNC} />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.fatturRC} prevValue={prev?.fatturRC} />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.metaSpend} prevValue={prev?.metaSpend} />
+                  </td>
+
+                  <td style={{ ...S.td, padding: '6px 8px' }}>
+                    <NumInput
+                      value={manual.googleSpend || 0}
+                      onChange={v => updateMonth(m.month, 'googleSpend', v)}
+                      placeholder="0"
+                      color="#eab308"
+                    />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.ordini} prevValue={prev?.ordini} type="int" />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.nc} prevValue={prev?.nc} type="int" />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.rc} prevValue={prev?.rc} type="int" />
+                  </td>
+
+                  <td style={S.td}>
+                    <CellValue value={m.sessioni} prevValue={prev?.sessioni} type="int" />
+                  </td>
+                </tr>
+              )
+            })}
+
+            <tr style={{
+              background: '#0a1020',
+              borderTop: '1px solid #1e2d47'
+            }}>
+              <td style={{
+                ...S.td,
+                color: '#94a3b8',
+                fontWeight: 900,
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                fontFamily: 'Barlow Condensed'
+              }}>
+                Totale
+              </td>
+
+              <td style={{ ...S.td, color: '#22c55e', fontWeight: 900 }}>
+                {f0(totFat)}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {f0(totFatNC)}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {f0(totFatRC)}
+              </td>
+
+              <td style={{ ...S.td, color: '#3b82f6', fontWeight: 900 }}>
+                {f0(totMeta)}
+              </td>
+
+              <td style={{ ...S.td, color: '#eab308', fontWeight: 900 }}>
+                {totGoog > 0 ? f0(totGoog) : '—'}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {fn(totOrd)}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {fn(totNC)}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {fn(totRC)}
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {fn(totSes)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* KPI mensili calcolati */}
+    <div style={{ ...S.card, marginBottom: 24 }}>
+      <p style={{
+        fontSize: 12,
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: '0.12em',
+        marginBottom: 16,
+        fontWeight: 700,
+        fontFamily: 'Barlow Condensed'
+      }}>
+        KPI calcolati
+      </p>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{
+          width: '100%',
+          minWidth: 1450,
+          borderCollapse: 'collapse'
+        }}>
+          <thead>
+            <tr>
+              {[
+                'Mese',
+                'ADV',
+                'MER',
+                'aMER',
+                'CAC',
+                'CPO',
+                'AOV',
+                'AOV NC',
+                'AOV RC',
+                'Ret%',
+                'CRO%',
+                'LTV',
+                'Ratio'
+              ].map(h => (
+                <th key={h} style={S.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {data.map((m, i) => {
+              const prev = i > 0 ? data[i - 1] : null
+
+              const DeltaMini = ({ curr, old, type = 'number' }) => {
+                if (curr == null || old == null) return null
+
+                const c = Number(curr)
+                const p = Number(old)
+
+                if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+
+                const diff = c - p
+                if (Math.abs(diff) < 0.000001) return null
+
+                const pct = p !== 0 ? diff / p * 100 : null
+                const positive = diff > 0
+
+                const color = positive ? '#f8fafc' : '#ef4444'
+                const sign = positive ? '+' : '−'
+                const abs = Math.abs(diff)
+
+                let shown = abs.toLocaleString('it-IT', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })
+
+                if (type === 'euro') {
+                  shown = `€${abs.toLocaleString('it-IT', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}`
+                }
+
+                if (type === 'euro0') {
+                  shown = `€${Math.round(abs).toLocaleString('it-IT')}`
+                }
+
+                if (type === 'percent') {
+                  shown = `${abs.toLocaleString('it-IT', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}%`
+                }
+
+                return (
+                  <div style={{
+                    marginTop: 8,
+                    color,
+                    fontSize: 12,
+                    lineHeight: 1.25,
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    <div>{sign}{shown}</div>
+                    {pct != null && (
+                      <div>
+                        {sign}{Math.abs(pct).toLocaleString('it-IT', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1
+                        })}%
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              const KpiValue = ({
+                value,
+                prevValue,
+                type = 'number',
+                suffix = ''
+              }) => {
+                let shown = '—'
+
+                if (type === 'euro') {
+                  shown = value != null && value > 0 ? f2(value) : '—'
+                }
+
+                if (type === 'euro0') {
+                  shown = value != null && value > 0 ? f0(value) : '—'
+                }
+
+                if (type === 'ratio') {
+                  shown = value != null ? `${fr(value)}${suffix}` : '—'
+                }
+
+                if (type === 'percent') {
+                  shown = value != null
+                    ? `${Number(value).toLocaleString('it-IT', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}%`
+                    : '—'
+                }
+
+                return (
+                  <div>
+                    <div style={{
+                      color: '#f8fafc',
+                      fontFamily: 'Barlow',
+                      fontWeight: 900,
+                      fontSize: 16,
+                      lineHeight: 1.15
+                    }}>
+                      {shown}
+                    </div>
+                    <DeltaMini
+                      curr={value}
+                      old={prevValue}
+                      type={
+                        type === 'percent'
+                          ? 'percent'
+                          : type === 'euro' || type === 'euro0'
+                            ? type
+                            : 'number'
+                      }
+                    />
+                  </div>
+                )
+              }
+
+              return (
+                <tr key={m.month} style={{
+                  background: i % 2 === 0 ? 'transparent' : '#080f1e'
+                }}>
+                  <td style={{
+                    ...S.td,
+                    color: '#fff',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    fontSize: 16
+                  }}>
+                    {m.month}
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.totalSpend} prevValue={prev?.totalSpend} type="euro0" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.mer} prevValue={prev?.mer} type="ratio" suffix="×" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.aMer} prevValue={prev?.aMer} type="ratio" suffix="×" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.cac} prevValue={prev?.cac} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.cpo} prevValue={prev?.cpo} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.aov} prevValue={prev?.aov} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.aovNC} prevValue={prev?.aovNC} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.aovRC} prevValue={prev?.aovRC} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.retention} prevValue={prev?.retention} type="percent" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.cro} prevValue={prev?.cro} type="percent" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.ltv} prevValue={prev?.ltv} type="euro" />
+                  </td>
+
+                  <td style={S.td}>
+                    <KpiValue value={m.ratio} prevValue={prev?.ratio} type="ratio" suffix=":1" />
+                  </td>
+                </tr>
+              )
+            })}
+
+            <tr style={{
+              background: '#0a1020',
+              borderTop: '1px solid #1e2d47'
+            }}>
+              <td style={{
+                ...S.td,
+                color: '#94a3b8',
+                fontWeight: 900,
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                fontFamily: 'Barlow Condensed'
+              }}>
+                Media / Totale
+              </td>
+
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{f0(totSpend)}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{merG ? `${fr(merG)}×` : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAMER ? `${fr(avgAMER)}×` : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{cacG ? f2(cacG) : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgCPO ? f2(avgCPO) : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAOV ? f2(avgAOV) : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAOVNC ? f2(avgAOVNC) : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAOVRC ? f2(avgAOVRC) : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {avgRet != null ? `${Number(avgRet).toLocaleString('it-IT', {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1
+                })}%` : '—'}
+              </td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>
+                {avgCRO != null ? `${Number(avgCRO).toLocaleString('it-IT', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })}%` : '—'}
+              </td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{ltvG ? f2(ltvG) : '—'}</td>
+              <td style={{ ...S.td, color: ratioColor(ratioG), fontWeight: 900 }}>{ratioG ? `${fr(ratioG)}:1` : '—'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* Grafici mensili */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 16,
+      marginBottom: 16
+    }}>
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          Fatturato vs Spesa Ads
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={data} barGap={3} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+            <Tooltip content={<ChartTip />} />
+            <Bar dataKey="fatturato" name="Fatturato" fill="#22c55e" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="metaSpend" name="Meta" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="googleSpend" name="Google" fill="#eab308" radius={[2, 2, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          Clienti: nuovi vs ritorno
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} />
+            <Tooltip content={<ChartTip />} />
+            <Legend />
+            <Line dataKey="nc" name="Nuovi clienti" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+            <Line dataKey="rc" name="Clienti ritorno" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 16,
+      marginBottom: 16
+    }}>
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          MER e aMER mensile
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v.toFixed(1)}×`} />
+            <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} />
+            <Tooltip content={<ChartTip />} />
+            <Legend />
+            <Line dataKey="mer" name="MER" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+            <Line dataKey="aMer" name="aMER" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          AOV mensile
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+            <Tooltip content={<ChartTip />} />
+            <Legend />
+            <Line dataKey="aov" name="AOV" stroke="#f8fafc" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+            <Line dataKey="aovNC" name="AOV NC" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+            <Line dataKey="aovRC" name="AOV RC" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 16
+    }}>
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          CRO mensile
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v.toFixed(1)}%`} />
+            <Tooltip content={<ChartTip />} />
+            <Line dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={S.card}>
+        <p style={{
+          fontSize: 12,
+          color: '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: 14,
+          fontWeight: 700,
+          fontFamily: 'Barlow Condensed'
+        }}>
+          Ratio LTV:CAC mensile
+        </p>
+
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+            <XAxis dataKey="month" tick={{ fill: '#555', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} />
+            <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} label={{ value: '3:1', fill: '#22c55e', fontSize: 9 }} />
+            <Tooltip content={<ChartTip />} />
+            <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* ── WEEKLY ── */}
       {tab==='weekly' && (

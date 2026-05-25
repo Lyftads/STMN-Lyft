@@ -265,73 +265,32 @@ function Simulator({ cfg }) {
 }
 
 // ── WeeklyTab ─────────────────────────────────────────────────
+// ── WeeklyTab ─────────────────────────────────────────────────
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
 
-  const money0 = n =>
-    n != null && Number(n) > 0
-      ? `€${Math.round(Number(n)).toLocaleString('it-IT')}`
-      : '—'
+  const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT')}` : '—'
+  const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+  const int0 = n => n != null && Number(n) > 0 ? Math.round(Number(n)).toLocaleString('it-IT') : '—'
+  const pct1 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'
+  const pct2 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '—'
+  const dec2 = n => n != null ? Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
 
-  const money2 = n =>
-    n != null && Number(n) > 0
-      ? `€${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
-      : '—'
-
-  const int0 = n =>
-    n != null && Number(n) > 0
-      ? Math.round(Number(n)).toLocaleString('it-IT')
-      : '—'
-
-  const pct1 = n =>
-    n != null
-      ? `${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        })}%`
-      : '—'
-
-  const pct2 = n =>
-    n != null
-      ? `${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}%`
-      : '—'
-
-  const dec2 = n =>
-    n != null
-      ? Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })
-      : '—'
-
-  const asNum = v => (Number.isFinite(Number(v)) ? Number(v) : 0)
-  const div = (a, b) => (b > 0 ? a / b : null)
+  const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
+  const div = (a, b) => b > 0 ? a / b : null
 
   const delta = (curr, prev) => {
     if (curr == null || prev == null) return null
-
     const c = Number(curr)
     const p = Number(prev)
-
     if (!Number.isFinite(c) || !Number.isFinite(p)) return null
 
     const diff = c - p
-    const pct = p !== 0 ? (diff / p) * 100 : null
+    const pct = p !== 0 ? diff / p * 100 : null
     const equal = Math.abs(diff) < 0.000001
 
-    return {
-      diff,
-      pct,
-      equal,
-      positive: diff > 0,
-    }
+    return { diff, pct, equal }
   }
 
   const formatDelta = (v, kind) => {
@@ -367,7 +326,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
   const Delta = ({ current, previous, kind = 'number' }) => {
     const d = delta(current, previous)
-
     if (!d || d.equal) return null
 
     const sign = d.diff > 0 ? '+' : '−'
@@ -378,7 +336,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
         style={{
           marginTop: 8,
           display: 'grid',
-          gridTemplateRows: 'auto auto',
           rowGap: 3,
           color,
           fontSize: 12,
@@ -391,12 +348,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
         {d.pct != null && (
           <div>
-            {sign}
-            {Math.abs(d.pct).toLocaleString('it-IT', {
+            {sign}{Math.abs(d.pct).toLocaleString('it-IT', {
               minimumFractionDigits: 1,
               maximumFractionDigits: 1,
-            })}
-            %
+            })}%
           </div>
         )}
       </div>
@@ -418,43 +373,17 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     const mw = metaMap[key] || {}
     const sw = shopifyMap[key] || {}
 
-    const fat =
-      sw.fatturato > 0
-        ? asNum(sw.fatturato)
-        : asNum(d.fatturato)
+    const fat = sw.fatturato > 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
+    const fatNC = sw.fatturNC > 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
+    const fatRC = sw.fatturRC > 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
 
-    const fatNC =
-      sw.fatturNC > 0
-        ? asNum(sw.fatturNC)
-        : asNum(d.fatturNC)
-
-    const fatRC =
-      sw.fatturRC > 0
-        ? asNum(sw.fatturRC)
-        : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
-
-    const meta =
-      mw.spend > 0
-        ? asNum(mw.spend)
-        : asNum(d.meta)
-
+    const meta = mw.spend > 0 ? asNum(mw.spend) : asNum(d.meta)
     const google = asNum(d.google)
     const adv = meta + google
 
-    const ord =
-      sw.ordini > 0
-        ? asNum(sw.ordini)
-        : asNum(d.ordini)
-
-    const nc =
-      sw.nc > 0
-        ? asNum(sw.nc)
-        : asNum(d.nc)
-
-    const rc =
-      sw.rc > 0
-        ? asNum(sw.rc)
-        : asNum(d.rc)
+    const ord = sw.ordini > 0 ? asNum(sw.ordini) : asNum(d.ordini)
+    const nc = sw.nc > 0 ? asNum(sw.nc) : asNum(d.nc)
+    const rc = sw.rc > 0 ? asNum(sw.rc) : asNum(d.rc)
 
     const ses =
       sw.uniqueSessions > 0
@@ -467,47 +396,30 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     const aMer = div(fatNC, adv)
     const cac = div(adv, nc)
     const cpo = div(adv, ord)
+
     const aov = div(fat, ord)
     const aovNC = div(fatNC, nc)
     const aovRC = div(fatRC, rc)
 
-    const retention =
-      nc + rc > 0
-        ? (rc / (nc + rc)) * 100
-        : null
+    const retention = nc + rc > 0 ? rc / (nc + rc) * 100 : null
+    const cro = ses > 0 && ord > 0 ? ord / ses * 100 : null
 
-    const cro =
-      ses > 0 && ord > 0
-        ? (ord / ses) * 100
-        : null
-
-    const ltv =
-      aov
-        ? aov * cfg.freq * cfg.life * cfg.margin / 100
-        : null
-
-    const ratio =
-      ltv && cac
-        ? ltv / cac
-        : null
+    const ltv = aov ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+    const ratio = ltv && cac ? ltv / cac : null
 
     return {
       key,
       label,
-
       fat,
       fatNC,
       fatRC,
-
       meta,
       google,
       adv,
-
       ord,
       nc,
       rc,
       ses,
-
       mer,
       aMer,
       cac,
@@ -519,9 +431,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
       cro,
       ltv,
       ratio,
-
       metaAuto: mw.spend > 0,
-
       shopifyAuto:
         sw.fatturato > 0 ||
         sw.fatturNC > 0 ||
@@ -534,10 +444,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     }
   })
 
-  const filled = allWeeks.filter(
-    w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto
-  )
-
+  const filled = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
   const sum = key => filled.reduce((s, w) => s + asNum(w[key]), 0)
 
   const totFat = sum('fat')
@@ -555,29 +462,28 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   const avgAMER = div(totFatNC, totAdv)
   const avgCAC = div(totAdv, totNC)
   const avgCPO = div(totAdv, totOrd)
+
   const avgAOV = div(totFat, totOrd)
   const avgAOVNC = div(totFatNC, totNC)
   const avgAOVRC = div(totFatRC, totRC)
 
-  const avgRet =
-    totNC + totRC > 0
-      ? (totRC / (totNC + totRC)) * 100
-      : null
+  const avgRet = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
+  const avgCRO = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
 
-  const avgCRO =
-    totSes > 0 && totOrd > 0
-      ? (totOrd / totSes) * 100
-      : null
+  const avgLTV = avgAOV ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+  const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
 
-  const avgLTV =
-    avgAOV
-      ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
-      : null
-
-  const avgRatio =
-    avgLTV && avgCAC
-      ? avgLTV / avgCAC
-      : null
+  const chartData = filled.map(w => ({
+    label: w.label,
+    fatturato: w.fat,
+    spesa: w.adv,
+    nc: w.nc,
+    rc: w.rc,
+    mer: w.mer,
+    aov: w.aov,
+    cro: w.cro,
+    ratio: w.ratio,
+  }))
 
   const tableWrap = {
     overflow: 'auto',
@@ -623,37 +529,19 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
     return (
       <div>
-        <div style={{ ...valueStyle, color: WHITE }}>
-          {shown}
-        </div>
-
+        <div style={{ ...valueStyle, color: WHITE }}>{shown}</div>
         <Delta
           current={value}
           previous={prev}
-          kind={
-            kind === 'percent1' || kind === 'percent2'
-              ? 'percent'
-              : kind
-          }
+          kind={kind === 'percent1' || kind === 'percent2' ? 'percent' : kind}
         />
       </div>
     )
   }
 
-  const InputOrValue = ({
-    week,
-    field,
-    value,
-    prev,
-    disabled,
-    isCount = false,
-  }) => (
+  const InputOrValue = ({ week, field, value, prev, disabled, isCount = false }) => (
     disabled ? (
-      <Value
-        value={value}
-        prev={prev}
-        kind={isCount ? 'int' : 'euro0'}
-      />
+      <Value value={value} prev={prev} kind={isCount ? 'int' : 'euro0'} />
     ) : (
       <div>
         <NumInput
@@ -663,12 +551,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
           color={WHITE}
           isCount={isCount}
         />
-
-        <Delta
-          current={value}
-          previous={prev}
-          kind={isCount ? 'int' : 'euro0'}
-        />
+        <Delta current={value} previous={prev} kind={isCount ? 'int' : 'euro0'} />
       </div>
     )
   )
@@ -676,24 +559,20 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   return (
     <>
       <div style={{ ...S.card, marginBottom: 20 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              color: '#fff',
-              fontWeight: 700,
-              fontFamily: 'Barlow Condensed',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}>
+          <span style={{
+            fontSize: 13,
+            color: '#fff',
+            fontWeight: 700,
+            fontFamily: 'Barlow Condensed',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+          }}>
             Inserimento dati settimanali
           </span>
 
@@ -703,13 +582,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
         </div>
 
         <div style={tableWrap}>
-          <table
-            style={{
-              width: '100%',
-              minWidth: 1450,
-              borderCollapse: 'collapse',
-            }}
-          >
+          <table style={{ width: '100%', minWidth: 1450, borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {[
@@ -734,139 +607,67 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 const p = i > 0 ? allWeeks[i - 1] : null
 
                 return (
-                  <tr
-                    key={w.key}
-                    style={{
-                      background: i % 2 === 0 ? 'transparent' : '#080f1e',
-                    }}
-                  >
-                    <td
-                      style={{
-                        ...TD,
-                        color: WHITE,
-                        fontWeight: 900,
-                        whiteSpace: 'nowrap',
-                        fontSize: 16,
-                      }}
-                    >
+                  <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
+                    <td style={{
+                      ...TD,
+                      color: WHITE,
+                      fontWeight: 900,
+                      whiteSpace: 'nowrap',
+                      fontSize: 16,
+                    }}>
                       {w.label}
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="fatturato"
-                        value={w.fat}
-                        prev={p?.fat}
-                        disabled={w.shopifyAuto}
-                      />
+                      <InputOrValue week={w.key} field="fatturato" value={w.fat} prev={p?.fat} disabled={w.shopifyAuto} />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="fatturNC"
-                        value={w.fatNC}
-                        prev={p?.fatNC}
-                        disabled={w.shopifyAuto}
-                      />
+                      <InputOrValue week={w.key} field="fatturNC" value={w.fatNC} prev={p?.fatNC} disabled={w.shopifyAuto} />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="fatturRC"
-                        value={w.fatRC}
-                        prev={p?.fatRC}
-                        disabled={w.shopifyAuto}
-                      />
+                      <InputOrValue week={w.key} field="fatturRC" value={w.fatRC} prev={p?.fatRC} disabled={w.shopifyAuto} />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="meta"
-                        value={w.meta}
-                        prev={p?.meta}
-                        disabled={w.metaAuto}
-                      />
+                      <InputOrValue week={w.key} field="meta" value={w.meta} prev={p?.meta} disabled={w.metaAuto} />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="google"
-                        value={w.google}
-                        prev={p?.google}
-                        disabled={false}
-                      />
+                      <InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={false} />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="ordini"
-                        value={w.ord}
-                        prev={p?.ord}
-                        disabled={w.shopifyAuto}
-                        isCount
-                      />
+                      <InputOrValue week={w.key} field="ordini" value={w.ord} prev={p?.ord} disabled={w.shopifyAuto} isCount />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="nc"
-                        value={w.nc}
-                        prev={p?.nc}
-                        disabled={w.shopifyAuto}
-                        isCount
-                      />
+                      <InputOrValue week={w.key} field="nc" value={w.nc} prev={p?.nc} disabled={w.shopifyAuto} isCount />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="rc"
-                        value={w.rc}
-                        prev={p?.rc}
-                        disabled={w.shopifyAuto}
-                        isCount
-                      />
+                      <InputOrValue week={w.key} field="rc" value={w.rc} prev={p?.rc} disabled={w.shopifyAuto} isCount />
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue
-                        week={w.key}
-                        field="sessioni"
-                        value={w.ses}
-                        prev={p?.ses}
-                        disabled={w.shopifyAuto && w.ses > 0}
-                        isCount
-                      />
+                      <InputOrValue week={w.key} field="sessioni" value={w.ses} prev={p?.ses} disabled={w.shopifyAuto && w.ses > 0} isCount />
                     </td>
                   </tr>
                 )
               })}
 
-              <tr
-                style={{
-                  background: '#0a1020',
-                  borderTop: '1px solid #1e2d47',
-                }}
-              >
-                <td
-                  style={{
-                    ...TD,
-                    color: '#94a3b8',
-                    fontWeight: 900,
-                    fontSize: 10,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    fontFamily: 'Barlow Condensed',
-                  }}
-                >
-                  TOTALE
+              <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
+                <td style={{
+                  ...TD,
+                  color: '#94a3b8',
+                  fontWeight: 900,
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  fontFamily: 'Barlow Condensed',
+                }}>
+                  Totale
                 </td>
 
                 <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
@@ -886,28 +687,20 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
       {filled.length > 0 && (
         <div style={{ ...S.card, marginBottom: 20 }}>
-          <p
-            style={{
-              fontSize: 11,
-              color: '#fff',
-              fontWeight: 700,
-              fontFamily: 'Barlow Condensed',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              marginBottom: 16,
-            }}
-          >
+          <p style={{
+            fontSize: 11,
+            color: '#fff',
+            fontWeight: 700,
+            fontFamily: 'Barlow Condensed',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: 16,
+          }}>
             KPI calcolati
           </p>
 
           <div style={tableWrap}>
-            <table
-              style={{
-                width: '100%',
-                minWidth: 1500,
-                borderCollapse: 'collapse',
-              }}
-            >
+            <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   {[
@@ -938,21 +731,14 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   const p = i > 0 ? filled[i - 1] : null
 
                   return (
-                    <tr
-                      key={w.key}
-                      style={{
-                        background: i % 2 === 0 ? 'transparent' : '#080f1e',
-                      }}
-                    >
-                      <td
-                        style={{
-                          ...TD,
-                          color: WHITE,
-                          fontSize: 16,
-                          fontWeight: 900,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                    <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
+                      <td style={{
+                        ...TD,
+                        color: WHITE,
+                        fontSize: 16,
+                        fontWeight: 900,
+                        whiteSpace: 'nowrap',
+                      }}>
                         {w.label}
                       </td>
 
@@ -975,24 +761,17 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   )
                 })}
 
-                <tr
-                  style={{
-                    background: '#0a1020',
-                    borderTop: '1px solid #1e2d47',
-                  }}
-                >
-                  <td
-                    style={{
-                      ...TD,
-                      color: '#94a3b8',
-                      fontWeight: 900,
-                      fontSize: 10,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      fontFamily: 'Barlow Condensed',
-                    }}
-                  >
-                    MEDIA / TOTALE
+                <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
+                  <td style={{
+                    ...TD,
+                    color: '#94a3b8',
+                    fontWeight: 900,
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    fontFamily: 'Barlow Condensed',
+                  }}>
+                    Media / Totale
                   </td>
 
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
@@ -1015,6 +794,131 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
             </table>
           </div>
         </div>
+      )}
+
+      {filled.length > 0 && (
+        <>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 16,
+          }}>
+            <div style={S.card}>
+              <p style={{
+                fontSize: 12,
+                color: '#fff',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: 14,
+                fontWeight: 700,
+                fontFamily: 'Barlow Condensed',
+              }}>
+                Fatturato, Spesa e MER
+              </p>
+
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTip />} />
+                  <Legend />
+                  <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={S.card}>
+              <p style={{
+                fontSize: 12,
+                color: '#fff',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: 14,
+                fontWeight: 700,
+                fontFamily: 'Barlow Condensed',
+              }}>
+                Nuovi clienti e clienti di ritorno
+              </p>
+
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTip />} />
+                  <Legend />
+                  <Line dataKey="nc" name="Nuovi clienti" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line dataKey="rc" name="Clienti ritorno" stroke="#a78bfa" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 16,
+          }}>
+            <div style={S.card}>
+              <p style={{
+                fontSize: 12,
+                color: '#fff',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: 14,
+                fontWeight: 700,
+                fontFamily: 'Barlow Condensed',
+              }}>
+                AOV e CRO
+              </p>
+
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                  <Tooltip content={<ChartTip />} />
+                  <Legend />
+                  <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={S.card}>
+              <p style={{
+                fontSize: 12,
+                color: '#fff',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                marginBottom: 14,
+                fontWeight: 700,
+                fontFamily: 'Barlow Condensed',
+              }}>
+                Ratio LTV:CAC
+              </p>
+
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: '3:1', fill: '#22c55e', fontSize: 10 }} />
+                  <Tooltip content={<ChartTip />} />
+                  <Legend />
+                  <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
       )}
     </>
   )

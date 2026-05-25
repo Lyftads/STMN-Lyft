@@ -14,6 +14,22 @@ const ratioColor  = r => ({nd:'#555',bad:'#ef4444',warn:'#f59e0b',ok:'#22c55e'})
 const ratioLabel  = r => ({nd:'N/D',bad:'CRITICO',warn:'ATTENZIONE',ok:'OTTIMO'})[ratioStatus(r)]
 
 const MONTHS_START = '2026-04'
+
+// Genera settimane dal 29/12/2025 a oggi (lunedì → domenica)
+function getWeeks() {
+  const weeks = []
+  // Prima settimana: lun 29 dic 2025
+  let d = new Date('2025-12-29T00:00:00Z')
+  const now = new Date()
+  while (d <= now) {
+    const end = new Date(d); end.setDate(end.getDate() + 6)
+    const fmt = dt => `${String(dt.getUTCDate()).padStart(2,'0')}/${String(dt.getUTCMonth()+1).padStart(2,'0')}`
+    const key = `${d.getUTCFullYear()}-${fmt(d).replace('/','')}`
+    weeks.push({ key, label: `${fmt(d)} → ${fmt(end)}` })
+    d.setDate(d.getDate() + 7)
+  }
+  return weeks
+}
 function getMonths() {
   const out = [], now = new Date()
   let [y,m] = MONTHS_START.split('-').map(Number)
@@ -24,15 +40,20 @@ function getMonths() {
   return out
 }
 
-const EMPTY = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
+const EMPTY  = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
+const WEMPTY = { fatturato:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
 const DEF   = { freq:1.69, life:1.57, margin:62 }
 
 function load() {
-  try { return { m: JSON.parse(localStorage.getItem('stmn_m')||'{}'), c: JSON.parse(localStorage.getItem('stmn_c')||'{}') } }
-  catch { return { m:{}, c:{} } }
+  try { return {
+    m: JSON.parse(localStorage.getItem('stmn_m')||'{}'),
+    c: JSON.parse(localStorage.getItem('stmn_c')||'{}'),
+    w: JSON.parse(localStorage.getItem('stmn_w')||'{}'),
+  } } catch { return { m:{}, c:{}, w:{} } }
 }
 const saveM = m => { try { localStorage.setItem('stmn_m', JSON.stringify(m)) } catch{} }
 const saveC = c => { try { localStorage.setItem('stmn_c', JSON.stringify(c)) } catch{} }
+const saveW = w => { try { localStorage.setItem('stmn_w', JSON.stringify(w)) } catch{} }
 
 // ── Tooltip personalizzato ────────────────────────────────────
 const ChartTip = ({ active, payload, label }) => {
@@ -243,7 +264,237 @@ function Simulator({ cfg }) {
   )
 }
 
-// ── MAIN APP ──────────────────────────────────────────────────
+// ── WeeklyTab ─────────────────────────────────────────────────
+function WeeklyTab({ weeks, data, onUpdate, cfg, S }) {
+  const allWeeks = weeks.map(({ key, label }) => {
+    const d   = data[key] || WEMPTY
+    const adv = (d.meta||0) + (d.google||0)
+    const fat = d.fatturato || 0
+    const ord = d.ordini    || 0
+    const nc  = d.nc        || 0
+    const rc  = d.rc        || 0
+    const ses = d.sessioni  || 0
+    const mer       = adv>0&&fat>0   ? fat/adv : null
+    const cac       = adv>0&&nc>0    ? adv/nc  : null
+    const cpo       = adv>0&&ord>0   ? adv/ord : null
+    const aov       = ord>0&&fat>0   ? fat/ord : null
+    const retention = (nc+rc)>0      ? rc/(nc+rc)*100 : null
+    const cro       = ses>0&&ord>0   ? ord/ses*100    : null
+    const ltv       = aov ? aov * cfg.freq * cfg.life * cfg.margin/100 : null
+    const ratio     = ltv&&cac ? ltv/cac : null
+    return { key, label, fat, meta:d.meta||0, google:d.google||0, adv, ord, nc, rc, ses, mer, cac, cpo, aov, retention, cro, ltv, ratio }
+  })
+
+  // Totali solo settimane con dati
+  const filled = allWeeks.filter(w => w.fat > 0 || w.adv > 0)
+  const totFat  = filled.reduce((s,w)=>s+w.fat,0)
+  const totAdv  = filled.reduce((s,w)=>s+w.adv,0)
+  const totMeta = filled.reduce((s,w)=>s+w.meta,0)
+  const totGoog = filled.reduce((s,w)=>s+w.google,0)
+  const totOrd  = filled.reduce((s,w)=>s+w.ord,0)
+  const totNC   = filled.reduce((s,w)=>s+w.nc,0)
+  const totRC   = filled.reduce((s,w)=>s+w.rc,0)
+  const totSes  = filled.reduce((s,w)=>s+w.ses,0)
+  const avgMER  = totAdv>0&&totFat>0 ? totFat/totAdv : null
+  const avgCAC  = totAdv>0&&totNC>0  ? totAdv/totNC  : null
+  const avgCPO  = totAdv>0&&totOrd>0 ? totAdv/totOrd : null
+  const avgAOV  = totOrd>0&&totFat>0 ? totFat/totOrd : null
+  const avgRet  = (totNC+totRC)>0    ? totRC/(totNC+totRC)*100 : null
+  const avgCRO  = totSes>0&&totOrd>0 ? totOrd/totSes*100 : null
+  const avgLTV  = avgAOV ? avgAOV*cfg.freq*cfg.life*cfg.margin/100 : null
+  const avgRatio= avgLTV&&avgCAC ? avgLTV/avgCAC : null
+
+  const TH  = { ...S.th, fontSize:10, padding:'8px 10px' }
+  const TD  = { ...S.td, fontSize:12, padding:'7px 10px' }
+  const col = r => r==null?'#555':r<1?'#ef4444':r<3?'#f59e0b':'#22c55e'
+
+  return (
+    <>
+      {/* INPUT TABLE */}
+      <div style={{...S.card, marginBottom:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>Inserimento dati settimanali</span>
+          <span style={{fontSize:10,color:'#22c55e'}}>Dal 29 dic 2025 ad oggi — aggiornamento automatico ✓</span>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead>
+              <tr>
+                {['Settimana','Fatturato €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                  <th key={h} style={TH}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allWeeks.map(({ key, label, fat, meta, google, ord, nc, rc, ses }, i) => (
+                <tr key={key} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                  <td style={{...TD,color:'#94a3b8',fontWeight:600,whiteSpace:'nowrap',fontSize:11}}>{label}</td>
+                  {[
+                    {k:'fatturato', v:fat,    color:'#22c55e'},
+                    {k:'meta',      v:meta,   color:'#3b82f6'},
+                    {k:'google',    v:google, color:'#eab308'},
+                    {k:'ordini',    v:ord,    color:'#e8e8e8', isCount:true},
+                    {k:'nc',        v:nc,     color:'#06b6d4', isCount:true},
+                    {k:'rc',        v:rc,     color:'#818cf8', isCount:true},
+                    {k:'sessioni',  v:ses,    color:'#94a3b8', isCount:true},
+                  ].map(({k,v,color,isCount}) => (
+                    <td key={k} style={{...TD,padding:'5px 8px'}}>
+                      <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {/* TOTALI */}
+              <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
+                <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
+                <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat)}</td>
+                <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{f0(totMeta)}</td>
+                <td style={{...TD,color:'#eab308',fontWeight:800}}>{totGoog>0?f0(totGoog):'—'}</td>
+                <td style={{...TD,color:'#e8e8e8',fontWeight:800}}>{fn(totOrd)}</td>
+                <td style={{...TD,color:'#06b6d4',fontWeight:800}}>{fn(totNC)}</td>
+                <td style={{...TD,color:'#818cf8',fontWeight:800}}>{fn(totRC)}</td>
+                <td style={{...TD,color:'#94a3b8',fontWeight:800}}>{fn(totSes)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* KPI CALCOLATI */}
+      {filled.length > 0 && (
+        <div style={{...S.card, marginBottom:20}}>
+          <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>KPI calcolati</p>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead>
+                <tr>
+                  {['Sett.','Fatturato','Invest. ADV','MER','CAC','CPO','AOV','Retention%','CRO%','LTV','Ratio'].map(h=>(
+                    <th key={h} style={TH}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {allWeeks.filter(w=>w.fat>0||w.adv>0).map((w,i)=>(
+                  <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                    <td style={{...TD,color:'#94a3b8',fontSize:10,fontWeight:600,whiteSpace:'nowrap'}}>{w.label}</td>
+                    <td style={{...TD,color:'#22c55e',fontWeight:700}}>{f0(w.fat)}</td>
+                    <td style={{...TD,color:'#888'}}>{w.adv>0?f0(w.adv):'—'}</td>
+                    <td style={{...TD,color:w.mer!=null?(w.mer>=3?'#22c55e':w.mer>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:700,fontFamily:'Barlow'}}>
+                      {w.mer!=null?`${fr(w.mer)}×`:'—'}
+                    </td>
+                    <td style={{...TD}}>{w.cac?f2(w.cac):'—'}</td>
+                    <td style={{...TD}}>{w.cpo?f2(w.cpo):'—'}</td>
+                    <td style={{...TD,color:'#3b82f6'}}>{w.aov?f2(w.aov):'—'}</td>
+                    <td style={{...TD,color:'#818cf8'}}>{w.retention!=null?`${w.retention.toFixed(1)}%`:'—'}</td>
+                    <td style={{...TD,color:'#94a3b8'}}>{w.cro!=null?`${w.cro.toFixed(2)}%`:'—'}</td>
+                    <td style={{...TD}}>{w.ltv?f2(w.ltv):'—'}</td>
+                    <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:15,color:col(w.ratio)}}>
+                      {w.ratio?`${fr(w.ratio)}:1`:'—'}
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
+                  <td style={{...TD,color:'#555',fontWeight:800,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
+                  <td style={{...TD,color:'#22c55e',fontWeight:800}}>{f0(totFat/filled.length)}</td>
+                  <td style={{...TD,color:'#888',fontWeight:800}}>{totAdv>0?f0(totAdv/filled.length):'—'}</td>
+                  <td style={{...TD,color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555',fontWeight:800,fontFamily:'Barlow',fontSize:15}}>
+                    {avgMER!=null?`${fr(avgMER)}×`:'—'}
+                  </td>
+                  <td style={{...TD,fontWeight:800}}>{avgCAC?f2(avgCAC):'—'}</td>
+                  <td style={{...TD,fontWeight:800}}>{avgCPO?f2(avgCPO):'—'}</td>
+                  <td style={{...TD,color:'#3b82f6',fontWeight:800}}>{avgAOV?f2(avgAOV):'—'}</td>
+                  <td style={{...TD,color:'#818cf8',fontWeight:800}}>{avgRet!=null?`${avgRet.toFixed(1)}%`:'—'}</td>
+                  <td style={{...TD,color:'#94a3b8',fontWeight:800}}>{avgCRO!=null?`${avgCRO.toFixed(2)}%`:'—'}</td>
+                  <td style={{...TD,fontWeight:800}}>{avgLTV?f2(avgLTV):'—'}</td>
+                  <td style={{...TD,fontWeight:900,fontFamily:'Barlow',fontSize:18,color:col(avgRatio)}}>
+                    {avgRatio?`${fr(avgRatio)}:1`:'—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* GRAFICI WEEKLY */}
+      {filled.length > 0 && (
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div style={S.card}>
+              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Fatturato vs Investimento ADV</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={filled} margin={{top:0,right:8,left:0,bottom:0}} barGap={2}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
+                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8,fontFamily:'Barlow'}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
+                  <Tooltip content={<ChartTip />} />
+                  <Bar dataKey="fat"  name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
+                  <Bar dataKey="meta" name="Meta ADS"  fill="#3b82f6" radius={[2,2,0,0]} />
+                  <Bar dataKey="google" name="Google ADS" fill="#eab308" radius={[2,2,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={S.card}>
+              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>MER settimanale</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
+                  <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} />
+                  <Tooltip content={<ChartTip />} />
+                  <Line dataKey="mer" name="MER" stroke="#22c55e" strokeWidth={2} dot={{r:3,fill:'#22c55e'}} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div style={S.card}>
+              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>CAC settimanale</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                  <Tooltip content={<ChartTip />} />
+                  <Line dataKey="cac" name="CAC €" stroke="#e8e8e8" strokeWidth={2} dot={{r:3}} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={S.card}>
+              <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>CRO % + Retention %</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                  <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                  <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}%`} />
+                  <Tooltip content={<ChartTip />} />
+                  <Line dataKey="cro"       name="CRO %"       stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
+                  <Line dataKey="retention" name="Retention %"  stroke="#818cf8" strokeWidth={2} dot={{r:3}} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div style={S.card}>
+            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Nuovi Clienti (NC) vs Clienti Ritorno (RC) settimanali</p>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={filled} margin={{top:0,right:8,left:0,bottom:0}} barGap={2}>
+                <CartesianGrid strokeDasharray="2 4" stroke="#111827" vertical={false} />
+                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTip />} />
+                <Bar dataKey="nc" name="NC" fill="#06b6d4" radius={[2,2,0,0]} />
+                <Bar dataKey="rc" name="RC" fill="#818cf8" radius={[2,2,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
   const [tab,    setTab]    = useState('dashboard')
   const [live,   setLive]   = useState(null)
@@ -251,6 +502,7 @@ export default function App() {
   const [cfg,    setCfg]    = useState(DEF)
   const [showCfg,setShowCfg]= useState(false)
   const [months, setMonths] = useState({})
+  const [weeks,  setWeeks]  = useState({})
   const [updated,setUpdated]= useState(null)
 
   const avail = getMonths()
@@ -259,6 +511,7 @@ export default function App() {
     const s = load()
     if (s.c && Object.keys(s.c).length) setCfg({...DEF,...s.c})
     if (s.m) setMonths(s.m)
+    if (s.w) setWeeks(s.w)
   }, [])
 
   const fetchLive = useCallback(async () => {
@@ -273,6 +526,14 @@ export default function App() {
   }, [])
 
   useEffect(() => { fetchLive() }, [])
+
+  const updateWeek = (week, key, value) => {
+    setWeeks(prev => {
+      const next = { ...prev, [week]: { ...(prev[week]||WEMPTY), [key]: value } }
+      saveW(next)
+      return next
+    })
+  }
 
   const updateMonth = (month, key, value) => {
     setMonths(prev => {
@@ -318,6 +579,7 @@ export default function App() {
   const TABS = [
     {id:'dashboard', l:'Dashboard'},
     {id:'monthly',   l:'Mensile'},
+    {id:'weekly',    l:'Weekly'},
     {id:'simulator', l:'Simulatore'},
   ]
 
@@ -580,6 +842,19 @@ export default function App() {
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── WEEKLY ── */}
+      {tab==='weekly' && (
+        <div className="fade-up">
+          <WeeklyTab
+            weeks={getWeeks()}
+            data={weeks}
+            onUpdate={updateWeek}
+            cfg={cfg}
+            S={S}
+          />
         </div>
       )}
 

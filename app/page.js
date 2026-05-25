@@ -150,7 +150,7 @@ function RatioWidget({ ratio, mer }) {
     }}>
       <div>
         <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Ratio LTV : CAC</div>
-        <div style={{fontSize:64,fontWeight:800,color:col,fontFamily:'Barlow',fontWeight:700,lineHeight:1,letterSpacing:'-0.04em'}}>
+        <div style={{fontSize:64,fontWeight:800,color:col,fontFamily:'Barlow',lineHeight:1,letterSpacing:'-0.04em'}}>
           {ratio!=null ? `${fr(ratio)}:1` : '—'}
         </div>
         <div style={{
@@ -167,7 +167,7 @@ function RatioWidget({ ratio, mer }) {
       </div>
       <div style={{borderLeft:'1px solid #1a1a1a',paddingLeft:24}}>
         <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>MER</div>
-        <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'Barlow',fontWeight:700,letterSpacing:'-0.03em'}}>
+        <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'Barlow',letterSpacing:'-0.03em'}}>
           {mer!=null ? `${fr(mer)}x` : '—'}
         </div>
         <div style={{fontSize:11,color:'#444',marginTop:6}}>Fatturato ÷ Spesa Ads</div>
@@ -255,7 +255,7 @@ function Simulator({ cfg }) {
                 <div style={{fontSize:13,color:'#e8e8e8'}}>{l}</div>
                 <div style={{fontSize:11,color:'#444',marginTop:2}}>{sub}</div>
               </div>
-              <div style={{fontSize:18,fontWeight:700,fontFamily:'Barlow',fontWeight:700,color:'#22c55e'}}>{v}</div>
+              <div style={{fontSize:18,fontWeight:700,fontFamily:'Barlow',color:'#22c55e'}}>{v}</div>
             </div>
           ))}
         </div>
@@ -301,8 +301,10 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
       spend:     mw.spend,
       ctr:       mw.ctr,
       cpcLink:   mw.cpcLink,
+      cpc:       mw.cpcLink,
       cpm:       mw.cpm,
       frequency: mw.frequency,
+      freq:      mw.frequency,
       impressions: mw.impressions,
       reach:     mw.reach,
       linkClicks: mw.linkClicks,
@@ -361,13 +363,13 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
               </tr>
             </thead>
             <tbody>
-              {allWeeks.map(({ key, label, fat, meta, google, ord, nc, rc, ses }, i) => (
+              {allWeeks.map(({ key, label, fat, fatNC, meta, google, ord, nc, rc, ses, metaAuto }, i) => (
                 <tr key={key} style={{background:i%2===0?'transparent':'#080f1e'}}>
                   <td style={{...TD,color:'#94a3b8',fontWeight:600,whiteSpace:'nowrap',fontSize:11}}>{label}</td>
                   {[
                     {k:'fatturato',   v:fat,    color:'#22c55e'},
-                    {k:'fatturatoNC', v:fatNC,  color:'#16a34a'},
-                    {k:'meta',        v:meta,   color:'#3b82f6', disabled:!!m?.spend},
+                    {k:'fatturNC',    v:fatNC,  color:'#16a34a'},
+                    {k:'meta',        v:meta,   color:'#3b82f6', disabled:metaAuto},
                     {k:'google',      v:google, color:'#eab308'},
                     {k:'ordini',      v:ord,    color:'#e8e8e8', isCount:true},
                     {k:'nc',          v:nc,     color:'#06b6d4', isCount:true},
@@ -376,7 +378,7 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
                   ].map(({k,v,color,isCount,disabled}) => (
                     <td key={k} style={{...TD,padding:'5px 8px'}}>
                       {disabled
-                        ? <span style={{fontFamily:'Barlow',fontWeight:700,color,fontSize:12}}>{k==='meta'&&m?.spend?f0(m.spend):'—'}</span>
+                        ? <span style={{fontFamily:'Barlow',fontWeight:700,color,fontSize:12}}>{k==='meta'&&metaAuto?f0(meta):'—'}</span>
                         : <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
                       }
                     </td>
@@ -450,9 +452,9 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
                   {(() => {
                     const fw = filled.filter(w=>w.ctr!=null)
                     const avgCTR = fw.length>0 ? fw.reduce((s,w)=>s+w.ctr,0)/fw.length : null
-                    const avgCPC = fw.length>0 ? fw.reduce((s,w)=>s+w.cpc,0)/fw.length : null
-                    const avgCPM = fw.length>0 ? fw.reduce((s,w)=>s+w.cpm,0)/fw.length : null
-                    const avgFreq= fw.length>0 ? fw.reduce((s,w)=>s+w.freq,0)/fw.length : null
+                    const avgCPC = fw.length>0 ? fw.reduce((s,w)=>s+(w.cpc||0),0)/fw.length : null
+                    const avgCPM = fw.length>0 ? fw.reduce((s,w)=>s+(w.cpm||0),0)/fw.length : null
+                    const avgFreq= fw.length>0 ? fw.reduce((s,w)=>s+(w.freq||0),0)/fw.length : null
                     return <>
                       <td style={{...TD,color:'#60a5fa',fontWeight:800}}>{avgCTR!=null?`${avgCTR.toFixed(2)}%`:'—'}</td>
                       <td style={{...TD,color:'#93c5fd',fontWeight:800}}>{avgCPC!=null?f2(avgCPC):'—'}</td>
@@ -578,7 +580,7 @@ export default function App() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { fetchLive() }, [])
+  useEffect(() => { fetchLive() }, [fetchLive])
 
   const updateWeek = (week, key, value) => {
     setWeeks(prev => {
@@ -639,7 +641,7 @@ export default function App() {
   const S = { // shared styles
     card: { background:'#0a1020', border:'1px solid #111827', borderRadius:10, padding:24 },
     th:   { padding:'10px 14px', fontSize:11, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #1e2d47', whiteSpace:'nowrap' },
-    td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid #0d1628', fontFamily:'Barlow',fontWeight:700, fontWeight:500 },
+    td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid #0d1628', fontFamily:'Barlow', fontWeight:500 },
   }
 
   return (
@@ -818,7 +820,7 @@ export default function App() {
                         <td style={{...S.td,color:'#888'}}>{m.totalSpend>0?f0(m.totalSpend):'—'}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.cac?f2(m.cac):'—'}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.ltv?f2(m.ltv):'—'}</td>
-                        <td style={{...S.td,fontWeight:700,fontFamily:'Barlow',fontWeight:700,color:ratioColor(m.ratio)}}>{m.ratio?`${fr(m.ratio)}:1`:'—'}</td>
+                        <td style={{...S.td,fontWeight:700,fontFamily:'Barlow',color:ratioColor(m.ratio)}}>{m.ratio?`${fr(m.ratio)}:1`:'—'}</td>
                         <td style={{...S.td,color:'#22c55e',fontWeight:600}}>{m.mer?`${fr(m.mer)}×`:'—'}</td>
                       </tr>
                     ))}
@@ -828,7 +830,7 @@ export default function App() {
                       <td style={{...S.td,color:'#888',fontWeight:700}}>{totSpend>0?f0(Math.round(totSpend/avail.length)):'—'}</td>
                       <td style={{...S.td,fontWeight:700}}>{cacG?f2(cacG):'—'}</td>
                       <td style={{...S.td,fontWeight:700}}>{ltvG?f2(ltvG):'—'}</td>
-                      <td style={{...S.td,fontWeight:800,fontFamily:'Barlow',fontWeight:700,fontSize:16,color:ratioColor(ratioG)}}>{ratioG?`${fr(ratioG)}:1`:'—'}</td>
+                      <td style={{...S.td,fontWeight:800,fontFamily:'Barlow',fontSize:16,color:ratioColor(ratioG)}}>{ratioG?`${fr(ratioG)}:1`:'—'}</td>
                       <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{merG?`${fr(merG)}×`:'—'}</td>
                     </tr>
                   </tbody>

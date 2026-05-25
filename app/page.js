@@ -1328,33 +1328,32 @@ export default function App() {
 
   // ── Totali periodo ────────────────────────────────────────
 
-  const totFat = data.reduce((s, m) => s + asNum(m.fatturato), 0)
-  const totFatNC = data.reduce((s, m) => s + asNum(m.fatturNC), 0)
-  const totFatRC = data.reduce((s, m) => s + asNum(m.fatturRC), 0)
+  // ── Totali periodo ────────────────────────────────────────
+const totFat   = data.reduce((s,m)=>s + Number(m.fatturato || 0), 0)
+const totFatNC = data.reduce((s,m)=>s + Number(m.fatturNC || 0), 0)
+const totFatRC = data.reduce((s,m)=>s + Number(m.fatturRC || 0), 0)
 
-  const totOrd = data.reduce((s, m) => s + asNum(m.ordini), 0)
-  const totNC = data.reduce((s, m) => s + asNum(m.nc), 0)
-  const totRC = data.reduce((s, m) => s + asNum(m.rc), 0)
-  const totSessions = data.reduce((s, m) => s + asNum(m.sessioni), 0)
+const totOrd   = data.reduce((s,m)=>s + Number(m.ordini || 0), 0)
+const totNC    = data.reduce((s,m)=>s + Number(m.nc || 0), 0)
+const totRC    = data.reduce((s,m)=>s + Number(m.rc || 0), 0)
+const totSes   = data.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
 
-  const totMeta = data.reduce((s, m) => s + asNum(m.metaSpend), 0)
-  const totGoog = data.reduce((s, m) => s + asNum(m.googleSpend), 0)
-  const totSpend = data.reduce((s, m) => s + asNum(m.totalSpend), 0)
+const totMeta  = data.reduce((s,m)=>s + Number(m.metaSpend || 0), 0)
+const totGoog  = data.reduce((s,m)=>s + Number(m.googleSpend || 0), 0)
+const totSpend = data.reduce((s,m)=>s + Number(m.totalSpend || 0), 0)
 
-  const avgAOV = safeDiv(totFat, totOrd) || 0
-  const avgAOVNC = safeDiv(totFatNC, totNC)
-  const avgAOVRC = safeDiv(totFatRC, totRC)
+const avgAOV   = totOrd > 0 ? totFat / totOrd : 0
+const avgAOVNC = totNC > 0 ? totFatNC / totNC : 0
+const avgAOVRC = totRC > 0 ? totFatRC / totRC : 0
 
-  const ltvG = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
-  const cacG = safeDiv(totSpend, totNC)
-  const cpoG = safeDiv(totSpend, totOrd)
-
-  const ratioG = ltvG && cacG ? ltvG / cacG : null
-  const merG = safeDiv(totFat, totSpend)
-  const aMerG = safeDiv(totFatNC, totSpend)
-
-  const retentionG = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
-  const croG = totSessions > 0 && totOrd > 0 ? totOrd / totSessions * 100 : null
+const ltvG     = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+const cacG     = totSpend > 0 && totNC > 0 ? totSpend / totNC : null
+const cpoG     = totSpend > 0 && totOrd > 0 ? totSpend / totOrd : null
+const ratioG   = ltvG && cacG ? ltvG / cacG : null
+const merG     = totFat > 0 && totSpend > 0 ? totFat / totSpend : null
+const aMerG    = totFatNC > 0 && totSpend > 0 ? totFatNC / totSpend : null
+const retG     = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
+const croG     = totSes > 0 && totOrd > 0 ? totOrd / totSes * 100 : null
 const TABS = [
   {id:'dashboard', l:'Dashboard'},
   {id:'monthly',   l:'Mensile'},

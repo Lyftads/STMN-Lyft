@@ -263,7 +263,154 @@ function Simulator({ cfg }) {
     </div>
   )
 }
+// ── Delta + celle KPI riutilizzabili ───────────────────────────
+function DeltaMini({ current, previous, kind = 'number' }) {
+  const RED = '#ef4444'
+  const WHITE = '#f8fafc'
 
+  const c = Number(current)
+  const p = Number(previous)
+
+  if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+
+  const diff = c - p
+  if (Math.abs(diff) < 0.000001) return null
+
+  const pct = p !== 0 ? diff / p * 100 : null
+  const sign = diff > 0 ? '+' : '−'
+  const color = diff < 0 ? RED : WHITE
+  const abs = Math.abs(diff)
+
+  const formatAbs = () => {
+    if (kind === 'euro0') return `€${Math.round(abs).toLocaleString('it-IT')}`
+    if (kind === 'euro2') {
+      return `€${abs.toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    }
+    if (kind === 'int') return Math.round(abs).toLocaleString('it-IT')
+    if (kind === 'percent') {
+      return `${abs.toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}%`
+    }
+    return abs.toLocaleString('it-IT', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        display: 'grid',
+        rowGap: 3,
+        color,
+        fontSize: 12,
+        lineHeight: 1.2,
+        fontWeight: 900,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <div>{sign}{formatAbs()}</div>
+
+      {pct != null && (
+        <div>
+          {sign}{Math.abs(pct).toLocaleString('it-IT', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          })}%
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
+  const WHITE = '#f8fafc'
+
+  const money0 = n =>
+    n != null && Number(n) > 0
+      ? `€${Math.round(Number(n)).toLocaleString('it-IT')}`
+      : '—'
+
+  const money2 = n =>
+    n != null && Number(n) > 0
+      ? `€${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+      : '—'
+
+  const int0 = n =>
+    n != null && Number(n) > 0
+      ? Math.round(Number(n)).toLocaleString('it-IT')
+      : '—'
+
+  const pct1 = n =>
+    n != null
+      ? `${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })}%`
+      : '—'
+
+  const pct2 = n =>
+    n != null
+      ? `${Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}%`
+      : '—'
+
+  const dec2 = n =>
+    n != null
+      ? Number(n).toLocaleString('it-IT', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : '—'
+
+  let shown = '—'
+
+  if (kind === 'euro0') shown = money0(value)
+  else if (kind === 'euro2') shown = money2(value)
+  else if (kind === 'int') shown = int0(value)
+  else if (kind === 'percent1') shown = pct1(value)
+  else if (kind === 'percent2') shown = pct2(value)
+  else if (kind === 'ratio') shown = value != null ? `${dec2(value)}${suffix}` : '—'
+  else shown = value != null ? String(value) : '—'
+
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: 'Barlow',
+          fontWeight: 900,
+          fontSize: 16,
+          lineHeight: 1.15,
+          color: WHITE,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {shown}
+      </div>
+
+      <DeltaMini
+        current={value}
+        previous={previous}
+        kind={
+          kind === 'percent1' || kind === 'percent2'
+            ? 'percent'
+            : kind
+        }
+      />
+    </div>
+  )
+}
 // ── WeeklyTab ─────────────────────────────────────────────────
 // ── WeeklyTab ─────────────────────────────────────────────────
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {

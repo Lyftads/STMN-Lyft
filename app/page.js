@@ -25,7 +25,7 @@ function getMonths() {
 }
 
 const EMPTY = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
-const DEF   = { freq:1.69, life:1.57, margin:30 }
+const DEF   = { freq:1.69, life:1.57, margin:62 }
 
 function load() {
   try { return { m: JSON.parse(localStorage.getItem('stmn_m')||'{}'), c: JSON.parse(localStorage.getItem('stmn_c')||'{}') } }

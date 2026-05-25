@@ -14,7 +14,7 @@ import {
 
 const WHITE = '#f8fafc'
 const MUTED = '#94a3b8'
-const RED = '#ef4444'
+const RED = '#ff4444'
 const GREEN = '#22c55e'
 const BLUE = '#60a5fa'
 const CYAN = '#22d3ee'
@@ -22,842 +22,650 @@ const PURPLE = '#818cf8'
 const CARD = '#070f22'
 const BORDER = '#172554'
 
-const euro0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
-const euro2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const num0 = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 })
-const pct2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const dec2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const euro0 = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 0,
+})
 
-const TIMEFRAME_OPTIONS = [
-  { value: 'last_7d', label: 'Ultimi 7 giorni' },
-  { value: 'last_14d', label: 'Ultimi 14 giorni' },
-  { value: 'last_30d', label: 'Ultimi 30 giorni' },
-  { value: 'this_month', label: 'Questo mese' },
-  { value: 'last_month', label: 'Mese scorso' },
-  { value: 'maximum', label: 'Massimo disponibile' },
-  { value: 'custom', label: 'Personalizzato' },
-]
+const euro2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
 
-function pad(n) {
-  return String(n).padStart(2, '0')
+const num0 = new Intl.NumberFormat('it-IT', {
+  maximumFractionDigits: 0,
+})
+
+const num2 = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
 }
 
-function toISODate(date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+function addDays(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00`)
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
 }
 
-function addDays(date, days) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
+function formatITDate(dateString) {
+  if (!dateString) return '—'
+
+  const d = new Date(`${dateString}T00:00:00`)
+  return d.toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 }
 
-function getPresetRange(preset) {
-  const today = new Date()
+function formatShortDate(dateString) {
+  if (!dateString) return '—'
 
-  if (preset === 'last_7d') {
+  const d = new Date(`${dateString}T00:00:00`)
+  return d.toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+  })
+}
+
+function formatMetric(value, type) {
+  const v = Number(value || 0)
+
+  if (type === 'currency0') return `€${euro0.format(v)}`
+  if (type === 'currency2') return `€${euro2.format(v)}`
+  if (type === 'percent') return `${num2.format(v)}%`
+  if (type === 'ratio') return `${num2.format(v)}×`
+  if (type === 'number2') return num2.format(v)
+
+  return num0.format(v)
+}
+
+function calcDelta(current, previous) {
+  const c = Number(current || 0)
+  const p = Number(previous || 0)
+
+  if (!p && !c) {
     return {
-      since: toISODate(addDays(today, -6)),
-      until: toISODate(today),
+      abs: 0,
+      pct: 0,
+      hasDelta: false,
+      positive: false,
+      negative: false,
     }
   }
 
-  if (preset === 'last_14d') {
-    return {
-      since: toISODate(addDays(today, -13)),
-      until: toISODate(today),
-    }
-  }
-
-  if (preset === 'last_30d') {
-    return {
-      since: toISODate(addDays(today, -29)),
-      until: toISODate(today),
-    }
-  }
-
-  if (preset === 'this_month') {
-    return {
-      since: toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
-      until: toISODate(today),
-    }
-  }
-
-  if (preset === 'last_month') {
-    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-    const end = new Date(today.getFullYear(), today.getMonth(), 0)
-    return {
-      since: toISODate(start),
-      until: toISODate(end),
-    }
-  }
+  const abs = c - p
+  const pct = p !== 0 ? (abs / p) * 100 : 100
 
   return {
-    since: '',
-    until: '',
-  }
-}
-
-function hasVal(v) {
-  return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
-}
-
-function fmt(v, kind) {
-  if (!hasVal(v)) return '—'
-
-  const n = Number(v)
-
-  if (kind === 'euro0') return `€${euro0.format(n)}`
-  if (kind === 'euro2') return `€${euro2.format(n)}`
-  if (kind === 'int') return num0.format(n)
-  if (kind === 'pct') return `${pct2.format(n)}%`
-  if (kind === 'roas') return `${dec2.format(n)}×`
-
-  return dec2.format(n)
-}
-
-function delta(curr, prev) {
-  if (!hasVal(curr) || !hasVal(prev)) return null
-
-  const c = Number(curr)
-  const p = Number(prev)
-  const diff = c - p
-
-  if (Math.abs(diff) < 0.000001) return null
-
-  const pct = p !== 0 ? (diff / p) * 100 : null
-
-  return {
-    diff,
+    abs,
     pct,
-    negative: diff < 0,
+    hasDelta: abs !== 0,
+    positive: abs > 0,
+    negative: abs < 0,
   }
 }
 
-function Delta({ current, previous, kind }) {
-  const d = delta(current, previous)
+function DeltaRows({ current, previous, type = 'number' }) {
+  const delta = calcDelta(current, previous)
 
-  if (!d) return null
+  if (!delta.hasDelta) {
+    return null
+  }
 
-  const sign = d.diff > 0 ? '+' : '−'
-  const color = d.negative ? RED : WHITE
+  const color = delta.negative ? RED : WHITE
 
   return (
-    <div
-      style={{
-        marginTop: 7,
-        display: 'grid',
-        gridTemplateRows: 'auto auto',
-        rowGap: 3,
-        color,
-        fontSize: 12,
-        fontWeight: 900,
-        lineHeight: 1.15,
-      }}
-    >
-      <div>{sign}{fmt(Math.abs(d.diff), kind)}</div>
-      {d.pct !== null && d.pct !== undefined && (
-        <div>{sign}{pct2.format(Math.abs(d.pct))}%</div>
-      )}
-    </div>
-  )
-}
-
-function Metric({ value, previous, kind = 'int' }) {
-  return (
-    <div>
-      <div
-        style={{
-          color: WHITE,
-          fontSize: 15,
-          fontWeight: 900,
-          lineHeight: 1.1,
-        }}
-      >
-        {fmt(value, kind)}
+    <div className="mt-2 leading-tight">
+      <div style={{ color }} className="text-[14px] font-bold">
+        {delta.abs > 0 ? '+' : ''}
+        {formatMetric(delta.abs, type)}
       </div>
 
-      <Delta current={value} previous={previous} kind={kind} />
+      <div style={{ color }} className="mt-1 text-[14px] font-bold">
+        {delta.pct > 0 ? '+' : ''}
+        {num2.format(delta.pct)}%
+      </div>
     </div>
   )
 }
 
-function ChartTip({ active, payload, label }) {
+function MetricCell({ current, previous, type = 'number' }) {
+  return (
+    <td className="min-w-[130px] px-4 py-5 align-top">
+      <div className="text-[22px] font-extrabold text-white">
+        {formatMetric(current, type)}
+      </div>
+
+      <DeltaRows current={current} previous={previous} type={type} />
+    </td>
+  )
+}
+
+function TextCell({ children, sub }) {
+  return (
+    <td className="min-w-[300px] px-4 py-5 align-top">
+      <div className="text-[21px] font-extrabold text-white">{children}</div>
+      {sub ? <div className="mt-2 text-[14px] text-slate-400">{sub}</div> : null}
+    </td>
+  )
+}
+
+function ChartCard({ title, children }) {
+  return (
+    <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 shadow-xl">
+      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.2em] text-white">
+        {title}
+      </h2>
+
+      <div className="h-[330px]">{children}</div>
+    </div>
+  )
+}
+
+function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
 
   return (
-    <div
-      style={{
-        background: '#020617',
-        border: `1px solid ${BORDER}`,
-        borderRadius: 12,
-        padding: 10,
-        color: WHITE,
-        fontSize: 12,
-      }}
-    >
-      <div style={{ fontWeight: 900, marginBottom: 6 }}>{label}</div>
+    <div className="rounded-xl border border-blue-900 bg-[#020817] p-4 shadow-xl">
+      <div className="mb-2 text-sm font-bold text-white">{label}</div>
 
-      {payload.map((p) => (
+      {payload.map((item) => (
         <div
-          key={p.dataKey}
-          style={{
-            display: 'flex',
-            gap: 8,
-            justifyContent: 'space-between',
-          }}
+          key={item.dataKey}
+          className="text-sm font-semibold"
+          style={{ color: item.color }}
         >
-          <span>{p.name}</span>
-          <strong>{p.value}</strong>
+          {item.name}: {num2.format(Number(item.value || 0))}
         </div>
       ))}
     </div>
   )
 }
 
-function latestAndPrevious(weeks = []) {
-  const valid = [...weeks].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+function aggregateTrend(campaigns = []) {
+  const map = new Map()
 
-  return {
-    latest: valid[valid.length - 1] || {},
-    previous: valid[valid.length - 2] || {},
-  }
+  campaigns.forEach((campaign) => {
+    ;(campaign.weeks || campaign.trend || []).forEach((week) => {
+      const key = week.date || week.dateStart
+      if (!key) return
+
+      if (!map.has(key)) {
+        map.set(key, {
+          date: key,
+          label: formatShortDate(key),
+          spend: 0,
+          roasWeightedValue: 0,
+          roasWeightedSpend: 0,
+          purchases: 0,
+          ctrLinkWeightedClicks: 0,
+          ctrLinkWeightedImpressions: 0,
+          cpcSpend: 0,
+          cpcClicks: 0,
+          cpmSpend: 0,
+          cpmImpressions: 0,
+          frequencyReach: 0,
+          frequencyImpressions: 0,
+        })
+      }
+
+      const row = map.get(key)
+
+      const spend = Number(week.spend || 0)
+      const purchaseValue = Number(week.purchaseValue || 0)
+      const purchases = Number(week.purchases || 0)
+      const impressions = Number(week.impressions || 0)
+      const reach = Number(week.reach || 0)
+      const linkClicks = Number(week.linkClicks || 0)
+
+      row.spend += spend
+      row.purchases += purchases
+      row.roasWeightedValue += purchaseValue
+      row.roasWeightedSpend += spend
+
+      row.ctrLinkWeightedClicks += linkClicks
+      row.ctrLinkWeightedImpressions += impressions
+
+      row.cpcSpend += spend
+      row.cpcClicks += linkClicks
+
+      row.cpmSpend += spend
+      row.cpmImpressions += impressions
+
+      row.frequencyImpressions += impressions
+      row.frequencyReach += reach
+    })
+  })
+
+  return Array.from(map.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({
+      ...row,
+      roas: row.roasWeightedSpend > 0 ? row.roasWeightedValue / row.roasWeightedSpend : 0,
+      ctrLink: row.ctrLinkWeightedImpressions > 0 ? (row.ctrLinkWeightedClicks / row.ctrLinkWeightedImpressions) * 100 : 0,
+      cpcLink: row.cpcClicks > 0 ? row.cpcSpend / row.cpcClicks : 0,
+      cpm: row.cpmImpressions > 0 ? (row.cpmSpend / row.cpmImpressions) * 1000 : 0,
+      frequency: row.frequencyReach > 0 ? row.frequencyImpressions / row.frequencyReach : 0,
+    }))
 }
 
-const columns = [
-  ['spend', 'Speso', 'euro0'],
-  ['roas', 'ROAS', 'roas'],
-  ['purchaseValue', 'Valore acquisti', 'euro0'],
-  ['aov', 'AOV', 'euro2'],
-  ['purchases', 'Acquisti', 'int'],
-  ['purchaseConversions', 'Conv. acquisti', 'int'],
-  ['addToCart', 'Add to cart', 'int'],
-  ['cro', 'CRO campagna', 'pct'],
-  ['ctrLink', 'CTR link', 'pct'],
-  ['cpcLink', 'CPC link', 'euro2'],
-  ['cpm', 'CPM', 'euro2'],
-  ['impressions', 'Impression', 'int'],
-  ['reach', 'Copertura', 'int'],
-  ['frequency', 'Freq.', 'number'],
-  ['costPerResult', 'Costo risultato', 'euro2'],
-]
+function TimeframeControls({
+  preset,
+  setPreset,
+  since,
+  setSince,
+  until,
+  setUntil,
+  onApply,
+}) {
+  function handlePreset(value) {
+    setPreset(value)
 
-function PerformanceRow({ item, depth = 0, children }) {
-  const [open, setOpen] = useState(depth === 0)
-  const { latest, previous } = latestAndPrevious(item.weeks)
+    const today = todayISO()
+
+    if (value === 'today') {
+      setSince(today)
+      setUntil(today)
+    }
+
+    if (value === 'yesterday') {
+      const y = addDays(today, -1)
+      setSince(y)
+      setUntil(y)
+    }
+
+    if (value === 'last7') {
+      setSince(addDays(today, -6))
+      setUntil(today)
+    }
+
+    if (value === 'last14') {
+      setSince(addDays(today, -13))
+      setUntil(today)
+    }
+
+    if (value === 'last30') {
+      setSince(addDays(today, -29))
+      setUntil(today)
+    }
+
+    if (value === 'thisMonth') {
+      const d = new Date()
+      const first = new Date(d.getFullYear(), d.getMonth(), 1)
+        .toISOString()
+        .slice(0, 10)
+
+      setSince(first)
+      setUntil(today)
+    }
+
+    if (value === 'custom') {
+      return
+    }
+  }
 
   return (
-    <>
-      <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-        <td
-          style={{
-            position: 'sticky',
-            left: 0,
-            zIndex: 5,
-            background: CARD,
-            minWidth: depth === 0 ? 280 : 320,
-            padding: '14px 14px',
-          }}
+    <div className="mb-6 rounded-2xl border border-blue-950 bg-[#070f22] p-6">
+      <div className="flex flex-wrap items-end gap-4">
+        <div>
+          <label className="mb-2 block text-sm text-slate-400">Time frame</label>
+          <select
+            value={preset}
+            onChange={(e) => handlePreset(e.target.value)}
+            className="h-[58px] min-w-[250px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
+          >
+            <option value="today">Oggi</option>
+            <option value="yesterday">Ieri</option>
+            <option value="last7">Ultimi 7 giorni</option>
+            <option value="last14">Ultimi 14 giorni</option>
+            <option value="last30">Ultimi 30 giorni</option>
+            <option value="thisMonth">Questo mese</option>
+            <option value="custom">Personalizzato</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm text-slate-400">Da</label>
+          <input
+            type="date"
+            value={since}
+            onChange={(e) => {
+              setPreset('custom')
+              setSince(e.target.value)
+            }}
+            className="h-[58px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm text-slate-400">A</label>
+          <input
+            type="date"
+            value={until}
+            onChange={(e) => {
+              setPreset('custom')
+              setUntil(e.target.value)
+            }}
+            className="h-[58px] rounded-xl border border-blue-900 bg-[#020817] px-4 text-[20px] font-black text-white outline-none"
+          />
+        </div>
+
+        <button
+          onClick={onApply}
+          className="h-[58px] rounded-xl bg-green-500 px-7 text-[20px] font-black text-black transition hover:bg-green-400"
         >
-          <button
-            onClick={() => setOpen(!open)}
-            style={{
-              background: 'transparent',
-              border: 0,
-              color: WHITE,
-              cursor: 'pointer',
-              fontWeight: 900,
-              textAlign: 'left',
-              fontSize: depth === 0 ? 15 : 14,
-              paddingLeft: depth * 20,
-            }}
-          >
-            <span style={{ color: MUTED, marginRight: 8 }}>
-              {open ? '▾' : '▸'}
-            </span>
-            {item.name || 'Senza nome'}
-          </button>
+          Aggiorna
+        </button>
 
-          <div
-            style={{
-              color: MUTED,
-              fontSize: 11,
-              marginTop: 5,
-              paddingLeft: depth * 20 + 28,
-            }}
-          >
-            {item.id}
-          </div>
-        </td>
-
-        {columns.map(([key, , kind]) => (
-          <td
-            key={key}
-            style={{
-              padding: '14px 14px',
-              verticalAlign: 'top',
-              minWidth: 120,
-            }}
-          >
-            <Metric value={latest[key]} previous={previous[key]} kind={kind} />
-          </td>
-        ))}
-      </tr>
-
-      {open && children}
-    </>
+        <div className="ml-auto text-sm text-slate-400">
+          Periodo: {formatITDate(since)} → {formatITDate(until)}
+        </div>
+      </div>
+    </div>
   )
 }
 
-function AdRow({ ad }) {
-  const { latest, previous } = latestAndPrevious(ad.weeks)
-  const img = ad.creative?.thumbnailUrl || ad.creative?.imageUrl
+const metrics = [
+  { key: 'spend', label: 'Speso', type: 'currency0' },
+  { key: 'roas', label: 'ROAS', type: 'ratio' },
+  { key: 'purchaseValue', label: 'Valore acquisti', type: 'currency0' },
+  { key: 'aov', label: 'AOV', type: 'currency2' },
+  { key: 'purchases', label: 'Acquisti', type: 'number' },
+  { key: 'purchaseConversions', label: 'Conv. acquisti', type: 'number' },
+  { key: 'addToCart', label: 'Add to cart', type: 'number' },
+  { key: 'cro', label: 'CRO campagna', type: 'percent' },
+  { key: 'ctrLink', label: 'CTR link', type: 'percent' },
+  { key: 'cpcLink', label: 'CPC link', type: 'currency2' },
+  { key: 'cpm', label: 'CPM', type: 'currency2' },
+  { key: 'impressions', label: 'Impression', type: 'number' },
+  { key: 'reach', label: 'Copertura', type: 'number' },
+  { key: 'frequency', label: 'Frequenza', type: 'number2' },
+  { key: 'costPerResult', label: 'Costo risultato', type: 'currency2' },
+  { key: 'linkClicks', label: 'Click link', type: 'number' },
+]
+
+function DataRow({ item, level = 0 }) {
+  const latest = item.latest || {}
+  const previous = item.previous || {}
 
   return (
-    <tr style={{ borderTop: `1px solid ${BORDER}` }}>
-      <td
-        style={{
-          position: 'sticky',
-          left: 0,
-          zIndex: 4,
-          background: '#050b18',
-          minWidth: 360,
-          padding: '14px 14px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            alignItems: 'center',
-            paddingLeft: 42,
-          }}
-        >
-          {img ? (
-            <img
-              src={img}
-              alt="Creative"
-              style={{
-                width: 54,
-                height: 54,
-                objectFit: 'cover',
-                borderRadius: 10,
-                border: `1px solid ${BORDER}`,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 54,
-                height: 54,
-                borderRadius: 10,
-                border: `1px solid ${BORDER}`,
-                display: 'grid',
-                placeItems: 'center',
-                color: MUTED,
-                fontSize: 10,
-              }}
-            >
-              NO IMG
-            </div>
-          )}
+    <tr className="border-b border-blue-950">
+      <TextCell sub={item.id}>
+        <span style={{ paddingLeft: `${level * 28}px` }}>
+          {level === 0 ? '▾' : '▸'} {item.name}
+        </span>
+      </TextCell>
 
-          <div>
-            <div style={{ color: WHITE, fontWeight: 900, fontSize: 13 }}>
-              {ad.name || 'Creatività senza nome'}
-            </div>
-
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
-              {ad.creative?.creativeName || ad.creative?.creativeId || ad.id}
-            </div>
-          </div>
-        </div>
-      </td>
-
-      {columns.map(([key, , kind]) => (
-        <td
-          key={key}
-          style={{
-            padding: '14px 14px',
-            verticalAlign: 'top',
-            minWidth: 120,
-          }}
-        >
-          <Metric value={latest[key]} previous={previous[key]} kind={kind} />
-        </td>
+      {metrics.map((metric) => (
+        <MetricCell
+          key={metric.key}
+          current={latest[metric.key]}
+          previous={previous[metric.key]}
+          type={metric.type}
+        />
       ))}
     </tr>
   )
 }
 
-function SummaryCharts({ campaigns }) {
-  const data = useMemo(() => {
-    const map = {}
-
-    for (const c of campaigns) {
-      for (const w of c.weeks || []) {
-        if (!map[w.date]) {
-          map[w.date] = {
-            date: w.date,
-            spend: 0,
-            purchases: 0,
-            purchaseValue: 0,
-            roasNumerator: 0,
-            roasDenominator: 0,
-            ctrLink: [],
-            cpcLink: [],
-            cpm: [],
-            frequency: [],
-          }
-        }
-
-        map[w.date].spend += Number(w.spend || 0)
-        map[w.date].purchases += Number(w.purchases || 0)
-        map[w.date].purchaseValue += Number(w.purchaseValue || 0)
-
-        if (Number(w.spend || 0) > 0) {
-          map[w.date].roasNumerator += Number(w.purchaseValue || 0)
-          map[w.date].roasDenominator += Number(w.spend || 0)
-        }
-
-        for (const k of ['ctrLink', 'cpcLink', 'cpm', 'frequency']) {
-          if (w[k] !== null && w[k] !== undefined && Number(w[k]) > 0) {
-            map[w.date][k].push(Number(w[k]))
-          }
-        }
-      }
-    }
-
-    const avg = (arr) => {
-      if (!arr.length) return null
-      return arr.reduce((a, b) => a + b, 0) / arr.length
-    }
-
-    return Object.values(map)
-      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-      .map((w) => ({
-        date: String(w.date).slice(5),
-        spend: Math.round(w.spend),
-        purchases: Math.round(w.purchases),
-        purchaseValue: Math.round(w.purchaseValue),
-        roas:
-          w.roasDenominator > 0
-            ? Math.round((w.roasNumerator / w.roasDenominator) * 100) / 100
-            : null,
-        ctrLink: avg(w.ctrLink),
-        cpcLink: avg(w.cpcLink),
-        cpm: avg(w.cpm),
-        frequency: avg(w.frequency),
-      }))
-  }, [campaigns])
-
+function MetaTable({ campaigns }) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 16,
-        marginBottom: 20,
-      }}
-    >
-      <div style={cardStyle}>
-        <h2 style={titleStyle}>ROAS, spesa e acquisti</h2>
+    <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6">
+      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.2em] text-white">
+        Campagne attive, adset e creatività
+      </h2>
 
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<ChartTip />} />
-            <Legend />
+      <div className="max-h-[780px] overflow-auto rounded-2xl border border-blue-950">
+        <table className="w-full min-w-[2700px] border-collapse">
+          <thead className="sticky top-0 z-20 bg-[#071225]">
+            <tr>
+              <th className="min-w-[330px] px-4 py-5 text-left text-[17px] font-black uppercase tracking-[0.14em] text-white">
+                Campagna / Adset / Creatività
+              </th>
 
-            <Line dataKey="roas" name="ROAS" stroke={WHITE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line dataKey="spend" name="Spesa" stroke={BLUE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line dataKey="purchases" name="Acquisti" stroke={GREEN} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+              {metrics.map((metric) => (
+                <th
+                  key={metric.key}
+                  className="min-w-[130px] px-4 py-5 text-left text-[15px] font-black uppercase tracking-[0.14em] text-white"
+                >
+                  {metric.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
 
-      <div style={cardStyle}>
-        <h2 style={titleStyle}>KPI Meta: CTR, CPC, CPM, frequenza</h2>
+          <tbody>
+            {campaigns.map((campaign) => (
+              <>
+                <DataRow key={campaign.id} item={campaign} level={0} />
 
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: MUTED, fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip content={<ChartTip />} />
-            <Legend />
+                {(campaign.adsets || []).map((adset) => (
+                  <>
+                    <DataRow key={adset.id} item={adset} level={1} />
 
-            <Line dataKey="ctrLink" name="CTR link %" stroke={BLUE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line dataKey="cpcLink" name="CPC link" stroke={CYAN} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line dataKey="cpm" name="CPM" stroke={PURPLE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line dataKey="frequency" name="Frequenza" stroke={WHITE} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-          </LineChart>
-        </ResponsiveContainer>
+                    {(adset.ads || []).map((ad) => (
+                      <DataRow key={ad.id} item={ad} level={2} />
+                    ))}
+                  </>
+                ))}
+              </>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
 }
 
-const cardStyle = {
-  background: CARD,
-  border: `1px solid ${BORDER}`,
-  borderRadius: 18,
-  padding: 18,
-  boxShadow: '0 20px 60px rgba(0,0,0,.24)',
-}
-
-const titleStyle = {
-  margin: '0 0 16px',
-  color: WHITE,
-  fontSize: 15,
-  letterSpacing: '.12em',
-  textTransform: 'uppercase',
-  fontWeight: 900,
-}
-
-const inputStyle = {
-  background: '#020617',
-  border: `1px solid ${BORDER}`,
-  borderRadius: 10,
-  color: WHITE,
-  padding: '10px 12px',
-  fontWeight: 800,
-  outline: 'none',
-}
-
-const buttonStyle = {
-  background: GREEN,
-  color: '#020617',
-  border: 0,
-  borderRadius: 10,
-  padding: '10px 14px',
-  fontWeight: 900,
-  cursor: 'pointer',
-}
-
 export default function MetaDetailPage() {
+  const initialUntil = todayISO()
+  const initialSince = addDays(initialUntil, -6)
+
+  const [preset, setPreset] = useState('last7')
+  const [since, setSince] = useState(initialSince)
+  const [until, setUntil] = useState(initialUntil)
+
+  const [appliedSince, setAppliedSince] = useState(initialSince)
+  const [appliedUntil, setAppliedUntil] = useState(initialUntil)
+
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
 
-  const [preset, setPreset] = useState('last_30d')
-  const initialRange = getPresetRange('last_30d')
-  const [since, setSince] = useState(initialRange.since)
-  const [until, setUntil] = useState(initialRange.until)
-
-  function applyPreset(nextPreset) {
-    setPreset(nextPreset)
-
-    if (nextPreset !== 'custom') {
-      const range = getPresetRange(nextPreset)
-      setSince(range.since)
-      setUntil(range.until)
-    }
-  }
-
-  async function loadMeta() {
+  async function load() {
     try {
       setLoading(true)
-      setError(null)
+      setError('')
 
-      const params = new URLSearchParams()
-
-      params.set('preset', preset)
-
-      if (preset !== 'maximum') {
-        if (since) params.set('since', since)
-        if (until) params.set('until', until)
-      }
-
-      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
-        cache: 'no-store',
-      })
+      const res = await fetch(
+        `/api/meta-detail?since=${appliedSince}&until=${appliedUntil}`,
+        {
+          cache: 'no-store',
+        }
+      )
 
       const json = await res.json()
 
-      if (!res.ok) {
-        throw new Error(json.error || 'Errore caricamento Meta')
+      if (json.error) {
+        setError(json.error)
       }
 
       setData(json)
-    } catch (e) {
-      setError(e.message)
+    } catch (err) {
+      setError(err?.message || 'Errore caricamento dati Meta')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadMeta()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    load()
+  }, [appliedSince, appliedUntil])
 
   const campaigns = data?.campaigns || []
 
-  return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#020617',
-        color: WHITE,
-        padding: 28,
-        fontFamily: 'Barlow, system-ui, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: 16,
-          marginBottom: 22,
-        }}
-      >
-        <div>
-          <a
-            href="/"
-            style={{
-              color: MUTED,
-              textDecoration: 'none',
-              fontSize: 13,
-            }}
-          >
-            ← Torna alla dashboard
-          </a>
+  const chartData = useMemo(() => aggregateTrend(campaigns), [campaigns])
 
-          <h1
-            style={{
-              margin: '10px 0 0',
-              fontSize: 28,
-              letterSpacing: '.08em',
-              textTransform: 'uppercase',
-            }}
-          >
+  function applyTimeframe() {
+    setAppliedSince(since)
+    setAppliedUntil(until)
+  }
+
+  return (
+    <main className="min-h-screen bg-[#020817] p-6 text-white">
+      <a href="/" className="text-slate-400 hover:text-white">
+        ← Torna alla dashboard
+      </a>
+
+      <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[34px] font-light uppercase tracking-[0.18em] text-white">
             Analisi Meta dettagliata
           </h1>
 
-          <p
-            style={{
-              margin: '8px 0 0',
-              color: MUTED,
-              fontSize: 14,
-            }}
-          >
-            Campagne attive → adset → creatività, con variazioni settimanali.
+          <p className="mt-3 text-[17px] text-slate-400">
+            Campagne attive → adset → creatività, con variazioni rispetto al periodo precedente.
           </p>
         </div>
 
-        <div style={{ color: GREEN, fontSize: 12 }}>
-          {data?.updatedAt
-            ? `Aggiornato: ${new Date(data.updatedAt).toLocaleString('it-IT')}`
-            : ''}
-        </div>
+        {data?.meta?.updatedAt ? (
+          <div className="text-green-400">
+            Aggiornato: {new Date(data.meta.updatedAt).toLocaleString('it-IT')}
+          </div>
+        ) : null}
       </div>
 
-      <div
-        style={{
-          ...cardStyle,
-          marginBottom: 20,
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'end',
-          gap: 12,
-        }}
-      >
-        <div>
-          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
-            Time frame
-          </label>
-
-          <select
-            value={preset}
-            onChange={(e) => applyPreset(e.target.value)}
-            style={inputStyle}
-          >
-            {TIMEFRAME_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
-            Da
-          </label>
-
-          <input
-            type="date"
-            value={since}
-            disabled={preset === 'maximum'}
-            onChange={(e) => {
-              setPreset('custom')
-              setSince(e.target.value)
-            }}
-            style={{
-              ...inputStyle,
-              opacity: preset === 'maximum' ? 0.45 : 1,
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', color: MUTED, fontSize: 12, marginBottom: 6 }}>
-            A
-          </label>
-
-          <input
-            type="date"
-            value={until}
-            disabled={preset === 'maximum'}
-            onChange={(e) => {
-              setPreset('custom')
-              setUntil(e.target.value)
-            }}
-            style={{
-              ...inputStyle,
-              opacity: preset === 'maximum' ? 0.45 : 1,
-            }}
-          />
-        </div>
-
-        <button onClick={loadMeta} style={buttonStyle}>
-          Aggiorna
-        </button>
-
-        <div style={{ color: MUTED, fontSize: 12, marginLeft: 'auto' }}>
-          {preset === 'maximum'
-            ? 'Periodo: massimo disponibile'
-            : since && until
-              ? `Periodo: ${since} → ${until}`
-              : 'Periodo non selezionato'}
-        </div>
+      <div className="mt-8">
+        <TimeframeControls
+          preset={preset}
+          setPreset={setPreset}
+          since={since}
+          setSince={setSince}
+          until={until}
+          setUntil={setUntil}
+          onApply={applyTimeframe}
+        />
       </div>
 
-      {loading && <div style={cardStyle}>Caricamento dati Meta...</div>}
+      {loading ? (
+        <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 text-[20px] text-white">
+          Caricamento dati Meta...
+        </div>
+      ) : null}
 
-      {error && (
-        <div style={{ ...cardStyle, color: RED }}>
+      {error ? (
+        <div className="rounded-2xl border border-blue-950 bg-[#070f22] p-6 text-[20px] text-red-400">
           Errore: {error}
         </div>
-      )}
+      ) : null}
 
-      {!loading && !error && (
+      {!loading && !error ? (
         <>
-          <SummaryCharts campaigns={campaigns} />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <ChartCard title="ROAS, spesa e acquisti">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid stroke="#102044" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" stroke={MUTED} />
+                  <YAxis stroke={MUTED} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
 
-          <div style={cardStyle}>
-            <h2 style={titleStyle}>Campagne attive, adset e creatività</h2>
+                  <Line
+                    type="monotone"
+                    dataKey="roas"
+                    name="ROAS"
+                    stroke={WHITE}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
 
-            <div
-              style={{
-                overflow: 'auto',
-                maxHeight: '76vh',
-                borderRadius: 14,
-                border: `1px solid ${BORDER}`,
-              }}
-            >
-              <table
-                style={{
-                  borderCollapse: 'collapse',
-                  minWidth: 2200,
-                  width: '100%',
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th
-                      style={{
-                        position: 'sticky',
-                        top: 0,
-                        left: 0,
-                        zIndex: 20,
-                        background: '#081226',
-                        color: WHITE,
-                        textAlign: 'left',
-                        padding: '14px',
-                        minWidth: 360,
-                      }}
-                    >
-                      Campagna / Adset / Creatività
-                    </th>
+                  <Line
+                    type="monotone"
+                    dataKey="spend"
+                    name="Spesa"
+                    stroke={BLUE}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
 
-                    {columns.map(([, label]) => (
-                      <th
-                        key={label}
-                        style={{
-                          position: 'sticky',
-                          top: 0,
-                          zIndex: 10,
-                          background: '#081226',
-                          color: WHITE,
-                          textAlign: 'left',
-                          padding: '14px',
-                          minWidth: 120,
-                          fontSize: 12,
-                          letterSpacing: '.08em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+                  <Line
+                    type="monotone"
+                    dataKey="purchases"
+                    name="Acquisti"
+                    stroke={GREEN}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
 
-                <tbody>
-                  {campaigns.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={columns.length + 1}
-                        style={{
-                          padding: 18,
-                          color: MUTED,
-                        }}
-                      >
-                        Nessuna campagna attiva trovata.
-                      </td>
-                    </tr>
-                  )}
+            <ChartCard title="KPI Meta: CTR, CPC, CPM, Frequenza">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid stroke="#102044" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" stroke={MUTED} />
+                  <YAxis stroke={MUTED} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
 
-                  {campaigns.map((campaign) => (
-                    <PerformanceRow key={campaign.id} item={campaign} depth={0}>
-                      {(campaign.adsets || []).map((adset) => (
-                        <PerformanceRow key={adset.id} item={adset} depth={1}>
-                          {(adset.ads || []).map((ad) => (
-                            <AdRow key={ad.id} ad={ad} />
-                          ))}
-                        </PerformanceRow>
-                      ))}
-                    </PerformanceRow>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  <Line
+                    type="monotone"
+                    dataKey="ctrLink"
+                    name="CTR link %"
+                    stroke={BLUE}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="cpcLink"
+                    name="CPC link"
+                    stroke={CYAN}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="cpm"
+                    name="CPM"
+                    stroke={PURPLE}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="frequency"
+                    name="Frequenza"
+                    stroke={WHITE}
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          <div className="mt-6">
+            <MetaTable campaigns={campaigns} />
           </div>
         </>
-      )}
+      ) : null}
     </main>
   )
 }

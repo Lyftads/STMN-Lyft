@@ -9,8 +9,8 @@ const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 const API_VERSION = process.env.META_API_VERSION || 'v19.0'
 
-// Default: ultime 8 settimane
 const DEFAULT_WEEKS_BACK = 8
+const MAXIMUM_SINCE = '2025-12-29'
 
 const PURCHASE_KEYS = [
   'purchase',
@@ -37,6 +37,20 @@ function r4(value) {
   return Math.round(n(value) * 10000) / 10000
 }
 
+function pad(value) {
+  return String(value).padStart(2, '0')
+}
+
+function toISODate(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function addDays(date, days) {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
 function isValidDateString(value) {
   if (!value) return false
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -44,21 +58,29 @@ function isValidDateString(value) {
 
 function getDefaultDateRange() {
   const untilDate = new Date()
-  const sinceDate = new Date()
-
-  sinceDate.setDate(untilDate.getDate() - DEFAULT_WEEKS_BACK * 7)
+  const sinceDate = addDays(untilDate, -DEFAULT_WEEKS_BACK * 7)
 
   return {
-    since: sinceDate.toISOString().slice(0, 10),
-    until: untilDate.toISOString().slice(0, 10),
+    since: toISODate(sinceDate),
+    until: toISODate(untilDate),
   }
 }
 
 function getDateRangeFromRequest(request) {
   const { searchParams } = new URL(request.url)
 
+  const preset = searchParams.get('preset')
   const customSince = searchParams.get('since')
   const customUntil = searchParams.get('until')
+
+  const today = new Date()
+
+  if (preset === 'maximum') {
+    return {
+      since: MAXIMUM_SINCE,
+      until: toISODate(today),
+    }
+  }
 
   let { since, until } = getDefaultDateRange()
 
@@ -74,7 +96,7 @@ function getActionValue(actions, keys) {
   if (!Array.isArray(actions)) return 0
 
   return actions
-    .filter(action => keys.includes(action.action_type))
+    .filter((action) => keys.includes(action.action_type))
     .reduce((sum, action) => sum + n(action.value), 0)
 }
 
@@ -101,7 +123,7 @@ function getPurchaseRoas(row) {
   if (!Array.isArray(row.purchase_roas)) return 0
 
   const found =
-    row.purchase_roas.find(item => PURCHASE_KEYS.includes(item.action_type)) ||
+    row.purchase_roas.find((item) => PURCHASE_KEYS.includes(item.action_type)) ||
     row.purchase_roas[0]
 
   return n(found?.value)
@@ -110,7 +132,7 @@ function getPurchaseRoas(row) {
 function getCostPerPurchase(row) {
   if (!Array.isArray(row.cost_per_action_type)) return 0
 
-  const found = row.cost_per_action_type.find(item =>
+  const found = row.cost_per_action_type.find((item) =>
     PURCHASE_KEYS.includes(item.action_type)
   )
 
@@ -212,10 +234,37 @@ async function metaFetch(path, params = {}) {
   return json
 }
 
+async function fetchAllPages(path, params = {}) {
+  let json = await metaFetch(path, params)
+  const rows = [...(json?.data || [])]
+
+  while (json?.paging?.next) {
+    const response = await fetch(json.paging.next, {
+      cache: 'no-store',
+    })
+
+    const text = await response.text()
+
+    try {
+      json = text ? JSON.parse(text) : null
+    } catch (error) {
+      throw new Error('Meta ha restituito una pagina non JSON durante la paginazione.')
+    }
+
+    if (!response.ok || json?.error) {
+      throw new Error(json?.error?.message || `Meta API pagination error: ${response.status}`)
+    }
+
+    rows.push(...(json?.data || []))
+  }
+
+  return rows
+}
+
 async function fetchInsights(level, since, until) {
   const accounts = String(META_ACCOUNT || '')
     .split(',')
-    .map(account => account.trim())
+    .map((account) => account.trim())
     .filter(Boolean)
 
   const fields = [
@@ -246,12 +295,12 @@ async function fetchInsights(level, since, until) {
   for (const account of accounts) {
     const accountId = account.startsWith('act_') ? account : `act_${account}`
 
-    const json = await metaFetch(`${accountId}/insights`, {
+    const data = await fetchAllPages(`${accountId}/insights`, {
       fields,
       level,
       time_range: JSON.stringify({ since, until }),
       time_increment: 7,
-      limit: 300,
+      limit: 500,
       filtering: JSON.stringify([
         {
           field: `${level}.effective_status`,
@@ -261,10 +310,46 @@ async function fetchInsights(level, since, until) {
       ]),
     })
 
-    rows.push(...(json?.data || []).map(row => normalizeInsight(row, level)))
+    rows.push(...data.map((row) => normalizeInsight(row, level)))
   }
 
   return rows
+}
+
+async function fetchAdCreatives(adIds) {
+  const uniqueAdIds = [...new Set(adIds.filter(Boolean))]
+  const creatives = {}
+
+  const limitedAdIds = uniqueAdIds.slice(0, 80)
+
+  for (const adId of limitedAdIds) {
+    try {
+      const json = await metaFetch(adId, {
+        fields:
+          'id,name,creative{id,name,thumbnail_url,image_url,effective_object_story_id,object_story_spec}',
+      })
+
+      creatives[adId] = {
+        adId,
+        creativeId: json?.creative?.id || null,
+        creativeName: json?.creative?.name || null,
+        thumbnailUrl: json?.creative?.thumbnail_url || null,
+        imageUrl: json?.creative?.image_url || null,
+        storyId: json?.creative?.effective_object_story_id || null,
+      }
+    } catch (error) {
+      creatives[adId] = {
+        adId,
+        creativeId: null,
+        creativeName: null,
+        thumbnailUrl: null,
+        imageUrl: null,
+        storyId: null,
+      }
+    }
+  }
+
+  return creatives
 }
 
 function latestById(rows, idKey) {
@@ -282,23 +367,23 @@ function latestById(rows, idKey) {
   return map
 }
 
-function buildTree(campaignRows, adsetRows, adRows) {
+function buildTree(campaignRows, adsetRows, adRows, creativesByAdId = {}) {
   const latestCampaign = latestById(campaignRows, 'campaignId')
   const latestAdset = latestById(adsetRows, 'adsetId')
   const latestAd = latestById(adRows, 'adId')
 
-  const campaigns = Object.values(latestCampaign).map(campaign => ({
+  const campaigns = Object.values(latestCampaign).map((campaign) => ({
     id: campaign.campaignId,
     name: campaign.campaignName,
     latest: campaign,
     weeks: campaignRows
-      .filter(row => row.campaignId === campaign.campaignId)
+      .filter((row) => row.campaignId === campaign.campaignId)
       .sort((a, b) => a.date.localeCompare(b.date)),
     adsets: [],
   }))
 
   const campaignMap = Object.fromEntries(
-    campaigns.map(campaign => [campaign.id, campaign])
+    campaigns.map((campaign) => [campaign.id, campaign])
   )
 
   for (const adset of Object.values(latestAdset)) {
@@ -310,7 +395,7 @@ function buildTree(campaignRows, adsetRows, adRows) {
       name: adset.adsetName,
       latest: adset,
       weeks: adsetRows
-        .filter(row => row.adsetId === adset.adsetId)
+        .filter((row) => row.adsetId === adset.adsetId)
         .sort((a, b) => a.date.localeCompare(b.date)),
       ads: [],
     })
@@ -332,9 +417,9 @@ function buildTree(campaignRows, adsetRows, adRows) {
       id: ad.adId,
       name: ad.adName,
       latest: ad,
-      creative: null,
+      creative: creativesByAdId[ad.adId] || null,
       weeks: adRows
-        .filter(row => row.adId === ad.adId)
+        .filter((row) => row.adId === ad.adId)
         .sort((a, b) => a.date.localeCompare(b.date)),
     })
   }
@@ -368,7 +453,10 @@ export async function GET(request) {
     const adsetRows = await fetchInsights('adset', since, until)
     const adRows = await fetchInsights('ad', since, until)
 
-    const campaigns = buildTree(campaignRows, adsetRows, adRows)
+    const adIds = adRows.map((row) => row.adId)
+    const creativesByAdId = await fetchAdCreatives(adIds)
+
+    const campaigns = buildTree(campaignRows, adsetRows, adRows, creativesByAdId)
 
     return NextResponse.json(
       {
@@ -377,6 +465,7 @@ export async function GET(request) {
           campaignWeeks: campaignRows.length,
           adsetWeeks: adsetRows.length,
           adWeeks: adRows.length,
+          creatives: Object.keys(creativesByAdId).length,
         },
         dateRange: {
           since,

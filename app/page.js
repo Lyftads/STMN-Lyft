@@ -265,22 +265,26 @@ function Simulator({ cfg }) {
 }
 
 // ── WeeklyTab ─────────────────────────────────────────────────
-function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
+function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
   // Mappa Meta settimanale per data (YYYY-MM-DD)
   const metaMap = {}
   for (const m of (metaWeekly||[])) metaMap[m.date] = m
 
+  const shopifyMap = {}
+  for (const s of (shopifyWeekly || [])) shopifyMap[s.date] = s
+
   const allWeeks = weeks.map(({ key, label }) => {
     const d   = data[key] || WEMPTY
     const mw  = metaMap[key] || {}
+    const sw  = shopifyMap[key] || {}
     // Meta spend: usa API se disponibile, altrimenti manuale
     const metaSpend = mw.spend > 0 ? mw.spend : (d.meta||0)
     const adv = metaSpend + (d.google||0)
-    const fat  = d.fatturato  || 0
-    const fatNC = d.fatturNC  || 0
-    const ord  = d.ordini     || 0
-    const nc   = d.nc         || 0
-    const rc   = d.rc         || 0
+    const fat   = sw.fatturato > 0 ? sw.fatturato : (d.fatturato || 0)
+    const fatNC = sw.fatturNC > 0 ? sw.fatturNC : (d.fatturNC || 0)
+    const ord   = sw.ordini > 0 ? sw.ordini : (d.ordini || 0)
+    const nc    = sw.nc > 0 ? sw.nc : (d.nc || 0)
+    const rc    = sw.rc > 0 ? sw.rc : (d.rc || 0)
     const ses  = d.sessioni   || 0
     const mer       = adv>0&&fat>0    ? fat/adv    : null
     const aMer      = adv>0&&fatNC>0  ? fatNC/adv  : null
@@ -298,6 +302,7 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
       retention, cro, ltv, ratio,
       // Meta KPIs auto
       metaAuto: mw.spend > 0,
+      shopifyAuto: sw.fatturato > 0 || sw.fatturNC > 0 || sw.ordini > 0 || sw.nc > 0 || sw.rc > 0,
       spend:     mw.spend,
       ctr:       mw.ctr,
       cpcLink:   mw.cpcLink,
@@ -341,8 +346,8 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
   const avgCPM  = avg(metaFilled, w=>w.cpm||0)
   const avgFreq = avg(metaFilled, w=>w.frequency||0)
 
-  const TH  = { ...S.th, fontSize:10, padding:'8px 10px' }
-  const TD  = { ...S.td, fontSize:12, padding:'7px 10px' }
+  const TH  = { ...S.th, fontSize:12, padding:'10px 12px' }
+  const TD  = { ...S.td, fontSize:15, padding:'9px 12px' }
   const col = r => r==null?'#555':r<1?'#ef4444':r<3?'#f59e0b':'#22c55e'
 
   return (
@@ -363,22 +368,22 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
               </tr>
             </thead>
             <tbody>
-              {allWeeks.map(({ key, label, fat, fatNC, meta, google, ord, nc, rc, ses, metaAuto }, i) => (
+              {allWeeks.map(({ key, label, fat, fatNC, meta, google, ord, nc, rc, ses, metaAuto, shopifyAuto }, i) => (
                 <tr key={key} style={{background:i%2===0?'transparent':'#080f1e'}}>
                   <td style={{...TD,color:'#94a3b8',fontWeight:600,whiteSpace:'nowrap',fontSize:11}}>{label}</td>
                   {[
-                    {k:'fatturato',   v:fat,    color:'#22c55e'},
-                    {k:'fatturNC',    v:fatNC,  color:'#16a34a'},
+                    {k:'fatturato',   v:fat,    color:'#22c55e', disabled:shopifyAuto},
+                    {k:'fatturNC',    v:fatNC,  color:'#16a34a', disabled:shopifyAuto},
                     {k:'meta',        v:meta,   color:'#3b82f6', disabled:metaAuto},
                     {k:'google',      v:google, color:'#eab308'},
-                    {k:'ordini',      v:ord,    color:'#e8e8e8', isCount:true},
-                    {k:'nc',          v:nc,     color:'#06b6d4', isCount:true},
-                    {k:'rc',          v:rc,     color:'#818cf8', isCount:true},
+                    {k:'ordini',      v:ord,    color:'#e8e8e8', isCount:true, disabled:shopifyAuto},
+                    {k:'nc',          v:nc,     color:'#06b6d4', isCount:true, disabled:shopifyAuto},
+                    {k:'rc',          v:rc,     color:'#818cf8', isCount:true, disabled:shopifyAuto},
                     {k:'sessioni',    v:ses,    color:'#94a3b8', isCount:true},
                   ].map(({k,v,color,isCount,disabled}) => (
                     <td key={k} style={{...TD,padding:'5px 8px'}}>
                       {disabled
-                        ? <span style={{fontFamily:'Barlow',fontWeight:700,color,fontSize:12}}>{k==='meta'&&metaAuto?f0(meta):'—'}</span>
+                        ? <span style={{fontFamily:'Barlow',fontWeight:800,color,fontSize:15}}>{v > 0 ? (isCount ? fn(v) : f0(v)) : '—'}</span>
                         : <NumInput value={v} onChange={val=>onUpdate(key,k,val)} placeholder="0" color={color} isCount={isCount} />
                       }
                     </td>
@@ -411,7 +416,7 @@ function WeeklyTab({ weeks, data, metaWeekly, onUpdate, cfg, S }) {
               <thead>
                 <tr>
                   {['Sett.','Fatturato','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','Ret%','CRO%','CTR%','CPC','CPM','Freq.','LTV','Ratio'].map(h=>(
-                    <th key={h} style={{...TH,fontSize:9}}>{h}</th>
+                    <th key={h} style={{...TH,fontSize:11}}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -909,7 +914,8 @@ export default function App() {
             onUpdate={updateWeek}
             cfg={cfg}
             S={S}
-            metaWeekly={live?.metaWeekly||[]}
+            metaWeekly={live?.metaWeekly || []}
+            shopifyWeekly={live?.shopifyWeekly || []}
           />
         </div>
       )}

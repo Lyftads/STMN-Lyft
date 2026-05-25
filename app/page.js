@@ -38,7 +38,7 @@ const saveC = c => { try { localStorage.setItem('stmn_c', JSON.stringify(c)) } c
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{background:'#0f0f0f',border:'1px solid #242424',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'DM Mono'}}>
+    <div style={{background:'#0f0f0f',border:'1px solid #242424',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
       <p style={{color:'#888',marginBottom:4}}>{label}</p>
       {payload.map((p,i) => (
         <p key={i} style={{color:p.color}}>
@@ -84,14 +84,14 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
           width:110,
           textAlign:'right',
           fontSize:12,
-          fontFamily:'DM Mono',
+          fontFamily:'Barlow',fontWeight:700,
           color: color,
           outline:'none',
         }}
         onFocus={e => e.target.style.borderColor='#333'}
         onBlur={e => e.target.style.borderColor='#1a1a1a'}
       />
-      {preview && <span style={{fontSize:10,textAlign:'right',color,opacity:0.5,fontFamily:'DM Mono'}}>{preview}</span>}
+      {preview && <span style={{fontSize:10,textAlign:'right',color,opacity:0.5,fontFamily:'Barlow',fontWeight:700}}>{preview}</span>}
     </div>
   )
 }
@@ -105,8 +105,8 @@ function Stat({ label, value, sub, color='#e8e8e8', mono, dim }) {
       borderRadius:8,
       padding:'14px 16px',
     }}>
-      <div style={{fontSize:10,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{label}</div>
-      <div style={{fontSize:dim?18:22,fontWeight:700,color,fontFamily:mono?'DM Mono':'DM Sans',letterSpacing:mono?'-0.03em':'normal'}}>{value}</div>
+      <div style={{fontSize:10,color:'#aaa',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
+      <div style={{fontSize:dim?18:24,fontWeight:700,color,fontFamily:'Barlow',letterSpacing:'-0.01em'}}>{value}</div>
       {sub && <div style={{fontSize:11,color:'#444',marginTop:4}}>{sub}</div>}
     </div>
   )
@@ -129,7 +129,7 @@ function RatioWidget({ ratio, mer }) {
     }}>
       <div>
         <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Ratio LTV : CAC</div>
-        <div style={{fontSize:64,fontWeight:800,color:col,fontFamily:'DM Mono',lineHeight:1,letterSpacing:'-0.04em'}}>
+        <div style={{fontSize:64,fontWeight:800,color:col,fontFamily:'Barlow',fontWeight:700,lineHeight:1,letterSpacing:'-0.04em'}}>
           {ratio!=null ? `${fr(ratio)}:1` : '—'}
         </div>
         <div style={{
@@ -146,7 +146,7 @@ function RatioWidget({ ratio, mer }) {
       </div>
       <div style={{borderLeft:'1px solid #1a1a1a',paddingLeft:24}}>
         <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>MER</div>
-        <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'DM Mono',letterSpacing:'-0.03em'}}>
+        <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'Barlow',fontWeight:700,letterSpacing:'-0.03em'}}>
           {mer!=null ? `${fr(mer)}x` : '—'}
         </div>
         <div style={{fontSize:11,color:'#444',marginTop:6}}>Fatturato ÷ Spesa Ads</div>
@@ -175,7 +175,7 @@ function Settings({ cfg, onSave, onClose }) {
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <input type="number" step={s} value={f[k]}
                 onChange={e=>setF(x=>({...x,[k]:parseFloat(e.target.value)||0}))}
-                style={{flex:1,background:'#080808',border:'1px solid #242424',borderRadius:4,padding:'6px 10px',color:'#e8e8e8',fontSize:14,fontFamily:'DM Mono',textAlign:'right',outline:'none'}} />
+                style={{flex:1,background:'#080808',border:'1px solid #242424',borderRadius:4,padding:'6px 10px',color:'#e8e8e8',fontSize:14,fontFamily:'Barlow',fontWeight:700,textAlign:'right',outline:'none'}} />
               <span style={{fontSize:12,color:'#444',width:48}}>{u}</span>
             </div>
           </div>
@@ -202,7 +202,7 @@ function Simulator({ cfg }) {
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
       <div style={{background:'#0f0f0f',border:'1px solid #1a1a1a',borderRadius:8,padding:24}}>
-        <p style={{fontSize:12,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20}}>Muovi i cursori</p>
+        <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Muovi i cursori</p>
         {[
           {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
           {k:'freq',  l:'Frequenza / anno',      min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
@@ -213,7 +213,7 @@ function Simulator({ cfg }) {
           <div key={k} style={{marginBottom:16}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
               <span style={{fontSize:11,color:'#555'}}>{l}</span>
-              <span style={{fontSize:12,fontFamily:'DM Mono',color:'#e8e8e8'}}>{fmt(s[k])}</span>
+              <span style={{fontSize:12,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(s[k])}</span>
             </div>
             <input type="range" min={min} max={max} step={step} value={s[k]}
               onChange={e=>set(k,parseFloat(e.target.value))} style={{width:'100%'}} />
@@ -224,7 +224,7 @@ function Simulator({ cfg }) {
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
         <div style={{background:'#0f0f0f',border:'1px solid #1a1a1a',borderRadius:8,padding:20}}>
-          <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:14}}>Per raggiungere 3:1</p>
+          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Per raggiungere 3:1</p>
           {[
             {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
             {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
@@ -234,7 +234,7 @@ function Simulator({ cfg }) {
                 <div style={{fontSize:13,color:'#e8e8e8'}}>{l}</div>
                 <div style={{fontSize:11,color:'#444',marginTop:2}}>{sub}</div>
               </div>
-              <div style={{fontSize:18,fontWeight:700,fontFamily:'DM Mono',color:'#22c55e'}}>{v}</div>
+              <div style={{fontSize:18,fontWeight:700,fontFamily:'Barlow',fontWeight:700,color:'#22c55e'}}>{v}</div>
             </div>
           ))}
         </div>
@@ -323,8 +323,8 @@ export default function App() {
 
   const S = { // shared styles
     card: { background:'#0f0f0f', border:'1px solid #1a1a1a', borderRadius:8, padding:20 },
-    th:   { padding:'8px 12px', fontSize:10, color:'#555', textTransform:'uppercase', letterSpacing:'0.07em', textAlign:'left', fontWeight:500, borderBottom:'1px solid #1a1a1a', whiteSpace:'nowrap' },
-    td:   { padding:'8px 12px', fontSize:12, borderBottom:'1px solid #0f0f0f', fontFamily:'DM Mono' },
+    th:   { padding:'8px 12px', fontSize:10, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #242424', whiteSpace:'nowrap' },
+    td:   { padding:'8px 12px', fontSize:12, borderBottom:'1px solid #111', fontFamily:'Barlow',fontWeight:700, fontWeight:500 },
   }
 
   return (
@@ -335,7 +335,7 @@ export default function App() {
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
         <div>
           <div style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em',color:'#e8e8e8'}}>STMN Fitness</div>
-          <div style={{fontSize:11,color:'#444',marginTop:2,fontFamily:'DM Mono'}}>
+          <div style={{fontSize:11,color:'#444',marginTop:2,fontFamily:'Barlow',fontWeight:700}}>
             LTV:CAC • Dal 2026-04 • {updated ? updated.toLocaleString('it-IT') : '—'}
           </div>
         </div>
@@ -390,12 +390,12 @@ export default function App() {
           {/* Grafico Ratio mensile */}
           {data.some(m=>m.ratio!=null) && (
             <div style={{...S.card, marginBottom:16}}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:16}}>Ratio LTV:CAC mensile</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={data} margin={{top:4,right:16,left:0,bottom:4}}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
                   <Tooltip content={<ChartTip />} />
                   <Line dataKey="ratio" name="Ratio" stroke="#e8e8e8" strokeWidth={2} dot={{r:4,fill:'#e8e8e8'}} connectNulls />
@@ -408,12 +408,12 @@ export default function App() {
           {/* Grafico Fatturato vs Spesa */}
           {data.some(m=>m.fatturato>0) && (
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:16}}>Fatturato vs Spesa Ads</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={data} margin={{top:4,right:16,left:0,bottom:4}} barGap={4}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" vertical={false} />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill:'#555',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTip />} />
                   <Bar dataKey="fatturato"  name="Fatturato €"    fill="#22c55e" radius={[3,3,0,0]} opacity={0.85} />
                   <Bar dataKey="metaSpend"  name="Meta Ads €"     fill="#3b82f6" radius={[3,3,0,0]} opacity={0.85} />
@@ -431,7 +431,7 @@ export default function App() {
           {/* Tabella input */}
           <div style={{...S.card, marginBottom:24}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <span style={{fontSize:12,color:'#888'}}>Inserimento dati mensili</span>
+              <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>Inserimento dati mensili</span>
               <span style={{fontSize:10,color:'#22c55e'}}>📘 Meta automatica · ⌨ Manuale</span>
             </div>
             <div style={{overflowX:'auto'}}>
@@ -449,7 +449,7 @@ export default function App() {
                     const metaSpend = (live?.metaMonthly||[]).find(x=>x.month===month)?.spend || 0
                     return (
                       <tr key={month} style={{borderBottom:'1px solid #111'}}>
-                        <td style={{...S.td,color:'#888',fontWeight:600}}>{month}</td>
+                        <td style={{...S.td,color:'#ccc',fontWeight:700}}>{month}</td>
                         <td style={{...S.td,padding:'6px 8px'}}>
                           <NumInput value={d.fatturato||0} onChange={v=>updateMonth(month,'fatturato',v)} placeholder="es. 149473" color="#22c55e" />
                         </td>
@@ -469,7 +469,7 @@ export default function App() {
                   })}
                   {/* TOTALE */}
                   <tr style={{background:'#0a0a0a',borderTop:'1px solid #242424'}}>
-                    <td style={{...S.td,color:'#555',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.07em'}}>Totale</td>
+                    <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>TOTALE</td>
                     <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(totFat)}</td>
                     <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{fn(totOrd)}</td>
                     <td style={{...S.td,color:'#06b6d4',fontWeight:700}}>{fn(totNC)}</td>
@@ -485,35 +485,35 @@ export default function App() {
           {/* Tabella KPI calcolati */}
           {data.some(m=>m.ratio!=null||m.mer!=null) && (
             <div style={{...S.card, marginBottom:24}}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:16}}>KPI calcolati</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>KPI calcolati</p>
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
                       {['Mese','AOV','Spesa Totale','CAC','LTV','Ratio','MER'].map(h=>(
-                        <th key={h} style={S.th}>{h}</th>
+                        <th key={h} style={{...S.th,color:'#ffffff',fontWeight:700}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {data.map((m,i) => (
                       <tr key={m.month} style={{background:i%2===0?'transparent':'#0a0a0a'}}>
-                        <td style={{...S.td,color:'#888',fontWeight:600}}>{m.month}</td>
+                        <td style={{...S.td,color:'#ccc',fontWeight:700}}>{m.month}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.aov>0?f2(m.aov):'—'}</td>
                         <td style={{...S.td,color:'#888'}}>{m.totalSpend>0?f0(m.totalSpend):'—'}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.cac?f2(m.cac):'—'}</td>
                         <td style={{...S.td,color:'#e8e8e8'}}>{m.ltv?f2(m.ltv):'—'}</td>
-                        <td style={{...S.td,fontWeight:700,fontFamily:'DM Mono',color:ratioColor(m.ratio)}}>{m.ratio?`${fr(m.ratio)}:1`:'—'}</td>
+                        <td style={{...S.td,fontWeight:700,fontFamily:'Barlow',fontWeight:700,color:ratioColor(m.ratio)}}>{m.ratio?`${fr(m.ratio)}:1`:'—'}</td>
                         <td style={{...S.td,color:'#22c55e',fontWeight:600}}>{m.mer?`${fr(m.mer)}×`:'—'}</td>
                       </tr>
                     ))}
                     <tr style={{background:'#0a0a0a',borderTop:'1px solid #242424'}}>
-                      <td style={{...S.td,color:'#555',fontWeight:700,fontSize:10,textTransform:'uppercase'}}>Media</td>
+                      <td style={{...S.td,color:'#888',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>MEDIA</td>
                       <td style={{...S.td,color:'#e8e8e8',fontWeight:700}}>{avgAOV>0?f2(avgAOV):'—'}</td>
                       <td style={{...S.td,color:'#888',fontWeight:700}}>{totSpend>0?f0(Math.round(totSpend/avail.length)):'—'}</td>
                       <td style={{...S.td,fontWeight:700}}>{cacG?f2(cacG):'—'}</td>
                       <td style={{...S.td,fontWeight:700}}>{ltvG?f2(ltvG):'—'}</td>
-                      <td style={{...S.td,fontWeight:800,fontFamily:'DM Mono',fontSize:16,color:ratioColor(ratioG)}}>{ratioG?`${fr(ratioG)}:1`:'—'}</td>
+                      <td style={{...S.td,fontWeight:800,fontFamily:'Barlow',fontWeight:700,fontSize:16,color:ratioColor(ratioG)}}>{ratioG?`${fr(ratioG)}:1`:'—'}</td>
                       <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{merG?`${fr(merG)}×`:'—'}</td>
                     </tr>
                   </tbody>
@@ -525,11 +525,11 @@ export default function App() {
           {/* Grafici dinamici */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:14}}>Fatturato vs Spesa Ads</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Spesa Ads</p>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={data} barGap={3} margin={{top:0,right:8,left:0,bottom:0}}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" vertical={false} />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTip />} />
                   <Bar dataKey="fatturato"  name="Fatturato" fill="#22c55e" radius={[2,2,0,0]} />
@@ -539,12 +539,12 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:14}}>CAC mensile</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>CAC mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
                   <Tooltip content={<ChartTip />} />
                   <Line dataKey="cac" name="CAC €" stroke="#e8e8e8" strokeWidth={2} dot={{r:4,fill:'#e8e8e8'}} connectNulls />
                 </LineChart>
@@ -554,12 +554,12 @@ export default function App() {
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:14}}>MER mensile</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>MER mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} />
                   <Tooltip content={<ChartTip />} />
                   <Line dataKey="mer" name="MER" stroke="#22c55e" strokeWidth={2} dot={{r:4,fill:'#22c55e'}} connectNulls />
@@ -567,12 +567,12 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <div style={S.card}>
-              <p style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:14}}>Ratio LTV:CAC mensile</p>
+              <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Ratio LTV:CAC mensile</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{top:0,right:8,left:0,bottom:0}}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1a1a1a" />
-                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'DM Mono'}} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="month" tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fill:'#555',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.4} label={{value:'3:1',fill:'#22c55e',fontSize:9}} />
                   <Tooltip content={<ChartTip />} />
                   <Line dataKey="ratio" name="Ratio" stroke="#e8e8e8" strokeWidth={2} dot={{r:4}} connectNulls />
@@ -590,8 +590,8 @@ export default function App() {
         </div>
       )}
 
-      <div style={{textAlign:'center',fontSize:10,color:'#2a2a2a',marginTop:40,fontFamily:'DM Mono'}}>
-        STMN Fitness · LTV:CAC Dashboard · {new Date().getFullYear()}
+      <div style={{textAlign:'center',fontSize:10,color:'#2a2a2a',marginTop:40,fontFamily:'Barlow',fontWeight:700}}>
+        STMN FITNESS · LTV:CAC DASHBOARD · {new Date().getFullYear()}
       </div>
     </div>
   )

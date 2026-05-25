@@ -18,35 +18,82 @@ function shopifyAuth() {
   }
 }
 
-function graphQLHeaders() {
+function shopifyGraphQLHeaders() {
   return {
     'X-Shopify-Access-Token': SHOPIFY_TOKEN || '',
     'Content-Type': 'application/json',
   }
 }
 
-function cleanNumber(value) {
+function normalizeRawNumber(value) {
   if (value == null) return 0
 
-  if (typeof value === 'number') return value
-
-  if (typeof value === 'object') {
-    if ('amount' in value) return cleanNumber(value.amount)
-    if ('value' in value) return cleanNumber(value.value)
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
   }
 
-  const n = parseFloat(
-    String(value)
-      .replace(/[€\s]/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.')
-  )
+  if (typeof value === 'object') {
+    if ('amount' in value) return normalizeRawNumber(value.amount)
+    if ('value' in value) return normalizeRawNumber(value.value)
+    if ('decimal' in value) return normalizeRawNumber(value.decimal)
+  }
 
+  let raw = String(value)
+    .trim()
+    .replace(/[€\s]/g, '')
+    .replace(/[^\d,.-]/g, '')
+
+  if (!raw) return 0
+
+  const hasComma = raw.includes(',')
+  const hasDot = raw.includes('.')
+
+  if (hasComma && hasDot) {
+    // Italiano: 1.564,35
+    if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) {
+      raw = raw.replace(/\./g, '').replace(',', '.')
+    } else {
+      // Inglese: 1,564.35
+      raw = raw.replace(/,/g, '')
+    }
+  } else if (hasComma && !hasDot) {
+    raw = raw.replace(',', '.')
+  } else if (hasDot && !hasComma) {
+    const parts = raw.split('.')
+
+    // 1.564.359 = separatori migliaia
+    if (parts.length > 2) {
+      raw = raw.replace(/\./g, '')
+    }
+  }
+
+  const n = parseFloat(raw)
   return Number.isFinite(n) ? n : 0
+}
+
+function cleanCount(value) {
+  return Math.round(normalizeRawNumber(value))
+}
+
+function cleanMoney(value) {
+  let n = normalizeRawNumber(value)
+
+  // [Inferenza] ShopifyQL tableData.rows può restituire money in centesimi.
+  // Esempio: 1667395 => 16.673,95 €
+  if (Number.isInteger(n) && Math.abs(n) >= 100000) {
+    n = n / 100
+  }
+
+  return Math.round(n * 100) / 100
+}
+
+function roundMoney(n) {
+  return Math.round(Number(n || 0) * 100) / 100
 }
 
 function weekRanges() {
   const weeks = []
+
   let d = new Date(`${WEEKLY_START_DATE}T00:00:00Z`)
   const now = new Date()
 
@@ -67,7 +114,7 @@ function weekRanges() {
   return weeks
 }
 
-// ── Shopify GraphQL / ShopifyQL ───────────────────────────────
+// ── ShopifyQL via GraphQL ─────────────────────────────────────
 async function shopifyQL(query) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
@@ -87,36 +134,205 @@ async function shopifyQL(query) {
     }
   `
 
-  const res = await fetch(
-    `https://${SHOPIFY_STORE}/admin/api/2026-04/graphql.json`,
-    {
-      method: 'POST',
-      headers: graphQLHeaders(),
-      body: JSON.stringify({
-        query: gql,
-        variables: { query },
-      }),
+  try {
+    const res = await fetch(
+      `https://${SHOPIFY_STORE}/admin/api/2026-04/graphql.json`,
+      {
+        method: 'POST',
+        headers: shopifyGraphQLHeaders(),
+        body: JSON.stringify({
+          query: gql,
+          variables: { query },
+        }),
+      }
+    )
+
+    const json = await res.json()
+
+    if (!res.ok || json.errors?.length) {
+      console.log(
+        'Shopify GraphQL error:',
+        JSON.stringify(json.errors || json, null, 2)
+      )
+      return []
     }
-  )
 
-  const json = await res.json()
+    const payload = json.data?.shopifyqlQuery
 
-  if (!res.ok || json.errors?.length) {
-    console.log('Shopify GraphQL error:', JSON.stringify(json.errors || json, null, 2))
+    if (payload?.parseErrors?.length) {
+      console.log(
+        'ShopifyQL parse error:',
+        JSON.stringify(payload.parseErrors, null, 2)
+      )
+      return []
+    }
+
+    const columns = payload?.tableData?.columns || []
+    const rows = payload?.tableData?.rows || []
+
+    return rows.map(row => {
+      if (!Array.isArray(row)) return row
+
+      const obj = {}
+
+      columns.forEach((col, i) => {
+        const key = col.name || col.displayName || `col_${i}`
+        obj[key] = row[i]
+      })
+
+      return obj
+    })
+  } catch (e) {
+    console.log('ShopifyQL error:', e.message)
     return []
   }
-
-  const payload = json.data?.shopifyqlQuery
-
-  if (payload?.parseErrors?.length) {
-    console.log('ShopifyQL parse error:', JSON.stringify(payload.parseErrors, null, 2))
-    return []
-  }
-
-  return payload?.tableData?.rows || []
 }
 
-// ── Shopify dati settimanali: fatturato, fatturato NC, ordini, NC, RC ──
+// ── Shopify weekly sales ──────────────────────────────────────
+async function fetchShopifySalesWeek(start, end) {
+  const query = `
+    FROM sales
+      SHOW customers,
+        new_customers,
+        orders_first_time,
+        total_sales_first_time,
+        returning_customers,
+        orders_returning,
+        total_sales_returning,
+        orders,
+        total_sales
+      WHERE new_or_returning_customer IS NOT NULL
+      SINCE ${start}
+      UNTIL ${end}
+      GROUP BY new_or_returning_customer
+      WITH TOTALS, CURRENCY 'EUR'
+      ORDER BY new_or_returning_customer ASC
+      LIMIT 2
+  `
+
+  const rows = await shopifyQL(query)
+
+  let fatturato = 0
+  let fatturNC = 0
+  let fatturRC = 0
+  let ordini = 0
+  let nc = 0
+  let rc = 0
+
+  for (const row of rows) {
+    const segment = String(row.new_or_returning_customer || '').toLowerCase()
+
+    const rowTotalSales = cleanMoney(row.total_sales)
+    const rowOrders = cleanCount(row.orders)
+
+    fatturato += rowTotalSales
+    ordini += rowOrders
+
+    const isNew =
+      segment.includes('new') ||
+      segment.includes('first') ||
+      segment.includes('nuov')
+
+    const isReturning =
+      segment.includes('return') ||
+      segment.includes('ritorn') ||
+      segment.includes('recurr')
+
+    if (isNew) {
+      const rowNC =
+        cleanCount(row.new_customers) ||
+        cleanCount(row.orders_first_time) ||
+        cleanCount(row.customers) ||
+        rowOrders
+
+      const rowFatNC =
+        cleanMoney(row.total_sales_first_time) ||
+        rowTotalSales
+
+      nc += rowNC
+      fatturNC += rowFatNC
+    }
+
+    if (isReturning) {
+      const rowRC =
+        cleanCount(row.returning_customers) ||
+        cleanCount(row.orders_returning) ||
+        cleanCount(row.customers) ||
+        rowOrders
+
+      const rowFatRC =
+        cleanMoney(row.total_sales_returning) ||
+        rowTotalSales
+
+      rc += rowRC
+      fatturRC += rowFatRC
+    }
+  }
+
+  if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
+    fatturRC = Math.max(fatturato - fatturNC, 0)
+  }
+
+  return {
+    fatturato: roundMoney(fatturato),
+    fatturNC: roundMoney(fatturNC),
+    fatturRC: roundMoney(fatturRC),
+    ordini: cleanCount(ordini),
+    nc: cleanCount(nc),
+    rc: cleanCount(rc),
+  }
+}
+
+// ── Shopify weekly online store visitors ──────────────────────
+// [Non verificato] Uso online_store_visitors perché Shopify lo mostra come
+// "visitatori del negozio online". Se ShopifyQL rifiuta la metrica, torna 0.
+async function fetchShopifyVisitorsWeek(start, end) {
+  const candidates = [
+    `
+      FROM sessions
+        SHOW online_store_visitors
+        SINCE ${start}
+        UNTIL ${end}
+    `,
+    `
+      FROM sessions
+        SHOW visitors
+        SINCE ${start}
+        UNTIL ${end}
+    `,
+    `
+      FROM sessions
+        SHOW unique_visitors
+        SINCE ${start}
+        UNTIL ${end}
+    `,
+    `
+      FROM sessions
+        SHOW sessions
+        SINCE ${start}
+        UNTIL ${end}
+    `,
+  ]
+
+  for (const query of candidates) {
+    const rows = await shopifyQL(query)
+
+    if (!rows?.length) continue
+
+    const row = rows[0] || {}
+
+    const value =
+      cleanCount(row.online_store_visitors) ||
+      cleanCount(row.visitors) ||
+      cleanCount(row.unique_visitors) ||
+      cleanCount(row.sessions)
+
+    if (value > 0) return value
+  }
+
+  return 0
+}
+
 async function fetchShopifyWeekly() {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
@@ -125,70 +341,23 @@ async function fetchShopifyWeekly() {
 
     const rows = await Promise.all(
       ranges.map(async ({ start, end }) => {
-        const query = `
-          FROM sales
-            SHOW customers,
-              new_customers,
-              orders_first_time,
-              total_sales_first_time,
-              returning_customers,
-              orders_returning,
-              total_sales_returning,
-              orders,
-              total_sales
-            WHERE new_or_returning_customer IS NOT NULL
-            SINCE ${start}
-            UNTIL ${end}
-            GROUP BY new_or_returning_customer
-            WITH TOTALS, CURRENCY 'EUR'
-            ORDER BY new_or_returning_customer ASC
-            LIMIT 2
-        `
-
-        const data = await shopifyQL(query)
-
-        let fatturato = 0
-        let fatturNC = 0
-        let ordini = 0
-        let nc = 0
-        let rc = 0
-
-        for (const row of data) {
-          const segment = String(row.new_or_returning_customer || '').toLowerCase()
-
-          const rowTotalSales = cleanNumber(row.total_sales)
-          const rowOrders = cleanNumber(row.orders)
-
-          fatturato += rowTotalSales
-          ordini += rowOrders
-
-          const isNew =
-            segment.includes('new') ||
-            segment.includes('first') ||
-            segment.includes('nuov')
-
-          const isReturning =
-            segment.includes('return') ||
-            segment.includes('ritorn') ||
-            segment.includes('recurr')
-
-          if (isNew) {
-            nc += cleanNumber(row.new_customers || row.customers || row.orders_first_time || rowOrders)
-            fatturNC += cleanNumber(row.total_sales_first_time || rowTotalSales)
-          }
-
-          if (isReturning) {
-            rc += cleanNumber(row.returning_customers || row.orders_returning || row.customers || rowOrders)
-          }
-        }
+        const [sales, uniqueSessions] = await Promise.all([
+          fetchShopifySalesWeek(start, end),
+          fetchShopifyVisitorsWeek(start, end),
+        ])
 
         return {
           date: start,
-          fatturato: Math.round(fatturato * 100) / 100,
-          fatturNC: Math.round(fatturNC * 100) / 100,
-          ordini: Math.round(ordini),
-          nc: Math.round(nc),
-          rc: Math.round(rc),
+
+          fatturato: sales.fatturato,
+          fatturNC: sales.fatturNC,
+          fatturRC: sales.fatturRC,
+
+          ordini: sales.ordini,
+          nc: sales.nc,
+          rc: sales.rc,
+
+          uniqueSessions,
         }
       })
     )
@@ -197,9 +366,11 @@ async function fetchShopifyWeekly() {
       w =>
         w.fatturato > 0 ||
         w.fatturNC > 0 ||
+        w.fatturRC > 0 ||
         w.ordini > 0 ||
         w.nc > 0 ||
-        w.rc > 0
+        w.rc > 0 ||
+        w.uniqueSessions > 0
     )
   } catch (e) {
     console.log('Shopify weekly error:', e.message)
@@ -210,6 +381,10 @@ async function fetchShopifyWeekly() {
 // ── AOV ultimi 30 giorni ──────────────────────────────────────
 async function fetchAOV() {
   try {
+    if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) {
+      return { aov: 0, orders: 0 }
+    }
+
     const since = subDays(new Date(), 30).toISOString()
 
     const res = await fetch(
@@ -272,6 +447,7 @@ async function fetchMetaWeekly() {
 
         return (data.data || []).map(d => ({
           date: d.date_start,
+
           spend: parseFloat(d.spend || 0),
           impressions: parseInt(d.impressions || 0),
           reach: parseInt(d.reach || 0),
@@ -337,13 +513,21 @@ async function fetchMetaWeekly() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map(w => ({
         date: w.date,
+
         spend: Math.round(w.spend * 100) / 100,
+
         impressions: w.impressions,
+
         reach: w.reach,
+
         frequency: Math.round(avg(w.freq) * 100) / 100,
+
         cpm: Math.round(avg(w.cpm) * 100) / 100,
+
         ctr: Math.round(avg(w.ctr) * 1000) / 1000,
+
         linkClicks: w.linkClicks,
+
         cpcLink: Math.round(avg(w.cpcLink) * 100) / 100,
       }))
   } catch (e) {

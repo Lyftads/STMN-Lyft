@@ -9,9 +9,6 @@ const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 const API_VERSION = process.env.META_API_VERSION || 'v19.0'
 
-const DEFAULT_WEEKS_BACK = 8
-const MAXIMUM_SINCE = '2025-12-29'
-
 const PURCHASE_KEYS = [
   'purchase',
   'omni_purchase',
@@ -33,127 +30,145 @@ function r2(value) {
   return Math.round(n(value) * 100) / 100
 }
 
-function r4(value) {
-  return Math.round(n(value) * 10000) / 10000
+function toISO(date) {
+  return date.toISOString().slice(0, 10)
 }
 
-function pad(value) {
-  return String(value).padStart(2, '0')
+function parseDate(value) {
+  const d = new Date(`${value}T00:00:00.000Z`)
+  return Number.isNaN(d.getTime()) ? null : d
 }
 
-function toISODate(date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+function daysBetweenInclusive(start, end) {
+  const ms = end.getTime() - start.getTime()
+  return Math.floor(ms / 86400000) + 1
 }
 
 function addDays(date, days) {
   const d = new Date(date)
-  d.setDate(d.getDate() + days)
+  d.setUTCDate(d.getUTCDate() + days)
   return d
 }
 
-function isValidDateString(value) {
-  if (!value) return false
-  return /^\d{4}-\d{2}-\d{2}$/.test(value)
-}
-
-function getDefaultDateRange() {
-  const untilDate = new Date()
-  const sinceDate = addDays(untilDate, -DEFAULT_WEEKS_BACK * 7)
+function getDefaultDates() {
+  const today = new Date()
+  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+  const start = addDays(end, -6)
 
   return {
-    since: toISODate(sinceDate),
-    until: toISODate(untilDate),
+    start: toISO(start),
+    end: toISO(end),
   }
 }
 
-function getDateRangeFromRequest(request) {
-  const { searchParams } = new URL(request.url)
+function getDateRange(searchParams) {
+  const defaults = getDefaultDates()
 
-  const preset = searchParams.get('preset')
-  const customSince = searchParams.get('since')
-  const customUntil = searchParams.get('until')
+  const startParam =
+    searchParams.get('start') ||
+    searchParams.get('since') ||
+    searchParams.get('dateStart') ||
+    defaults.start
 
-  const today = new Date()
+  const endParam =
+    searchParams.get('end') ||
+    searchParams.get('until') ||
+    searchParams.get('dateStop') ||
+    defaults.end
 
-  if (preset === 'maximum') {
-    return {
-      since: MAXIMUM_SINCE,
-      until: toISODate(today),
-    }
+  const startDate = parseDate(startParam) || parseDate(defaults.start)
+  const endDate = parseDate(endParam) || parseDate(defaults.end)
+
+  const safeStart = startDate <= endDate ? startDate : endDate
+  const safeEnd = startDate <= endDate ? endDate : startDate
+
+  const days = daysBetweenInclusive(safeStart, safeEnd)
+
+  const previousEnd = addDays(safeStart, -1)
+  const previousStart = addDays(previousEnd, -(days - 1))
+
+  return {
+    current: {
+      start: toISO(safeStart),
+      end: toISO(safeEnd),
+    },
+    previous: {
+      start: toISO(previousStart),
+      end: toISO(previousEnd),
+    },
+    days,
   }
-
-  let { since, until } = getDefaultDateRange()
-
-  if (isValidDateString(customSince) && isValidDateString(customUntil)) {
-    since = customSince
-    until = customUntil
-  }
-
-  return { since, until }
 }
 
 function getActionValue(actions, keys) {
   if (!Array.isArray(actions)) return 0
 
-  return actions
-    .filter((action) => keys.includes(action.action_type))
-    .reduce((sum, action) => sum + n(action.value), 0)
-}
+  return actions.reduce((sum, action) => {
+    if (keys.includes(action.action_type)) {
+      return sum + n(action.value)
+    }
 
-function getLinkClicks(row) {
-  return n(row.inline_link_clicks)
-}
-
-function getCostPerLinkClick(row) {
-  const apiValue = n(row.cost_per_inline_link_click)
-
-  if (apiValue > 0) return apiValue
-
-  const spend = n(row.spend)
-  const clicks = getLinkClicks(row)
-
-  return clicks > 0 ? spend / clicks : 0
+    return sum
+  }, 0)
 }
 
 function getPurchaseValue(row) {
-  return getActionValue(row.action_values, PURCHASE_KEYS)
+  if (Array.isArray(row.action_values)) {
+    const value = row.action_values.reduce((sum, action) => {
+      if (PURCHASE_KEYS.includes(action.action_type)) {
+        return sum + n(action.value)
+      }
+
+      return sum
+    }, 0)
+
+    if (value > 0) return value
+  }
+
+  if (Array.isArray(row.conversion_values)) {
+    return row.conversion_values.reduce((sum, action) => {
+      if (PURCHASE_KEYS.includes(action.action_type)) {
+        return sum + n(action.value)
+      }
+
+      return sum
+    }, 0)
+  }
+
+  return 0
 }
 
-function getPurchaseRoas(row) {
-  if (!Array.isArray(row.purchase_roas)) return 0
+function normalizeInsight(row, level, dateStart, dateStop) {
+  const spend = n(row.spend)
+  const impressions = n(row.impressions)
+  const reach = n(row.reach)
+  const frequency = n(row.frequency)
+  const cpm = n(row.cpm)
 
-  const found =
-    row.purchase_roas.find((item) => PURCHASE_KEYS.includes(item.action_type)) ||
-    row.purchase_roas[0]
+  const ctrLink = n(row.inline_link_click_ctr)
+  const cpcLink = n(row.cost_per_inline_link_click)
+  const linkClicks = n(row.inline_link_clicks)
 
-  return n(found?.value)
-}
+  const costPerResult = n(row.cost_per_result)
 
-function getCostPerPurchase(row) {
-  if (!Array.isArray(row.cost_per_action_type)) return 0
-
-  const found = row.cost_per_action_type.find((item) =>
-    PURCHASE_KEYS.includes(item.action_type)
-  )
-
-  return n(found?.value)
-}
-
-function normalizeInsight(row, level) {
-  const linkClicks = getLinkClicks(row)
   const purchases = getActionValue(row.actions, PURCHASE_KEYS)
+  const purchaseConversions = getActionValue(row.conversions, PURCHASE_KEYS) || purchases
   const addToCart = getActionValue(row.actions, ADD_TO_CART_KEYS)
+
   const purchaseValue = getPurchaseValue(row)
+  const roas = spend > 0 ? purchaseValue / spend : 0
+  const cro = linkClicks > 0 ? (purchases / linkClicks) * 100 : 0
+  const aov = purchases > 0 ? purchaseValue / purchases : 0
 
   return {
     level,
 
-    date: row.date_start,
-    dateStart: row.date_start,
-    dateStop: row.date_stop,
+    date: dateStart,
+    dateStart,
+    dateStop,
 
     campaignId: row.campaign_id || null,
-    campaignName: row.campaign_name || 'Senza nome campagna',
+    campaignName: row.campaign_name || null,
 
     adsetId: row.adset_id || null,
     adsetName: row.adset_name || null,
@@ -161,57 +176,181 @@ function normalizeInsight(row, level) {
     adId: row.ad_id || null,
     adName: row.ad_name || null,
 
-    spend: r2(row.spend),
-    impressions: Math.round(n(row.impressions)),
-    reach: Math.round(n(row.reach)),
-    frequency: r4(row.frequency),
-    cpm: r2(row.cpm),
-
-    // CTR click sul link
-    ctrLink: r4(row.inline_link_click_ctr || 0),
-
-    // CPC costo per click sul link
-    cpcLink: r2(getCostPerLinkClick(row)),
-
-    // Click sul link
+    spend: r2(spend),
+    impressions: Math.round(impressions),
+    reach: Math.round(reach),
+    frequency: r2(frequency),
+    cpm: r2(cpm),
+    ctrLink: r2(ctrLink),
+    cpcLink: r2(cpcLink),
     linkClicks: Math.round(linkClicks),
-
-    // Costo per risultato = costo per acquisto
-    costPerResult: r2(getCostPerPurchase(row)),
-
-    // ROAS Meta
-    roas: r4(getPurchaseRoas(row)),
-
-    // Valore acquisti
+    costPerResult: r2(costPerResult),
+    roas: r2(roas),
     purchaseValue: r2(purchaseValue),
-
-    // Conversioni acquisti / acquisti
-    purchaseConversions: r2(purchases),
-    purchases: r2(purchases),
-
-    // Aggiunte al carrello
-    addToCart: r2(addToCart),
-
-    // CRO campagna = Acquisti / Click sul link × 100
-    cro: linkClicks > 0 ? r4((purchases / linkClicks) * 100) : null,
-
-    // AOV campagna = Valore acquisti / Acquisti
-    aov: purchases > 0 ? r2(purchaseValue / purchases) : null,
+    purchaseConversions: Math.round(purchaseConversions),
+    purchases: Math.round(purchases),
+    addToCart: Math.round(addToCart),
+    cro: r2(cro),
+    aov: r2(aov),
   }
 }
 
-async function metaFetch(path, params = {}) {
+function emptyMetric(level, id, name) {
+  return {
+    level,
+
+    date: null,
+    dateStart: null,
+    dateStop: null,
+
+    campaignId: level === 'campaign' ? id : null,
+    campaignName: level === 'campaign' ? name : null,
+
+    adsetId: level === 'adset' ? id : null,
+    adsetName: level === 'adset' ? name : null,
+
+    adId: level === 'ad' ? id : null,
+    adName: level === 'ad' ? name : null,
+
+    spend: 0,
+    impressions: 0,
+    reach: 0,
+    frequency: 0,
+    cpm: 0,
+    ctrLink: 0,
+    cpcLink: 0,
+    linkClicks: 0,
+    costPerResult: 0,
+    roas: 0,
+    purchaseValue: 0,
+    purchaseConversions: 0,
+    purchases: 0,
+    addToCart: 0,
+    cro: 0,
+    aov: 0,
+  }
+}
+
+function deltaValue(current, previous) {
+  const currentNum = n(current)
+  const previousNum = n(previous)
+  const value = r2(currentNum - previousNum)
+  const pct = previousNum !== 0 ? r2(((currentNum - previousNum) / previousNum) * 100) : null
+
+  return {
+    value,
+    pct,
+  }
+}
+
+function buildDelta(current, previous) {
+  const fields = [
+    'spend',
+    'impressions',
+    'reach',
+    'frequency',
+    'cpm',
+    'ctrLink',
+    'cpcLink',
+    'linkClicks',
+    'costPerResult',
+    'roas',
+    'purchaseValue',
+    'purchaseConversions',
+    'purchases',
+    'addToCart',
+    'cro',
+    'aov',
+  ]
+
+  const delta = {}
+
+  fields.forEach((field) => {
+    delta[field] = deltaValue(current?.[field], previous?.[field])
+  })
+
+  return delta
+}
+
+function mergeRows(rows) {
+  const total = {
+    spend: 0,
+    impressions: 0,
+    reach: 0,
+    frequency: 0,
+    cpm: 0,
+    ctrLink: 0,
+    cpcLink: 0,
+    linkClicks: 0,
+    costPerResult: 0,
+    roas: 0,
+    purchaseValue: 0,
+    purchaseConversions: 0,
+    purchases: 0,
+    addToCart: 0,
+    cro: 0,
+    aov: 0,
+  }
+
+  rows.forEach((row) => {
+    total.spend += n(row.spend)
+    total.impressions += n(row.impressions)
+    total.reach += n(row.reach)
+    total.linkClicks += n(row.linkClicks)
+    total.purchaseValue += n(row.purchaseValue)
+    total.purchaseConversions += n(row.purchaseConversions)
+    total.purchases += n(row.purchases)
+    total.addToCart += n(row.addToCart)
+  })
+
+  total.frequency = total.reach > 0 ? total.impressions / total.reach : 0
+  total.cpm = total.impressions > 0 ? (total.spend / total.impressions) * 1000 : 0
+  total.ctrLink = total.impressions > 0 ? (total.linkClicks / total.impressions) * 100 : 0
+  total.cpcLink = total.linkClicks > 0 ? total.spend / total.linkClicks : 0
+  total.costPerResult = total.purchases > 0 ? total.spend / total.purchases : 0
+  total.roas = total.spend > 0 ? total.purchaseValue / total.spend : 0
+  total.cro = total.linkClicks > 0 ? (total.purchases / total.linkClicks) * 100 : 0
+  total.aov = total.purchases > 0 ? total.purchaseValue / total.purchases : 0
+
+  Object.keys(total).forEach((key) => {
+    total[key] = key === 'impressions' ||
+      key === 'reach' ||
+      key === 'linkClicks' ||
+      key === 'purchaseConversions' ||
+      key === 'purchases' ||
+      key === 'addToCart'
+      ? Math.round(total[key])
+      : r2(total[key])
+  })
+
+  return total
+}
+
+function getId(row, level) {
+  if (level === 'campaign') return row.campaignId
+  if (level === 'adset') return row.adsetId
+  return row.adId
+}
+
+function getName(row, level) {
+  if (level === 'campaign') return row.campaignName
+  if (level === 'adset') return row.adsetName
+  return row.adName
+}
+
+async function metaFetch(path, params) {
   const url = new URL(`https://graph.facebook.com/${API_VERSION}/${path}`)
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) {
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, value)
     }
-  }
+  })
 
   url.searchParams.set('access_token', META_TOKEN)
 
   const response = await fetch(url.toString(), {
+    method: 'GET',
     cache: 'no-store',
   })
 
@@ -221,25 +360,24 @@ async function metaFetch(path, params = {}) {
 
   try {
     json = text ? JSON.parse(text) : null
-  } catch (error) {
-    throw new Error(
-      `Meta ha risposto con contenuto non JSON. Status: ${response.status}`
-    )
+  } catch {
+    throw new Error(`Meta non ha restituito JSON valido. Status ${response.status}. Risposta: ${text.slice(0, 500)}`)
   }
 
   if (!response.ok || json?.error) {
-    throw new Error(json?.error?.message || `Meta API error: ${response.status}`)
+    throw new Error(json?.error?.message || `Errore Meta API. Status ${response.status}`)
   }
 
   return json
 }
 
-async function fetchAllPages(path, params = {}) {
+async function metaFetchAll(path, params) {
   let json = await metaFetch(path, params)
-  const rows = [...(json?.data || [])]
+  const data = Array.isArray(json.data) ? [...json.data] : []
 
   while (json?.paging?.next) {
     const response = await fetch(json.paging.next, {
+      method: 'GET',
       cache: 'no-store',
     })
 
@@ -247,26 +385,23 @@ async function fetchAllPages(path, params = {}) {
 
     try {
       json = text ? JSON.parse(text) : null
-    } catch (error) {
-      throw new Error('Meta ha restituito una pagina non JSON durante la paginazione.')
+    } catch {
+      throw new Error(`Meta paging non ha restituito JSON valido. Risposta: ${text.slice(0, 500)}`)
     }
 
     if (!response.ok || json?.error) {
-      throw new Error(json?.error?.message || `Meta API pagination error: ${response.status}`)
+      throw new Error(json?.error?.message || 'Errore Meta API durante il paging')
     }
 
-    rows.push(...(json?.data || []))
+    if (Array.isArray(json.data)) {
+      data.push(...json.data)
+    }
   }
 
-  return rows
+  return data
 }
 
-async function fetchInsights(level, since, until) {
-  const accounts = String(META_ACCOUNT || '')
-    .split(',')
-    .map((account) => account.trim())
-    .filter(Boolean)
-
+async function fetchInsights(level, range, timeIncrement = null) {
   const fields = [
     'campaign_id',
     'campaign_name',
@@ -282,157 +417,279 @@ async function fetchInsights(level, since, until) {
     'inline_link_click_ctr',
     'inline_link_clicks',
     'cost_per_inline_link_click',
-    'cost_per_action_type',
+    'cost_per_result',
     'actions',
     'action_values',
-    'purchase_roas',
-    'date_start',
-    'date_stop',
-  ].join(',')
+    'conversions',
+    'conversion_values',
+  ]
 
-  const rows = []
-
-  for (const account of accounts) {
-    const accountId = account.startsWith('act_') ? account : `act_${account}`
-
-    const data = await fetchAllPages(`${accountId}/insights`, {
-      fields,
-      level,
-      time_range: JSON.stringify({ since, until }),
-      time_increment: 7,
-      limit: 500,
-      filtering: JSON.stringify([
-        {
-          field: `${level}.effective_status`,
-          operator: 'IN',
-          value: ['ACTIVE'],
-        },
-      ]),
-    })
-
-    rows.push(...data.map((row) => normalizeInsight(row, level)))
+  const params = {
+    level,
+    fields: fields.join(','),
+    time_range: JSON.stringify({
+      since: range.start,
+      until: range.end,
+    }),
+    limit: '500',
   }
 
-  return rows
+  if (timeIncrement) {
+    params.time_increment = String(timeIncrement)
+  }
+
+  const rawRows = await metaFetchAll(`act_${META_ACCOUNT}/insights`, params)
+
+  return rawRows.map((row) => {
+    const dateStart = row.date_start || range.start
+    const dateStop = row.date_stop || range.end
+
+    return normalizeInsight(row, level, dateStart, dateStop)
+  })
 }
 
-async function fetchAdCreatives(adIds) {
-  const uniqueAdIds = [...new Set(adIds.filter(Boolean))]
-  const creatives = {}
+async function fetchActiveCampaigns() {
+  const rows = await metaFetchAll(`act_${META_ACCOUNT}/campaigns`, {
+    fields: 'id,name,status,effective_status',
+    filtering: JSON.stringify([
+      {
+        field: 'effective_status',
+        operator: 'IN',
+        value: ['ACTIVE'],
+      },
+    ]),
+    limit: '500',
+  })
 
-  const limitedAdIds = uniqueAdIds.slice(0, 80)
-
-  for (const adId of limitedAdIds) {
-    try {
-      const json = await metaFetch(adId, {
-        fields:
-          'id,name,creative{id,name,thumbnail_url,image_url,effective_object_story_id,object_story_spec}',
-      })
-
-      creatives[adId] = {
-        adId,
-        creativeId: json?.creative?.id || null,
-        creativeName: json?.creative?.name || null,
-        thumbnailUrl: json?.creative?.thumbnail_url || null,
-        imageUrl: json?.creative?.image_url || null,
-        storyId: json?.creative?.effective_object_story_id || null,
-      }
-    } catch (error) {
-      creatives[adId] = {
-        adId,
-        creativeId: null,
-        creativeName: null,
-        thumbnailUrl: null,
-        imageUrl: null,
-        storyId: null,
-      }
-    }
-  }
-
-  return creatives
+  return rows.map((campaign) => ({
+    id: campaign.id,
+    name: campaign.name,
+    status: campaign.status,
+    effectiveStatus: campaign.effective_status,
+  }))
 }
 
-function latestById(rows, idKey) {
-  const map = {}
+async function fetchActiveAdsets() {
+  const rows = await metaFetchAll(`act_${META_ACCOUNT}/adsets`, {
+    fields: 'id,name,campaign_id,status,effective_status',
+    filtering: JSON.stringify([
+      {
+        field: 'effective_status',
+        operator: 'IN',
+        value: ['ACTIVE'],
+      },
+    ]),
+    limit: '500',
+  })
 
-  for (const row of rows) {
-    const id = row[idKey]
-    if (!id) continue
+  return rows.map((adset) => ({
+    id: adset.id,
+    name: adset.name,
+    campaignId: adset.campaign_id,
+    status: adset.status,
+    effectiveStatus: adset.effective_status,
+  }))
+}
 
-    if (!map[id] || row.date > map[id].date) {
-      map[id] = row
+async function fetchActiveAds() {
+  const rows = await metaFetchAll(`act_${META_ACCOUNT}/ads`, {
+    fields: 'id,name,campaign_id,adset_id,status,effective_status,creative{id,name,thumbnail_url,object_story_spec}',
+    filtering: JSON.stringify([
+      {
+        field: 'effective_status',
+        operator: 'IN',
+        value: ['ACTIVE'],
+      },
+    ]),
+    limit: '500',
+  })
+
+  return rows.map((ad) => ({
+    id: ad.id,
+    name: ad.name,
+    campaignId: ad.campaign_id,
+    adsetId: ad.adset_id,
+    status: ad.status,
+    effectiveStatus: ad.effective_status,
+    creative: ad.creative || null,
+  }))
+}
+
+function indexById(rows, level) {
+  const map = new Map()
+
+  rows.forEach((row) => {
+    const id = getId(row, level)
+
+    if (id) {
+      map.set(id, row)
     }
-  }
+  })
 
   return map
 }
 
-function buildTree(campaignRows, adsetRows, adRows, creativesByAdId = {}) {
-  const latestCampaign = latestById(campaignRows, 'campaignId')
-  const latestAdset = latestById(adsetRows, 'adsetId')
-  const latestAd = latestById(adRows, 'adId')
+function groupBy(rows, key) {
+  const map = new Map()
 
-  const campaigns = Object.values(latestCampaign).map((campaign) => ({
-    id: campaign.campaignId,
-    name: campaign.campaignName,
-    latest: campaign,
-    weeks: campaignRows
-      .filter((row) => row.campaignId === campaign.campaignId)
-      .sort((a, b) => a.date.localeCompare(b.date)),
-    adsets: [],
-  }))
+  rows.forEach((row) => {
+    const id = row[key]
 
-  const campaignMap = Object.fromEntries(
-    campaigns.map((campaign) => [campaign.id, campaign])
-  )
+    if (!id) return
 
-  for (const adset of Object.values(latestAdset)) {
-    const campaign = campaignMap[adset.campaignId]
-    if (!campaign) continue
-
-    campaign.adsets.push({
-      id: adset.adsetId,
-      name: adset.adsetName,
-      latest: adset,
-      weeks: adsetRows
-        .filter((row) => row.adsetId === adset.adsetId)
-        .sort((a, b) => a.date.localeCompare(b.date)),
-      ads: [],
-    })
-  }
-
-  const adsetMap = {}
-
-  for (const campaign of campaigns) {
-    for (const adset of campaign.adsets) {
-      adsetMap[adset.id] = adset
+    if (!map.has(id)) {
+      map.set(id, [])
     }
+
+    map.get(id).push(row)
+  })
+
+  return map
+}
+
+function attachComparison(currentRow, previousRow, level, fallbackId, fallbackName) {
+  const current = currentRow || emptyMetric(level, fallbackId, fallbackName)
+  const previous = previousRow || emptyMetric(level, fallbackId, fallbackName)
+
+  return {
+    ...current,
+    latest: current,
+    previous,
+    delta: buildDelta(current, previous),
   }
+}
 
-  for (const ad of Object.values(latestAd)) {
-    const adset = adsetMap[ad.adsetId]
-    if (!adset) continue
+function makeSeries(currentWeeklyRows, previousWeeklyRows, level, fallbackId, fallbackName) {
+  const previousByDate = new Map()
 
-    adset.ads.push({
-      id: ad.adId,
-      name: ad.adName,
-      latest: ad,
-      creative: creativesByAdId[ad.adId] || null,
-      weeks: adRows
-        .filter((row) => row.adId === ad.adId)
-        .sort((a, b) => a.date.localeCompare(b.date)),
-    })
-  }
+  previousWeeklyRows.forEach((row) => {
+    previousByDate.set(row.dateStart, row)
+  })
 
-  for (const campaign of campaigns) {
-    campaign.adsets.sort((a, b) => b.latest.spend - a.latest.spend)
+  return currentWeeklyRows.map((current) => {
+    const previous = previousByDate.get(current.dateStart) || emptyMetric(level, fallbackId, fallbackName)
 
-    for (const adset of campaign.adsets) {
-      adset.ads.sort((a, b) => b.latest.spend - a.latest.spend)
+    return {
+      ...current,
+      latest: current,
+      previous,
+      delta: buildDelta(current, previous),
     }
-  }
+  })
+}
 
-  return campaigns.sort((a, b) => b.latest.spend - a.latest.spend)
+function buildTree({
+  activeCampaigns,
+  activeAdsets,
+  activeAds,
+  currentCampaignRows,
+  previousCampaignRows,
+  currentAdsetRows,
+  previousAdsetRows,
+  currentAdRows,
+  previousAdRows,
+  weeklyCampaignRows,
+}) {
+  const previousCampaignById = indexById(previousCampaignRows, 'campaign')
+  const currentCampaignById = indexById(currentCampaignRows, 'campaign')
+
+  const previousAdsetById = indexById(previousAdsetRows, 'adset')
+  const currentAdsetById = indexById(currentAdsetRows, 'adset')
+
+  const previousAdById = indexById(previousAdRows, 'ad')
+  const currentAdById = indexById(currentAdRows, 'ad')
+
+  const adsetsByCampaign = groupBy(activeAdsets, 'campaignId')
+  const adsByAdset = groupBy(activeAds, 'adsetId')
+  const weeklyByCampaign = groupBy(weeklyCampaignRows, 'campaignId')
+
+  return activeCampaigns.map((campaign) => {
+    const latestCampaign = currentCampaignById.get(campaign.id)
+    const previousCampaign = previousCampaignById.get(campaign.id)
+
+    const campaignNode = attachComparison(
+      latestCampaign,
+      previousCampaign,
+      'campaign',
+      campaign.id,
+      campaign.name
+    )
+
+    const campaignWeeklyRows = weeklyByCampaign.get(campaign.id) || []
+
+    campaignNode.weeks = makeSeries(
+      campaignWeeklyRows,
+      [],
+      'campaign',
+      campaign.id,
+      campaign.name
+    )
+
+    campaignNode.id = campaign.id
+    campaignNode.name = campaign.name
+    campaignNode.campaignId = campaign.id
+    campaignNode.campaignName = campaign.name
+
+    campaignNode.adsets = (adsetsByCampaign.get(campaign.id) || []).map((adset) => {
+      const latestAdset = currentAdsetById.get(adset.id)
+      const previousAdset = previousAdsetById.get(adset.id)
+
+      const adsetNode = attachComparison(
+        latestAdset,
+        previousAdset,
+        'adset',
+        adset.id,
+        adset.name
+      )
+
+      adsetNode.id = adset.id
+      adsetNode.name = adset.name
+      adsetNode.campaignId = campaign.id
+      adsetNode.campaignName = campaign.name
+      adsetNode.adsetId = adset.id
+      adsetNode.adsetName = adset.name
+
+      adsetNode.ads = (adsByAdset.get(adset.id) || []).map((ad) => {
+        const latestAd = currentAdById.get(ad.id)
+        const previousAd = previousAdById.get(ad.id)
+
+        const adNode = attachComparison(
+          latestAd,
+          previousAd,
+          'ad',
+          ad.id,
+          ad.name
+        )
+
+        adNode.id = ad.id
+        adNode.name = ad.name
+        adNode.campaignId = campaign.id
+        adNode.campaignName = campaign.name
+        adNode.adsetId = adset.id
+        adNode.adsetName = adset.name
+        adNode.adId = ad.id
+        adNode.adName = ad.name
+        adNode.creative = ad.creative
+
+        return adNode
+      })
+
+      return adsetNode
+    })
+
+    return campaignNode
+  })
+}
+
+function buildTotals(rows, previousRows) {
+  const latest = mergeRows(rows)
+  const previous = mergeRows(previousRows)
+
+  return {
+    latest,
+    previous,
+    delta: buildDelta(latest, previous),
+  }
 }
 
 export async function GET(request) {
@@ -441,47 +698,79 @@ export async function GET(request) {
       return NextResponse.json(
         {
           campaigns: [],
-          error: 'Missing META_ACCESS_TOKEN or META_AD_ACCOUNT_ID',
+          error: 'Mancano META_ACCESS_TOKEN o META_AD_ACCOUNT_ID nelle variabili ambiente.',
         },
         { status: 200 }
       )
     }
 
-    const { since, until } = getDateRangeFromRequest(request)
+    const { searchParams } = new URL(request.url)
+    const range = getDateRange(searchParams)
 
-    const campaignRows = await fetchInsights('campaign', since, until)
-    const adsetRows = await fetchInsights('adset', since, until)
-    const adRows = await fetchInsights('ad', since, until)
+    const [
+      activeCampaigns,
+      activeAdsets,
+      activeAds,
 
-    const adIds = adRows.map((row) => row.adId)
-    const creativesByAdId = await fetchAdCreatives(adIds)
+      currentCampaignRows,
+      previousCampaignRows,
 
-    const campaigns = buildTree(campaignRows, adsetRows, adRows, creativesByAdId)
+      currentAdsetRows,
+      previousAdsetRows,
 
-    return NextResponse.json(
-      {
-        campaigns,
-        rawCounts: {
-          campaignWeeks: campaignRows.length,
-          adsetWeeks: adsetRows.length,
-          adWeeks: adRows.length,
-          creatives: Object.keys(creativesByAdId).length,
-        },
-        dateRange: {
-          since,
-          until,
-        },
-        updatedAt: new Date().toISOString(),
+      currentAdRows,
+      previousAdRows,
+
+      weeklyCampaignRows,
+    ] = await Promise.all([
+      fetchActiveCampaigns(),
+      fetchActiveAdsets(),
+      fetchActiveAds(),
+
+      fetchInsights('campaign', range.current),
+      fetchInsights('campaign', range.previous),
+
+      fetchInsights('adset', range.current),
+      fetchInsights('adset', range.previous),
+
+      fetchInsights('ad', range.current),
+      fetchInsights('ad', range.previous),
+
+      fetchInsights('campaign', range.current, 1),
+    ])
+
+    const campaigns = buildTree({
+      activeCampaigns,
+      activeAdsets,
+      activeAds,
+      currentCampaignRows,
+      previousCampaignRows,
+      currentAdsetRows,
+      previousAdsetRows,
+      currentAdRows,
+      previousAdRows,
+      weeklyCampaignRows,
+    })
+
+    const totals = buildTotals(currentCampaignRows, previousCampaignRows)
+
+    return NextResponse.json({
+      range: {
+        current: range.current,
+        previous: range.previous,
+        days: range.days,
       },
-      { status: 200 }
-    )
+      updatedAt: new Date().toISOString(),
+      totals,
+      campaigns,
+    })
   } catch (error) {
     return NextResponse.json(
       {
         campaigns: [],
-        error: error.message || 'Errore sconosciuto nella API Meta Detail',
+        error: error?.message || 'Errore sconosciuto nella route Meta Detail.',
       },
-      { status: 500 }
+      { status: 200 }
     )
   }
 }

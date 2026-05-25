@@ -1120,61 +1120,20 @@ export default function App() {
   }
 
   // ── Calcola dati per ogni mese ────────────────────────────
-// ── Calcola dati automatici mensili da Shopify + Meta Weekly ───────────────
+// ── Calcola dati automatici mensili ────────────────────────────
 
 const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
-const div = (a, b) => b > 0 ? a / b : null
+const divSafe = (a, b) => b > 0 ? a / b : null
 
 const monthFromDate = date => {
   if (!date) return null
   return String(date).slice(0, 7)
 }
 
-const metaMonthlyMap = {}
-;(live?.metaWeekly || []).forEach(w => {
-  const month = monthFromDate(w.date)
-  if (!month) return
-
-  if (!metaMonthlyMap[month]) {
-    metaMonthlyMap[month] = {
-      spend: 0,
-      impressions: 0,
-      reach: 0,
-      linkClicks: 0,
-      purchases: 0,
-      purchaseValue: 0,
-      frequencyWeightedSum: 0,
-      cpmWeightedSum: 0,
-      ctrWeightedSum: 0,
-      cpcWeightedSum: 0,
-      weight: 0,
-    }
-  }
-
-  const m = metaMonthlyMap[month]
-  const spend = asNum(w.spend)
-  const impressions = asNum(w.impressions)
-  const linkClicks = asNum(w.linkClicks)
-
-  m.spend += spend
-  m.impressions += impressions
-  m.reach += asNum(w.reach)
-  m.linkClicks += linkClicks
-  m.purchases += asNum(w.purchases || w.purchaseConversions)
-  m.purchaseValue += asNum(w.purchaseValue)
-
-  const weight = impressions > 0 ? impressions : 1
-  m.frequencyWeightedSum += asNum(w.frequency) * weight
-  m.cpmWeightedSum += asNum(w.cpm) * weight
-  m.ctrWeightedSum += asNum(w.ctrLink || w.ctr) * weight
-  m.cpcWeightedSum += asNum(w.cpcLink || w.cpc) * weight
-  m.weight += weight
-})
-
 const shopifyMonthlyMap = {}
-;(live?.shopifyWeekly || []).forEach(w => {
-  const month = monthFromDate(w.date)
-  if (!month) return
+for (const row of live?.shopifyWeekly || []) {
+  const month = monthFromDate(row.date)
+  if (!month) continue
 
   if (!shopifyMonthlyMap[month]) {
     shopifyMonthlyMap[month] = {
@@ -1188,207 +1147,223 @@ const shopifyMonthlyMap = {}
     }
   }
 
-  const s = shopifyMonthlyMap[month]
+  shopifyMonthlyMap[month].fatturato += asNum(row.fatturato)
+  shopifyMonthlyMap[month].fatturNC += asNum(row.fatturNC)
+  shopifyMonthlyMap[month].fatturRC += asNum(row.fatturRC)
+  shopifyMonthlyMap[month].ordini += asNum(row.ordini)
+  shopifyMonthlyMap[month].nc += asNum(row.nc)
+  shopifyMonthlyMap[month].rc += asNum(row.rc)
+  shopifyMonthlyMap[month].sessioni += asNum(row.uniqueSessions || row.online_store_visitors || row.sessioni)
+}
 
-  s.fatturato += asNum(w.fatturato)
-  s.fatturNC += asNum(w.fatturNC)
-  s.fatturRC += asNum(w.fatturRC)
-  s.ordini += asNum(w.ordini)
-  s.nc += asNum(w.nc)
-  s.rc += asNum(w.rc)
-  s.sessioni += asNum(w.uniqueSessions || w.online_store_visitors || w.sessioni)
-})
+const metaMonthlyMap = {}
 
-const allMonthsSet = new Set([
-  ...avail,
-  ...Object.keys(metaMonthlyMap),
-  ...Object.keys(shopifyMonthlyMap),
-])
+for (const row of live?.metaWeekly || []) {
+  const month = monthFromDate(row.date)
+  if (!month) continue
 
-const data = Array.from(allMonthsSet)
-  .sort()
-  .map(month => {
-    const manual = months[month] || EMPTY
-    const metaAuto = metaMonthlyMap[month] || {}
-    const shopAuto = shopifyMonthlyMap[month] || {}
+  if (!metaMonthlyMap[month]) {
+    metaMonthlyMap[month] = {
+      spend: 0,
+      impressions: 0,
+      reach: 0,
+      linkClicks: 0,
+      ctr: null,
+      cpc: null,
+      cpm: null,
+      frequency: null,
+    }
+  }
 
-    const fatturato =
-      asNum(shopAuto.fatturato) > 0
-        ? asNum(shopAuto.fatturato)
-        : asNum(manual.fatturato)
+  metaMonthlyMap[month].spend += asNum(row.spend)
+  metaMonthlyMap[month].impressions += asNum(row.impressions)
+  metaMonthlyMap[month].reach += asNum(row.reach)
+  metaMonthlyMap[month].linkClicks += asNum(row.linkClicks)
+}
 
-    const fatturNC =
-      asNum(shopAuto.fatturNC) > 0
-        ? asNum(shopAuto.fatturNC)
-        : asNum(manual.fatturNC)
+for (const month of Object.keys(metaMonthlyMap)) {
+  const m = metaMonthlyMap[month]
 
-    const fatturRC =
-      asNum(shopAuto.fatturRC) > 0
-        ? asNum(shopAuto.fatturRC)
-        : Math.max(fatturato - fatturNC, 0)
+  m.ctr = m.impressions > 0 ? m.linkClicks / m.impressions * 100 : null
+  m.cpc = m.linkClicks > 0 ? m.spend / m.linkClicks : null
+  m.cpm = m.impressions > 0 ? m.spend / m.impressions * 1000 : null
+  m.frequency = m.reach > 0 ? m.impressions / m.reach : null
+}
 
-    const ordini =
-      asNum(shopAuto.ordini) > 0
-        ? asNum(shopAuto.ordini)
-        : asNum(manual.ordini)
+const allMonths = Array.from(
+  new Set([
+    ...getMonths(),
+    ...Object.keys(months || {}),
+    ...Object.keys(shopifyMonthlyMap || {}),
+    ...Object.keys(metaMonthlyMap || {}),
+  ])
+).sort()
 
-    const nc =
-      asNum(shopAuto.nc) > 0
-        ? asNum(shopAuto.nc)
-        : asNum(manual.nuoviClienti)
+const data = allMonths.map(month => {
+  const manual = months[month] || EMPTY
+  const shop = shopifyMonthlyMap[month] || {}
+  const metaAuto = metaMonthlyMap[month] || {}
 
-    const rc =
-      asNum(shopAuto.rc) > 0
-        ? asNum(shopAuto.rc)
-        : Math.max(ordini - nc, 0)
+  const fatturato =
+    asNum(shop.fatturato) > 0
+      ? asNum(shop.fatturato)
+      : asNum(manual.fatturato)
 
-    const sessioni =
-      asNum(shopAuto.sessioni) > 0
-        ? asNum(shopAuto.sessioni)
-        : asNum(manual.sessioni)
+  const ordini =
+    asNum(shop.ordini) > 0
+      ? asNum(shop.ordini)
+      : asNum(manual.ordini)
 
-    const metaSpend =
-      asNum(metaAuto.spend) > 0
-        ? asNum(metaAuto.spend)
-        : asNum((live?.metaMonthly || []).find(x => x.month === month)?.spend)
+  const nc =
+    asNum(shop.nc) > 0
+      ? asNum(shop.nc)
+      : asNum(manual.nuoviClienti)
 
-    const googleSpend = asNum(manual.googleSpend)
-    const totalSpend = metaSpend + googleSpend
+  const rc = asNum(shop.rc)
 
-    const aov = div(fatturato, ordini)
-    const aovNC = div(fatturNC, nc)
-    const aovRC = div(fatturRC, rc)
+  const fatturNC = asNum(shop.fatturNC)
+  const fatturRC =
+    asNum(shop.fatturRC) > 0
+      ? asNum(shop.fatturRC)
+      : Math.max(fatturato - fatturNC, 0)
 
-    const ltv = aov != null
+  const sessioni = asNum(shop.sessioni)
+
+  const metaSpend =
+    asNum(metaAuto.spend) > 0
+      ? asNum(metaAuto.spend)
+      : asNum((live?.metaMonthly || []).find(x => x.month === month)?.spend)
+
+  const googleSpend = asNum(manual.googleSpend)
+
+  const totalSpend = metaSpend + googleSpend
+
+  const aov = divSafe(fatturato, ordini)
+  const aovNC = divSafe(fatturNC, nc)
+  const aovRC = divSafe(fatturRC, rc)
+
+  const cac = divSafe(totalSpend, nc)
+  const cpo = divSafe(totalSpend, ordini)
+
+  const mer = divSafe(fatturato, totalSpend)
+  const aMer = divSafe(fatturNC, totalSpend)
+
+  const retention =
+    nc + rc > 0
+      ? rc / (nc + rc) * 100
+      : null
+
+  const cro =
+    sessioni > 0 && ordini > 0
+      ? ordini / sessioni * 100
+      : null
+
+  const ltv =
+    aov != null
       ? aov * cfg.freq * cfg.life * cfg.margin / 100
       : null
 
-    const cac = div(totalSpend, nc)
-    const cpo = div(totalSpend, ordini)
-
-    const ratio = ltv != null && cac != null
-      ? div(ltv, cac)
+  const ratio =
+    ltv != null && cac != null && cac > 0
+      ? ltv / cac
       : null
 
-    const mer = div(fatturato, totalSpend)
-    const aMer = div(fatturNC, totalSpend)
+  return {
+    month,
 
-    const retention =
-      nc + rc > 0
-        ? rc / (nc + rc) * 100
-        : null
+    fatturato,
+    fatturNC,
+    fatturRC,
 
-    const cro =
-      sessioni > 0 && ordini > 0
-        ? ordini / sessioni * 100
-        : null
+    ordini,
+    nc,
+    rc,
+    sessioni,
 
-    const metaWeight = asNum(metaAuto.weight)
+    metaSpend,
+    googleSpend,
+    totalSpend,
 
-    const ctr = metaWeight > 0 ? metaAuto.ctrWeightedSum / metaWeight : null
-    const cpc = metaWeight > 0 ? metaAuto.cpcWeightedSum / metaWeight : null
-    const cpm = metaWeight > 0 ? metaAuto.cpmWeightedSum / metaWeight : null
-    const frequency = metaWeight > 0 ? metaAuto.frequencyWeightedSum / metaWeight : null
+    aov,
+    aovNC,
+    aovRC,
 
-    return {
-      month,
+    cac,
+    cpo,
+    mer,
+    aMer,
 
-      fatturato,
-      fatturNC,
-      fatturRC,
+    retention,
+    cro,
+    ltv,
+    ratio,
 
-      ordini,
-      nc,
-      rc,
-      sessioni,
+    ctr: metaAuto.ctr,
+    cpc: metaAuto.cpc,
+    cpm: metaAuto.cpm,
+    freq: metaAuto.frequency,
 
-      metaSpend,
-      googleSpend,
-      totalSpend,
-
-      aov,
-      aovNC,
-      aovRC,
-
-      ltv,
-      cac,
-      cpo,
-      ratio,
-      mer,
-      aMer,
-      retention,
-      cro,
-
-      ctr,
-      cpc,
-      cpm,
-      frequency,
-
-      impressions: asNum(metaAuto.impressions),
-      reach: asNum(metaAuto.reach),
-      linkClicks: asNum(metaAuto.linkClicks),
-      metaPurchases: asNum(metaAuto.purchases),
-      metaPurchaseValue: asNum(metaAuto.purchaseValue),
-
-      shopifyAuto:
-        asNum(shopAuto.fatturato) > 0 ||
-        asNum(shopAuto.ordini) > 0 ||
-        asNum(shopAuto.nc) > 0,
-
-      metaAuto: asNum(metaAuto.spend) > 0,
-    }
-  })
+    metaAuto: asNum(metaAuto.spend) > 0,
+    shopifyAuto:
+      asNum(shop.fatturato) > 0 ||
+      asNum(shop.ordini) > 0 ||
+      asNum(shop.nc) > 0,
+  }
+})
 
 // ── Totali periodo ────────────────────────────────────────────
-// ── Totali periodo mensile ─────────────────────────────────────
-const totFat = data.reduce((s, m) => s + Number(m.fatturato || 0), 0)
-const totFatNC = data.reduce((s, m) => s + Number(m.fatturNC || 0), 0)
-const totFatRC = data.reduce((s, m) => s + Number(m.fatturRC || 0), 0)
 
-const totOrd = data.reduce((s, m) => s + Number(m.ordini || 0), 0)
-const totNC = data.reduce((s, m) => s + Number(m.nc || 0), 0)
-const totRC = data.reduce((s, m) => s + Number(m.rc || 0), 0)
-const totSes = data.reduce((s, m) => s + Number(m.sessioni || 0), 0)
+const validData = data.filter(m =>
+  asNum(m.fatturato) > 0 ||
+  asNum(m.totalSpend) > 0 ||
+  asNum(m.ordini) > 0 ||
+  asNum(m.nc) > 0
+)
 
-const totMeta = data.reduce((s, m) => s + Number(m.metaSpend || 0), 0)
-const totGoog = data.reduce((s, m) => s + Number(m.googleSpend || 0), 0)
-const totSpend = data.reduce((s, m) => s + Number(m.totalSpend || 0), 0)
+const sumData = key => validData.reduce((sum, row) => sum + asNum(row[key]), 0)
 
-const avgAOV = totOrd > 0 ? totFat / totOrd : 0
-const avgAOVNC = totNC > 0 ? totFatNC / totNC : 0
-const avgAOVRC = totRC > 0 ? totFatRC / totRC : 0
+const totFat = sumData('fatturato')
+const totFatNC = sumData('fatturNC')
+const totFatRC = sumData('fatturRC')
 
-const ltvG = avgAOV > 0
-  ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
-  : null
+const totOrd = sumData('ordini')
+const totNC = sumData('nc')
+const totRC = sumData('rc')
+const totSes = sumData('sessioni')
 
-const cacG = totSpend > 0 && totNC > 0
-  ? totSpend / totNC
-  : null
+const totMeta = sumData('metaSpend')
+const totGoog = sumData('googleSpend')
+const totSpend = sumData('totalSpend')
 
-const cpoG = totSpend > 0 && totOrd > 0
-  ? totSpend / totOrd
-  : null
+const avgAOV = divSafe(totFat, totOrd) || 0
+const avgAOVNC = divSafe(totFatNC, totNC)
+const avgAOVRC = divSafe(totFatRC, totRC)
 
-const ratioG = ltvG && cacG
-  ? ltvG / cacG
-  : null
+const ltvG =
+  avgAOV > 0
+    ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
+    : null
 
-const merG = totFat > 0 && totSpend > 0
-  ? totFat / totSpend
-  : null
+const cacG = divSafe(totSpend, totNC)
+const cpoG = divSafe(totSpend, totOrd)
 
-const aMerG = totFatNC > 0 && totSpend > 0
-  ? totFatNC / totSpend
-  : null
+const ratioG =
+  ltvG != null && cacG != null && cacG > 0
+    ? ltvG / cacG
+    : null
 
-const retG = totNC + totRC > 0
-  ? totRC / (totNC + totRC) * 100
-  : null
+const merG = divSafe(totFat, totSpend)
+const aMerG = divSafe(totFatNC, totSpend)
 
-const croG = totSes > 0 && totOrd > 0
-  ? totOrd / totSes * 100
-  : null
+const retentionG =
+  totNC + totRC > 0
+    ? totRC / (totNC + totRC) * 100
+    : null
+
+const croG =
+  totSes > 0 && totOrd > 0
+    ? totOrd / totSes * 100
+    : null
 const TABS = [
   {id:'dashboard', l:'Dashboard'},
   {id:'monthly',   l:'Mensile'},

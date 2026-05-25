@@ -269,7 +269,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
   const YELLOW = '#eab308'
-  const GREEN = '#22c55e'
+  const GREEN = '#f8fafc'
 
   const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT')}` : '—'
   const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
@@ -291,13 +291,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     return { diff, pct, equal, over20: pct != null && Math.abs(pct) >= 20, positive: diff > 0 }
   }
 
-  const dataColor = (curr, prev) => {
-    const d = delta(curr, prev)
-    if (!d) return WHITE
-    if (d.equal) return YELLOW
-    if (d.over20) return RED
-    return WHITE
-  }
+  const dataColor = () => WHITE
 
   const formatDelta = (v, kind) => {
     const abs = Math.abs(Number(v || 0))
@@ -312,11 +306,27 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     const d = delta(current, previous)
     if (!d || d.equal) return null
     const sign = d.diff > 0 ? '+' : '−'
-    const color = d.positive ? GREEN : RED
+    const color = d.diff < 0 ? RED : WHITE
     return (
-      <div style={{marginTop:6, display:'flex', flexDirection:'column', gap:2, color, fontSize:11, lineHeight:1.12, fontWeight:800, whiteSpace:'nowrap'}}>
-        <span>{sign}{formatDelta(d.diff, kind)}</span>
-        {d.pct != null && <span>{sign}{Math.abs(d.pct).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>}
+      <div
+        style={{
+          marginTop: 8,
+          display: 'grid',
+          gridTemplateRows: 'auto auto',
+          rowGap: 3,
+          color,
+          fontSize: 12,
+          lineHeight: 1.2,
+          fontWeight: 900,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <div style={{ display: 'block' }}>{sign}{formatDelta(d.diff, kind)}</div>
+        {d.pct != null && (
+          <div style={{ display: 'block' }}>
+            {sign}{Math.abs(d.pct).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+          </div>
+        )}
       </div>
     )
   }
@@ -418,7 +428,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
     return (
       <div>
-        <div style={{...valueStyle, color:dataColor(value, prev)}}>{shown}</div>
+        <div style={{...valueStyle, color:WHITE}}>{shown}</div>
         <Delta current={value} previous={prev} kind={kind === 'percent1' || kind === 'percent2' ? 'percent' : kind} />
       </div>
     )
@@ -456,7 +466,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 const p = i > 0 ? allWeeks[i-1] : null
                 return (
                   <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                    <td style={{...TD,color:'#94a3b8',fontWeight:700,whiteSpace:'nowrap',fontSize:12}}>{w.label}</td>
+                    <td style={{...TD,color:WHITE,fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{w.label}</td>
                     <td style={TD}><InputOrValue week={w.key} field="fatturato" value={w.fat} prev={p?.fat} disabled={w.shopifyAuto} /></td>
                     <td style={TD}><InputOrValue week={w.key} field="fatturNC" value={w.fatNC} prev={p?.fatNC} disabled={w.shopifyAuto} /></td>
                     <td style={TD}><InputOrValue week={w.key} field="fatturRC" value={w.fatRC} prev={p?.fatRC} disabled={w.shopifyAuto} /></td>
@@ -503,7 +513,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   const p = i > 0 ? filled[i-1] : null
                   return (
                     <tr key={w.key} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                      <td style={{...TD,color:'#94a3b8',fontSize:12,fontWeight:700,whiteSpace:'nowrap'}}>{w.label}</td>
+                      <td style={{...TD,color:WHITE,fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{w.label}</td>
                       <td style={TD}><Value value={w.fat} prev={p?.fat} kind="euro0" /></td>
                       <td style={TD}><Value value={w.fatNC} prev={p?.fatNC} kind="euro0" /></td>
                       <td style={TD}><Value value={w.fatRC} prev={p?.fatRC} kind="euro0" /></td>
@@ -585,6 +595,37 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
+          <div style={{...S.card, marginBottom:16}}>
+            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>MER settimanale</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={filled} margin={{top:0,right:8,left:0,bottom:0}}>
+                <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                <YAxis tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v.toFixed(1)}×`} />
+                <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.45} label={{value:'3×',fill:'#22c55e',fontSize:9}} />
+                <Tooltip content={<ChartTip />} />
+                <Line dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
+                <Line dataKey="aMer" name="aMER" stroke="#94a3b8" strokeWidth={2} dot={{r:3}} strokeDasharray="4 3" connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{...S.card, marginBottom:16}}>
+            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>KPI Meta settimanali · CTR, CPM, CPC e Frequenza</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={filled.filter(w => w.ctr != null || w.cpm != null || w.cpc != null || w.freq != null)} margin={{top:0,right:18,left:0,bottom:0}}>
+                <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                <XAxis dataKey="label" tick={{fill:'#555',fontSize:8}} axisLine={false} tickLine={false} tickFormatter={v=>v.slice(0,5)} />
+                <YAxis yAxisId="left" tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" tick={{fill:'#555',fontSize:9}} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTip />} />
+                <Legend wrapperStyle={{fontSize:11,fontFamily:'Barlow'}} />
+                <Line yAxisId="left" dataKey="ctr" name="CTR %" stroke="#60a5fa" strokeWidth={2} dot={{r:3}} connectNulls />
+                <Line yAxisId="right" dataKey="cpm" name="CPM €" stroke="#7dd3fc" strokeWidth={2} dot={{r:3}} connectNulls />
+                <Line yAxisId="left" dataKey="cpc" name="CPC €" stroke="#93c5fd" strokeWidth={2} dot={{r:3}} connectNulls />
+                <Line yAxisId="left" dataKey="freq" name="Frequenza" stroke="#c4b5fd" strokeWidth={2} dot={{r:3}} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
           <div style={S.card}>
             <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:14}}>Nuovi Clienti vs Clienti di Ritorno</p>

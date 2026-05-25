@@ -1,4 +1,4 @@
- // app/api/meta-detail/route.js
+// app/api/meta-detail/route.js
 
 import { NextResponse } from 'next/server'
 
@@ -50,6 +50,10 @@ function diffDaysInclusive(start, end) {
   return Math.floor(ms / 86400000) + 1
 }
 
+function getAccountId() {
+  return META_ACCOUNT.startsWith('act_') ? META_ACCOUNT : `act_${META_ACCOUNT}`
+}
+
 function getActionValue(actions = [], keys = []) {
   if (!Array.isArray(actions)) return 0
 
@@ -57,6 +61,7 @@ function getActionValue(actions = [], keys = []) {
     if (keys.includes(item.action_type)) {
       return total + n(item.value)
     }
+
     return total
   }, 0)
 }
@@ -68,6 +73,7 @@ function getPurchaseValue(actionValues = []) {
     if (PURCHASE_KEYS.includes(item.action_type)) {
       return total + n(item.value)
     }
+
     return total
   }, 0)
 }
@@ -142,6 +148,146 @@ function normalizeInsight(row = {}, level = 'campaign') {
   }
 }
 
+function firstText(items = []) {
+  if (!Array.isArray(items)) return null
+
+  const found = items.find((item) => {
+    if (typeof item === 'string') return item.trim()
+    if (typeof item?.text === 'string') return item.text.trim()
+    if (typeof item?.body === 'string') return item.body.trim()
+    if (typeof item?.title === 'string') return item.title.trim()
+    return false
+  })
+
+  if (!found) return null
+
+  if (typeof found === 'string') return found
+  return found.text || found.body || found.title || null
+}
+
+function normalizeAssetText(items = []) {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .map((item) => {
+      if (typeof item === 'string') return item
+      return item?.text || item?.body || item?.title || item?.description || null
+    })
+    .filter(Boolean)
+}
+
+function normalizeAssetUrls(items = []) {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .map((item) => {
+      if (typeof item === 'string') return item
+      return item?.url || item?.website_url || item?.link || item?.thumbnail_url || item?.image_url || null
+    })
+    .filter(Boolean)
+}
+
+function extractCreativeDetails(ad = {}) {
+  const creative = ad.creative || {}
+
+  const objectStorySpec = creative.object_story_spec || {}
+  const assetFeedSpec = creative.asset_feed_spec || {}
+
+  const linkData = objectStorySpec.link_data || {}
+  const videoData = objectStorySpec.video_data || {}
+  const photoData = objectStorySpec.photo_data || {}
+
+  const assetBodies = normalizeAssetText(assetFeedSpec.bodies)
+  const assetTitles = normalizeAssetText(assetFeedSpec.titles)
+  const assetDescriptions = normalizeAssetText(assetFeedSpec.descriptions)
+  const assetImages = assetFeedSpec.images || []
+  const assetVideos = assetFeedSpec.videos || []
+  const assetLinkUrls = normalizeAssetUrls(assetFeedSpec.link_urls)
+
+  const copy =
+    linkData.message ||
+    videoData.message ||
+    photoData.message ||
+    firstText(assetFeedSpec.bodies) ||
+    null
+
+  const headline =
+    linkData.name ||
+    videoData.title ||
+    firstText(assetFeedSpec.titles) ||
+    null
+
+  const description =
+    linkData.description ||
+    videoData.description ||
+    firstText(assetFeedSpec.descriptions) ||
+    null
+
+  const callToAction =
+    linkData.call_to_action?.type ||
+    videoData.call_to_action?.type ||
+    assetFeedSpec.call_to_action_types?.[0] ||
+    null
+
+  const destinationUrl =
+    linkData.call_to_action?.value?.link ||
+    videoData.call_to_action?.value?.link ||
+    linkData.link ||
+    assetLinkUrls?.[0] ||
+    null
+
+  const thumbnailUrl =
+    creative.thumbnail_url ||
+    assetImages?.[0]?.url ||
+    assetImages?.[0]?.thumbnail_url ||
+    null
+
+  const imageUrl =
+    creative.image_url ||
+    linkData.picture ||
+    photoData.url ||
+    assetImages?.[0]?.url ||
+    null
+
+  const videoId =
+    videoData.video_id ||
+    assetVideos?.[0]?.video_id ||
+    assetVideos?.[0]?.id ||
+    null
+
+  return {
+    adId: ad.id || null,
+    adName: ad.name || null,
+    campaignId: ad.campaign_id || null,
+    adsetId: ad.adset_id || null,
+    status: ad.status || null,
+    effectiveStatus: ad.effective_status || null,
+
+    creativeId: creative.id || null,
+    creativeName: creative.name || null,
+
+    copy,
+    headline,
+    description,
+    callToAction,
+    destinationUrl,
+
+    thumbnailUrl,
+    imageUrl,
+    videoId,
+
+    assetBodies,
+    assetTitles,
+    assetDescriptions,
+    assetImages,
+    assetVideos,
+    assetLinkUrls,
+
+    objectStorySpec,
+    assetFeedSpec,
+  }
+}
+
 async function metaFetch(path, params = {}) {
   if (!META_TOKEN || !META_ACCOUNT) {
     throw new Error(
@@ -210,9 +356,7 @@ async function metaFetchPaginated(path, params = {}) {
 }
 
 async function getActiveCampaigns() {
-  const accountId = META_ACCOUNT.startsWith('act_')
-    ? META_ACCOUNT
-    : `act_${META_ACCOUNT}`
+  const accountId = getAccountId()
 
   const rows = await metaFetchPaginated(`${accountId}/campaigns`, {
     fields: 'id,name,status,effective_status',
@@ -227,10 +371,43 @@ async function getActiveCampaigns() {
   })
 }
 
+async function getActiveAdsWithCreatives() {
+  const accountId = getAccountId()
+
+  const rows = await metaFetchPaginated(`${accountId}/ads`, {
+    fields: [
+      'id',
+      'name',
+      'campaign_id',
+      'adset_id',
+      'status',
+      'effective_status',
+      'creative{id,name,thumbnail_url,image_url,object_story_spec,asset_feed_spec,effective_object_story_id}',
+    ].join(','),
+    limit: 500,
+  })
+
+  const activeAds = rows.filter((ad) => {
+    const effective = String(ad.effective_status || '').toUpperCase()
+    const status = String(ad.status || '').toUpperCase()
+
+    return effective === 'ACTIVE' || status === 'ACTIVE'
+  })
+
+  const map = new Map()
+
+  activeAds.forEach((ad) => {
+    map.set(String(ad.id), extractCreativeDetails(ad))
+  })
+
+  return {
+    activeAds,
+    creativesByAdId: map,
+  }
+}
+
 async function getInsights({ level, since, until, timeIncrement = null }) {
-  const accountId = META_ACCOUNT.startsWith('act_')
-    ? META_ACCOUNT
-    : `act_${META_ACCOUNT}`
+  const accountId = getAccountId()
 
   const fields = [
     'campaign_id',
@@ -301,6 +478,8 @@ function uniqueBy(rows = [], idKey) {
 
 function buildHierarchy({
   activeCampaigns,
+  activeAds,
+  creativesByAdId,
   campaignCurrent,
   campaignPrevious,
   campaignTrend,
@@ -330,9 +509,18 @@ function buildHierarchy({
     const campaignId = campaign.campaignId
 
     const adsetsSource = uniqueBy(
-      [...adsetCurrent, ...adsetPrevious, ...adsetTrend].filter(
-        (row) => String(row.campaignId) === String(campaignId)
-      ),
+      [
+        ...adsetCurrent,
+        ...adsetPrevious,
+        ...adsetTrend,
+        ...activeAds
+          .filter((ad) => String(ad.campaign_id) === String(campaignId))
+          .map((ad) => ({
+            campaignId: ad.campaign_id,
+            adsetId: ad.adset_id,
+            adsetName: null,
+          })),
+      ].filter((row) => String(row.campaignId) === String(campaignId)),
       'adsetId'
     )
 
@@ -340,24 +528,37 @@ function buildHierarchy({
       const adsetId = adset.adsetId
 
       const adsSource = uniqueBy(
-        [...adCurrent, ...adPrevious, ...adTrend].filter(
-          (row) => String(row.adsetId) === String(adsetId)
-        ),
+        [
+          ...adCurrent,
+          ...adPrevious,
+          ...adTrend,
+          ...activeAds
+            .filter((ad) => String(ad.adset_id) === String(adsetId))
+            .map((ad) => ({
+              campaignId: ad.campaign_id,
+              adsetId: ad.adset_id,
+              adId: ad.id,
+              adName: ad.name,
+            })),
+        ].filter((row) => String(row.adsetId) === String(adsetId)),
         'adId'
       )
 
       const ads = adsSource.map((ad) => {
         const adId = ad.adId
+        const creative = creativesByAdId.get(String(adId)) || null
 
         return {
           id: adId,
-          name: ad.adName || 'Creatività senza nome',
+          name: ad.adName || creative?.adName || 'Creatività senza nome',
 
           latest: byId(adCurrent, 'adId', adId) || {},
           previous: byId(adPrevious, 'adId', adId) || {},
 
           trend: rowsById(adTrend, 'adId', adId),
           weeks: rowsById(adTrend, 'adId', adId),
+
+          creative,
         }
       })
 
@@ -436,6 +637,7 @@ export async function GET(request) {
     const trendUntil = until
 
     const activeCampaigns = await getActiveCampaigns()
+    const { activeAds, creativesByAdId } = await getActiveAdsWithCreatives()
 
     const [
       campaignCurrent,
@@ -504,6 +706,8 @@ export async function GET(request) {
 
     const campaigns = buildHierarchy({
       activeCampaigns,
+      activeAds,
+      creativesByAdId,
 
       campaignCurrent,
       campaignPrevious,
@@ -527,6 +731,9 @@ export async function GET(request) {
         previousUntil,
         trendSince,
         trendUntil,
+        activeCampaigns: activeCampaigns.length,
+        activeAds: activeAds.length,
+        creatives: creativesByAdId.size,
         updatedAt: new Date().toISOString(),
       },
       error: null,

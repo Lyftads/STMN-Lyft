@@ -607,7 +607,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
   const avgMER = div(totFat, totAdv)
 const avgAMER = div(totFatNC, totAdv)
-const avgAMer = avgAMER
+const avgAMER = avgAMER
 
 const avgCAC = div(totAdv, totNC)
 const avgCPO = div(totAdv, totOrd)
@@ -928,7 +928,7 @@ const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatRC)}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totAdv)}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgMER != null ? `${dec2(avgMER)}×` : '—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgAMer != null ? `${dec2(avgAMer)}×` : '—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgAMER != null ? `${dec2(avgAMER)}×` : '—'}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCAC)}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCPO)}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOV)}</td>
@@ -1971,7 +1971,7 @@ const TABS = [
 
               <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{f0(totSpend)}</td>
               <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{merG ? `${fr(merG)}×` : '—'}</td>
-              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAMer ? `${fr(avgAMer)}×` : '—'}</td>
+              <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAMER ? `${fr(avgAMER)}×` : '—'}</td>
               <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{cacG ? f2(cacG) : '—'}</td>
               <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgCPO ? f2(avgCPO) : '—'}</td>
               <td style={{ ...S.td, color: '#f8fafc', fontWeight: 900 }}>{avgAOV ? f2(avgAOV) : '—'}</td>

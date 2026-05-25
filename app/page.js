@@ -1120,23 +1120,30 @@ export default function App() {
   }
 
   // ── Calcola dati per ogni mese ────────────────────────────
-// ── Calcola dati automatici mensili ────────────────────────────
+  // ── Calcola dati automatici mensili da Shopify + Meta + manuale Google ─────
 
-const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
-const divSafe = (a, b) => b > 0 ? a / b : null
+  const asNum = v => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : 0
+  }
 
-const monthFromDate = date => {
-  if (!date) return null
-  return String(date).slice(0, 7)
-}
+  const safeDiv = (a, b) => {
+    const x = asNum(a)
+    const y = asNum(b)
+    return y > 0 ? x / y : null
+  }
 
-const shopifyMonthlyMap = {}
-for (const row of live?.shopifyWeekly || []) {
-  const month = monthFromDate(row.date)
-  if (!month) continue
+  const monthKeyFromDate = date => {
+    if (!date || typeof date !== 'string') return null
+    return date.slice(0, 7)
+  }
 
-  if (!shopifyMonthlyMap[month]) {
-    shopifyMonthlyMap[month] = {
+  const monthlyAutoMap = {}
+
+  // Crea sempre i mesi disponibili, così ogni mese nuovo appare automaticamente.
+  for (const month of avail) {
+    monthlyAutoMap[month] = {
+      month,
       fatturato: 0,
       fatturNC: 0,
       fatturRC: 0,
@@ -1144,226 +1151,210 @@ for (const row of live?.shopifyWeekly || []) {
       nc: 0,
       rc: 0,
       sessioni: 0,
-    }
-  }
-
-  shopifyMonthlyMap[month].fatturato += asNum(row.fatturato)
-  shopifyMonthlyMap[month].fatturNC += asNum(row.fatturNC)
-  shopifyMonthlyMap[month].fatturRC += asNum(row.fatturRC)
-  shopifyMonthlyMap[month].ordini += asNum(row.ordini)
-  shopifyMonthlyMap[month].nc += asNum(row.nc)
-  shopifyMonthlyMap[month].rc += asNum(row.rc)
-  shopifyMonthlyMap[month].sessioni += asNum(row.uniqueSessions || row.online_store_visitors || row.sessioni)
-}
-
-const metaMonthlyMap = {}
-
-for (const row of live?.metaWeekly || []) {
-  const month = monthFromDate(row.date)
-  if (!month) continue
-
-  if (!metaMonthlyMap[month]) {
-    metaMonthlyMap[month] = {
-      spend: 0,
+      metaSpend: 0,
+      googleSpend: 0,
       impressions: 0,
       reach: 0,
       linkClicks: 0,
-      ctr: null,
-      cpc: null,
-      cpm: null,
-      frequency: null,
+      metaRows: 0,
     }
   }
 
-  metaMonthlyMap[month].spend += asNum(row.spend)
-  metaMonthlyMap[month].impressions += asNum(row.impressions)
-  metaMonthlyMap[month].reach += asNum(row.reach)
-  metaMonthlyMap[month].linkClicks += asNum(row.linkClicks)
-}
+  // Shopify weekly → aggregazione mensile
+  for (const row of live?.shopifyWeekly || []) {
+    const month = monthKeyFromDate(row?.date)
+    if (!month) continue
 
-for (const month of Object.keys(metaMonthlyMap)) {
-  const m = metaMonthlyMap[month]
+    if (!monthlyAutoMap[month]) {
+      monthlyAutoMap[month] = {
+        month,
+        fatturato: 0,
+        fatturNC: 0,
+        fatturRC: 0,
+        ordini: 0,
+        nc: 0,
+        rc: 0,
+        sessioni: 0,
+        metaSpend: 0,
+        googleSpend: 0,
+        impressions: 0,
+        reach: 0,
+        linkClicks: 0,
+        metaRows: 0,
+      }
+    }
 
-  m.ctr = m.impressions > 0 ? m.linkClicks / m.impressions * 100 : null
-  m.cpc = m.linkClicks > 0 ? m.spend / m.linkClicks : null
-  m.cpm = m.impressions > 0 ? m.spend / m.impressions * 1000 : null
-  m.frequency = m.reach > 0 ? m.impressions / m.reach : null
-}
-
-const allMonths = Array.from(
-  new Set([
-    ...getMonths(),
-    ...Object.keys(months || {}),
-    ...Object.keys(shopifyMonthlyMap || {}),
-    ...Object.keys(metaMonthlyMap || {}),
-  ])
-).sort()
-
-const data = allMonths.map(month => {
-  const manual = months[month] || EMPTY
-  const shop = shopifyMonthlyMap[month] || {}
-  const metaAuto = metaMonthlyMap[month] || {}
-
-  const fatturato =
-    asNum(shop.fatturato) > 0
-      ? asNum(shop.fatturato)
-      : asNum(manual.fatturato)
-
-  const ordini =
-    asNum(shop.ordini) > 0
-      ? asNum(shop.ordini)
-      : asNum(manual.ordini)
-
-  const nc =
-    asNum(shop.nc) > 0
-      ? asNum(shop.nc)
-      : asNum(manual.nuoviClienti)
-
-  const rc = asNum(shop.rc)
-
-  const fatturNC = asNum(shop.fatturNC)
-  const fatturRC =
-    asNum(shop.fatturRC) > 0
-      ? asNum(shop.fatturRC)
-      : Math.max(fatturato - fatturNC, 0)
-
-  const sessioni = asNum(shop.sessioni)
-
-  const metaSpend =
-    asNum(metaAuto.spend) > 0
-      ? asNum(metaAuto.spend)
-      : asNum((live?.metaMonthly || []).find(x => x.month === month)?.spend)
-
-  const googleSpend = asNum(manual.googleSpend)
-
-  const totalSpend = metaSpend + googleSpend
-
-  const aov = divSafe(fatturato, ordini)
-  const aovNC = divSafe(fatturNC, nc)
-  const aovRC = divSafe(fatturRC, rc)
-
-  const cac = divSafe(totalSpend, nc)
-  const cpo = divSafe(totalSpend, ordini)
-
-  const mer = divSafe(fatturato, totalSpend)
-  const aMer = divSafe(fatturNC, totalSpend)
-
-  const retention =
-    nc + rc > 0
-      ? rc / (nc + rc) * 100
-      : null
-
-  const cro =
-    sessioni > 0 && ordini > 0
-      ? ordini / sessioni * 100
-      : null
-
-  const ltv =
-    aov != null
-      ? aov * cfg.freq * cfg.life * cfg.margin / 100
-      : null
-
-  const ratio =
-    ltv != null && cac != null && cac > 0
-      ? ltv / cac
-      : null
-
-  return {
-    month,
-
-    fatturato,
-    fatturNC,
-    fatturRC,
-
-    ordini,
-    nc,
-    rc,
-    sessioni,
-
-    metaSpend,
-    googleSpend,
-    totalSpend,
-
-    aov,
-    aovNC,
-    aovRC,
-
-    cac,
-    cpo,
-    mer,
-    aMer,
-
-    retention,
-    cro,
-    ltv,
-    ratio,
-
-    ctr: metaAuto.ctr,
-    cpc: metaAuto.cpc,
-    cpm: metaAuto.cpm,
-    freq: metaAuto.frequency,
-
-    metaAuto: asNum(metaAuto.spend) > 0,
-    shopifyAuto:
-      asNum(shop.fatturato) > 0 ||
-      asNum(shop.ordini) > 0 ||
-      asNum(shop.nc) > 0,
+    monthlyAutoMap[month].fatturato += asNum(row.fatturato)
+    monthlyAutoMap[month].fatturNC += asNum(row.fatturNC)
+    monthlyAutoMap[month].fatturRC += asNum(row.fatturRC)
+    monthlyAutoMap[month].ordini += asNum(row.ordini)
+    monthlyAutoMap[month].nc += asNum(row.nc)
+    monthlyAutoMap[month].rc += asNum(row.rc)
+    monthlyAutoMap[month].sessioni += asNum(row.uniqueSessions || row.online_store_visitors || row.sessioni)
   }
-})
 
-// ── Totali periodo ────────────────────────────────────────────
+  // Meta weekly → aggregazione mensile
+  for (const row of live?.metaWeekly || []) {
+    const month = monthKeyFromDate(row?.date)
+    if (!month) continue
 
-const validData = data.filter(m =>
-  asNum(m.fatturato) > 0 ||
-  asNum(m.totalSpend) > 0 ||
-  asNum(m.ordini) > 0 ||
-  asNum(m.nc) > 0
-)
+    if (!monthlyAutoMap[month]) {
+      monthlyAutoMap[month] = {
+        month,
+        fatturato: 0,
+        fatturNC: 0,
+        fatturRC: 0,
+        ordini: 0,
+        nc: 0,
+        rc: 0,
+        sessioni: 0,
+        metaSpend: 0,
+        googleSpend: 0,
+        impressions: 0,
+        reach: 0,
+        linkClicks: 0,
+        metaRows: 0,
+      }
+    }
 
-const sumData = key => validData.reduce((sum, row) => sum + asNum(row[key]), 0)
+    monthlyAutoMap[month].metaSpend += asNum(row.spend)
+    monthlyAutoMap[month].impressions += asNum(row.impressions)
+    monthlyAutoMap[month].reach += asNum(row.reach)
+    monthlyAutoMap[month].linkClicks += asNum(row.linkClicks)
+    monthlyAutoMap[month].metaRows += 1
+  }
 
-const totFat = sumData('fatturato')
-const totFatNC = sumData('fatturNC')
-const totFatRC = sumData('fatturRC')
+  // Fallback Meta monthly, se presente dalla route /api/metrics
+  for (const row of live?.metaMonthly || []) {
+    const month = row?.month
+    if (!month) continue
 
-const totOrd = sumData('ordini')
-const totNC = sumData('nc')
-const totRC = sumData('rc')
-const totSes = sumData('sessioni')
+    if (!monthlyAutoMap[month]) {
+      monthlyAutoMap[month] = {
+        month,
+        fatturato: 0,
+        fatturNC: 0,
+        fatturRC: 0,
+        ordini: 0,
+        nc: 0,
+        rc: 0,
+        sessioni: 0,
+        metaSpend: 0,
+        googleSpend: 0,
+        impressions: 0,
+        reach: 0,
+        linkClicks: 0,
+        metaRows: 0,
+      }
+    }
 
-const totMeta = sumData('metaSpend')
-const totGoog = sumData('googleSpend')
-const totSpend = sumData('totalSpend')
+    if (monthlyAutoMap[month].metaSpend <= 0) {
+      monthlyAutoMap[month].metaSpend = asNum(row.spend)
+    }
+  }
 
-const avgAOV = divSafe(totFat, totOrd) || 0
-const avgAOVNC = divSafe(totFatNC, totNC)
-const avgAOVRC = divSafe(totFatRC, totRC)
+  // Unione dati automatici + dati manuali salvati in localStorage
+  const data = Object.values(monthlyAutoMap)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map(row => {
+      const manual = months[row.month] || EMPTY
 
-const ltvG =
-  avgAOV > 0
-    ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100
-    : null
+      const fatturato = row.fatturato > 0 ? row.fatturato : asNum(manual.fatturato)
+      const fatturNC = row.fatturNC > 0 ? row.fatturNC : 0
+      const fatturRC = row.fatturRC > 0 ? row.fatturRC : Math.max(fatturato - fatturNC, 0)
 
-const cacG = divSafe(totSpend, totNC)
-const cpoG = divSafe(totSpend, totOrd)
+      const ordini = row.ordini > 0 ? row.ordini : asNum(manual.ordini)
+      const nc = row.nc > 0 ? row.nc : asNum(manual.nuoviClienti)
+      const rc = row.rc > 0 ? row.rc : Math.max(ordini - nc, 0)
 
-const ratioG =
-  ltvG != null && cacG != null && cacG > 0
-    ? ltvG / cacG
-    : null
+      const sessioni = asNum(row.sessioni)
+      const metaSpend = asNum(row.metaSpend)
+      const googleSpend = asNum(manual.googleSpend)
+      const totalSpend = metaSpend + googleSpend
 
-const merG = divSafe(totFat, totSpend)
-const aMerG = divSafe(totFatNC, totSpend)
+      const aov = safeDiv(fatturato, ordini)
+      const aovNC = safeDiv(fatturNC, nc)
+      const aovRC = safeDiv(fatturRC, rc)
 
-const retentionG =
-  totNC + totRC > 0
-    ? totRC / (totNC + totRC) * 100
-    : null
+      const cac = safeDiv(totalSpend, nc)
+      const cpo = safeDiv(totalSpend, ordini)
 
-const croG =
-  totSes > 0 && totOrd > 0
-    ? totOrd / totSes * 100
-    : null
+      const mer = safeDiv(fatturato, totalSpend)
+      const aMer = safeDiv(fatturNC, totalSpend)
+
+      const retention = nc + rc > 0 ? rc / (nc + rc) * 100 : null
+      const cro = sessioni > 0 && ordini > 0 ? ordini / sessioni * 100 : null
+
+      const ltv = aov ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+      const ratio = ltv && cac ? ltv / cac : null
+
+      return {
+        month: row.month,
+
+        fatturato,
+        fatturNC,
+        fatturRC,
+
+        ordini,
+        nc,
+        rc,
+        sessioni,
+
+        metaSpend,
+        googleSpend,
+        totalSpend,
+
+        aov,
+        aovNC,
+        aovRC,
+
+        cac,
+        cpo,
+
+        mer,
+        aMer,
+
+        retention,
+        cro,
+
+        ltv,
+        ratio,
+
+        impressions: asNum(row.impressions),
+        reach: asNum(row.reach),
+        linkClicks: asNum(row.linkClicks),
+      }
+    })
+
+  // ── Totali periodo ────────────────────────────────────────
+
+  const totFat = data.reduce((s, m) => s + asNum(m.fatturato), 0)
+  const totFatNC = data.reduce((s, m) => s + asNum(m.fatturNC), 0)
+  const totFatRC = data.reduce((s, m) => s + asNum(m.fatturRC), 0)
+
+  const totOrd = data.reduce((s, m) => s + asNum(m.ordini), 0)
+  const totNC = data.reduce((s, m) => s + asNum(m.nc), 0)
+  const totRC = data.reduce((s, m) => s + asNum(m.rc), 0)
+  const totSessions = data.reduce((s, m) => s + asNum(m.sessioni), 0)
+
+  const totMeta = data.reduce((s, m) => s + asNum(m.metaSpend), 0)
+  const totGoog = data.reduce((s, m) => s + asNum(m.googleSpend), 0)
+  const totSpend = data.reduce((s, m) => s + asNum(m.totalSpend), 0)
+
+  const avgAOV = safeDiv(totFat, totOrd) || 0
+  const avgAOVNC = safeDiv(totFatNC, totNC)
+  const avgAOVRC = safeDiv(totFatRC, totRC)
+
+  const ltvG = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+  const cacG = safeDiv(totSpend, totNC)
+  const cpoG = safeDiv(totSpend, totOrd)
+
+  const ratioG = ltvG && cacG ? ltvG / cacG : null
+  const merG = safeDiv(totFat, totSpend)
+  const aMerG = safeDiv(totFatNC, totSpend)
+
+  const retentionG = totNC + totRC > 0 ? totRC / (totNC + totRC) * 100 : null
+  const croG = totSessions > 0 && totOrd > 0 ? totOrd / totSessions * 100 : null
 const TABS = [
   {id:'dashboard', l:'Dashboard'},
   {id:'monthly',   l:'Mensile'},

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const GEMINI_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY
@@ -85,7 +85,7 @@ async function generateImageDalle3(prompt, size) {
         size,
         quality: 'standard',
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(90000),
     })
     if (!res.ok) {
       const err = await res.text()
@@ -113,7 +113,7 @@ async function generateImageGpt(prompt, size) {
         n: 1,
         size,
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(90000),
     })
     if (!res.ok) {
       const err = await res.text()
@@ -140,7 +140,7 @@ async function generateImageGemini(prompt) {
           contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
           generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
         }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(90000),
       }
     )
     if (!res.ok) {
@@ -459,19 +459,20 @@ Rispondi con un JSON valido: { "creatives": [...] }`
     }
 
     if (generateImages && creatives.length > 0) {
-      const imageResults = await Promise.all(
-        creatives.slice(0, 6).map(async (creative) => {
-          if (!creative.imagePrompt) return { error: 'Nessun image prompt generato' }
-          return generateImage(creative.imagePrompt, imageModel, format)
-        })
-      )
-
-      creatives = creatives.map((c, i) => ({
-        ...c,
-        generatedImage: imageResults[i]?.url || null,
-        imageError: imageResults[i]?.error || null,
-        imageModel,
-      }))
+      for (let i = 0; i < Math.min(creatives.length, 6); i++) {
+        const c = creatives[i]
+        if (!c.imagePrompt) {
+          creatives[i] = { ...c, generatedImage: null, imageError: 'Nessun image prompt generato', imageModel }
+          continue
+        }
+        const result = await generateImage(c.imagePrompt, imageModel, format)
+        creatives[i] = {
+          ...c,
+          generatedImage: result.url || null,
+          imageError: result.error || null,
+          imageModel,
+        }
+      }
     }
 
     return json({

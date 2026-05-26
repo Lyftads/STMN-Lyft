@@ -12,6 +12,7 @@ function getPageTitle(tab) {
   if (tab === 'klaviyo') return 'Klaviyo'
   if (tab === 'competitorIntel') return 'Competitor Intel'
   if (tab === 'integrations') return 'Integrazioni'
+  if (tab === 'cro') return 'CRO'
   return 'Dashboard'
 }
 
@@ -23,6 +24,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'klaviyo') return 'Email Marketing · Campagne · Flussi · Segmenti'
   if (tab === 'competitorIntel') return 'Creative attive · Catalogo prodotti · Prezzi · Promozioni'
   if (tab === 'integrations') return 'Collega e gestisci tutte le piattaforme'
+  if (tab === 'cro') return 'Funnel · Top Pages · Flusso Traffico · Page Scanner'
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
@@ -66,6 +68,7 @@ export default function VendroShell({
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
         { id: 'creative', label: 'Creative', icon: '▧' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
+        { id: 'cro', label: 'CRO', icon: '⊘' },
       ],
     },
     {

@@ -9,6 +9,7 @@ import PerformanceAgentTab from './components/PerformanceAgentTab'
 import KlaviyoTab from './components/KlaviyoTab'
 import CompetitorIntelTab from './components/CompetitorIntelTab'
 import IntegrationsTab from './components/IntegrationsTab'
+import CROTab from './components/CROTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1758,6 +1759,11 @@ export default function App() {
 {/* INTEGRATIONS TAB */}
 {tab === 'integrations' && (
   <IntegrationsTab />
+)}
+
+{/* CRO TAB */}
+{tab === 'cro' && (
+  <CROTab />
 )}
       </VendroShell>
     )

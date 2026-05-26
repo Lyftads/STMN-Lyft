@@ -169,10 +169,8 @@ async function generateImage(prompt, model, format) {
       return generateImageGpt(prompt, size)
     case 'gemini':
       return generateImageGemini(prompt)
-    case 'nanabanan':
-      return { error: 'NanaBanan Pro: API key non configurata. Contatta il supporto per l\'integrazione.' }
     default:
-      return generateImageDalle3(prompt, size)
+      return generateImageGpt(prompt, size)
   }
 }
 
@@ -258,10 +256,9 @@ export async function GET(request) {
   })
 
   const availableModels = [
-    { id: 'dall-e-3', name: 'DALL-E 3', ready: Boolean(OPENAI_KEY) },
     { id: 'gpt-image-1', name: 'GPT Image', ready: Boolean(OPENAI_KEY) },
     { id: 'gemini', name: 'Gemini Imagen', ready: Boolean(GEMINI_KEY) },
-    { id: 'nanabanan', name: 'NanaBanan Pro', ready: false },
+    { id: 'dall-e-3', name: 'DALL-E 3', ready: Boolean(OPENAI_KEY) },
   ]
 
   return json({
@@ -293,6 +290,7 @@ export async function POST(request) {
     bestAds = [],
     competitors = [],
     style = 'performance',
+    funnelStage = 'tofu',
     format = 'square',
     imageModel = 'gpt-image-1',
     generateImages = true,
@@ -313,37 +311,100 @@ export async function POST(request) {
       'Confronto diretto con i competitor o con la situazione senza il prodotto. Before/after, noi vs loro.',
   }
 
+  const funnelStrategy = {
+    tofu: {
+      name: 'Top of Funnel (Fredda)',
+      goal: 'Awareness. Catturare attenzione di persone che NON conoscono il brand.',
+      messaging: 'Problem-aware: evidenzia il problema che il prodotto risolve. Curiosità, "lo sapevi che?", hook emotivi. NON parlare del prodotto direttamente — parla del PROBLEMA o del DESIDERIO.',
+      cta: 'Scopri di più, Guarda come, Leggi la storia',
+      tone: 'Educativo, curioso, empatico. Come un amico che ti apre gli occhi su qualcosa.',
+    },
+    mofu: {
+      name: 'Middle of Funnel (Tiepida)',
+      goal: 'Considerazione. Pubblico che conosce il problema e sta valutando soluzioni.',
+      messaging: 'Solution-aware: mostra COME il prodotto risolve il problema. Social proof, benefici specifici, confronti, testimonianze. Il prodotto è protagonista ma nel contesto di una storia.',
+      cta: 'Scopri la soluzione, Vedi come funziona, Leggi le recensioni',
+      tone: 'Autorevole, specifico, dimostrativo. Mostra risultati concreti.',
+    },
+    bofu: {
+      name: 'Bottom of Funnel (Calda)',
+      goal: 'Conversione. Pubblico pronto ad acquistare, serve la spinta finale.',
+      messaging: 'Product-aware: offerta diretta, prezzo, scarsità, garanzia, risk reversal. Il prodotto è al centro con tutti i dettagli che servono per decidere ORA.',
+      cta: 'Acquista ora, Approfitta dell\'offerta, Ordina oggi',
+      tone: 'Urgente, diretto, specifico. Zero fronzoli, massima chiarezza.',
+    },
+    retargeting: {
+      name: 'Retargeting',
+      goal: 'Recupero. Persone che hanno già visitato il sito, visto prodotti, o abbandonato il carrello.',
+      messaging: 'Most-aware: "Hai dimenticato qualcosa?", recensioni di chi ha già comprato, offerta esclusiva per chi torna, garanzia soddisfatti o rimborsati. Supera le obiezioni residue.',
+      cta: 'Completa l\'ordine, Torna a vedere, Ultima occasione',
+      tone: 'Personale, rassicurante, urgente. Come un commesso che ti dice "fidati, è la scelta giusta".',
+    },
+  }
+
+  const stage = funnelStrategy[funnelStage] || funnelStrategy.tofu
+
+  const andromedaVariants = [
+    { avatar: 'male CrossFit athlete, 25-35, muscular, sweaty, intense expression', location: 'inside a CrossFit box/gym with rigs and barbells', mood: 'intense, dramatic side lighting, gritty', palette: 'dark background with warm orange/red accent lighting' },
+    { avatar: 'female fitness enthusiast, 28-38, athletic build, confident smile', location: 'outdoor training area, park or seaside at golden hour', mood: 'energetic, natural golden sunlight, fresh air feel', palette: 'bright natural tones, blues and warm gold' },
+    { avatar: 'everyday person/beginner, 30-45, relatable build, determined look', location: 'home garage gym with minimal equipment', mood: 'warm, inviting, approachable, soft window light', palette: 'warm earth tones, cozy atmosphere' },
+    { avatar: 'competition athlete, any gender, chalk on hands, focused', location: 'competition venue with crowd blur in background', mood: 'adrenaline, high contrast, flash photography feel', palette: 'black background with neon/gold highlights' },
+    { avatar: 'female coach/trainer, 35-45, professional, motivating expression', location: 'modern urban rooftop gym with city skyline', mood: 'professional, clean, aspirational, early morning light', palette: 'minimalist cool tones with one warm accent' },
+    { avatar: 'young male athlete, 20-28, lean/wiry build, action pose', location: 'grungy industrial gym, exposed brick and steel', mood: 'raw, editorial, street-style photography', palette: 'desaturated with one pop color matching the product' },
+  ]
+
   const isSingle = singleIndex !== null
   const count = isSingle ? 1 : 3
 
-  const copyPrompt = `Sei un senior Meta Ads creative strategist per STMN Fitness, un brand italiano di attrezzatura per functional fitness e CrossFit.
+  const copyPrompt = `Sei un senior Meta Ads creative strategist per STMN Fitness, un brand italiano di attrezzatura per functional fitness e CrossFit (paracalli, corde, polsiere, accessori, abbigliamento).
 
-## Dati Performance
-Top ads per ROAS:
+## Buyer Personas STMN Fitness
+1. "L'Atleta Serio" — 25-40, fa CrossFit/functional fitness 4-5 volte a settimana, cerca prodotti performanti, segue atleti su IG, sensibile al rapporto qualità-prezzo
+2. "Il Principiante Motivato" — 20-35, ha iniziato da poco, cerca i primi accessori giusti, vuole sentirsi parte della community
+3. "Il Coach" — 30-50, gestisce un box/palestra, compra per sé e consiglia ai clienti, vuole affidabilità
+
+## Fase del Funnel: ${stage.name}
+- Obiettivo: ${stage.goal}
+- Strategia messaging: ${stage.messaging}
+- CTA suggerite: ${stage.cta}
+- Tono: ${stage.tone}
+
+## Stile creativo: ${style}
+${styleGuide[style] || styleGuide.performance}
+
+## Dati Performance (Top ads per ROAS)
 ${JSON.stringify(bestAds.slice(0, 5), null, 2)}
 
 ## Competitor
 ${JSON.stringify(competitors, null, 2)}
 
-## Stile richiesto: ${style}
-${styleGuide[style] || styleGuide.performance}
-
 ## Prodotti da promuovere
 ${JSON.stringify(products, null, 2)}
 
+## REGOLE ANDROMEDA (Meta Algorithm) — OBBLIGATORIE
+Ogni creative DEVE essere VISIVAMENTE UNICA per massimizzare la varianza che Andromeda premia.
+Per ogni creative usa un DIVERSO template visivo dalla lista sotto.
+
+Template visivi disponibili (usa uno diverso per ogni creative):
+${andromedaVariants.slice(0, count + 2).map((v, i) => `${i + 1}. Avatar: ${v.avatar} | Location: ${v.location} | Mood: ${v.mood} | Palette: ${v.palette}`).join('\n')}
+
 ## Task
 Per OGNI prodotto, genera ${count} varianti creative per Meta Ads (Feed).
-Scrivi TUTTO in italiano.
+Scrivi TUTTO in italiano. Ogni variante deve avere un angolo DIVERSO, un avatar DIVERSO, un contesto DIVERSO.
 
 Per ogni variante restituisci un oggetto JSON con:
 - "productTitle": nome esatto del prodotto
-- "headline": max 40 caratteri, gancio forte
-- "primaryText": testo principale dell'ad, 2-3 frasi (max 200 chars)
+- "funnelStage": "${funnelStage}"
+- "headline": max 40 caratteri, gancio forte ADATTO alla fase del funnel
+- "primaryText": testo principale dell'ad, 2-3 frasi (max 200 chars) che riflette la strategia ${stage.name}
 - "description": descrizione sotto il link (max 80 chars)
-- "cta": testo CTA (es. "Acquista ora", "Scopri di più", "Provale ora")
-- "angle": l'angolo creativo in 1 frase (es. "Social proof + urgenza")
-- "reasoning": perché questa creative dovrebbe funzionare (1-2 frasi, in italiano)
-- "imagePrompt": prompt DETTAGLIATO in inglese per generare un'immagine per questa ad. Descrivi uno scenario lifestyle realistico legato al CrossFit/functional fitness dove il prodotto verrebbe usato. Includi: lighting, atmosphere, color palette (high contrast, energetic), composizione. Il formato è ${format === 'story' ? '9:16 portrait' : '1:1 square'}. Lo stile deve essere fotografico, realistico, ad-quality. NON includere testo nell'immagine.
+- "cta": testo CTA adatto a ${stage.name}
+- "angle": l'angolo creativo in 1 frase
+- "persona": quale buyer persona target (Atleta Serio / Principiante Motivato / Coach)
+- "reasoning": perché questa creative funziona per la fase ${funnelStage} (1-2 frasi, in italiano)
+- "imagePrompt": prompt DETTAGLIATO in inglese per generare l'immagine. DEVI usare il template visivo assegnato (avatar, location, mood, palette specifici). Il formato è ${format === 'story' ? '9:16 portrait' : '1:1 square'}. Stile: fotografia realistico, advertising quality, 4K. INCLUDI nell'immagine un overlay testuale con l'headline in italiano (grande, leggibile) e il CTA in un bottone. Il testo deve essere parte dell'immagine, come un ad reale su Meta.
+
+IMPORTANTE: ogni imagePrompt DEVE descrivere una scena COMPLETAMENTE diversa dalle altre. Diverso avatar, diversa location, diversa palette. Meta Andromeda penalizza creative simili.
 
 Rispondi con un JSON valido: { "creatives": [...] }`
 

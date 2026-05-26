@@ -9,6 +9,13 @@ const STYLES = [
   { id: 'comparison', label: 'Comparison', desc: 'Noi vs competitor' },
 ]
 
+const FUNNEL_STAGES = [
+  { id: 'tofu', label: 'TOFU', fullLabel: 'Top of Funnel', color: '#3b82f6', desc: 'Fredda — Awareness. Cattura chi non ti conosce.' },
+  { id: 'mofu', label: 'MOFU', fullLabel: 'Middle of Funnel', color: '#f59e0b', desc: 'Tiepida — Considerazione. Mostra la soluzione.' },
+  { id: 'bofu', label: 'BOFU', fullLabel: 'Bottom of Funnel', color: '#22c55e', desc: 'Calda — Conversione. Spingi all\'acquisto.' },
+  { id: 'retargeting', label: 'Retargeting', fullLabel: 'Retargeting', color: '#ec4899', desc: 'Recupero — Chi ha già visitato o abbandonato.' },
+]
+
 const FORMATS = [
   { id: 'square', label: 'Feed 1:1' },
   { id: 'story', label: 'Story 9:16' },
@@ -151,15 +158,41 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
 
       {/* Copy */}
       <div style={{ padding: 18 }}>
-        <div
-          style={{
-            display: 'inline-block', padding: '3px 10px', borderRadius: 6,
-            background: '#8b5cf620', border: '1px solid #8b5cf630',
-            color: '#c4b5fd', fontSize: 10, fontWeight: 800,
-            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10,
-          }}
-        >
-          {creative.angle || 'Creative'}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+          <span
+            style={{
+              padding: '3px 10px', borderRadius: 6,
+              background: '#8b5cf620', border: '1px solid #8b5cf630',
+              color: '#c4b5fd', fontSize: 10, fontWeight: 800,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}
+          >
+            {creative.angle || 'Creative'}
+          </span>
+          {creative.funnelStage && (
+            <span
+              style={{
+                padding: '3px 10px', borderRadius: 6,
+                background: `${(FUNNEL_STAGES.find(f => f.id === creative.funnelStage) || {}).color || '#555'}20`,
+                border: `1px solid ${(FUNNEL_STAGES.find(f => f.id === creative.funnelStage) || {}).color || '#555'}30`,
+                color: (FUNNEL_STAGES.find(f => f.id === creative.funnelStage) || {}).color || '#888',
+                fontSize: 10, fontWeight: 800, textTransform: 'uppercase',
+              }}
+            >
+              {creative.funnelStage}
+            </span>
+          )}
+          {creative.persona && (
+            <span
+              style={{
+                padding: '3px 10px', borderRadius: 6,
+                background: '#06b6d420', border: '1px solid #06b6d430',
+                color: '#06b6d4', fontSize: 10, fontWeight: 800,
+              }}
+            >
+              {creative.persona}
+            </span>
+          )}
         </div>
 
         {creative.productTitle && (
@@ -258,6 +291,7 @@ export default function CreativeLabTab() {
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState([])
   const [style, setStyle] = useState('performance')
+  const [funnelStage, setFunnelStage] = useState('tofu')
   const [format, setFormat] = useState('square')
   const [imageModel, setImageModel] = useState('gpt-image-1')
   const [search, setSearch] = useState('')
@@ -318,7 +352,7 @@ export default function CreativeLabTab() {
           })),
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
-          style, format, imageModel, generateImages: true,
+          style, funnelStage, format, imageModel, generateImages: true,
         }),
       })
       const json = await res.json()
@@ -355,7 +389,7 @@ export default function CreativeLabTab() {
           } : { title: creative.productTitle }],
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
-          style, format, imageModel, generateImages: true, singleIndex: idx,
+          style, funnelStage, format, imageModel, generateImages: true, singleIndex: idx,
         }),
       })
       const json = await res.json()
@@ -492,6 +526,46 @@ export default function CreativeLabTab() {
             <Pagination page={data.page} totalPages={data.totalPages} onPageChange={changePage} />
           </div>
 
+          {/* Funnel Stage Selector */}
+          <div
+            style={{
+              background: '#14111d',
+              border: '1px solid #2c2638',
+              borderRadius: 18,
+              padding: 20,
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 12 }}>
+              Fase del Funnel — Andromeda Variance
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              {FUNNEL_STAGES.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFunnelStage(f.id)}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    border: `2px solid ${funnelStage === f.id ? f.color : '#292134'}`,
+                    background: funnelStage === f.id ? `${f.color}15` : '#0d0a16',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 999, background: f.color }} />
+                    <span style={{ color: funnelStage === f.id ? '#fff' : '#8b8aa0', fontSize: 14, fontWeight: 900 }}>{f.label}</span>
+                    <span style={{ color: '#6b6580', fontSize: 10, fontWeight: 700 }}>{f.fullLabel}</span>
+                  </div>
+                  <div style={{ color: funnelStage === f.id ? '#c8c0d6' : '#4a4060', fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
+                    {f.desc}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Controls */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap', marginBottom: 28 }}>
             {/* Style */}
@@ -535,10 +609,9 @@ export default function CreativeLabTab() {
               <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Modello immagine</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(models.length > 0 ? models : [
-                  { id: 'dall-e-3', name: 'DALL-E 3', ready: true },
                   { id: 'gpt-image-1', name: 'GPT Image', ready: true },
                   { id: 'gemini', name: 'Gemini', ready: false },
-                  { id: 'nanabanan', name: 'NanaBanan Pro', ready: false },
+                  { id: 'dall-e-3', name: 'DALL-E 3', ready: true },
                 ]).map((m) => (
                   <button key={m.id} onClick={() => m.ready && setImageModel(m.id)}
                     style={{

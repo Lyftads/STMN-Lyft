@@ -13,6 +13,7 @@ function getPageTitle(tab) {
   if (tab === 'competitorIntel') return 'Competitor Intel'
   if (tab === 'integrations') return 'Integrazioni'
   if (tab === 'cro') return 'CRO'
+  if (tab === 'creativeLab') return 'Creative Lab'
   return 'Dashboard'
 }
 
@@ -25,6 +26,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'competitorIntel') return 'Creative attive · Catalogo prodotti · Prezzi · Promozioni'
   if (tab === 'integrations') return 'Collega e gestisci tutte le piattaforme'
   if (tab === 'cro') return 'Funnel · Top Pages · Flusso Traffico · Page Scanner'
+  if (tab === 'creativeLab') return 'Genera ad creative con AI da best seller, performance e competitor'
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
@@ -92,6 +94,7 @@ export default function VendroShell({
       color: '#8b5cf6',
       items: [
         { id: 'performanceAgent', label: 'Performance Agent', icon: '✦' },
+        { id: 'creativeLab', label: 'Creative Lab', icon: '✧' },
       ],
     },
   ]

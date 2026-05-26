@@ -1,21 +1,10 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 
 const STORE = process.env.SHOPIFY_STORE_URL
 const TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
-
-async function shopifyGql(query, variables = {}) {
-  const res = await fetch(`https://${STORE}/admin/api/2024-04/graphql.json`, {
-    method: 'POST',
-    headers: { 'X-Shopify-Access-Token': TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-  })
-  if (!res.ok) return null
-  return res.json()
-}
 
 async function shopifyRest(path) {
   const res = await fetch(`https://${STORE}/admin/api/2024-04/${path}`, {
@@ -32,6 +21,141 @@ function daysAgo(n) {
   return d.toISOString()
 }
 
+async function getGoogleToken() {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) return null
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  })
+  const data = await res.json()
+  return data.access_token || null
+}
+
+async function ga4Report(token, propertyId, body) {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  )
+  if (!res.ok) return null
+  return res.json()
+}
+
+function parseGa4Rows(report) {
+  if (!report?.rows) return []
+  return report.rows.map(row => {
+    const obj = {}
+    report.dimensionHeaders?.forEach((d, i) => { obj[d.name] = row.dimensionValues?.[i]?.value })
+    report.metricHeaders?.forEach((m, i) => { obj[m.name] = parseFloat(row.metricValues?.[i]?.value || '0') })
+    return obj
+  })
+}
+
+async function getGA4Data(days) {
+  const propertyId = process.env.GA4_PROPERTY_ID
+  if (!propertyId) return null
+
+  const token = await getGoogleToken()
+  if (!token) return null
+
+  const dateRange = { startDate: `${days}daysAgo`, endDate: 'today' }
+
+  try {
+    const [overview, topPages, funnelATC, funnelCheckout, funnelPurchase, userFlow] = await Promise.all([
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [
+          { name: 'sessions' }, { name: 'totalUsers' },
+          { name: 'screenPageViews' }, { name: 'bounceRate' },
+          { name: 'averageSessionDuration' }, { name: 'ecommercePurchases' },
+          { name: 'totalRevenue' },
+        ],
+      }),
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: 'pagePath' }],
+        metrics: [
+          { name: 'screenPageViews' }, { name: 'sessions' },
+          { name: 'totalUsers' }, { name: 'averageSessionDuration' },
+          { name: 'bounceRate' }, { name: 'ecommercePurchases' },
+        ],
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: 20,
+      }),
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: 'addToCarts' }],
+      }),
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: 'checkouts' }],
+      }),
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: 'ecommercePurchases' }],
+      }),
+      ga4Report(token, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: 'pagePath' }, { name: 'pagePathPlusQueryString' }],
+        metrics: [{ name: 'screenPageViews' }, { name: 'totalUsers' }],
+        orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+        limit: 50,
+      }),
+    ])
+
+    const ov = overview?.rows?.[0]
+    const ovMetrics = {}
+    overview?.metricHeaders?.forEach((m, i) => {
+      ovMetrics[m.name] = parseFloat(ov?.metricValues?.[i]?.value || '0')
+    })
+
+    const atcVal = funnelATC?.rows?.[0]?.metricValues?.[0]?.value
+    const checkoutVal = funnelCheckout?.rows?.[0]?.metricValues?.[0]?.value
+    const purchaseVal = funnelPurchase?.rows?.[0]?.metricValues?.[0]?.value
+
+    return {
+      sessions: ovMetrics.sessions || 0,
+      users: ovMetrics.totalUsers || 0,
+      pageViews: ovMetrics.screenPageViews || 0,
+      bounceRate: ovMetrics.bounceRate || 0,
+      avgDuration: ovMetrics.averageSessionDuration || 0,
+      revenue: ovMetrics.totalRevenue || 0,
+      purchases: ovMetrics.ecommercePurchases || 0,
+      addToCarts: parseInt(atcVal || '0', 10),
+      checkouts: parseInt(checkoutVal || '0', 10),
+      topPages: parseGa4Rows(topPages),
+      userFlow: parseGa4Rows(userFlow),
+    }
+  } catch (e) {
+    console.error('GA4 CRO error:', e.message)
+    return null
+  }
+}
+
+async function getAllOrders(since) {
+  let all = []
+  let url = `orders.json?status=any&created_at_min=${since}&limit=250&fields=id,created_at,total_price,landing_site`
+  while (url && all.length < 2000) {
+    const data = await shopifyRest(url)
+    if (!data?.orders) break
+    all = all.concat(data.orders)
+    if (data.orders.length === 250) {
+      const lastId = data.orders[data.orders.length - 1].id
+      url = `orders.json?status=any&created_at_min=${since}&limit=250&since_id=${lastId}&fields=id,created_at,total_price,landing_site`
+    } else { url = null }
+  }
+  return all
+}
+
 export async function GET(request) {
   if (!STORE || !TOKEN) {
     return NextResponse.json({ error: 'Shopify not configured' }, { status: 500 })
@@ -42,225 +166,167 @@ export async function GET(request) {
   const since = daysAgo(days)
 
   try {
-    const ordersRes = await shopifyRest(
-      `orders.json?status=any&created_at_min=${since}&limit=250&fields=id,created_at,total_price,landing_site,referring_site,source_name`
-    )
-    const orders = ordersRes?.orders || []
+    const [orders, checkoutsRes, ga4, collectionsRes, smartCollRes, productsRes] = await Promise.all([
+      getAllOrders(since),
+      shopifyRest(`checkouts.json?created_at_min=${since}&limit=250`),
+      getGA4Data(days),
+      shopifyRest('custom_collections.json?limit=50&fields=id,title,handle'),
+      shopifyRest('smart_collections.json?limit=50&fields=id,title,handle'),
+      shopifyRest('products.json?limit=250&fields=id,title,handle,product_type'),
+    ])
 
-    const checkoutsRes = await shopifyGql(`{
-      abandonedCheckouts: abandonedCheckoutCount(since: "${since.slice(0, 10)}")
-    }`)
-
-    let totalCheckouts = orders.length
-    const abandonedCount = checkoutsRes?.data?.abandonedCheckouts || 0
-    totalCheckouts += abandonedCount
-
-    const sessionsQuery = `
-      FROM sessions
-      SHOW count(), visitor_count()
-      SINCE -${days}d UNTIL today
-    `
-    const sessionsRes = await shopifyGql(`{
-      shopifyqlQuery(query: ${JSON.stringify(sessionsQuery)}) {
-        __typename
-        ... on TableResponse {
-          tableData {
-            rowData
-            columns { name dataType }
-          }
-        }
-      }
-    }`)
-
-    let totalSessions = 0
-    let totalVisitors = 0
-    const sessTable = sessionsRes?.data?.shopifyqlQuery?.tableData
-    if (sessTable?.rowData?.[0]) {
-      totalSessions = parseInt(sessTable.rowData[0][0] || '0', 10)
-      totalVisitors = parseInt(sessTable.rowData[0][1] || '0', 10)
-    }
-
-    const topPagesQuery = `
-      FROM sessions
-      SHOW count(), visitor_count()
-      GROUP BY landing_page
-      SINCE -${days}d UNTIL today
-      ORDER BY count() DESC
-      LIMIT 20
-    `
-    const topPagesRes = await shopifyGql(`{
-      shopifyqlQuery(query: ${JSON.stringify(topPagesQuery)}) {
-        __typename
-        ... on TableResponse {
-          tableData {
-            rowData
-            columns { name dataType }
-          }
-        }
-      }
-    }`)
-
-    const topPages = []
-    const tpTable = topPagesRes?.data?.shopifyqlQuery?.tableData
-    if (tpTable?.rowData) {
-      for (const row of tpTable.rowData) {
-        const page = row[0] || '/'
-        const sessions = parseInt(row[1] || '0', 10)
-        const visitors = parseInt(row[2] || '0', 10)
-        const pageOrders = orders.filter(o => {
-          const landing = o.landing_site || ''
-          return landing.includes(page) || (page === '/' && (landing === '/' || landing === ''))
-        }).length
-        topPages.push({
-          page,
-          sessions,
-          visitors,
-          orders: pageOrders,
-          conversionRate: sessions > 0 ? (pageOrders / sessions) * 100 : 0,
-        })
-      }
-    }
-
-    const pageFlowQuery = `
-      FROM sessions
-      SHOW count()
-      GROUP BY landing_page
-      SINCE -${days}d UNTIL today
-      ORDER BY count() DESC
-      LIMIT 30
-    `
-    const pageFlowRes = await shopifyGql(`{
-      shopifyqlQuery(query: ${JSON.stringify(pageFlowQuery)}) {
-        __typename
-        ... on TableResponse {
-          tableData {
-            rowData
-            columns { name dataType }
-          }
-        }
-      }
-    }`)
-
-    const landingPages = []
-    const pfTable = pageFlowRes?.data?.shopifyqlQuery?.tableData
-    if (pfTable?.rowData) {
-      for (const row of pfTable.rowData) {
-        landingPages.push({ page: row[0] || '/', sessions: parseInt(row[1] || '0', 10) })
-      }
-    }
-
-    const collectionsRes = await shopifyRest('custom_collections.json?limit=50&fields=id,title,handle')
-    const smartCollRes = await shopifyRest('smart_collections.json?limit=50&fields=id,title,handle')
-    const collections = [
-      ...(collectionsRes?.custom_collections || []),
-      ...(smartCollRes?.smart_collections || []),
-    ]
-
-    const productsRes = await shopifyRest('products.json?limit=100&fields=id,title,handle,product_type')
+    const collections = [...(collectionsRes?.custom_collections || []), ...(smartCollRes?.smart_collections || [])]
     const products = productsRes?.products || []
+    const abandonedCheckouts = checkoutsRes?.checkouts?.length || 0
+    const hasGA4 = !!ga4
 
-    const categorizePages = () => {
-      const home = { name: 'Home', sessions: 0, children: [] }
-      const collectionNodes = {}
-      const productNodes = {}
-      const otherPages = { name: 'Altre pagine', sessions: 0 }
-
-      for (const lp of landingPages) {
-        const p = lp.page
-        if (p === '/' || p === '' || p === '/index') {
-          home.sessions += lp.sessions
-        } else if (p.startsWith('/collections/')) {
-          const handle = p.replace('/collections/', '').split('/')[0].split('?')[0]
-          const col = collections.find(c => c.handle === handle)
-          const name = col?.title || handle
-          if (!collectionNodes[handle]) {
-            collectionNodes[handle] = { name, handle, sessions: 0, products: [] }
-          }
-          collectionNodes[handle].sessions += lp.sessions
-        } else if (p.startsWith('/products/')) {
-          const handle = p.replace('/products/', '').split('?')[0]
-          const prod = products.find(pr => pr.handle === handle)
-          const name = prod?.title || handle
-          productNodes[handle] = { name, handle, sessions: lp.sessions }
-        } else {
-          otherPages.sessions += lp.sessions
-        }
-      }
-
-      const total = landingPages.reduce((s, lp) => s + lp.sessions, 0)
-
-      const flowNodes = [
-        { id: 'total', name: 'Visitatori', value: total, level: 0 },
-        { id: 'home', name: 'Home', value: home.sessions, level: 1 },
-      ]
-      const flowLinks = [
-        { source: 'total', target: 'home', value: home.sessions },
-      ]
-
-      const colEntries = Object.entries(collectionNodes).sort((a, b) => b[1].sessions - a[1].sessions)
-      for (const [handle, col] of colEntries.slice(0, 8)) {
-        const id = `col_${handle}`
-        flowNodes.push({ id, name: col.name, value: col.sessions, level: 1 })
-        flowLinks.push({ source: 'total', target: id, value: col.sessions })
-      }
-
-      if (otherPages.sessions > 0) {
-        flowNodes.push({ id: 'other', name: 'Altre pagine', value: otherPages.sessions, level: 1 })
-        flowLinks.push({ source: 'total', target: 'other', value: otherPages.sessions })
-      }
-
-      const prodEntries = Object.entries(productNodes).sort((a, b) => b[1].sessions - a[1].sessions)
-      for (const [handle, prod] of prodEntries.slice(0, 12)) {
-        const id = `prod_${handle}`
-        flowNodes.push({ id, name: prod.name, value: prod.sessions, level: 2 })
-
-        let linked = false
-        for (const [colHandle, col] of colEntries.slice(0, 8)) {
-          const colProd = products.find(p => p.handle === handle)
-          if (colProd) {
-            flowLinks.push({ source: `col_${colHandle}`, target: id, value: prod.sessions })
-            linked = true
-            break
-          }
-        }
-        if (!linked) {
-          flowLinks.push({ source: 'home', target: id, value: prod.sessions })
-        }
-      }
-
-      flowNodes.push({ id: 'cart', name: 'Carrello', value: Math.round(total * 0.08), level: 3 })
-      flowNodes.push({ id: 'checkout', name: 'Checkout', value: totalCheckouts, level: 4 })
-      flowNodes.push({ id: 'purchase', name: 'Acquisto', value: orders.length, level: 5 })
-
-      return { nodes: flowNodes, links: flowLinks }
-    }
-
-    const flow = categorizePages()
-
-    const atcEstimate = Math.round(totalCheckouts * 1.4)
+    const totalVisitors = hasGA4 ? ga4.users : (orders.length > 0 ? Math.round(orders.length / 0.018) : 0)
+    const totalSessions = hasGA4 ? ga4.sessions : totalVisitors
+    const totalATC = hasGA4 ? ga4.addToCarts : Math.round((orders.length + abandonedCheckouts) * 1.4)
+    const totalCheckouts = hasGA4 ? ga4.checkouts : (orders.length + abandonedCheckouts)
+    const totalPurchases = orders.length
 
     const funnel = {
-      visitors: totalVisitors || totalSessions,
+      visitors: totalVisitors,
       sessions: totalSessions,
-      addToCart: atcEstimate,
+      addToCart: totalATC,
       checkout: totalCheckouts,
-      purchase: orders.length,
-      addToCartRate: totalSessions > 0 ? (atcEstimate / totalSessions) * 100 : 0,
-      checkoutRate: totalSessions > 0 ? (totalCheckouts / totalSessions) * 100 : 0,
-      purchaseRate: totalSessions > 0 ? (orders.length / totalSessions) * 100 : 0,
-      cartToCheckout: atcEstimate > 0 ? (totalCheckouts / atcEstimate) * 100 : 0,
-      checkoutToPurchase: totalCheckouts > 0 ? (orders.length / totalCheckouts) * 100 : 0,
+      purchase: totalPurchases,
+      addToCartRate: totalVisitors > 0 ? (totalATC / totalVisitors) * 100 : 0,
+      checkoutRate: totalVisitors > 0 ? (totalCheckouts / totalVisitors) * 100 : 0,
+      purchaseRate: totalVisitors > 0 ? (totalPurchases / totalVisitors) * 100 : 0,
+      cartToCheckout: totalATC > 0 ? (totalCheckouts / totalATC) * 100 : 0,
+      checkoutToPurchase: totalCheckouts > 0 ? (totalPurchases / totalCheckouts) * 100 : 0,
+      bounceRate: hasGA4 ? ga4.bounceRate : null,
+      avgDuration: hasGA4 ? ga4.avgDuration : null,
+      source: hasGA4 ? 'GA4 + Shopify' : 'Shopify (stimato)',
     }
 
+    let topPages = []
+    if (hasGA4 && ga4.topPages?.length) {
+      const ordersByPage = {}
+      for (const o of orders) {
+        const p = (o.landing_site || '/').split('?')[0]
+        ordersByPage[p] = (ordersByPage[p] || 0) + 1
+      }
+      topPages = ga4.topPages.map(p => ({
+        page: p.pagePath,
+        sessions: p.sessions || 0,
+        visitors: p.totalUsers || 0,
+        pageViews: p.screenPageViews || 0,
+        bounceRate: p.bounceRate || 0,
+        avgDuration: p.averageSessionDuration || 0,
+        orders: ordersByPage[p.pagePath] || p.ecommercePurchases || 0,
+        conversionRate: p.sessions > 0 ? ((ordersByPage[p.pagePath] || p.ecommercePurchases || 0) / p.sessions) * 100 : 0,
+      }))
+    } else {
+      const landingMap = {}
+      for (const o of orders) {
+        const ls = (o.landing_site || '/').split('?')[0]
+        if (!landingMap[ls]) landingMap[ls] = { orders: 0, revenue: 0 }
+        landingMap[ls].orders++
+        landingMap[ls].revenue += parseFloat(o.total_price || '0')
+      }
+      const avgConversion = totalVisitors > 0 ? orders.length / totalVisitors : 0.02
+      topPages = Object.entries(landingMap)
+        .map(([page, d]) => {
+          const sessions = avgConversion > 0 ? Math.round(d.orders / avgConversion) : d.orders * 50
+          return { page, sessions, visitors: sessions, orders: d.orders, conversionRate: sessions > 0 ? (d.orders / sessions) * 100 : 0 }
+        })
+        .sort((a, b) => b.sessions - a.sessions)
+        .slice(0, 20)
+    }
+
+    const buildFlow = () => {
+      const nodes = []
+      const links = []
+      nodes.push({ id: 'visitors', name: 'Visitatori', value: totalVisitors, level: 0 })
+
+      const pageData = hasGA4 ? ga4.userFlow || [] : []
+      const categorized = { home: 0, collections: {}, products: {}, other: 0 }
+
+      if (pageData.length) {
+        for (const row of pageData) {
+          const p = row.pagePath || '/'
+          const views = row.screenPageViews || 0
+          if (p === '/' || p === '/index') categorized.home += views
+          else if (p.startsWith('/collections/')) {
+            const h = p.replace('/collections/', '').split('/')[0].split('?')[0]
+            categorized.collections[h] = (categorized.collections[h] || 0) + views
+          } else if (p.startsWith('/products/')) {
+            const h = p.replace('/products/', '').split('?')[0]
+            categorized.products[h] = (categorized.products[h] || 0) + views
+          } else categorized.other += views
+        }
+      } else {
+        categorized.home = Math.round(totalVisitors * 0.35)
+        for (const o of orders) {
+          const ls = (o.landing_site || '/').split('?')[0]
+          if (ls.startsWith('/collections/')) {
+            const h = ls.replace('/collections/', '').split('/')[0]
+            categorized.collections[h] = (categorized.collections[h] || 0) + 1
+          } else if (ls.startsWith('/products/')) {
+            const h = ls.replace('/products/', '').split('?')[0]
+            categorized.products[h] = (categorized.products[h] || 0) + 1
+          }
+        }
+      }
+
+      nodes.push({ id: 'home', name: 'Home', value: categorized.home, level: 1 })
+      links.push({ source: 'visitors', target: 'home', value: categorized.home })
+
+      const topCol = Object.entries(categorized.collections).sort((a, b) => b[1] - a[1]).slice(0, 6)
+      for (const [handle, views] of topCol) {
+        const col = collections.find(c => c.handle === handle)
+        const id = `col_${handle}`
+        nodes.push({ id, name: col?.title || handle.replace(/-/g, ' '), value: views, level: 1 })
+        links.push({ source: 'visitors', target: id, value: views })
+      }
+
+      if (categorized.other > 0) {
+        nodes.push({ id: 'other', name: 'Altre pagine', value: categorized.other, level: 1 })
+        links.push({ source: 'visitors', target: 'other', value: categorized.other })
+      }
+
+      const topProd = Object.entries(categorized.products).sort((a, b) => b[1] - a[1]).slice(0, 10)
+      for (const [handle, views] of topProd) {
+        const prod = products.find(p => p.handle === handle)
+        const id = `prod_${handle}`
+        nodes.push({ id, name: prod?.title || handle.replace(/-/g, ' '), value: views, level: 2 })
+        if (topCol.length) {
+          links.push({ source: `col_${topCol[0][0]}`, target: id, value: Math.round(views * 0.6) })
+        } else {
+          links.push({ source: 'home', target: id, value: views })
+        }
+      }
+
+      nodes.push({ id: 'cart', name: 'Carrello', value: totalATC, level: 3 })
+      nodes.push({ id: 'checkout', name: 'Checkout', value: totalCheckouts, level: 4 })
+      nodes.push({ id: 'purchase', name: 'Acquisto', value: totalPurchases, level: 5 })
+
+      for (const n of nodes.filter(n => n.level === 2)) {
+        links.push({ source: n.id, target: 'cart', value: Math.round(n.value * 0.06) })
+      }
+      if (categorized.home > 0) {
+        links.push({ source: 'home', target: 'cart', value: Math.round(categorized.home * 0.03) })
+      }
+      links.push({ source: 'cart', target: 'checkout', value: totalCheckouts })
+      links.push({ source: 'checkout', target: 'purchase', value: totalPurchases })
+
+      return { nodes, links }
+    }
+
+    const flow = buildFlow()
     const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_price || '0'), 0)
 
     return NextResponse.json({
       funnel,
       topPages,
       flow,
-      totalRevenue,
+      totalRevenue: Math.round(totalRevenue),
       totalOrders: orders.length,
       days,
+      hasGA4,
       updatedAt: new Date().toISOString(),
     })
   } catch (e) {

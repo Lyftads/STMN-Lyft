@@ -244,7 +244,12 @@ export default function CROTab() {
         return (
           <>
             <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: '28px 32px', marginBottom: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', marginBottom: 20 }}>Funnel di Conversione — ultimi {days} giorni</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Funnel di Conversione — ultimi {days} giorni</div>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 6, background: data?.hasGA4 ? '#22c55e22' : '#f59e0b22', color: data?.hasGA4 ? '#22c55e' : '#f59e0b' }}>
+                  {data?.funnel?.source || 'Shopify'}
+                </span>
+              </div>
               <div style={{ display: 'flex', gap: 24 }}>
                 <FunnelBar label="Visitatori Unici" value={f.visitors} total={f.visitors} color="#8b5cf6" />
                 <div style={{ width: 1, background: '#292134', margin: '20px 0' }} />
@@ -264,6 +269,8 @@ export default function CROTab() {
                 { label: 'Checkout → Purchase', value: fmtP(f.checkoutToPurchase), color: '#22c55e' },
                 { label: 'Revenue Totale', value: fmtE(data?.totalRevenue), color: '#22c55e' },
                 { label: 'Ordini Totali', value: fmtN(data?.totalOrders), color: '#fff' },
+                ...(f.bounceRate != null ? [{ label: 'Bounce Rate', value: fmtP(f.bounceRate * 100), color: f.bounceRate > 0.6 ? '#ef4444' : '#f59e0b' }] : []),
+                ...(f.avgDuration != null ? [{ label: 'Durata Media', value: `${Math.round(f.avgDuration)}s`, color: '#06b6d4' }] : []),
               ].map(kpi => (
                 <div key={kpi.label} style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '16px 20px' }}>
                   <div style={{ fontSize: 10, color: '#776a86', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{kpi.label}</div>
@@ -294,6 +301,7 @@ export default function CROTab() {
                     <th style={{ padding: '14px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Sessioni</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Visitatori</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Ordini</th>
+                    {data?.hasGA4 && <th style={{ padding: '14px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Bounce</th>}
                     <th style={{ padding: '14px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Conv. Rate</th>
                   </tr>
                 </thead>
@@ -305,6 +313,7 @@ export default function CROTab() {
                       <td style={{ padding: '12px 16px', color: '#c4b5fd', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.sessions)}</td>
                       <td style={{ padding: '12px 16px', color: '#9b90aa', fontWeight: 700, textAlign: 'right' }}>{fmtN(p.visitors)}</td>
                       <td style={{ padding: '12px 16px', color: '#22c55e', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.orders)}</td>
+                      {data?.hasGA4 && <td style={{ padding: '12px 16px', color: '#9b90aa', fontWeight: 700, textAlign: 'right' }}>{p.bounceRate != null ? fmtP(p.bounceRate * 100) : '—'}</td>}
                       <td style={{ padding: '12px 16px', fontWeight: 900, textAlign: 'right', color: p.conversionRate >= 2 ? '#22c55e' : p.conversionRate >= 1 ? '#f59e0b' : '#ef4444' }}>
                         {fmtP(p.conversionRate)}
                       </td>

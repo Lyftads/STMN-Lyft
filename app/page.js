@@ -7,6 +7,7 @@ import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
 import KlaviyoTab from './components/KlaviyoTab'
+import CompetitorIntelTab from './components/CompetitorIntelTab'
 import IntegrationsTab from './components/IntegrationsTab'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -1446,56 +1447,274 @@ export default function App() {
   />
 )}
       {/* MENSILE TAB */}
-      {tab==='monthly' && (
-        <div style={S.card}>
-          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-            KPI mensili (calendario reale: 1 → ultimo del mese)
-          </p>
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',minWidth:1500,borderCollapse:'collapse'}}>
-              <thead>
-                <tr>
-                  {['Mese','Fatturato','Resi','Ordini','NC','RC','Meta €','Google €','AOV','CAC','MER','aMER','Ratio'].map(h=>(
-                    <th key={h} style={S.th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((m,i)=>(
-                  <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                    <td style={{...S.td,color:'#e8e8e8',fontWeight:700,whiteSpace:'nowrap'}}>{m.month}</td>
-                    <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(m.fatturato)}</td>
-                    <td style={{...S.td,color:m.resi>0?'#ef4444':'#444'}}>{m.resi>0?f0(m.resi):'—'}</td>
-                    <td style={S.td}>{fn(m.ordini)}</td>
-                    <td style={{...S.td,color:'#06b6d4'}}>{fn(m.nc)}</td>
-                    <td style={{...S.td,color:'#818cf8'}}>{fn(m.rc)}</td>
-                    <td style={{...S.td,color:'#3b82f6'}}>{m.metaSpend>0?f0(m.metaSpend):'—'}</td>
-                    <td style={S.td}>
-                      <NumInput
-                        value={m.googleSpend}
-                        onChange={v=>updateMonth(m.month,'googleSpend',v)}
-                        placeholder="0"
-                        color="#eab308"
-                      />
-                    </td>
-                    <td style={{...S.td,color:'#3b82f6'}}>{m.aov?f2(m.aov):'—'}</td>
-                    <td style={S.td}>{m.cac?f2(m.cac):'—'}</td>
-                    <td style={{...S.td,fontWeight:700,color:m.mer!=null?(m.mer>=3?'#22c55e':m.mer>=2?'#f59e0b':'#ef4444'):'#555'}}>
-                      {m.mer!=null?`${fr(m.mer)}×`:'—'}
-                    </td>
-                    <td style={{...S.td,fontWeight:700,color:m.aMer!=null?(m.aMer>=2?'#22c55e':m.aMer>=1.5?'#f59e0b':'#ef4444'):'#555'}}>
-                      {m.aMer!=null?`${fr(m.aMer)}×`:'—'}
-                    </td>
-                    <td style={{...S.td,fontWeight:900,fontFamily:'Barlow',fontSize:15,color:ratioColor(m.ratio)}}>
-                      {m.ratio?`${fr(m.ratio)}:1`:'—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {tab==='monthly' && (() => {
+        const filled = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
+        const mTH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'#081226', boxShadow:'0 1px 0 #1e2d47', fontSize:12, padding:'12px 14px' }
+        const mTD = { ...S.td, fontSize:15, padding:'10px 14px', verticalAlign:'top' }
+        const mVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'#f8fafc' }
+
+        const mDelta = (curr, prev, kind='euro0') => {
+          if (curr == null || prev == null) return null
+          const c = Number(curr), p = Number(prev)
+          if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+          const diff = c - p
+          if (Math.abs(diff) < 0.001) return null
+          const pctV = p !== 0 ? diff / p * 100 : null
+          const sign = diff > 0 ? '+' : '−'
+          const color = diff < 0 ? '#ef4444' : '#f8fafc'
+          const abs = Math.abs(diff)
+          let fmtAbs = '—'
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT')}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT')
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          return (
+            <div style={{marginTop:8,color,fontSize:12,lineHeight:1.2,fontWeight:900,whiteSpace:'nowrap'}}>
+              <div>{sign}{fmtAbs}</div>
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+            </div>
+          )
+        }
+
+        const MV = ({value, prev, kind='euro0', suffix=''}) => {
+          let shown = '—'
+          if (kind==='euro0') shown = f0(value)
+          else if (kind==='euro2') shown = f2(value)
+          else if (kind==='int') shown = fn(value)
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind)}</div>)
+        }
+
+        const chartData = filled.map(m => ({
+          label: m.month, fatturato: m.fatturato, spesa: m.totalSpend,
+          nc: m.nc, rc: m.rc, mer: m.mer, aov: m.aov, cro: m.cro, ratio: m.ratio,
+        }))
+
+        return (
+        <>
+          {/* Summary KPI Cards */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',gap:12,marginBottom:20}}>
+            {[
+              {label:'Fatturato', value:f0(totFat), color:'#22c55e'},
+              {label:'Ordini', value:fn(totOrd), color:'#f8fafc'},
+              {label:'Nuovi Clienti', value:fn(totNC), color:'#06b6d4'},
+              {label:'Clienti Ritorno', value:fn(totRC), color:'#a78bfa'},
+              {label:'Meta Spend', value:totMeta>0?f0(totMeta):'—', color:'#3b82f6'},
+              {label:'Google Spend', value:totGoog>0?f0(totGoog):'—', color:'#eab308'},
+              {label:'AOV', value:avgAOV>0?f2(avgAOV):'—', color:'#f59e0b'},
+              {label:'MER', value:avgMER!=null?`${fr(avgMER)}×`:'—', color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555'},
+              {label:'CAC', value:avgCAC?f2(avgCAC):'—', color:'#f8fafc'},
+              {label:'Ratio', value:avgRatio?`${fr(avgRatio)}:1`:'—', color:ratioColor(avgRatio)},
+            ].map(kpi => (
+              <div key={kpi.label} style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:'16px 18px'}}>
+                <div style={{fontSize:10,color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:6,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
+                <div style={{fontSize:22,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{kpi.value}</div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+
+          {/* Data Entry Table */}
+          <div style={{...S.card, marginBottom:20}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+                Dati mensili
+              </span>
+              <span style={{fontSize:10,color:'#22c55e'}}>Shopify + Meta automatici · Google manuale</span>
+            </div>
+
+            <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
+              <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
+                <thead>
+                  <tr>
+                    {['Mese','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                      <th key={h} style={mTH}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((m,i)=>{
+                    const p = i > 0 ? data[i-1] : null
+                    return (
+                    <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                      <td style={{...mTD,color:'#f8fafc',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
+                      <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.resi||null} prev={p?.resi||null} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.metaSpend||null} prev={p?.metaSpend||null} kind="euro0"/></td>
+                      <td style={mTD}>
+                        <NumInput value={m.googleSpend} onChange={v=>updateMonth(m.month,'googleSpend',v)} placeholder="0" color="#eab308" />
+                      </td>
+                      <td style={mTD}><MV value={m.ordini} prev={p?.ordini} kind="int"/></td>
+                      <td style={mTD}><MV value={m.nc} prev={p?.nc} kind="int"/></td>
+                      <td style={mTD}><MV value={m.rc} prev={p?.rc} kind="int"/></td>
+                      <td style={mTD}><MV value={m.sessioni||null} prev={p?.sessioni||null} kind="int"/></td>
+                    </tr>
+                  )})}
+                  <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
+                    <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Totale</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFat)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFatNC)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFatRC)}</td>
+                    <td style={{...mTD,...mVal}}>{totResi>0?f0(totResi):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{totMeta>0?f0(totMeta):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{totGoog>0?f0(totGoog):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{fn(totOrd)}</td>
+                    <td style={{...mTD,...mVal}}>{fn(totNC)}</td>
+                    <td style={{...mTD,...mVal}}>{fn(totRC)}</td>
+                    <td style={{...mTD,...mVal}}>{totSes>0?fn(totSes):'—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* KPI Calcolati Table */}
+          {filled.length > 0 && (
+          <div style={{...S.card, marginBottom:20}}>
+            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>
+              KPI calcolati
+            </p>
+            <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
+              <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
+                <thead>
+                  <tr>
+                    {['Mese','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                      <th key={h} style={mTH}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filled.map((m,i)=>{
+                    const p = i > 0 ? filled[i-1] : null
+                    return (
+                    <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                      <td style={{...mTD,color:'#f8fafc',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>
+                      <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.totalSpend} prev={p?.totalSpend} kind="euro0"/></td>
+                      <td style={mTD}><MV value={m.mer} prev={p?.mer} kind="ratio" suffix="×"/></td>
+                      <td style={mTD}><MV value={m.aMer} prev={p?.aMer} kind="ratio" suffix="×"/></td>
+                      <td style={mTD}><MV value={m.cac} prev={p?.cac} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.cpo} prev={p?.cpo} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.aov} prev={p?.aov} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.aovNC} prev={p?.aovNC} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.aovRC} prev={p?.aovRC} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.retention} prev={p?.retention} kind="percent1"/></td>
+                      <td style={mTD}><MV value={m.cro} prev={p?.cro} kind="percent2"/></td>
+                      <td style={mTD}><MV value={m.ltv} prev={p?.ltv} kind="euro2"/></td>
+                      <td style={mTD}><MV value={m.ratio} prev={p?.ratio} kind="ratio" suffix=":1"/></td>
+                    </tr>
+                  )})}
+                  <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
+                    <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Media / Totale</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFat)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFatNC)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(totFatRC)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(totSpend)}</td>
+                    <td style={{...mTD,...mVal}}>{avgMER!=null?`${fr(avgMER)}×`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgAMER!=null?`${fr(avgAMER)}×`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgCAC?f2(avgCAC):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgCPO?f2(avgCPO):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgAOV>0?f2(avgAOV):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgAOVNC>0?f2(avgAOVNC):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgAOVRC>0?f2(avgAOVRC):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgRet!=null?`${Number(avgRet).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgCRO!=null?`${Number(avgCRO).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgLTV?f2(avgLTV):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{avgRatio?`${fr(avgRatio)}:1`:'—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )}
+
+          {/* Charts */}
+          {filled.length > 0 && (
+          <>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+              <div style={S.card}>
+                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+                  Fatturato, Spesa e MER
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
+                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTip />} />
+                    <Legend />
+                    <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
+                    <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
+                    <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={S.card}>
+                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+                  Nuovi clienti e clienti di ritorno
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
+                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTip />} />
+                    <Legend />
+                    <Bar dataKey="nc" name="Nuovi clienti" fill="#06b6d4" radius={[4,4,0,0]} />
+                    <Bar dataKey="rc" name="Clienti ritorno" fill="#a78bfa" radius={[4,4,0,0]} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+              <div style={S.card}>
+                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+                  AOV e CRO
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
+                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+                    <Tooltip content={<ChartTip />} />
+                    <Legend />
+                    <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{r:3}} connectNulls />
+                    <Line yAxisId="right" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={S.card}>
+                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+                  Ratio LTV:CAC
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
+                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
+                    <Tooltip content={<ChartTip />} />
+                    <Legend />
+                    <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+          )}
+        </>
+      )})()}
 
       {/* WEEKLY TAB */}
       {tab==='weekly' && (
@@ -1529,6 +1748,11 @@ export default function App() {
 {/* KLAVIYO TAB */}
 {tab === 'klaviyo' && (
   <KlaviyoTab />
+)}
+
+{/* COMPETITOR INTEL TAB */}
+{tab === 'competitorIntel' && (
+  <CompetitorIntelTab />
 )}
 
 {/* INTEGRATIONS TAB */}

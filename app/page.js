@@ -230,10 +230,43 @@ function Simulator({ cfg }) {
   const cacFor3  = ltv/3
   const aovFor3  = s.cac>0 ? (s.cac*3)/(s.freq*s.life*s.margin/100) : 0
 
+  const defaultScenario = { name:'', spend:3000, roas:3, aov:75, costoProdotto:18, costoSpedizione:5, costoPackaging:2 }
+  const [scenarios, setScenarios] = useState([
+    { ...defaultScenario, name:'Conservativo', spend:2000, roas:2.5 },
+    { ...defaultScenario, name:'Base', spend:4000, roas:3.5 },
+    { ...defaultScenario, name:'Aggressivo', spend:8000, roas:4 },
+  ])
+  const setSc = (i,k,v) => setScenarios(prev => { const n=[...prev]; n[i]={...n[i],[k]:v}; return n })
+
+  const calcScenario = (sc) => {
+    const revenue = sc.spend * sc.roas
+    const orders = sc.aov > 0 ? revenue / sc.aov : 0
+    const costoTotProdotto = orders * sc.costoProdotto
+    const costoTotSpedizione = orders * sc.costoSpedizione
+    const costoTotPackaging = orders * sc.costoPackaging
+    const costiTotali = costoTotProdotto + costoTotSpedizione + costoTotPackaging
+    const marginePerOrdine = sc.aov - sc.costoProdotto - sc.costoSpedizione - sc.costoPackaging
+    const marginePct = sc.aov > 0 ? (marginePerOrdine / sc.aov) * 100 : 0
+    const profittoLordo = revenue - costiTotali
+    const profittoNetto = profittoLordo - sc.spend
+    const netMarginPct = revenue > 0 ? (profittoNetto / revenue) * 100 : 0
+    const mer = sc.spend > 0 ? revenue / sc.spend : 0
+    const cpo = orders > 0 ? sc.spend / orders : 0
+    const breakEvenRoas = marginePerOrdine > 0 ? sc.aov / marginePerOrdine : 0
+    return { revenue, orders, costiTotali, costoTotProdotto, costoTotSpedizione, costoTotPackaging, marginePerOrdine, marginePct, profittoLordo, profittoNetto, netMarginPct, mer, cpo, breakEvenRoas }
+  }
+
+  const scenarioColors = ['#3b82f6', '#22c55e', '#f59e0b']
+  const sm0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : n<0 ? `-€${Math.round(Math.abs(n)).toLocaleString('it-IT')}` : '€0'
+  const sm2 = n => `€${Number(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+  const sp1 = n => `${Number(n).toFixed(1)}%`
+  const si0 = n => n>0 ? Math.round(n).toLocaleString('it-IT') : '0'
+
   return (
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+    <>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:32}}>
       <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:8,padding:24}}>
-        <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Muovi i cursori</p>
+        <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Simulatore LTV:CAC</p>
         {[
           {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
           {k:'freq',  l:'Frequenza / anno',      min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
@@ -271,6 +304,138 @@ function Simulator({ cfg }) {
         </div>
       </div>
     </div>
+
+    {/* ── Scenario Advertising Simulator ── */}
+    <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:28,marginBottom:24}}>
+      <p style={{fontSize:13,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:6,fontWeight:700,fontFamily:'Barlow Condensed'}}>Scenari Advertising</p>
+      <p style={{fontSize:11,color:'#555',marginBottom:24}}>Confronta 3 scenari di spesa adv con marginalità reale (prodotti + spedizione + packaging)</p>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20,marginBottom:28}}>
+        {scenarios.map((sc,i) => {
+          const color = scenarioColors[i]
+          return (
+            <div key={i} style={{background:'#0d1628',border:`1px solid ${color}33`,borderRadius:12,padding:20}}>
+              <input value={sc.name} onChange={e=>setSc(i,'name',e.target.value)}
+                style={{width:'100%',background:'transparent',border:'none',color:color,fontSize:16,fontWeight:900,marginBottom:16,outline:'none',fontFamily:'Barlow'}}
+                placeholder={`Scenario ${i+1}`} />
+              {[
+                {k:'spend',l:'Spesa ADV mensile',min:500,max:30000,step:100,fmt:v=>`€${v.toLocaleString('it-IT')}`},
+                {k:'roas',l:'ROAS target',min:0.5,max:10,step:0.1,fmt:v=>`${v.toFixed(1)}×`},
+                {k:'aov',l:'AOV medio',min:20,max:200,step:1,fmt:v=>`€${v}`},
+                {k:'costoProdotto',l:'Costo prodotto',min:1,max:80,step:0.5,fmt:v=>`€${v.toFixed(1)}`},
+                {k:'costoSpedizione',l:'Costo spedizione',min:0,max:15,step:0.5,fmt:v=>`€${v.toFixed(1)}`},
+                {k:'costoPackaging',l:'Costo packaging',min:0,max:10,step:0.25,fmt:v=>`€${v.toFixed(2)}`},
+              ].map(({k,l,min,max,step,fmt})=>(
+                <div key={k} style={{marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                    <span style={{fontSize:10,color:'#555'}}>{l}</span>
+                    <span style={{fontSize:11,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(sc[k])}</span>
+                  </div>
+                  <input type="range" min={min} max={max} step={step} value={sc[k]}
+                    onChange={e=>setSc(i,k,parseFloat(e.target.value))} style={{width:'100%',accentColor:color}} />
+                </div>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr>
+              <th style={{padding:'12px 14px',textAlign:'left',color:'#94a3b8',fontWeight:700,fontSize:11,textTransform:'uppercase',fontFamily:'Barlow Condensed',borderBottom:'1px solid #1e2d47'}}>Metrica</th>
+              {scenarios.map((sc,i)=>(
+                <th key={i} style={{padding:'12px 14px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:12,borderBottom:'1px solid #1e2d47',fontFamily:'Barlow'}}>{sc.name||`Scenario ${i+1}`}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              {l:'Spesa ADV', f:(c,sc)=>sm0(sc.spend)},
+              {l:'Fatturato generato', f:c=>sm0(c.revenue), bold:true},
+              {l:'Ordini', f:c=>si0(c.orders)},
+              {l:'ROAS', f:(c,sc)=>`${sc.roas.toFixed(1)}×`, bold:true},
+              {l:'CPO', f:c=>sm2(c.cpo)},
+              {l:'', sep:true},
+              {l:'Costo prodotti', f:c=>sm0(c.costoTotProdotto), color:'#ef4444'},
+              {l:'Costo spedizioni', f:c=>sm0(c.costoTotSpedizione), color:'#ef4444'},
+              {l:'Costo packaging', f:c=>sm0(c.costoTotPackaging), color:'#ef4444'},
+              {l:'Totale costi merce', f:c=>sm0(c.costiTotali), bold:true, color:'#ef4444'},
+              {l:'Margine per ordine', f:c=>sm2(c.marginePerOrdine)},
+              {l:'Margine %', f:c=>sp1(c.marginePct)},
+              {l:'', sep:true},
+              {l:'Profitto lordo', f:c=>sm0(c.profittoLordo), bold:true, color:'#3b82f6'},
+              {l:'Profitto netto', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#22c55e':'#ef4444'},
+              {l:'Net margin %', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
+              {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, color:'#f59e0b'},
+            ].map((row,ri) => {
+              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:8,borderBottom:'1px solid #1e2d47'}} /></tr>
+              return (
+              <tr key={ri} style={{background:ri%2===0?'transparent':'#080f1e'}}>
+                <td style={{padding:'10px 14px',color:'#94a3b8',fontWeight:row.bold?800:500,fontSize:row.bold?13:12,fontFamily:'Barlow'}}>{row.l}</td>
+                {scenarios.map((sc,i) => {
+                  const calc = calcScenario(sc)
+                  const cellColor = typeof row.color === 'function' ? row.color(calc) : row.color || '#f8fafc'
+                  return <td key={i} style={{padding:'10px 14px',textAlign:'right',fontFamily:'Barlow',fontWeight:row.bold?900:700,fontSize:row.bold?15:13,color:cellColor}}>{row.f(calc,sc)}</td>
+                })}
+              </tr>
+            )})}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginTop:24}}>
+        <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
+          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Profitto Netto</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={scenarios.map((sc,i)=>({name:sc.name||`Sc.${i+1}`,fatturato:calcScenario(sc).revenue,profitto:calcScenario(sc).profittoNetto}))} margin={{left:0,right:0}}>
+              <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <Tooltip content={<ChartTip />} />
+              <Legend />
+              <Bar dataKey="fatturato" name="Fatturato" fill="#3b82f6" radius={[4,4,0,0]} />
+              <Bar dataKey="profitto" name="Profitto netto" fill="#22c55e" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
+          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Breakdown Costi</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,adv:sc.spend,prodotti:c.costoTotProdotto,spedizioni:c.costoTotSpedizione,packaging:c.costoTotPackaging}})} margin={{left:0,right:0}}>
+              <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <Tooltip content={<ChartTip />} />
+              <Legend />
+              <Bar dataKey="adv" name="ADV" fill="#8b5cf6" stackId="c" radius={[4,4,0,0]} />
+              <Bar dataKey="prodotti" name="Prodotti" fill="#ef4444" stackId="c" />
+              <Bar dataKey="spedizioni" name="Spedizioni" fill="#f59e0b" stackId="c" />
+              <Bar dataKey="packaging" name="Packaging" fill="#ec4899" stackId="c" radius={[0,0,4,4]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {(() => {
+        const results = scenarios.map((sc,i)=>({...calcScenario(sc), name:sc.name||`Scenario ${i+1}`, spend:sc.spend, roas:sc.roas}))
+        const best = results.reduce((a,b)=>b.profittoNetto>a.profittoNetto?b:a)
+        const mostEfficient = results.reduce((a,b)=>b.netMarginPct>a.netMarginPct?b:a)
+        return (
+          <div style={{marginTop:20,background:'#0d1628',borderRadius:10,padding:20}}>
+            <p style={{fontSize:11,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12,fontWeight:700,fontFamily:'Barlow Condensed'}}>Analisi scenari</p>
+            <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
+              <p style={{marginBottom:8}}>Lo scenario <strong style={{color:'#22c55e'}}>"{best.name}"</strong> genera il profitto netto più alto: <strong>{sm0(best.profittoNetto)}</strong> su {sm0(best.revenue)} di fatturato.</p>
+              {mostEfficient.name !== best.name && <p style={{marginBottom:8}}>Tuttavia <strong style={{color:'#f59e0b'}}>"{mostEfficient.name}"</strong> è il più efficiente per margine netto: <strong>{sp1(mostEfficient.netMarginPct)}</strong>.</p>}
+              {results.some(r=>r.profittoNetto<0) && <p style={{color:'#ef4444'}}>Attenzione: {results.filter(r=>r.profittoNetto<0).map(r=>`"${r.name}"`).join(' e ')} in perdita netta.</p>}
+              <p style={{marginTop:8,color:'#776a86'}}>Break-even ROAS: {results.map(r=>`${r.name} = ${r.breakEvenRoas.toFixed(2)}×`).join(' · ')}</p>
+            </div>
+          </div>
+        )
+      })()}
+    </div>
+    </>
   )
 }
 // ── Delta + celle KPI riutilizzabili ───────────────────────────

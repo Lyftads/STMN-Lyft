@@ -938,21 +938,33 @@ export async function GET() {
   aovData,
   shopifyWeekly,
   shopifyMonthly,
-  shopifyTopProducts,
-  shopifyMarketingSources,
-  shopifyDayBreakdown,
   metaMonthly,
   metaWeekly,
 ] = await Promise.all([
   fetchAOV(),
   fetchShopifyWeekly(),
   fetchShopifyMonthly(),
-  fetchShopifyTopProducts(),
-  fetchShopifyMarketingSources(),
-  fetchShopifyDayBreakdown(),
   fetchMeta(),
   fetchMetaWeekly(),
 ])
+
+let shopifyTopProducts = []
+let shopifyMarketingSources = []
+let shopifyDayBreakdown = []
+
+try {
+  ;[
+    shopifyTopProducts,
+    shopifyMarketingSources,
+    shopifyDayBreakdown,
+  ] = await Promise.all([
+    fetchShopifyTopProducts(),
+    fetchShopifyMarketingSources(),
+    fetchShopifyDayBreakdown(),
+  ])
+} catch (e) {
+  console.log('KPI Brain Shopify breakdown error:', e.message)
+}
 
     const metaTotal = metaMonthly.reduce(
       (sum, row) => sum + row.spend,

@@ -180,6 +180,7 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
   const perPage = Math.min(50, Math.max(1, parseInt(searchParams.get('perPage') || '20')))
+  const searchQuery = (searchParams.get('search') || '').trim().toLowerCase()
   const base = new URL(request.url).origin
 
   const [creative, metrics, competitors, shopifyProducts] = await Promise.all([
@@ -221,9 +222,18 @@ export async function GET(request) {
     return { ...p, sales: sales || null }
   })
 
-  const allRanked = [...productsWithSales].sort(
+  let allRanked = [...productsWithSales].sort(
     (a, b) => (b.sales?.revenue || 0) - (a.sales?.revenue || 0)
   )
+
+  if (searchQuery) {
+    allRanked = allRanked.filter(
+      (p) =>
+        p.title.toLowerCase().includes(searchQuery) ||
+        (p.productType || '').toLowerCase().includes(searchQuery) ||
+        (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery))
+    )
+  }
 
   const totalProducts = allRanked.length
   const totalPages = Math.ceil(totalProducts / perPage)
@@ -284,7 +294,7 @@ export async function POST(request) {
     competitors = [],
     style = 'performance',
     format = 'square',
-    imageModel = 'dall-e-3',
+    imageModel = 'gpt-image-1',
     generateImages = true,
     singleIndex = null,
   } = body

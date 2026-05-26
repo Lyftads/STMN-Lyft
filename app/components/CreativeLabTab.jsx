@@ -259,7 +259,8 @@ export default function CreativeLabTab() {
   const [selected, setSelected] = useState([])
   const [style, setStyle] = useState('performance')
   const [format, setFormat] = useState('square')
-  const [imageModel, setImageModel] = useState('dall-e-3')
+  const [imageModel, setImageModel] = useState('gpt-image-1')
+  const [search, setSearch] = useState('')
   const [generating, setGenerating] = useState(false)
   const [creatives, setCreatives] = useState([])
   const [accepted, setAccepted] = useState({})
@@ -268,10 +269,13 @@ export default function CreativeLabTab() {
 
   useEffect(() => { loadData(1) }, [])
 
-  async function loadData(p) {
+  async function loadData(p, q) {
     setLoading(true)
+    const query = q !== undefined ? q : search
     try {
-      const res = await fetch(`/api/creative-lab?page=${p}&perPage=20`, { cache: 'no-store' })
+      const params = new URLSearchParams({ page: p, perPage: 20 })
+      if (query) params.set('search', query)
+      const res = await fetch(`/api/creative-lab?${params}`, { cache: 'no-store' })
       const json = await res.json()
       setData(json)
       setPage(p)
@@ -412,7 +416,7 @@ export default function CreativeLabTab() {
 
           {/* Product Selection */}
           <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 22, padding: 24, marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
                 <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>Seleziona prodotti</h2>
                 <p style={{ margin: '6px 0 0', color: '#6b6580', fontSize: 12 }}>
@@ -423,6 +427,30 @@ export default function CreativeLabTab() {
                 {selected.length}/4 selezionati
               </span>
             </div>
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                clearTimeout(window.__clSearchTimer)
+                window.__clSearchTimer = setTimeout(() => loadData(1, e.target.value), 400)
+              }}
+              placeholder="Cerca prodotto per nome…"
+              style={{
+                width: '100%',
+                padding: '12px 18px',
+                borderRadius: 12,
+                border: '1px solid #332a41',
+                background: '#0d0a16',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 600,
+                outline: 'none',
+                marginBottom: 16,
+                boxSizing: 'border-box',
+              }}
+            />
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
               {products.map((p) => {

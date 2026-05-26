@@ -18,8 +18,8 @@ const SUGGESTIONS = [
   'Quali campagne Meta dovrei scalare e quali tagliare?',
   'Il mio MER sta peggiorando: aiutami a capire perché.',
   'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?',
-  'AOV vs LTV: dove ho margine per crescere?',
-  'Suggerisci 3 test A/B prioritari (ads + sito).',
+  'Come stanno andando le email su Klaviyo? Open rate, click, revenue.',
+  'Confronta la revenue da email vs Meta Ads — dove sto crescendo di più?',
 ]
 
 const palette = {
@@ -83,13 +83,16 @@ export default function PerformanceAgentTab({ cfg }) {
 
     let metrics = null
     let metaDetail = null
+    let klaviyo = null
     try {
-      const [mRes, dRes] = await Promise.all([
+      const [mRes, dRes, kRes] = await Promise.all([
         fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store' }),
         fetch(`/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, { cache: 'no-store' }),
+        fetch('/api/klaviyo?days=30', { cache: 'no-store' }),
       ])
       if (mRes.ok) metrics = await mRes.json()
       if (dRes.ok) metaDetail = await dRes.json()
+      if (kRes.ok) klaviyo = await kRes.json()
     } catch (e) {
       console.log('Agent prefetch error:', e?.message)
     }
@@ -104,6 +107,7 @@ export default function PerformanceAgentTab({ cfg }) {
           cfg: cfg || null,
           metrics,
           metaDetail,
+          klaviyo,
         }),
       })
 
@@ -190,7 +194,7 @@ export default function PerformanceAgentTab({ cfg }) {
               Performance Agent
             </div>
             <div style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
-              Performance · CMO · CRO · Ads · usa i dati live di Shopify + Meta
+              Performance · CMO · CRO · Ads · Klaviyo · usa i dati live di Shopify + Meta + Email
             </div>
           </div>
         </div>
@@ -260,7 +264,7 @@ export default function PerformanceAgentTab({ cfg }) {
             }}
           >
             <div style={{ color: palette.muted, fontSize: 14, lineHeight: 1.5, maxWidth: 640 }}>
-              Chiedimi qualcosa sui dati di STMN. Posso analizzare trend, suggerire test, individuare campagne da scalare o tagliare, calcolare priorità di intervento. Tutti gli insight sono basati sui dati live del periodo selezionato.
+              Ehi Marino, chiedimi quello che vuoi — Shopify, Meta, Klaviyo, ho tutto sotto mano. Trend, campagne da scalare o tagliare, email che funzionano e quelle che no. Sparami la domanda.
             </div>
             <div style={{ display: 'grid', gap: 8, width: '100%' }}>
               {SUGGESTIONS.map(s => (
@@ -382,7 +386,7 @@ export default function PerformanceAgentTab({ cfg }) {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Chiedi qualcosa al tuo Performance Agent…"
+            placeholder="Marino, chiedi pure…"
             disabled={loading}
             style={{
               flex: 1,

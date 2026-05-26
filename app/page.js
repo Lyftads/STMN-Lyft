@@ -6,6 +6,7 @@ import KPIBrainTab from './components/KPIBrainTab'
 import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
+import KlaviyoTab from './components/KlaviyoTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1522,6 +1523,11 @@ export default function App() {
 {/* PERFORMANCE AGENT TAB */}
 {tab === 'performanceAgent' && (
   <PerformanceAgentTab cfg={cfg} />
+)}
+
+{/* KLAVIYO TAB */}
+{tab === 'klaviyo' && (
+  <KlaviyoTab />
 )}
       </VendroShell>
     )

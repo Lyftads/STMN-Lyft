@@ -9,6 +9,7 @@ function getPageTitle(tab) {
   if (tab === 'metaDetail') return 'Meta Detail'
   if (tab === 'creative') return 'Creative'
   if (tab === 'performanceAgent') return 'Performance Agent'
+  if (tab === 'klaviyo') return 'Klaviyo'
   return 'Dashboard'
 }
 
@@ -17,6 +18,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'creative') return 'Analisi creative Meta Ads'
   if (tab === 'metaDetail') return `Dettaglio performance Meta · ${updated ? updated.toLocaleString('it-IT') : '—'}`
   if (tab === 'performanceAgent') return 'Consulente AI · Performance · CMO · CRO · Ads'
+  if (tab === 'klaviyo') return 'Email Marketing · Campagne · Flussi · Segmenti'
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
@@ -59,6 +61,7 @@ export default function VendroShell({
         { id: 'monthly', label: 'Mensile', icon: '▦' },
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
         { id: 'creative', label: 'Creative', icon: '▧' },
+        { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
       ],
     },
     {
@@ -352,6 +355,7 @@ export default function VendroShell({
             >
               <StatusPill label="Shopify" active={Boolean(live?.sources?.shopify)} color="#22c55e" />
               <StatusPill label="Meta" active={Boolean(live?.sources?.meta)} color="#3b82f6" />
+              <StatusPill label="Klaviyo" active={Boolean(live?.sources?.klaviyo)} color="#8b5cf6" />
             </div>
           </header>
 

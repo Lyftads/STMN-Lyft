@@ -187,17 +187,16 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
     { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6' },
   ]
 
-const topProducts = Array.isArray(live?.shopifyTopProducts)
-  activeLive?.shopifyTopProducts
-      .slice(0, 10)
-      .map(row => ({
-        label: row.product || row.title || row.name || 'Prodotto sconosciuto',
-        value: asNum(row.revenue),
-        orders: asNum(row.orders),
-        quantity: asNum(row.quantity),
-      }))
-      .filter(row => row.value > 0)
-  : []
+  const topProducts = Array.isArray(activeLive?.shopifyTopProducts)
+    ? activeLive.shopifyTopProducts
+        .map(row => ({
+          label: row.label || row.name || row.title || row.product_title || 'Prodotto senza nome',
+          value: asNum(row.value ?? row.revenue ?? row.total_sales ?? row.sales),
+          orders: asNum(row.orders),
+          quantity: asNum(row.quantity),
+        }))
+        .filter(row => row.value > 0)
+    : []
 
 const productBreakdown = topProducts
 

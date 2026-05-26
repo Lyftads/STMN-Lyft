@@ -429,18 +429,122 @@ function Simulator({ cfg }) {
       </div>
 
       {(() => {
-        const results = scenarios.map((sc,i)=>({...calcScenario(sc), name:sc.name||`Scenario ${i+1}`, spend:sc.spend, roas:sc.roas, cogs:sc.cogs}))
+        const results = scenarios.map((sc,i)=>({...calcScenario(sc), name:sc.name||`Scenario ${i+1}`, spend:sc.spend, roas:sc.roas, cogs:sc.cogs, aov:sc.aov}))
         const best = results.reduce((a,b)=>b.profittoNetto>a.profittoNetto?b:a)
         const mostEfficient = results.reduce((a,b)=>b.netMarginPct>a.netMarginPct?b:a)
+        const safest = results.reduce((a,b)=>b.marginePct>a.marginePct?b:a)
+
+        const cashFlowAnalysis = results.map(r => {
+          const cashOut = r.spend + r.cogsAmount
+          const cashIn = r.revenueIvaInclusa
+          const cashRatio = cashOut > 0 ? cashIn / cashOut : 0
+          const monthsToRecover = r.profittoNetto > 0 ? r.spend / r.profittoNetto : null
+          const annualProfit = r.profittoNetto * 12
+          const advAsRevenueShare = r.revenueIvaInclusa > 0 ? (r.spend / r.revenueIvaInclusa) * 100 : 0
+          const runway = r.profittoNetto < 0 ? Math.abs(r.profittoNetto) : 0
+          return { ...r, cashOut, cashIn, cashRatio, monthsToRecover, annualProfit, advAsRevenueShare, runway }
+        })
+
+        const scalable = cashFlowAnalysis.filter(r => r.profittoNetto > 0 && r.netMarginPct >= 5)
+        const risky = cashFlowAnalysis.filter(r => r.profittoNetto > 0 && r.netMarginPct < 5 && r.netMarginPct >= 0)
+        const losing = cashFlowAnalysis.filter(r => r.profittoNetto < 0)
+
         return (
-          <div style={{marginTop:20,background:'#0d1628',borderRadius:10,padding:20}}>
-            <p style={{fontSize:11,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12,fontWeight:700,fontFamily:'Barlow Condensed'}}>Analisi scenari</p>
-            <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
-              <p style={{marginBottom:8}}>Lo scenario <strong style={{color:'#22c55e'}}>"{best.name}"</strong> genera il profitto netto più alto: <strong>{sm0(best.profittoNetto)}</strong> su {sm0(best.revenue)} di fatturato netto (IVA esclusa).</p>
-              {mostEfficient.name !== best.name && <p style={{marginBottom:8}}>Tuttavia <strong style={{color:'#f59e0b'}}>"{mostEfficient.name}"</strong> è il più efficiente per margine netto: <strong>{sp1(mostEfficient.netMarginPct)}</strong>.</p>}
-              {results.some(r=>r.profittoNetto<0) && <p style={{color:'#ef4444'}}>Attenzione: {results.filter(r=>r.profittoNetto<0).map(r=>`"${r.name}"`).join(' e ')} in perdita netta post ADV.</p>}
-              <p style={{marginTop:8,color:'#776a86'}}>Break-even ROAS (IVA inclusa): {results.map(r=>`${r.name} = ${r.breakEvenRoas.toFixed(2)}×`).join(' · ')}</p>
-              <p style={{marginTop:4,color:'#776a86'}}>COGS: {results.map(r=>`${r.name} = ${r.cogs}% (${sm0(r.cogsAmount)})`).join(' · ')}</p>
+          <div style={{marginTop:20,background:'#0d1628',borderRadius:10,padding:28}}>
+            <p style={{fontSize:13,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:20,fontWeight:900,fontFamily:'Barlow Condensed'}}>Analisi strategica CMO + CFO</p>
+
+            {/* P&L Summary */}
+            <div style={{marginBottom:20}}>
+              <p style={{fontSize:11,color:'#f59e0b',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>P&L mensile per scenario</p>
+              {cashFlowAnalysis.map((r,i) => (
+                <div key={i} style={{background:'#0a1020',borderRadius:8,padding:'14px 18px',marginBottom:8,borderLeft:`3px solid ${scenarioColors[i]}`}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <span style={{color:scenarioColors[i],fontWeight:900,fontSize:14}}>{r.name}</span>
+                    <span style={{color:r.profittoNetto>=0?'#22c55e':'#ef4444',fontWeight:950,fontSize:18,fontFamily:'Barlow'}}>{sm0(r.profittoNetto)}/mese</span>
+                  </div>
+                  <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:11,color:'#94a3b8'}}>
+                    <span>Fatt. lordo: {sm0(r.revenueIvaInclusa)}</span>
+                    <span>IVA: -{sm0(r.iva)}</span>
+                    <span>Fatt. netto: {sm0(r.revenue)}</span>
+                    <span>COGS ({r.cogs}%): -{sm0(r.cogsAmount)}</span>
+                    <span>ADV: -{sm0(r.spend)}</span>
+                    <span style={{color:'#f59e0b'}}>ADV/Revenue: {sp1(r.advAsRevenueShare)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cash Flow */}
+            <div style={{marginBottom:20}}>
+              <p style={{fontSize:11,color:'#06b6d4',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Flusso di cassa e sostenibilità</p>
+              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+                {cashFlowAnalysis.map((r,i) => {
+                  const isSafe = r.profittoNetto > 0 && r.netMarginPct >= 10
+                  const isOk = r.profittoNetto > 0 && r.netMarginPct >= 5
+                  const isTight = r.profittoNetto > 0 && r.netMarginPct < 5
+                  const isLosing = r.profittoNetto < 0
+                  return (
+                    <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #1e2d47'}}>
+                      <span style={{color:scenarioColors[i],fontWeight:900}}>{r.name}:</span>{' '}
+                      {isLosing && <span style={{color:'#ef4444'}}>In perdita di <strong>{sm0(Math.abs(r.profittoNetto))}/mese</strong>. Servono {sm0(r.runway)} di cassa extra ogni mese per sostenerlo. Non scalabile — stai finanziando la crescita di tasca tua. </span>}
+                      {isTight && <span style={{color:'#f59e0b'}}>Margine netto solo al <strong>{sp1(r.netMarginPct)}</strong> — tecnicamente in profitto ma senza cuscinetto. Un calo del ROAS del 10% ti manda in perdita. Troppo rischioso per scalare. </span>}
+                      {isOk && !isSafe && <span>Margine netto al <strong style={{color:'#22c55e'}}>{sp1(r.netMarginPct)}</strong> — sufficiente per scalare con cautela. Cash flow positivo di {sm0(r.profittoNetto)}/mese ({sm0(r.annualProfit)}/anno). </span>}
+                      {isSafe && <span>Margine netto solido al <strong style={{color:'#22c55e'}}>{sp1(r.netMarginPct)}</strong>. Cash flow di {sm0(r.profittoNetto)}/mese = <strong>{sm0(r.annualProfit)}/anno</strong>. Puoi reinvestire il profitto per scalare senza rischio. </span>}
+                      <span style={{color:'#776a86'}}>Cash in/out ratio: {r.cashRatio.toFixed(2)}× — per ogni €1 che esci, ne entrano €{r.cashRatio.toFixed(2)}. {r.cashRatio < 1.1 ? 'Troppo tirato.' : r.cashRatio < 1.3 ? 'Margine sottile.' : 'Sano.'}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Strategia di scaling */}
+            <div style={{marginBottom:20}}>
+              <p style={{fontSize:11,color:'#22c55e',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Strategia di scaling raccomandata</p>
+              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+                {scalable.length > 0 ? (
+                  <>
+                    <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#22c55e'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
+                    <p style={{marginBottom:8}}>Con COGS al {scalable[0].cogs}% e ADV che pesa il {sp1(scalable[0].advAsRevenueShare)} del fatturato lordo, la struttura dei costi è {scalable[0].advAsRevenueShare < 25 ? 'sana — c\'è margine per aumentare la spesa ADV se il ROAS tiene' : scalable[0].advAsRevenueShare < 35 ? 'nella media — monitora attentamente il ROAS, non c\'è molto margine di errore' : 'alta — l\'ADV pesa troppo sul fatturato, prima di scalare devi migliorare il ROAS o l\'AOV'}.</p>
+                    {scalable[0].monthsToRecover && <p style={{marginBottom:8}}>Ogni mese di ADV si ripaga in <strong>{scalable[0].monthsToRecover < 1 ? 'meno di un mese' : `${scalable[0].monthsToRecover.toFixed(1)} mesi`}</strong> — {scalable[0].monthsToRecover < 1 ? 'ciclo di cassa velocissimo, ideale per scalare' : scalable[0].monthsToRecover < 3 ? 'ciclo ragionevole' : 'ciclo lungo, attenzione alla liquidità'}.</p>}
+                  </>
+                ) : risky.length > 0 ? (
+                  <p style={{color:'#f59e0b'}}>Nessuno scenario ha margini sufficienti per scalare in sicurezza. <strong>"{risky[0].name}"</strong> è in profitto ma con margini troppo sottili ({sp1(risky[0].netMarginPct)}). Prima di scalare: lavora sull'AOV (bundle, upsell), riduci i COGS (negozia fornitori, packaging), o migliora il ROAS (creative testing, audience optimization).</p>
+                ) : (
+                  <p style={{color:'#ef4444'}}>Tutti gli scenari sono in perdita. Non scalare la spesa ADV finché non raggiungi almeno il break-even. Concentrati su: migliorare il ROAS (creative, targeting), alzare l'AOV (bundle, cross-sell), ridurre i COGS, o valutare se il canale paid è sostenibile per il tuo modello di business.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Visione a 12 mesi */}
+            <div style={{marginBottom:16}}>
+              <p style={{fontSize:11,color:'#ec4899',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Proiezione 12 mesi</p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                {cashFlowAnalysis.map((r,i) => (
+                  <div key={i} style={{background:'#0a1020',borderRadius:8,padding:'14px 18px',borderTop:`2px solid ${scenarioColors[i]}`}}>
+                    <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12,marginBottom:8}}>{r.name} — 12 mesi</div>
+                    <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.8}}>
+                      <div>Fatturato annuo: <strong style={{color:'#f8fafc'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
+                      <div>Spesa ADV annua: <strong style={{color:'#f8fafc'}}>{sm0(r.spend * 12)}</strong></div>
+                      <div>COGS annuo: <strong style={{color:'#f8fafc'}}>{sm0(r.cogsAmount * 12)}</strong></div>
+                      <div>IVA annua: <strong style={{color:'#f8fafc'}}>{sm0(r.iva * 12)}</strong></div>
+                      <div style={{borderTop:'1px solid #1e2d47',marginTop:6,paddingTop:6}}>
+                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#22c55e':'#ef4444',fontSize:14}}>{sm0(r.annualProfit)}</strong>
+                      </div>
+                      <div>Ordini annui: <strong style={{color:'#f8fafc'}}>{si0(r.orders * 12)}</strong></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom line */}
+            <div style={{background:'#0a1020',borderRadius:8,padding:'16px 20px',borderLeft:'3px solid #8b5cf6'}}>
+              <p style={{fontSize:11,color:'#8b5cf6',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Bottom line</p>
+              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
+                Break-even ROAS: {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
+                <br/>Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.
+                {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'#f59e0b'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
+              </div>
             </div>
           </div>
         )

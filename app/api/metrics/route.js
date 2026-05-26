@@ -233,7 +233,8 @@ async function fetchShopifySalesRange(start, end) {
         orders_returning,
         total_sales_returning,
         orders,
-        total_sales
+        total_sales,
+        returns
       WHERE new_or_returning_customer IS NOT NULL
       SINCE ${start}
       UNTIL ${end}
@@ -248,6 +249,9 @@ async function fetchShopifySalesRange(start, end) {
   let fatturato = 0
   let fatturNC = 0
   let fatturRC = 0
+  let resi = 0
+  let resiNC = 0
+  let resiRC = 0
   let ordini = 0
   let nc = 0
   let rc = 0
@@ -257,8 +261,12 @@ async function fetchShopifySalesRange(start, end) {
 
     const rowTotalSales = cleanMoney(row.total_sales)
     const rowOrders = cleanCount(row.orders)
+    // Shopify restituisce `returns` come valore negativo (deduzione).
+    // Normalizziamo a positivo per usarlo come importo dei resi.
+    const rowReturns = Math.abs(cleanMoney(row.returns))
 
     fatturato += rowTotalSales
+    resi += rowReturns
     ordini += rowOrders
 
     const isNew =
@@ -284,6 +292,7 @@ async function fetchShopifySalesRange(start, end) {
 
       nc += rowNC
       fatturNC += rowFatNC
+      resiNC += rowReturns
     }
 
     if (isReturning) {
@@ -299,6 +308,7 @@ async function fetchShopifySalesRange(start, end) {
 
       rc += rowRC
       fatturRC += rowFatRC
+      resiRC += rowReturns
     }
   }
 
@@ -306,10 +316,24 @@ async function fetchShopifySalesRange(start, end) {
     fatturRC = Math.max(fatturato - fatturNC, 0)
   }
 
+  // Fatturato netto = fatturato − resi (mai negativo)
+  const fatturatoNetto = Math.max(fatturato - resi, 0)
+  const fatturatoNettoNC = Math.max(fatturNC - resiNC, 0)
+  const fatturatoNettoRC = Math.max(fatturRC - resiRC, 0)
+
   return {
     fatturato: roundMoney(fatturato),
+    fatturatoNetto: roundMoney(fatturatoNetto),
+    resi: roundMoney(resi),
+
     fatturNC: roundMoney(fatturNC),
+    fatturatoNettoNC: roundMoney(fatturatoNettoNC),
+    resiNC: roundMoney(resiNC),
+
     fatturRC: roundMoney(fatturRC),
+    fatturatoNettoRC: roundMoney(fatturatoNettoRC),
+    resiRC: roundMoney(resiRC),
+
     ordini: cleanCount(ordini),
     nc: cleanCount(nc),
     rc: cleanCount(rc),
@@ -383,8 +407,16 @@ async function fetchShopifyWeekly() {
           date: start,
 
           fatturato: sales.fatturato,
+          fatturatoNetto: sales.fatturatoNetto,
+          resi: sales.resi,
+
           fatturNC: sales.fatturNC,
+          fatturatoNettoNC: sales.fatturatoNettoNC,
+          resiNC: sales.resiNC,
+
           fatturRC: sales.fatturRC,
+          fatturatoNettoRC: sales.fatturatoNettoRC,
+          resiRC: sales.resiRC,
 
           ordini: sales.ordini,
           nc: sales.nc,
@@ -430,8 +462,16 @@ async function fetchShopifyMonthly() {
           date: start, // compat: alcuni componenti leggono `date`
 
           fatturato: sales.fatturato,
+          fatturatoNetto: sales.fatturatoNetto,
+          resi: sales.resi,
+
           fatturNC: sales.fatturNC,
+          fatturatoNettoNC: sales.fatturatoNettoNC,
+          resiNC: sales.resiNC,
+
           fatturRC: sales.fatturRC,
+          fatturatoNettoRC: sales.fatturatoNettoRC,
+          resiRC: sales.resiRC,
 
           ordini: sales.ordini,
           nc: sales.nc,

@@ -36,6 +36,7 @@ function cleanAccountId(id) {
 function getAccountIds() {
   const raw =
     process.env.META_AD_ACCOUNT_IDS ||
+    process.env.META_AD_ACCOUNT_ID ||
     process.env.META_ACCOUNT_IDS ||
     process.env.META_ACCOUNTS ||
     process.env.META_ACCOUNT_ID ||
@@ -53,6 +54,7 @@ function getSafeEnvDebug() {
     node_env: process.env.NODE_ENV || null,
 
     has_META_AD_ACCOUNT_IDS: Boolean(process.env.META_AD_ACCOUNT_IDS),
+    has_META_AD_ACCOUNT_ID: Boolean(process.env.META_AD_ACCOUNT_ID),
     has_META_ACCOUNT_IDS: Boolean(process.env.META_ACCOUNT_IDS),
     has_META_ACCOUNTS: Boolean(process.env.META_ACCOUNTS),
     has_META_ACCOUNT_ID: Boolean(process.env.META_ACCOUNT_ID),
@@ -403,7 +405,7 @@ export async function GET(req) {
       return json({
         ok: false,
         error:
-          'Nessun account Meta configurato. Aggiungi META_AD_ACCOUNT_IDS nelle Environment Variables di Vercel. Esempio: act_123,act_456',
+          'Nessun account Meta configurato. Aggiungi META_AD_ACCOUNT_IDS o META_AD_ACCOUNT_ID nelle Environment Variables di Vercel. Esempio: act_123,act_456',
         rows: [],
         summary: buildSummary([]),
         debug: debug ? getSafeEnvDebug() : undefined,

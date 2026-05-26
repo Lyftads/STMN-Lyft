@@ -20,6 +20,8 @@ const SUGGESTIONS = [
   'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?',
   'Come stanno andando le email su Klaviyo? Open rate, click, revenue.',
   'Confronta la revenue da email vs Meta Ads — dove sto crescendo di più?',
+  'Analizza i prezzi dei competitor: come mi posiziono rispetto a Velites, Picsil e Frog Grips?',
+  'Che promozioni stanno facendo i competitor? Devo reagire?',
 ]
 
 const palette = {

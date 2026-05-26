@@ -21,7 +21,7 @@ export async function GET(request) {
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
 
-  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat] =
+  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`),
       safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
@@ -31,6 +31,7 @@ export async function GET(request) {
       safeFetch(`${base}/api/tiktok?days=${days}`),
       safeFetch(`${base}/api/pinterest?days=${days}`),
       safeFetch(`${base}/api/snapchat?days=${days}`),
+      safeFetch(`${base}/api/competitor-intel`),
     ])
 
   const sources = {
@@ -137,6 +138,63 @@ export async function GET(request) {
 
   if (snapchat?.configured) {
     context.snapchat = { totals: snapchat.totals }
+  }
+
+  if (competitorIntel?.competitors?.length) {
+    context.competitors = competitorIntel.competitors.map((c) => {
+      const ws = c.websiteData || {}
+      const al = c.adLibrary || {}
+      const stats = ws.stats || {}
+
+      const onSaleProducts = (ws.products || [])
+        .filter((p) => p.onSale)
+        .slice(0, 5)
+        .map((p) => ({
+          title: p.title,
+          price: p.price,
+          was: p.compareAtPrice,
+          discount: p.discountPct + '%',
+        }))
+
+      const topByPrice = [...(ws.products || [])]
+        .filter((p) => p.price > 0)
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 5)
+        .map((p) => ({
+          title: p.title,
+          price: p.price,
+          type: p.type,
+        }))
+
+      return {
+        name: c.name,
+        website: c.websiteUrl,
+        isShopify: ws.isShopify || false,
+        activeAds: al.count || 0,
+        adLibraryError: al.error || null,
+        ads: (al.ads || []).slice(0, 10).map((a) => ({
+          titles: a.titles,
+          bodies: a.bodies,
+          platforms: a.platforms,
+          startDate: a.startDate,
+        })),
+        catalog: {
+          totalProducts: stats.totalProducts || 0,
+          avgPrice: stats.avgPrice ? Math.round(stats.avgPrice * 100) / 100 : 0,
+          minPrice: stats.minPrice || 0,
+          maxPrice: stats.maxPrice || 0,
+          onSaleCount: stats.onSaleCount || 0,
+          onSalePct: stats.onSalePct || 0,
+          avgDiscount: stats.avgDiscount || 0,
+          categories: stats.categories || [],
+          outOfStock: stats.outOfStockCount || 0,
+        },
+        promos: ws.promos || [],
+        topByPrice,
+        onSaleProducts,
+      }
+    })
+    context.competitorsFetchedAt = competitorIntel.fetchedAt
   }
 
   return NextResponse.json(context)

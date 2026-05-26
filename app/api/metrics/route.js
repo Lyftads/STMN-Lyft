@@ -930,6 +930,15 @@ async function fetchMeta() {
     return []
   }
 }
+async function safeShopifyTopProducts() {
+  try {
+    if (typeof fetchShopifyTopProducts !== 'function') return []
+    return await fetchShopifyTopProducts()
+  } catch (e) {
+    console.log('KPI Brain top products error:', e.message)
+    return []
+  }
+}
 async function safeShopifyDayBreakdown() {
   try {
     if (typeof fetchShopifyDayBreakdown !== 'function') return []
@@ -970,7 +979,7 @@ export async function GET() {
 
       // Lasciamo questi 3 campi per KPI Brain, ma per ora vuoti.
       // Così KPI Brain non rompe la dashboard.
-      shopifyTopProducts: [],
+     shopifyTopProducts: await safeShopifyTopProducts(),
 shopifyMarketingSources: [],
 shopifyDayBreakdown: await safeShopifyDayBreakdown(),
 

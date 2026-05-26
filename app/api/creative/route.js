@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const maxDuration = 60
 
-const API_VERSION = 'v20.0'
+const META_VERSION = 'v20.0'
 
 function json(data, status = 200) {
   return NextResponse.json(data, {
@@ -17,9 +17,9 @@ function json(data, status = 200) {
   })
 }
 
-function n(v) {
-  const x = Number(v)
-  return Number.isFinite(x) ? x : 0
+function n(value) {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
 }
 
 function div(a, b) {
@@ -28,433 +28,369 @@ function div(a, b) {
   return y > 0 ? x / y : 0
 }
 
-function normalizeAccountId(id) {
-  const clean = String(id || '').trim()
-  if (!clean) return null
-  return clean.startsWith('act_') ? clean : `act_${clean}`
+function getActionValue(actions, keys = []) {
+  if (!Array.isArray(actions)) return 0
+
+  return actions.reduce((sum, action) => {
+    const type = String(action?.action_type || '').toLowerCase()
+    const value = n(action?.value)
+
+    if (keys.some(k => type.includes(k.toLowerCase()))) {
+      return sum + value
+    }
+
+    return sum
+  }, 0)
 }
 
-function getAccessToken() {
-  return (
-    process.env.META_ACCESS_TOKEN ||
-    process.env.META_TOKEN ||
-    process.env.FACEBOOK_ACCESS_TOKEN ||
-    process.env.FB_ACCESS_TOKEN ||
-    ''
-  ).trim()
+function getDateRange(preset) {
+  const today = new Date()
+  const y = today.getFullYear()
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  const toISO = date => date.toISOString().slice(0, 10)
+
+  const make = (start, end) => ({
+    since: toISO(start),
+    until: toISO(end),
+  })
+
+  if (preset === 'today') {
+    return make(new Date(y, m, d), new Date(y, m, d))
+  }
+
+  if (preset === 'yesterday') {
+    return make(new Date(y, m, d - 1), new Date(y, m, d - 1))
+  }
+
+  if (preset === 'last_7d') {
+    return make(new Date(y, m, d - 6), new Date(y, m, d))
+  }
+
+  if (preset === 'last_14d') {
+    return make(new Date(y, m, d - 13), new Date(y, m, d))
+  }
+
+  if (preset === 'last_28d') {
+    return make(new Date(y, m, d - 27), new Date(y, m, d))
+  }
+
+  if (preset === 'this_month') {
+    return make(new Date(y, m, 1), new Date(y, m, d))
+  }
+
+  if (preset === 'last_month') {
+    return make(new Date(y, m - 1, 1), new Date(y, m, 0))
+  }
+
+  return make(new Date(y, m, d - 27), new Date(y, m, d))
 }
 
 function getAccountIds() {
   const raw =
     process.env.META_AD_ACCOUNT_IDS ||
     process.env.META_ACCOUNT_IDS ||
-    process.env.FACEBOOK_AD_ACCOUNT_IDS ||
     process.env.FB_AD_ACCOUNT_IDS ||
+    process.env.FACEBOOK_AD_ACCOUNT_IDS ||
     ''
 
   return raw
     .split(',')
-    .map(normalizeAccountId)
+    .map(x => x.trim())
     .filter(Boolean)
+    .map(id => (id.startsWith('act_') ? id : `act_${id}`))
 }
 
-function getDateString(d) {
-  return d.toISOString().slice(0, 10)
-}
+async function metaGet(path, params = {}) {
+  const token =
+    process.env.META_ACCESS_TOKEN ||
+    process.env.FACEBOOK_ACCESS_TOKEN ||
+    process.env.FB_ACCESS_TOKEN
 
-function getRange(preset) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const since = new Date(today)
-  const until = new Date(today)
-
-  if (preset === 'today') {
-    return {
-      since: getDateString(today),
-      until: getDateString(today),
-    }
+  if (!token) {
+    throw new Error('META_ACCESS_TOKEN mancante nelle Environment Variables di Vercel.')
   }
 
-  if (preset === 'yesterday') {
-    return {
-      since: getDateString(yesterday),
-      until: getDateString(yesterday),
-    }
-  }
-
-  if (preset === 'last_7d') {
-    since.setDate(today.getDate() - 6)
-    return {
-      since: getDateString(since),
-      until: getDateString(today),
-    }
-  }
-
-  if (preset === 'last_14d') {
-    since.setDate(today.getDate() - 13)
-    return {
-      since: getDateString(since),
-      until: getDateString(today),
-    }
-  }
-
-  if (preset === 'last_28d') {
-    since.setDate(today.getDate() - 27)
-    return {
-      since: getDateString(since),
-      until: getDateString(today),
-    }
-  }
-
-  if (preset === 'month_current') {
-    const first = new Date(today.getFullYear(), today.getMonth(), 1)
-    return {
-      since: getDateString(first),
-      until: getDateString(today),
-    }
-  }
-
-  if (preset === 'month_previous') {
-    const firstPrev = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-    const lastPrev = new Date(today.getFullYear(), today.getMonth(), 0)
-    return {
-      since: getDateString(firstPrev),
-      until: getDateString(lastPrev),
-    }
-  }
-
-  since.setDate(today.getDate() - 27)
-  return {
-    since: getDateString(since),
-    until: getDateString(today),
-  }
-}
-
-async function fetchMeta(path, params = {}) {
-  const accessToken = getAccessToken()
-
-  const url = new URL(`https://graph.facebook.com/${API_VERSION}/${path}`)
+  const url = new URL(`https://graph.facebook.com/${META_VERSION}/${path}`)
 
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, value)
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, typeof value === 'string' ? value : JSON.stringify(value))
     }
   })
 
-  url.searchParams.set('access_token', accessToken)
+  url.searchParams.set('access_token', token)
 
   const res = await fetch(url.toString(), {
     cache: 'no-store',
   })
 
-  const text = await res.text()
+  const body = await res.json().catch(() => null)
 
-  let data
-  try {
-    data = JSON.parse(text)
-  } catch {
-    throw new Error(text || 'Risposta Meta non valida')
+  if (!res.ok) {
+    const msg =
+      body?.error?.error_user_msg ||
+      body?.error?.message ||
+      `Errore Meta API ${res.status}`
+
+    throw new Error(msg)
   }
 
-  if (!res.ok || data.error) {
-    throw new Error(data?.error?.message || 'Errore Meta API')
-  }
-
-  return data
+  return body
 }
 
-async function fetchAllMetaPages(path, params = {}) {
+async function fetchAll(path, params = {}, maxPages = 6) {
   let out = []
-  let data = await fetchMeta(path, params)
+  let page = await metaGet(path, params)
 
-  if (Array.isArray(data.data)) {
-    out = out.concat(data.data)
+  if (Array.isArray(page?.data)) {
+    out = out.concat(page.data)
   }
 
-  let next = data?.paging?.next || null
+  let next = page?.paging?.next
+  let pages = 1
 
-  while (next) {
+  while (next && pages < maxPages) {
     const res = await fetch(next, { cache: 'no-store' })
-    const text = await res.text()
+    const body = await res.json().catch(() => null)
 
-    let page
-    try {
-      page = JSON.parse(text)
-    } catch {
-      break
+    if (!res.ok) break
+
+    if (Array.isArray(body?.data)) {
+      out = out.concat(body.data)
     }
 
-    if (page?.error) {
-      throw new Error(page.error.message || 'Errore paginazione Meta')
-    }
-
-    if (Array.isArray(page.data)) {
-      out = out.concat(page.data)
-    }
-
-    next = page?.paging?.next || null
+    next = body?.paging?.next
+    pages += 1
   }
 
   return out
 }
 
-function getActionValue(actions, wantedTypes) {
-  if (!Array.isArray(actions)) return 0
+async function fetchActiveAdsForAccount(accountId) {
+  const rows = await fetchAll(
+    `${accountId}/ads`,
+    {
+      fields: [
+        'id',
+        'name',
+        'effective_status',
+        'status',
+        'campaign{id,name,effective_status,status}',
+        'adset{id,name,effective_status,status}',
+        'creative{id,name,thumbnail_url,image_url,object_story_spec}',
+      ].join(','),
+      limit: 500,
+      filtering: [
+        {
+          field: 'ad.effective_status',
+          operator: 'IN',
+          value: ['ACTIVE'],
+        },
+      ],
+    },
+    8
+  )
 
-  const types = Array.isArray(wantedTypes) ? wantedTypes : [wantedTypes]
+  const map = new Map()
 
-  return actions.reduce((sum, action) => {
-    if (types.includes(action.action_type)) {
-      return sum + n(action.value)
-    }
-    return sum
-  }, 0)
-}
-
-function mapInsight(row) {
-  const impressions = n(row.impressions)
-  const spend = n(row.spend)
-  const reach = n(row.reach)
-  const clicks = n(row.inline_link_clicks)
-
-  const purchases = getActionValue(row.actions, [
-    'purchase',
-    'omni_purchase',
-    'offsite_conversion.fb_pixel_purchase',
-  ])
-
-  const purchaseValue = getActionValue(row.action_values, [
-    'purchase',
-    'omni_purchase',
-    'offsite_conversion.fb_pixel_purchase',
-  ])
-
-  const ctrLink = div(clicks, impressions) * 100
-  const cpcLink = div(spend, clicks)
-  const roas = div(purchaseValue, spend)
-  const costPerResult = div(spend, purchases)
-
-  return {
-    id: row.ad_id || row.id || '',
-    ad_id: row.ad_id || '',
-    ad_name: row.ad_name || 'Creative senza nome',
-    adset_id: row.adset_id || '',
-    adset_name: row.adset_name || '',
-    campaign_id: row.campaign_id || '',
-    campaign_name: row.campaign_name || '',
-    account_id: row.account_id ? normalizeAccountId(row.account_id) : '',
-    account_name: row.account_name || '',
-    impressions,
-    reach,
-    spend,
-    link_clicks: clicks,
-    ctr_link: ctrLink,
-    cpc_link: cpcLink,
-    purchases,
-    purchase_value: purchaseValue,
-    roas,
-    cost_per_result: costPerResult,
-    thumbnail_url: null,
-    image_url: null,
-    status: null,
-    effective_status: null,
-  }
-}
-
-function summarize(rows) {
-  const spend = rows.reduce((s, r) => s + n(r.spend), 0)
-  const purchaseValue = rows.reduce((s, r) => s + n(r.purchase_value), 0)
-  const purchases = rows.reduce((s, r) => s + n(r.purchases), 0)
-  const impressions = rows.reduce((s, r) => s + n(r.impressions), 0)
-  const linkClicks = rows.reduce((s, r) => s + n(r.link_clicks), 0)
-
-  return {
-    creative: rows.length,
-    spend,
-    roas: div(purchaseValue, spend),
-    ctr_link: div(linkClicks, impressions) * 100,
-    orders: purchases,
-    impressions,
-    link_clicks: linkClicks,
-  }
-}
-
-async function enrichAdsWithStatusAndCreative(rows) {
-  const byAdId = new Map()
-
-  rows.forEach(row => {
-    if (row.ad_id) byAdId.set(row.ad_id, row)
+  rows.forEach(ad => {
+    map.set(String(ad.id), {
+      ad_id: String(ad.id),
+      ad_name: ad.name || 'Ad senza nome',
+      ad_status: ad.effective_status || ad.status || '',
+      adset_id: ad.adset?.id || '',
+      adset_name: ad.adset?.name || '',
+      campaign_id: ad.campaign?.id || '',
+      campaign_name: ad.campaign?.name || '',
+      creative_id: ad.creative?.id || '',
+      creative_name: ad.creative?.name || ad.name || 'Creative senza nome',
+      thumbnail_url:
+        ad.creative?.thumbnail_url ||
+        ad.creative?.image_url ||
+        '',
+    })
   })
 
-  const adIds = [...byAdId.keys()]
+  return map
+}
 
-  const chunks = []
-  for (let i = 0; i < adIds.length; i += 50) {
-    chunks.push(adIds.slice(i, i + 50))
+async function fetchInsightsForAccount(accountId, range) {
+  return fetchAll(
+    `${accountId}/insights`,
+    {
+      level: 'ad',
+      time_range: range,
+      fields: [
+        'account_id',
+        'account_name',
+        'campaign_id',
+        'campaign_name',
+        'adset_id',
+        'adset_name',
+        'ad_id',
+        'ad_name',
+        'impressions',
+        'reach',
+        'frequency',
+        'cpm',
+        'ctr',
+        'inline_link_click_ctr',
+        'cpc',
+        'inline_link_clicks',
+        'spend',
+        'actions',
+        'action_values',
+      ].join(','),
+      limit: 500,
+    },
+    8
+  )
+}
+
+function normalizeCreative(insight, activeAd) {
+  const spend = n(insight.spend)
+  const impressions = n(insight.impressions)
+  const reach = n(insight.reach)
+  const linkClicks = n(insight.inline_link_clicks)
+
+  const purchases = getActionValue(insight.actions, [
+    'purchase',
+    'omni_purchase',
+    'offsite_conversion.fb_pixel_purchase',
+  ])
+
+  const purchaseValue = getActionValue(insight.action_values, [
+    'purchase',
+    'omni_purchase',
+    'offsite_conversion.fb_pixel_purchase',
+  ])
+
+  const ctrLink =
+    n(insight.inline_link_click_ctr) ||
+    div(linkClicks, impressions) * 100
+
+  const roas = div(purchaseValue, spend)
+  const cpcLink = n(insight.cpc) || div(spend, linkClicks)
+  const cpa = div(spend, purchases)
+
+  return {
+    id: String(insight.ad_id || activeAd?.ad_id || ''),
+    ad_id: String(insight.ad_id || activeAd?.ad_id || ''),
+    ad_name: activeAd?.ad_name || insight.ad_name || 'Ad senza nome',
+
+    creative_id: activeAd?.creative_id || '',
+    creative_name: activeAd?.creative_name || activeAd?.ad_name || insight.ad_name || 'Creative senza nome',
+    thumbnail_url: activeAd?.thumbnail_url || '',
+
+    campaign_id: insight.campaign_id || activeAd?.campaign_id || '',
+    campaign_name: activeAd?.campaign_name || insight.campaign_name || '',
+
+    adset_id: insight.adset_id || activeAd?.adset_id || '',
+    adset_name: activeAd?.adset_name || insight.adset_name || '',
+
+    impressions,
+    reach,
+    frequency: n(insight.frequency),
+    cpm: n(insight.cpm),
+    ctr: n(insight.ctr),
+    ctr_link: ctrLink,
+    cpc_link: cpcLink,
+    link_clicks: linkClicks,
+    spend,
+    cost_per_result: cpa,
+    roas,
+    purchases,
+    purchase_value: purchaseValue,
+    orders: purchases,
+
+    status: activeAd?.ad_status || 'ACTIVE',
   }
+}
 
-  for (const chunk of chunks) {
-    const idsObject = {}
-    chunk.forEach(id => {
-      idsObject[id] = id
-    })
+function buildSummary(rows) {
+  const spend = rows.reduce((s, r) => s + n(r.spend), 0)
+  const impressions = rows.reduce((s, r) => s + n(r.impressions), 0)
+  const clicks = rows.reduce((s, r) => s + n(r.link_clicks), 0)
+  const purchaseValue = rows.reduce((s, r) => s + n(r.purchase_value), 0)
+  const purchases = rows.reduce((s, r) => s + n(r.purchases), 0)
 
-    const ids = Object.keys(idsObject).join(',')
-
-    let adsData = {}
-
-    try {
-      adsData = await fetchMeta('', {
-        ids,
-        fields: [
-          'id',
-          'name',
-          'status',
-          'effective_status',
-          'creative{id,name,thumbnail_url,image_url,object_story_spec}',
-        ].join(','),
-      })
-    } catch {
-      adsData = {}
-    }
-
-    Object.values(adsData).forEach(ad => {
-      const row = byAdId.get(ad.id)
-      if (!row) return
-
-      row.status = ad.status || null
-      row.effective_status = ad.effective_status || null
-
-      const creative = ad.creative || {}
-
-      row.creative_id = creative.id || null
-      row.creative_name = creative.name || null
-      row.thumbnail_url =
-        creative.thumbnail_url ||
-        creative.image_url ||
-        creative?.object_story_spec?.link_data?.picture ||
-        creative?.object_story_spec?.video_data?.image_url ||
-        null
-
-      row.image_url =
-        creative.image_url ||
-        creative.thumbnail_url ||
-        creative?.object_story_spec?.link_data?.picture ||
-        creative?.object_story_spec?.video_data?.image_url ||
-        null
-    })
+  return {
+    creatives: rows.length,
+    spend,
+    roas: div(purchaseValue, spend),
+    ctr_link: div(clicks, impressions) * 100,
+    orders: purchases,
+    purchases,
+    purchase_value: purchaseValue,
   }
-
-  return rows
 }
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url)
-
     const preset = searchParams.get('preset') || 'last_28d'
-    const activeOnly = searchParams.get('active_only') !== 'false'
 
-    const accessToken = getAccessToken()
-    const accounts = getAccountIds()
+    const range = getDateRange(preset)
+    const accountIds = getAccountIds()
 
-    if (!accessToken) {
-      return json(
-        {
-          ok: false,
-          error:
-            'Token Meta mancante. Aggiungi META_ACCESS_TOKEN nelle Environment Variables di Vercel.',
-          rows: [],
-          summary: summarize([]),
-        },
-        200
-      )
+    if (!accountIds.length) {
+      return json({
+        ok: false,
+        error:
+          'Nessun account Meta configurato. Aggiungi META_AD_ACCOUNT_IDS nelle Environment Variables di Vercel. Esempio: act_123,act_456',
+        rows: [],
+        summary: buildSummary([]),
+      }, 400)
     }
-
-    if (!accounts.length) {
-      return json(
-        {
-          ok: false,
-          error:
-            'Nessun account Meta configurato. Aggiungi META_AD_ACCOUNT_IDS nelle Environment Variables di Vercel. Esempio: act_123,act_456',
-          rows: [],
-          summary: summarize([]),
-        },
-        200
-      )
-    }
-
-    const range = getRange(preset)
-
-    const fields = [
-      'account_id',
-      'account_name',
-      'campaign_id',
-      'campaign_name',
-      'adset_id',
-      'adset_name',
-      'ad_id',
-      'ad_name',
-      'impressions',
-      'reach',
-      'spend',
-      'inline_link_clicks',
-      'actions',
-      'action_values',
-    ].join(',')
 
     const allRows = []
+    const errors = []
 
-    for (const account of accounts) {
+    for (const accountId of accountIds) {
       try {
-        const rows = await fetchAllMetaPages(`${account}/insights`, {
-          level: 'ad',
-          fields,
-          time_range: JSON.stringify(range),
-          limit: 500,
-        })
+        const activeAdsMap = await fetchActiveAdsForAccount(accountId)
 
-        rows.forEach(row => {
-          allRows.push(mapInsight(row))
-        })
+        if (!activeAdsMap.size) {
+          continue
+        }
+
+        const insights = await fetchInsightsForAccount(accountId, range)
+
+        for (const insight of insights) {
+          const adId = String(insight.ad_id || '')
+          const activeAd = activeAdsMap.get(adId)
+
+          if (!activeAd) continue
+
+          allRows.push(normalizeCreative(insight, activeAd))
+        }
       } catch (err) {
-        console.error(`Errore account ${account}:`, err.message)
+        errors.push({
+          account_id: accountId,
+          error: err.message,
+        })
       }
     }
 
-    let enriched = await enrichAdsWithStatusAndCreative(allRows)
-
-    if (activeOnly) {
-      enriched = enriched.filter(row => {
-        const status = String(row.effective_status || row.status || '').toUpperCase()
-        return status === 'ACTIVE'
-      })
-    }
-
-    enriched.sort((a, b) => n(b.roas) - n(a.roas))
+    allRows.sort((a, b) => n(b.spend) - n(a.spend))
 
     return json({
       ok: true,
       preset,
       range,
-      accounts,
-      active_only: activeOnly,
-      summary: summarize(enriched),
-      rows: enriched,
+      accounts: accountIds,
+      rows: allRows,
+      summary: buildSummary(allRows),
+      errors,
     })
   } catch (err) {
-    return json(
-      {
-        ok: false,
-        error: err.message || 'Errore caricamento creative',
-        rows: [],
-        summary: summarize([]),
-      },
-      200
-    )
+    return json({
+      ok: false,
+      error: err.message || 'Errore sconosciuto creative API',
+      rows: [],
+      summary: buildSummary([]),
+    }, 500)
   }
 }

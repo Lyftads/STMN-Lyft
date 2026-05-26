@@ -457,7 +457,7 @@ function generateInsight(summary, since, until) {
 
   if (summary.purchases > 0) {
     parts.push(
-      `Sono stati rilevati ${summary.purchases} acquisti, ROAS ${summary.roas.toFixed(2)}x, costo per risultato €${summary.cost_per_result.toFixed(2),} e AOV campagna €${summary.aov_campagna.toFixed(2)}.`
+      `Sono stati rilevati ${summary.purchases} acquisti, ROAS ${summary.roas.toFixed(2)}x, costo per risultato €${summary.cost_per_result.toFixed(2)} e AOV campagna €${summary.aov_campagna.toFixed(2)}.`
     )
   } else {
     parts.push(

@@ -27,7 +27,9 @@ Leggi i dati e dici quello che pensi. Vedi un trend, lo nomini. Vedi un'opportun
 Quando consigli un'azione, fai sentire il pensiero: il perché, cosa testeresti, come capiresti se ha funzionato. Ma scrivilo come lo diresti a voce, non come una checklist.
 
 ## Sui dati
-Hai accesso a un blocco JSON \`DATI LIVE\` con i numeri veri di STMN: Shopify (revenue, ordini, NC vs RC, top prodotti, attribuzione, breakdown giorno), Meta Ads (spend, ROAS, CTR, CPM, CPC, dettaglio campagne), e Klaviyo (email inviate, open rate, click rate, CTOR, revenue da email, campagne, flussi, segmenti). Usa solo numeri che ci sono lì. Se ti manca qualcosa per rispondere bene, dillo onestamente — tipo "Marino, per questa cosa qua avrei bisogno di vedere anche X". Se i dati sono proprio vuoti, dillo subito senza fingere un'analisi.
+Hai accesso a un blocco JSON \`DATI LIVE\` con i numeri veri di STMN provenienti da TUTTE le piattaforme integrate. Il campo "sources" ti dice quali sono attive. Possono includere: Shopify (revenue, ordini, NC vs RC, top prodotti), Meta Ads (spend, ROAS, CTR, CPM, campagne), Klaviyo (email KPI, revenue campagne vs flussi, segmenti), Google Ads (spend mensile), GA4 (sessioni, canali, pagine top, geo), TikTok Ads (spend, impressions, click, conversioni, campagne), Pinterest Ads (spend, impressions, ROAS), Snapchat Ads (spend, swipes, conversioni).
+
+Usa solo numeri che trovi nel JSON. Se una piattaforma è attiva ma i dati sono vuoti, dillo. Se Marino chiede di qualcosa che non è integrato, digli quale piattaforma manca e che può collegarla dalla tab Integrazioni. Tipo: "Marino, TikTok non è ancora collegato — vai su Integrazioni e attivalo, poi ne parliamo con i numeri veri".
 
 Una cosa importante: non sei un AI generico che sta cercando di sembrare umano. Sei uno che lavora con Marino e il suo brand, e ne parla come se ne stesse parlando ad un coffee, davanti al laptop con i grafici aperti.`
 
@@ -41,22 +43,6 @@ function safeJson(value, max = 80000) {
   }
 }
 
-function summarizeContext(context) {
-  const m = context?.metrics || {}
-  const d = context?.metaDetail || {}
-  return {
-    shopifyMonthly: Array.isArray(m.shopifyMonthly) ? m.shopifyMonthly.length : 0,
-    shopifyWeekly: Array.isArray(m.shopifyWeekly) ? m.shopifyWeekly.length : 0,
-    shopifyTopProducts: Array.isArray(m.shopifyTopProducts) ? m.shopifyTopProducts.length : 0,
-    shopifyMarketingSources: Array.isArray(m.shopifyMarketingSources) ? m.shopifyMarketingSources.length : 0,
-    shopifyDayBreakdown: Array.isArray(m.shopifyDayBreakdown) ? m.shopifyDayBreakdown.length : 0,
-    metaMonthly: Array.isArray(m.metaMonthly) ? m.metaMonthly.length : 0,
-    metaWeekly: Array.isArray(m.metaWeekly) ? m.metaWeekly.length : 0,
-    metaDetailRows: Array.isArray(d.rows) ? d.rows.length : 0,
-    sourcesShopify: Boolean(m?.sources?.shopify),
-    sourcesMeta: Boolean(m?.sources?.meta) || Boolean(d?.sources?.meta),
-  }
-}
 
 export async function POST(req) {
   if (!process.env.OPENAI_API_KEY) {
@@ -83,49 +69,20 @@ export async function POST(req) {
 
   const preset = body?.preset || 'last_28d'
   const cfg = body?.cfg || {}
-  const metrics = body?.metrics || null
-  const metaDetail = body?.metaDetail || null
-  const klaviyo = body?.klaviyo || null
+  const agentContext = body?.agentContext || null
 
   const context = {
     preset,
     cfg,
     updatedAt: new Date().toISOString(),
-    metrics: metrics
-      ? {
-          aovLive: metrics.aovLive ?? null,
-          ordersLive: metrics.ordersLive ?? null,
-          shopifyMonthly: metrics.shopifyMonthly ?? [],
-          shopifyWeekly: metrics.shopifyWeekly ?? [],
-          shopifyTopProducts: metrics.shopifyTopProducts ?? [],
-          shopifyMarketingSources: metrics.shopifyMarketingSources ?? [],
-          shopifyDayBreakdown: metrics.shopifyDayBreakdown ?? [],
-          metaMonthly: metrics.metaMonthly ?? [],
-          metaWeekly: metrics.metaWeekly ?? [],
-          metaSpend: metrics.metaSpend ?? null,
-          sources: metrics.sources ?? {},
-          kpiBrain: metrics.kpiBrain ?? null,
-        }
-      : null,
-    metaDetail: metaDetail
-      ? {
-          preset: metaDetail.preset,
-          level: metaDetail.level,
-          range: metaDetail.range,
-          previousRange: metaDetail.previousRange,
-          summary: metaDetail.summary,
-          previousSummary: metaDetail.previousSummary,
-          comparison: metaDetail.comparison,
-          insight: metaDetail.insight,
-          todos: metaDetail.todos,
-          rows: Array.isArray(metaDetail.rows) ? metaDetail.rows.slice(0, 50) : [],
-          sources: metaDetail.sources ?? {},
-        }
-      : null,
-    klaviyo: klaviyo || null,
+    ...agentContext,
   }
 
-  const summary = summarizeContext(context)
+  const activeSources = agentContext?.sources
+    ? Object.entries(agentContext.sources).filter(([, v]) => v).map(([k]) => k)
+    : []
+
+  const summary = { activeSources, activeCount: activeSources.length }
 
   const cleanMessages = messages
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))

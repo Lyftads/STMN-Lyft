@@ -81,20 +81,12 @@ export default function PerformanceAgentTab({ cfg }) {
     setInput('')
     setLoading(true)
 
-    let metrics = null
-    let metaDetail = null
-    let klaviyo = null
+    let agentContext = null
     try {
-      const [mRes, dRes, kRes] = await Promise.all([
-        fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store' }),
-        fetch(`/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, { cache: 'no-store' }),
-        fetch('/api/klaviyo?days=30', { cache: 'no-store' }),
-      ])
-      if (mRes.ok) metrics = await mRes.json()
-      if (dRes.ok) metaDetail = await dRes.json()
-      if (kRes.ok) klaviyo = await kRes.json()
+      const ctxRes = await fetch(`/api/agent-context?preset=${encodeURIComponent(preset)}&days=30`, { cache: 'no-store' })
+      if (ctxRes.ok) agentContext = await ctxRes.json()
     } catch (e) {
-      console.log('Agent prefetch error:', e?.message)
+      console.log('Agent context fetch error:', e?.message)
     }
 
     try {
@@ -105,9 +97,7 @@ export default function PerformanceAgentTab({ cfg }) {
           messages: next,
           preset,
           cfg: cfg || null,
-          metrics,
-          metaDetail,
-          klaviyo,
+          agentContext,
         }),
       })
 
@@ -421,10 +411,10 @@ export default function PerformanceAgentTab({ cfg }) {
           </button>
         </form>
         <div style={{ marginTop: 8, fontSize: 11, color: palette.muted, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <span>Le risposte usano i dati live del periodo selezionato. Niente è inventato.</span>
+          <span>Dati live da tutte le piattaforme collegate. Niente è inventato.</span>
           {dataSummary && (
             <span style={{ color: '#a89db8' }}>
-              Shopify {dataSummary.sourcesShopify ? '✓' : '✗'} · Meta {dataSummary.sourcesMeta ? '✓' : '✗'} · {dataSummary.shopifyMonthly}m / {dataSummary.shopifyWeekly}w mesi/sett · {dataSummary.metaDetailRows} campagne
+              {(dataSummary.activeSources || []).map(s => `${s} ✓`).join(' · ') || 'nessuna fonte'} — {dataSummary.activeCount || 0} integrazion{dataSummary.activeCount === 1 ? 'e' : 'i'}
             </span>
           )}
         </div>

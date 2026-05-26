@@ -114,6 +114,39 @@ function weekRanges() {
   return weeks
 }
 
+function monthRanges() {
+  const startYear = parseInt(START_DATE.slice(0, 4), 10)
+  const startMonth = parseInt(START_DATE.slice(5, 7), 10)
+
+  const now = new Date()
+  const endYear = now.getUTCFullYear()
+  const endMonth = now.getUTCMonth() + 1
+  const todayStr = format(now, 'yyyy-MM-dd')
+
+  const months = []
+  let y = startYear
+  let m = startMonth
+
+  while (y < endYear || (y === endYear && m <= endMonth)) {
+    const monthStr = `${y}-${String(m).padStart(2, '0')}`
+    const startDate = `${monthStr}-01`
+
+    // ultimo giorno del mese in UTC
+    const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const monthEnd = `${monthStr}-${String(lastDay).padStart(2, '0')}`
+
+    // se è il mese corrente, fermati a oggi
+    const endDate = monthEnd > todayStr ? todayStr : monthEnd
+
+    months.push({ month: monthStr, start: startDate, end: endDate })
+
+    m++
+    if (m > 12) { m = 1; y++ }
+  }
+
+  return months
+}
+
 // ── ShopifyQL via GraphQL ─────────────────────────────────────
 async function shopifyQL(query) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
@@ -188,8 +221,8 @@ async function shopifyQL(query) {
   }
 }
 
-// ── Shopify weekly sales ──────────────────────────────────────
-async function fetchShopifySalesWeek(start, end) {
+// ── Shopify sales per range arbitrario (settimana o mese) ─────
+async function fetchShopifySalesRange(start, end) {
   const query = `
     FROM sales
       SHOW customers,
@@ -283,10 +316,10 @@ async function fetchShopifySalesWeek(start, end) {
   }
 }
 
-// ── Shopify weekly online store visitors ──────────────────────
+// ── Shopify online store visitors per range arbitrario ────────
 // [Non verificato] Uso online_store_visitors perché Shopify lo mostra come
 // "visitatori del negozio online". Se ShopifyQL rifiuta la metrica, torna 0.
-async function fetchShopifyVisitorsWeek(start, end) {
+async function fetchShopifyVisitorsRange(start, end) {
   const candidates = [
     `
       FROM sessions
@@ -342,8 +375,8 @@ async function fetchShopifyWeekly() {
     const rows = await Promise.all(
       ranges.map(async ({ start, end }) => {
         const [sales, uniqueSessions] = await Promise.all([
-          fetchShopifySalesWeek(start, end),
-          fetchShopifyVisitorsWeek(start, end),
+          fetchShopifySalesRange(start, end),
+          fetchShopifyVisitorsRange(start, end),
         ])
 
         return {
@@ -374,6 +407,53 @@ async function fetchShopifyWeekly() {
     )
   } catch (e) {
     console.log('Shopify weekly error:', e.message)
+    return []
+  }
+}
+
+// ── Shopify monthly (calendar month: 1 → ultimo giorno) ───────
+async function fetchShopifyMonthly() {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
+
+  try {
+    const ranges = monthRanges()
+
+    const rows = await Promise.all(
+      ranges.map(async ({ month, start, end }) => {
+        const [sales, uniqueSessions] = await Promise.all([
+          fetchShopifySalesRange(start, end),
+          fetchShopifyVisitorsRange(start, end),
+        ])
+
+        return {
+          month,
+          date: start, // compat: alcuni componenti leggono `date`
+
+          fatturato: sales.fatturato,
+          fatturNC: sales.fatturNC,
+          fatturRC: sales.fatturRC,
+
+          ordini: sales.ordini,
+          nc: sales.nc,
+          rc: sales.rc,
+
+          uniqueSessions,
+        }
+      })
+    )
+
+    return rows.filter(
+      r =>
+        r.fatturato > 0 ||
+        r.fatturNC > 0 ||
+        r.fatturRC > 0 ||
+        r.ordini > 0 ||
+        r.nc > 0 ||
+        r.rc > 0 ||
+        r.uniqueSessions > 0
+    )
+  } catch (e) {
+    console.log('Shopify monthly error:', e.message)
     return []
   }
 }
@@ -597,11 +677,13 @@ export async function GET() {
     const [
       aovData,
       shopifyWeekly,
+      shopifyMonthly,
       metaMonthly,
       metaWeekly,
     ] = await Promise.all([
       fetchAOV(),
       fetchShopifyWeekly(),
+      fetchShopifyMonthly(),
       fetchMeta(),
       fetchMetaWeekly(),
     ])
@@ -616,13 +698,17 @@ export async function GET() {
       ordersLive: aovData.orders,
 
       shopifyWeekly,
+      shopifyMonthly,
 
       metaSpend: Math.round(metaTotal * 100) / 100,
       metaMonthly,
       metaWeekly,
 
       sources: {
-        shopify: aovData.orders > 0 || shopifyWeekly.length > 0,
+        shopify:
+          aovData.orders > 0 ||
+          shopifyWeekly.length > 0 ||
+          shopifyMonthly.length > 0,
         meta: metaMonthly.length > 0 || metaWeekly.length > 0,
       },
 

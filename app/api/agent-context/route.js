@@ -21,7 +21,7 @@ export async function GET(request) {
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
 
-  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel] =
+  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`),
       safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
@@ -32,6 +32,7 @@ export async function GET(request) {
       safeFetch(`${base}/api/pinterest?days=${days}`),
       safeFetch(`${base}/api/snapchat?days=${days}`),
       safeFetch(`${base}/api/competitor-intel`),
+      safeFetch(`${base}/api/product-costs`),
     ])
 
   const sources = {
@@ -138,6 +139,11 @@ export async function GET(request) {
 
   if (snapchat?.configured) {
     context.snapchat = { totals: snapchat.totals }
+  }
+
+  if (productCosts?.products?.length) {
+    context.productCosts = productCosts.products
+    context.productCostsSummary = productCosts.summary
   }
 
   if (competitorIntel?.competitors?.length) {

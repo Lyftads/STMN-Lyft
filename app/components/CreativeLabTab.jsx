@@ -295,11 +295,54 @@ export default function CreativeLabTab() {
   const [format, setFormat] = useState('square')
   const [imageModel, setImageModel] = useState('gpt-image-1')
   const [search, setSearch] = useState('')
+  const [refImages, setRefImages] = useState({})
   const [generating, setGenerating] = useState(false)
   const [creatives, setCreatives] = useState([])
   const [accepted, setAccepted] = useState({})
   const [rejectingIdx, setRejectingIdx] = useState(null)
   const [genError, setGenError] = useState(null)
+
+  function compressImage(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const max = 800
+          let w = img.width, h = img.height
+          if (w > max || h > max) {
+            if (w > h) { h = Math.round(h * max / w); w = max }
+            else { w = Math.round(w * max / h); h = max }
+          }
+          canvas.width = w; canvas.height = h
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+          resolve(canvas.toDataURL('image/jpeg', 0.8))
+        }
+        img.src = e.target.result
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleRefUpload(productTitle, files) {
+    const existing = refImages[productTitle] || []
+    const remaining = 3 - existing.length
+    if (remaining <= 0) return
+    const toProcess = Array.from(files).slice(0, remaining)
+    const compressed = await Promise.all(toProcess.map(compressImage))
+    setRefImages((prev) => ({
+      ...prev,
+      [productTitle]: [...(prev[productTitle] || []), ...compressed],
+    }))
+  }
+
+  function removeRef(productTitle, idx) {
+    setRefImages((prev) => ({
+      ...prev,
+      [productTitle]: (prev[productTitle] || []).filter((_, i) => i !== idx),
+    }))
+  }
 
   useEffect(() => { loadData(1) }, [])
 
@@ -352,6 +395,7 @@ export default function CreativeLabTab() {
           })),
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
+          productReferences: refImages,
           style, funnelStage, format, imageModel, generateImages: true,
         }),
       })
@@ -389,6 +433,7 @@ export default function CreativeLabTab() {
           } : { title: creative.productTitle }],
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
+          productReferences: refImages,
           style, funnelStage, format, imageModel, generateImages: true, singleIndex: idx,
         }),
       })
@@ -525,6 +570,102 @@ export default function CreativeLabTab() {
 
             <Pagination page={data.page} totalPages={data.totalPages} onPageChange={changePage} />
           </div>
+
+          {/* Reference Images Upload */}
+          {selected.length > 0 && (
+            <div
+              style={{
+                background: '#14111d',
+                border: '1px solid #2c2638',
+                borderRadius: 18,
+                padding: 20,
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
+                Foto reference prodotto (opzionale)
+              </div>
+              <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
+                Carica fino a 3 foto per prodotto — l&apos;AI analizzerà colori, materiali e dettagli per generare immagini più fedeli
+              </div>
+
+              {selected.map((handle) => {
+                const product = products.find((p) => p.handle === handle)
+                if (!product) return null
+                const refs = refImages[product.title] || []
+
+                return (
+                  <div
+                    key={handle}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      padding: '12px 0',
+                      borderBottom: '1px solid #252033',
+                    }}
+                  >
+                    {/* Product thumb */}
+                    <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0a0818' }}>
+                      {product.image && <img src={product.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {product.title}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {/* Uploaded previews */}
+                        {refs.map((src, i) => (
+                          <div key={i} style={{ position: 'relative', width: 40, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid #332a41' }}>
+                            <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button
+                              onClick={() => removeRef(product.title, i)}
+                              style={{
+                                position: 'absolute', top: -4, right: -4,
+                                width: 16, height: 16, borderRadius: 999,
+                                background: '#ef4444', border: 'none', color: '#fff',
+                                fontSize: 10, fontWeight: 900, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Upload button */}
+                        {refs.length < 3 && (
+                          <label
+                            style={{
+                              width: 40, height: 40, borderRadius: 8,
+                              border: '1px dashed #332a41', background: '#0d0a16',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', color: '#6b6580', fontSize: 18,
+                            }}
+                          >
+                            +
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              style={{ display: 'none' }}
+                              onChange={(e) => handleRefUpload(product.title, e.target.files)}
+                            />
+                          </label>
+                        )}
+
+                        <span style={{ color: '#4a4060', fontSize: 10, marginLeft: 4 }}>
+                          {refs.length}/3
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Funnel Stage Selector */}
           <div

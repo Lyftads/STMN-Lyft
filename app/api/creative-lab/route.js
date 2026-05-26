@@ -289,6 +289,7 @@ export async function POST(request) {
     products = [],
     bestAds = [],
     competitors = [],
+    productReferences = {},
     style = 'performance',
     funnelStage = 'tofu',
     format = 'square',
@@ -299,6 +300,47 @@ export async function POST(request) {
 
   if (!products.length) {
     return json({ error: 'Seleziona almeno un prodotto' }, 400)
+  }
+
+  // Analyze reference images with GPT-4o Vision for accurate product descriptions
+  const productDescriptions = {}
+  for (const product of products) {
+    const refs = productReferences[product.title] || []
+    if (refs.length === 0) continue
+    try {
+      const imageContent = refs.slice(0, 3).map((b64) => ({
+        type: 'image_url',
+        image_url: { url: b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}` },
+      }))
+      const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPENAI_KEY}`,
+        },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          max_tokens: 600,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Describe this fitness product in extreme detail for AI image generation. Include: exact colors (hex if possible), materials (leather, synthetic, neoprene, etc.), textures (smooth, textured grip, matte, glossy), shape and proportions, any visible logos/branding/text, stitching details, hardware (buckles, velcro, snaps), distinctive design features. Be specific enough that an image AI can recreate this product with 95% accuracy. Output ONLY the description, no preamble.`,
+              },
+              ...imageContent,
+            ],
+          }],
+        }),
+        signal: AbortSignal.timeout(20000),
+      })
+      if (visionRes.ok) {
+        const vData = await visionRes.json()
+        productDescriptions[product.title] = vData.choices?.[0]?.message?.content || ''
+      }
+    } catch (_) {
+      // Vision analysis failed, will use basic product info
+    }
   }
 
   const styleGuide = {
@@ -379,7 +421,14 @@ ${JSON.stringify(bestAds.slice(0, 5), null, 2)}
 ${JSON.stringify(competitors, null, 2)}
 
 ## Prodotti da promuovere
-${JSON.stringify(products, null, 2)}
+${JSON.stringify(products.map(p => ({
+  ...p,
+  visualDescription: productDescriptions[p.title] || null,
+})), null, 2)}
+
+${Object.keys(productDescriptions).length > 0 ? `## DESCRIZIONI VISIVE DETTAGLIATE (da foto reali caricate)
+Le seguenti descrizioni sono state estratte da foto reali del prodotto. USALE OBBLIGATORIAMENTE nell'imagePrompt per descrivere il prodotto con precisione:
+${Object.entries(productDescriptions).map(([title, desc]) => `### ${title}\n${desc}`).join('\n\n')}` : ''}
 
 ## REGOLE ANDROMEDA (Meta Algorithm) — OBBLIGATORIE
 Ogni creative DEVE essere VISIVAMENTE UNICA per massimizzare la varianza che Andromeda premia.

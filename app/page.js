@@ -1372,52 +1372,8 @@ export default function App() {
     {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
-      {/* HEADER */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
-        <div>
-          <div style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em',color:'#e8e8e8'}}>STMN Fitness</div>
-          <div style={{fontSize:10,color:'#64748b',marginTop:4,letterSpacing:'0.05em'}}>
-            LTV:CAC · Dal {MONTHS_START} · {updated ? updated.toLocaleString('it-IT') : '—'}
-          </div>
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <span style={{
-            fontSize:11,padding:'4px 12px',borderRadius:20,
-            border:`1px solid ${live?.sources?.shopify?'#22c55e':'#444'}`,
-            color: live?.sources?.shopify?'#22c55e':'#666',
-            background: live?.sources?.shopify?'#22c55e10':'transparent'
-          }}>Shopify {live?.sources?.shopify?'✓':'—'}</span>
-          <span style={{
-            fontSize:11,padding:'4px 12px',borderRadius:20,
-            border:`1px solid ${live?.sources?.meta?'#3b82f6':'#444'}`,
-            color: live?.sources?.meta?'#3b82f6':'#666',
-            background: live?.sources?.meta?'#3b82f610':'transparent'
-          }}>Meta {live?.sources?.meta?'✓':'—'}</span>
-          <button onClick={()=>setShowCfg(true)} style={{
-            fontSize:11,padding:'4px 12px',borderRadius:20,
-            border:'1px solid #1e2d47',background:'transparent',
-            color:'#e8e8e8',cursor:'pointer'
-          }}>⚙ LTV</button>
-          <button onClick={fetchLive} disabled={loading} style={{
-            fontSize:11,padding:'4px 14px',borderRadius:20,
-            border:'none',background:'#22c55e',color:'#000',
-            fontWeight:700,cursor:loading?'wait':'pointer'
-          }}>↻ {loading?'Aggiorno…':'Aggiorna'}</button>
-        </div>
-      </div>
 
-      {/* TABS */}
-      <div style={{display:'flex',gap:24,borderBottom:'1px solid #111827',marginBottom:24}}>
-        {TABS.map(({id,l}) => (
-          <button key={id} onClick={()=>setTab(id)} style={{
-            background:'transparent',border:'none',padding:'12px 0',
-            color: tab===id?'#e8e8e8':'#555',fontWeight:tab===id?700:500,
-            fontSize:13,cursor:'pointer',
-            borderBottom: tab===id?'2px solid #22c55e':'2px solid transparent',
-            marginBottom:-1
-          }}>{l}</button>
-        ))}
-      </div>
+  
 
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
@@ -1467,7 +1423,16 @@ export default function App() {
           </div>
         </>
       )}
-
+{/* KPI BRAIN TAB */}
+{tab === 'kpiBrain' && (
+  <KPIBrainTab
+    data={data}
+    dataYear={dataYear}
+    live={live}
+    cfg={cfg}
+    S={S}
+  />
+)}
       {/* MENSILE TAB */}
       {tab==='monthly' && (
         <div style={S.card}>

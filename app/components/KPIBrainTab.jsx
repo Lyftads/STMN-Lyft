@@ -256,7 +256,7 @@ const dayNameIT = day => {
 
   return map[normalized] || day
 }
-  const dayBreakdown = Array.isArray(activeLive?.shopifyDayBreakdown)
+   const dayBreakdown = Array.isArray(activeLive?.shopifyDayBreakdown)
     ? activeLive.shopifyDayBreakdown
         .map(row => ({
           label: dayNameIT(row.day || row.label),

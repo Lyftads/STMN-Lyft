@@ -1364,3 +1364,205 @@ export default function App() {
       {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
+      {/* HEADER */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em',color:'#e8e8e8'}}>STMN Fitness</div>
+          <div style={{fontSize:10,color:'#64748b',marginTop:4,letterSpacing:'0.05em'}}>
+            LTV:CAC · Dal {MONTHS_START} · {updated ? updated.toLocaleString('it-IT') : '—'}
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{
+            fontSize:11,padding:'4px 12px',borderRadius:20,
+            border:`1px solid ${live?.sources?.shopify?'#22c55e':'#444'}`,
+            color: live?.sources?.shopify?'#22c55e':'#666',
+            background: live?.sources?.shopify?'#22c55e10':'transparent'
+          }}>Shopify {live?.sources?.shopify?'✓':'—'}</span>
+          <span style={{
+            fontSize:11,padding:'4px 12px',borderRadius:20,
+            border:`1px solid ${live?.sources?.meta?'#3b82f6':'#444'}`,
+            color: live?.sources?.meta?'#3b82f6':'#666',
+            background: live?.sources?.meta?'#3b82f610':'transparent'
+          }}>Meta {live?.sources?.meta?'✓':'—'}</span>
+          <button onClick={()=>setShowCfg(true)} style={{
+            fontSize:11,padding:'4px 12px',borderRadius:20,
+            border:'1px solid #1e2d47',background:'transparent',
+            color:'#e8e8e8',cursor:'pointer'
+          }}>⚙ LTV</button>
+          <button onClick={fetchLive} disabled={loading} style={{
+            fontSize:11,padding:'4px 14px',borderRadius:20,
+            border:'none',background:'#22c55e',color:'#000',
+            fontWeight:700,cursor:loading?'wait':'pointer'
+          }}>↻ {loading?'Aggiorno…':'Aggiorna'}</button>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{display:'flex',gap:24,borderBottom:'1px solid #111827',marginBottom:24}}>
+        {TABS.map(({id,l}) => (
+          <button key={id} onClick={()=>setTab(id)} style={{
+            background:'transparent',border:'none',padding:'12px 0',
+            color: tab===id?'#e8e8e8':'#555',fontWeight:tab===id?700:500,
+            fontSize:13,cursor:'pointer',
+            borderBottom: tab===id?'2px solid #22c55e':'2px solid transparent',
+            marginBottom:-1
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {/* DASHBOARD TAB */}
+      {tab==='dashboard' && (
+        <>
+          <div style={{marginBottom:20}}>
+            <RatioWidget ratio={avgRatio} mer={avgMER} />
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} color="#22c55e" />
+            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} nuovi clienti`} />
+            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} sub={`${fn(totOrd)} ordini`} color="#3b82f6" />
+            <Stat label="Fatturato totale" value={f0(totFat)} sub={`Anno ${currentYear}`} color="#22c55e" />
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} color="#3b82f6" />
+            <Stat label="Spesa Google" value={totGoog>0?f0(totGoog):'—'} color="#eab308" />
+            <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sub="Meta + Google" />
+          </div>
+
+          {totResi > 0 && (
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+              <Stat label="Resi totali" value={f0(totResi)} color="#ef4444" />
+              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} color="#ef4444" dim />
+              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} color="#ef4444" dim />
+            </div>
+          )}
+
+          {/* Ratio LTV:CAC storico — usa `data` (tutti i mesi, non filtrato anno corrente) */}
+          <div style={S.card}>
+            <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+              Ratio LTV:CAC mensile
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={data} margin={{top:4,right:16,left:0,bottom:4}}>
+                <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
+                <XAxis dataKey="month" tick={{fill:'#94a3b8',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fill:'#94a3b8',fontSize:10}} axisLine={false} tickLine={false} />
+                <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
+                <Tooltip content={<ChartTip />} />
+                <Legend />
+                <Line dataKey="ratio" name="Ratio" stroke="#22c55e" strokeWidth={2} dot={{r:4}} strokeDasharray="6 4" connectNulls />
+                <Line dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:4}} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+
+      {/* MENSILE TAB */}
+      {tab==='monthly' && (
+        <div style={S.card}>
+          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+            KPI mensili (calendario reale: 1 → ultimo del mese)
+          </p>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',minWidth:1500,borderCollapse:'collapse'}}>
+              <thead>
+                <tr>
+                  {['Mese','Fatturato','Resi','Ordini','NC','RC','Meta €','Google €','AOV','CAC','MER','aMER','Ratio'].map(h=>(
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((m,i)=>(
+                  <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                    <td style={{...S.td,color:'#e8e8e8',fontWeight:700,whiteSpace:'nowrap'}}>{m.month}</td>
+                    <td style={{...S.td,color:'#22c55e',fontWeight:700}}>{f0(m.fatturato)}</td>
+                    <td style={{...S.td,color:m.resi>0?'#ef4444':'#444'}}>{m.resi>0?f0(m.resi):'—'}</td>
+                    <td style={S.td}>{fn(m.ordini)}</td>
+                    <td style={{...S.td,color:'#06b6d4'}}>{fn(m.nc)}</td>
+                    <td style={{...S.td,color:'#818cf8'}}>{fn(m.rc)}</td>
+                    <td style={{...S.td,color:'#3b82f6'}}>{m.metaSpend>0?f0(m.metaSpend):'—'}</td>
+                    <td style={S.td}>
+                      <NumInput
+                        value={m.googleSpend}
+                        onChange={v=>updateMonth(m.month,'googleSpend',v)}
+                        placeholder="0"
+                        color="#eab308"
+                      />
+                    </td>
+                    <td style={{...S.td,color:'#3b82f6'}}>{m.aov?f2(m.aov):'—'}</td>
+                    <td style={S.td}>{m.cac?f2(m.cac):'—'}</td>
+                    <td style={{...S.td,fontWeight:700,color:m.mer!=null?(m.mer>=3?'#22c55e':m.mer>=2?'#f59e0b':'#ef4444'):'#555'}}>
+                      {m.mer!=null?`${fr(m.mer)}×`:'—'}
+                    </td>
+                    <td style={{...S.td,fontWeight:700,color:m.aMer!=null?(m.aMer>=2?'#22c55e':m.aMer>=1.5?'#f59e0b':'#ef4444'):'#555'}}>
+                      {m.aMer!=null?`${fr(m.aMer)}×`:'—'}
+                    </td>
+                    <td style={{...S.td,fontWeight:900,fontFamily:'Barlow',fontSize:15,color:ratioColor(m.ratio)}}>
+                      {m.ratio?`${fr(m.ratio)}:1`:'—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* WEEKLY TAB */}
+      {tab==='weekly' && (
+        <WeeklyTab
+          weeks={getWeeks()}
+          data={weeks}
+          metaWeekly={live?.metaWeekly || []}
+          shopifyWeekly={live?.shopifyWeekly || []}
+          onUpdate={updateWeek}
+          cfg={cfg}
+          S={S}
+        />
+      )}
+
+      {/* SIMULATORE TAB */}
+      {tab==='simulator' && <Simulator cfg={cfg} />}
+
+      {/* META DETAIL TAB */}
+      {tab==='metaDetail' && (
+        <div style={S.card}>
+          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+            Meta — dettaglio settimanale
+          </p>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',minWidth:900,borderCollapse:'collapse'}}>
+              <thead>
+                <tr>
+                  {['Settimana','Spesa','Impressions','Reach','Freq.','CPM','CTR %','CPC link','Link clicks'].map(h=>(
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(live?.metaWeekly || []).map((w,i)=>(
+                  <tr key={w.date} style={{background:i%2===0?'transparent':'#080f1e'}}>
+                    <td style={{...S.td,color:'#e8e8e8',fontWeight:700,whiteSpace:'nowrap'}}>{w.date}</td>
+                    <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{f0(w.spend)}</td>
+                    <td style={S.td}>{fn(w.impressions)}</td>
+                    <td style={S.td}>{fn(w.reach)}</td>
+                    <td style={S.td}>{w.frequency?.toFixed?.(2) ?? '—'}</td>
+                    <td style={S.td}>{w.cpm?f2(w.cpm):'—'}</td>
+                    <td style={S.td}>{w.ctr?`${w.ctr.toFixed(2)}%`:'—'}</td>
+                    <td style={S.td}>{w.cpcLink?f2(w.cpcLink):'—'}</td>
+                    <td style={S.td}>{fn(w.linkClicks)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+

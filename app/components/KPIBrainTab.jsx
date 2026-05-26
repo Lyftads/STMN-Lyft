@@ -1,6 +1,52 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
+
+  
+    const [selectedPreset, setSelectedPreset] = useState('last_90d')
+  const [periodLive, setPeriodLive] = useState(null)
+  const [periodLoading, setPeriodLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadPeriod() {
+      try {
+        setPeriodLoading(true)
+
+        const res = await fetch(`/api/metrics?preset=${encodeURIComponent(selectedPreset)}`, {
+          cache: 'no-store',
+        })
+
+        const json = await res.json()
+
+        if (active) {
+          setPeriodLive(json)
+        }
+      } catch (e) {
+        console.log('KPI Brain period fetch error:', e.message)
+
+        if (active) {
+          setPeriodLive(null)
+        }
+      } finally {
+        if (active) {
+          setPeriodLoading(false)
+        }
+      }
+    }
+
+    loadPeriod()
+
+    return () => {
+      active = false
+    }
+  }, [selectedPreset])
+
+  const activeLive = periodLive || live
+  const kpiMeta = activeLive?.kpiBrain || {}
   const asNum = v => {
     const n = Number(v)
     return Number.isFinite(n) ? n : 0
@@ -142,7 +188,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
   ]
 
 const topProducts = Array.isArray(live?.shopifyTopProducts)
-  ? live.shopifyTopProducts
+  activeLive?.shopifyTopProducts
       .slice(0, 10)
       .map(row => ({
         label: row.product || row.title || row.name || 'Prodotto sconosciuto',
@@ -155,7 +201,7 @@ const topProducts = Array.isArray(live?.shopifyTopProducts)
 
 const productBreakdown = topProducts
 
-const sourceBreakdown = Array.isArray(live?.shopifyMarketingSources)
+const sourceBreakdown = Array.isArray(activeLive?.shopifyMarketingSources)
   ? live.shopifyMarketingSources.map(row => ({
       label: row.source || 'Marketing',
       value: asNum(row.revenue),
@@ -212,7 +258,7 @@ const dayNameIT = day => {
   return map[normalized] || day
 }
 const dayBreakdown = Array.isArray(live?.shopifyDayBreakdown)
-  ? live.shopifyDayBreakdown
+  activeLive?.shopifyDayBreakdown
       .map(row => ({
         label: dayNameIT(row.day),
         value: asNum(row.revenue),
@@ -469,6 +515,61 @@ const customerBreakdown = [
           padding: 24,
           marginBottom: 24,
         }}
+        <div style={{
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 16,
+  marginBottom: 20,
+}}>
+  <div>
+    <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
+      KPI Brain
+    </h2>
+
+    <p style={{margin: '6px 0 0', color: '#8b8aa0', fontSize: 13}}>
+      {kpiMeta?.range?.label || 'Periodo selezionato'}
+      {kpiMeta?.range?.since && kpiMeta?.range?.until
+        ? ` · ${kpiMeta.range.since} – ${kpiMeta.range.until}`
+        : ''}
+      {kpiMeta?.previousRange?.since && kpiMeta?.previousRange?.until
+        ? ` vs ${kpiMeta.previousRange.since} – ${kpiMeta.previousRange.until}`
+        : ''}
+    </p>
+  </div>
+
+  <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+    {periodLoading && (
+      <span style={{fontSize: 12, color: '#8b8aa0'}}>
+        Aggiorno…
+      </span>
+    )}
+
+    <select
+      value={selectedPreset}
+      onChange={e => setSelectedPreset(e.target.value)}
+      style={{
+        background: '#201b2b',
+        border: '1px solid #3b324a',
+        color: '#fff',
+        borderRadius: 10,
+        padding: '10px 14px',
+        fontSize: 14,
+        outline: 'none',
+        cursor: 'pointer',
+      }}
+    >
+      <option value="today">Oggi</option>
+      <option value="yesterday">Ieri</option>
+      <option value="last_7d">Ultimi 7 giorni</option>
+      <option value="last_14d">Ultimi 14 giorni</option>
+      <option value="last_28d">Ultimi 28 giorni</option>
+      <option value="last_90d">Ultimi 90 giorni</option>
+      <option value="current_month">Mese corrente</option>
+      <option value="last_month">Mese scorso</option>
+    </select>
+  </div>
+</div>
       >
         <div
           style={{

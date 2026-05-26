@@ -11,21 +11,36 @@ const HEADERS = {
   revision: '2024-10-15',
 }
 
-async function klaviyoGet(path) {
-  const res = await fetch(`${BASE}${path}`, { headers: HEADERS, cache: 'no-store' })
-  if (!res.ok) return null
-  return res.json()
+async function klaviyoGet(path, retries = 3) {
+  const url = path.startsWith('http') ? path : `${BASE}${path}`
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url, { headers: HEADERS, cache: 'no-store' })
+    if (res.status === 429) {
+      await new Promise(r => setTimeout(r, (i + 1) * 2000))
+      continue
+    }
+    if (!res.ok) return null
+    return res.json()
+  }
+  return null
 }
 
-async function klaviyoPost(path, body) {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { ...HEADERS, 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  })
-  if (!res.ok) return null
-  return res.json()
+async function klaviyoPost(path, body, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: { ...HEADERS, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    })
+    if (res.status === 429) {
+      await new Promise(r => setTimeout(r, (i + 1) * 2000))
+      continue
+    }
+    if (!res.ok) return null
+    return res.json()
+  }
+  return null
 }
 
 async function getAccount() {
@@ -84,13 +99,22 @@ async function getFlows() {
 }
 
 async function getMetrics() {
-  const data = await klaviyoGet('/metrics')
-  return (data?.data || []).map(i => ({
-    id: i.id,
-    name: i.attributes?.name,
-    integrationKey: i.attributes?.integration?.key || '',
-    integrationName: i.attributes?.integration?.name || '',
-  }))
+  let all = []
+  let url = '/metrics?page[size]=100'
+  while (url) {
+    const data = await klaviyoGet(url)
+    if (!data) break
+    for (const i of (data.data || [])) {
+      all.push({
+        id: i.id,
+        name: i.attributes?.name,
+        integrationKey: i.attributes?.integration?.key || '',
+        integrationName: i.attributes?.integration?.name || '',
+      })
+    }
+    url = data.links?.next || null
+  }
+  return all
 }
 
 async function queryMetric(metricId, measurement, days) {
@@ -154,36 +178,46 @@ async function getEmailKPIs(days, metrics) {
   return results
 }
 
-async function getRevenueBreakdown(campaigns, flowsList) {
+async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
   const campaignMap = {}
   for (const c of campaigns) { campaignMap[c.id] = c.name }
   const flowMap = {}
   for (const f of flowsList) { flowMap[f.id] = f.name }
 
-  const placedOrderMetric = 'RnKt7J'
+  const placedOrder = metrics.find(m =>
+    m.name.toLowerCase() === 'placed order' && m.integrationKey === 'shopify'
+  )
+  const placedOrderMetric = placedOrder?.id || 'RnKt7J'
 
-  const [campRes, flowRes] = await Promise.all([
-    klaviyoPost('/campaign-values-reports', {
-      data: {
-        type: 'campaign-values-report',
-        attributes: {
-          statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
-          timeframe: { key: 'last_30_days' },
-          conversion_metric_id: placedOrderMetric,
-        },
+  const now = new Date()
+  const start = new Date(now)
+  start.setDate(start.getDate() - days)
+  const timeframe = {
+    start: start.toISOString().slice(0, 10),
+    end: now.toISOString().slice(0, 10),
+  }
+
+  const campRes = await klaviyoPost('/campaign-values-reports', {
+    data: {
+      type: 'campaign-values-report',
+      attributes: {
+        statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
+        timeframe,
+        conversion_metric_id: placedOrderMetric,
       },
-    }),
-    klaviyoPost('/flow-values-reports', {
-      data: {
-        type: 'flow-values-report',
-        attributes: {
-          statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
-          timeframe: { key: 'last_30_days' },
-          conversion_metric_id: placedOrderMetric,
-        },
+    },
+  })
+
+  const flowRes = await klaviyoPost('/flow-values-reports', {
+    data: {
+      type: 'flow-values-report',
+      attributes: {
+        statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
+        timeframe,
+        conversion_metric_id: placedOrderMetric,
       },
-    }),
-  ])
+    },
+  })
 
   const campRows = (campRes?.data?.attributes?.results || []).map(r => {
     const g = r.groupings || {}
@@ -248,7 +282,7 @@ export async function GET(request) {
 
     const [kpis, revenueBreakdown] = await Promise.all([
       getEmailKPIs(days, metrics),
-      getRevenueBreakdown(sent, flows).catch(() => null),
+      getRevenueBreakdown(sent, flows, days, metrics).catch(() => null),
     ])
 
     return NextResponse.json({

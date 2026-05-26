@@ -61,6 +61,7 @@ export default function PerformanceAgentTab({ cfg }) {
   const [preset, setPreset] = useState('last_28d')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [dataSummary, setDataSummary] = useState(null)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -80,6 +81,19 @@ export default function PerformanceAgentTab({ cfg }) {
     setInput('')
     setLoading(true)
 
+    let metrics = null
+    let metaDetail = null
+    try {
+      const [mRes, dRes] = await Promise.all([
+        fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store' }),
+        fetch(`/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, { cache: 'no-store' }),
+      ])
+      if (mRes.ok) metrics = await mRes.json()
+      if (dRes.ok) metaDetail = await dRes.json()
+    } catch (e) {
+      console.log('Agent prefetch error:', e?.message)
+    }
+
     try {
       const r = await fetch('/api/agent', {
         method: 'POST',
@@ -88,6 +102,8 @@ export default function PerformanceAgentTab({ cfg }) {
           messages: next,
           preset,
           cfg: cfg || null,
+          metrics,
+          metaDetail,
         }),
       })
 
@@ -108,6 +124,7 @@ export default function PerformanceAgentTab({ cfg }) {
           ...prev,
           { role: 'assistant', content: json.reply || '(risposta vuota)' },
         ])
+        if (json?.summary) setDataSummary(json.summary)
       }
     } catch (err) {
       setError(err?.message || 'Errore di rete')
@@ -399,8 +416,13 @@ export default function PerformanceAgentTab({ cfg }) {
             Invia
           </button>
         </form>
-        <div style={{ marginTop: 8, fontSize: 11, color: palette.muted }}>
-          Le risposte usano i dati live del periodo selezionato. Niente è inventato.
+        <div style={{ marginTop: 8, fontSize: 11, color: palette.muted, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span>Le risposte usano i dati live del periodo selezionato. Niente è inventato.</span>
+          {dataSummary && (
+            <span style={{ color: '#a89db8' }}>
+              Shopify {dataSummary.sourcesShopify ? '✓' : '✗'} · Meta {dataSummary.sourcesMeta ? '✓' : '✗'} · {dataSummary.shopifyMonthly}m / {dataSummary.shopifyWeekly}w mesi/sett · {dataSummary.metaDetailRows} campagne
+            </span>
+          )}
         </div>
       </div>
     </div>

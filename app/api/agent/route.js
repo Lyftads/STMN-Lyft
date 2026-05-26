@@ -29,23 +29,11 @@ const SYSTEM_PROMPT = `Sei "Performance Agent", consulente senior per STMN Fitne
 - Stima impatto economico delle azioni quando possibile
 
 ## Dati che hai
-Riceverai un blocco JSON \`DATI LIVE\` con:
-- shopifyMonthly / shopifyWeekly: revenue, ordini, NC, RC, sessioni per periodo
-- shopifyTopProducts: top prodotti per revenue
-- shopifyMarketingSources: attribuzione canali
-- shopifyDayBreakdown: vendite per giorno settimana
-- metaMonthly / metaWeekly: spend, impressions, clicks, link clicks per periodo
-- metaDetail.rows: campagne Meta con spend, ROAS, CTR, CPM, CPC
-- metaDetail.summary / comparison: aggregati e variazione vs periodo precedente
-- metaDetail.todos / insight: spunti auto-generati (puoi citarli o ignorarli)
-- aovLive, ordersLive: snapshot live
-- cfg: configurazione utente (freq acquisto, lifetime, margin %)
+Riceverai un blocco JSON \`DATI LIVE\` con dati Shopify (revenue, ordini, NC/RC, top prodotti, attribuzione, breakdown giorno) e Meta Ads (spend, ROAS, CTR, CPM, CPC, dettaglio campagne).
 
-Usa SOLO numeri presenti nei dati. Mai inventarli. Se mancano, dillo.`
+Usa SOLO numeri presenti nei dati. Mai inventarli. Se un dato manca, dichiaralo. Se TUTTI i dati sono vuoti, dillo subito senza simulare un'analisi.`
 
-const ASSUME_DEFAULT_PRESET = 'last_28d'
-
-function safeJson(value, max = 60000) {
+function safeJson(value, max = 80000) {
   try {
     const str = JSON.stringify(value)
     if (str.length <= max) return str
@@ -55,45 +43,20 @@ function safeJson(value, max = 60000) {
   }
 }
 
-async function fetchInternal(req, path) {
-  try {
-    const origin = new URL(req.url).origin
-    const r = await fetch(`${origin}${path}`, { cache: 'no-store' })
-    if (!r.ok) return null
-    return await r.json()
-  } catch {
-    return null
-  }
-}
-
-function buildContext({ metrics, metaDetail, cfg, preset }) {
+function summarizeContext(context) {
+  const m = context?.metrics || {}
+  const d = context?.metaDetail || {}
   return {
-    preset,
-    cfg,
-    updatedAt: new Date().toISOString(),
-    aovLive: metrics?.aovLive ?? null,
-    ordersLive: metrics?.ordersLive ?? null,
-    shopifyMonthly: metrics?.shopifyMonthly ?? [],
-    shopifyWeekly: metrics?.shopifyWeekly ?? [],
-    shopifyTopProducts: metrics?.shopifyTopProducts ?? [],
-    shopifyMarketingSources: metrics?.shopifyMarketingSources ?? [],
-    shopifyDayBreakdown: metrics?.shopifyDayBreakdown ?? [],
-    metaMonthly: metrics?.metaMonthly ?? [],
-    metaWeekly: metrics?.metaWeekly ?? [],
-    metaDetail: metaDetail
-      ? {
-          preset: metaDetail.preset,
-          range: metaDetail.range,
-          previousRange: metaDetail.previousRange,
-          summary: metaDetail.summary,
-          previousSummary: metaDetail.previousSummary,
-          comparison: metaDetail.comparison,
-          insight: metaDetail.insight,
-          todos: metaDetail.todos,
-          rows: Array.isArray(metaDetail.rows) ? metaDetail.rows.slice(0, 50) : [],
-        }
-      : null,
-    sources: metrics?.sources ?? {},
+    shopifyMonthly: Array.isArray(m.shopifyMonthly) ? m.shopifyMonthly.length : 0,
+    shopifyWeekly: Array.isArray(m.shopifyWeekly) ? m.shopifyWeekly.length : 0,
+    shopifyTopProducts: Array.isArray(m.shopifyTopProducts) ? m.shopifyTopProducts.length : 0,
+    shopifyMarketingSources: Array.isArray(m.shopifyMarketingSources) ? m.shopifyMarketingSources.length : 0,
+    shopifyDayBreakdown: Array.isArray(m.shopifyDayBreakdown) ? m.shopifyDayBreakdown.length : 0,
+    metaMonthly: Array.isArray(m.metaMonthly) ? m.metaMonthly.length : 0,
+    metaWeekly: Array.isArray(m.metaWeekly) ? m.metaWeekly.length : 0,
+    metaDetailRows: Array.isArray(d.rows) ? d.rows.length : 0,
+    sourcesShopify: Boolean(m?.sources?.shopify),
+    sourcesMeta: Boolean(m?.sources?.meta) || Boolean(d?.sources?.meta),
   }
 }
 
@@ -120,15 +83,49 @@ export async function POST(req) {
     return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
   }
 
+  const preset = body?.preset || 'last_28d'
   const cfg = body?.cfg || {}
-  const preset = body?.preset || ASSUME_DEFAULT_PRESET
+  const metrics = body?.metrics || null
+  const metaDetail = body?.metaDetail || null
 
-  const [metrics, metaDetail] = await Promise.all([
-    fetchInternal(req, `/api/metrics?preset=${encodeURIComponent(preset)}`),
-    fetchInternal(req, `/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
-  ])
+  const context = {
+    preset,
+    cfg,
+    updatedAt: new Date().toISOString(),
+    metrics: metrics
+      ? {
+          aovLive: metrics.aovLive ?? null,
+          ordersLive: metrics.ordersLive ?? null,
+          shopifyMonthly: metrics.shopifyMonthly ?? [],
+          shopifyWeekly: metrics.shopifyWeekly ?? [],
+          shopifyTopProducts: metrics.shopifyTopProducts ?? [],
+          shopifyMarketingSources: metrics.shopifyMarketingSources ?? [],
+          shopifyDayBreakdown: metrics.shopifyDayBreakdown ?? [],
+          metaMonthly: metrics.metaMonthly ?? [],
+          metaWeekly: metrics.metaWeekly ?? [],
+          metaSpend: metrics.metaSpend ?? null,
+          sources: metrics.sources ?? {},
+          kpiBrain: metrics.kpiBrain ?? null,
+        }
+      : null,
+    metaDetail: metaDetail
+      ? {
+          preset: metaDetail.preset,
+          level: metaDetail.level,
+          range: metaDetail.range,
+          previousRange: metaDetail.previousRange,
+          summary: metaDetail.summary,
+          previousSummary: metaDetail.previousSummary,
+          comparison: metaDetail.comparison,
+          insight: metaDetail.insight,
+          todos: metaDetail.todos,
+          rows: Array.isArray(metaDetail.rows) ? metaDetail.rows.slice(0, 50) : [],
+          sources: metaDetail.sources ?? {},
+        }
+      : null,
+  }
 
-  const context = buildContext({ metrics, metaDetail, cfg, preset })
+  const summary = summarizeContext(context)
 
   const cleanMessages = messages
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
@@ -173,10 +170,7 @@ export async function POST(req) {
       model: MODEL,
       preset,
       usage: json?.usage || null,
-      sources: {
-        metrics: Boolean(metrics),
-        metaDetail: Boolean(metaDetail),
-      },
+      summary,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {

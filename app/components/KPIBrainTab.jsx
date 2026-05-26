@@ -570,7 +570,6 @@ const customerBreakdown = [
     </select>
   </div>
 </div>
-      >
         <div
           style={{
             fontSize: 18,

@@ -525,7 +525,242 @@ async function fetchAOV() {
     return { aov: 0, orders: 0 }
   }
 }
+async function fetchAOV() {
+  try {
+    ...
+  } catch (e) {
+    console.log('AOV error:', e.message)
+    return { aov: 0, orders: 0 }
+  }
+}
+// ── Shopify orders REST pagination ─────────────────────────────
+async function fetchShopifyOrdersSince(startDate = START_DATE) {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
+  const orders = []
+  let url =
+    `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json` +
+    `?status=any` +
+    `&financial_status=paid` +
+    `&created_at_min=${startDate}T00:00:00Z` +
+    `&limit=250` +
+    `&fields=id,created_at,total_price,source_name,landing_site,referring_site,line_items`
+
+  try {
+    while (url) {
+      const res = await fetch(url, {
+        headers: shopifyAuth(),
+      })
+
+      if (!res.ok) {
+        console.log('Shopify orders error:', await res.text())
+        break
+      }
+
+      const data = await res.json()
+      orders.push(...(data.orders || []))
+
+      const link = res.headers.get('link') || ''
+      const nextMatch = link.match(/<([^>]+)>;\s*rel="next"/)
+
+      url = nextMatch ? nextMatch[1] : null
+    }
+
+    return orders
+  } catch (e) {
+    console.log('Shopify orders pagination error:', e.message)
+    return []
+  }
+}
+
+function getOrderRevenue(order) {
+  return roundMoney(normalizeRawNumber(order.total_price))
+}
+
+function getSourceLabel(order) {
+  const landing = String(order.landing_site || '')
+  const referrer = String(order.referring_site || '')
+  const sourceName = String(order.source_name || '')
+
+  const combined = `${landing} ${referrer} ${sourceName}`.toLowerCase()
+
+  const utmSource =
+    landing.match(/[?&]utm_source=([^&]+)/i)?.[1] ||
+    referrer.match(/[?&]utm_source=([^&]+)/i)?.[1]
+
+  const utmMedium =
+    landing.match(/[?&]utm_medium=([^&]+)/i)?.[1] ||
+    referrer.match(/[?&]utm_medium=([^&]+)/i)?.[1]
+
+  const utmCampaign =
+    landing.match(/[?&]utm_campaign=([^&]+)/i)?.[1] ||
+    referrer.match(/[?&]utm_campaign=([^&]+)/i)?.[1]
+
+  if (utmSource) {
+    return decodeURIComponent(utmSource).replace(/\+/g, ' ')
+  }
+
+  if (combined.includes('facebook') || combined.includes('fbclid')) return 'Facebook'
+  if (combined.includes('instagram') || combined.includes('igshid')) return 'Instagram'
+  if (combined.includes('google') || combined.includes('gclid')) return 'Google'
+  if (combined.includes('tiktok')) return 'TikTok'
+  if (combined.includes('klaviyo')) return 'Klaviyo'
+  if (combined.includes('email') || utmMedium === 'email') return 'Email'
+  if (utmCampaign) return decodeURIComponent(utmCampaign).replace(/\+/g, ' ')
+
+  if (referrer) {
+    try {
+      const host = new URL(referrer).hostname.replace('www.', '')
+      return host || 'Referral'
+    } catch {
+      return 'Referral'
+    }
+  }
+
+  if (sourceName && sourceName !== 'web') return sourceName
+
+  return 'Direct / Unknown'
+}
+
+function isMarketingSource(order) {
+  const landing = String(order.landing_site || '')
+  const referrer = String(order.referring_site || '')
+  const sourceName = String(order.source_name || '')
+  const combined = `${landing} ${referrer} ${sourceName}`.toLowerCase()
+
+  return (
+    combined.includes('utm_') ||
+    combined.includes('fbclid') ||
+    combined.includes('gclid') ||
+    combined.includes('ttclid') ||
+    combined.includes('facebook') ||
+    combined.includes('instagram') ||
+    combined.includes('google') ||
+    combined.includes('tiktok') ||
+    combined.includes('klaviyo') ||
+    combined.includes('email') ||
+    Boolean(referrer && !referrer.includes(SHOPIFY_STORE))
+  )
+}
+
+// ── KPI Brain: Top 10 prodotti per revenue ─────────────────────
+async function fetchShopifyTopProducts() {
+  const orders = await fetchShopifyOrdersSince(START_DATE)
+  const map = {}
+
+  for (const order of orders) {
+    const lineItems = order.line_items || []
+
+    for (const item of lineItems) {
+      const title = item.title || item.name || 'Prodotto sconosciuto'
+      const quantity = cleanCount(item.quantity)
+      const unitPrice = normalizeRawNumber(item.price)
+
+      const discounts = Array.isArray(item.discount_allocations)
+        ? item.discount_allocations.reduce(
+            (sum, discount) => sum + normalizeRawNumber(discount.amount),
+            0
+          )
+        : 0
+
+      const revenue = Math.max(unitPrice * quantity - discounts, 0)
+
+      if (!map[title]) {
+        map[title] = {
+          product: title,
+          revenue: 0,
+          orders: 0,
+          quantity: 0,
+        }
+      }
+
+      map[title].revenue += revenue
+      map[title].orders += 1
+      map[title].quantity += quantity
+    }
+  }
+
+  return Object.values(map)
+    .map(row => ({
+      ...row,
+      revenue: roundMoney(row.revenue),
+      orders: cleanCount(row.orders),
+      quantity: cleanCount(row.quantity),
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+}
+
+// ── KPI Brain: vendite attribuite al marketing ─────────────────
+async function fetchShopifyMarketingSources() {
+  const orders = await fetchShopifyOrdersSince(START_DATE)
+  const map = {}
+
+  for (const order of orders) {
+    if (!isMarketingSource(order)) continue
+
+    const label = getSourceLabel(order)
+    const revenue = getOrderRevenue(order)
+
+    if (!map[label]) {
+      map[label] = {
+        source: label,
+        revenue: 0,
+        orders: 0,
+      }
+    }
+
+    map[label].revenue += revenue
+    map[label].orders += 1
+  }
+
+  return Object.values(map)
+    .map(row => ({
+      ...row,
+      revenue: roundMoney(row.revenue),
+      orders: cleanCount(row.orders),
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+}
+
+// ── KPI Brain: revenue e ordini per giorno settimana ───────────
+async function fetchShopifyDayBreakdown() {
+  const orders = await fetchShopifyOrdersSince(START_DATE)
+
+  const days = [
+    { key: 0, label: 'Sun' },
+    { key: 1, label: 'Mon' },
+    { key: 2, label: 'Tue' },
+    { key: 3, label: 'Wed' },
+    { key: 4, label: 'Thu' },
+    { key: 5, label: 'Fri' },
+    { key: 6, label: 'Sat' },
+  ]
+
+  const map = {}
+
+  for (const day of days) {
+    map[day.key] = {
+      day: day.label,
+      revenue: 0,
+      orders: 0,
+    }
+  }
+
+  for (const order of orders) {
+    const date = new Date(order.created_at)
+    const day = date.getDay()
+
+    map[day].revenue += getOrderRevenue(order)
+    map[day].orders += 1
+  }
+
+  return days.map(day => ({
+    day: map[day.key].day,
+    revenue: roundMoney(map[day.key].revenue),
+    orders: cleanCount(map[day.key].orders),
+  }))
+}
 // ── Meta weekly ───────────────────────────────────────────────
 async function fetchMetaWeekly() {
   if (!META_TOKEN || !META_ACCOUNT) return []
@@ -707,19 +942,25 @@ async function fetchMeta() {
 // ── API Route ─────────────────────────────────────────────────
 export async function GET() {
   try {
-    const [
-      aovData,
-      shopifyWeekly,
-      shopifyMonthly,
-      metaMonthly,
-      metaWeekly,
-    ] = await Promise.all([
-      fetchAOV(),
-      fetchShopifyWeekly(),
-      fetchShopifyMonthly(),
-      fetchMeta(),
-      fetchMetaWeekly(),
-    ])
+   const [
+  aovData,
+  shopifyWeekly,
+  shopifyMonthly,
+  shopifyTopProducts,
+  shopifyMarketingSources,
+  shopifyDayBreakdown,
+  metaMonthly,
+  metaWeekly,
+] = await Promise.all([
+  fetchAOV(),
+  fetchShopifyWeekly(),
+  fetchShopifyMonthly(),
+  fetchShopifyTopProducts(),
+  fetchShopifyMarketingSources(),
+  fetchShopifyDayBreakdown(),
+  fetchMeta(),
+  fetchMetaWeekly(),
+])
 
     const metaTotal = metaMonthly.reduce(
       (sum, row) => sum + row.spend,
@@ -727,16 +968,18 @@ export async function GET() {
     )
 
     return NextResponse.json({
-      aovLive: Math.round(aovData.aov * 100) / 100,
-      ordersLive: aovData.orders,
+  aovLive: Math.round(aovData.aov * 100) / 100,
+  ordersLive: aovData.orders,
 
-      shopifyWeekly,
-      shopifyMonthly,
+  shopifyWeekly,
+  shopifyMonthly,
+  shopifyTopProducts,
+  shopifyMarketingSources,
+  shopifyDayBreakdown,
 
-      metaSpend: Math.round(metaTotal * 100) / 100,
-      metaMonthly,
-      metaWeekly,
-
+  metaSpend: Math.round(metaTotal * 100) / 100,
+  metaMonthly,
+  metaWeekly,
       sources: {
         shopify:
           aovData.orders > 0 ||

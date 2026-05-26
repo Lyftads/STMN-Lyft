@@ -525,14 +525,6 @@ async function fetchAOV() {
     return { aov: 0, orders: 0 }
   }
 }
-async function fetchAOV() {
-  try {
-    ...
-  } catch (e) {
-    console.log('AOV error:', e.message)
-    return { aov: 0, orders: 0 }
-  }
-}
 // ── Shopify orders REST pagination ─────────────────────────────
 async function fetchShopifyOrdersSince(startDate = START_DATE) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []

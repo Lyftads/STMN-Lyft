@@ -930,19 +930,19 @@ async function fetchMeta() {
     return []
   }
 }
-async function safeShopifyTopProducts() {
+async function safeShopifyTopProducts(range) {
   try {
     if (typeof fetchShopifyTopProducts !== 'function') return []
-    return await fetchShopifyTopProducts()
+    return await fetchShopifyTopProducts(range?.since, range?.until)
   } catch (e) {
     console.log('KPI Brain top products error:', e.message)
     return []
   }
 }
-async function safeShopifyDayBreakdown() {
+async function safeShopifyDayBreakdown(range) {
   try {
     if (typeof fetchShopifyDayBreakdown !== 'function') return []
-    return await fetchShopifyDayBreakdown()
+    return await fetchShopifyDayBreakdown(range?.since, range?.until)
   } catch (e) {
     console.log('KPI Brain day breakdown error:', e.message)
     return []
@@ -994,15 +994,15 @@ export async function GET(req) {
       0
     )
 
-    const shopifyTopProducts =
-      typeof safeShopifyTopProducts === 'function'
-        ? await safeShopifyTopProducts()
-        : []
+  const shopifyTopProducts =
+  typeof safeShopifyTopProducts === 'function'
+    ? await safeShopifyTopProducts(range)
+    : []
 
-    const shopifyDayBreakdown =
-      typeof safeShopifyDayBreakdown === 'function'
-        ? await safeShopifyDayBreakdown()
-        : []
+const shopifyDayBreakdown =
+  typeof safeShopifyDayBreakdown === 'function'
+    ? await safeShopifyDayBreakdown(range)
+    : []
 
     return NextResponse.json({
       aovLive: Math.round(aovData.aov * 100) / 100,

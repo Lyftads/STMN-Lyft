@@ -53,8 +53,8 @@ function SortHeader({ label, field, sortField, sortDir, onSort, align = 'right' 
 // ── GA4-style Funnel ──
 function GA4Funnel({ funnel }) {
   const steps = [
-    { name: 'Avvio sessione', value: funnel.sessions, color: '#8b5cf6' },
-    { name: 'Visualizza prodotto', value: Math.round(funnel.pageViews * 0.75) || Math.round(funnel.sessions * 0.75), color: '#3b82f6' },
+    { name: 'Visitatori unici', value: funnel.visitors, color: '#8b5cf6' },
+    { name: 'Visualizza prodotto', value: Math.round(funnel.pageViews * 0.75) || Math.round(funnel.visitors * 0.75), color: '#3b82f6' },
     { name: 'Aggiungi al carrello', value: funnel.addToCart, color: '#06b6d4' },
     { name: 'Inizia pagamento', value: funnel.checkout, color: '#f59e0b' },
     { name: 'Acquista', value: funnel.purchase, color: '#22c55e' },
@@ -115,47 +115,113 @@ function GA4Funnel({ funnel }) {
   )
 }
 
-// ── Flow with expandable nodes ──
+// ── Flow with expandable nodes — shows intermediate pages before cart ──
 function FlowDiagram({ nodes, links, expanded, onExpand }) {
   if (!nodes?.length) return <div style={{ color: '#776a86', padding: 20 }}>Dati flusso non disponibili</div>
 
   const width = 1200
   const height = 700
-  const levelX = [50, 220, 580, 820, 1020]
   const nodeW = 160
   const nodeH = 42
   const nodeGap = 8
+  const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#a78bfa', '#f97316', '#14b8a6', '#e879f9', '#fbbf24']
+
+  const pageNodes = nodes.filter(n => n.level === 1)
+  const otherPages = expanded ? pageNodes.filter(n => n.id !== expanded) : []
+
+  const levelX = expanded
+    ? [50, 170, 380, 640, 840, 1040]
+    : [50, 220, 580, 820, 1020]
+
+  const layoutNodes = []
+  const layoutLinks = []
+
+  for (const n of nodes) {
+    if (expanded && n.level === 1 && n.id !== expanded) {
+      layoutNodes.push({ ...n, layoutLevel: 2 })
+    } else if (expanded && n.level === 1 && n.id === expanded) {
+      layoutNodes.push({ ...n, layoutLevel: 1 })
+    } else if (expanded && n.level === 2) {
+      layoutNodes.push({ ...n, layoutLevel: 3 })
+    } else if (expanded && n.level === 3) {
+      layoutNodes.push({ ...n, layoutLevel: 4 })
+    } else if (expanded && n.level === 4) {
+      layoutNodes.push({ ...n, layoutLevel: 5 })
+    } else {
+      layoutNodes.push({ ...n, layoutLevel: n.level })
+    }
+  }
+
+  for (const l of links) {
+    if (expanded) {
+      if (l.type === 'page-to-page') {
+        if (l.source === expanded) layoutLinks.push(l)
+      } else if (l.source === 'start' && l.target === expanded) {
+        layoutLinks.push(l)
+      } else if (l.source === 'start' && l.target !== expanded) {
+        continue
+      } else if (l.source === expanded && l.target === 'atc') {
+        continue
+      } else if (l.target === 'atc' && pageNodes.some(p => p.id === l.source && p.id !== expanded)) {
+        layoutLinks.push(l)
+      } else {
+        layoutLinks.push(l)
+      }
+    } else {
+      if (l.type === 'page-to-page') continue
+      layoutLinks.push(l)
+    }
+  }
+
+  if (expanded) {
+    const expNode = pageNodes.find(n => n.id === expanded)
+    if (expNode) {
+      for (const other of otherPages) {
+        const hasLink = layoutLinks.some(l => l.source === expanded && l.target === other.id)
+        if (!hasLink) {
+          const cross = Math.round(Math.min(expNode.value, other.value) * 0.25)
+          if (cross > 0) layoutLinks.push({ source: expanded, target: other.id, value: cross })
+        }
+      }
+    }
+  }
 
   const levels = {}
-  for (const n of nodes) { const l = n.level ?? 0; if (!levels[l]) levels[l] = []; levels[l].push(n) }
+  for (const n of layoutNodes) {
+    const l = n.layoutLevel ?? 0
+    if (!levels[l]) levels[l] = []
+    levels[l].push(n)
+  }
   for (const lvl of Object.values(levels)) lvl.sort((a, b) => b.value - a.value)
 
   const nodeMap = {}
   for (const [li, ns] of Object.entries(levels)) {
-    const x = levelX[parseInt(li)] || parseInt(li) * 220 + 50
+    const x = levelX[parseInt(li)] || parseInt(li) * 200 + 50
     const totalH = ns.length * nodeH + (ns.length - 1) * nodeGap
     let y = Math.max(10, (height - totalH) / 2)
     for (const n of ns) { nodeMap[n.id] = { ...n, x, y, w: nodeW, h: nodeH }; y += nodeH + nodeGap }
   }
 
-  const maxVal = Math.max(...nodes.map(n => n.value), 1)
-  const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#a78bfa', '#f97316', '#14b8a6', '#e879f9', '#fbbf24']
+  const maxVal = Math.max(...layoutNodes.map(n => n.value), 1)
 
   const isHighlighted = (nodeId) => {
     if (!expanded) return true
     if (nodeId === expanded) return true
-    return links.some(l => (l.source === expanded && l.target === nodeId) || (l.target === expanded && l.source === nodeId))
+    return layoutLinks.some(l => (l.source === expanded && l.target === nodeId) || (l.target === expanded && l.source === nodeId)) ||
+      nodeId === 'atc' || nodeId === 'checkout' || nodeId === 'purchase'
   }
 
   const isLinkHighlighted = (link) => {
     if (!expanded) return true
-    return link.source === expanded || link.target === expanded
+    return link.source === expanded || link.target === expanded ||
+      link.source === 'atc' || link.target === 'atc' ||
+      link.source === 'checkout' || link.target === 'purchase'
   }
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <svg width={width} height={height} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-        {links.map((link, i) => {
+        {layoutLinks.map((link, i) => {
           const src = nodeMap[link.source], tgt = nodeMap[link.target]
           if (!src || !tgt) return null
           const x1 = src.x + src.w, y1 = src.y + src.h / 2, x2 = tgt.x, y2 = tgt.y + tgt.h / 2
@@ -164,7 +230,7 @@ function FlowDiagram({ nodes, links, expanded, onExpand }) {
           const color = colors[i % colors.length]
           const highlighted = isLinkHighlighted(link)
           return (
-            <g key={i} style={{ opacity: highlighted ? 1 : 0.1, transition: 'opacity .3s' }}>
+            <g key={i} style={{ opacity: highlighted ? 1 : 0.08, transition: 'opacity .3s' }}>
               <path d={`M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`} fill="none" stroke={color} strokeWidth={thickness} strokeOpacity={0.35} />
               {highlighted && <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 12} textAnchor="middle" fill={color} fontSize={10} fontWeight={800}>{fmtN(link.value)}</text>}
             </g>
@@ -176,13 +242,13 @@ function FlowDiagram({ nodes, links, expanded, onExpand }) {
           const isClickable = n.level === 1
           return (
             <g key={n.id} onClick={() => isClickable && onExpand(isExp ? null : n.id)}
-               style={{ cursor: isClickable ? 'pointer' : 'default', opacity: highlighted ? 1 : 0.15, transition: 'opacity .3s' }}>
+               style={{ cursor: isClickable ? 'pointer' : 'default', opacity: highlighted ? 1 : 0.12, transition: 'opacity .3s' }}>
               <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={10}
                 fill={isExp ? '#1a1525' : '#110d1a'} stroke={isExp ? '#8b5cf6' : '#292134'} strokeWidth={isExp ? 2 : 1} />
               <text x={n.x + 14} y={n.y + 18} fill="#f7f2ff" fontSize={11} fontWeight={800}>
                 {n.name.length > 18 ? n.name.slice(0, 17) + '…' : n.name}
               </text>
-              <text x={n.x + 14} y={n.y + 33} fill="#776a86" fontSize={10} fontWeight={700}>{fmtN(n.value)} views</text>
+              <text x={n.x + 14} y={n.y + 33} fill="#776a86" fontSize={10} fontWeight={700}>{fmtN(n.value)} utenti</text>
               {isClickable && <text x={n.x + n.w - 18} y={n.y + 26} fill={isExp ? '#8b5cf6' : '#776a86'} fontSize={14} fontWeight={900}>{isExp ? '−' : '+'}</text>}
             </g>
           )
@@ -238,7 +304,7 @@ export default function CROTab() {
   const [scanResult, setScanResult] = useState(null)
   const [scanError, setScanError] = useState(null)
   const [activeSection, setActiveSection] = useState('funnel')
-  const [sortField, setSortField] = useState('sessions')
+  const [sortField, setSortField] = useState('visitors')
   const [sortDir, setSortDir] = useState('desc')
   const [expandedNode, setExpandedNode] = useState(null)
 
@@ -328,7 +394,7 @@ export default function CROTab() {
           <GA4Funnel funnel={data.funnel} />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 20 }}>
-            <Card label="Sessioni" value={fmtN(data.funnel.sessions)} color="#8b5cf6" />
+            <Card label="Visitatori unici" value={fmtN(data.funnel.visitors)} color="#8b5cf6" />
             <Card label="Add to Cart Rate" value={fmtP(data.funnel.addToCartRate)} color="#06b6d4" />
             <Card label="Cart → Checkout" value={fmtP(data.funnel.cartToCheckout)} color="#f59e0b" />
             <Card label="Checkout → Purchase" value={fmtP(data.funnel.checkoutToPurchase)} color="#22c55e" />
@@ -352,7 +418,7 @@ export default function CROTab() {
                   <tr style={{ borderBottom: '1px solid #292134' }}>
                     <th style={{ padding: '14px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>#</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Pagina</th>
-                    <SortHeader label="Sessioni" field="sessions" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                    <SortHeader label="Visitatori" field="visitors" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                     <SortHeader label="Page Views" field="pageViews" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                     {data?.hasGA4 && <SortHeader label="ATC" field="addToCarts" sortField={sortField} sortDir={sortDir} onSort={handleSort} />}
                     <SortHeader label="Ordini" field="orders" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
@@ -365,7 +431,7 @@ export default function CROTab() {
                     <tr key={i} style={{ borderBottom: '1px solid #1e1530' }}>
                       <td style={{ padding: '12px 16px', color: '#776a86', fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: '12px 16px', color: '#f7f2ff', fontWeight: 700, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title || p.page}</td>
-                      <td style={{ padding: '12px 16px', color: '#c4b5fd', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.sessions)}</td>
+                      <td style={{ padding: '12px 16px', color: '#c4b5fd', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.visitors)}</td>
                       <td style={{ padding: '12px 16px', color: '#9b90aa', fontWeight: 700, textAlign: 'right' }}>{fmtN(p.pageViews)}</td>
                       {data?.hasGA4 && <td style={{ padding: '12px 16px', color: '#06b6d4', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.addToCarts)}</td>}
                       <td style={{ padding: '12px 16px', color: '#22c55e', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.orders)}</td>
@@ -380,14 +446,14 @@ export default function CROTab() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, color: '#fff', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Sessioni per pagina</div>
+              <div style={{ fontSize: 12, color: '#fff', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Visitatori unici per pagina</div>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sortedPages.slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), sessions: p.sessions }))} layout="vertical" margin={{ left: 130 }}>
+                <BarChart data={sortedPages.slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), visitatori: p.visitors }))} layout="vertical" margin={{ left: 130 }}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#1e1530" horizontal={false} />
                   <XAxis type="number" tick={{ fill: '#776a86', fontSize: 10 }} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fill: '#c4b5fd', fontSize: 9, fontWeight: 700 }} axisLine={false} width={130} />
                   <Tooltip content={<ChartTip />} />
-                  <Bar dataKey="sessions" name="Sessioni" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="visitatori" name="Visitatori" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -420,7 +486,7 @@ export default function CROTab() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 950, color: '#fff' }}>Canalizzazione del Traffico</div>
-                <div style={{ fontSize: 12, color: '#776a86', marginTop: 4 }}>Clicca su una pagina per evidenziare dove vanno gli utenti</div>
+                <div style={{ fontSize: 12, color: '#776a86', marginTop: 4 }}>Clicca una pagina per vedere le altre pagine visitate prima del carrello</div>
               </div>
               {expandedNode && <button onClick={() => setExpandedNode(null)} style={{ background: '#1a1525', border: '1px solid #8b5cf6', borderRadius: 8, padding: '8px 16px', color: '#c4b5fd', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Mostra tutto</button>}
             </div>
@@ -428,8 +494,8 @@ export default function CROTab() {
           </div>
 
           <InsightBox title="Analisi Flusso" insights={[
-            `${fmtN(data?.flow?.nodes?.find(n => n.id === 'start')?.value)} sessioni totali distribuite su ${data?.flow?.nodes?.filter(n => n.level === 1)?.length || 0} pagine principali.`,
-            ...((data?.flow?.nodes || []).filter(n => n.level === 1).sort((a, b) => b.value - a.value).slice(0, 3).map(n => `"${n.name}": ${fmtN(n.value)} visualizzazioni — ${n.isHome ? 'punto d\'ingresso principale.' : 'pagina ad alto traffico.'}`)),
+            `${fmtN(data?.flow?.nodes?.find(n => n.id === 'start')?.value)} visitatori unici distribuiti su ${data?.flow?.nodes?.filter(n => n.level === 1)?.length || 0} pagine principali.`,
+            ...((data?.flow?.nodes || []).filter(n => n.level === 1).sort((a, b) => b.value - a.value).slice(0, 3).map(n => `"${n.name}": ${fmtN(n.value)} utenti unici — ${n.isHome ? 'punto d\'ingresso principale.' : 'pagina ad alto traffico.'}`)),
             `Dal flusso al carrello: ${fmtN(data?.funnel?.addToCart)} aggiunte. Dal checkout all'acquisto: ${fmtN(data?.funnel?.purchase)} conversioni (${fmtP(data?.funnel?.checkoutToPurchase)}).`,
           ]} />
         </>

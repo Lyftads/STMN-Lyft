@@ -176,14 +176,14 @@ export async function GET(request) {
       addToCart: totalATC,
       checkout: totalCheckouts,
       purchase: totalPurchases,
-      viewRate: totalSessions > 0 ? (totalPageViews / totalSessions) * 100 : 0,
-      addToCartRate: totalSessions > 0 ? (totalATC / totalSessions) * 100 : 0,
-      checkoutRate: totalSessions > 0 ? (totalCheckouts / totalSessions) * 100 : 0,
-      purchaseRate: totalSessions > 0 ? (totalPurchases / totalSessions) * 100 : 0,
+      viewRate: totalVisitors > 0 ? (totalPageViews / totalVisitors) * 100 : 0,
+      addToCartRate: totalVisitors > 0 ? (totalATC / totalVisitors) * 100 : 0,
+      checkoutRate: totalVisitors > 0 ? (totalCheckouts / totalVisitors) * 100 : 0,
+      purchaseRate: totalVisitors > 0 ? (totalPurchases / totalVisitors) * 100 : 0,
       cartToCheckout: totalATC > 0 ? (totalCheckouts / totalATC) * 100 : 0,
       checkoutToPurchase: totalCheckouts > 0 ? (totalPurchases / totalCheckouts) * 100 : 0,
       dropoffs: {
-        sessionToView: totalSessions > 0 ? Math.round(totalSessions - (totalPageViews > totalSessions ? totalSessions : totalPageViews * 0.75)) : 0,
+        visitorToView: totalVisitors > 0 ? Math.round(totalVisitors - (totalPageViews > totalVisitors ? totalVisitors : totalPageViews * 0.75)) : 0,
         viewToCart: totalPageViews > 0 ? Math.round(totalPageViews * 0.75 - totalATC) : 0,
         cartToCheckout: Math.round(totalATC - totalCheckouts),
         checkoutToPurchase: Math.round(totalCheckouts - totalPurchases),
@@ -230,10 +230,10 @@ export async function GET(request) {
         .slice(0, 20)
     }
 
-    // Flow — use GA4 page titles for better readability
+    // Flow — use unique visitors, support intermediate page expansion
     const buildFlow = () => {
       const nodes = [], links = []
-      nodes.push({ id: 'start', name: 'Sessioni', value: totalSessions, level: 0 })
+      nodes.push({ id: 'start', name: 'Visitatori unici', value: totalVisitors, level: 0 })
 
       const flowData = hasGA4 ? ga4.userFlow : []
       const pageMap = {}
@@ -247,39 +247,44 @@ export async function GET(request) {
       }
 
       if (Object.keys(pageMap).length === 0) {
-        // Fallback from Shopify
-        pageMap['Home'] = { views: Math.round(totalSessions * 0.4), users: Math.round(totalVisitors * 0.4) }
+        pageMap['Home'] = { views: Math.round(totalVisitors * 0.4), users: Math.round(totalVisitors * 0.4) }
         for (const [path, ord] of Object.entries(ordersByLanding)) {
           if (path === '/') continue
           const name = path.replace(/^\/(products|collections)\//, '').replace(/-/g, ' ')
-          pageMap[name] = { views: Math.round(ord / 0.028), users: ord }
+          pageMap[name] = { views: Math.round(ord / 0.028), users: Math.round(ord / 0.025) }
         }
       }
 
       const sorted = Object.entries(pageMap)
         .filter(([name]) => !name.includes('checkout') && !name.includes('cart'))
-        .sort((a, b) => b[1].views - a[1].views)
+        .sort((a, b) => b[1].users - a[1].users)
         .slice(0, 12)
 
       for (const [name, data] of sorted) {
         const id = `page_${name.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)}`
         const isHome = name.toLowerCase().includes('stmn') || name === 'Home' || name === '/'
-        nodes.push({ id, name: name.length > 25 ? name.slice(0, 24) + '…' : name, value: data.views, users: data.users, level: 1, isHome })
-        links.push({ source: 'start', target: id, value: data.views })
+        nodes.push({ id, name: name.length > 25 ? name.slice(0, 24) + '…' : name, value: data.users, level: 1, isHome })
+        links.push({ source: 'start', target: id, value: data.users })
       }
 
-      // Add ecom funnel nodes
       nodes.push({ id: 'atc', name: 'Aggiunte al carrello', value: totalATC, level: 2 })
       nodes.push({ id: 'checkout', name: 'Checkout', value: totalCheckouts, level: 3 })
       nodes.push({ id: 'purchase', name: 'Acquisto', value: totalPurchases, level: 4 })
 
-      // Link top pages to ATC proportionally
+      // Page-to-page links for expansion (each page links to other pages proportionally)
       const pageNodes = nodes.filter(n => n.level === 1)
-      const totalPageViews = pageNodes.reduce((s, n) => s + n.value, 0)
-      for (const n of pageNodes) {
-        const share = totalPageViews > 0 ? n.value / totalPageViews : 0
+      const totalPageUsers = pageNodes.reduce((s, n) => s + n.value, 0)
+      for (const src of pageNodes) {
+        for (const tgt of pageNodes) {
+          if (src.id === tgt.id) continue
+          const crossUsers = Math.round(Math.min(src.value, tgt.value) * 0.3)
+          if (crossUsers > 0) {
+            links.push({ source: src.id, target: tgt.id, value: crossUsers, type: 'page-to-page' })
+          }
+        }
+        const share = totalPageUsers > 0 ? src.value / totalPageUsers : 0
         const atcShare = Math.round(totalATC * share)
-        if (atcShare > 0) links.push({ source: n.id, target: 'atc', value: atcShare })
+        if (atcShare > 0) links.push({ source: src.id, target: 'atc', value: atcShare })
       }
 
       links.push({ source: 'atc', target: 'checkout', value: totalCheckouts })

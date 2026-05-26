@@ -1662,7 +1662,7 @@ export default function App() {
                   Nuovi clienti e clienti di ritorno
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
+                  <BarChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
                     <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
                     <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
                     <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
@@ -1670,7 +1670,7 @@ export default function App() {
                     <Legend />
                     <Bar dataKey="nc" name="Nuovi clienti" fill="#06b6d4" radius={[4,4,0,0]} />
                     <Bar dataKey="rc" name="Clienti ritorno" fill="#a78bfa" radius={[4,4,0,0]} />
-                  </LineChart>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>

@@ -65,24 +65,34 @@ export async function POST(req) {
     return NextResponse.json({ error: `Impossibile caricare la pagina: ${e.message}` }, { status: 400 })
   }
 
-  const prompt = `Sei un esperto CRO (Conversion Rate Optimization) senior con 15 anni di esperienza in e-commerce. Parla in italiano. L'utente si chiama Marino.
+  const prompt = `Sei un consulente CRO (Conversion Rate Optimization) senior con 15 anni di esperienza in e-commerce fashion/fitness DTC. Parla in italiano. L'utente si chiama Marino, founder di STMN Fitness.
 
-Analizza questa pagina e rispondi SOLO con un JSON valido (niente testo prima o dopo, niente markdown):
+Analizza questa pagina in modo APPROFONDITO e rispondi SOLO con un JSON valido (niente testo prima o dopo, niente markdown).
+Sii SPECIFICO e DETTAGLIATO in ogni campo — non scrivere cose generiche. Fai riferimento a elementi concreti della pagina (testi, CTA, immagini, layout).
+Fornisci ALMENO 5-8 issues, 3-4 bottlenecks, 5-6 quickWins e 5 recommendations.
 
 {
   "score": 65,
-  "verdict": "Giudizio sintetico in una riga",
-  "strengths": ["Punto forte 1", "Punto forte 2", "Punto forte 3"],
+  "verdict": "Giudizio sintetico ma incisivo in una riga",
+  "strengths": ["Punto forte specifico 1 con riferimento alla pagina", "Punto forte 2", "Punto forte 3", "Punto forte 4"],
   "issues": [
-    {"severity": "critical", "title": "Titolo problema", "description": "Cosa c'è che non va", "fix": "Come risolverlo concretamente"}
+    {"severity": "critical|high|medium|low", "title": "Titolo chiaro", "description": "Descrizione dettagliata di cosa c'è che non va, con riferimento all'elemento specifico della pagina", "fix": "Soluzione concreta passo-passo: cosa fare, dove farlo, come implementarlo"}
   ],
   "bottlenecks": [
-    {"area": "Area del funnel", "problem": "Il problema", "impact": "Impatto stimato", "solution": "Soluzione pratica"}
+    {"area": "Es: Hero Section / PDP / Navigation / Checkout / Mobile", "problem": "Descrizione specifica del collo di bottiglia", "impact": "Impatto quantificato (es: ~15-20% degli utenti abbandona qui)", "solution": "Soluzione dettagliata e implementabile"}
   ],
   "quickWins": [
-    {"action": "Azione specifica", "effort": "low", "impact": "high", "expectedLift": "+5-10% conversion"}
+    {"action": "Azione specifica e implementabile in <1 giorno", "effort": "low|medium|high", "impact": "low|medium|high", "expectedLift": "+X-Y% su metrica specifica"}
   ],
-  "recommendations": ["Raccomandazione strategica 1", "Raccomandazione 2"]
+  "attentionMap": [
+    {"area": "Header/Banner", "attention": 95},
+    {"area": "Hero Section", "attention": 85},
+    {"area": "Primo Fold", "attention": 70},
+    {"area": "Secondo Fold", "attention": 50},
+    {"area": "Metà Pagina", "attention": 35},
+    {"area": "Footer Area", "attention": 15}
+  ],
+  "recommendations": ["Raccomandazione strategica dettagliata 1", "Raccomandazione 2", "Raccomandazione 3", "Raccomandazione 4", "Raccomandazione 5"]
 }
 
 URL: ${url}

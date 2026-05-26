@@ -296,6 +296,7 @@ export default function CreativeLabTab() {
   const [imageModel, setImageModel] = useState('gpt-image-1')
   const [search, setSearch] = useState('')
   const [refImages, setRefImages] = useState({})
+  const [manualBrief, setManualBrief] = useState({ context: '', persona: '', productFeatures: '' })
   const [generating, setGenerating] = useState(false)
   const [creatives, setCreatives] = useState([])
   const [accepted, setAccepted] = useState({})
@@ -396,6 +397,7 @@ export default function CreativeLabTab() {
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
           productReferences: refImages,
+          manualBrief,
           style, funnelStage, format, imageModel, generateImages: true,
         }),
       })
@@ -434,6 +436,7 @@ export default function CreativeLabTab() {
           bestAds: (data?.bestAds || []).slice(0, 5),
           competitors: data?.competitorSummary || [],
           productReferences: refImages,
+          manualBrief,
           style, funnelStage, format, imageModel, generateImages: true, singleIndex: idx,
         }),
       })
@@ -664,6 +667,82 @@ export default function CreativeLabTab() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Manual Brief */}
+          {selected.length > 0 && (
+            <div
+              style={{
+                background: '#14111d',
+                border: '1px solid #2c2638',
+                borderRadius: 18,
+                padding: 20,
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
+                Brief manuale (opzionale)
+              </div>
+              <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
+                Aggiungi dettagli che l&apos;AI deve considerare nella generazione
+              </div>
+
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                    Contesto / Ambientazione
+                  </label>
+                  <textarea
+                    value={manualBrief.context}
+                    onChange={(e) => setManualBrief((p) => ({ ...p, context: e.target.value }))}
+                    placeholder="Es: Ambientazione in un box CrossFit durante un WOD, atmosfera intensa con luci al neon..."
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid #332a41', background: '#0d0a16',
+                      color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
+                      resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                    Buyer Persona target
+                  </label>
+                  <textarea
+                    value={manualBrief.persona}
+                    onChange={(e) => setManualBrief((p) => ({ ...p, persona: e.target.value }))}
+                    placeholder="Es: Donna 28-35, fa HYROX, corre 3x/settimana + functional 2x, primo acquisto di paracalli..."
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid #332a41', background: '#0d0a16',
+                      color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
+                      resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                    Caratteristiche prodotto da evidenziare
+                  </label>
+                  <textarea
+                    value={manualBrief.productFeatures}
+                    onChange={(e) => setManualBrief((p) => ({ ...p, productFeatures: e.target.value }))}
+                    placeholder="Es: Zero magnesite, grip ultra-sottile 2mm, cuciture rinforzate, pelle vegana, colorazione nera/rossa..."
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid #332a41', background: '#0d0a16',
+                      color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
+                      resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 

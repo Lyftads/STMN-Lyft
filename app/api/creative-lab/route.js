@@ -290,6 +290,7 @@ export async function POST(request) {
     bestAds = [],
     competitors = [],
     productReferences = {},
+    manualBrief = {},
     style = 'performance',
     funnelStage = 'tofu',
     format = 'square',
@@ -429,6 +430,11 @@ ${JSON.stringify(products.map(p => ({
 ${Object.keys(productDescriptions).length > 0 ? `## DESCRIZIONI VISIVE DETTAGLIATE (da foto reali caricate)
 Le seguenti descrizioni sono state estratte da foto reali del prodotto. USALE OBBLIGATORIAMENTE nell'imagePrompt per descrivere il prodotto con precisione:
 ${Object.entries(productDescriptions).map(([title, desc]) => `### ${title}\n${desc}`).join('\n\n')}` : ''}
+
+${manualBrief.context || manualBrief.persona || manualBrief.productFeatures ? `## BRIEF MANUALE DEL CLIENTE (priorità alta — segui queste indicazioni)
+${manualBrief.context ? `**Contesto/Ambientazione richiesta:** ${manualBrief.context}\nUsa questa ambientazione come base per TUTTE le immagini generate. Adattala ai diversi template Andromeda ma rispetta il mood indicato.` : ''}
+${manualBrief.persona ? `**Buyer Persona specifica:** ${manualBrief.persona}\nIl copy e il tono devono parlare DIRETTAMENTE a questa persona. Adatta headline, primaryText e CTA al suo linguaggio e ai suoi pain point.` : ''}
+${manualBrief.productFeatures ? `**Caratteristiche prodotto da evidenziare:** ${manualBrief.productFeatures}\nQueste feature DEVONO essere menzionate nel copy (primaryText) e descritte nell'imagePrompt per renderle visibili nell'immagine.` : ''}` : ''}
 
 ## REGOLE ANDROMEDA (Meta Algorithm) — OBBLIGATORIE
 Ogni creative DEVE essere VISIVAMENTE UNICA per massimizzare la varianza che Andromeda premia.

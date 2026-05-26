@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
 import KPIBrainTab from './components/KPIBrainTab'
+import CreativeTab from './components/CreativeTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1500,7 +1501,9 @@ export default function App() {
 
       {/* SIMULATORE TAB */}
       {tab==='simulator' && <Simulator cfg={cfg} />}
-
+{tab === 'creative' && (
+  <CreativeTab />
+)}
       {/* META DETAIL TAB */}
       {tab==='metaDetail' && (
         <div style={S.card}>

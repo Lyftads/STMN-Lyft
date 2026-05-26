@@ -230,30 +230,32 @@ function Simulator({ cfg }) {
   const cacFor3  = ltv/3
   const aovFor3  = s.cac>0 ? (s.cac*3)/(s.freq*s.life*s.margin/100) : 0
 
-  const defaultScenario = { name:'', spend:3000, roas:3, aov:75, costoProdotto:18, costoSpedizione:5, costoPackaging:2 }
+  const defaultScenario = { name:'', spend:3000, roas:3, aov:75, cogs:38 }
   const [scenarios, setScenarios] = useState([
-    { ...defaultScenario, name:'Conservativo', spend:2000, roas:2.5 },
-    { ...defaultScenario, name:'Base', spend:4000, roas:3.5 },
-    { ...defaultScenario, name:'Aggressivo', spend:8000, roas:4 },
+    { ...defaultScenario, name:'Conservativo', spend:2000, roas:2.5, cogs:38 },
+    { ...defaultScenario, name:'Base', spend:4000, roas:3.5, cogs:38 },
+    { ...defaultScenario, name:'Aggressivo', spend:8000, roas:4, cogs:38 },
   ])
   const setSc = (i,k,v) => setScenarios(prev => { const n=[...prev]; n[i]={...n[i],[k]:v}; return n })
 
+  const IVA = 22
+
   const calcScenario = (sc) => {
-    const revenue = sc.spend * sc.roas
-    const orders = sc.aov > 0 ? revenue / sc.aov : 0
-    const costoTotProdotto = orders * sc.costoProdotto
-    const costoTotSpedizione = orders * sc.costoSpedizione
-    const costoTotPackaging = orders * sc.costoPackaging
-    const costiTotali = costoTotProdotto + costoTotSpedizione + costoTotPackaging
-    const marginePerOrdine = sc.aov - sc.costoProdotto - sc.costoSpedizione - sc.costoPackaging
-    const marginePct = sc.aov > 0 ? (marginePerOrdine / sc.aov) * 100 : 0
-    const profittoLordo = revenue - costiTotali
+    const revenueIvaInclusa = sc.spend * sc.roas
+    const iva = revenueIvaInclusa * (IVA / (100 + IVA))
+    const revenue = revenueIvaInclusa - iva
+    const orders = sc.aov > 0 ? revenueIvaInclusa / sc.aov : 0
+    const aovNetto = sc.aov / (1 + IVA / 100)
+    const cogsAmount = revenue * (sc.cogs / 100)
+    const marginePerOrdine = orders > 0 ? (revenue - cogsAmount) / orders : 0
+    const marginePct = revenue > 0 ? ((revenue - cogsAmount) / revenue) * 100 : 0
+    const profittoLordo = revenue - cogsAmount
     const profittoNetto = profittoLordo - sc.spend
-    const netMarginPct = revenue > 0 ? (profittoNetto / revenue) * 100 : 0
-    const mer = sc.spend > 0 ? revenue / sc.spend : 0
+    const netMarginPct = revenueIvaInclusa > 0 ? (profittoNetto / revenueIvaInclusa) * 100 : 0
+    const mer = sc.spend > 0 ? revenueIvaInclusa / sc.spend : 0
     const cpo = orders > 0 ? sc.spend / orders : 0
-    const breakEvenRoas = marginePerOrdine > 0 ? sc.aov / marginePerOrdine : 0
-    return { revenue, orders, costiTotali, costoTotProdotto, costoTotSpedizione, costoTotPackaging, marginePerOrdine, marginePct, profittoLordo, profittoNetto, netMarginPct, mer, cpo, breakEvenRoas }
+    const breakEvenRoas = marginePct > 0 ? 100 / marginePct * (1 + IVA / 100) : 0
+    return { revenueIvaInclusa, iva, revenue, orders, aovNetto, cogsAmount, marginePerOrdine, marginePct, profittoLordo, profittoNetto, netMarginPct, mer, cpo, breakEvenRoas }
   }
 
   const scenarioColors = ['#3b82f6', '#22c55e', '#f59e0b']
@@ -308,7 +310,7 @@ function Simulator({ cfg }) {
     {/* ── Scenario Advertising Simulator ── */}
     <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:28,marginBottom:24}}>
       <p style={{fontSize:13,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:6,fontWeight:700,fontFamily:'Barlow Condensed'}}>Scenari Advertising</p>
-      <p style={{fontSize:11,color:'#555',marginBottom:24}}>Confronta 3 scenari di spesa adv con marginalità reale (prodotti + spedizione + packaging)</p>
+      <p style={{fontSize:11,color:'#555',marginBottom:24}}>Confronta 3 scenari · IVA 22% scorporata · COGS in % (prodotti + spedizione + packaging)</p>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20,marginBottom:28}}>
         {scenarios.map((sc,i) => {
@@ -318,13 +320,21 @@ function Simulator({ cfg }) {
               <input value={sc.name} onChange={e=>setSc(i,'name',e.target.value)}
                 style={{width:'100%',background:'transparent',border:'none',color:color,fontSize:16,fontWeight:900,marginBottom:16,outline:'none',fontFamily:'Barlow'}}
                 placeholder={`Scenario ${i+1}`} />
+
+              <div style={{marginBottom:14}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                  <span style={{fontSize:10,color:'#555'}}>Spesa ADV mensile</span>
+                </div>
+                <input type="number" value={sc.spend} min={0} step={100}
+                  onChange={e=>setSc(i,'spend',Math.max(0,parseFloat(e.target.value)||0))}
+                  style={{width:'100%',background:'#0a1020',border:'1px solid #1e2d47',borderRadius:8,padding:'10px 14px',color:'#e8e8e8',fontSize:14,fontWeight:700,fontFamily:'Barlow',outline:'none',textAlign:'right'}}
+                  placeholder="€" />
+              </div>
+
               {[
-                {k:'spend',l:'Spesa ADV mensile',min:500,max:30000,step:100,fmt:v=>`€${v.toLocaleString('it-IT')}`},
                 {k:'roas',l:'ROAS target',min:0.5,max:10,step:0.1,fmt:v=>`${v.toFixed(1)}×`},
-                {k:'aov',l:'AOV medio',min:20,max:200,step:1,fmt:v=>`€${v}`},
-                {k:'costoProdotto',l:'Costo prodotto',min:1,max:80,step:0.5,fmt:v=>`€${v.toFixed(1)}`},
-                {k:'costoSpedizione',l:'Costo spedizione',min:0,max:15,step:0.5,fmt:v=>`€${v.toFixed(1)}`},
-                {k:'costoPackaging',l:'Costo packaging',min:0,max:10,step:0.25,fmt:v=>`€${v.toFixed(2)}`},
+                {k:'aov',l:'AOV medio (IVA inclusa)',min:20,max:300,step:1,fmt:v=>`€${v}`},
+                {k:'cogs',l:'COGS % (prodotto+spedizione+packaging)',min:5,max:80,step:1,fmt:v=>`${v}%`},
               ].map(({k,l,min,max,step,fmt})=>(
                 <div key={k} style={{marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
@@ -352,22 +362,23 @@ function Simulator({ cfg }) {
           </thead>
           <tbody>
             {[
+              {l:'Fatturato IVA inclusa', f:c=>sm0(c.revenueIvaInclusa), bold:true},
+              {l:'IVA 22% (da scorporare)', f:c=>`-${sm0(c.iva)}`, color:'#f59e0b'},
+              {l:'Fatturato netto (senza IVA)', f:c=>sm0(c.revenue), bold:true, color:'#3b82f6'},
               {l:'Spesa ADV', f:(c,sc)=>sm0(sc.spend)},
-              {l:'Fatturato generato', f:c=>sm0(c.revenue), bold:true},
               {l:'Ordini', f:c=>si0(c.orders)},
+              {l:'AOV netto', f:c=>sm2(c.aovNetto)},
               {l:'ROAS', f:(c,sc)=>`${sc.roas.toFixed(1)}×`, bold:true},
               {l:'CPO', f:c=>sm2(c.cpo)},
               {l:'', sep:true},
-              {l:'Costo prodotti', f:c=>sm0(c.costoTotProdotto), color:'#ef4444'},
-              {l:'Costo spedizioni', f:c=>sm0(c.costoTotSpedizione), color:'#ef4444'},
-              {l:'Costo packaging', f:c=>sm0(c.costoTotPackaging), color:'#ef4444'},
-              {l:'Totale costi merce', f:c=>sm0(c.costiTotali), bold:true, color:'#ef4444'},
+              {l:'COGS', f:(c,sc)=>`${sc.cogs}%`, color:'#ef4444'},
+              {l:'COGS totale', f:c=>sm0(c.cogsAmount), bold:true, color:'#ef4444'},
               {l:'Margine per ordine', f:c=>sm2(c.marginePerOrdine)},
               {l:'Margine %', f:c=>sp1(c.marginePct)},
               {l:'', sep:true},
-              {l:'Profitto lordo', f:c=>sm0(c.profittoLordo), bold:true, color:'#3b82f6'},
-              {l:'Profitto netto', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#22c55e':'#ef4444'},
-              {l:'Net margin %', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
+              {l:'Profitto lordo (post COGS)', f:c=>sm0(c.profittoLordo), bold:true, color:'#3b82f6'},
+              {l:'Profitto netto (post ADV)', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#22c55e':'#ef4444'},
+              {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
               {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, color:'#f59e0b'},
             ].map((row,ri) => {
               if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:8,borderBottom:'1px solid #1e2d47'}} /></tr>
@@ -389,13 +400,13 @@ function Simulator({ cfg }) {
         <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
           <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Profitto Netto</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={scenarios.map((sc,i)=>({name:sc.name||`Sc.${i+1}`,fatturato:calcScenario(sc).revenue,profitto:calcScenario(sc).profittoNetto}))} margin={{left:0,right:0}}>
+            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,lordo:c.revenueIvaInclusa,netto:c.revenue,profitto:c.profittoNetto}})} margin={{left:0,right:0}}>
               <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
               <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
               <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
-              <Bar dataKey="fatturato" name="Fatturato" fill="#3b82f6" radius={[4,4,0,0]} />
+              <Bar dataKey="netto" name="Fatt. netto" fill="#3b82f6" radius={[4,4,0,0]} />
               <Bar dataKey="profitto" name="Profitto netto" fill="#22c55e" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -403,33 +414,33 @@ function Simulator({ cfg }) {
         <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
           <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Breakdown Costi</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,adv:sc.spend,prodotti:c.costoTotProdotto,spedizioni:c.costoTotSpedizione,packaging:c.costoTotPackaging}})} margin={{left:0,right:0}}>
+            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{left:0,right:0}}>
               <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
               <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
               <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
-              <Bar dataKey="adv" name="ADV" fill="#8b5cf6" stackId="c" radius={[4,4,0,0]} />
-              <Bar dataKey="prodotti" name="Prodotti" fill="#ef4444" stackId="c" />
-              <Bar dataKey="spedizioni" name="Spedizioni" fill="#f59e0b" stackId="c" />
-              <Bar dataKey="packaging" name="Packaging" fill="#ec4899" stackId="c" radius={[0,0,4,4]} />
+              <Bar dataKey="iva" name="IVA 22%" fill="#f59e0b" stackId="c" radius={[4,4,0,0]} />
+              <Bar dataKey="cogs" name="COGS" fill="#ef4444" stackId="c" />
+              <Bar dataKey="adv" name="Spesa ADV" fill="#8b5cf6" stackId="c" radius={[0,0,4,4]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {(() => {
-        const results = scenarios.map((sc,i)=>({...calcScenario(sc), name:sc.name||`Scenario ${i+1}`, spend:sc.spend, roas:sc.roas}))
+        const results = scenarios.map((sc,i)=>({...calcScenario(sc), name:sc.name||`Scenario ${i+1}`, spend:sc.spend, roas:sc.roas, cogs:sc.cogs}))
         const best = results.reduce((a,b)=>b.profittoNetto>a.profittoNetto?b:a)
         const mostEfficient = results.reduce((a,b)=>b.netMarginPct>a.netMarginPct?b:a)
         return (
           <div style={{marginTop:20,background:'#0d1628',borderRadius:10,padding:20}}>
             <p style={{fontSize:11,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12,fontWeight:700,fontFamily:'Barlow Condensed'}}>Analisi scenari</p>
             <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
-              <p style={{marginBottom:8}}>Lo scenario <strong style={{color:'#22c55e'}}>"{best.name}"</strong> genera il profitto netto più alto: <strong>{sm0(best.profittoNetto)}</strong> su {sm0(best.revenue)} di fatturato.</p>
+              <p style={{marginBottom:8}}>Lo scenario <strong style={{color:'#22c55e'}}>"{best.name}"</strong> genera il profitto netto più alto: <strong>{sm0(best.profittoNetto)}</strong> su {sm0(best.revenue)} di fatturato netto (IVA esclusa).</p>
               {mostEfficient.name !== best.name && <p style={{marginBottom:8}}>Tuttavia <strong style={{color:'#f59e0b'}}>"{mostEfficient.name}"</strong> è il più efficiente per margine netto: <strong>{sp1(mostEfficient.netMarginPct)}</strong>.</p>}
-              {results.some(r=>r.profittoNetto<0) && <p style={{color:'#ef4444'}}>Attenzione: {results.filter(r=>r.profittoNetto<0).map(r=>`"${r.name}"`).join(' e ')} in perdita netta.</p>}
-              <p style={{marginTop:8,color:'#776a86'}}>Break-even ROAS: {results.map(r=>`${r.name} = ${r.breakEvenRoas.toFixed(2)}×`).join(' · ')}</p>
+              {results.some(r=>r.profittoNetto<0) && <p style={{color:'#ef4444'}}>Attenzione: {results.filter(r=>r.profittoNetto<0).map(r=>`"${r.name}"`).join(' e ')} in perdita netta post ADV.</p>}
+              <p style={{marginTop:8,color:'#776a86'}}>Break-even ROAS (IVA inclusa): {results.map(r=>`${r.name} = ${r.breakEvenRoas.toFixed(2)}×`).join(' · ')}</p>
+              <p style={{marginTop:4,color:'#776a86'}}>COGS: {results.map(r=>`${r.name} = ${r.cogs}% (${sm0(r.cogsAmount)})`).join(' · ')}</p>
             </div>
           </div>
         )

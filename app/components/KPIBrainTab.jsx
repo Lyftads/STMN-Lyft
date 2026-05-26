@@ -513,7 +513,8 @@ const customerBreakdown = [
           borderRadius: 22,
           padding: 24,
           marginBottom: 24,
-        }}
+                }}
+      >
         <div style={{
   display: 'flex',
   justifyContent: 'space-between',

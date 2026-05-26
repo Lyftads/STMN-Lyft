@@ -5,6 +5,7 @@ import VendroShell from './components/VendroShell'
 import KPIBrainTab from './components/KPIBrainTab'
 import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
+import PerformanceAgentTab from './components/PerformanceAgentTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1516,6 +1517,11 @@ export default function App() {
 {/* META DETAIL TAB */}
 {tab === 'metaDetail' && (
   <MetaDetailTab />
+)}
+
+{/* PERFORMANCE AGENT TAB */}
+{tab === 'performanceAgent' && (
+  <PerformanceAgentTab cfg={cfg} />
 )}
       </VendroShell>
     )

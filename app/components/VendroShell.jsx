@@ -8,6 +8,7 @@ function getPageTitle(tab) {
   if (tab === 'simulator') return 'Simulatore'
   if (tab === 'metaDetail') return 'Meta Detail'
   if (tab === 'creative') return 'Creative'
+  if (tab === 'performanceAgent') return 'Performance Agent'
   return 'Dashboard'
 }
 
@@ -15,6 +16,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'kpiBrain') return 'Your business intelligence at a glance'
   if (tab === 'creative') return 'Analisi creative Meta Ads'
   if (tab === 'metaDetail') return `Dettaglio performance Meta · ${updated ? updated.toLocaleString('it-IT') : '—'}`
+  if (tab === 'performanceAgent') return 'Consulente AI · Performance · CMO · CRO · Ads'
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
@@ -65,6 +67,13 @@ export default function VendroShell({
       items: [
         { id: 'simulator', label: 'Simulatore', icon: '⚡' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
+      ],
+    },
+    {
+      title: 'AI',
+      color: '#8b5cf6',
+      items: [
+        { id: 'performanceAgent', label: 'Performance Agent', icon: '✦' },
       ],
     },
   ]

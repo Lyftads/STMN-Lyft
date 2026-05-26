@@ -1,0 +1,424 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+
+const PRESETS = [
+  { value: 'today', label: 'Oggi' },
+  { value: 'yesterday', label: 'Ieri' },
+  { value: 'last_7d', label: 'Ultimi 7 giorni' },
+  { value: 'last_14d', label: 'Ultimi 14 giorni' },
+  { value: 'last_28d', label: 'Ultimi 28 giorni' },
+  { value: 'last_90d', label: 'Ultimi 90 giorni' },
+  { value: 'current_month', label: 'Mese corrente' },
+  { value: 'last_month', label: 'Mese scorso' },
+]
+
+const SUGGESTIONS = [
+  'Fammi un check-up generale: cosa va bene, cosa preoccupa.',
+  'Quali campagne Meta dovrei scalare e quali tagliare?',
+  'Il mio MER sta peggiorando: aiutami a capire perché.',
+  'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?',
+  'AOV vs LTV: dove ho margine per crescere?',
+  'Suggerisci 3 test A/B prioritari (ads + sito).',
+]
+
+const palette = {
+  bg: '#0f0b16',
+  panel: '#14111d',
+  border: '#2c2638',
+  bubbleUser: 'linear-gradient(135deg, #6d28d9, #2a1746)',
+  bubbleAgent: '#171220',
+  text: '#f7f2ff',
+  muted: '#9b90aa',
+  accent: '#8b5cf6',
+}
+
+function formatMessage(text) {
+  if (!text) return null
+  const lines = text.split('\n')
+  return lines.map((line, i) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((seg, j) => {
+      if (seg.startsWith('**') && seg.endsWith('**')) {
+        return (
+          <strong key={j} style={{ color: '#fff' }}>
+            {seg.slice(2, -2)}
+          </strong>
+        )
+      }
+      return <span key={j}>{seg}</span>
+    })
+    return (
+      <div key={i} style={{ minHeight: line ? undefined : 8 }}>
+        {parts}
+      </div>
+    )
+  })
+}
+
+export default function PerformanceAgentTab({ cfg }) {
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [preset, setPreset] = useState('last_28d')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const scrollRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, loading])
+
+  const send = async (text) => {
+    const content = (text ?? input).trim()
+    if (!content || loading) return
+
+    setError(null)
+    const next = [...messages, { role: 'user', content }]
+    setMessages(next)
+    setInput('')
+    setLoading(true)
+
+    try {
+      const r = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: next,
+          preset,
+          cfg: cfg || null,
+        }),
+      })
+
+      const json = await r.json()
+
+      if (!r.ok) {
+        setError(json?.error || `Errore ${r.status}`)
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `⚠️ ${json?.error || `Errore ${r.status}`}`,
+            isError: true,
+          },
+        ])
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: json.reply || '(risposta vuota)' },
+        ])
+      }
+    } catch (err) {
+      setError(err?.message || 'Errore di rete')
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `⚠️ ${err?.message || 'Errore di rete'}`,
+          isError: true,
+        },
+      ])
+    } finally {
+      setLoading(false)
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }
+
+  const reset = () => {
+    setMessages([])
+    setError(null)
+  }
+
+  return (
+    <div
+      style={{
+        background: palette.panel,
+        border: `1px solid ${palette.border}`,
+        borderRadius: 22,
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 'calc(100vh - 200px)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '20px 24px',
+          borderBottom: `1px solid ${palette.border}`,
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #ff7a45, #ec4899, #8b5cf6)',
+              display: 'grid',
+              placeItems: 'center',
+              fontWeight: 900,
+              color: '#fff',
+            }}
+          >
+            ✦
+          </div>
+          <div>
+            <div style={{ fontWeight: 900, color: palette.text, fontSize: 16 }}>
+              Performance Agent
+            </div>
+            <div style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
+              Performance · CMO · CRO · Ads · usa i dati live di Shopify + Meta
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <select
+            value={preset}
+            onChange={e => setPreset(e.target.value)}
+            disabled={loading}
+            style={{
+              background: '#201b2b',
+              border: `1px solid ${palette.border}`,
+              color: '#fff',
+              borderRadius: 10,
+              padding: '8px 12px',
+              fontSize: 13,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {PRESETS.map(p => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={reset}
+              disabled={loading}
+              style={{
+                background: 'transparent',
+                color: palette.muted,
+                border: `1px solid ${palette.border}`,
+                borderRadius: 10,
+                padding: '8px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Reset chat
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px 24px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        {messages.length === 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+              alignItems: 'flex-start',
+            }}
+          >
+            <div style={{ color: palette.muted, fontSize: 14, lineHeight: 1.5, maxWidth: 640 }}>
+              Chiedimi qualcosa sui dati di STMN. Posso analizzare trend, suggerire test, individuare campagne da scalare o tagliare, calcolare priorità di intervento. Tutti gli insight sono basati sui dati live del periodo selezionato.
+            </div>
+            <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+              {SUGGESTIONS.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => send(s)}
+                  disabled={loading}
+                  style={{
+                    textAlign: 'left',
+                    background: '#1a1525',
+                    border: `1px solid ${palette.border}`,
+                    color: '#e2dcf0',
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    fontSize: 13,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'border-color .15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = palette.accent)}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = palette.border)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <div
+              style={{
+                maxWidth: '78%',
+                background: m.role === 'user' ? palette.bubbleUser : palette.bubbleAgent,
+                border:
+                  m.role === 'user'
+                    ? 'none'
+                    : m.isError
+                    ? '1px solid #ef444455'
+                    : `1px solid ${palette.border}`,
+                color: m.isError ? '#fecaca' : '#f1ecfb',
+                borderRadius: 14,
+                padding: '12px 16px',
+                fontSize: 14,
+                lineHeight: 1.55,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {formatMessage(m.content)}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div
+              style={{
+                background: palette.bubbleAgent,
+                border: `1px solid ${palette.border}`,
+                borderRadius: 14,
+                padding: '12px 16px',
+                color: palette.muted,
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span style={{ display: 'inline-flex', gap: 4 }}>
+                <Dot delay={0} />
+                <Dot delay={150} />
+                <Dot delay={300} />
+              </span>
+              Sto analizzando i dati…
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          borderTop: `1px solid ${palette.border}`,
+          padding: '16px 24px 20px',
+        }}
+      >
+        {error && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '8px 12px',
+              background: '#ef444415',
+              border: '1px solid #ef444455',
+              borderRadius: 10,
+              color: '#fecaca',
+              fontSize: 12,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <form
+          onSubmit={e => {
+            e.preventDefault()
+            send()
+          }}
+          style={{ display: 'flex', gap: 10 }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Chiedi qualcosa al tuo Performance Agent…"
+            disabled={loading}
+            style={{
+              flex: 1,
+              background: '#201b2b',
+              border: `1px solid ${palette.border}`,
+              color: '#fff',
+              borderRadius: 12,
+              padding: '12px 16px',
+              fontSize: 14,
+              outline: 'none',
+            }}
+            onFocus={e => (e.currentTarget.style.borderColor = palette.accent)}
+            onBlur={e => (e.currentTarget.style.borderColor = palette.border)}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            style={{
+              background: loading || !input.trim()
+                ? '#2a1f3f'
+                : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 12,
+              padding: '0 22px',
+              fontWeight: 900,
+              fontSize: 14,
+              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Invia
+          </button>
+        </form>
+        <div style={{ marginTop: 8, fontSize: 11, color: palette.muted }}>
+          Le risposte usano i dati live del periodo selezionato. Niente è inventato.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Dot({ delay }) {
+  return (
+    <span
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: palette.accent,
+        display: 'inline-block',
+        animation: 'pa-pulse 1.2s infinite',
+        animationDelay: `${delay}ms`,
+      }}
+    />
+  )
+}

@@ -404,10 +404,10 @@ Per ogni variante restituisci un oggetto JSON con:
 - "reasoning": perché questa creative funziona per la fase ${funnelStage} (1-2 frasi, in italiano)
 - "imagePrompt": prompt DETTAGLIATO in inglese per generare l'immagine. REGOLE OBBLIGATORIE per l'imagePrompt:
   1. Il PRODOTTO deve essere SEMPRE visibile e centrale nell'immagine. Descrivi il prodotto specifico (es. "a pair of black and red CrossFit hand grips with textured palm surface", "a tactical fitness backpack in dark grey"). Il prodotto deve occupare almeno il 30% dell'immagine.
-  2. DEVI usare il template visivo assegnato (avatar che INDOSSA o USA il prodotto, location, mood, palette specifici).
+  2. DEVI usare il template visivo assegnato (avatar, location, mood, palette specifici).
   3. Il formato è ${format === 'story' ? '9:16 portrait' : '1:1 square'}. Stile: fotografia realistica, advertising quality, 4K.
   4. INCLUDI nell'immagine un overlay testuale con l'headline in italiano (grande, leggibile) e il CTA in un bottone.
-  5. L'avatar deve INDOSSARE o USARE attivamente il prodotto nella scena.
+  5. VARIA il tipo di composizione tra le creative: alcune con il prodotto indossato/usato da un atleta, altre con il prodotto da solo in primo piano (flat lay, studio shot, ambientato su una superficie in un contesto fitness). Non tutte le immagini devono avere persone — alterna product-only e lifestyle.
 
 IMPORTANTE: ogni imagePrompt DEVE descrivere una scena COMPLETAMENTE diversa dalle altre. Diverso avatar, diversa location, diversa palette. Il PRODOTTO è sempre presente e visibile. Meta Andromeda penalizza creative simili.
 

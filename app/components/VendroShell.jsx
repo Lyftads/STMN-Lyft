@@ -10,6 +10,7 @@ function getPageTitle(tab) {
   if (tab === 'creative') return 'Creative'
   if (tab === 'performanceAgent') return 'Performance Agent'
   if (tab === 'klaviyo') return 'Klaviyo'
+  if (tab === 'integrations') return 'Integrazioni'
   return 'Dashboard'
 }
 
@@ -19,6 +20,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'metaDetail') return `Dettaglio performance Meta · ${updated ? updated.toLocaleString('it-IT') : '—'}`
   if (tab === 'performanceAgent') return 'Consulente AI · Performance · CMO · CRO · Ads'
   if (tab === 'klaviyo') return 'Email Marketing · Campagne · Flussi · Segmenti'
+  if (tab === 'integrations') return 'Collega e gestisci tutte le piattaforme'
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
@@ -70,6 +72,7 @@ export default function VendroShell({
       items: [
         { id: 'simulator', label: 'Simulatore', icon: '⚡' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
+        { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
       ],
     },
     {

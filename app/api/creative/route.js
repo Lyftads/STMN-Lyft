@@ -12,6 +12,8 @@ const ACCESS_TOKEN =
   process.env.FB_ACCESS_TOKEN ||
   ''
 
+const CREATIVE_IMAGE_SIZE = Number(process.env.META_CREATIVE_IMAGE_SIZE || 1080)
+
 function json(data, status = 200) {
   return NextResponse.json(data, {
     status,
@@ -64,6 +66,7 @@ function getSafeEnvDebug() {
     has_FB_ACCESS_TOKEN: Boolean(process.env.FB_ACCESS_TOKEN),
 
     graph_version: GRAPH_VERSION,
+    creative_image_size: CREATIVE_IMAGE_SIZE,
   }
 }
 
@@ -291,9 +294,13 @@ function normalizeInsight(row, account) {
     cpc_link: cpcLink,
     roas,
 
+    creative_id: null,
+
     thumbnail_url: null,
     image_url: null,
-    creative_id: null,
+    full_image_url: null,
+    preview_image_url: null,
+    display_image_url: null,
   }
 }
 
@@ -329,6 +336,30 @@ function mergeByAd(rows) {
   return Array.from(map.values())
 }
 
+function pickBestImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
+  return (
+    fullCreative.image_url ||
+    creative.image_url ||
+    fullCreative.thumbnail_url ||
+    creative.thumbnail_url ||
+    row.image_url ||
+    row.thumbnail_url ||
+    null
+  )
+}
+
+function pickPreviewImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
+  return (
+    fullCreative.thumbnail_url ||
+    creative.thumbnail_url ||
+    fullCreative.image_url ||
+    creative.image_url ||
+    row.thumbnail_url ||
+    row.image_url ||
+    null
+  )
+}
+
 async function hydrateCreatives(rows) {
   const limited = rows.slice(0, 200)
 
@@ -342,26 +373,59 @@ async function hydrateCreatives(rows) {
             'id',
             'name',
             'effective_status',
-            'creative{id,name,thumbnail_url,image_url,object_story_spec}',
+            'creative{id,name,thumbnail_url,image_url,object_story_spec,asset_feed_spec}',
           ].join(','),
+          thumbnail_width: CREATIVE_IMAGE_SIZE,
+          thumbnail_height: CREATIVE_IMAGE_SIZE,
         })
 
         const creative = ad.creative || {}
 
+        let fullCreative = {}
+
+        if (creative.id) {
+          try {
+            fullCreative = await metaGet(creative.id, {
+              fields: [
+                'id',
+                'name',
+                'thumbnail_url',
+                'image_url',
+                'object_story_spec',
+                'asset_feed_spec',
+              ].join(','),
+              thumbnail_width: CREATIVE_IMAGE_SIZE,
+              thumbnail_height: CREATIVE_IMAGE_SIZE,
+            })
+          } catch {
+            fullCreative = {}
+          }
+        }
+
+        const fullImageUrl = pickBestImageUrl({
+          creative,
+          fullCreative,
+          row,
+        })
+
+        const previewImageUrl = pickPreviewImageUrl({
+          creative,
+          fullCreative,
+          row,
+        })
+
         return {
           ...row,
           status: ad.effective_status || row.status,
-          creative_id: creative.id || null,
-          thumbnail_url:
-            creative.thumbnail_url ||
-            creative.image_url ||
-            row.thumbnail_url ||
-            null,
-          image_url:
-            creative.image_url ||
-            creative.thumbnail_url ||
-            row.image_url ||
-            null,
+          creative_id: creative.id || fullCreative.id || null,
+
+          image_url: fullImageUrl,
+          full_image_url: fullImageUrl,
+
+          thumbnail_url: previewImageUrl,
+          preview_image_url: previewImageUrl,
+
+          display_image_url: fullImageUrl || previewImageUrl,
         }
       } catch {
         return row
@@ -369,7 +433,10 @@ async function hydrateCreatives(rows) {
     })
   )
 
-  return hydrated
+  return rows.map(row => {
+    const found = hydrated.find(h => h.ad_id === row.ad_id)
+    return found || row
+  })
 }
 
 function buildSummary(rows) {
@@ -445,15 +512,13 @@ export async function GET(req) {
 
     let merged = mergeByAd(allRows)
 
-    if (activeOnly) {
-      merged = await hydrateCreatives(merged)
+    merged = await hydrateCreatives(merged)
 
+    if (activeOnly) {
       merged = merged.filter(r => {
         const status = String(r.status || '').toUpperCase()
         return !status || status === 'ACTIVE'
       })
-    } else {
-      merged = await hydrateCreatives(merged)
     }
 
     merged = merged

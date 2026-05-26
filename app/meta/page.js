@@ -13,248 +13,283 @@ const PRESETS = [
   { id: 'custom', label: 'Custom' },
 ]
 
-const GREEN = '#22c55e'
-const BLUE = '#2f88ff'
-const RED = '#ef4444'
-const TEXT = '#f8fafc'
-const MUTED = '#7b8aa3'
-const BORDER = '#20324f'
-const CARD = '#0b1222'
-const BG = '#050b16'
-
-function n(v) {
+function num(v) {
   const x = Number(v)
   return Number.isFinite(x) ? x : 0
 }
 
-function money(v, decimals = 0) {
-  const x = n(v)
-  if (!x) return '—'
-  return `€${x.toLocaleString('it-IT', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })}`
-}
-
-function int(v) {
-  const x = n(v)
+function fmtInt(v) {
+  const x = num(v)
   if (!x) return '—'
   return Math.round(x).toLocaleString('it-IT')
 }
 
-function pct(v, decimals = 2) {
-  const x = n(v)
-  return `${x.toLocaleString('it-IT', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })}%`
+function fmtEuro(v) {
+  const x = num(v)
+  if (!x) return '—'
+  return `€${Math.round(x).toLocaleString('it-IT')}`
 }
 
-function ratio(v) {
-  const x = n(v)
-  return `${x.toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}x`
+function fmtEuro2(v) {
+  const x = num(v)
+  if (!x) return '—'
+  return `€${x.toFixed(2).replace('.', ',')}`
 }
 
-function metric(row, key) {
-  return row?.metrics?.[key] ?? row?.[key] ?? 0
+function fmtPct(v) {
+  const x = num(v)
+  if (!x) return '—'
+  return `${x.toFixed(2).replace('.', ',')}%`
 }
 
-function trend(v, inverse = false) {
-  if (v == null) return MUTED
-  const good = inverse ? v < 0 : v > 0
-  return good ? GREEN : RED
+function fmtX(v) {
+  const x = num(v)
+  if (!x) return '0,00x'
+  return `${x.toFixed(2).replace('.', ',')}x`
+}
+
+function fmtDelta(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'
+  const x = Number(v)
+  const sign = x > 0 ? '+' : ''
+  return `${sign}${x.toFixed(1)}%`
+}
+
+function deltaColor(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return '#748199'
+  return Number(v) >= 0 ? '#22c55e' : '#ff4d4d'
 }
 
 function MetricCard({ label, value }) {
   return (
-    <div style={{
-      background: CARD,
-      border: `1px solid ${BORDER}`,
-      borderRadius: 10,
-      padding: 20,
-      minHeight: 96,
-    }}>
-      <div style={{
-        color: MUTED,
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: '0.16em',
-        textTransform: 'uppercase',
-        marginBottom: 12,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        color: TEXT,
-        fontSize: 26,
-        fontWeight: 900,
-        fontFamily: 'serif',
-      }}>
-        {value}
-      </div>
+    <div style={styles.card}>
+      <div style={styles.kpiLabel}>{label}</div>
+      <div style={styles.kpiValue}>{value}</div>
     </div>
   )
 }
 
-function DeltaBox({ label, value, inverse }) {
+function PresetButton({ active, children, onClick }) {
   return (
-    <div style={{
-      background: '#081020',
-      border: `1px solid ${BORDER}`,
-      borderRadius: 8,
-      padding: 14,
-    }}>
-      <div style={{
-        color: MUTED,
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: '0.14em',
-        textTransform: 'uppercase',
-        marginBottom: 10,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        color: value == null ? MUTED : trend(value, inverse),
-        fontSize: 22,
-        fontWeight: 900,
-      }}>
-        {value == null ? '—' : `${value > 0 ? '+' : ''}${value.toFixed(1)}%`}
-      </div>
-    </div>
-  )
-}
-
-function Cell({ children, bold, green, blue }) {
-  return (
-    <td style={{
-      padding: '13px 14px',
-      borderTop: `1px solid ${BORDER}`,
-      color: green ? GREEN : blue ? BLUE : TEXT,
-      fontWeight: bold ? 900 : 500,
-      whiteSpace: 'nowrap',
-      verticalAlign: 'middle',
-    }}>
-      {children}
-    </td>
-  )
-}
-
-function Thumb({ src, name }) {
-  if (!src) {
-    return (
-      <div style={{
-        width: 54,
-        height: 54,
-        borderRadius: 8,
-        background: '#111827',
-        border: `1px solid ${BORDER}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: MUTED,
-        fontSize: 10,
-      }}>
-        no img
-      </div>
-    )
-  }
-
-  return (
-    <img
-      src={src}
-      alt={name || 'creative'}
+    <button
+      onClick={onClick}
       style={{
-        width: 54,
-        height: 54,
-        objectFit: 'cover',
-        borderRadius: 8,
-        border: `1px solid ${BORDER}`,
-        background: '#111827',
+        ...styles.preset,
+        borderColor: active ? '#22c55e' : '#203453',
+        color: active ? '#22c55e' : '#748199',
+        background: active ? '#062414' : '#071024',
       }}
-    />
+    >
+      {children}
+    </button>
+  )
+}
+
+function Row({ row, depth, open, loading, onClick }) {
+  const canOpen = row.level === 'campaign' || row.level === 'adset'
+
+  return (
+    <tr>
+      <td style={{ ...styles.td, minWidth: 360 }}>
+        <div
+          onClick={canOpen ? onClick : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            paddingLeft: depth * 22,
+            cursor: canOpen ? 'pointer' : 'default',
+          }}
+        >
+          {canOpen && (
+            <span style={{ color: '#22c55e', width: 18 }}>
+              {loading ? '…' : open ? '▾' : '▸'}
+            </span>
+          )}
+
+          {!canOpen && <span style={{ width: 18 }} />}
+
+          {row.thumbnail_url && (
+            <img
+              src={row.thumbnail_url}
+              alt=""
+              style={{
+                width: 44,
+                height: 44,
+                objectFit: 'cover',
+                borderRadius: 8,
+                border: '1px solid #203453',
+              }}
+            />
+          )}
+
+          <div>
+            <div style={{ color: row.level === 'campaign' ? '#22c55e' : '#eef2ff', fontWeight: 800 }}>
+              {row.level === 'campaign' ? 'Campagna · ' : row.level === 'adset' ? 'Ad set · ' : 'Ad · '}
+              {row.name || '—'}
+            </div>
+            <div style={{ fontSize: 11, color: '#748199', marginTop: 3 }}>
+              {row.id}
+            </div>
+          </div>
+        </div>
+      </td>
+
+      <td style={styles.td}>{fmtInt(row.impressions)}</td>
+      <td style={styles.td}>{fmtInt(row.reach)}</td>
+      <td style={styles.td}>{num(row.frequency).toFixed(2)}</td>
+      <td style={styles.td}>{fmtEuro2(row.cpm)}</td>
+      <td style={styles.td}>{fmtPct(row.ctr_link)}</td>
+      <td style={styles.td}>{fmtEuro2(row.cpc_link)}</td>
+      <td style={styles.td}>{fmtInt(row.link_clicks)}</td>
+      <td style={styles.td}>{fmtEuro(row.spend)}</td>
+      <td style={styles.td}>{fmtEuro2(row.cost_per_result)}</td>
+      <td style={styles.td}>{fmtX(row.roas)}</td>
+      <td style={styles.td}>{fmtInt(row.purchases)}</td>
+      <td style={styles.td}>{fmtPct(row.conversione_acquisti)}</td>
+      <td style={styles.td}>{fmtPct(row.cro_campagna)}</td>
+      <td style={styles.td}>{fmtEuro2(row.aov_campagna)}</td>
+    </tr>
   )
 }
 
 export default function MetaPage() {
   const [preset, setPreset] = useState('last_28d')
-  const [since, setSince] = useState('')
-  const [until, setUntil] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
   const [openCampaigns, setOpenCampaigns] = useState({})
   const [openAdsets, setOpenAdsets] = useState({})
+  const [children, setChildren] = useState({})
+  const [loadingNode, setLoadingNode] = useState({})
 
-  async function load(nextPreset = preset) {
+  async function loadMain(nextPreset = preset) {
     setLoading(true)
     setError('')
+    setOpenCampaigns({})
+    setOpenAdsets({})
+    setChildren({})
 
     try {
-      const params = new URLSearchParams()
-      params.set('preset', nextPreset)
-
-      if (nextPreset === 'custom' && since && until) {
-        params.set('since', since)
-        params.set('until', until)
-      }
-
-      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
+      const res = await fetch(`/api/meta-detail?preset=${nextPreset}`, {
         cache: 'no-store',
       })
 
       const json = await res.json()
 
       if (!json.ok) {
-        setError(json.error || 'Errore caricamento Meta.')
+        throw new Error(json.error || 'Errore caricamento Meta')
       }
 
       setData(json)
     } catch (e) {
-      setError(e?.message || 'Errore caricamento Meta.')
+      setError(e.message)
+      setData(null)
     } finally {
       setLoading(false)
     }
   }
 
+  async function loadAdsets(campaign) {
+    const key = `campaign:${campaign.id}`
+
+    if (children[key]) {
+      setOpenCampaigns(prev => ({ ...prev, [campaign.id]: !prev[campaign.id] }))
+      return
+    }
+
+    setLoadingNode(prev => ({ ...prev, [key]: true }))
+
+    try {
+      const res = await fetch(
+        `/api/meta-detail?preset=${preset}&level=adsets&campaign_id=${campaign.id}`,
+        { cache: 'no-store' }
+      )
+
+      const json = await res.json()
+
+      if (!json.ok) {
+        throw new Error(json.error || 'Errore caricamento ad set')
+      }
+
+      setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
+      setOpenCampaigns(prev => ({ ...prev, [campaign.id]: true }))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoadingNode(prev => ({ ...prev, [key]: false }))
+    }
+  }
+
+  async function loadAds(adset) {
+    const key = `adset:${adset.id}`
+
+    if (children[key]) {
+      setOpenAdsets(prev => ({ ...prev, [adset.id]: !prev[adset.id] }))
+      return
+    }
+
+    setLoadingNode(prev => ({ ...prev, [key]: true }))
+
+    try {
+      const res = await fetch(
+        `/api/meta-detail?preset=${preset}&level=ads&adset_id=${adset.id}`,
+        { cache: 'no-store' }
+      )
+
+      const json = await res.json()
+
+      if (!json.ok) {
+        throw new Error(json.error || 'Errore caricamento ads')
+      }
+
+      setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
+      setOpenAdsets(prev => ({ ...prev, [adset.id]: true }))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoadingNode(prev => ({ ...prev, [key]: false }))
+    }
+  }
+
   useEffect(() => {
-    load(preset)
+    loadMain('last_28d')
   }, [])
 
   const summary = data?.summary || {}
+  const rows = data?.rows || []
   const comparison = data?.comparison || {}
-  const hierarchy = Array.isArray(data?.hierarchy) ? data.hierarchy : []
 
-  const rows = useMemo(() => {
+  const renderedRows = useMemo(() => {
     const out = []
 
-    for (const campaign of hierarchy) {
+    for (const campaign of rows) {
       out.push({
-        ...campaign,
-        type: 'campaign',
+        row: campaign,
         depth: 0,
       })
 
+      const campaignKey = `campaign:${campaign.id}`
+
       if (openCampaigns[campaign.id]) {
-        for (const adset of campaign.adsets || []) {
+        const adsets = children[campaignKey] || []
+
+        for (const adset of adsets) {
           out.push({
-            ...adset,
-            type: 'adset',
+            row: adset,
             depth: 1,
-            parentCampaignId: campaign.id,
           })
 
+          const adsetKey = `adset:${adset.id}`
+
           if (openAdsets[adset.id]) {
-            for (const ad of adset.ads || []) {
+            const ads = children[adsetKey] || []
+
+            for (const ad of ads) {
               out.push({
-                ...ad,
-                type: 'ad',
+                row: ad,
                 depth: 2,
-                parentCampaignId: campaign.id,
-                parentAdsetId: adset.id,
               })
             }
           }
@@ -263,387 +298,320 @@ export default function MetaPage() {
     }
 
     return out
-  }, [hierarchy, openCampaigns, openAdsets])
-
-  function toggleCampaign(id) {
-    setOpenCampaigns(prev => ({
-      ...prev,
-      [id]: !prev[id],
-    }))
-  }
-
-  function toggleAdset(id) {
-    setOpenAdsets(prev => ({
-      ...prev,
-      [id]: !prev[id],
-    }))
-  }
+  }, [rows, openCampaigns, openAdsets, children])
 
   return (
-    <main style={{
-      background: BG,
-      minHeight: '100vh',
-      color: TEXT,
-      padding: '32px 28px 80px',
-      fontFamily: 'Inter, Arial, sans-serif',
-    }}>
-      <div style={{ maxWidth: 1500, margin: '0 auto' }}>
-        <header style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 28,
-        }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>
-              Meta Detail
-            </h1>
-            <p style={{ color: MUTED, marginTop: 10, fontSize: 13 }}>
-              Analisi gerarchica campagne · ad set · ads attive
-            </p>
-          </div>
+    <main style={styles.page}>
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.title}>Meta Detail</h1>
+          <p style={styles.subtitle}>Analisi gerarchica campagne · ad set · ads attive</p>
+        </div>
 
-          <div style={{
-            color: error ? RED : GREEN,
-            fontWeight: 800,
-            fontSize: 13,
-          }}>
-            {loading ? 'Caricamento…' : error ? 'Errore dati' : 'Dati caricati'}
-          </div>
-        </header>
+        <div style={{ color: data ? '#22c55e' : '#748199', fontWeight: 800, fontSize: 12 }}>
+          {loading ? 'Caricamento…' : data ? 'Dati caricati' : '—'}
+        </div>
+      </div>
 
-        <section style={{
-          background: CARD,
-          border: `1px solid ${BORDER}`,
-          borderRadius: 10,
-          padding: 18,
-          marginBottom: 18,
-        }}>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 10,
-            alignItems: 'center',
-          }}>
-            {PRESETS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  setPreset(p.id)
-                  load(p.id)
-                }}
-                style={{
-                  border: `1px solid ${p.id === preset ? GREEN : BORDER}`,
-                  color: p.id === preset ? GREEN : MUTED,
-                  background: p.id === preset ? 'rgba(34,197,94,0.08)' : '#081020',
-                  borderRadius: 999,
-                  padding: '10px 16px',
-                  cursor: 'pointer',
-                  fontWeight: 800,
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-
-            {preset === 'custom' && (
-              <>
-                <input
-                  type="date"
-                  value={since}
-                  onChange={e => setSince(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  type="date"
-                  value={until}
-                  onChange={e => setUntil(e.target.value)}
-                  style={inputStyle}
-                />
-                <button
-                  onClick={() => load('custom')}
-                  style={{
-                    border: 'none',
-                    background: GREEN,
-                    color: '#00110a',
-                    borderRadius: 999,
-                    padding: '10px 16px',
-                    cursor: 'pointer',
-                    fontWeight: 900,
-                  }}
-                >
-                  Applica
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={() => load(preset)}
-              style={{
-                marginLeft: 'auto',
-                border: 'none',
-                background: GREEN,
-                color: '#00110a',
-                borderRadius: 999,
-                padding: '10px 18px',
-                cursor: 'pointer',
-                fontWeight: 900,
+      <section style={styles.panel}>
+        <div style={styles.presetWrap}>
+          {PRESETS.map(p => (
+            <PresetButton
+              key={p.id}
+              active={preset === p.id}
+              onClick={() => {
+                setPreset(p.id)
+                loadMain(p.id)
               }}
             >
-              ↻ Aggiorna
-            </button>
+              {p.label}
+            </PresetButton>
+          ))}
+
+          <button
+            onClick={() => loadMain(preset)}
+            style={styles.refresh}
+          >
+            ↻ Aggiorna
+          </button>
+        </div>
+      </section>
+
+      {error && (
+        <div style={styles.error}>
+          {error}
+        </div>
+      )}
+
+      <section style={styles.kpiGrid}>
+        <MetricCard label="Importo speso" value={fmtEuro(summary.spend)} />
+        <MetricCard label="ROAS" value={fmtX(summary.roas)} />
+        <MetricCard label="Costo risultato" value={fmtEuro2(summary.cost_per_result)} />
+        <MetricCard label="Acquisti" value={fmtInt(summary.purchases)} />
+        <MetricCard label="CTR link" value={fmtPct(summary.ctr_link)} />
+      </section>
+
+      <section style={styles.twoCols}>
+        <div style={styles.box}>
+          <h2 style={styles.boxTitle}>Confronto · periodo vs precedente</h2>
+          <p style={styles.muted}>
+            Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
+          </p>
+
+          <div style={styles.compGrid}>
+            <MetricCard label="Spesa" value={<span style={{ color: deltaColor(comparison.spend) }}>{fmtDelta(comparison.spend)}</span>} />
+            <MetricCard label="ROAS" value={<span style={{ color: deltaColor(comparison.roas) }}>{fmtDelta(comparison.roas)}</span>} />
+            <MetricCard label="CPA" value={<span style={{ color: deltaColor(comparison.cpa) }}>{fmtDelta(comparison.cpa)}</span>} />
+            <MetricCard label="CTR" value={<span style={{ color: deltaColor(comparison.ctr) }}>{fmtDelta(comparison.ctr)}</span>} />
           </div>
-        </section>
+        </div>
 
-        {error && (
-          <section style={{
-            background: 'rgba(239,68,68,0.08)',
-            border: `1px solid ${RED}`,
-            color: RED,
-            borderRadius: 10,
-            padding: 16,
-            marginBottom: 18,
-            fontWeight: 700,
-          }}>
-            {error}
-          </section>
-        )}
+        <div style={styles.box}>
+          <h2 style={styles.boxTitle}>Insight automatico</h2>
+          <p style={styles.paragraph}>
+            {data?.insight || '—'}
+          </p>
+        </div>
+      </section>
 
-        <section style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: 12,
-          marginBottom: 18,
-        }}>
-          <MetricCard label="Importo speso" value={money(summary.spend)} />
-          <MetricCard label="ROAS" value={ratio(summary.roas)} />
-          <MetricCard label="Costo risultato" value={money(summary.cost_per_result, 2)} />
-          <MetricCard label="Acquisti" value={int(summary.purchases)} />
-          <MetricCard label="CTR link" value={pct(summary.ctr_link)} />
-        </section>
+      <section style={styles.box}>
+        <h2 style={styles.boxTitle}>To-do consigliate</h2>
 
-        <section style={{
-          display: 'grid',
-          gridTemplateColumns: '1.1fr 1fr',
-          gap: 18,
-          marginBottom: 18,
-        }}>
-          <div style={panelStyle}>
-            <h2 style={titleStyle}>Confronto · periodo vs precedente</h2>
-            <p style={{ color: MUTED, fontSize: 13 }}>
-              Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
-            </p>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 10,
-              marginTop: 16,
-            }}>
-              <DeltaBox label="Spesa" value={comparison.spend} inverse />
-              <DeltaBox label="ROAS" value={comparison.roas} />
-              <DeltaBox label="CPA" value={comparison.cpa} inverse />
-              <DeltaBox label="CTR" value={comparison.ctr} />
-            </div>
-          </div>
-
-          <div style={panelStyle}>
-            <h2 style={titleStyle}>Insight automatico</h2>
-            <p style={{ lineHeight: 1.65, color: '#d7deea', fontSize: 14 }}>
-              {data?.insight || '—'}
-            </p>
-          </div>
-        </section>
-
-        <section style={panelStyle}>
-          <h2 style={titleStyle}>To-do consigliate</h2>
+        {(data?.todos || []).length > 0 ? (
           <div style={{ display: 'grid', gap: 10 }}>
-            {(data?.todos || []).map((todo, i) => (
-              <div
-                key={`${todo}-${i}`}
-                style={{
-                  border: `1px solid ${BORDER}`,
-                  background: '#081020',
-                  borderRadius: 8,
-                  padding: '13px 14px',
-                  color: '#d7deea',
-                  lineHeight: 1.5,
-                }}
-              >
-                <strong style={{ color: GREEN }}>#{i + 1}</strong> {todo}
+            {data.todos.map((todo, i) => (
+              <div key={i} style={styles.todo}>
+                <strong style={{ color: '#22c55e' }}>#{i + 1}</strong> {todo}
               </div>
             ))}
           </div>
-        </section>
+        ) : (
+          <p style={styles.paragraph}>—</p>
+        )}
+      </section>
 
-        <section style={{
-          ...panelStyle,
-          marginTop: 18,
-          overflow: 'hidden',
-        }}>
-          <h2 style={titleStyle}>Gerarchia Meta · campagne / ad set / ads</h2>
-          <p style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
-            Mostra solo campagne attive. Clicca su una campagna per aprire gli ad set attivi. Clicca su un ad set per aprire le ads attive.
-          </p>
+      <section style={styles.box}>
+        <h2 style={styles.boxTitle}>Gerarchia Meta · campagne / ad set / ads</h2>
+        <p style={styles.muted}>
+          Mostra solo campagne attive. Clicca una campagna per aprire gli ad set attivi. Clicca un ad set per aprire le ads attive.
+        </p>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%',
-              minWidth: 1800,
-              borderCollapse: 'collapse',
-            }}>
-              <thead>
-                <tr>
-                  {[
-                    'Livello',
-                    'Anteprima',
-                    'Impression',
-                    'Copertura',
-                    'Freq.',
-                    'CPM',
-                    'CTR link',
-                    'CPC link',
-                    'Click link',
-                    'Speso',
-                    'Costo risultato',
-                    'ROAS',
-                    'Acquisti',
-                    'Conv. acquisti',
-                    'CRO campagna',
-                    'AOV campagna',
-                  ].map(h => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: 'left',
-                        padding: '12px 14px',
-                        color: TEXT,
-                        fontSize: 11,
-                        letterSpacing: '0.15em',
-                        textTransform: 'uppercase',
-                        borderBottom: `1px solid ${BORDER}`,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Livello</th>
+                <th style={styles.th}>Impression</th>
+                <th style={styles.th}>Copertura</th>
+                <th style={styles.th}>Freq.</th>
+                <th style={styles.th}>CPM</th>
+                <th style={styles.th}>CTR link</th>
+                <th style={styles.th}>CPC link</th>
+                <th style={styles.th}>Click link</th>
+                <th style={styles.th}>Speso</th>
+                <th style={styles.th}>Costo risultato</th>
+                <th style={styles.th}>ROAS</th>
+                <th style={styles.th}>Acquisti</th>
+                <th style={styles.th}>Conv. acquisti</th>
+                <th style={styles.th}>CRO campagna</th>
+                <th style={styles.th}>AOV campagna</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {rows.length === 0 && (
-                  <tr>
-                    <Cell>
-                      Nessuna campagna attiva disponibile nel periodo selezionato.
-                    </Cell>
-                  </tr>
-                )}
-
-                {rows.map(row => {
-                  const isCampaign = row.type === 'campaign'
-                  const isAdset = row.type === 'adset'
-                  const isAd = row.type === 'ad'
-
-                  const isOpenCampaign = openCampaigns[row.id]
-                  const isOpenAdset = openAdsets[row.id]
+            <tbody>
+              {renderedRows.length > 0 ? (
+                renderedRows.map(({ row, depth }) => {
+                  const campaignKey = `campaign:${row.id}`
+                  const adsetKey = `adset:${row.id}`
 
                   return (
-                    <tr
-                      key={`${row.type}-${row.id}`}
-                      style={{
-                        background:
-                          isCampaign ? '#0c1830' :
-                          isAdset ? '#081426' :
-                          '#07101e',
+                    <Row
+                      key={`${row.level}:${row.id}`}
+                      row={row}
+                      depth={depth}
+                      open={row.level === 'campaign' ? openCampaigns[row.id] : openAdsets[row.id]}
+                      loading={row.level === 'campaign' ? loadingNode[campaignKey] : loadingNode[adsetKey]}
+                      onClick={() => {
+                        if (row.level === 'campaign') loadAdsets(row)
+                        if (row.level === 'adset') loadAds(row)
                       }}
-                    >
-                      <Cell bold green={isCampaign}>
-                        <button
-                          onClick={() => {
-                            if (isCampaign) toggleCampaign(row.id)
-                            if (isAdset) toggleAdset(row.id)
-                          }}
-                          disabled={isAd}
-                          style={{
-                            border: 'none',
-                            background: 'transparent',
-                            color: isCampaign ? GREEN : isAdset ? TEXT : MUTED,
-                            fontWeight: 900,
-                            cursor: isAd ? 'default' : 'pointer',
-                            padding: 0,
-                            textAlign: 'left',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <span style={{ width: 18 }}>
-                            {isCampaign ? (isOpenCampaign ? '▾' : '▸') : ''}
-                            {isAdset ? (isOpenAdset ? '▾' : '▸') : ''}
-                            {isAd ? '•' : ''}
-                          </span>
-
-                          <span style={{ paddingLeft: row.depth * 22 }}>
-                            {isCampaign && `Campagna · ${row.name}`}
-                            {isAdset && `Ad set · ${row.name}`}
-                            {isAd && `Ad · ${row.name}`}
-                          </span>
-                        </button>
-                      </Cell>
-
-                      <Cell>
-                        {isAd ? <Thumb src={row.thumbnail_url} name={row.name} /> : '—'}
-                      </Cell>
-
-                      <Cell>{int(metric(row, 'impressions'))}</Cell>
-                      <Cell>{int(metric(row, 'reach'))}</Cell>
-                      <Cell>{n(metric(row, 'frequency')).toFixed(2)}</Cell>
-                      <Cell>{money(metric(row, 'cpm'), 2)}</Cell>
-                      <Cell>{pct(metric(row, 'ctr_link'))}</Cell>
-                      <Cell>{money(metric(row, 'cpc_link'), 2)}</Cell>
-                      <Cell>{int(metric(row, 'link_clicks'))}</Cell>
-                      <Cell blue>{money(metric(row, 'spend'))}</Cell>
-                      <Cell>{money(metric(row, 'cost_per_result'), 2)}</Cell>
-                      <Cell>{ratio(metric(row, 'roas'))}</Cell>
-                      <Cell>{int(metric(row, 'purchases'))}</Cell>
-                      <Cell>{pct(metric(row, 'conversione_acquisti'))}</Cell>
-                      <Cell>{pct(metric(row, 'cro_campagna'))}</Cell>
-                      <Cell>{money(metric(row, 'aov_campagna'), 2)}</Cell>
-                    </tr>
+                    />
                   )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+                })
+              ) : (
+                <tr>
+                  <td style={styles.td} colSpan={15}>
+                    {loading ? 'Caricamento dati Meta…' : 'Nessuna campagna attiva disponibile nel periodo selezionato.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   )
 }
 
-const inputStyle = {
-  background: '#081020',
-  color: TEXT,
-  border: `1px solid ${BORDER}`,
-  borderRadius: 999,
-  padding: '10px 14px',
-  fontWeight: 700,
-}
-
-const panelStyle = {
-  background: CARD,
-  border: `1px solid ${BORDER}`,
-  borderRadius: 10,
-  padding: 20,
-  marginBottom: 18,
-}
-
-const titleStyle = {
-  margin: '0 0 14px',
-  color: TEXT,
-  fontSize: 14,
-  fontWeight: 900,
-  letterSpacing: '0.18em',
-  textTransform: 'uppercase',
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#030817',
+    color: '#eef2ff',
+    padding: '32px 28px',
+    fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  },
+  header: {
+    maxWidth: 1680,
+    margin: '0 auto 28px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  title: {
+    margin: 0,
+    fontSize: 28,
+    fontWeight: 900,
+    letterSpacing: '-0.04em',
+  },
+  subtitle: {
+    margin: '10px 0 0',
+    color: '#748199',
+    fontSize: 14,
+  },
+  panel: {
+    maxWidth: 1680,
+    margin: '0 auto 22px',
+    background: '#081124',
+    border: '1px solid #203453',
+    borderRadius: 14,
+    padding: 20,
+  },
+  presetWrap: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
+    alignItems: 'center',
+  },
+  preset: {
+    padding: '10px 16px',
+    borderRadius: 999,
+    border: '1px solid #203453',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  refresh: {
+    marginLeft: 'auto',
+    padding: '12px 22px',
+    borderRadius: 999,
+    border: 'none',
+    background: '#22c55e',
+    color: '#03140a',
+    fontWeight: 900,
+    cursor: 'pointer',
+  },
+  error: {
+    maxWidth: 1680,
+    margin: '0 auto 22px',
+    padding: 18,
+    borderRadius: 10,
+    border: '1px solid #ef4444',
+    color: '#ff4d4d',
+    background: '#220811',
+    fontWeight: 800,
+  },
+  kpiGrid: {
+    maxWidth: 1680,
+    margin: '0 auto 22px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+    gap: 14,
+  },
+  card: {
+    background: '#081124',
+    border: '1px solid #203453',
+    borderRadius: 12,
+    padding: 20,
+    minHeight: 88,
+  },
+  kpiLabel: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    color: '#748199',
+    fontWeight: 900,
+    marginBottom: 16,
+  },
+  kpiValue: {
+    fontSize: 28,
+    fontWeight: 900,
+    fontFamily: 'Georgia, serif',
+  },
+  twoCols: {
+    maxWidth: 1680,
+    margin: '0 auto 22px',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 18,
+  },
+  box: {
+    maxWidth: 1680,
+    margin: '0 auto 22px',
+    background: '#081124',
+    border: '1px solid #203453',
+    borderRadius: 14,
+    padding: 22,
+  },
+  boxTitle: {
+    margin: '0 0 18px',
+    fontSize: 14,
+    textTransform: 'uppercase',
+    letterSpacing: '0.22em',
+    fontWeight: 900,
+  },
+  muted: {
+    color: '#748199',
+    fontSize: 13,
+    marginBottom: 18,
+  },
+  paragraph: {
+    color: '#dbe4f0',
+    lineHeight: 1.65,
+    fontSize: 15,
+  },
+  compGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    gap: 12,
+  },
+  todo: {
+    padding: 14,
+    border: '1px solid #203453',
+    borderRadius: 10,
+    background: '#071024',
+    color: '#dbe4f0',
+    lineHeight: 1.5,
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    minWidth: 1700,
+  },
+  th: {
+    textAlign: 'left',
+    padding: '14px 14px',
+    borderBottom: '1px solid #203453',
+    color: '#ffffff',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    whiteSpace: 'nowrap',
+  },
+  td: {
+    padding: '14px 14px',
+    borderBottom: '1px solid #12213a',
+    color: '#eef2ff',
+    fontSize: 14,
+    whiteSpace: 'nowrap',
+  },
 }

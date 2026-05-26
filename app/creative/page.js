@@ -1,59 +1,93 @@
-
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 
 const PRESETS = [
-  { id: 'today', label: 'Oggi' },
-  { id: 'yesterday', label: 'Ieri' },
-  { id: 'last_7d', label: 'Ultimi 7g' },
-  { id: 'last_14d', label: 'Ultimi 14g' },
-  { id: 'last_28d', label: 'Ultimi 28g' },
-  { id: 'this_month', label: 'Mese corrente' },
-  { id: 'last_month', label: 'Mese scorso' },
+  { key: 'today', label: 'Oggi' },
+  { key: 'yesterday', label: 'Ieri' },
+  { key: 'last_7d', label: 'Ultimi 7g' },
+  { key: 'last_14d', label: 'Ultimi 14g' },
+  { key: 'last_28d', label: 'Ultimi 28g' },
+  { key: 'this_month', label: 'Mese corrente' },
+  { key: 'last_month', label: 'Mese scorso' },
 ]
 
-const fmtEuro = n => {
-  const v = Number(n || 0)
-  if (!Number.isFinite(v) || v === 0) return '€0'
-  return `€${Math.round(v).toLocaleString('it-IT')}`
+const QUICK_FILTERS = [
+  { key: 'all', label: 'Tutte' },
+  { key: 'top', label: 'Top Performers' },
+  { key: 'efficient', label: 'Efficient Spenders' },
+  { key: 'volume', label: 'High Volume' },
+  { key: 'winners', label: 'Winners 4x+' },
+  { key: 'ctr', label: 'Link CTR Champions' },
+]
+
+function n(v) {
+  const x = Number(v)
+  return Number.isFinite(x) ? x : 0
 }
 
-const fmtPct = n => {
-  const v = Number(n || 0)
-  if (!Number.isFinite(v) || v === 0) return '0,00%'
-  return `${v.toFixed(2).replace('.', ',')}%`
+function fmtInt(v) {
+  return Math.round(n(v)).toLocaleString('it-IT')
 }
 
-const fmtRoas = n => {
-  const v = Number(n || 0)
-  if (!Number.isFinite(v) || v === 0) return '0,00x'
-  return `${v.toFixed(2).replace('.', ',')}x`
+function fmtEuro(v) {
+  return `€${Math.round(n(v)).toLocaleString('it-IT')}`
 }
 
-const fmtNum = n => {
-  const v = Number(n || 0)
-  if (!Number.isFinite(v) || v === 0) return '0'
-  return Math.round(v).toLocaleString('it-IT')
+function fmtEuroDec(v) {
+  return `€${n(v).toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+function fmtPct(v) {
+  return `${n(v).toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`
+}
+
+function fmtRoas(v) {
+  return `${n(v).toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}x`
+}
+
+function getThumb(row) {
+  return (
+    row.thumbnail_url ||
+    row.thumbnail ||
+    row.image_url ||
+    row.creative_thumbnail_url ||
+    row.preview_url ||
+    ''
+  )
+}
+
+function getName(row) {
+  return row.ad_name || row.name || row.creative_name || row.ad_id || 'Creative senza nome'
 }
 
 export default function CreativePage() {
   const [preset, setPreset] = useState('last_28d')
   const [rows, setRows] = useState([])
+  const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('roas')
   const [sortDir, setSortDir] = useState('desc')
+  const [quick, setQuick] = useState('all')
   const [activeOnly, setActiveOnly] = useState(true)
-  const [quickFilter, setQuickFilter] = useState('all')
 
   async function loadData() {
     setLoading(true)
     setError('')
 
     try {
-      const res = await fetch(`/api/meta-detail?preset=${preset}&level=ads`, {
+      const res = await fetch(`/api/creative?preset=${preset}`, {
         cache: 'no-store',
       })
 
@@ -63,31 +97,12 @@ export default function CreativePage() {
         throw new Error(json.error || 'Errore caricamento creative')
       }
 
-      const rawRows = Array.isArray(json.rows) ? json.rows : []
-
-      const ads = rawRows
-        .filter(r => r.level === 'ad' || r.ad_id || r.ad_name)
-        .map(r => ({
-          id: r.ad_id || r.id || `${r.campaign_id || ''}-${r.adset_id || ''}-${r.name || r.ad_name || Math.random()}`,
-          name: r.ad_name || r.name || 'Creative senza nome',
-          campaign_name: r.campaign_name || 'Campagna non disponibile',
-          adset_name: r.adset_name || 'Ad set non disponibile',
-          status: r.status || r.effective_status || '',
-          thumbnail_url: r.thumbnail_url || r.image_url || r.creative_thumbnail_url || '',
-          ctr_link: Number(r.ctr_link || 0),
-          spend: Number(r.spend || 0),
-          roas: Number(r.roas || 0),
-          purchases: Number(r.purchases || 0),
-          impressions: Number(r.impressions || 0),
-          link_clicks: Number(r.link_clicks || 0),
-          cpc_link: Number(r.cpc_link || 0),
-          cost_per_result: Number(r.cost_per_result || 0),
-        }))
-
-      setRows(ads)
+      setRows(Array.isArray(json.rows) ? json.rows : [])
+      setSummary(json.summary || null)
     } catch (e) {
-      setError(e.message || 'Errore caricamento creative')
       setRows([])
+      setSummary(null)
+      setError(e.message || 'Errore sconosciuto')
     } finally {
       setLoading(false)
     }
@@ -97,100 +112,117 @@ export default function CreativePage() {
     loadData()
   }, [preset])
 
-  const stats = useMemo(() => {
-    const spend = rows.reduce((s, r) => s + Number(r.spend || 0), 0)
-    const purchases = rows.reduce((s, r) => s + Number(r.purchases || 0), 0)
-    const revenue = rows.reduce((s, r) => s + Number(r.purchase_value || 0), 0)
-    const clicks = rows.reduce((s, r) => s + Number(r.link_clicks || 0), 0)
-    const impressions = rows.reduce((s, r) => s + Number(r.impressions || 0), 0)
-
-    return {
-      totalAds: rows.length,
-      spend,
-      purchases,
-      avgCtr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-      avgRoas: spend > 0 ? revenue / spend : rows.length ? rows.reduce((s, r) => s + Number(r.roas || 0), 0) / rows.length : 0,
-    }
-  }, [rows])
-
   const filteredRows = useMemo(() => {
-    let data = [...rows]
+    let out = [...rows]
 
     if (activeOnly) {
-      data = data.filter(r => {
-        const st = String(r.status || '').toUpperCase()
-        return !st || st === 'ACTIVE'
+      out = out.filter((r) => {
+        const status = String(r.status || r.effective_status || '').toUpperCase()
+        return !status || status === 'ACTIVE'
       })
     }
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      data = data.filter(r =>
-        String(r.name || '').toLowerCase().includes(q) ||
-        String(r.campaign_name || '').toLowerCase().includes(q) ||
-        String(r.adset_name || '').toLowerCase().includes(q)
-      )
+    const q = search.trim().toLowerCase()
+
+    if (q) {
+      out = out.filter((r) => {
+        const haystack = [
+          r.ad_name,
+          r.name,
+          r.creative_name,
+          r.campaign_name,
+          r.adset_name,
+          r.ad_id,
+          r.campaign_id,
+          r.adset_id,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        return haystack.includes(q)
+      })
     }
 
-    if (quickFilter === 'top') {
-      data = data.filter(r => r.roas >= 4 || r.purchases >= 10)
+    if (quick === 'top') {
+      out = out.filter((r) => n(r.roas) >= 3)
     }
 
-    if (quickFilter === 'efficient') {
-      data = data.filter(r => r.spend > 0 && r.roas >= 2)
+    if (quick === 'efficient') {
+      out = out.filter((r) => n(r.spend) > 0 && n(r.cost_per_result) > 0 && n(r.roas) >= 2)
     }
 
-    if (quickFilter === 'volume') {
-      data = data.filter(r => r.spend >= 100 || r.link_clicks >= 1000)
+    if (quick === 'volume') {
+      out = out.filter((r) => n(r.spend) >= 100 || n(r.link_clicks) >= 1000)
     }
 
-    if (quickFilter === 'winners') {
-      data = data.filter(r => r.roas >= 4)
+    if (quick === 'winners') {
+      out = out.filter((r) => n(r.roas) >= 4)
     }
 
-    if (quickFilter === 'ctr') {
-      data = data.filter(r => r.ctr_link >= 1)
+    if (quick === 'ctr') {
+      out = out.filter((r) => n(r.ctr_link) >= 1)
     }
 
-    data.sort((a, b) => {
-      const av = Number(a[sortBy] || 0)
-      const bv = Number(b[sortBy] || 0)
+    out.sort((a, b) => {
+      const av = n(a[sortBy])
+      const bv = n(b[sortBy])
       return sortDir === 'desc' ? bv - av : av - bv
     })
 
-    return data
-  }, [rows, search, sortBy, sortDir, activeOnly, quickFilter])
+    return out
+  }, [rows, search, sortBy, sortDir, quick, activeOnly])
+
+  const computedSummary = useMemo(() => {
+    const totalSpend = filteredRows.reduce((s, r) => s + n(r.spend), 0)
+    const totalRevenue = filteredRows.reduce((s, r) => s + n(r.purchase_value), 0)
+    const totalOrders = filteredRows.reduce((s, r) => s + n(r.purchases), 0)
+    const totalClicks = filteredRows.reduce((s, r) => s + n(r.link_clicks), 0)
+    const totalImpressions = filteredRows.reduce((s, r) => s + n(r.impressions), 0)
+
+    return {
+      count: filteredRows.length,
+      spend: totalSpend,
+      roas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+      ctr:
+        totalImpressions > 0
+          ? (totalClicks / totalImpressions) * 100
+          : 0,
+      orders: totalOrders,
+    }
+  }, [filteredRows])
 
   return (
-    <main className="min-h-screen bg-[#050b18] text-white px-6 py-8">
+    <main className="min-h-screen bg-[#050a14] text-white px-6 py-10">
       <div className="max-w-[1680px] mx-auto">
-        <div className="flex items-start justify-between gap-6 mb-8">
+        <header className="flex items-start justify-between gap-6 mb-9">
           <div>
-            <h1 className="text-3xl font-black tracking-tight">Creative Library</h1>
-            <p className="text-slate-500 mt-2">
+            <h1 className="text-3xl font-bold tracking-tight">Creative Library</h1>
+            <p className="mt-3 text-slate-400">
               Solo creative Meta · CTR, spesa, ROAS e ordini
             </p>
           </div>
 
           <button
             onClick={loadData}
-            className="rounded-full bg-emerald-500 text-black font-black px-6 py-3 hover:bg-emerald-400 transition"
+            className="rounded-full bg-emerald-500 text-black font-bold px-8 py-4 hover:bg-emerald-400 transition"
           >
             ↻ Aggiorna
           </button>
-        </div>
+        </header>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1222] p-5 mb-6">
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 mb-6">
           <div className="flex flex-wrap gap-3">
-            {PRESETS.map(p => (
+            {PRESETS.map((p) => (
               <button
-                key={p.id}
-                onClick={() => setPreset(p.id)}
-                className={
-                  preset === p.id
-                    ? 'rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400 px-4 py-2 font-bold'
-                    : 'rounded-full border border-slate-700 text-slate-400 px-4 py-2 font-bold hover:text-white'
-                }
+                key={p.key}
+                onClick={() => setPreset(p.key)}
+                className={[
+                  'px-5 py-3 rounded-full border font-semibold transition',
+                  preset === p.key
+                    ? 'border-emerald-400 text-emerald-400 bg-emerald-400/10'
+                    : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-500',
+                ].join(' ')}
               >
                 {p.label}
               </button>
@@ -199,129 +231,98 @@ export default function CreativePage() {
         </section>
 
         {error ? (
-          <div className="rounded-xl border border-red-500 bg-red-500/10 text-red-400 p-4 mb-6 font-bold">
+          <div className="mb-6 rounded-xl border border-red-500 bg-red-500/10 text-red-400 px-5 py-4 font-bold">
             {error}
           </div>
         ) : null}
 
         <section className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <Card label="Creative" value={fmtNum(stats.totalAds)} />
-          <Card label="Spesa" value={fmtEuro(stats.spend)} />
-          <Card label="ROAS medio" value={fmtRoas(stats.avgRoas)} />
-          <Card label="CTR link medio" value={fmtPct(stats.avgCtr)} />
-          <Card label="Ordini" value={fmtNum(stats.purchases)} />
+          <StatCard label="Creative" value={loading ? '—' : fmtInt(computedSummary.count)} />
+          <StatCard label="Spesa" value={loading ? '—' : fmtEuro(computedSummary.spend)} />
+          <StatCard label="ROAS medio" value={loading ? '—' : fmtRoas(computedSummary.roas)} />
+          <StatCard label="CTR link medio" value={loading ? '—' : fmtPct(computedSummary.ctr)} />
+          <StatCard label="Ordini" value={loading ? '—' : fmtInt(computedSummary.orders)} />
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1222] p-5 mb-6">
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 mb-6">
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Cerca creative per nome, campagna o ad set..."
-            className="w-full rounded-xl border border-slate-700 bg-[#111827] px-4 py-3 outline-none text-white placeholder:text-slate-500 mb-4"
+            className="w-full rounded-xl border border-slate-700 bg-[#0f1726] px-5 py-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
           />
 
-          <div className="flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
             <select
               value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-[#111827] px-4 py-3 text-white"
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-xl border border-slate-700 bg-[#0f1726] px-4 py-3 text-white outline-none"
             >
               <option value="roas">Sort: ROAS</option>
-              <option value="ctr_link">Sort: CTR link</option>
               <option value="spend">Sort: Spesa</option>
+              <option value="ctr_link">Sort: CTR Link</option>
               <option value="purchases">Sort: Ordini</option>
               <option value="link_clicks">Sort: Click link</option>
             </select>
 
             <select
               value={sortDir}
-              onChange={e => setSortDir(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-[#111827] px-4 py-3 text-white"
+              onChange={(e) => setSortDir(e.target.value)}
+              className="rounded-xl border border-slate-700 bg-[#0f1726] px-4 py-3 text-white outline-none"
             >
               <option value="desc">High → Low</option>
               <option value="asc">Low → High</option>
             </select>
 
             <button
-              onClick={() => setActiveOnly(v => !v)}
-              className={
+              onClick={() => setActiveOnly((v) => !v)}
+              className={[
+                'rounded-xl border px-5 py-3 font-bold transition',
                 activeOnly
-                  ? 'rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-400 px-4 py-3 font-bold'
-                  : 'rounded-xl border border-slate-700 text-slate-400 px-4 py-3 font-bold'
-              }
+                  ? 'border-emerald-400 text-emerald-400 bg-emerald-400/10'
+                  : 'border-slate-700 text-slate-400',
+              ].join(' ')}
             >
               Active only
             </button>
           </div>
 
           <div className="mt-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+            <div className="text-xs tracking-[0.35em] uppercase text-slate-500 mb-3">
               Quick filters
-            </p>
+            </div>
 
             <div className="flex flex-wrap gap-3">
-              <Quick id="all" label="Tutte" value={quickFilter} setValue={setQuickFilter} />
-              <Quick id="top" label="Top Performers" value={quickFilter} setValue={setQuickFilter} />
-              <Quick id="efficient" label="Efficient Spenders" value={quickFilter} setValue={setQuickFilter} />
-              <Quick id="volume" label="High Volume" value={quickFilter} setValue={setQuickFilter} />
-              <Quick id="winners" label="Winners 4x+" value={quickFilter} setValue={setQuickFilter} />
-              <Quick id="ctr" label="Link CTR Champions" value={quickFilter} setValue={setQuickFilter} />
+              {QUICK_FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setQuick(f.key)}
+                  className={[
+                    'px-5 py-3 rounded-lg border transition',
+                    quick === f.key
+                      ? 'border-emerald-400 text-emerald-400 bg-emerald-400/10'
+                      : 'border-slate-700 text-slate-300 hover:border-slate-500',
+                  ].join(' ')}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
         </section>
 
         {loading ? (
-          <div className="rounded-2xl border border-slate-800 bg-[#0b1222] p-8 text-slate-400">
+          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-slate-400">
             Caricamento creative...
-          </div>
+          </section>
         ) : filteredRows.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-[#0b1222] p-8 text-slate-400">
+          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-slate-400">
             Nessuna creative trovata per i filtri selezionati.
-          </div>
+          </section>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-            {filteredRows.map(ad => (
-              <article
-                key={ad.id}
-                className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0b1222] hover:border-emerald-500/70 transition"
-              >
-                <div className="relative h-64 bg-[#2c2c2c] flex items-center justify-center">
-                  {ad.thumbnail_url ? (
-                    <img
-                      src={ad.thumbnail_url}
-                      alt={ad.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-slate-500 font-black">Ad Image</span>
-                  )}
-
-                  <span className="absolute top-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs font-black">
-                    Meta
-                  </span>
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-black leading-snug line-clamp-2">
-                    {ad.name}
-                  </h3>
-
-                  <p className="text-xs text-slate-500 mt-2 line-clamp-1">
-                    {ad.campaign_name}
-                  </p>
-
-                  <p className="text-xs text-slate-600 mt-1 line-clamp-1">
-                    {ad.adset_name}
-                  </p>
-
-                  <div className="grid grid-cols-4 gap-3 mt-5 text-center">
-                    <Metric label="CTR" value={fmtPct(ad.ctr_link)} green />
-                    <Metric label="ROAS" value={fmtRoas(ad.roas)} purple />
-                    <Metric label="SPEND" value={fmtEuro(ad.spend)} red />
-                    <Metric label="ORDINI" value={fmtNum(ad.purchases)} />
-                  </div>
-                </div>
-              </article>
+            {filteredRows.map((row, index) => (
+              <CreativeCard key={row.ad_id || row.id || index} row={row} />
             ))}
           </section>
         )}
@@ -330,46 +331,97 @@ export default function CreativePage() {
   )
 }
 
-function Card({ label, value }) {
+function StatCard({ label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0b1222] p-5">
-      <p className="text-xs uppercase tracking-[0.25em] text-slate-500 font-black">
+    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5">
+      <div className="text-xs uppercase tracking-[0.35em] text-slate-500 font-bold">
         {label}
-      </p>
-      <div className="text-3xl font-black mt-4">{value}</div>
+      </div>
+      <div className="mt-5 text-3xl font-black">{value}</div>
     </div>
   )
 }
 
-function Quick({ id, label, value, setValue }) {
+function CreativeCard({ row }) {
+  const thumb = getThumb(row)
+  const name = getName(row)
+
   return (
-    <button
-      onClick={() => setValue(id)}
-      className={
-        value === id
-          ? 'rounded-lg border border-emerald-500 bg-emerald-500/10 text-emerald-400 px-4 py-2 font-bold'
-          : 'rounded-lg border border-slate-700 text-slate-300 px-4 py-2 hover:text-white'
-      }
-    >
-      {label}
-    </button>
+    <article className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0b1220]">
+      <div className="relative aspect-[4/3] bg-[#2b2b2b]">
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold">
+            Ad Image
+          </div>
+        )}
+
+        <div className="absolute top-3 left-3 rounded-full bg-black/80 px-3 py-1 text-xs font-bold">
+          Meta
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-4">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <Metric label="CTR" value={fmtPct(row.ctr_link)} green />
+            <Metric label="ROAS" value={fmtRoas(row.roas)} purple />
+            <Metric label="Spend" value={fmtEuro(row.spend)} red />
+            <Metric label="Ordini" value={fmtInt(row.purchases)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <h3 className="font-bold text-white leading-snug line-clamp-2">
+          {name}
+        </h3>
+
+        <div className="mt-2 text-sm text-slate-500 line-clamp-1">
+          {row.campaign_name || 'Campagna non disponibile'}
+        </div>
+
+        <div className="mt-1 text-sm text-slate-500 line-clamp-1">
+          {row.adset_name || 'Ad set non disponibile'}
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <Small label="Click link" value={fmtInt(row.link_clicks)} />
+          <Small label="CPC link" value={fmtEuroDec(row.cpc_link)} />
+          <Small label="CPA" value={n(row.cost_per_result) ? fmtEuroDec(row.cost_per_result) : '—'} />
+          <Small label="Revenue" value={fmtEuro(row.purchase_value)} />
+        </div>
+      </div>
+    </article>
   )
 }
 
 function Metric({ label, value, green, purple, red }) {
-  let color = 'text-white'
-  if (green) color = 'text-emerald-400'
-  if (purple) color = 'text-violet-400'
-  if (red) color = 'text-rose-400'
+  let cls = 'text-white'
+
+  if (green) cls = 'text-emerald-400'
+  if (purple) cls = 'text-violet-400'
+  if (red) cls = 'text-rose-400'
 
   return (
     <div>
-      <div className="text-[10px] text-slate-500 uppercase tracking-widest">
+      <div className="text-[10px] uppercase text-slate-400">{label}</div>
+      <div className={`font-black ${cls}`}>{value}</div>
+    </div>
+  )
+}
+
+function Small({ label, value }) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-[#070d18] p-3">
+      <div className="text-[10px] uppercase tracking-widest text-slate-500">
         {label}
       </div>
-      <div className={`font-black mt-1 ${color}`}>
-        {value}
-      </div>
+      <div className="mt-1 font-bold">{value}</div>
     </div>
   )
 }

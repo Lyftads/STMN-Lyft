@@ -154,6 +154,78 @@ async function getEmailKPIs(days, metrics) {
   return results
 }
 
+async function getRevenueBreakdown(campaigns, flowsList) {
+  const campaignMap = {}
+  for (const c of campaigns) { campaignMap[c.id] = c.name }
+  const flowMap = {}
+  for (const f of flowsList) { flowMap[f.id] = f.name }
+
+  const placedOrderMetric = 'RnKt7J'
+
+  const [campRes, flowRes] = await Promise.all([
+    klaviyoPost('/campaign-values-reports', {
+      data: {
+        type: 'campaign-values-report',
+        attributes: {
+          statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
+          timeframe: { key: 'last_30_days' },
+          conversion_metric_id: placedOrderMetric,
+        },
+      },
+    }),
+    klaviyoPost('/flow-values-reports', {
+      data: {
+        type: 'flow-values-report',
+        attributes: {
+          statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
+          timeframe: { key: 'last_30_days' },
+          conversion_metric_id: placedOrderMetric,
+        },
+      },
+    }),
+  ])
+
+  const campRows = (campRes?.data?.attributes?.results || []).map(r => {
+    const g = r.groupings || {}
+    const s = r.statistics || {}
+    return {
+      name: campaignMap[g.campaign_id] || g.campaign_id,
+      revenue: s.conversion_value || 0,
+      conversions: s.conversions || 0,
+      recipients: s.recipients || 0,
+      openRate: s.open_rate || 0,
+      clickRate: s.click_rate || 0,
+    }
+  }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+
+  const flowRows = (flowRes?.data?.attributes?.results || []).map(r => {
+    const g = r.groupings || {}
+    const s = r.statistics || {}
+    return {
+      flowId: g.flow_id,
+      name: flowMap[g.flow_id] || g.flow_name || g.flow_id,
+      revenue: s.conversion_value || 0,
+      conversions: s.conversions || 0,
+      recipients: s.recipients || 0,
+      openRate: s.open_rate || 0,
+      clickRate: s.click_rate || 0,
+    }
+  }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+
+  return {
+    campaigns: {
+      rows: campRows,
+      total: campRows.reduce((a, r) => a + r.revenue, 0),
+      totalConversions: campRows.reduce((a, r) => a + r.conversions, 0),
+    },
+    flows: {
+      rows: flowRows,
+      total: flowRows.reduce((a, r) => a + r.revenue, 0),
+      totalConversions: flowRows.reduce((a, r) => a + r.conversions, 0),
+    },
+  }
+}
+
 export async function GET(request) {
   if (!API_KEY) {
     return NextResponse.json({ error: 'KLAVIYO_API_KEY not configured' }, { status: 500 })
@@ -174,7 +246,10 @@ export async function GET(request) {
       getMetrics(),
     ])
 
-    const kpis = await getEmailKPIs(days, metrics)
+    const [kpis, revenueBreakdown] = await Promise.all([
+      getEmailKPIs(days, metrics),
+      getRevenueBreakdown(sent, flows).catch(() => null),
+    ])
 
     return NextResponse.json({
       account,
@@ -184,6 +259,7 @@ export async function GET(request) {
       flows,
       metrics,
       kpis,
+      revenueBreakdown,
     })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })

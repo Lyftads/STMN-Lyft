@@ -166,6 +166,49 @@ export default function KlaviyoTab() {
         <Card title="Revenue" value={fmtE(kpis?.revenue?.total)} badge="€" color="#22c55e" />
       </div>
 
+      {/* Revenue Breakdown */}
+      {data.revenueBreakdown && (
+        <>
+          <SectionTitle color="#22c55e">Revenue Breakdown — Campagne vs Flussi</SectionTitle>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
+            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#ec4899' }}>Campagne</span>
+                <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.campaigns?.total)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.campaigns?.totalConversions)} conversioni</div>
+              {(data.revenueBreakdown.campaigns?.rows || []).map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1e1530', fontSize: 12, gap: 10 }}>
+                  <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
+                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
+                  <span style={{ color: '#9b90aa', fontSize: 10, flexShrink: 0 }}>{fmtN(r.conversions)} conv</span>
+                  <span style={{ color: '#22c55e', fontWeight: 800, flexShrink: 0 }}>{fmtE(r.revenue)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#f6b73c' }}>Flussi</span>
+                <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.flows?.total)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.flows?.totalConversions)} conversioni</div>
+              {(data.revenueBreakdown.flows?.rows || []).map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1e1530', fontSize: 12, gap: 10 }}>
+                  <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
+                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
+                  <span style={{ color: '#9b90aa', fontSize: 10, flexShrink: 0 }}>{fmtN(r.conversions)} conv</span>
+                  <span style={{ color: '#22c55e', fontWeight: 800, flexShrink: 0 }}>{fmtE(r.revenue)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Charts */}
       <SectionTitle color="#8b5cf6">Trend Giornaliero</SectionTitle>
 

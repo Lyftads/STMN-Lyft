@@ -9,7 +9,7 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 
-const START_DATE = '2026-04-01'
+const START_DATE = '2026-01-01'
 const WEEKLY_START_DATE = '2025-12-29'
 
 function shopifyAuth() {
@@ -222,6 +222,11 @@ async function shopifyQL(query) {
 }
 
 // ── Shopify sales per range arbitrario (settimana o mese) ─────
+// IMPORTANTE: `total_sales` di Shopify è la voce "Vendite totali nel tempo".
+// Formula Shopify: gross_sales − discounts − returns + shipping + duties + fees + taxes.
+// Quindi `total_sales` è GIÀ al netto dei resi. Il campo `resi` qui sotto
+// è solo informativo (per sapere quanto è stato rimborsato), NON va sottratto
+// di nuovo da `fatturato`.
 async function fetchShopifySalesRange(start, end) {
   const query = `
     FROM sales
@@ -316,22 +321,16 @@ async function fetchShopifySalesRange(start, end) {
     fatturRC = Math.max(fatturato - fatturNC, 0)
   }
 
-  // Fatturato netto = fatturato − resi (mai negativo)
-  const fatturatoNetto = Math.max(fatturato - resi, 0)
-  const fatturatoNettoNC = Math.max(fatturNC - resiNC, 0)
-  const fatturatoNettoRC = Math.max(fatturRC - resiRC, 0)
-
   return {
+    // `fatturato` = total_sales Shopify ("Vendite totali nel tempo"),
+    // già al netto di resi e sconti.
     fatturato: roundMoney(fatturato),
-    fatturatoNetto: roundMoney(fatturatoNetto),
     resi: roundMoney(resi),
 
     fatturNC: roundMoney(fatturNC),
-    fatturatoNettoNC: roundMoney(fatturatoNettoNC),
     resiNC: roundMoney(resiNC),
 
     fatturRC: roundMoney(fatturRC),
-    fatturatoNettoRC: roundMoney(fatturatoNettoRC),
     resiRC: roundMoney(resiRC),
 
     ordini: cleanCount(ordini),
@@ -407,15 +406,12 @@ async function fetchShopifyWeekly() {
           date: start,
 
           fatturato: sales.fatturato,
-          fatturatoNetto: sales.fatturatoNetto,
           resi: sales.resi,
 
           fatturNC: sales.fatturNC,
-          fatturatoNettoNC: sales.fatturatoNettoNC,
           resiNC: sales.resiNC,
 
           fatturRC: sales.fatturRC,
-          fatturatoNettoRC: sales.fatturatoNettoRC,
           resiRC: sales.resiRC,
 
           ordini: sales.ordini,
@@ -462,15 +458,12 @@ async function fetchShopifyMonthly() {
           date: start, // compat: alcuni componenti leggono `date`
 
           fatturato: sales.fatturato,
-          fatturatoNetto: sales.fatturatoNetto,
           resi: sales.resi,
 
           fatturNC: sales.fatturNC,
-          fatturatoNettoNC: sales.fatturatoNettoNC,
           resiNC: sales.resiNC,
 
           fatturRC: sales.fatturRC,
-          fatturatoNettoRC: sales.fatturatoNettoRC,
           resiRC: sales.resiRC,
 
           ordini: sales.ordini,

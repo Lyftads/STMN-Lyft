@@ -932,39 +932,22 @@ async function fetchMeta() {
 }
 
 // ── API Route ─────────────────────────────────────────────────
+// ── API Route ─────────────────────────────────────────────────
 export async function GET() {
   try {
-   const [
-  aovData,
-  shopifyWeekly,
-  shopifyMonthly,
-  metaMonthly,
-  metaWeekly,
-] = await Promise.all([
-  fetchAOV(),
-  fetchShopifyWeekly(),
-  fetchShopifyMonthly(),
-  fetchMeta(),
-  fetchMetaWeekly(),
-])
-
-let shopifyTopProducts = []
-let shopifyMarketingSources = []
-let shopifyDayBreakdown = []
-
-try {
-  ;[
-    shopifyTopProducts,
-    shopifyMarketingSources,
-    shopifyDayBreakdown,
-  ] = await Promise.all([
-    fetchShopifyTopProducts(),
-    fetchShopifyMarketingSources(),
-    fetchShopifyDayBreakdown(),
-  ])
-} catch (e) {
-  console.log('KPI Brain Shopify breakdown error:', e.message)
-}
+    const [
+      aovData,
+      shopifyWeekly,
+      shopifyMonthly,
+      metaMonthly,
+      metaWeekly,
+    ] = await Promise.all([
+      fetchAOV(),
+      fetchShopifyWeekly(),
+      fetchShopifyMonthly(),
+      fetchMeta(),
+      fetchMetaWeekly(),
+    ])
 
     const metaTotal = metaMonthly.reduce(
       (sum, row) => sum + row.spend,
@@ -972,18 +955,22 @@ try {
     )
 
     return NextResponse.json({
-  aovLive: Math.round(aovData.aov * 100) / 100,
-  ordersLive: aovData.orders,
+      aovLive: Math.round(aovData.aov * 100) / 100,
+      ordersLive: aovData.orders,
 
-  shopifyWeekly,
-  shopifyMonthly,
-  shopifyTopProducts,
-  shopifyMarketingSources,
-  shopifyDayBreakdown,
+      shopifyWeekly,
+      shopifyMonthly,
 
-  metaSpend: Math.round(metaTotal * 100) / 100,
-  metaMonthly,
-  metaWeekly,
+      // Lasciamo questi 3 campi per KPI Brain, ma per ora vuoti.
+      // Così KPI Brain non rompe la dashboard.
+      shopifyTopProducts: [],
+      shopifyMarketingSources: [],
+      shopifyDayBreakdown: [],
+
+      metaSpend: Math.round(metaTotal * 100) / 100,
+      metaMonthly,
+      metaWeekly,
+
       sources: {
         shopify:
           aovData.orders > 0 ||

@@ -539,65 +539,31 @@ function CompetitorSection({ competitor, meta }) {
         {/* ADS SECTION */}
         {section === 'ads' && (
           <>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <div>
-                <span style={{ fontSize: 13, color: '#8b8aa0' }}>
-                  {ads.length > 0
-                    ? `${ads.length} creative attive trovate`
-                    : adLibrary?.error
-                      ? 'Dati Ad Library non disponibili via API'
-                      : 'Nessuna creative attiva trovata'}
-                </span>
-              </div>
-
-              <a
-                href={meta.adLibraryUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  background: '#1877f220',
-                  border: '1px solid #1877f240',
-                  color: '#60a5fa',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                }}
-              >
-                Apri Meta Ad Library ↗
-              </a>
-            </div>
-
-            {adLibrary?.error && (
+            {ads.length > 0 && (
               <div
                 style={{
-                  padding: 16,
-                  borderRadius: 12,
-                  background: '#f59e0b12',
-                  border: '1px solid #f59e0b30',
-                  color: '#f59e0b',
-                  fontSize: 12,
-                  lineHeight: 1.6,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginBottom: 20,
                 }}
               >
-                <strong>API:</strong> {adLibrary.error}
-                <br />
-                <span style={{ color: '#8b8aa0' }}>
-                  Puoi comunque consultare le creative attive cliccando su &quot;Apri Meta Ad
-                  Library&quot;
+                <span style={{ fontSize: 13, color: '#8b8aa0' }}>
+                  {ads.length} creative attive trovate via API
                 </span>
+                <a
+                  href={meta.adLibraryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 12,
+                    color: '#60a5fa',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Vedi tutto su Ad Library ↗
+                </a>
               </div>
             )}
 
@@ -607,6 +573,7 @@ function CompetitorSection({ competitor, meta }) {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                   gap: 14,
+                  marginBottom: 20,
                 }}
               >
                 {ads.map((ad, i) => (
@@ -615,22 +582,108 @@ function CompetitorSection({ competitor, meta }) {
               </div>
             )}
 
-            {ads.length === 0 && !adLibrary?.error && (
-              <div
-                style={{
-                  border: '1px dashed #3a2d4b',
-                  borderRadius: 16,
-                  padding: 40,
-                  textAlign: 'center',
-                  color: '#6b6580',
-                }}
-              >
-                Nessuna ad attiva trovata per il paese selezionato.
-                <br />
-                <span style={{ fontSize: 12 }}>
-                  Prova a cambiare paese o controlla direttamente su Meta Ad Library.
-                </span>
-              </div>
+            {ads.length === 0 && (
+              <>
+                {/* Big Ad Library link card */}
+                <a
+                  href={meta.adLibraryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block',
+                    textDecoration: 'none',
+                    background: 'linear-gradient(135deg, #1877f215, #1877f208)',
+                    border: '1px solid #1877f230',
+                    borderRadius: 18,
+                    padding: '32px 28px',
+                    marginBottom: 20,
+                    transition: 'border-color .15s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 14,
+                        background: '#1877f220',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 24,
+                        flexShrink: 0,
+                      }}
+                    >
+                      📢
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 6 }}>
+                        Vedi tutte le creative attive di {meta.name}
+                      </div>
+                      <div style={{ color: '#8b8aa0', fontSize: 13, lineHeight: 1.5 }}>
+                        Clicca per aprire la Meta Ad Library con tutte le inserzioni attive, immagini,
+                        video e copy
+                      </div>
+                    </div>
+                    <div style={{ color: '#60a5fa', fontSize: 22, fontWeight: 900, flexShrink: 0 }}>→</div>
+                  </div>
+                </a>
+
+                {adLibrary?.error && adLibrary.code === 10 && (
+                  <div
+                    style={{
+                      padding: 20,
+                      borderRadius: 14,
+                      background: '#14111d',
+                      border: '1px solid #2c2638',
+                      marginBottom: 20,
+                    }}
+                  >
+                    <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 800, marginBottom: 12 }}>
+                      Come abilitare il caricamento automatico delle ads
+                    </div>
+                    <ol
+                      style={{
+                        margin: 0,
+                        paddingLeft: 20,
+                        color: '#8b8aa0',
+                        fontSize: 12,
+                        lineHeight: 2,
+                      }}
+                    >
+                      <li>
+                        Vai su{' '}
+                        <a
+                          href="https://developers.facebook.com/apps/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#60a5fa', textDecoration: 'none' }}
+                        >
+                          Meta Developer Dashboard
+                        </a>
+                      </li>
+                      <li>Seleziona la tua App → <strong style={{ color: '#c8c0d6' }}>App Review</strong> → <strong style={{ color: '#c8c0d6' }}>Permissions and Features</strong></li>
+                      <li>Cerca <strong style={{ color: '#c8c0d6' }}>Page Public Content Access</strong> e richiedi l&apos;accesso</li>
+                      <li>Una volta approvato, le creative dei competitor appariranno automaticamente qui</li>
+                    </ol>
+                  </div>
+                )}
+
+                {adLibrary?.error && adLibrary.code !== 10 && (
+                  <div
+                    style={{
+                      padding: 14,
+                      borderRadius: 12,
+                      background: '#f59e0b08',
+                      border: '1px solid #f59e0b20',
+                      color: '#8b8aa0',
+                      fontSize: 12,
+                    }}
+                  >
+                    API: {adLibrary.error}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
+const GEMINI_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
 const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
@@ -51,14 +52,134 @@ async function fetchShopifyProducts() {
       compareAtPrice: parseFloat(p.variants?.[0]?.compare_at_price) || 0,
       productType: p.product_type || '',
       vendor: p.vendor || '',
-      tags: typeof p.tags === 'string' ? p.tags.split(',').map((t) => t.trim()) : p.tags || [],
+      tags:
+        typeof p.tags === 'string'
+          ? p.tags.split(',').map((t) => t.trim())
+          : p.tags || [],
     }))
   } catch {
     return []
   }
 }
 
+function getSizeForModel(model, format) {
+  if (model === 'gpt-image-1') {
+    return format === 'story' ? '1024x1536' : '1024x1024'
+  }
+  return format === 'story' ? '1024x1792' : '1024x1024'
+}
+
+async function generateImageDalle3(prompt, size) {
+  if (!OPENAI_KEY) return { error: 'OPENAI_API_KEY non configurata' }
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size,
+        quality: 'standard',
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { error: `DALL-E 3 ${res.status}: ${err.slice(0, 200)}` }
+    }
+    const data = await res.json()
+    return { url: data.data?.[0]?.url || null }
+  } catch (e) {
+    return { error: e.message }
+  }
+}
+
+async function generateImageGpt(prompt, size) {
+  if (!OPENAI_KEY) return { error: 'OPENAI_API_KEY non configurata' }
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size,
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      return { error: `GPT Image ${res.status}: ${err.slice(0, 200)}` }
+    }
+    const data = await res.json()
+    const url = data.data?.[0]?.url || null
+    const b64 = data.data?.[0]?.b64_json || null
+    return { url: url || (b64 ? `data:image/png;base64,${b64}` : null) }
+  } catch (e) {
+    return { error: e.message }
+  }
+}
+
+async function generateImageGemini(prompt) {
+  if (!GEMINI_KEY) return { error: 'GOOGLE_AI_API_KEY non configurata. Aggiungila su Vercel.' }
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+        }),
+        signal: AbortSignal.timeout(30000),
+      }
+    )
+    if (!res.ok) {
+      const err = await res.text()
+      return { error: `Gemini ${res.status}: ${err.slice(0, 200)}` }
+    }
+    const data = await res.json()
+    const parts = data.candidates?.[0]?.content?.parts || []
+    const imgPart = parts.find((p) => p.inlineData)
+    if (imgPart) {
+      const mime = imgPart.inlineData.mimeType || 'image/png'
+      return { url: `data:${mime};base64,${imgPart.inlineData.data}` }
+    }
+    return { error: 'Gemini non ha generato un\'immagine' }
+  } catch (e) {
+    return { error: e.message }
+  }
+}
+
+async function generateImage(prompt, model, format) {
+  const size = getSizeForModel(model, format)
+  switch (model) {
+    case 'dall-e-3':
+      return generateImageDalle3(prompt, size)
+    case 'gpt-image-1':
+      return generateImageGpt(prompt, size)
+    case 'gemini':
+      return generateImageGemini(prompt)
+    case 'nanabanan':
+      return { error: 'NanaBanan Pro: API key non configurata. Contatta il supporto per l\'integrazione.' }
+    default:
+      return generateImageDalle3(prompt, size)
+  }
+}
+
 export async function GET(request) {
+  const { searchParams } = new URL(request.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+  const perPage = Math.min(50, Math.max(1, parseInt(searchParams.get('perPage') || '20')))
   const base = new URL(request.url).origin
 
   const [creative, metrics, competitors, shopifyProducts] = await Promise.all([
@@ -86,7 +207,6 @@ export async function GET(request) {
       revenue: r.purchase_value || r.revenue || 0,
       roas: r.roas || 0,
       ctr: r.ctr_link || r.ctr || 0,
-      cpc: r.cpc_link || r.cpc || 0,
       impressions: r.impressions || 0,
       purchases: r.purchases || r.orders || 0,
       thumbnail: r.thumbnail_url || r.display_image_url || r.image_url || '',
@@ -101,9 +221,14 @@ export async function GET(request) {
     return { ...p, sales: sales || null }
   })
 
-  const rankedProducts = [...productsWithSales]
-    .sort((a, b) => (b.sales?.revenue || 0) - (a.sales?.revenue || 0))
-    .slice(0, 30)
+  const allRanked = [...productsWithSales].sort(
+    (a, b) => (b.sales?.revenue || 0) - (a.sales?.revenue || 0)
+  )
+
+  const totalProducts = allRanked.length
+  const totalPages = Math.ceil(totalProducts / perPage)
+  const offset = (page - 1) * perPage
+  const paginatedProducts = allRanked.slice(offset, offset + perPage)
 
   const competitorSummary = (competitors?.competitors || []).map((c) => {
     const ws = c.websiteData || {}
@@ -114,7 +239,6 @@ export async function GET(request) {
       onSalePct: stats.onSalePct || 0,
       avgDiscount: stats.avgDiscount || 0,
       promos: (ws.promos || []).slice(0, 5),
-      topCategories: (stats.categories || []).slice(0, 5),
       adCount: c.adLibrary?.count || 0,
       adSamples: (c.adLibrary?.ads || []).slice(0, 3).map((a) => ({
         titles: a.titles,
@@ -123,11 +247,22 @@ export async function GET(request) {
     }
   })
 
+  const availableModels = [
+    { id: 'dall-e-3', name: 'DALL-E 3', ready: Boolean(OPENAI_KEY) },
+    { id: 'gpt-image-1', name: 'GPT Image', ready: Boolean(OPENAI_KEY) },
+    { id: 'gemini', name: 'Gemini Imagen', ready: Boolean(GEMINI_KEY) },
+    { id: 'nanabanan', name: 'NanaBanan Pro', ready: false },
+  ]
+
   return json({
-    products: rankedProducts,
+    products: paginatedProducts,
     bestAds,
     competitorSummary,
-    totalProducts: shopifyProducts.length,
+    totalProducts,
+    totalPages,
+    page,
+    perPage,
+    availableModels,
   })
 }
 
@@ -148,9 +283,10 @@ export async function POST(request) {
     bestAds = [],
     competitors = [],
     style = 'performance',
-    count = 3,
     format = 'square',
+    imageModel = 'dall-e-3',
     generateImages = true,
+    singleIndex = null,
   } = body
 
   if (!products.length) {
@@ -158,11 +294,17 @@ export async function POST(request) {
   }
 
   const styleGuide = {
-    performance: 'Direct response, benefit-focused, urgency. Focus su risultati concreti, social proof, e CTA forte.',
-    ugc: 'Stile user-generated content: tono personale, come se un atleta stesse parlando della propria esperienza. Rawer, più autentico.',
-    lifestyle: 'Aspirazionale, mood-driven. Evoca la sensazione di allenarsi con questi prodotti. Meno copy, più emozione.',
-    comparison: 'Confronto diretto con i competitor o con la situazione senza il prodotto. Before/after, noi vs loro.',
+    performance:
+      'Direct response, benefit-focused, urgency. Focus su risultati concreti, social proof, e CTA forte.',
+    ugc: 'Stile user-generated content: tono personale, come se un atleta stesse parlando della propria esperienza. Raw, più autentico.',
+    lifestyle:
+      'Aspirazionale, mood-driven. Evoca la sensazione di allenarsi con questi prodotti. Meno copy, più emozione.',
+    comparison:
+      'Confronto diretto con i competitor o con la situazione senza il prodotto. Before/after, noi vs loro.',
   }
+
+  const isSingle = singleIndex !== null
+  const count = isSingle ? 1 : 3
 
   const copyPrompt = `Sei un senior Meta Ads creative strategist per STMN Fitness, un brand italiano di attrezzatura per functional fitness e CrossFit.
 
@@ -184,16 +326,16 @@ Per OGNI prodotto, genera ${count} varianti creative per Meta Ads (Feed).
 Scrivi TUTTO in italiano.
 
 Per ogni variante restituisci un oggetto JSON con:
-- "productTitle": nome del prodotto
+- "productTitle": nome esatto del prodotto
 - "headline": max 40 caratteri, gancio forte
 - "primaryText": testo principale dell'ad, 2-3 frasi (max 200 chars)
 - "description": descrizione sotto il link (max 80 chars)
 - "cta": testo CTA (es. "Acquista ora", "Scopri di più", "Provale ora")
 - "angle": l'angolo creativo in 1 frase (es. "Social proof + urgenza")
-- "reasoning": perché questa creative dovrebbe funzionare (1-2 frasi)
-- "imagePrompt": prompt DETTAGLIATO in inglese per generare un'immagine lifestyle/mood per questa ad con DALL-E. L'immagine deve evocare il mondo del CrossFit/functional fitness. NON descrivere il prodotto specifico, ma l'atmosfera e lo scenario in cui viene usato. Includi: lighting, color palette (dark/moody con accenti ${style === 'ugc' ? 'caldi naturali' : 'energetici'}), composizione, mood. Il formato è ${format === 'story' ? '9:16 verticale' : '1:1 quadrato'}.
+- "reasoning": perché questa creative dovrebbe funzionare (1-2 frasi, in italiano)
+- "imagePrompt": prompt DETTAGLIATO in inglese per generare un'immagine per questa ad. Descrivi uno scenario lifestyle realistico legato al CrossFit/functional fitness dove il prodotto verrebbe usato. Includi: lighting, atmosphere, color palette (high contrast, energetic), composizione. Il formato è ${format === 'story' ? '9:16 portrait' : '1:1 square'}. Lo stile deve essere fotografico, realistico, ad-quality. NON includere testo nell'immagine.
 
-Rispondi SOLO con un array JSON valido. Nessun testo prima o dopo.`
+Rispondi con un JSON valido: { "creatives": [...] }`
 
   try {
     const copyRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -206,7 +348,11 @@ Rispondi SOLO con un array JSON valido. Nessun testo prima o dopo.`
         model: OPENAI_MODEL,
         temperature: 0.9,
         messages: [
-          { role: 'system', content: 'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.' },
+          {
+            role: 'system',
+            content:
+              'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.',
+          },
           { role: 'user', content: copyPrompt },
         ],
         response_format: { type: 'json_object' },
@@ -215,7 +361,10 @@ Rispondi SOLO con un array JSON valido. Nessun testo prima o dopo.`
 
     if (!copyRes.ok) {
       const text = await copyRes.text()
-      return json({ error: `OpenAI ${copyRes.status}: ${text.slice(0, 300)}` }, 502)
+      return json(
+        { error: `OpenAI ${copyRes.status}: ${text.slice(0, 300)}` },
+        502
+      )
     }
 
     const copyData = await copyRes.json()
@@ -224,45 +373,33 @@ Rispondi SOLO con un array JSON valido. Nessun testo prima o dopo.`
     let creatives
     try {
       const parsed = JSON.parse(rawContent)
-      creatives = Array.isArray(parsed) ? parsed : parsed.creatives || parsed.variants || parsed.ads || Object.values(parsed)[0]
+      creatives = Array.isArray(parsed)
+        ? parsed
+        : parsed.creatives ||
+          parsed.variants ||
+          parsed.ads ||
+          Object.values(parsed)[0]
       if (!Array.isArray(creatives)) creatives = [parsed]
     } catch {
-      return json({ error: 'Risposta AI non parsabile', raw: rawContent.slice(0, 500) }, 500)
+      return json(
+        { error: 'Risposta AI non parsabile', raw: rawContent.slice(0, 500) },
+        500
+      )
     }
 
     if (generateImages && creatives.length > 0) {
-      const dalleSize = format === 'story' ? '1024x1792' : '1024x1024'
-
       const imageResults = await Promise.all(
         creatives.slice(0, 6).map(async (creative) => {
-          if (!creative.imagePrompt) return null
-          try {
-            const imgRes = await fetch('https://api.openai.com/v1/images/generations', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${OPENAI_KEY}`,
-              },
-              body: JSON.stringify({
-                model: 'dall-e-3',
-                prompt: creative.imagePrompt,
-                n: 1,
-                size: dalleSize,
-                quality: 'standard',
-              }),
-            })
-            if (!imgRes.ok) return null
-            const imgData = await imgRes.json()
-            return imgData.data?.[0]?.url || null
-          } catch {
-            return null
-          }
+          if (!creative.imagePrompt) return { error: 'Nessun image prompt generato' }
+          return generateImage(creative.imagePrompt, imageModel, format)
         })
       )
 
       creatives = creatives.map((c, i) => ({
         ...c,
-        generatedImage: imageResults[i] || null,
+        generatedImage: imageResults[i]?.url || null,
+        imageError: imageResults[i]?.error || null,
+        imageModel,
       }))
     }
 
@@ -270,6 +407,7 @@ Rispondi SOLO con un array JSON valido. Nessun testo prima o dopo.`
       creatives,
       style,
       format,
+      imageModel,
       generatedAt: new Date().toISOString(),
     })
   } catch (e) {

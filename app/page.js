@@ -1504,41 +1504,135 @@ export default function App() {
 {tab === 'creative' && (
   <CreativeTab />
 )}
-      {/* META DETAIL TAB */}
-      {tab==='metaDetail' && (
-        <div style={S.card}>
-          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:16,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-            Meta — dettaglio settimanale
-          </p>
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',minWidth:900,borderCollapse:'collapse'}}>
-              <thead>
-                <tr>
-                  {['Settimana','Spesa','Impressions','Reach','Freq.','CPM','CTR %','CPC link','Link clicks'].map(h=>(
-                    <th key={h} style={S.th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(live?.metaWeekly || []).map((w,i)=>(
-                  <tr key={w.date} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                    <td style={{...S.td,color:'#e8e8e8',fontWeight:700,whiteSpace:'nowrap'}}>{w.date}</td>
-                    <td style={{...S.td,color:'#3b82f6',fontWeight:700}}>{f0(w.spend)}</td>
-                    <td style={S.td}>{fn(w.impressions)}</td>
-                    <td style={S.td}>{fn(w.reach)}</td>
-                    <td style={S.td}>{w.frequency?.toFixed?.(2) ?? '—'}</td>
-                    <td style={S.td}>{w.cpm?f2(w.cpm):'—'}</td>
-                    <td style={S.td}>{w.ctr?`${w.ctr.toFixed(2)}%`:'—'}</td>
-                    <td style={S.td}>{w.cpcLink?f2(w.cpcLink):'—'}</td>
-                    <td style={S.td}>{fn(w.linkClicks)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+    {/* META DETAIL TAB */}
+{tab === 'metaDetail' && (
+  <div style={S.card}>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 24
+    }}>
+      <div>
+        <div style={{
+          fontSize: 18,
+          fontWeight: 900,
+          color: '#fff',
+          marginBottom: 6
+        }}>
+          Meta Detail
         </div>
-      )}
-      </VendroShell>
-)
-}
+
+        <div style={{
+          fontSize: 13,
+          color: '#8b829b'
+        }}>
+          Dettaglio performance Meta Ads per settimana
+        </div>
+      </div>
+    </div>
+
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: 14,
+      marginBottom: 24
+    }}>
+      <Stat
+        label="Spesa Meta"
+        value={f0(metaSpend)}
+        color="#3b82f6"
+      />
+
+      <Stat
+        label="Impressions"
+        value={fn(metaMonthly.reduce((sum, row) => sum + (row.impressions || 0), 0))}
+        color="#e8e8e8"
+      />
+
+      <Stat
+        label="Link Clicks"
+        value={fn(metaMonthly.reduce((sum, row) => sum + (row.linkClicks || 0), 0))}
+        color="#22c55e"
+      />
+
+      <Stat
+        label="CTR medio"
+        value={
+          metaMonthly.length
+            ? `${(
+                metaMonthly.reduce((sum, row) => sum + (row.ctr || 0), 0) /
+                metaMonthly.length
+              ).toFixed(2)}%`
+            : '—'
+        }
+        color="#f97316"
+      />
+    </div>
+
+    <div style={{
+      overflowX: 'auto',
+      border: '1px solid #1f2937',
+      borderRadius: 14,
+      background: '#0a1020'
+    }}>
+      <table style={{
+        width: '100%',
+        minWidth: 980,
+        borderCollapse: 'collapse'
+      }}>
+        <thead>
+          <tr>
+            {[
+              'Settimana',
+              'Spesa',
+              'Impressions',
+              'Reach',
+              'Freq.',
+              'CPM',
+              'CTR %',
+              'CPC Link',
+              'Link Clicks'
+            ].map(h => (
+              <th key={h} style={S.th}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {(metaWeekly || []).map((w, i) => (
+            <tr key={w.date || i} style={{
+              background: i % 2 === 0 ? 'transparent' : '#080f1e'
+            }}>
+              <td style={{
+                ...S.td,
+                color: '#e8e8e8',
+                fontWeight: 800,
+                whiteSpace: 'nowrap'
+              }}>
+                {w.date || '—'}
+              </td>
+
+              <td style={{
+                ...S.td,
+                color: '#3b82f6',
+                fontWeight: 800
+              }}>
+                {f0(w.spend)}
+              </td>
+
+              <td style={S.td}>{fn(w.impressions)}</td>
+              <td style={S.td}>{fn(w.reach)}</td>
+              <td style={S.td}>{w.frequency ? w.frequency.toFixed(2) : '—'}</td>
+              <td style={S.td}>{w.cpm ? f2(w.cpm) : '—'}</td>
+              <td style={S.td}>{w.ctr ? `${w.ctr.toFixed(2)}%` : '—'}</td>
+              <td style={S.td}>{w.cpcLink ? f2(w.cpcLink) : '—'}</td>
+              <td style={S.td}>{fn(w.linkClicks)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 

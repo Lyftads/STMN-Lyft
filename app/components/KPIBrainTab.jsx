@@ -141,29 +141,67 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
     { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6' },
   ]
 
-  const recentRevenue = [...current]
-    .filter(row => asNum(row.fatturato) > 0)
-    .slice(-6)
-    .map(row => ({
-      label: row.month,
-      value: asNum(row.fatturato),
+  const topProducts = Array.isArray(live?.shopifyTopProducts)
+  ? live.shopifyTopProducts.slice(0, 10).map(row => ({
+      label: row.product || row.title || 'Prodotto sconosciuto',
+      value: asNum(row.revenue),
+      orders: asNum(row.orders),
+      quantity: asNum(row.quantity),
     }))
-    .sort((a, b) => b.value - a.value)
+  : []
 
-  const sourceBreakdown = [
-    { label: 'Meta Ads', value: totals.metaSpend },
-    { label: 'Google Ads', value: totals.googleSpend },
-  ].filter(row => row.value > 0)
-
-  const dayBreakdown = current.slice(-7).map(row => ({
+const fallbackProducts = [...current]
+  .filter(row => asNum(row.fatturato) > 0)
+  .slice(-10)
+  .map(row => ({
     label: row.month,
     value: asNum(row.fatturato),
+    orders: asNum(row.ordini),
+    quantity: 0,
   }))
+  .sort((a, b) => b.value - a.value)
 
-  const customerBreakdown = [
-    { label: 'New Customers', value: totals.newCustomers },
-    { label: 'Returning Customers', value: totals.returningCustomers },
-  ].filter(row => row.value > 0)
+const productBreakdown = topProducts.length ? topProducts : fallbackProducts
+
+const sourceBreakdown = Array.isArray(live?.shopifyMarketingSources)
+  ? live.shopifyMarketingSources.map(row => ({
+      label: row.source || 'Marketing',
+      value: asNum(row.revenue),
+      orders: asNum(row.orders),
+    }))
+  : []
+
+const fallbackSourceBreakdown = [
+  { label: 'Meta Ads', value: totals.metaSpend, orders: 0 },
+  { label: 'Google Ads', value: totals.googleSpend, orders: 0 },
+].filter(row => row.value > 0)
+
+const marketingSourceBreakdown = sourceBreakdown.length
+  ? sourceBreakdown
+  : fallbackSourceBreakdown
+
+const dayBreakdown = Array.isArray(live?.shopifyDayBreakdown)
+  ? live.shopifyDayBreakdown.map(row => ({
+      label: row.day,
+      value: asNum(row.revenue),
+      orders: asNum(row.orders),
+    }))
+  : []
+
+const fallbackDayBreakdown = current.slice(-7).map(row => ({
+  label: row.month,
+  value: asNum(row.fatturato),
+  orders: asNum(row.ordini),
+}))
+
+const weekdayBreakdown = dayBreakdown.length
+  ? dayBreakdown
+  : fallbackDayBreakdown
+
+const customerBreakdown = [
+  { label: 'New Customers', value: totals.newCustomers },
+  { label: 'Returning Customers', value: totals.returningCustomers },
+].filter(row => row.value > 0)
 
   const attention = [
     totals.revenue <= 0
@@ -246,9 +284,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
                     {row.label}
                   </span>
 
-                  <span style={{ color: '#94a3b8', fontWeight: 800 }}>
-                    {format(row.value)}
-                  </span>
+                 <span style={{ color: '#94a3b8', fontWeight: 800 }}>
+  {format(row.value)}
+  {row.orders ? ` · ${int0(row.orders)} ordini` : ''}
+</span>
                 </div>
 
                 <div
@@ -425,25 +464,25 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
           }}
         >
           <ProgressList
-            title="By Recent Revenue"
-            rows={recentRevenue}
-            color="#ec4899"
-            format={money}
-          />
+  title="Top 10 prodotti per revenue"
+  rows={productBreakdown}
+  color="#ec4899"
+  format={money}
+/>
 
-          <ProgressList
-            title="By Recent Period"
-            rows={dayBreakdown}
-            color="#14b8a6"
-            format={money}
-          />
+<ProgressList
+  title="Vendite per giorno della settimana"
+  rows={weekdayBreakdown}
+  color="#14b8a6"
+  format={money}
+/>
 
-          <ProgressList
-            title="By Source"
-            rows={sourceBreakdown}
-            color="#3b82f6"
-            format={money}
-          />
+<ProgressList
+  title="Vendite attribuite al marketing"
+  rows={marketingSourceBreakdown}
+  color="#3b82f6"
+  format={money}
+/>
 
           <ProgressList
             title="New vs Returning"
@@ -481,7 +520,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
             gap: 16,
           }}
         >
-          {recentRevenue.slice(0, 4).map((item, index) => (
+          {productBreakdown.slice(0, 4).map((item, index) => (
             <div
               key={item.label}
               style={{

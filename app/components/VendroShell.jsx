@@ -94,7 +94,7 @@ export default function VendroShell({
                 color: '#fff',
               }}
             >
-              ltvads
+              LyftADS
             </div>
           </div>
 

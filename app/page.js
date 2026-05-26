@@ -1353,6 +1353,7 @@ export default function App() {
   { id: 'kpiBrain', l: 'KPI Brain' },
   { id: 'monthly', l: 'Mensile' },
   { id: 'weekly', l: 'Weekly' },
+  { id: 'creative', l: 'Creative' },
   { id: 'simulator', l: 'Simulatore' },
   { id: 'metaDetail', l: 'Meta Detail' },
 ]
@@ -1362,6 +1363,12 @@ export default function App() {
     th:   { padding:'10px 14px', fontSize:11, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #1e2d47', whiteSpace:'nowrap' },
     td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid #0d1628', fontFamily:'Barlow', fontWeight:500 },
   }
+
+  // Meta Detail: variabili sicure per evitare errori client-side
+  const metaSpend = live?.metaSpend ?? totMeta ?? 0
+  const metaMonthly = Array.isArray(live?.metaMonthly) ? live.metaMonthly : []
+  const metaWeekly = Array.isArray(live?.metaWeekly) ? live.metaWeekly : []
+  const metaDetailRows = metaMonthly.length ? metaMonthly : metaWeekly
 
   return (
   <VendroShell

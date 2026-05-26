@@ -1512,14 +1512,10 @@ export default function App() {
 {tab === 'creative' && (
   <CreativeTab />
 )}
-   {/* META DETAIL TAB */}
-{tab==='metaDetail' && (
-  <MetaDetailTab
-    metaWeekly={metaWeekly}
-    live={live}
-    cfg={cfg}
-    S={S}
-  />
+
+{/* META DETAIL TAB */}
+{tab === 'metaDetail' && (
+  <MetaDetailTab />
 )}
       </VendroShell>
     )

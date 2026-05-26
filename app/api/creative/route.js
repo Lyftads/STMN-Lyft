@@ -23,8 +23,13 @@ function json(data, status = 200) {
 
 function cleanAccountId(id) {
   if (!id) return null
-  const s = String(id).trim()
+
+  const s = String(id)
+    .trim()
+    .replace(/["']/g, '')
+
   if (!s) return null
+
   return s.startsWith('act_') ? s : `act_${s}`
 }
 
@@ -40,6 +45,24 @@ function getAccountIds() {
     .split(',')
     .map(cleanAccountId)
     .filter(Boolean)
+}
+
+function getSafeEnvDebug() {
+  return {
+    vercel_env: process.env.VERCEL_ENV || null,
+    node_env: process.env.NODE_ENV || null,
+
+    has_META_AD_ACCOUNT_IDS: Boolean(process.env.META_AD_ACCOUNT_IDS),
+    has_META_ACCOUNT_IDS: Boolean(process.env.META_ACCOUNT_IDS),
+    has_META_ACCOUNTS: Boolean(process.env.META_ACCOUNTS),
+    has_META_ACCOUNT_ID: Boolean(process.env.META_ACCOUNT_ID),
+
+    has_META_ACCESS_TOKEN: Boolean(process.env.META_ACCESS_TOKEN),
+    has_FACEBOOK_ACCESS_TOKEN: Boolean(process.env.FACEBOOK_ACCESS_TOKEN),
+    has_FB_ACCESS_TOKEN: Boolean(process.env.FB_ACCESS_TOKEN),
+
+    graph_version: GRAPH_VERSION,
+  }
 }
 
 function toNum(v) {
@@ -84,6 +107,7 @@ function getRange(preset) {
 
   if (preset === 'yesterday') {
     const d = addDays(today, -1)
+
     return {
       since: ymd(d),
       until: ymd(d),
@@ -107,6 +131,7 @@ function getRange(preset) {
   if (preset === 'current_month') {
     const d = new Date(today)
     d.setDate(1)
+
     return {
       since: ymd(d),
       until: ymd(today),
@@ -142,7 +167,10 @@ async function metaGet(path, params = {}) {
 
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, typeof value === 'string' ? value : JSON.stringify(value))
+      url.searchParams.set(
+        key,
+        typeof value === 'string' ? value : JSON.stringify(value)
+      )
     }
   })
 
@@ -155,6 +183,7 @@ async function metaGet(path, params = {}) {
   const text = await res.text()
 
   let data
+
   try {
     data = JSON.parse(text)
   } catch {
@@ -178,7 +207,10 @@ async function metaGetAll(path, params = {}, limit = 500) {
   let next = first?.paging?.next
 
   while (next && rows.length < limit) {
-    const res = await fetch(next, { cache: 'no-store' })
+    const res = await fetch(next, {
+      cache: 'no-store',
+    })
+
     const data = await res.json()
 
     if (data.error) {
@@ -207,6 +239,7 @@ function normalizeInsight(row, account) {
   const spend = toNum(row.spend)
   const impressions = toNum(row.impressions)
   const reach = toNum(row.reach)
+
   const linkClicks = getActionValue(row.actions, [
     'link_click',
     'onsite_conversion.post_save',
@@ -361,8 +394,9 @@ export async function GET(req) {
 
     const preset = searchParams.get('preset') || 'last_28d'
     const activeOnly = searchParams.get('active_only') !== 'false'
-    const range = getRange(preset)
+    const debug = searchParams.get('debug') === '1'
 
+    const range = getRange(preset)
     const accounts = getAccountIds()
 
     if (!accounts.length) {
@@ -372,6 +406,7 @@ export async function GET(req) {
           'Nessun account Meta configurato. Aggiungi META_AD_ACCOUNT_IDS nelle Environment Variables di Vercel. Esempio: act_123,act_456',
         rows: [],
         summary: buildSummary([]),
+        debug: debug ? getSafeEnvDebug() : undefined,
       })
     }
 
@@ -392,12 +427,16 @@ export async function GET(req) {
     let allRows = []
 
     for (const account of accounts) {
-      const rows = await metaGetAll(`${account}/insights`, {
-        level: 'ad',
-        fields,
-        time_range: range,
-        action_breakdowns: 'action_type',
-      }, 500)
+      const rows = await metaGetAll(
+        `${account}/insights`,
+        {
+          level: 'ad',
+          fields,
+          time_range: range,
+          action_breakdowns: 'action_type',
+        },
+        500
+      )
 
       allRows = allRows.concat(rows.map(r => normalizeInsight(r, account)))
     }
@@ -406,6 +445,7 @@ export async function GET(req) {
 
     if (activeOnly) {
       merged = await hydrateCreatives(merged)
+
       merged = merged.filter(r => {
         const status = String(r.status || '').toUpperCase()
         return !status || status === 'ACTIVE'
@@ -432,13 +472,18 @@ export async function GET(req) {
       accounts,
       rows: merged,
       summary: buildSummary(merged),
+      debug: debug ? getSafeEnvDebug() : undefined,
     })
   } catch (e) {
-    return json({
-      ok: false,
-      error: e?.message || 'Errore sconosciuto',
-      rows: [],
-      summary: buildSummary([]),
-    }, 500)
+    return json(
+      {
+        ok: false,
+        error: e?.message || 'Errore sconosciuto',
+        rows: [],
+        summary: buildSummary([]),
+        debug: getSafeEnvDebug(),
+      },
+      500
+    )
   }
 }

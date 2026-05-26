@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 
@@ -100,7 +100,7 @@ async function getFlows() {
 
 async function getMetrics() {
   let all = []
-  let url = '/metrics?page[size]=100'
+  let url = '/metrics'
   while (url) {
     const data = await klaviyoGet(url)
     if (!data) break
@@ -280,10 +280,8 @@ export async function GET(request) {
       getMetrics(),
     ])
 
-    const [kpis, revenueBreakdown] = await Promise.all([
-      getEmailKPIs(days, metrics),
-      getRevenueBreakdown(sent, flows, days, metrics).catch(() => null),
-    ])
+    const kpis = await getEmailKPIs(days, metrics)
+    const revenueBreakdown = await getRevenueBreakdown(sent, flows, days, metrics).catch(() => null)
 
     return NextResponse.json({
       account,

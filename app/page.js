@@ -1511,134 +1511,151 @@ export default function App() {
 {tab === 'creative' && (
   <CreativeTab />
 )}
-    {/* META DETAIL TAB */}
+   {/* META DETAIL TAB */}
 {tab === 'metaDetail' && (
-  <div style={S.card}>
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 24
-    }}>
-      <div>
-        <div style={{
-          fontSize: 18,
-          fontWeight: 900,
-          color: '#fff',
-          marginBottom: 6
-        }}>
+  <div>
+    <div
+      style={{
+        background: '#0a1020',
+        border: '1px solid #111827',
+        borderRadius: 22,
+        padding: 24,
+        marginBottom: 24,
+      }}
+    >
+      <div style={{marginBottom: 22}}>
+        <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
           Meta Detail
-        </div>
-
-        <div style={{
-          fontSize: 13,
-          color: '#8b829b'
-        }}>
+        </h2>
+        <p style={{fontSize: 13, color: '#8b8aa0', marginTop: 8}}>
           Dettaglio performance Meta Ads per settimana
-        </div>
+        </p>
       </div>
-    </div>
 
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
-      gap: 14,
-      marginBottom: 24
-    }}>
-      <Stat
-        label="Spesa Meta"
-        value={f0(metaSpend)}
-        color="#3b82f6"
-      />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+          marginBottom: 24,
+        }}
+      >
+        <Stat
+          label="Spesa Meta"
+          value={f0((metaWeekly || []).reduce((s, r) => s + asNum(r.spend), 0))}
+          sub="Totale periodo"
+          color="#3b82f6"
+        />
 
-      <Stat
-        label="Impressions"
-        value={fn(metaMonthly.reduce((sum, row) => sum + (row.impressions || 0), 0))}
-        color="#e8e8e8"
-      />
+        <Stat
+          label="Impressions"
+          value={f0((metaWeekly || []).reduce((s, r) => s + asNum(r.impressions), 0))}
+          sub="Totale periodo"
+          color="#22c55e"
+        />
 
-      <Stat
-        label="Link Clicks"
-        value={fn(metaMonthly.reduce((sum, row) => sum + (row.linkClicks || 0), 0))}
-        color="#22c55e"
-      />
+        <Stat
+          label="Link Clicks"
+          value={f0((metaWeekly || []).reduce((s, r) => s + asNum(r.linkClicks), 0))}
+          sub="Totale periodo"
+          color="#22c55e"
+        />
 
-      <Stat
-        label="CTR medio"
-        value={
-          metaMonthly.length
-            ? `${(
-                metaMonthly.reduce((sum, row) => sum + (row.ctr || 0), 0) /
-                metaMonthly.length
-              ).toFixed(2)}%`
-            : '—'
-        }
-        color="#f97316"
-      />
-    </div>
+        <Stat
+          label="CTR Medio"
+          value={
+            safeDiv(
+              (metaWeekly || []).reduce((s, r) => s + asNum(r.linkClicks), 0),
+              (metaWeekly || []).reduce((s, r) => s + asNum(r.impressions), 0)
+            )
+              ? `${(
+                  safeDiv(
+                    (metaWeekly || []).reduce((s, r) => s + asNum(r.linkClicks), 0),
+                    (metaWeekly || []).reduce((s, r) => s + asNum(r.impressions), 0)
+                  ) * 100
+                ).toFixed(2)}%`
+              : '—'
+          }
+          sub="Link clicks / impressions"
+          color="#fb923c"
+        />
+      </div>
 
-    <div style={{
-      overflowX: 'auto',
-      border: '1px solid #1f2937',
-      borderRadius: 14,
-      background: '#0a1020'
-    }}>
-      <table style={{
-        width: '100%',
-        minWidth: 980,
-        borderCollapse: 'collapse'
-      }}>
-        <thead>
-          <tr>
-            {[
-              'Settimana',
-              'Spesa',
-              'Impressions',
-              'Reach',
-              'Freq.',
-              'CPM',
-              'CTR %',
-              'CPC Link',
-              'Link Clicks'
-            ].map(h => (
-              <th key={h} style={S.th}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {(metaWeekly || []).map((w, i) => (
-            <tr key={w.date || i} style={{
-              background: i % 2 === 0 ? 'transparent' : '#080f1e'
-            }}>
-              <td style={{
-                ...S.td,
-                color: '#e8e8e8',
-                fontWeight: 800,
-                whiteSpace: 'nowrap'
-              }}>
-                {w.date || '—'}
-              </td>
-
-              <td style={{
-                ...S.td,
-                color: '#3b82f6',
-                fontWeight: 800
-              }}>
-                {f0(w.spend)}
-              </td>
-
-              <td style={S.td}>{fn(w.impressions)}</td>
-              <td style={S.td}>{fn(w.reach)}</td>
-              <td style={S.td}>{w.frequency ? w.frequency.toFixed(2) : '—'}</td>
-              <td style={S.td}>{w.cpm ? f2(w.cpm) : '—'}</td>
-              <td style={S.td}>{w.ctr ? `${w.ctr.toFixed(2)}%` : '—'}</td>
-              <td style={S.td}>{w.cpcLink ? f2(w.cpcLink) : '—'}</td>
-              <td style={S.td}>{fn(w.linkClicks)}</td>
+      <div
+        style={{
+          overflowX: 'auto',
+          border: '1px solid #1f2937',
+          borderRadius: 16,
+        }}
+      >
+        <table
+          style={{
+            width: '100%',
+            minWidth: 980,
+            borderCollapse: 'collapse',
+          }}
+        >
+          <thead>
+            <tr>
+              {[
+                'Settimana',
+                'Spesa',
+                'Impressions',
+                'Reach',
+                'Freq.',
+                'CPM',
+                'CTR %',
+                'CPC Link',
+                'Link Clicks',
+              ].map(h => (
+                <th key={h} style={S.th}>
+                  {h}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {(metaWeekly || []).map((w, i) => (
+              <tr
+                key={w.date || i}
+                style={{
+                  background: i % 2 === 0 ? 'transparent' : '#080f1e',
+                }}
+              >
+                <td style={{...S.td, color: '#e8e8e8', fontWeight: 800}}>
+                  {w.date || '—'}
+                </td>
+
+                <td style={{...S.td, color: '#3b82f6', fontWeight: 800}}>
+                  {f0(w.spend)}
+                </td>
+
+                <td style={S.td}>{f0(w.impressions)}</td>
+                <td style={S.td}>{f0(w.reach)}</td>
+
+                <td style={S.td}>
+                  {asNum(w.frequency) ? asNum(w.frequency).toFixed(2) : '—'}
+                </td>
+
+                <td style={S.td}>
+                  {asNum(w.cpm) ? f2(w.cpm) : '—'}
+                </td>
+
+                <td style={S.td}>
+                  {asNum(w.ctr) ? `${asNum(w.ctr).toFixed(2)}%` : '—'}
+                </td>
+
+                <td style={S.td}>
+                  {asNum(w.cpcLink) ? f2(w.cpcLink) : '—'}
+                </td>
+
+                <td style={S.td}>{f0(w.linkClicks)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 )}

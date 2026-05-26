@@ -930,8 +930,15 @@ async function fetchMeta() {
     return []
   }
 }
-
-// ── API Route ─────────────────────────────────────────────────
+async function safeShopifyDayBreakdown() {
+  try {
+    if (typeof fetchShopifyDayBreakdown !== 'function') return []
+    return await fetchShopifyDayBreakdown()
+  } catch (e) {
+    console.log('KPI Brain day breakdown error:', e.message)
+    return []
+  }
+}
 // ── API Route ─────────────────────────────────────────────────
 export async function GET() {
   try {
@@ -964,8 +971,8 @@ export async function GET() {
       // Lasciamo questi 3 campi per KPI Brain, ma per ora vuoti.
       // Così KPI Brain non rompe la dashboard.
       shopifyTopProducts: [],
-      shopifyMarketingSources: [],
-      shopifyDayBreakdown: [],
+shopifyMarketingSources: [],
+shopifyDayBreakdown: await safeShopifyDayBreakdown(),
 
       metaSpend: Math.round(metaTotal * 100) / 100,
       metaMonthly,

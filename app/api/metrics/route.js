@@ -949,13 +949,32 @@ async function safeShopifyDayBreakdown() {
   }
 }
 // ── API Route ─────────────────────────────────────────────────
+// ── API Route ─────────────────────────────────────────────────
 export async function GET(req) {
-  const { searchParams } = new URL(req.url)
-  const preset = searchParams.get('preset') || 'last_90d'
+  try {
+    const { searchParams } = new URL(req.url)
+    const preset = searchParams.get('preset') || 'last_90d'
 
-  const range = getPresetRange(preset)
-  const previousRange = getPreviousRange(range)
-    try {
+    const fallbackRange = {
+      since: '2025-12-29',
+      until: new Date().toISOString().slice(0, 10),
+      label: 'Ultimi 90 giorni',
+    }
+
+    const range =
+      typeof getPresetRange === 'function'
+        ? getPresetRange(preset)
+        : fallbackRange
+
+    const previousRange =
+      typeof getPreviousRange === 'function'
+        ? getPreviousRange(range)
+        : {
+            since: null,
+            until: null,
+            label: 'Periodo precedente',
+          }
+
     const [
       aovData,
       shopifyWeekly,
@@ -975,8 +994,15 @@ export async function GET(req) {
       0
     )
 
-    const shopifyTopProducts = await safeShopifyTopProducts()
-    const shopifyDayBreakdown = await safeShopifyDayBreakdown()
+    const shopifyTopProducts =
+      typeof safeShopifyTopProducts === 'function'
+        ? await safeShopifyTopProducts()
+        : []
+
+    const shopifyDayBreakdown =
+      typeof safeShopifyDayBreakdown === 'function'
+        ? await safeShopifyDayBreakdown()
+        : []
 
     return NextResponse.json({
       aovLive: Math.round(aovData.aov * 100) / 100,
@@ -1010,13 +1036,36 @@ export async function GET(req) {
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: err.message,
+    console.log('Metrics API error:', err.message)
+
+    return NextResponse.json({
+      aovLive: 0,
+      ordersLive: 0,
+
+      shopifyWeekly: [],
+      shopifyMonthly: [],
+
+      shopifyTopProducts: [],
+      shopifyMarketingSources: [],
+      shopifyDayBreakdown: [],
+
+      kpiBrain: {
+        preset: 'last_90d',
+        range: null,
+        previousRange: null,
       },
-      {
-        status: 500,
-      }
-    )
+
+      metaSpend: 0,
+      metaMonthly: [],
+      metaWeekly: [],
+
+      sources: {
+        shopify: false,
+        meta: false,
+      },
+
+      error: err.message,
+      updatedAt: new Date().toISOString(),
+    })
   }
 }

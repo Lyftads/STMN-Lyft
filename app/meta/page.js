@@ -1,1074 +1,868 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
 
+const DARK = '#030817'
+const CARD = '#0a1020'
+const LINE = '#1e2d47'
 const WHITE = '#f8fafc'
-const MUTED = '#94a3b8'
-const RED = '#ff4d4d'
+const MUTED = '#64748b'
 const GREEN = '#22c55e'
-const BLUE = '#60a5fa'
-const CYAN = '#22d3ee'
-const PURPLE = '#818cf8'
-const CARD = '#070f22'
-const BORDER = '#1e3a8a'
+const BLUE = '#3b82f6'
+const RED = '#ef4444'
+const YELLOW = '#eab308'
 
-const euro0 = new Intl.NumberFormat('it-IT', {
-  maximumFractionDigits: 0,
-})
+const money = n =>
+  n != null && Number(n) > 0
+    ? `€${Number(n).toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : '—'
 
-const euro2 = new Intl.NumberFormat('it-IT', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
+const money0 = n =>
+  n != null && Number(n) > 0
+    ? `€${Math.round(Number(n)).toLocaleString('it-IT')}`
+    : '—'
 
-const num0 = new Intl.NumberFormat('it-IT', {
-  maximumFractionDigits: 0,
-})
+const int0 = n =>
+  n != null && Number(n) > 0
+    ? Math.round(Number(n)).toLocaleString('it-IT')
+    : '—'
 
-const num2 = new Intl.NumberFormat('it-IT', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
+const pct = n =>
+  n != null && Number.isFinite(Number(n))
+    ? `${Number(n).toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}%`
+    : '—'
 
-const pct2 = new Intl.NumberFormat('it-IT', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
+const dec = n =>
+  n != null && Number.isFinite(Number(n))
+    ? Number(n).toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : '—'
 
-function n(value) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
+const safeNum = v => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
 }
 
-function isoDate(date) {
-  const d = new Date(date)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+const div = (a, b) => {
+  const x = Number(a)
+  const y = Number(b)
+  if (!Number.isFinite(x) || !Number.isFinite(y) || y <= 0) return null
+  return x / y
 }
 
-function addDays(date, days) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
+const iso = d => d.toISOString().slice(0, 10)
+
+const todayLocal = () => {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
   return d
 }
 
-function formatDateLabel(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
-
-  return d.toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-  })
+const addDays = (d, days) => {
+  const x = new Date(d)
+  x.setDate(x.getDate() + days)
+  return x
 }
 
-function formatFullDate(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
+const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1)
 
-  return d.toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
+const endOfMonth = d => new Date(d.getFullYear(), d.getMonth() + 1, 0)
 
-function formatMetric(value, type) {
-  const v = n(value)
+const getPresetRange = preset => {
+  const t = todayLocal()
 
-  if (type === 'euro0') return `€${euro0.format(v)}`
-  if (type === 'euro2') return `€${euro2.format(v)}`
-  if (type === 'pct') return `${pct2.format(v)}%`
-  if (type === 'x') return `${num2.format(v)}×`
-  if (type === 'dec') return num2.format(v)
+  if (preset === 'today') return { from: iso(t), to: iso(t) }
 
-  return num0.format(v)
-}
-
-function getDelta(current, previous) {
-  const curr = n(current)
-  const prev = n(previous)
-
-  if (!previous && previous !== 0) {
-    return {
-      value: null,
-      pct: null,
-      hasPrevious: false,
-    }
+  if (preset === 'yesterday') {
+    const y = addDays(t, -1)
+    return { from: iso(y), to: iso(y) }
   }
 
-  const value = curr - prev
-  const pct = prev !== 0 ? (value / Math.abs(prev)) * 100 : null
+  if (preset === 'last7') return { from: iso(addDays(t, -6)), to: iso(t) }
+
+  if (preset === 'last14') return { from: iso(addDays(t, -13)), to: iso(t) }
+
+  if (preset === 'last28') return { from: iso(addDays(t, -27)), to: iso(t) }
+
+  if (preset === 'thisMonth') {
+    return { from: iso(startOfMonth(t)), to: iso(t) }
+  }
+
+  if (preset === 'lastMonth') {
+    const lm = new Date(t.getFullYear(), t.getMonth() - 1, 1)
+    return { from: iso(startOfMonth(lm)), to: iso(endOfMonth(lm)) }
+  }
+
+  return { from: iso(addDays(t, -6)), to: iso(t) }
+}
+
+const getRowDate = r =>
+  r.date ||
+  r.day ||
+  r.date_start ||
+  r.dateStart ||
+  r.start_date ||
+  r.week ||
+  r.week_start ||
+  r.month ||
+  null
+
+const inRange = (row, from, to) => {
+  const d = getRowDate(row)
+  if (!d) return true
+  const date = String(d).slice(0, 10)
+  return date >= from && date <= to
+}
+
+const normalizeRow = raw => {
+  const impressions = safeNum(raw.impressions)
+  const reach = safeNum(raw.reach)
+  const spend = safeNum(raw.spend ?? raw.amount_spent ?? raw.importo_speso)
+  const linkClicks = safeNum(raw.linkClicks ?? raw.link_clicks ?? raw.inline_link_clicks)
+  const clicks = safeNum(raw.clicks)
+  const purchases = safeNum(raw.purchases ?? raw.purchase ?? raw.acquisti)
+  const revenue = safeNum(raw.revenue ?? raw.purchaseValue ?? raw.purchase_value ?? raw.conversion_value)
+  const video3s = safeNum(raw.video3s ?? raw.video_3_sec_views ?? raw.thruplays_3s ?? raw.video_views_3s)
+
+  const cpm = raw.cpm != null ? safeNum(raw.cpm) : div(spend * 1000, impressions)
+  const ctrLink =
+    raw.ctrLink != null
+      ? safeNum(raw.ctrLink)
+      : raw.ctr_link != null
+        ? safeNum(raw.ctr_link)
+        : impressions > 0
+          ? (linkClicks / impressions) * 100
+          : null
+
+  const cpcLink =
+    raw.cpcLink != null
+      ? safeNum(raw.cpcLink)
+      : raw.cpc_link != null
+        ? safeNum(raw.cpc_link)
+        : div(spend, linkClicks)
+
+  const costPerResult =
+    raw.costPerResult != null
+      ? safeNum(raw.costPerResult)
+      : raw.cost_per_result != null
+        ? safeNum(raw.cost_per_result)
+        : div(spend, purchases)
+
+  const roas =
+    raw.roas != null
+      ? safeNum(raw.roas)
+      : raw.purchase_roas != null
+        ? safeNum(raw.purchase_roas)
+        : div(revenue, spend)
+
+  const purchaseConversion =
+    raw.purchaseConversion != null
+      ? safeNum(raw.purchaseConversion)
+      : raw.purchase_conversion != null
+        ? safeNum(raw.purchase_conversion)
+        : linkClicks > 0
+          ? (purchases / linkClicks) * 100
+          : null
+
+  const croCampaign =
+    raw.croCampaign != null
+      ? safeNum(raw.croCampaign)
+      : raw.cro_campaign != null
+        ? safeNum(raw.cro_campaign)
+        : linkClicks > 0
+          ? (purchases / linkClicks) * 100
+          : null
+
+  const aovCampaign =
+    raw.aovCampaign != null
+      ? safeNum(raw.aovCampaign)
+      : raw.aov_campaign != null
+        ? safeNum(raw.aov_campaign)
+        : div(revenue, purchases)
+
+  const hookRate =
+    raw.hookRate != null
+      ? safeNum(raw.hookRate)
+      : raw.hook_rate != null
+        ? safeNum(raw.hook_rate)
+        : impressions > 0
+          ? (video3s / impressions) * 100
+          : null
 
   return {
-    value,
-    pct,
-    hasPrevious: true,
+    id: raw.id || raw.ad_id || raw.adset_id || raw.campaign_id || `${raw.name || 'row'}-${Math.random()}`,
+    level: raw.level || raw.type || raw.entityLevel || 'campaign',
+    date: getRowDate(raw),
+    campaignId: raw.campaignId || raw.campaign_id || raw.campaign?.id || null,
+    campaignName: raw.campaignName || raw.campaign_name || raw.campaign?.name || raw.name || 'Campagna',
+    adsetId: raw.adsetId || raw.adset_id || raw.adset?.id || null,
+    adsetName: raw.adsetName || raw.adset_name || raw.adset?.name || 'Ad set',
+    adId: raw.adId || raw.ad_id || raw.ad?.id || null,
+    adName: raw.adName || raw.ad_name || raw.ad?.name || raw.name || 'Ad',
+    name: raw.name || raw.adName || raw.ad_name || raw.campaignName || raw.campaign_name || '—',
+    thumbnail:
+      raw.thumbnail ||
+      raw.thumbnail_url ||
+      raw.image_url ||
+      raw.imageUrl ||
+      raw.creative?.thumbnail_url ||
+      raw.creative?.image_url ||
+      null,
+    impressions,
+    reach,
+    cpm,
+    ctrLink,
+    cpcLink,
+    linkClicks,
+    spend,
+    costPerResult,
+    roas,
+    purchases,
+    purchaseConversion,
+    croCampaign,
+    aovCampaign,
+    hookRate,
+    revenue,
   }
 }
 
-function DeltaBlock({ current, previous, type = 'num' }) {
-  const delta = getDelta(current, previous)
+const sumRows = rows => {
+  const spend = rows.reduce((s, r) => s + safeNum(r.spend), 0)
+  const impressions = rows.reduce((s, r) => s + safeNum(r.impressions), 0)
+  const reach = rows.reduce((s, r) => s + safeNum(r.reach), 0)
+  const linkClicks = rows.reduce((s, r) => s + safeNum(r.linkClicks), 0)
+  const purchases = rows.reduce((s, r) => s + safeNum(r.purchases), 0)
+  const revenue = rows.reduce((s, r) => s + safeNum(r.revenue), 0)
 
-  if (!delta.hasPrevious) {
-    return (
-      <div className="mt-2 text-[13px] leading-tight text-slate-500">
-        <div>—</div>
-        <div>—</div>
-      </div>
-    )
+  return {
+    impressions,
+    reach,
+    spend,
+    linkClicks,
+    purchases,
+    revenue,
+    cpm: div(spend * 1000, impressions),
+    ctrLink: impressions > 0 ? (linkClicks / impressions) * 100 : null,
+    cpcLink: div(spend, linkClicks),
+    costPerResult: div(spend, purchases),
+    roas: div(revenue, spend),
+    purchaseConversion: linkClicks > 0 ? (purchases / linkClicks) * 100 : null,
+    croCampaign: linkClicks > 0 ? (purchases / linkClicks) * 100 : null,
+    aovCampaign: div(revenue, purchases),
+    hookRate: null,
+  }
+}
+
+const buildHierarchy = rows => {
+  const campaigns = {}
+
+  for (const row of rows) {
+    const cKey = row.campaignId || row.campaignName || 'Campagna'
+    if (!campaigns[cKey]) {
+      campaigns[cKey] = {
+        id: cKey,
+        name: row.campaignName || row.name || 'Campagna',
+        rows: [],
+        adsets: {},
+      }
+    }
+
+    campaigns[cKey].rows.push(row)
+
+    const aKey = row.adsetId || row.adsetName || 'Ad set'
+    if (!campaigns[cKey].adsets[aKey]) {
+      campaigns[cKey].adsets[aKey] = {
+        id: aKey,
+        name: row.adsetName || 'Ad set',
+        rows: [],
+        ads: [],
+      }
+    }
+
+    campaigns[cKey].adsets[aKey].rows.push(row)
+
+    campaigns[cKey].adsets[aKey].ads.push({
+      ...row,
+      name: row.adName || row.name || 'Ad',
+    })
   }
 
-  const isNegative = delta.value < 0
-  const color = isNegative ? RED : WHITE
-
-  return (
-    <div className="mt-2 text-[13px] leading-tight font-bold" style={{ color }}>
-      <div>
-        {delta.value > 0 ? '+' : ''}
-        {formatMetric(delta.value, type)}
-      </div>
-      <div>
-        {delta.pct === null ? '—' : `${delta.pct > 0 ? '+' : ''}${pct2.format(delta.pct)}%`}
-      </div>
-    </div>
-  )
-}
-
-function metricPrevious(row, key) {
-  if (!row) return null
-
-  if (row.previous && row.previous[key] !== undefined) {
-    return row.previous[key]
-  }
-
-  const weeks = Array.isArray(row.weeks) ? row.weeks : []
-
-  if (weeks.length >= 2) {
-    const sorted = [...weeks].sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    return sorted[sorted.length - 2]?.[key] ?? null
-  }
-
-  return null
-}
-
-function getLatest(row) {
-  return row?.latest || row || {}
-}
-
-function getWeeks(row) {
-  const weeks = Array.isArray(row?.weeks) ? row.weeks : []
-
-  return [...weeks]
-    .filter(Boolean)
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-}
-
-function buildChartData(campaigns) {
-  const firstCampaign = campaigns?.[0]
-  const weeks = getWeeks(firstCampaign)
-
-  return weeks.map((w) => ({
-    date: formatDateLabel(w.date || w.dateStart),
-    roas: n(w.roas),
-    spend: n(w.spend),
-    purchases: n(w.purchases),
-    ctrLink: n(w.ctrLink),
-    cpcLink: n(w.cpcLink),
-    cpm: n(w.cpm),
-    frequency: n(w.frequency),
+  return Object.values(campaigns).map(c => ({
+    ...c,
+    metrics: sumRows(c.rows),
+    adsets: Object.values(c.adsets).map(a => ({
+      ...a,
+      metrics: sumRows(a.rows),
+      ads: a.ads,
+    })),
   }))
 }
 
-function sortByMetric(items, metric, direction = 'desc') {
-  const cloned = [...items]
-  cloned.sort((a, b) => {
-    const av = n(getLatest(a)[metric])
-    const bv = n(getLatest(b)[metric])
-
-    return direction === 'desc' ? bv - av : av - bv
-  })
-
-  return cloned
+const deltaPct = (current, previous) => {
+  const c = Number(current)
+  const p = Number(previous)
+  if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return null
+  return ((c - p) / p) * 100
 }
 
-function flattenRows(campaigns) {
-  const rows = []
-
-  campaigns.forEach((campaign) => {
-    rows.push({
-      ...campaign,
-      level: 'campaign',
-      depth: 0,
-    })
-
-    const adsets = Array.isArray(campaign.adsets) ? campaign.adsets : []
-
-    adsets.forEach((adset) => {
-      rows.push({
-        ...adset,
-        level: 'adset',
-        depth: 1,
-      })
-
-      const ads = Array.isArray(adset.ads) ? adset.ads : []
-
-      ads.forEach((ad) => {
-        rows.push({
-          ...ad,
-          level: 'ad',
-          depth: 2,
-        })
-      })
-    })
-  })
-
-  return rows
+function MetricCard({ label, value, sub }) {
+  return (
+    <div style={{
+      background: CARD,
+      border: `1px solid ${LINE}`,
+      borderRadius: 10,
+      padding: 16,
+    }}>
+      <div style={{
+        color: MUTED,
+        fontSize: 11,
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        fontWeight: 800,
+        marginBottom: 8,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        color: WHITE,
+        fontSize: 24,
+        fontWeight: 900,
+        fontFamily: 'Barlow',
+      }}>
+        {value}
+      </div>
+      {sub && (
+        <div style={{ color: MUTED, fontSize: 12, marginTop: 6 }}>
+          {sub}
+        </div>
+      )}
+    </div>
+  )
 }
 
-function extractProductName(row) {
-  const creative = row.creative || {}
-  const possible = [
-    creative.productName,
-    creative.product_name,
-    creative.name,
-    row.productName,
-    row.product_name,
-    row.adName,
-    row.name,
-  ]
-
-  const found = possible.find((x) => typeof x === 'string' && x.trim())
-
-  if (!found) return null
-
-  return found
-    .replace('{{product.name}}', 'Prodotto catalogo')
-    .replace(/\s+/g, ' ')
-    .trim()
+function PresetButton({ active, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: `1px solid ${active ? GREEN : LINE}`,
+        background: active ? '#052e16' : 'transparent',
+        color: active ? GREEN : MUTED,
+        borderRadius: 999,
+        padding: '7px 12px',
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
 }
 
-function extractAngle(row) {
-  const text = [
-    row.name,
-    row.adName,
-    row.adsetName,
-    row.campaignName,
-    row.creative?.headline,
-    row.creative?.body,
-    row.creative?.primaryText,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-
-  if (text.includes('tof') || text.includes('broad') || text.includes('cold')) return 'Prospecting / Broad'
-  if (text.includes('mofu') || text.includes('middle')) return 'MOFU / Considerazione'
-  if (text.includes('bofu') || text.includes('ret') || text.includes('remarketing')) return 'BOFU / Remarketing'
-  if (text.includes('upsell')) return 'Upselling'
-  if (text.includes('stock')) return 'Disponibilità / In stock'
-  if (text.includes('daba') || text.includes('catalog')) return 'Catalogo / Advantage+'
-  if (text.includes('ugc')) return 'UGC'
-  if (text.includes('fomo')) return 'FOMO'
-  if (text.includes('bundle')) return 'Bundle'
-
-  return 'Non classificato'
-}
-
-function buildProductInsights(campaigns) {
-  const rows = flattenRows(campaigns).filter((row) => row.level === 'ad')
-
-  const grouped = new Map()
-
-  rows.forEach((row) => {
-    const latest = getLatest(row)
-    const product = extractProductName(row)
-
-    if (!product) return
-
-    const key = product
-
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        product,
-        spend: 0,
-        purchases: 0,
-        purchaseValue: 0,
-        addToCart: 0,
-        linkClicks: 0,
-        roas: 0,
-        aov: 0,
-        rows: [],
-      })
-    }
-
-    const item = grouped.get(key)
-
-    item.spend += n(latest.spend)
-    item.purchases += n(latest.purchases)
-    item.purchaseValue += n(latest.purchaseValue)
-    item.addToCart += n(latest.addToCart)
-    item.linkClicks += n(latest.linkClicks)
-    item.rows.push(row)
-  })
-
-  return [...grouped.values()]
-    .map((item) => ({
-      ...item,
-      roas: item.spend > 0 ? item.purchaseValue / item.spend : 0,
-      aov: item.purchases > 0 ? item.purchaseValue / item.purchases : 0,
-      cro: item.linkClicks > 0 ? (item.purchases / item.linkClicks) * 100 : 0,
-    }))
-    .sort((a, b) => b.purchaseValue - a.purchaseValue)
-    .slice(0, 10)
-}
-
-function buildAngleInsights(campaigns) {
-  const rows = flattenRows(campaigns).filter((row) => row.level === 'ad')
-
-  const grouped = new Map()
-
-  rows.forEach((row) => {
-    const latest = getLatest(row)
-    const angle = extractAngle(row)
-
-    if (!grouped.has(angle)) {
-      grouped.set(angle, {
-        angle,
-        spend: 0,
-        purchases: 0,
-        purchaseValue: 0,
-        addToCart: 0,
-        linkClicks: 0,
-        rows: [],
-      })
-    }
-
-    const item = grouped.get(angle)
-
-    item.spend += n(latest.spend)
-    item.purchases += n(latest.purchases)
-    item.purchaseValue += n(latest.purchaseValue)
-    item.addToCart += n(latest.addToCart)
-    item.linkClicks += n(latest.linkClicks)
-    item.rows.push(row)
-  })
-
-  return [...grouped.values()]
-    .map((item) => ({
-      ...item,
-      roas: item.spend > 0 ? item.purchaseValue / item.spend : 0,
-      aov: item.purchases > 0 ? item.purchaseValue / item.purchases : 0,
-      cro: item.linkClicks > 0 ? (item.purchases / item.linkClicks) * 100 : 0,
-    }))
-    .sort((a, b) => b.purchaseValue - a.purchaseValue)
-}
-
-function buildDescriptiveInsights(campaigns) {
-  const rows = flattenRows(campaigns)
-  const campaignRows = rows.filter((row) => row.level === 'campaign')
-  const adRows = rows.filter((row) => row.level === 'ad')
-
-  const topCampaigns = sortByMetric(campaignRows, 'purchaseValue', 'desc').slice(0, 3)
-  const worstSpend = sortByMetric(
-    campaignRows.filter((row) => n(getLatest(row).spend) > 0),
-    'roas',
-    'asc'
-  ).slice(0, 3)
-
-  const bestAds = sortByMetric(adRows, 'purchaseValue', 'desc').slice(0, 5)
-  const badAds = adRows
-    .filter((row) => n(getLatest(row).spend) > 20 && n(getLatest(row).purchases) === 0)
-    .sort((a, b) => n(getLatest(b).spend) - n(getLatest(a).spend))
-    .slice(0, 5)
-
-  const totalSpend = campaignRows.reduce((sum, row) => sum + n(getLatest(row).spend), 0)
-  const totalPurchaseValue = campaignRows.reduce((sum, row) => sum + n(getLatest(row).purchaseValue), 0)
-  const totalPurchases = campaignRows.reduce((sum, row) => sum + n(getLatest(row).purchases), 0)
-  const totalClicks = campaignRows.reduce((sum, row) => sum + n(getLatest(row).linkClicks), 0)
-  const totalRoas = totalSpend > 0 ? totalPurchaseValue / totalSpend : 0
-  const totalCro = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0
-  const totalAov = totalPurchases > 0 ? totalPurchaseValue / totalPurchases : 0
-
-  const todos = []
-
-  if (totalRoas < 2) {
-    todos.push('ROAS complessivo basso: ridurre budget sugli adset con ROAS sotto media e concentrare spesa su campagne/adset profittevoli.')
-  } else if (totalRoas >= 3) {
-    todos.push('ROAS complessivo positivo: valutare scaling progressivo sui migliori adset mantenendo sotto controllo frequenza e CPA.')
-  }
-
-  if (totalCro < 2) {
-    todos.push('CRO campagna basso: il traffico clicca ma converte poco. Migliorare coerenza tra creatività, prodotto, landing e offerta.')
-  }
-
-  if (badAds.length > 0) {
-    todos.push('Spegnere o rifare le creatività che spendono senza acquisti: stanno consumando budget senza generare output.')
-  }
-
-  if (bestAds.length > 0) {
-    todos.push('Duplicare gli angoli delle migliori creatività e creare nuove varianti su hook, headline, visual e prodotto.')
-  }
-
-  return {
-    totalSpend,
-    totalPurchaseValue,
-    totalPurchases,
-    totalClicks,
-    totalRoas,
-    totalCro,
-    totalAov,
-    topCampaigns,
-    worstSpend,
-    bestAds,
-    badAds,
-    todos,
-  }
-}
-
-function CreativePreview({ row }) {
-  const creative = row.creative || {}
-  const thumb = creative.thumbnailUrl || creative.imageUrl || creative.url || null
-  const headline = creative.headline || creative.title || ''
-  const body = creative.body || creative.primaryText || creative.message || ''
-  const link = creative.linkUrl || creative.objectUrl || creative.url || ''
-
-  if (!thumb && !headline && !body && !link) {
-    return null
-  }
+function MetricRow({ title, m, level = 0, thumbnail }) {
+  const pad = level === 0 ? 0 : level === 1 ? 24 : 48
+  const bg = level === 0 ? '#081226' : level === 1 ? '#07101f' : 'transparent'
 
   return (
-    <div className="mt-3 grid grid-cols-[72px_1fr] gap-3 rounded-xl border border-blue-900/50 bg-slate-950/40 p-3">
-      <div className="h-[72px] w-[72px] overflow-hidden rounded-lg bg-slate-900">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
-            no img
-          </div>
-        )}
-      </div>
+    <tr style={{ background: bg }}>
+      <td style={{ ...td, paddingLeft: 14 + pad, minWidth: 320 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt=""
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 8,
+                objectFit: 'cover',
+                border: `1px solid ${LINE}`,
+              }}
+            />
+          ) : level === 2 ? (
+            <div style={{
+              width: 46,
+              height: 46,
+              borderRadius: 8,
+              border: `1px solid ${LINE}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: MUTED,
+              fontSize: 10,
+            }}>
+              no img
+            </div>
+          ) : null}
 
-      <div className="min-w-0">
-        {headline ? (
-          <div className="text-sm font-bold text-white">{headline}</div>
-        ) : null}
-
-        {body ? (
-          <div className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-400">
-            {body}
+          <div>
+            <div style={{
+              color: level === 0 ? GREEN : WHITE,
+              fontWeight: 900,
+              fontSize: level === 0 ? 14 : 13,
+            }}>
+              {level === 0 ? 'Campagna · ' : level === 1 ? 'Ad set · ' : 'Ad · '}
+              {title}
+            </div>
+            {level === 2 && (
+              <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>
+                Anteprima creatività
+              </div>
+            )}
           </div>
-        ) : null}
+        </div>
+      </td>
+      <td style={td}>{int0(m.impressions)}</td>
+      <td style={td}>{int0(m.reach)}</td>
+      <td style={td}>{money(m.cpm)}</td>
+      <td style={td}>{pct(m.ctrLink)}</td>
+      <td style={td}>{money(m.cpcLink)}</td>
+      <td style={td}>{int0(m.linkClicks)}</td>
+      <td style={td}>{money0(m.spend)}</td>
+      <td style={td}>{money(m.costPerResult)}</td>
+      <td style={td}>{m.roas != null ? `${dec(m.roas)}x` : '—'}</td>
+      <td style={td}>{int0(m.purchases)}</td>
+      <td style={td}>{pct(m.purchaseConversion)}</td>
+      <td style={td}>{pct(m.croCampaign)}</td>
+      <td style={td}>{money(m.aovCampaign)}</td>
+      <td style={td}>{pct(m.hookRate)}</td>
+    </tr>
+  )
+}
 
-        {link ? (
-          <div className="mt-1 truncate text-xs text-blue-300">
-            {link}
+const th = {
+  padding: '12px 14px',
+  color: WHITE,
+  borderBottom: `1px solid ${LINE}`,
+  textAlign: 'left',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  fontWeight: 900,
+  whiteSpace: 'nowrap',
+}
+
+const td = {
+  padding: '12px 14px',
+  color: WHITE,
+  borderBottom: '1px solid #111827',
+  fontSize: 13,
+  whiteSpace: 'nowrap',
+}
+
+export default function MetaPage() {
+  const [live, setLive] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [preset, setPreset] = useState('last7')
+  const [customFrom, setCustomFrom] = useState(getPresetRange('last7').from)
+  const [customTo, setCustomTo] = useState(getPresetRange('last7').to)
+
+  const range = useMemo(() => {
+    if (preset === 'custom') return { from: customFrom, to: customTo }
+    return getPresetRange(preset)
+  }, [preset, customFrom, customTo])
+
+  useEffect(() => {
+    async function run() {
+      setLoading(true)
+      try {
+        const r = await fetch('/api/metrics', { cache: 'no-store' })
+        const j = await r.json()
+        setLive(j)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    run()
+  }, [])
+
+  const rawRows = useMemo(() => {
+    const arr =
+      live?.metaHierarchy ||
+      live?.metaDetail ||
+      live?.metaInsights ||
+      live?.metaAds ||
+      live?.metaWeekly ||
+      []
+
+    return Array.isArray(arr) ? arr : []
+  }, [live])
+
+  const rows = useMemo(() => rawRows.map(normalizeRow), [rawRows])
+
+  const filtered = useMemo(
+    () => rows.filter(r => inRange(r, range.from, range.to)),
+    [rows, range]
+  )
+
+  const hierarchy = useMemo(() => buildHierarchy(filtered), [filtered])
+
+  const totals = useMemo(() => sumRows(filtered), [filtered])
+
+  const compare = useMemo(() => {
+    const to = new Date(range.from)
+    to.setDate(to.getDate() - 1)
+
+    const from = new Date(to)
+    from.setDate(from.getDate() - 6)
+
+    const previousRows = rows.filter(r => inRange(r, iso(from), iso(to)))
+    const previous = sumRows(previousRows)
+
+    return {
+      from: iso(from),
+      to: iso(to),
+      previous,
+      spendDelta: deltaPct(totals.spend, previous.spend),
+      roasDelta: deltaPct(totals.roas, previous.roas),
+      cpaDelta: deltaPct(totals.costPerResult, previous.costPerResult),
+      ctrDelta: deltaPct(totals.ctrLink, previous.ctrLink),
+    }
+  }, [rows, range, totals])
+
+  const todo = useMemo(() => {
+    const list = []
+
+    if (totals.ctrLink != null && totals.ctrLink < 1) {
+      list.push('CTR link basso: testa nuovi hook creativi e prime righe copy più dirette. [Inferenza]')
+    }
+
+    if (totals.hookRate != null && totals.hookRate < 25) {
+      list.push('Hook Rate sotto soglia: cambia i primi 3 secondi dei video, mostrando subito beneficio, problema o risultato. [Inferenza]')
+    }
+
+    if (totals.costPerResult != null && totals.roas != null && totals.roas < 1.5) {
+      list.push('ROAS debole rispetto al costo per risultato: riduci budget sulle ads con CPA alto e rialloca su creatività con migliore conversione. [Inferenza]')
+    }
+
+    if (totals.purchases <= 0 && totals.linkClicks > 0) {
+      list.push('Ci sono click ma non acquisti: controlla landing, offerta, checkout e coerenza messaggio-annuncio. [Inferenza]')
+    }
+
+    if (list.length === 0) {
+      list.push('Non emergono criticità automatiche forti dai dati disponibili. Continua a scalare gradualmente le campagne con ROAS e CRO migliori. [Inferenza]')
+    }
+
+    return list
+  }, [totals])
+
+  const insight = useMemo(() => {
+    if (!filtered.length) {
+      return 'Non ci sono dati Meta disponibili nel periodo selezionato.'
+    }
+
+    return `Nel periodo ${range.from} → ${range.to}, Meta ha generato ${int0(totals.impressions)} impression, ${int0(totals.reach)} persone raggiunte e ${int0(totals.linkClicks)} click sul link, con una spesa totale di ${money0(totals.spend)}. Il ROAS rilevato è ${totals.roas != null ? `${dec(totals.roas)}x` : 'non disponibile'} e il costo per risultato è ${money(totals.costPerResult)}. [Inferenza] In ottica Andromeda, conviene dare più segnali creativi chiari all’algoritmo: creatività differenziate, angoli di comunicazione distinti e segnali di conversione coerenti, evitando troppe varianti quasi uguali.`
+  }, [filtered, range, totals])
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: DARK,
+      color: WHITE,
+      padding: '24px 28px 60px',
+      fontFamily: 'Barlow, system-ui, sans-serif',
+    }}>
+      <div style={{
+        maxWidth: 1560,
+        margin: '0 auto',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: 24,
+        }}>
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: 22,
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+            }}>
+              Meta Detail
+            </h1>
+            <p style={{
+              margin: '6px 0 0',
+              color: MUTED,
+              fontSize: 12,
+            }}>
+              Analisi gerarchica campagne · ad set · ads
+            </p>
           </div>
-        ) : null}
+
+          <div style={{
+            color: loading ? YELLOW : GREEN,
+            fontSize: 12,
+            fontWeight: 800,
+          }}>
+            {loading ? 'Caricamento…' : 'Dati caricati'}
+          </div>
+        </div>
+
+        <div style={{
+          background: CARD,
+          border: `1px solid ${LINE}`,
+          borderRadius: 12,
+          padding: 18,
+          marginBottom: 18,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+            alignItems: 'center',
+          }}>
+            <PresetButton active={preset === 'today'} onClick={() => setPreset('today')}>Oggi</PresetButton>
+            <PresetButton active={preset === 'yesterday'} onClick={() => setPreset('yesterday')}>Ieri</PresetButton>
+            <PresetButton active={preset === 'last7'} onClick={() => setPreset('last7')}>Ultimi 7g</PresetButton>
+            <PresetButton active={preset === 'last14'} onClick={() => setPreset('last14')}>Ultimi 14g</PresetButton>
+            <PresetButton active={preset === 'last28'} onClick={() => setPreset('last28')}>Ultimi 28g</PresetButton>
+            <PresetButton active={preset === 'thisMonth'} onClick={() => setPreset('thisMonth')}>Mese corrente</PresetButton>
+            <PresetButton active={preset === 'lastMonth'} onClick={() => setPreset('lastMonth')}>Mese scorso</PresetButton>
+            <PresetButton active={preset === 'custom'} onClick={() => setPreset('custom')}>Custom</PresetButton>
+
+            {preset === 'custom' && (
+              <div style={{ display: 'flex', gap: 8, marginLeft: 8 }}>
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => setCustomFrom(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={e => setCustomTo(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 12,
+          marginBottom: 18,
+        }}>
+          <MetricCard label="Importo speso" value={money0(totals.spend)} />
+          <MetricCard label="ROAS" value={totals.roas != null ? `${dec(totals.roas)}x` : '—'} />
+          <MetricCard label="Costo risultato" value={money(totals.costPerResult)} />
+          <MetricCard label="Acquisti" value={int0(totals.purchases)} />
+          <MetricCard label="CTR link" value={pct(totals.ctrLink)} />
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1.1fr 1fr',
+          gap: 18,
+          marginBottom: 18,
+        }}>
+          <div style={panelStyle}>
+            <h2 style={panelTitle}>Confronto · ultimi 7g vs 7g precedenti</h2>
+            <div style={{
+              color: MUTED,
+              fontSize: 12,
+              marginBottom: 12,
+            }}>
+              Periodo precedente: {compare.from} → {compare.to}
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 10,
+            }}>
+              <CompareBox label="Spesa" value={compare.spendDelta} positiveGood={false} />
+              <CompareBox label="ROAS" value={compare.roasDelta} positiveGood />
+              <CompareBox label="CPA" value={compare.cpaDelta} positiveGood={false} />
+              <CompareBox label="CTR" value={compare.ctrDelta} positiveGood />
+            </div>
+          </div>
+
+          <div style={panelStyle}>
+            <h2 style={panelTitle}>Insight automatico</h2>
+            <p style={{
+              color: '#cbd5e1',
+              fontSize: 14,
+              lineHeight: 1.6,
+              margin: 0,
+            }}>
+              {insight}
+            </p>
+          </div>
+        </div>
+
+        <div style={panelStyle}>
+          <h2 style={panelTitle}>To-do consigliate</h2>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {todo.map((t, i) => (
+              <div key={i} style={{
+                border: `1px solid ${LINE}`,
+                borderRadius: 8,
+                padding: 12,
+                color: '#cbd5e1',
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}>
+                <strong style={{ color: GREEN }}>#{i + 1}</strong> {t}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{
+          ...panelStyle,
+          marginTop: 18,
+          padding: 0,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '18px 18px 0',
+          }}>
+            <h2 style={panelTitle}>Gerarchia Meta · Campagne / Ad set / Ads</h2>
+            <p style={{
+              color: MUTED,
+              fontSize: 12,
+              marginTop: -6,
+              marginBottom: 14,
+            }}>
+              Metriche disponibili per ogni livello. Le ads mostrano anche nome creatività e thumbnail quando presente nei dati.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{
+              width: '100%',
+              minWidth: 1700,
+              borderCollapse: 'collapse',
+            }}>
+              <thead>
+                <tr>
+                  <th style={th}>Livello</th>
+                  <th style={th}>Impression</th>
+                  <th style={th}>Copertura</th>
+                  <th style={th}>CPM</th>
+                  <th style={th}>CTR link</th>
+                  <th style={th}>CPC link</th>
+                  <th style={th}>Click link</th>
+                  <th style={th}>Speso</th>
+                  <th style={th}>Costo risultato</th>
+                  <th style={th}>ROAS</th>
+                  <th style={th}>Acquisti</th>
+                  <th style={th}>Conv. acquisti</th>
+                  <th style={th}>CRO campagna</th>
+                  <th style={th}>AOV campagna</th>
+                  <th style={th}>Hook Rate</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {hierarchy.length ? hierarchy.map(c => (
+                  <>
+                    <MetricRow key={`c-${c.id}`} title={c.name} m={c.metrics} level={0} />
+
+                    {c.adsets.map(a => (
+                      <>
+                        <MetricRow key={`a-${c.id}-${a.id}`} title={a.name} m={a.metrics} level={1} />
+
+                        {a.ads.map(ad => (
+                          <MetricRow
+                            key={`ad-${c.id}-${a.id}-${ad.id}`}
+                            title={ad.name}
+                            m={ad}
+                            level={2}
+                            thumbnail={ad.thumbnail}
+                          />
+                        ))}
+                      </>
+                    ))}
+                  </>
+                )) : (
+                  <tr>
+                    <td style={td} colSpan={15}>
+                      Nessun dato Meta disponibile per il periodo selezionato.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-function MetricCell({ row, metric, type = 'num' }) {
-  const latest = getLatest(row)
-  const current = latest[metric]
-  const previous = metricPrevious(row, metric)
+function CompareBox({ label, value, positiveGood }) {
+  const isPositive = value != null && value >= 0
+  const good = value == null ? null : positiveGood ? isPositive : !isPositive
 
   return (
-    <td className="min-w-[130px] px-4 py-5 align-top text-white">
-      <div className="text-[19px] font-black leading-none">
-        {formatMetric(current, type)}
+    <div style={{
+      border: `1px solid ${LINE}`,
+      borderRadius: 8,
+      padding: 12,
+      background: '#07101f',
+    }}>
+      <div style={{
+        color: MUTED,
+        fontSize: 11,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        marginBottom: 8,
+        fontWeight: 800,
+      }}>
+        {label}
       </div>
-      <DeltaBlock current={current} previous={previous} type={type} />
-    </td>
+
+      <div style={{
+        color: value == null ? MUTED : good ? GREEN : RED,
+        fontWeight: 900,
+        fontSize: 20,
+      }}>
+        {value == null ? '—' : `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`}
+      </div>
+    </div>
   )
 }
 
-function RowNameCell({ row }) {
-  const latest = getLatest(row)
-  const depth = row.depth || 0
-  const isAd = row.level === 'ad'
-
-  const name =
-    row.name ||
-    latest.adName ||
-    latest.adsetName ||
-    latest.campaignName ||
-    row.adName ||
-    row.adsetName ||
-    row.campaignName ||
-    'Senza nome'
-
-  const id = row.id || latest.adId || latest.adsetId || latest.campaignId || ''
-
-  return (
-    <td className="sticky left-0 z-10 min-w-[470px] bg-[#071225] px-4 py-5 align-top text-white">
-      <div
-        className="flex items-start gap-2"
-        style={{ paddingLeft: depth * 26 }}
-      >
-        <span className="mt-[2px] text-xs text-slate-400">
-          {row.level === 'campaign' ? '▾' : row.level === 'adset' ? '▸' : '•'}
-        </span>
-
-        <div className="min-w-0">
-          <div className="text-[18px] font-black leading-snug">
-            {name}
-          </div>
-
-          {id ? (
-            <div className="mt-2 text-xs text-slate-500">
-              {id}
-            </div>
-          ) : null}
-
-          {isAd ? <CreativePreview row={row} /> : null}
-        </div>
-      </div>
-    </td>
-  )
+const panelStyle = {
+  background: CARD,
+  border: `1px solid ${LINE}`,
+  borderRadius: 12,
+  padding: 18,
 }
 
-function InsightsPanel({ campaigns }) {
-  const insights = useMemo(() => buildDescriptiveInsights(campaigns), [campaigns])
-  const products = useMemo(() => buildProductInsights(campaigns), [campaigns])
-  const angles = useMemo(() => buildAngleInsights(campaigns), [campaigns])
-
-  return (
-    <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-6">
-      <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.18em] text-white">
-        Insight performance e azioni consigliate
-      </h2>
-
-      <div className="grid gap-4 lg:grid-cols-4">
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Speso</div>
-          <div className="mt-2 text-2xl font-black text-white">
-            {formatMetric(insights.totalSpend, 'euro0')}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">ROAS</div>
-          <div className="mt-2 text-2xl font-black text-white">
-            {formatMetric(insights.totalRoas, 'x')}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">CRO campagna</div>
-          <div className="mt-2 text-2xl font-black text-white">
-            {formatMetric(insights.totalCro, 'pct')}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-slate-400">AOV</div>
-          <div className="mt-2 text-2xl font-black text-white">
-            {formatMetric(insights.totalAov, 'euro2')}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
-          <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
-            Cosa sta funzionando
-          </h3>
-
-          <ul className="space-y-3 text-sm leading-relaxed text-slate-300">
-            {insights.topCampaigns.length ? (
-              insights.topCampaigns.map((row) => {
-                const latest = getLatest(row)
-
-                return (
-                  <li key={row.id || latest.campaignId}>
-                    <strong className="text-white">{row.name || latest.campaignName}</strong>
-                    {' '}sta generando {formatMetric(latest.purchaseValue, 'euro0')} di valore acquisti,
-                    con ROAS {formatMetric(latest.roas, 'x')} e {formatMetric(latest.purchases)} acquisti.
-                  </li>
-                )
-              })
-            ) : (
-              <li>Nessuna campagna con dati sufficienti.</li>
-            )}
-          </ul>
-        </div>
-
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
-          <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
-            Cosa non sta funzionando
-          </h3>
-
-          <ul className="space-y-3 text-sm leading-relaxed text-slate-300">
-            {insights.worstSpend.length ? (
-              insights.worstSpend.map((row) => {
-                const latest = getLatest(row)
-
-                return (
-                  <li key={row.id || latest.campaignId}>
-                    <strong className="text-white">{row.name || latest.campaignName}</strong>
-                    {' '}ha ROAS {formatMetric(latest.roas, 'x')} con spesa {formatMetric(latest.spend, 'euro0')}.
-                    Da verificare budget, pubblico, creatività e prodotto spinto.
-                  </li>
-                )
-              })
-            ) : (
-              <li>Nessuna criticità evidente dai dati disponibili.</li>
-            )}
-          </ul>
-        </div>
-      </div>
-
-      <div className="mt-5 rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
-        <h3 className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-white">
-          To do operativi
-        </h3>
-
-        <ul className="space-y-2 text-sm leading-relaxed text-slate-300">
-          {insights.todos.length ? (
-            insights.todos.map((todo, index) => (
-              <li key={index}>• {todo}</li>
-            ))
-          ) : (
-            <li>Continuare a monitorare scaling, frequenza e CPA. I dati non mostrano ancora azioni prioritarie evidenti.</li>
-          )}
-
-          <li>
-            • [Inferenza] Con campagne catalogo, Meta può mostrare prodotti dinamici. Questa dashboard può leggere creatività,
-            nomi, thumbnail e performance, ma per sapere con certezza quale SKU/prodotto ha venduto serve collegare anche il dato prodotto da Shopify oppure un breakdown Meta compatibile.
-          </li>
-        </ul>
-      </div>
-
-      <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
-          <h3 className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-white">
-            Prodotti / creatività catalogo più forti
-          </h3>
-
-          <div className="space-y-3">
-            {products.length ? (
-              products.map((item) => (
-                <div key={item.product} className="rounded-lg border border-blue-900/40 p-3">
-                  <div className="font-bold text-white">{item.product}</div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    Valore {formatMetric(item.purchaseValue, 'euro0')} · ROAS {formatMetric(item.roas, 'x')} ·
-                    Acquisti {formatMetric(item.purchases)} · AOV {formatMetric(item.aov, 'euro2')}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-slate-400">
-                Non vedo ancora nomi prodotto leggibili nei dati creatività. [Non verificato]
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-blue-900/50 bg-slate-950/30 p-5">
-          <h3 className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-white">
-            Angoli comunicativi
-          </h3>
-
-          <div className="space-y-3">
-            {angles.length ? (
-              angles.map((item) => (
-                <div key={item.angle} className="rounded-lg border border-blue-900/40 p-3">
-                  <div className="font-bold text-white">{item.angle}</div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    Valore {formatMetric(item.purchaseValue, 'euro0')} · ROAS {formatMetric(item.roas, 'x')} ·
-                    CRO {formatMetric(item.cro, 'pct')} · Spesa {formatMetric(item.spend, 'euro0')}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-slate-400">
-                Nessun angolo classificabile dai naming attuali. [Inferenza]
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
+const panelTitle = {
+  margin: '0 0 14px',
+  color: WHITE,
+  fontSize: 13,
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  fontWeight: 900,
+  fontFamily: 'Barlow Condensed, Barlow, system-ui',
 }
 
-function TimeFrameSelector({
-  preset,
-  setPreset,
-  since,
-  setSince,
-  until,
-  setUntil,
-  onApply,
-}) {
-  function applyPreset(value) {
-    setPreset(value)
-
-    const today = new Date()
-
-    if (value === 'today') {
-      setSince(isoDate(today))
-      setUntil(isoDate(today))
-      return
-    }
-
-    if (value === 'yesterday') {
-      const yesterday = addDays(today, -1)
-      setSince(isoDate(yesterday))
-      setUntil(isoDate(yesterday))
-      return
-    }
-
-    if (value === 'last_7d') {
-      setSince(isoDate(addDays(today, -6)))
-      setUntil(isoDate(today))
-      return
-    }
-
-    if (value === 'last_14d') {
-      setSince(isoDate(addDays(today, -13)))
-      setUntil(isoDate(today))
-      return
-    }
-
-    if (value === 'last_30d') {
-      setSince(isoDate(addDays(today, -29)))
-      setUntil(isoDate(today))
-      return
-    }
-
-    if (value === 'this_month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1)
-      setSince(isoDate(start))
-      setUntil(isoDate(today))
-      return
-    }
-
-    if (value === 'last_month') {
-      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const end = new Date(today.getFullYear(), today.getMonth(), 0)
-      setSince(isoDate(start))
-      setUntil(isoDate(end))
-      return
-    }
-  }
-
-  return (
-    <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
-      <div className="grid gap-4 lg:grid-cols-[260px_210px_210px_140px_1fr] lg:items-end">
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">
-            Time frame
-          </label>
-
-          <select
-            value={preset}
-            onChange={(event) => applyPreset(event.target.value)}
-            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
-          >
-            <option value="today">Oggi</option>
-            <option value="yesterday">Ieri</option>
-            <option value="last_7d">Ultimi 7 giorni</option>
-            <option value="last_14d">Ultimi 14 giorni</option>
-            <option value="last_30d">Ultimi 30 giorni</option>
-            <option value="this_month">Questo mese</option>
-            <option value="last_month">Mese scorso</option>
-            <option value="custom">Personalizzato</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">
-            Da
-          </label>
-
-          <input
-            type="date"
-            value={since}
-            onChange={(event) => {
-              setPreset('custom')
-              setSince(event.target.value)
-            }}
-            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">
-            A
-          </label>
-
-          <input
-            type="date"
-            value={until}
-            onChange={(event) => {
-              setPreset('custom')
-              setUntil(event.target.value)
-            }}
-            className="h-[54px] w-full rounded-xl border border-blue-900/70 bg-[#020817] px-4 text-lg font-black text-white outline-none"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={onApply}
-          className="h-[54px] rounded-xl bg-green-500 px-5 text-lg font-black text-slate-950"
-        >
-          Aggiorna
-        </button>
-
-        <div className="text-right text-sm text-slate-400">
-          Periodo: {since} → {until}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export default function MetaPage() {
-  const [preset, setPreset] = useState('last_7d')
-  const [since, setSince] = useState(() => isoDate(addDays(new Date(), -6)))
-  const [until, setUntil] = useState(() => isoDate(new Date()))
-
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [updatedAt, setUpdatedAt] = useState('')
-
-  async function loadData() {
-    try {
-      setLoading(true)
-      setError('')
-
-      const res = await fetch(`/api/meta-detail?since=${since}&until=${until}`, {
-        cache: 'no-store',
-      })
-
-      const text = await res.text()
-
-      let json = null
-
-      try {
-        json = JSON.parse(text)
-      } catch (err) {
-        throw new Error(`Risposta API non valida: ${text.slice(0, 300)}`)
-      }
-
-      if (!res.ok || json?.error) {
-        throw new Error(json?.error || `Errore API ${res.status}`)
-      }
-
-      setData(json)
-      setUpdatedAt(new Date().toLocaleString('it-IT'))
-    } catch (err) {
-      setError(err?.message || 'Errore sconosciuto')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const campaigns = Array.isArray(data?.campaigns) ? data.campaigns : []
-  const chartData = useMemo(() => buildChartData(campaigns), [campaigns])
-  const rows = useMemo(() => flattenRows(campaigns), [campaigns])
-
-  return (
-    <main className="min-h-screen bg-[#020817] px-5 py-8 text-white">
-      <div className="mx-auto max-w-[1800px]">
-        <a href="/" className="text-sm text-slate-400 hover:text-white">
-          ← Torna alla dashboard
-        </a>
-
-        <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-[34px] uppercase tracking-[0.18em] text-white">
-              Analisi Meta dettagliata
-            </h1>
-
-            <p className="mt-3 text-slate-400">
-              Campagne attive → adset → creatività, con variazioni rispetto al periodo precedente.
-            </p>
-          </div>
-
-          {updatedAt ? (
-            <div className="text-sm text-green-400">
-              Aggiornato: {updatedAt}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-8">
-          <TimeFrameSelector
-            preset={preset}
-            setPreset={setPreset}
-            since={since}
-            setSince={setSince}
-            until={until}
-            setUntil={setUntil}
-            onApply={loadData}
-          />
-        </div>
-
-        {loading ? (
-          <div className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6 text-white">
-            Caricamento dati Meta...
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6 text-red-400">
-            Errore: {error}
-          </div>
-        ) : null}
-
-        {!loading && !error ? (
-          <>
-            <div className="mt-6 grid gap-5 lg:grid-cols-2">
-              <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
-                <h2 className="mb-4 text-[20px] font-black uppercase tracking-[0.18em] text-white">
-                  ROAS, spesa e acquisti
-                </h2>
-
-                <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#102040" />
-                      <XAxis dataKey="date" stroke={MUTED} />
-                      <YAxis stroke={MUTED} />
-                      <Tooltip
-                        contentStyle={{
-                          background: CARD,
-                          border: `1px solid ${BORDER}`,
-                          color: WHITE,
-                        }}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="roas" name="ROAS" stroke={WHITE} strokeWidth={2} dot />
-                      <Line type="monotone" dataKey="spend" name="Spesa" stroke={BLUE} strokeWidth={2} dot />
-                      <Line type="monotone" dataKey="purchases" name="Acquisti" stroke={GREEN} strokeWidth={2} dot />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-blue-900/70 bg-[#070f22] p-5">
-                <h2 className="mb-4 text-[20px] font-black uppercase tracking-[0.18em] text-white">
-                  KPI Meta: CTR, CPC, CPM, frequenza
-                </h2>
-
-                <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#102040" />
-                      <XAxis dataKey="date" stroke={MUTED} />
-                      <YAxis stroke={MUTED} />
-                      <Tooltip
-                        contentStyle={{
-                          background: CARD,
-                          border: `1px solid ${BORDER}`,
-                          color: WHITE,
-                        }}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="ctrLink" name="CTR link %" stroke={BLUE} strokeWidth={2} dot />
-                      <Line type="monotone" dataKey="cpcLink" name="CPC link" stroke={CYAN} strokeWidth={2} dot />
-                      <Line type="monotone" dataKey="cpm" name="CPM" stroke={PURPLE} strokeWidth={2} dot />
-                      <Line type="monotone" dataKey="frequency" name="Frequenza" stroke={WHITE} strokeWidth={2} dot />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
-            </div>
-
-            <div className="mt-6">
-              <InsightsPanel campaigns={campaigns} />
-            </div>
-
-            <section className="mt-6 rounded-2xl border border-blue-900/70 bg-[#070f22] p-6">
-              <h2 className="mb-5 text-[20px] font-black uppercase tracking-[0.18em] text-white">
-                Campagne attive, adset e creatività
-              </h2>
-
-              <div className="overflow-auto rounded-2xl border border-blue-900/70">
-                <table className="w-full min-w-[2100px] border-collapse bg-[#071225]">
-                  <thead className="sticky top-0 z-20 bg-[#071225]">
-                    <tr className="border-b border-blue-900/70 text-left text-sm uppercase tracking-[0.16em] text-white">
-                      <th className="sticky left-0 z-30 min-w-[470px] bg-[#071225] px-4 py-4">
-                        Campagna / Adset / Creatività
-                      </th>
-                      <th className="px-4 py-4">Speso</th>
-                      <th className="px-4 py-4">ROAS</th>
-                      <th className="px-4 py-4">Valore acquisti</th>
-                      <th className="px-4 py-4">AOV</th>
-                      <th className="px-4 py-4">Acquisti</th>
-                      <th className="px-4 py-4">Conv. acquisti</th>
-                      <th className="px-4 py-4">Add to cart</th>
-                      <th className="px-4 py-4">CRO campagna</th>
-                      <th className="px-4 py-4">CTR link</th>
-                      <th className="px-4 py-4">CPC link</th>
-                      <th className="px-4 py-4">CPM</th>
-                      <th className="px-4 py-4">Impression</th>
-                      <th className="px-4 py-4">Copertura</th>
-                      <th className="px-4 py-4">Frequenza</th>
-                      <th className="px-4 py-4">Costo risultato</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {rows.map((row, index) => {
-                      const key =
-                        `${row.level}-${row.id || row.adId || row.adsetId || row.campaignId || index}`
-
-                      return (
-                        <tr key={key} className="border-b border-blue-900/50">
-                          <RowNameCell row={row} />
-                          <MetricCell row={row} metric="spend" type="euro0" />
-                          <MetricCell row={row} metric="roas" type="x" />
-                          <MetricCell row={row} metric="purchaseValue" type="euro0" />
-                          <MetricCell row={row} metric="aov" type="euro2" />
-                          <MetricCell row={row} metric="purchases" />
-                          <MetricCell row={row} metric="purchaseConversions" />
-                          <MetricCell row={row} metric="addToCart" />
-                          <MetricCell row={row} metric="cro" type="pct" />
-                          <MetricCell row={row} metric="ctrLink" type="pct" />
-                          <MetricCell row={row} metric="cpcLink" type="euro2" />
-                          <MetricCell row={row} metric="cpm" type="euro2" />
-                          <MetricCell row={row} metric="impressions" />
-                          <MetricCell row={row} metric="reach" />
-                          <MetricCell row={row} metric="frequency" type="dec" />
-                          <MetricCell row={row} metric="costPerResult" type="euro2" />
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        ) : null}
-      </div>
-    </main>
-  )
+const inputStyle = {
+  background: '#07101f',
+  border: `1px solid ${LINE}`,
+  borderRadius: 8,
+  color: WHITE,
+  padding: '7px 10px',
+  fontSize: 12,
+  outline: 'none',
 }

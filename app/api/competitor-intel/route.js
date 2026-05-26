@@ -19,6 +19,8 @@ const COMPETITORS = [
     pageId: '234280280078173',
     origin: 'https://eu.velitessport.com',
     homepage: 'https://eu.velitessport.com/it',
+    instagram: 'velitessport',
+    facebook: 'velitessport',
   },
   {
     id: 'picsil',
@@ -26,6 +28,8 @@ const COMPETITORS = [
     pageId: '842231462504799',
     origin: 'https://it.picsilsport.com',
     homepage: 'https://it.picsilsport.com',
+    instagram: 'picsilsport',
+    facebook: 'picsilsport',
   },
   {
     id: 'froggrips',
@@ -33,6 +37,8 @@ const COMPETITORS = [
     pageId: '114720846967132',
     origin: 'https://froggrips.com.au',
     homepage: 'https://froggrips.com.au',
+    instagram: 'froggrips',
+    facebook: 'froggrips',
   },
 ]
 
@@ -44,6 +50,108 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 function sanitize(v) {
   if (typeof v !== 'string') return v
   return v.replace(/[\x00-\x1f\x7f]/g, ' ').trim()
+}
+
+async function fetchFacebookPage(pageId) {
+  if (!ACCESS_TOKEN) return null
+  try {
+    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${pageId}?fields=name,fan_count,followers_count,about,category,link,posts.limit(5){message,created_time,shares,likes.summary(true),comments.summary(true)}&access_token=${ACCESS_TOKEN}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.error) return null
+
+    const posts = (data.posts?.data || []).map(p => ({
+      message: sanitize((p.message || '').slice(0, 200)),
+      date: p.created_time,
+      likes: p.likes?.summary?.total_count || 0,
+      comments: p.comments?.summary?.total_count || 0,
+      shares: p.shares?.count || 0,
+    }))
+
+    const totalEng = posts.reduce((s, p) => s + p.likes + p.comments + p.shares, 0)
+
+    return {
+      name: data.name,
+      fans: data.fan_count || data.followers_count || 0,
+      category: data.category || '',
+      about: sanitize((data.about || '').slice(0, 300)),
+      recentPosts: posts,
+      avgEngagement: posts.length > 0 ? Math.round(totalEng / posts.length) : 0,
+      engagementRate: posts.length > 0 && (data.fan_count || 0) > 0 ? ((totalEng / posts.length) / data.fan_count * 100).toFixed(2) + '%' : null,
+    }
+  } catch { return null }
+}
+
+async function fetchInstagramProfile(username) {
+  if (!username) return null
+  try {
+    const res = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'X-IG-App-ID': '936619743392459',
+      },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) {
+      const htmlRes = await fetch(`https://www.instagram.com/${username}/`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!htmlRes.ok) return { username, error: 'not_accessible' }
+      const html = await htmlRes.text()
+
+      const followersMatch = html.match(/"edge_followed_by":\{"count":(\d+)\}/) || html.match(/"follower_count":(\d+)/) || html.match(/(\d[\d,.]+)\s*(?:Follower|follower|seguaci)/i)
+      const followingMatch = html.match(/"edge_follow":\{"count":(\d+)\}/) || html.match(/"following_count":(\d+)/)
+      const postsMatch = html.match(/"edge_owner_to_timeline_media":\{"count":(\d+)\}/) || html.match(/"media_count":(\d+)/)
+      const bioMatch = html.match(/"biography":"(.*?)"/)
+      const nameMatch = html.match(/"full_name":"(.*?)"/)
+
+      return {
+        username,
+        fullName: nameMatch ? sanitize(nameMatch[1]) : username,
+        followers: followersMatch ? parseInt(followersMatch[1].replace(/[,.]/g, ''), 10) : null,
+        following: followingMatch ? parseInt(followingMatch[1], 10) : null,
+        posts: postsMatch ? parseInt(postsMatch[1], 10) : null,
+        bio: bioMatch ? sanitize(bioMatch[1].replace(/\\n/g, ' ').slice(0, 300)) : null,
+        source: 'html_scrape',
+      }
+    }
+
+    const data = await res.json()
+    const user = data?.data?.user
+    if (!user) return { username, error: 'user_not_found' }
+
+    const recentMedia = (user.edge_owner_to_timeline_media?.edges || []).slice(0, 6)
+    const mediaData = recentMedia.map(e => ({
+      likes: e.node?.edge_liked_by?.count || 0,
+      comments: e.node?.edge_media_to_comment?.count || 0,
+      caption: sanitize((e.node?.edge_media_to_caption?.edges?.[0]?.node?.text || '').slice(0, 150)),
+      isVideo: e.node?.is_video || false,
+      timestamp: e.node?.taken_at_timestamp,
+    }))
+
+    const totalEng = mediaData.reduce((s, m) => s + m.likes + m.comments, 0)
+    const followers = user.edge_followed_by?.count || 0
+
+    return {
+      username,
+      fullName: sanitize(user.full_name || ''),
+      followers,
+      following: user.edge_follow?.count || 0,
+      posts: user.edge_owner_to_timeline_media?.count || 0,
+      bio: sanitize((user.biography || '').slice(0, 300)),
+      isVerified: user.is_verified || false,
+      isBusinessAccount: user.is_business_account || false,
+      profilePic: user.profile_pic_url_hd || user.profile_pic_url || '',
+      recentMedia: mediaData,
+      avgEngagement: mediaData.length > 0 ? Math.round(totalEng / mediaData.length) : 0,
+      engagementRate: mediaData.length > 0 && followers > 0 ? ((totalEng / mediaData.length) / followers * 100).toFixed(2) + '%' : null,
+      source: 'api',
+    }
+  } catch {
+    return { username, error: 'fetch_failed' }
+  }
 }
 
 async function fetchAdLibrary(pageId, countries) {
@@ -305,9 +413,11 @@ async function scrapeProducts(origin, homepage) {
 async function fetchAllCompetitors(countries) {
   return Promise.all(
     COMPETITORS.map(async (comp) => {
-      const [adLibrary, websiteData] = await Promise.all([
+      const [adLibrary, websiteData, facebookData, instagramData] = await Promise.all([
         fetchAdLibrary(comp.pageId, countries),
         scrapeProducts(comp.origin, comp.homepage),
+        fetchFacebookPage(comp.pageId),
+        fetchInstagramProfile(comp.instagram),
       ])
 
       return {
@@ -315,8 +425,13 @@ async function fetchAllCompetitors(countries) {
         name: comp.name,
         websiteUrl: comp.homepage,
         pageId: comp.pageId,
+        instagram: comp.instagram,
         adLibrary,
         websiteData,
+        social: {
+          facebook: facebookData,
+          instagram: instagramData,
+        },
       }
     })
   )

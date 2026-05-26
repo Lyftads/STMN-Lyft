@@ -166,6 +166,10 @@ export async function GET(request) {
           type: p.type,
         }))
 
+      const social = c.social || {}
+      const fb = social.facebook || {}
+      const ig = social.instagram || {}
+
       return {
         name: c.name,
         website: c.websiteUrl,
@@ -192,6 +196,23 @@ export async function GET(request) {
         promos: ws.promos || [],
         topByPrice,
         onSaleProducts,
+        facebook: fb ? {
+          fans: fb.fans || 0,
+          avgEngagement: fb.avgEngagement || 0,
+          engagementRate: fb.engagementRate || null,
+          recentPosts: (fb.recentPosts || []).slice(0, 3),
+        } : null,
+        instagram: ig && !ig.error ? {
+          username: ig.username,
+          followers: ig.followers || 0,
+          following: ig.following || 0,
+          posts: ig.posts || 0,
+          bio: ig.bio || '',
+          isVerified: ig.isVerified || false,
+          avgEngagement: ig.avgEngagement || 0,
+          engagementRate: ig.engagementRate || null,
+          recentMedia: (ig.recentMedia || []).slice(0, 3),
+        } : null,
       }
     })
     context.competitorsFetchedAt = competitorIntel.fetchedAt

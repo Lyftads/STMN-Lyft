@@ -949,8 +949,13 @@ async function safeShopifyDayBreakdown() {
   }
 }
 // ── API Route ─────────────────────────────────────────────────
-export async function GET() {
-  try {
+export async function GET(req) {
+  const { searchParams } = new URL(req.url)
+  const preset = searchParams.get('preset') || 'last_90d'
+
+  const range = getPresetRange(preset)
+  const previousRange = getPreviousRange(range)
+    try {
     const [
       aovData,
       shopifyWeekly,
@@ -970,6 +975,9 @@ export async function GET() {
       0
     )
 
+    const shopifyTopProducts = await safeShopifyTopProducts()
+    const shopifyDayBreakdown = await safeShopifyDayBreakdown()
+
     return NextResponse.json({
       aovLive: Math.round(aovData.aov * 100) / 100,
       ordersLive: aovData.orders,
@@ -977,11 +985,15 @@ export async function GET() {
       shopifyWeekly,
       shopifyMonthly,
 
-      // Lasciamo questi 3 campi per KPI Brain, ma per ora vuoti.
-      // Così KPI Brain non rompe la dashboard.
-     shopifyTopProducts: await safeShopifyTopProducts(),
-shopifyMarketingSources: [],
-shopifyDayBreakdown: await safeShopifyDayBreakdown(),
+      shopifyTopProducts,
+      shopifyMarketingSources: [],
+      shopifyDayBreakdown,
+
+      kpiBrain: {
+        preset,
+        range,
+        previousRange,
+      },
 
       metaSpend: Math.round(metaTotal * 100) / 100,
       metaMonthly,

@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
+import VendroShell from './components/VendroShell'
+import KPIBrainTab from './components/KPIBrainTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1346,12 +1348,13 @@ export default function App() {
   const croG   = avgCRO
 
   const TABS = [
-    {id:'dashboard', l:'Dashboard'},
-    {id:'monthly',   l:'Mensile'},
-    {id:'weekly',    l:'Weekly'},
-    {id:'simulator', l:'Simulatore'},
-    {id:'metaDetail', l:'Meta Detail'},
-  ]
+  { id: 'dashboard', l: 'Dashboard' },
+  { id: 'kpiBrain', l: 'KPI Brain' },
+  { id: 'monthly', l: 'Mensile' },
+  { id: 'weekly', l: 'Weekly' },
+  { id: 'simulator', l: 'Simulatore' },
+  { id: 'metaDetail', l: 'Meta Detail' },
+]
 
   const S = { // shared styles
     card: { background:'#0a1020', border:'1px solid #111827', borderRadius:10, padding:24 },

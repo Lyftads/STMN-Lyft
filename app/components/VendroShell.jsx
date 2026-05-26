@@ -7,16 +7,41 @@ function getPageTitle(tab) {
   if (tab === 'weekly') return 'Weekly'
   if (tab === 'simulator') return 'Simulatore'
   if (tab === 'metaDetail') return 'Meta Detail'
+  if (tab === 'creative') return 'Creative'
   return 'Dashboard'
 }
 
 function getPageSubtitle(tab, updated) {
   if (tab === 'kpiBrain') return 'Your business intelligence at a glance'
+  if (tab === 'creative') return 'Analisi creative Meta Ads'
+  if (tab === 'metaDetail') return `Dettaglio performance Meta · ${updated ? updated.toLocaleString('it-IT') : '—'}`
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
+function StatusPill({ label, active, color }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '8px 13px',
+        borderRadius: 12,
+        border: `1px solid ${active ? color : '#332a41'}`,
+        background: active ? `${color}18` : '#171220',
+        color: active ? color : '#a89db8',
+        fontSize: 12,
+        fontWeight: 900,
+        lineHeight: 1,
+      }}
+    >
+      {label} {active ? '✓' : '—'}
+    </span>
+  )
+}
+
 export default function VendroShell({
-  tab,
+  tab = 'dashboard',
   setTab,
   live,
   updated,
@@ -24,18 +49,19 @@ export default function VendroShell({
 }) {
   const navGroups = [
     {
-      label: 'COMMERCE',
-      tone: 'pink',
+      title: 'Commerce',
+      color: '#ff4d7d',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'monthly', label: 'Mensile', icon: '▦' },
-        { id: 'weekly', label: 'Weekly', icon: '↻' },
+        { id: 'weekly', label: 'Weekly', icon: '⟳' },
+        { id: 'creative', label: 'Creative', icon: '▧' },
       ],
     },
     {
-      label: 'OPERATIONS',
-      tone: 'amber',
+      title: 'Operations',
+      color: '#f6b73c',
       items: [
         { id: 'simulator', label: 'Simulatore', icon: '⚡' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
@@ -43,36 +69,44 @@ export default function VendroShell({
     },
   ]
 
+  const goTo = (id) => {
+    if (typeof setTab === 'function') setTab(id)
+  }
+
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: '#0f0b17',
-        color: '#f8fafc',
-        display: 'grid',
-        gridTemplateColumns: '276px minmax(0, 1fr)',
-        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        background:
+          'radial-gradient(circle at 18% 0%, rgba(139,92,246,.13), transparent 30%), #0f0b16',
+        color: '#f7f2ff',
+        display: 'flex',
+        fontFamily:
+          'Inter, Barlow, Barlow Condensed, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
       }}
     >
       <aside
         style={{
+          width: 264,
+          minWidth: 264,
+          height: '100vh',
           position: 'sticky',
           top: 0,
-          height: '100vh',
-          background: '#100d18',
-          borderRight: '1px solid #272033',
+          borderRight: '1px solid #292134',
+          background: 'rgba(16, 12, 24, .92)',
+          backdropFilter: 'blur(18px)',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          zIndex: 20,
         }}
       >
-        <div style={{ padding: '22px 16px 18px' }}>
+        <div style={{ padding: '22px 16px 14px' }}>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 12,
-              marginBottom: 20,
+              marginBottom: 22,
             }}
           >
             <div
@@ -81,132 +115,118 @@ export default function VendroShell({
                 height: 30,
                 borderRadius: 999,
                 background:
-                  'linear-gradient(135deg,#ff7a18 0%,#ff3d77 45%,#7c3aed 100%)',
+                  'linear-gradient(135deg, #ff6b4a 0%, #ec4899 48%, #7c3aed 100%)',
+                boxShadow: '0 0 26px rgba(236,72,153,.28)',
               }}
             />
-
             <div
               style={{
-                fontSize: 34,
-                fontWeight: 900,
-                letterSpacing: '-0.06em',
+                fontSize: 30,
+                fontWeight: 950,
+                letterSpacing: '-0.05em',
+                color: '#ffffff',
                 lineHeight: 1,
-                color: '#fff',
               }}
             >
-              LyftADS
+              Lyft Ads
             </div>
           </div>
 
-          <div
+          <button
+            type="button"
             style={{
-              border: '1px solid #2c2638',
-              background: '#1d1828',
-              borderRadius: 12,
-              padding: 10,
+              width: '100%',
+              border: '1px solid #332a41',
+              background: '#211a2b',
+              color: '#ffffff',
+              borderRadius: 13,
+              padding: 12,
               display: 'flex',
               alignItems: 'center',
               gap: 12,
+              textAlign: 'left',
+              cursor: 'default',
             }}
           >
-            <div
+            <span
               style={{
                 width: 34,
                 height: 34,
                 borderRadius: 8,
                 background: '#fff',
+                display: 'inline-block',
+                flexShrink: 0,
               }}
             />
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+            <span style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 900 }}>
                 STMN Fitness
-              </div>
-
-              <div
-                style={{
-                  marginTop: 2,
-                  fontSize: 11,
-                  color: '#8b829b',
-                }}
-              >
+              </span>
+              <span style={{ display: 'block', fontSize: 11, color: '#9b90aa', marginTop: 3 }}>
                 Shopify + Meta
-              </div>
-            </div>
-
-            <div style={{ color: '#8b829b', fontSize: 16 }}>⌄</div>
-          </div>
+              </span>
+            </span>
+            <span style={{ color: '#9285a4', fontSize: 14 }}>⌄</span>
+          </button>
         </div>
 
         <nav
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '8px 12px 20px',
+            padding: '10px 4px 16px',
           }}
         >
-          {navGroups.map(group => (
-            <div key={group.label} style={{ marginBottom: 24 }}>
+          {navGroups.map((group) => (
+            <div key={group.title} style={{ marginBottom: 26 }}>
               <div
                 style={{
-                  height: 30,
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0 14px',
-                  borderRadius: 8,
-                  background:
-                    group.tone === 'pink'
-                      ? 'linear-gradient(90deg,#3b1020 0%, transparent 100%)'
-                      : 'linear-gradient(90deg,#3a250b 0%, transparent 100%)',
-                  color: group.tone === 'pink' ? '#fb4778' : '#f6b73c',
+                  margin: '0 0 10px',
+                  padding: '8px 16px',
+                  borderRadius: '0 10px 10px 0',
+                  background: `linear-gradient(90deg, ${group.color}25, transparent)`,
+                  color: group.color,
                   fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: '0.14em',
+                  fontWeight: 950,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.17em',
                 }}
               >
-                {group.label}
+                {group.title}
               </div>
 
-              <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
-                {group.items.map(item => {
+              <div style={{ display: 'grid', gap: 6, paddingRight: 10 }}>
+                {group.items.map((item) => {
                   const active = tab === item.id
 
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setTab(item.id)}
+                      onClick={() => goTo(item.id)}
                       style={{
                         width: '100%',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
+                        border: 0,
+                        borderRadius: '0 10px 10px 0',
+                        padding: '14px 16px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 12,
-                        padding: '12px 12px',
-                        borderRadius: 10,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        color: active ? '#ffffff' : '#a99db7',
                         background: active
-                          ? 'linear-gradient(90deg,#4b22a8 0%,#201633 100%)'
+                          ? 'linear-gradient(90deg, #6d28d9, #2a1746)'
                           : 'transparent',
-                        color: active ? '#fff' : '#9b92aa',
                         fontSize: 15,
-                        fontWeight: active ? 900 : 700,
+                        fontWeight: 900,
+                        boxShadow: active ? 'inset 4px 0 0 #8b5cf6' : 'none',
                       }}
                     >
                       <span
                         style={{
                           width: 24,
-                          color: active ? '#8b5cf6' : '#6f6680',
+                          color: active ? '#c4b5fd' : '#776a86',
                           fontSize: 18,
                           display: 'inline-flex',
                           justifyContent: 'center',
@@ -214,7 +234,6 @@ export default function VendroShell({
                       >
                         {item.icon}
                       </span>
-
                       <span>{item.label}</span>
                     </button>
                   )
@@ -226,7 +245,7 @@ export default function VendroShell({
 
         <div
           style={{
-            borderTop: '1px solid #272033',
+            borderTop: '1px solid #292134',
             padding: 16,
           }}
         >
@@ -241,50 +260,35 @@ export default function VendroShell({
               style={{
                 width: 38,
                 height: 38,
-                borderRadius: 999,
-                background:
-                  'linear-gradient(135deg,#fb7185 0%,#f97316 50%,#8b5cf6 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                borderRadius: '50%',
+                display: 'grid',
+                placeItems: 'center',
+                background: 'linear-gradient(135deg, #ff7a45, #ec4899, #8b5cf6)',
                 color: '#fff',
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 900,
               }}
             >
               MC
             </div>
-
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
-              >
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 13, color: '#fff', fontWeight: 900 }}>
                 Marino Catasta
               </div>
-
-              <div
-                style={{
-                  color: '#8b829b',
-                  fontSize: 12,
-                  marginTop: 2,
-                }}
-              >
+              <div style={{ fontSize: 11, color: '#91849f', marginTop: 2 }}>
                 Admin
               </div>
             </div>
+            <div style={{ color: '#9487a2' }}>⌄</div>
           </div>
         </div>
       </aside>
 
       <main
         style={{
+          flex: 1,
           minWidth: 0,
-          background: '#0f0b17',
-          padding: '28px 36px 56px',
+          padding: '34px 44px 70px',
         }}
       >
         <div
@@ -293,77 +297,54 @@ export default function VendroShell({
             margin: '0 auto',
           }}
         >
-          <div
+          <header
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-start',
-              marginBottom: 28,
+              gap: 20,
+              marginBottom: 30,
             }}
           >
             <div>
-              <div
+              <h1
                 style={{
+                  margin: 0,
+                  color: '#ffffff',
                   fontSize: 30,
-                  fontWeight: 900,
-                  letterSpacing: '-0.04em',
-                  color: tab === 'kpiBrain' ? '#f97316' : '#fff',
+                  fontWeight: 950,
+                  letterSpacing: '-0.045em',
+                  lineHeight: 1.05,
                 }}
               >
                 {getPageTitle(tab)}
-              </div>
+              </h1>
 
-              <div
+              <p
                 style={{
+                  margin: '12px 0 0',
+                  color: '#9f93ad',
                   fontSize: 13,
-                  color: '#8b829b',
-                  marginTop: 6,
+                  lineHeight: 1.45,
                 }}
               >
                 {getPageSubtitle(tab, updated)}
-              </div>
+              </p>
             </div>
 
             <div
               style={{
                 display: 'flex',
-                gap: 8,
                 alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
               }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '7px 12px',
-                  borderRadius: 10,
-                  border: `1px solid ${
-                    live?.sources?.shopify ? '#22c55e55' : '#3a3347'
-                  }`,
-                  color: live?.sources?.shopify ? '#22c55e' : '#8b829b',
-                  background: live?.sources?.shopify ? '#22c55e10' : '#171220',
-                  fontWeight: 800,
-                }}
-              >
-                Shopify {live?.sources?.shopify ? '✓' : '—'}
-              </span>
-
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '7px 12px',
-                  borderRadius: 10,
-                  border: `1px solid ${
-                    live?.sources?.meta ? '#3b82f655' : '#3a3347'
-                  }`,
-                  color: live?.sources?.meta ? '#3b82f6' : '#8b829b',
-                  background: live?.sources?.meta ? '#3b82f610' : '#171220',
-                  fontWeight: 800,
-                }}
-              >
-                Meta {live?.sources?.meta ? '✓' : '—'}
-              </span>
+              <StatusPill label="Shopify" active={Boolean(live?.sources?.shopify)} color="#22c55e" />
+              <StatusPill label="Meta" active={Boolean(live?.sources?.meta)} color="#3b82f6" />
             </div>
-          </div>
+          </header>
 
           {children}
         </div>

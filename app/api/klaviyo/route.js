@@ -88,7 +88,8 @@ async function getMetrics() {
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
-    integration: i.attributes?.integration?.name || '',
+    integrationKey: i.attributes?.integration?.key || '',
+    integrationName: i.attributes?.integration?.name || '',
   }))
 }
 
@@ -122,15 +123,18 @@ async function queryMetric(metricId, measurement, days) {
 }
 
 async function getEmailKPIs(days, metrics) {
-  const find = name => metrics.find(m => m.name.toLowerCase() === name.toLowerCase())
+  const find = (name, integration) => metrics.find(m =>
+    m.name.toLowerCase() === name.toLowerCase() &&
+    (!integration || m.integrationKey === integration)
+  )
 
   const targets = {
-    received: { metric: find('Received Email'), measurement: 'count' },
-    opened: { metric: find('Opened Email'), measurement: 'count' },
-    clicked: { metric: find('Clicked Email'), measurement: 'count' },
-    bounced: { metric: find('Bounced Email'), measurement: 'count' },
-    unsubscribed: { metric: find('Unsubscribed from List'), measurement: 'count' },
-    revenue: { metric: find('Placed Order'), measurement: 'sum_value' },
+    received: { metric: find('Received Email', 'klaviyo'), measurement: 'count' },
+    opened: { metric: find('Opened Email', 'klaviyo'), measurement: 'count' },
+    clicked: { metric: find('Clicked Email', 'klaviyo'), measurement: 'count' },
+    bounced: { metric: find('Bounced Email', 'klaviyo'), measurement: 'count' },
+    unsubscribed: { metric: find('Unsubscribed from List', 'klaviyo'), measurement: 'count' },
+    revenue: { metric: find('Placed Order', 'shopify'), measurement: 'sum_value' },
   }
 
   const results = {}

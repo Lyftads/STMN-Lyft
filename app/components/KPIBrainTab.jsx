@@ -141,27 +141,19 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
     { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6' },
   ]
 
-  const topProducts = Array.isArray(live?.shopifyTopProducts)
-  ? live.shopifyTopProducts.slice(0, 10).map(row => ({
-      label: row.product || row.title || 'Prodotto sconosciuto',
-      value: asNum(row.revenue),
-      orders: asNum(row.orders),
-      quantity: asNum(row.quantity),
-    }))
+const topProducts = Array.isArray(live?.shopifyTopProducts)
+  ? live.shopifyTopProducts
+      .slice(0, 10)
+      .map(row => ({
+        label: row.product || row.title || row.name || 'Prodotto sconosciuto',
+        value: asNum(row.revenue),
+        orders: asNum(row.orders),
+        quantity: asNum(row.quantity),
+      }))
+      .filter(row => row.value > 0)
   : []
 
-const fallbackProducts = [...current]
-  .filter(row => asNum(row.fatturato) > 0)
-  .slice(-10)
-  .map(row => ({
-    label: row.month,
-    value: asNum(row.fatturato),
-    orders: asNum(row.ordini),
-    quantity: 0,
-  }))
-  .sort((a, b) => b.value - a.value)
-
-const productBreakdown = topProducts.length ? topProducts : fallbackProducts
+const productBreakdown = topProducts
 
 const sourceBreakdown = Array.isArray(live?.shopifyMarketingSources)
   ? live.shopifyMarketingSources.map(row => ({
@@ -179,24 +171,57 @@ const fallbackSourceBreakdown = [
 const marketingSourceBreakdown = sourceBreakdown.length
   ? sourceBreakdown
   : fallbackSourceBreakdown
+const dayNameIT = day => {
+  const normalized = String(day || '').toLowerCase()
 
+  const map = {
+    sun: 'Domenica',
+    sunday: 'Domenica',
+    domenica: 'Domenica',
+
+    mon: 'Lunedì',
+    monday: 'Lunedì',
+    lunedi: 'Lunedì',
+    lunedì: 'Lunedì',
+
+    tue: 'Martedì',
+    tuesday: 'Martedì',
+    martedi: 'Martedì',
+    martedì: 'Martedì',
+
+    wed: 'Mercoledì',
+    wednesday: 'Mercoledì',
+    mercoledi: 'Mercoledì',
+    mercoledì: 'Mercoledì',
+
+    thu: 'Giovedì',
+    thursday: 'Giovedì',
+    giovedi: 'Giovedì',
+    giovedì: 'Giovedì',
+
+    fri: 'Venerdì',
+    friday: 'Venerdì',
+    venerdi: 'Venerdì',
+    venerdì: 'Venerdì',
+
+    sat: 'Sabato',
+    saturday: 'Sabato',
+    sabato: 'Sabato',
+  }
+
+  return map[normalized] || day
+}
 const dayBreakdown = Array.isArray(live?.shopifyDayBreakdown)
-  ? live.shopifyDayBreakdown.map(row => ({
-      label: row.day,
-      value: asNum(row.revenue),
-      orders: asNum(row.orders),
-    }))
+  ? live.shopifyDayBreakdown
+      .map(row => ({
+        label: dayNameIT(row.day),
+        value: asNum(row.revenue),
+        orders: asNum(row.orders),
+      }))
+      .filter(row => row.value > 0 || row.orders > 0)
   : []
 
-const fallbackDayBreakdown = current.slice(-7).map(row => ({
-  label: row.month,
-  value: asNum(row.fatturato),
-  orders: asNum(row.ordini),
-}))
-
-const weekdayBreakdown = dayBreakdown.length
-  ? dayBreakdown
-  : fallbackDayBreakdown
+const weekdayBreakdown = dayBreakdown
 
 const customerBreakdown = [
   { label: 'New Customers', value: totals.newCustomers },

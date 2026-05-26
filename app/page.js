@@ -1363,8 +1363,13 @@ export default function App() {
   }
 
   return (
-    <div style={{minHeight:'100vh',background:'transparent',padding:'20px 24px',maxWidth:1400,margin:'0 auto'}}>
-      {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
+  <VendroShell
+    tab={tab}
+    setTab={setTab}
+    live={live}
+    updated={updated}
+  >
+    {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
       {/* HEADER */}
@@ -1565,7 +1570,7 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
-  )
+      </VendroShell>
+)
 }
 

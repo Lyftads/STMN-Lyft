@@ -256,15 +256,15 @@ const dayNameIT = day => {
 
   return map[normalized] || day
 }
-const dayBreakdown = Array.isArray(live?.shopifyDayBreakdown)
-  activeLive?.shopifyDayBreakdown
-      .map(row => ({
-        label: dayNameIT(row.day),
-        value: asNum(row.revenue),
-        orders: asNum(row.orders),
-      }))
-      .filter(row => row.value > 0 || row.orders > 0)
-  : []
+  const dayBreakdown = Array.isArray(activeLive?.shopifyDayBreakdown)
+    ? activeLive.shopifyDayBreakdown
+        .map(row => ({
+          label: dayNameIT(row.day || row.label),
+          value: asNum(row.value ?? row.revenue ?? row.sales),
+          orders: asNum(row.orders),
+        }))
+        .filter(row => row.value > 0 || row.orders > 0)
+    : []
 
 const weekdayBreakdown = dayBreakdown
 

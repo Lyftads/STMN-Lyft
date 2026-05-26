@@ -4,6 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import VendroShell from './components/VendroShell'
 import KPIBrainTab from './components/KPIBrainTab'
 import CreativeTab from './components/CreativeTab'
+import MetaDetailTab from './components/MetaDetailTab'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'

@@ -49,11 +49,9 @@ function normalizeRawNumber(value) {
   const hasDot = raw.includes('.')
 
   if (hasComma && hasDot) {
-    // Italiano: 1.564,35
     if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) {
       raw = raw.replace(/\./g, '').replace(',', '.')
     } else {
-      // Inglese: 1,564.35
       raw = raw.replace(/,/g, '')
     }
   } else if (hasComma && !hasDot) {
@@ -61,7 +59,6 @@ function normalizeRawNumber(value) {
   } else if (hasDot && !hasComma) {
     const parts = raw.split('.')
 
-    // 1.564.359 = separatori migliaia
     if (parts.length > 2) {
       raw = raw.replace(/\./g, '')
     }
@@ -89,6 +86,101 @@ function cleanMoney(value) {
 
 function roundMoney(n) {
   return Math.round(Number(n || 0) * 100) / 100
+}
+
+function toDateString(date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function addDays(date, amount) {
+  const d = new Date(date)
+  d.setUTCDate(d.getUTCDate() + amount)
+  return d
+}
+
+function getPresetRange(preset = 'last_90d') {
+  const today = new Date()
+  const until = toDateString(today)
+
+  if (preset === 'last_7d') {
+    return {
+      since: toDateString(addDays(today, -6)),
+      until,
+      label: 'Ultimi 7 giorni',
+    }
+  }
+
+  if (preset === 'last_14d') {
+    return {
+      since: toDateString(addDays(today, -13)),
+      until,
+      label: 'Ultimi 14 giorni',
+    }
+  }
+
+  if (preset === 'last_30d') {
+    return {
+      since: toDateString(addDays(today, -29)),
+      until,
+      label: 'Ultimi 30 giorni',
+    }
+  }
+
+  if (preset === 'last_90d') {
+    return {
+      since: toDateString(addDays(today, -89)),
+      until,
+      label: 'Ultimi 90 giorni',
+    }
+  }
+
+  if (preset === 'mtd') {
+    return {
+      since: `${until.slice(0, 7)}-01`,
+      until,
+      label: 'Mese corrente',
+    }
+  }
+
+  if (preset === 'ytd') {
+    return {
+      since: `${until.slice(0, 4)}-01-01`,
+      until,
+      label: 'Anno corrente',
+    }
+  }
+
+  return {
+    since: toDateString(addDays(today, -89)),
+    until,
+    label: 'Ultimi 90 giorni',
+  }
+}
+
+function getPreviousRange(range) {
+  if (!range?.since || !range?.until) {
+    return {
+      since: null,
+      until: null,
+      label: 'Periodo precedente',
+    }
+  }
+
+  const sinceDate = new Date(`${range.since}T00:00:00Z`)
+  const untilDate = new Date(`${range.until}T00:00:00Z`)
+  const days = Math.max(
+    1,
+    Math.round((untilDate.getTime() - sinceDate.getTime()) / 86400000) + 1
+  )
+
+  const previousUntil = addDays(sinceDate, -1)
+  const previousSince = addDays(previousUntil, -(days - 1))
+
+  return {
+    since: toDateString(previousSince),
+    until: toDateString(previousUntil),
+    label: 'Periodo precedente',
+  }
 }
 
 function weekRanges() {
@@ -131,17 +223,18 @@ function monthRanges() {
     const monthStr = `${y}-${String(m).padStart(2, '0')}`
     const startDate = `${monthStr}-01`
 
-    // ultimo giorno del mese in UTC
     const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
     const monthEnd = `${monthStr}-${String(lastDay).padStart(2, '0')}`
 
-    // se è il mese corrente, fermati a oggi
     const endDate = monthEnd > todayStr ? todayStr : monthEnd
 
     months.push({ month: monthStr, start: startDate, end: endDate })
 
     m++
-    if (m > 12) { m = 1; y++ }
+    if (m > 12) {
+      m = 1
+      y++
+    }
   }
 
   return months
@@ -221,12 +314,7 @@ async function shopifyQL(query) {
   }
 }
 
-// ── Shopify sales per range arbitrario (settimana o mese) ─────
-// IMPORTANTE: `total_sales` di Shopify è la voce "Vendite totali nel tempo".
-// Formula Shopify: gross_sales − discounts − returns + shipping + duties + fees + taxes.
-// Quindi `total_sales` è GIÀ al netto dei resi. Il campo `resi` qui sotto
-// è solo informativo (per sapere quanto è stato rimborsato), NON va sottratto
-// di nuovo da `fatturato`.
+// ── Shopify sales per range arbitrario ─────────────────────────
 async function fetchShopifySalesRange(start, end) {
   const query = `
     FROM sales
@@ -266,8 +354,6 @@ async function fetchShopifySalesRange(start, end) {
 
     const rowTotalSales = cleanMoney(row.total_sales)
     const rowOrders = cleanCount(row.orders)
-    // Shopify restituisce `returns` come valore negativo (deduzione).
-    // Normalizziamo a positivo per usarlo come importo dei resi.
     const rowReturns = Math.abs(cleanMoney(row.returns))
 
     fatturato += rowTotalSales
@@ -322,8 +408,6 @@ async function fetchShopifySalesRange(start, end) {
   }
 
   return {
-    // `fatturato` = total_sales Shopify ("Vendite totali nel tempo"),
-    // già al netto di resi e sconti.
     fatturato: roundMoney(fatturato),
     resi: roundMoney(resi),
 
@@ -340,8 +424,6 @@ async function fetchShopifySalesRange(start, end) {
 }
 
 // ── Shopify online store visitors per range arbitrario ────────
-// [Non verificato] Uso online_store_visitors perché Shopify lo mostra come
-// "visitatori del negozio online". Se ShopifyQL rifiuta la metrica, torna 0.
 async function fetchShopifyVisitorsRange(start, end) {
   const candidates = [
     `
@@ -439,7 +521,6 @@ async function fetchShopifyWeekly() {
   }
 }
 
-// ── Shopify monthly (calendar month: 1 → ultimo giorno) ───────
 async function fetchShopifyMonthly() {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
@@ -455,7 +536,7 @@ async function fetchShopifyMonthly() {
 
         return {
           month,
-          date: start, // compat: alcuni componenti leggono `date`
+          date: start,
 
           fatturato: sales.fatturato,
           resi: sales.resi,
@@ -525,16 +606,21 @@ async function fetchAOV() {
     return { aov: 0, orders: 0 }
   }
 }
+
 // ── Shopify orders REST pagination ─────────────────────────────
-async function fetchShopifyOrdersSince(startDate = START_DATE) {
+async function fetchShopifyOrdersSince(startDate = START_DATE, endDate = null) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
   const orders = []
+  const createdAtMin = `${startDate}T00:00:00Z`
+  const createdAtMax = endDate ? `${endDate}T23:59:59Z` : null
+
   let url =
     `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json` +
     `?status=any` +
     `&financial_status=paid` +
-    `&created_at_min=${startDate}T00:00:00Z` +
+    `&created_at_min=${encodeURIComponent(createdAtMin)}` +
+    (createdAtMax ? `&created_at_max=${encodeURIComponent(createdAtMax)}` : '') +
     `&limit=250` +
     `&fields=id,created_at,total_price,source_name,landing_site,referring_site,line_items`
 
@@ -636,15 +722,22 @@ function isMarketingSource(order) {
 }
 
 // ── KPI Brain: Top 10 prodotti per revenue ─────────────────────
-async function fetchShopifyTopProducts() {
-  const orders = await fetchShopifyOrdersSince(START_DATE)
+async function fetchShopifyTopProducts(start = START_DATE, end = null) {
+  const orders = await fetchShopifyOrdersSince(start, end)
   const map = {}
 
   for (const order of orders) {
     const lineItems = order.line_items || []
 
     for (const item of lineItems) {
-      const title = item.title || item.name || 'Prodotto sconosciuto'
+      const title =
+        item.title ||
+        item.product_title ||
+        item.name ||
+        item.variant_title ||
+        item.sku ||
+        'Prodotto sconosciuto'
+
       const quantity = cleanCount(item.quantity)
       const unitPrice = normalizeRawNumber(item.price)
 
@@ -660,13 +753,16 @@ async function fetchShopifyTopProducts() {
       if (!map[title]) {
         map[title] = {
           product: title,
+          label: title,
           revenue: 0,
+          value: 0,
           orders: 0,
           quantity: 0,
         }
       }
 
       map[title].revenue += revenue
+      map[title].value += revenue
       map[title].orders += 1
       map[title].quantity += quantity
     }
@@ -676,16 +772,18 @@ async function fetchShopifyTopProducts() {
     .map(row => ({
       ...row,
       revenue: roundMoney(row.revenue),
+      value: roundMoney(row.value),
       orders: cleanCount(row.orders),
       quantity: cleanCount(row.quantity),
     }))
+    .filter(row => row.revenue > 0)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10)
 }
 
 // ── KPI Brain: vendite attribuite al marketing ─────────────────
-async function fetchShopifyMarketingSources() {
-  const orders = await fetchShopifyOrdersSince(START_DATE)
+async function fetchShopifyMarketingSources(start = START_DATE, end = null) {
+  const orders = await fetchShopifyOrdersSince(start, end)
   const map = {}
 
   for (const order of orders) {
@@ -697,12 +795,15 @@ async function fetchShopifyMarketingSources() {
     if (!map[label]) {
       map[label] = {
         source: label,
+        label,
         revenue: 0,
+        value: 0,
         orders: 0,
       }
     }
 
     map[label].revenue += revenue
+    map[label].value += revenue
     map[label].orders += 1
   }
 
@@ -710,23 +811,25 @@ async function fetchShopifyMarketingSources() {
     .map(row => ({
       ...row,
       revenue: roundMoney(row.revenue),
+      value: roundMoney(row.value),
       orders: cleanCount(row.orders),
     }))
+    .filter(row => row.revenue > 0 || row.orders > 0)
     .sort((a, b) => b.revenue - a.revenue)
 }
 
 // ── KPI Brain: revenue e ordini per giorno settimana ───────────
-async function fetchShopifyDayBreakdown() {
-  const orders = await fetchShopifyOrdersSince(START_DATE)
+async function fetchShopifyDayBreakdown(start = START_DATE, end = null) {
+  const orders = await fetchShopifyOrdersSince(start, end)
 
   const days = [
-    { key: 0, label: 'Sun' },
-    { key: 1, label: 'Mon' },
-    { key: 2, label: 'Tue' },
-    { key: 3, label: 'Wed' },
-    { key: 4, label: 'Thu' },
-    { key: 5, label: 'Fri' },
-    { key: 6, label: 'Sat' },
+    { key: 1, label: 'Lunedì' },
+    { key: 2, label: 'Martedì' },
+    { key: 3, label: 'Mercoledì' },
+    { key: 4, label: 'Giovedì' },
+    { key: 5, label: 'Venerdì' },
+    { key: 6, label: 'Sabato' },
+    { key: 0, label: 'Domenica' },
   ]
 
   const map = {}
@@ -734,7 +837,9 @@ async function fetchShopifyDayBreakdown() {
   for (const day of days) {
     map[day.key] = {
       day: day.label,
+      label: day.label,
       revenue: 0,
+      value: 0,
       orders: 0,
     }
   }
@@ -743,16 +848,24 @@ async function fetchShopifyDayBreakdown() {
     const date = new Date(order.created_at)
     const day = date.getDay()
 
-    map[day].revenue += getOrderRevenue(order)
+    if (!map[day]) continue
+
+    const revenue = getOrderRevenue(order)
+
+    map[day].revenue += revenue
+    map[day].value += revenue
     map[day].orders += 1
   }
 
   return days.map(day => ({
     day: map[day.key].day,
+    label: map[day.key].label,
     revenue: roundMoney(map[day.key].revenue),
+    value: roundMoney(map[day.key].value),
     orders: cleanCount(map[day.key].orders),
   }))
 }
+
 // ── Meta weekly ───────────────────────────────────────────────
 async function fetchMetaWeekly() {
   if (!META_TOKEN || !META_ACCOUNT) return []
@@ -930,50 +1043,42 @@ async function fetchMeta() {
     return []
   }
 }
+
 async function safeShopifyTopProducts(range) {
   try {
-    if (typeof fetchShopifyTopProducts !== 'function') return []
-    return await fetchShopifyTopProducts(range?.since, range?.until)
+    return await fetchShopifyTopProducts(range?.since || START_DATE, range?.until || null)
   } catch (e) {
     console.log('KPI Brain top products error:', e.message)
     return []
   }
 }
+
+async function safeShopifyMarketingSources(range) {
+  try {
+    return await fetchShopifyMarketingSources(range?.since || START_DATE, range?.until || null)
+  } catch (e) {
+    console.log('KPI Brain marketing sources error:', e.message)
+    return []
+  }
+}
+
 async function safeShopifyDayBreakdown(range) {
   try {
-    if (typeof fetchShopifyDayBreakdown !== 'function') return []
-    return await fetchShopifyDayBreakdown(range?.since, range?.until)
+    return await fetchShopifyDayBreakdown(range?.since || START_DATE, range?.until || null)
   } catch (e) {
     console.log('KPI Brain day breakdown error:', e.message)
     return []
   }
 }
-// ── API Route ─────────────────────────────────────────────────
+
 // ── API Route ─────────────────────────────────────────────────
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_90d'
 
-    const fallbackRange = {
-      since: '2025-12-29',
-      until: new Date().toISOString().slice(0, 10),
-      label: 'Ultimi 90 giorni',
-    }
-
-    const range =
-      typeof getPresetRange === 'function'
-        ? getPresetRange(preset)
-        : fallbackRange
-
-    const previousRange =
-      typeof getPreviousRange === 'function'
-        ? getPreviousRange(range)
-        : {
-            since: null,
-            until: null,
-            label: 'Periodo precedente',
-          }
+    const range = getPresetRange(preset)
+    const previousRange = getPreviousRange(range)
 
     const [
       aovData,
@@ -981,28 +1086,30 @@ export async function GET(req) {
       shopifyMonthly,
       metaMonthly,
       metaWeekly,
+      shopifyTopProducts,
+      shopifyMarketingSources,
+      shopifyDayBreakdown,
+      previousShopifyTopProducts,
+      previousShopifyMarketingSources,
+      previousShopifyDayBreakdown,
     ] = await Promise.all([
       fetchAOV(),
       fetchShopifyWeekly(),
       fetchShopifyMonthly(),
       fetchMeta(),
       fetchMetaWeekly(),
+      safeShopifyTopProducts(range),
+      safeShopifyMarketingSources(range),
+      safeShopifyDayBreakdown(range),
+      safeShopifyTopProducts(previousRange),
+      safeShopifyMarketingSources(previousRange),
+      safeShopifyDayBreakdown(previousRange),
     ])
 
     const metaTotal = metaMonthly.reduce(
       (sum, row) => sum + row.spend,
       0
     )
-
-  const shopifyTopProducts =
-  typeof safeShopifyTopProducts === 'function'
-    ? await safeShopifyTopProducts(range)
-    : []
-
-const shopifyDayBreakdown =
-  typeof safeShopifyDayBreakdown === 'function'
-    ? await safeShopifyDayBreakdown(range)
-    : []
 
     return NextResponse.json({
       aovLive: Math.round(aovData.aov * 100) / 100,
@@ -1012,13 +1119,18 @@ const shopifyDayBreakdown =
       shopifyMonthly,
 
       shopifyTopProducts,
-      shopifyMarketingSources: [],
+      shopifyMarketingSources,
       shopifyDayBreakdown,
 
       kpiBrain: {
         preset,
         range,
         previousRange,
+        previous: {
+          shopifyTopProducts: previousShopifyTopProducts,
+          shopifyMarketingSources: previousShopifyMarketingSources,
+          shopifyDayBreakdown: previousShopifyDayBreakdown,
+        },
       },
 
       metaSpend: Math.round(metaTotal * 100) / 100,
@@ -1029,7 +1141,10 @@ const shopifyDayBreakdown =
         shopify:
           aovData.orders > 0 ||
           shopifyWeekly.length > 0 ||
-          shopifyMonthly.length > 0,
+          shopifyMonthly.length > 0 ||
+          shopifyTopProducts.length > 0 ||
+          shopifyMarketingSources.length > 0 ||
+          shopifyDayBreakdown.some(row => row.revenue > 0 || row.orders > 0),
         meta: metaMonthly.length > 0 || metaWeekly.length > 0,
       },
 
@@ -1053,6 +1168,11 @@ const shopifyDayBreakdown =
         preset: 'last_90d',
         range: null,
         previousRange: null,
+        previous: {
+          shopifyTopProducts: [],
+          shopifyMarketingSources: [],
+          shopifyDayBreakdown: [],
+        },
       },
 
       metaSpend: 0,

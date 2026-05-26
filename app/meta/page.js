@@ -13,375 +13,603 @@ const PRESETS = [
   { id: 'custom', label: 'Custom' },
 ]
 
+const GREEN = '#22c55e'
+const BLUE = '#2f88ff'
+const RED = '#ef4444'
+const TEXT = '#f8fafc'
+const MUTED = '#7b8aa3'
+const BORDER = '#20324f'
+const CARD = '#0b1222'
+const BG = '#050b16'
+
 function n(v) {
   const x = Number(v)
   return Number.isFinite(x) ? x : 0
 }
 
-function fmtInt(v) {
-  return Math.round(n(v)).toLocaleString('it-IT')
-}
-
-function fmtEuro(v) {
-  const x = n(v)
-  if (!x) return '—'
-  return `€${Math.round(x).toLocaleString('it-IT')}`
-}
-
-function fmtEuro2(v) {
+function money(v, decimals = 0) {
   const x = n(v)
   if (!x) return '—'
   return `€${x.toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })}`
 }
 
-function fmtPct(v) {
+function int(v) {
   const x = n(v)
   if (!x) return '—'
+  return Math.round(x).toLocaleString('it-IT')
+}
+
+function pct(v, decimals = 2) {
+  const x = n(v)
   return `${x.toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })}%`
 }
 
-function fmtX(v) {
+function ratio(v) {
   const x = n(v)
-  if (!x) return '0,00x'
   return `${x.toLocaleString('it-IT', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}x`
 }
 
-function fmtFreq(v) {
-  const x = n(v)
-  if (!x) return '—'
-  return x.toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+function metric(row, key) {
+  return row?.metrics?.[key] ?? row?.[key] ?? 0
 }
 
-function fmtDelta(v) {
-  const x = n(v)
-  if (!Number.isFinite(x)) return '—'
-  const sign = x > 0 ? '+' : ''
-  return `${sign}${x.toLocaleString('it-IT', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`
+function trend(v, inverse = false) {
+  if (v == null) return MUTED
+  const good = inverse ? v < 0 : v > 0
+  return good ? GREEN : RED
 }
 
-function safeArray(v) {
-  return Array.isArray(v) ? v : []
+function MetricCard({ label, value }) {
+  return (
+    <div style={{
+      background: CARD,
+      border: `1px solid ${BORDER}`,
+      borderRadius: 10,
+      padding: 20,
+      minHeight: 96,
+    }}>
+      <div style={{
+        color: MUTED,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        marginBottom: 12,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        color: TEXT,
+        fontSize: 26,
+        fontWeight: 900,
+        fontFamily: 'serif',
+      }}>
+        {value}
+      </div>
+    </div>
+  )
 }
 
-function getLevelLabel(row) {
-  if (!row) return '—'
+function DeltaBox({ label, value, inverse }) {
+  return (
+    <div style={{
+      background: '#081020',
+      border: `1px solid ${BORDER}`,
+      borderRadius: 8,
+      padding: 14,
+    }}>
+      <div style={{
+        color: MUTED,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        marginBottom: 10,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        color: value == null ? MUTED : trend(value, inverse),
+        fontSize: 22,
+        fontWeight: 900,
+      }}>
+        {value == null ? '—' : `${value > 0 ? '+' : ''}${value.toFixed(1)}%`}
+      </div>
+    </div>
+  )
+}
 
-  if (row.level === 'campaign') {
-    return `Campagna · ${row.campaign_name || row.name || 'Senza nome'}`
+function Cell({ children, bold, green, blue }) {
+  return (
+    <td style={{
+      padding: '13px 14px',
+      borderTop: `1px solid ${BORDER}`,
+      color: green ? GREEN : blue ? BLUE : TEXT,
+      fontWeight: bold ? 900 : 500,
+      whiteSpace: 'nowrap',
+      verticalAlign: 'middle',
+    }}>
+      {children}
+    </td>
+  )
+}
+
+function Thumb({ src, name }) {
+  if (!src) {
+    return (
+      <div style={{
+        width: 54,
+        height: 54,
+        borderRadius: 8,
+        background: '#111827',
+        border: `1px solid ${BORDER}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: MUTED,
+        fontSize: 10,
+      }}>
+        no img
+      </div>
+    )
   }
 
-  if (row.level === 'adset') {
-    return `Ad set · ${row.adset_name || row.name || 'Senza nome'}`
-  }
-
-  if (row.level === 'ad') {
-    return `Ad · ${row.ad_name || row.name || 'Senza nome'}`
-  }
-
-  return row.name || row.level || '—'
+  return (
+    <img
+      src={src}
+      alt={name || 'creative'}
+      style={{
+        width: 54,
+        height: 54,
+        objectFit: 'cover',
+        borderRadius: 8,
+        border: `1px solid ${BORDER}`,
+        background: '#111827',
+      }}
+    />
+  )
 }
 
 export default function MetaPage() {
   const [preset, setPreset] = useState('last_28d')
-  const [loading, setLoading] = useState(false)
-  const [err, setErr] = useState('')
+  const [since, setSince] = useState('')
+  const [until, setUntil] = useState('')
   const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [openCampaigns, setOpenCampaigns] = useState({})
+  const [openAdsets, setOpenAdsets] = useState({})
 
-  async function loadMeta(nextPreset = preset) {
+  async function load(nextPreset = preset) {
+    setLoading(true)
+    setError('')
+
     try {
-      setLoading(true)
-      setErr('')
+      const params = new URLSearchParams()
+      params.set('preset', nextPreset)
 
-      const res = await fetch(`/api/meta-detail?preset=${nextPreset}`, {
+      if (nextPreset === 'custom' && since && until) {
+        params.set('since', since)
+        params.set('until', until)
+      }
+
+      const res = await fetch(`/api/meta-detail?${params.toString()}`, {
         cache: 'no-store',
       })
 
       const json = await res.json()
 
       if (!json.ok) {
-        setErr(json.error || 'Errore API Meta')
-        setData(json)
-        return
+        setError(json.error || 'Errore caricamento Meta.')
       }
 
       setData(json)
     } catch (e) {
-      setErr(e?.message || 'Errore caricamento dati Meta')
+      setError(e?.message || 'Errore caricamento Meta.')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadMeta(preset)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset])
+    load(preset)
+  }, [])
 
   const summary = data?.summary || {}
-  const previousSummary = data?.previousSummary || {}
   const comparison = data?.comparison || {}
-  const rows = safeArray(data?.hierarchy)
-  const todos = safeArray(data?.todos)
-  const insight = data?.insight || ''
-  const range = data?.range || {}
-  const previousRange = data?.previousRange || {}
+  const hierarchy = Array.isArray(data?.hierarchy) ? data.hierarchy : []
 
-  const hasRows = rows.length > 0
+  const rows = useMemo(() => {
+    const out = []
 
-  const totals = useMemo(() => {
-    return {
-      spend: n(summary.spend),
-      impressions: n(summary.impressions),
-      reach: n(summary.reach),
-      frequency: n(summary.frequency),
-      cpm: n(summary.cpm),
-      ctr_link: n(summary.ctr_link),
-      cpc_link: n(summary.cpc_link),
-      link_clicks: n(summary.link_clicks),
-      cost_per_result: n(summary.cost_per_result),
-      roas: n(summary.roas),
-      purchases: n(summary.purchases),
-      conversione_acquisti: n(summary.conversione_acquisti),
-      cro_campagna: n(summary.cro_campagna),
-      aov_campagna: n(summary.aov_campagna),
+    for (const campaign of hierarchy) {
+      out.push({
+        ...campaign,
+        type: 'campaign',
+        depth: 0,
+      })
+
+      if (openCampaigns[campaign.id]) {
+        for (const adset of campaign.adsets || []) {
+          out.push({
+            ...adset,
+            type: 'adset',
+            depth: 1,
+            parentCampaignId: campaign.id,
+          })
+
+          if (openAdsets[adset.id]) {
+            for (const ad of adset.ads || []) {
+              out.push({
+                ...ad,
+                type: 'ad',
+                depth: 2,
+                parentCampaignId: campaign.id,
+                parentAdsetId: adset.id,
+              })
+            }
+          }
+        }
+      }
     }
-  }, [summary])
+
+    return out
+  }, [hierarchy, openCampaigns, openAdsets])
+
+  function toggleCampaign(id) {
+    setOpenCampaigns(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
+
+  function toggleAdset(id) {
+    setOpenAdsets(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
 
   return (
-    <main className="min-h-screen bg-[#020817] text-slate-100 px-6 py-8">
-      <div className="mx-auto max-w-[1680px] space-y-6">
-        <header className="flex items-start justify-between gap-4">
+    <main style={{
+      background: BG,
+      minHeight: '100vh',
+      color: TEXT,
+      padding: '32px 28px 80px',
+      fontFamily: 'Inter, Arial, sans-serif',
+    }}>
+      <div style={{ maxWidth: 1500, margin: '0 auto' }}>
+        <header style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: 28,
+        }}>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Meta Detail</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Analisi gerarchica campagne · ad set · ads
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>
+              Meta Detail
+            </h1>
+            <p style={{ color: MUTED, marginTop: 10, fontSize: 13 }}>
+              Analisi gerarchica campagne · ad set · ads attive
             </p>
-            {range?.since && range?.until && (
-              <p className="mt-1 text-xs text-slate-500">
-                Periodo: {range.since} → {range.until}
-              </p>
-            )}
           </div>
 
-          <div className="text-right">
-            <div className={err ? 'text-red-400 font-semibold' : 'text-emerald-400 font-semibold'}>
-              {loading ? 'Caricamento…' : err ? 'Errore dati' : 'Dati caricati'}
-            </div>
-            {data?.accounts?.length > 0 && (
-              <p className="mt-1 text-xs text-slate-500">
-                Account aggregati: {data.accounts.length}
-              </p>
-            )}
+          <div style={{
+            color: error ? RED : GREEN,
+            fontWeight: 800,
+            fontSize: 13,
+          }}>
+            {loading ? 'Caricamento…' : error ? 'Errore dati' : 'Dati caricati'}
           </div>
         </header>
 
-        {err && (
-          <section className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-            <div className="font-bold">Errore API</div>
-            <div className="mt-1 text-sm break-words">{err}</div>
-          </section>
-        )}
-
-        <section className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-          <div className="flex flex-wrap gap-3">
-            {PRESETS.map((p) => (
+        <section style={{
+          background: CARD,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 10,
+          padding: 18,
+          marginBottom: 18,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10,
+            alignItems: 'center',
+          }}>
+            {PRESETS.map(p => (
               <button
                 key={p.id}
-                onClick={() => setPreset(p.id)}
-                className={[
-                  'rounded-full px-4 py-2 text-sm font-semibold border transition',
-                  preset === p.id
-                    ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300'
-                    : 'border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-100 hover:border-slate-500',
-                ].join(' ')}
+                onClick={() => {
+                  setPreset(p.id)
+                  load(p.id)
+                }}
+                style={{
+                  border: `1px solid ${p.id === preset ? GREEN : BORDER}`,
+                  color: p.id === preset ? GREEN : MUTED,
+                  background: p.id === preset ? 'rgba(34,197,94,0.08)' : '#081020',
+                  borderRadius: 999,
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                }}
               >
                 {p.label}
               </button>
             ))}
+
+            {preset === 'custom' && (
+              <>
+                <input
+                  type="date"
+                  value={since}
+                  onChange={e => setSince(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  type="date"
+                  value={until}
+                  onChange={e => setUntil(e.target.value)}
+                  style={inputStyle}
+                />
+                <button
+                  onClick={() => load('custom')}
+                  style={{
+                    border: 'none',
+                    background: GREEN,
+                    color: '#00110a',
+                    borderRadius: 999,
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontWeight: 900,
+                  }}
+                >
+                  Applica
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={() => load(preset)}
+              style={{
+                marginLeft: 'auto',
+                border: 'none',
+                background: GREEN,
+                color: '#00110a',
+                borderRadius: 999,
+                padding: '10px 18px',
+                cursor: 'pointer',
+                fontWeight: 900,
+              }}
+            >
+              ↻ Aggiorna
+            </button>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-          <Kpi title="Importo speso" value={fmtEuro(totals.spend)} />
-          <Kpi title="ROAS" value={fmtX(totals.roas)} />
-          <Kpi title="Costo risultato" value={fmtEuro2(totals.cost_per_result)} />
-          <Kpi title="Acquisti" value={totals.purchases ? fmtInt(totals.purchases) : '—'} />
-          <Kpi title="CTR link" value={fmtPct(totals.ctr_link)} />
+        {error && (
+          <section style={{
+            background: 'rgba(239,68,68,0.08)',
+            border: `1px solid ${RED}`,
+            color: RED,
+            borderRadius: 10,
+            padding: 16,
+            marginBottom: 18,
+            fontWeight: 700,
+          }}>
+            {error}
+          </section>
+        )}
+
+        <section style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          gap: 12,
+          marginBottom: 18,
+        }}>
+          <MetricCard label="Importo speso" value={money(summary.spend)} />
+          <MetricCard label="ROAS" value={ratio(summary.roas)} />
+          <MetricCard label="Costo risultato" value={money(summary.cost_per_result, 2)} />
+          <MetricCard label="Acquisti" value={int(summary.purchases)} />
+          <MetricCard label="CTR link" value={pct(summary.ctr_link)} />
         </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-            <h2 className="text-sm font-black tracking-[0.2em] uppercase">
-              Confronto · ultimi 7g vs 7g precedenti
-            </h2>
+        <section style={{
+          display: 'grid',
+          gridTemplateColumns: '1.1fr 1fr',
+          gap: 18,
+          marginBottom: 18,
+        }}>
+          <div style={panelStyle}>
+            <h2 style={titleStyle}>Confronto · periodo vs precedente</h2>
+            <p style={{ color: MUTED, fontSize: 13 }}>
+              Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
+            </p>
 
-            {previousRange?.since && previousRange?.until && (
-              <p className="mt-4 text-sm text-slate-400">
-                Periodo precedente: {previousRange.since} → {previousRange.until}
-              </p>
-            )}
-
-            <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <DeltaBox label="Spesa" value={comparison.spend} />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 10,
+              marginTop: 16,
+            }}>
+              <DeltaBox label="Spesa" value={comparison.spend} inverse />
               <DeltaBox label="ROAS" value={comparison.roas} />
-              <DeltaBox label="CPA" value={comparison.cost_per_result} />
-              <DeltaBox label="CTR" value={comparison.ctr_link} />
+              <DeltaBox label="CPA" value={comparison.cpa} inverse />
+              <DeltaBox label="CTR" value={comparison.ctr} />
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-            <h2 className="text-sm font-black tracking-[0.2em] uppercase">
-              Insight automatico
-            </h2>
-
-            <p className="mt-5 leading-7 text-slate-300">
-              {insight || 'Non ci sono insight disponibili per il periodo selezionato.'}
+          <div style={panelStyle}>
+            <h2 style={titleStyle}>Insight automatico</h2>
+            <p style={{ lineHeight: 1.65, color: '#d7deea', fontSize: 14 }}>
+              {data?.insight || '—'}
             </p>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-          <h2 className="text-sm font-black tracking-[0.2em] uppercase">
-            To-do consigliate
-          </h2>
-
-          <div className="mt-5 space-y-3">
-            {todos.length ? (
-              todos.map((todo, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-300"
-                >
-                  <span className="font-black text-emerald-400">#{idx + 1}</span>{' '}
-                  {Array.isArray(todo) ? todo.join(' ') : String(todo)}
-                </div>
-              ))
-            ) : (
-              <div className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-400">
-                Nessuna to-do disponibile.
+        <section style={panelStyle}>
+          <h2 style={titleStyle}>To-do consigliate</h2>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {(data?.todos || []).map((todo, i) => (
+              <div
+                key={`${todo}-${i}`}
+                style={{
+                  border: `1px solid ${BORDER}`,
+                  background: '#081020',
+                  borderRadius: 8,
+                  padding: '13px 14px',
+                  color: '#d7deea',
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong style={{ color: GREEN }}>#{i + 1}</strong> {todo}
               </div>
-            )}
+            ))}
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-700 bg-slate-950/60 overflow-hidden">
-          <div className="p-5">
-            <h2 className="text-sm font-black tracking-[0.2em] uppercase">
-              Gerarchia Meta · campagne / ad set / ads
-            </h2>
+        <section style={{
+          ...panelStyle,
+          marginTop: 18,
+          overflow: 'hidden',
+        }}>
+          <h2 style={titleStyle}>Gerarchia Meta · campagne / ad set / ads</h2>
+          <p style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
+            Mostra solo campagne attive. Clicca su una campagna per aprire gli ad set attivi. Clicca su un ad set per aprire le ads attive.
+          </p>
 
-            <p className="mt-3 text-sm text-slate-500">
-              Dati aggregati dai due account Meta. Le ads mostrano anche anteprima creatività se presente.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1600px] text-sm">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{
+              width: '100%',
+              minWidth: 1800,
+              borderCollapse: 'collapse',
+            }}>
               <thead>
-                <tr className="border-y border-slate-700 bg-slate-900/70 text-left text-xs uppercase tracking-[0.18em] text-slate-200">
-                  <Th>Livello</Th>
-                  <Th>Anteprima</Th>
-                  <Th>Impression</Th>
-                  <Th>Copertura</Th>
-                  <Th>Freq.</Th>
-                  <Th>CPM</Th>
-                  <Th>CTR link</Th>
-                  <Th>CPC link</Th>
-                  <Th>Click link</Th>
-                  <Th>Speso</Th>
-                  <Th>Costo risultato</Th>
-                  <Th>ROAS</Th>
-                  <Th>Acquisti</Th>
-                  <Th>Conv. acquisti</Th>
-                  <Th>CRO campagna</Th>
-                  <Th>AOV campagna</Th>
+                <tr>
+                  {[
+                    'Livello',
+                    'Anteprima',
+                    'Impression',
+                    'Copertura',
+                    'Freq.',
+                    'CPM',
+                    'CTR link',
+                    'CPC link',
+                    'Click link',
+                    'Speso',
+                    'Costo risultato',
+                    'ROAS',
+                    'Acquisti',
+                    'Conv. acquisti',
+                    'CRO campagna',
+                    'AOV campagna',
+                  ].map(h => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: 'left',
+                        padding: '12px 14px',
+                        color: TEXT,
+                        fontSize: 11,
+                        letterSpacing: '0.15em',
+                        textTransform: 'uppercase',
+                        borderBottom: `1px solid ${BORDER}`,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
-                {!hasRows && (
+                {rows.length === 0 && (
                   <tr>
-                    <td colSpan={16} className="px-4 py-8 text-slate-400">
-                      Nessun dato Meta disponibile per il periodo selezionato.
-                    </td>
+                    <Cell>
+                      Nessuna campagna attiva disponibile nel periodo selezionato.
+                    </Cell>
                   </tr>
                 )}
 
-                {rows.map((row, idx) => {
-                  const isCampaign = row.level === 'campaign'
-                  const isAdset = row.level === 'adset'
-                  const isAd = row.level === 'ad'
+                {rows.map(row => {
+                  const isCampaign = row.type === 'campaign'
+                  const isAdset = row.type === 'adset'
+                  const isAd = row.type === 'ad'
+
+                  const isOpenCampaign = openCampaigns[row.id]
+                  const isOpenAdset = openAdsets[row.id]
 
                   return (
                     <tr
-                      key={row.id || idx}
-                      className={[
-                        'border-b border-slate-800',
-                        isCampaign ? 'bg-emerald-500/5' : '',
-                        isAdset ? 'bg-slate-900/30' : '',
-                        isAd ? 'bg-slate-950' : '',
-                      ].join(' ')}
+                      key={`${row.type}-${row.id}`}
+                      style={{
+                        background:
+                          isCampaign ? '#0c1830' :
+                          isAdset ? '#081426' :
+                          '#07101e',
+                      }}
                     >
-                      <td className="px-4 py-4 min-w-[320px]">
-                        <div
-                          className={[
-                            'font-bold',
-                            isCampaign ? 'text-emerald-400' : '',
-                            isAdset ? 'text-blue-300 pl-6' : '',
-                            isAd ? 'text-slate-200 pl-12' : '',
-                          ].join(' ')}
+                      <Cell bold green={isCampaign}>
+                        <button
+                          onClick={() => {
+                            if (isCampaign) toggleCampaign(row.id)
+                            if (isAdset) toggleAdset(row.id)
+                          }}
+                          disabled={isAd}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: isCampaign ? GREEN : isAdset ? TEXT : MUTED,
+                            fontWeight: 900,
+                            cursor: isAd ? 'default' : 'pointer',
+                            padding: 0,
+                            textAlign: 'left',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
                         >
-                          {getLevelLabel(row)}
-                        </div>
+                          <span style={{ width: 18 }}>
+                            {isCampaign ? (isOpenCampaign ? '▾' : '▸') : ''}
+                            {isAdset ? (isOpenAdset ? '▾' : '▸') : ''}
+                            {isAd ? '•' : ''}
+                          </span>
 
-                        {row.account_name && (
-                          <div className="mt-1 text-xs text-slate-500">
-                            {row.account_name}
-                          </div>
-                        )}
-                      </td>
+                          <span style={{ paddingLeft: row.depth * 22 }}>
+                            {isCampaign && `Campagna · ${row.name}`}
+                            {isAdset && `Ad set · ${row.name}`}
+                            {isAd && `Ad · ${row.name}`}
+                          </span>
+                        </button>
+                      </Cell>
 
-                      <td className="px-4 py-4">
-                        {row.thumbnail_url ? (
-                          <img
-                            src={row.thumbnail_url}
-                            alt={row.ad_name || row.name || 'Creatività'}
-                            className="h-14 w-14 rounded-lg object-cover border border-slate-700"
-                          />
-                        ) : (
-                          <span className="text-slate-600">—</span>
-                        )}
-                      </td>
+                      <Cell>
+                        {isAd ? <Thumb src={row.thumbnail_url} name={row.name} /> : '—'}
+                      </Cell>
 
-                      <Td>{fmtInt(row.impressions)}</Td>
-                      <Td>{fmtInt(row.reach)}</Td>
-                      <Td>{fmtFreq(row.frequency)}</Td>
-                      <Td>{fmtEuro2(row.cpm)}</Td>
-                      <Td>{fmtPct(row.ctr_link)}</Td>
-                      <Td>{fmtEuro2(row.cpc_link)}</Td>
-                      <Td>{fmtInt(row.link_clicks)}</Td>
-                      <Td>{fmtEuro(row.spend)}</Td>
-                      <Td>{fmtEuro2(row.cost_per_result)}</Td>
-                      <Td>{fmtX(row.roas)}</Td>
-                      <Td>{row.purchases ? fmtInt(row.purchases) : '—'}</Td>
-                      <Td>{fmtPct(row.conversione_acquisti)}</Td>
-                      <Td>{fmtPct(row.cro_campagna)}</Td>
-                      <Td>{fmtEuro2(row.aov_campagna)}</Td>
+                      <Cell>{int(metric(row, 'impressions'))}</Cell>
+                      <Cell>{int(metric(row, 'reach'))}</Cell>
+                      <Cell>{n(metric(row, 'frequency')).toFixed(2)}</Cell>
+                      <Cell>{money(metric(row, 'cpm'), 2)}</Cell>
+                      <Cell>{pct(metric(row, 'ctr_link'))}</Cell>
+                      <Cell>{money(metric(row, 'cpc_link'), 2)}</Cell>
+                      <Cell>{int(metric(row, 'link_clicks'))}</Cell>
+                      <Cell blue>{money(metric(row, 'spend'))}</Cell>
+                      <Cell>{money(metric(row, 'cost_per_result'), 2)}</Cell>
+                      <Cell>{ratio(metric(row, 'roas'))}</Cell>
+                      <Cell>{int(metric(row, 'purchases'))}</Cell>
+                      <Cell>{pct(metric(row, 'conversione_acquisti'))}</Cell>
+                      <Cell>{pct(metric(row, 'cro_campagna'))}</Cell>
+                      <Cell>{money(metric(row, 'aov_campagna'), 2)}</Cell>
                     </tr>
                   )
                 })}
@@ -389,70 +617,33 @@ export default function MetaPage() {
             </table>
           </div>
         </section>
-
-        <section className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-          <h2 className="text-sm font-black tracking-[0.2em] uppercase">
-            Totale periodo
-          </h2>
-
-          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
-            <Mini label="Impression" value={fmtInt(totals.impressions)} />
-            <Mini label="Copertura" value={fmtInt(totals.reach)} />
-            <Mini label="Frequenza" value={fmtFreq(totals.frequency)} />
-            <Mini label="CPM" value={fmtEuro2(totals.cpm)} />
-            <Mini label="CPC link" value={fmtEuro2(totals.cpc_link)} />
-            <Mini label="Click link" value={fmtInt(totals.link_clicks)} />
-            <Mini label="Conv. acquisti" value={fmtPct(totals.conversione_acquisti)} />
-            <Mini label="AOV campagna" value={fmtEuro2(totals.aov_campagna)} />
-          </div>
-        </section>
       </div>
     </main>
   )
 }
 
-function Kpi({ title, value }) {
-  return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-950/60 p-5">
-      <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-        {title}
-      </div>
-      <div className="mt-5 text-3xl font-black">{value}</div>
-    </div>
-  )
+const inputStyle = {
+  background: '#081020',
+  color: TEXT,
+  border: `1px solid ${BORDER}`,
+  borderRadius: 999,
+  padding: '10px 14px',
+  fontWeight: 700,
 }
 
-function Mini({ label, value }) {
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-4">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 font-black">
-        {label}
-      </div>
-      <div className="mt-2 text-lg font-bold text-slate-100">{value}</div>
-    </div>
-  )
+const panelStyle = {
+  background: CARD,
+  border: `1px solid ${BORDER}`,
+  borderRadius: 10,
+  padding: 20,
+  marginBottom: 18,
 }
 
-function DeltaBox({ label, value }) {
-  const x = n(value)
-  const good = x >= 0
-
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-4">
-      <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-        {label}
-      </div>
-      <div className={['mt-4 text-2xl font-black', good ? 'text-emerald-400' : 'text-red-400'].join(' ')}>
-        {fmtDelta(x)}
-      </div>
-    </div>
-  )
-}
-
-function Th({ children }) {
-  return <th className="px-4 py-4 whitespace-nowrap">{children}</th>
-}
-
-function Td({ children }) {
-  return <td className="px-4 py-4 whitespace-nowrap text-slate-200">{children}</td>
+const titleStyle = {
+  margin: '0 0 14px',
+  color: TEXT,
+  fontSize: 14,
+  fontWeight: 900,
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
 }

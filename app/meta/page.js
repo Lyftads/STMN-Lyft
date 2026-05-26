@@ -234,7 +234,7 @@ export default function MetaPage() {
 
     try {
       const res = await fetch(
-        `/api/meta-detail?preset=${preset}&level=ads&adset_id=${adset.id}`,
+        `/api/meta-detail?preset=${encodeURIComponent(preset)}&level=ads&adset_id=${encodeURIComponent(adset.id)}`,
         { cache: 'no-store' }
       )
 

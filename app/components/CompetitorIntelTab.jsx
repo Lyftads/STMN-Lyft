@@ -619,107 +619,63 @@ function CompetitorSection({ competitor, meta }) {
             )}
 
             {ads.length === 0 && (
-              <>
-                {/* Big Ad Library link card */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Ad Library direct link */}
                 <a
                   href={meta.adLibraryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    display: 'block',
+                    display: 'flex', alignItems: 'center', gap: 16,
                     textDecoration: 'none',
-                    background: 'linear-gradient(135deg, #1877f215, #1877f208)',
+                    background: 'linear-gradient(135deg, #1877f218, #1877f208)',
                     border: '1px solid #1877f230',
                     borderRadius: 18,
-                    padding: '32px 28px',
-                    marginBottom: 20,
-                    transition: 'border-color .15s',
+                    padding: '28px 24px',
+                    transition: 'border-color .2s',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div
-                      style={{
-                        width: 52,
-                        height: 52,
-                        borderRadius: 14,
-                        background: '#1877f220',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 24,
-                        flexShrink: 0,
-                      }}
-                    >
-                      📢
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 6 }}>
-                        Vedi tutte le creative attive di {meta.name}
-                      </div>
-                      <div style={{ color: '#8b8aa0', fontSize: 13, lineHeight: 1.5 }}>
-                        Clicca per aprire la Meta Ad Library con tutte le inserzioni attive, immagini,
-                        video e copy
-                      </div>
-                    </div>
-                    <div style={{ color: '#60a5fa', fontSize: 22, fontWeight: 900, flexShrink: 0 }}>→</div>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: 14,
+                    background: '#1877f220',
+                    display: 'grid', placeItems: 'center', flexShrink: 0,
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" fill="#1877f2"/>
+                    </svg>
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
+                      Apri Ad Library di {meta.name}
+                    </div>
+                    <div style={{ color: '#8b8aa0', fontSize: 12, lineHeight: 1.5 }}>
+                      Visualizza tutte le inserzioni attive con immagini, video e copy
+                    </div>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M7 3h10v10M17 3L3 17" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </a>
 
-                {adLibrary?.error && adLibrary.code === 10 && (
-                  <div
-                    style={{
-                      padding: 20,
-                      borderRadius: 14,
-                      background: '#14111d',
-                      border: '1px solid #2c2638',
-                      marginBottom: 20,
-                    }}
-                  >
-                    <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 800, marginBottom: 12 }}>
-                      Come abilitare il caricamento automatico delle ads
-                    </div>
-                    <ol
-                      style={{
-                        margin: 0,
-                        paddingLeft: 20,
-                        color: '#8b8aa0',
-                        fontSize: 12,
-                        lineHeight: 2,
-                      }}
-                    >
-                      <li>
-                        Vai su{' '}
-                        <a
-                          href="https://developers.facebook.com/apps/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: '#60a5fa', textDecoration: 'none' }}
-                        >
-                          Meta Developer Dashboard
-                        </a>
-                      </li>
-                      <li>Seleziona la tua App → <strong style={{ color: '#c8c0d6' }}>App Review</strong> → <strong style={{ color: '#c8c0d6' }}>Permissions and Features</strong></li>
-                      <li>Cerca <strong style={{ color: '#c8c0d6' }}>Page Public Content Access</strong> e richiedi l&apos;accesso</li>
-                      <li>Una volta approvato, le creative dei competitor appariranno automaticamente qui</li>
-                    </ol>
+                {/* Status info */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 18px', borderRadius: 12,
+                  background: '#f59e0b08', border: '1px solid #f59e0b18',
+                }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: '#f59e0b', flexShrink: 0,
+                    animation: 'pulse 2s ease-in-out infinite',
+                  }} />
+                  <div style={{ fontSize: 12, color: '#c8c0d6', lineHeight: 1.5 }}>
+                    <strong style={{ color: '#f59e0b', fontWeight: 800 }}>In attesa di approvazione</strong>
+                    {' — '}
+                    La richiesta di accesso <span style={{ color: '#e2dcf0', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
+                    Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.
                   </div>
-                )}
-
-                {adLibrary?.error && adLibrary.code !== 10 && (
-                  <div
-                    style={{
-                      padding: 14,
-                      borderRadius: 12,
-                      background: '#f59e0b08',
-                      border: '1px solid #f59e0b20',
-                      color: '#8b8aa0',
-                      fontSize: 12,
-                    }}
-                  >
-                    API: {adLibrary.error}
-                  </div>
-                )}
-              </>
+                </div>
+              </div>
             )}
           </>
         )}

@@ -101,7 +101,21 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    const msg = err?.message || String(err)
+    // Dump every property of the error to find the real cause
+    const errDump = {}
+    try {
+      for (const key of Object.getOwnPropertyNames(err || {})) {
+        const val = err[key]
+        if (typeof val === 'function') continue
+        try { errDump[key] = JSON.parse(JSON.stringify(val)) } catch { errDump[key] = String(val) }
+      }
+      errDump._type = err?.constructor?.name
+      errDump._code = err?.code
+      errDump._details = err?.details
+      errDump._metadata_keys = err?.metadata?.internalRepr ? [...err.metadata.internalRepr.keys()] : null
+    } catch {}
+
+    const msg = err?.message || err?.details || String(err)
 
     // Extract the real Google Ads error from the gRPC failure
     const failures = err?.failures || err?.errors || []
@@ -145,6 +159,7 @@ export async function GET() {
       error: combined,
       gadsErrors: gadsErrors.length ? gadsErrors : undefined,
       grpcCode: code,
+      errDump,
       hint,
       totalSpend: 0,
       monthly: [],

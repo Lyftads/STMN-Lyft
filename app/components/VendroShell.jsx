@@ -377,68 +377,6 @@ export default function VendroShell({
               </p>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
-              {setPreset && (
-                <select
-                  value={preset}
-                  onChange={e => setPreset(e.target.value)}
-                  disabled={loading}
-                  style={{
-                    background: '#201b2b',
-                    border: '1px solid #3b324a',
-                    color: '#fff',
-                    borderRadius: 10,
-                    padding: '8px 14px',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    outline: 'none',
-                    cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
-                  }}
-                >
-                  {PRESETS.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-              )}
-              {onRefresh && (
-                <button
-                  type="button"
-                  onClick={onRefresh}
-                  disabled={loading}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    border: '1px solid #3b324a',
-                    background: loading ? '#201b2b' : '#201b2b',
-                    color: loading ? '#6b5f7d' : '#f7f2ff',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
-                    transition: 'all .15s',
-                  }}
-                >
-                  <span style={{
-                    display: 'inline-block',
-                    fontSize: 15,
-                    animation: loading ? 'spin 1s linear infinite' : 'none',
-                  }}>↻</span>
-                  {loading ? 'Caricamento…' : 'Aggiorna'}
-                </button>
-              )}
-            </div>
           </header>
 
           {children}

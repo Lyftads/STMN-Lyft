@@ -712,7 +712,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 }
 
 // ── WeeklyTab ─────────────────────────────────────────────────
-function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
+function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, weeklyTF, setWeeklyTF, weeklyCustom, setWeeklyCustom, onRefresh, loading: loadingProp }) {
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
 
@@ -1002,8 +1002,134 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     )
   )
 
+  // ── Weekly timeframe filter ──
+  const getMonday = (d) => { const dt = new Date(d); dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7)); return dt.toISOString().slice(0,10) }
+  const today = new Date()
+  const thisMonday = getMonday(today)
+  const lastMonday = (() => { const d = new Date(thisMonday); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
+  const lastSunday = (() => { const d = new Date(thisMonday); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()
+  const prevPrevMonday = (() => { const d = new Date(lastMonday); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
+
+  let tfWeeks = [], tfPrevWeeks = [], tfLabel = ''
+  if (weeklyTF === 'this_week') {
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfLabel = `Questa settimana vs precedente`
+  } else if (weeklyTF === 'last_week') {
+    tfWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday)
+    tfLabel = `Settimana scorsa vs precedente`
+  } else if (weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until) {
+    const s = getMonday(weeklyCustom.since), u = weeklyCustom.until
+    tfWeeks = allWeeks.filter(w => w.key >= s && w.key <= u)
+    const span = tfWeeks.length || 1
+    const prevEnd = (() => { const d = new Date(s); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()
+    const prevStart = (() => { const d = new Date(s); d.setUTCDate(d.getUTCDate() - span * 7); return d.toISOString().slice(0,10) })()
+    tfPrevWeeks = allWeeks.filter(w => w.key >= prevStart && w.key <= prevEnd)
+    tfLabel = `${s} → ${u} vs periodo prec.`
+  } else {
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfLabel = `Questa settimana`
+  }
+
+  const sumW = (arr, key) => arr.reduce((s, w) => s + asNum(w[key]), 0)
+  const divW = (a, b) => b > 0 ? a / b : null
+
+  const tf = { fat: sumW(tfWeeks,'fat'), ord: sumW(tfWeeks,'ord'), nc: sumW(tfWeeks,'nc'), rc: sumW(tfWeeks,'rc'), meta: sumW(tfWeeks,'meta'), google: sumW(tfWeeks,'google'), ses: sumW(tfWeeks,'ses') }
+  tf.adv = tf.meta + tf.google; tf.aov = divW(tf.fat, tf.ord); tf.mer = divW(tf.fat, tf.adv); tf.cac = divW(tf.adv, tf.nc)
+  tf.ratio = tf.aov && tf.cac ? (tf.aov * cfg.freq * cfg.life * cfg.margin / 100) / tf.cac : null
+
+  const tfP = { fat: sumW(tfPrevWeeks,'fat'), ord: sumW(tfPrevWeeks,'ord'), nc: sumW(tfPrevWeeks,'nc'), rc: sumW(tfPrevWeeks,'rc'), meta: sumW(tfPrevWeeks,'meta'), google: sumW(tfPrevWeeks,'google'), ses: sumW(tfPrevWeeks,'ses') }
+  tfP.adv = tfP.meta + tfP.google; tfP.aov = divW(tfP.fat, tfP.ord); tfP.mer = divW(tfP.fat, tfP.adv); tfP.cac = divW(tfP.adv, tfP.nc)
+  tfP.ratio = tfP.aov && tfP.cac ? (tfP.aov * cfg.freq * cfg.life * cfg.margin / 100) / tfP.cac : null
+
+  const Sparkline = ({ dataArr, dataKey, color = '#22c55e', width = 80, height = 30 }) => {
+    const vals = dataArr.map(d => Number(d[dataKey] || 0))
+    if (vals.length < 2 || vals.every(v => v === 0)) return null
+    const max = Math.max(...vals), min = Math.min(...vals), range = max - min || 1
+    const points = vals.map((v, i) => `${(i/(vals.length-1))*width},${height-((v-min)/range)*(height-4)-2}`).join(' ')
+    return <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{opacity:0.7}}><polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  }
+
+  const DeltaBadge = ({ curr, prev, isLowerBetter = false }) => {
+    if (prev == null || prev === 0 || curr == null) return null
+    const pctV = ((curr - prev) / prev) * 100
+    if (Math.abs(pctV) < 0.1) return null
+    const up = pctV > 0, good = isLowerBetter ? !up : up
+    return <span style={{ fontSize:11, fontWeight:800, padding:'3px 8px', borderRadius:6, background:good?'#22c55e20':'#ef444420', color:good?'#22c55e':'#ef4444' }}>{up?'+':''}{pctV.toFixed(2)}%</span>
+  }
+
+  const ratioColor2 = r => r==null?'#555':r<1?'#ef4444':r<3?'#f59e0b':'#22c55e'
+  const fr2 = n => n!=null ? `${Number(n).toFixed(2).replace('.',',')}` : '—'
+  const kpiCards = [
+    { label:'Fatturato', val:tf.fat, prev:tfP.fat, fmt:money0, color:'#22c55e', key:'fat' },
+    { label:'Ordini', val:tf.ord, prev:tfP.ord, fmt:int0, color:'#f8fafc', key:'ord' },
+    { label:'AOV', val:tf.aov, prev:tfP.aov, fmt:money2, color:'#f59e0b', key:'aov' },
+    { label:'Nuovi Clienti', val:tf.nc, prev:tfP.nc, fmt:int0, color:'#06b6d4', key:'nc' },
+    { label:'Clienti Ritorno', val:tf.rc, prev:tfP.rc, fmt:int0, color:'#a78bfa', key:'rc' },
+    { label:'MER', val:tf.mer, prev:tfP.mer, fmt:v=>v!=null?`${fr2(v)}×`:'—', color:tf.mer!=null?(tf.mer>=3?'#22c55e':tf.mer>=2?'#f59e0b':'#ef4444'):'#555', key:'mer' },
+    { label:'CAC', val:tf.cac, prev:tfP.cac, fmt:money2, color:'#f8fafc', key:'cac', lower:true },
+    { label:'Ratio LTV:CAC', val:tf.ratio, prev:tfP.ratio, fmt:v=>v!=null?`${fr2(v)}:1`:'—', color:ratioColor2(tf.ratio), key:'ratio' },
+    { label:'Meta Spend', val:tf.meta, prev:tfP.meta, fmt:money0, color:'#3b82f6', key:'meta' },
+    { label:'Google Spend', val:tf.google, prev:tfP.google, fmt:v=>v>0?money0(v):'—', color:'#eab308', key:'google' },
+  ]
+
   return (
     <>
+      {/* Timeframe selector */}
+      <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+        {[
+          { id:'this_week', l:'Questa settimana' },
+          { id:'last_week', l:'Settimana precedente' },
+          { id:'custom', l:'Custom' },
+        ].map(b => (
+          <button key={b.id} onClick={()=>setWeeklyTF(b.id)} style={{
+            fontSize:12, padding:'6px 14px', borderRadius:6, cursor:'pointer',
+            border: weeklyTF===b.id?'1px solid #22c55e':'1px solid #1e2d47',
+            background: weeklyTF===b.id?'#22c55e20':'transparent',
+            color: weeklyTF===b.id?'#22c55e':'#94a3b8',
+            fontWeight: weeklyTF===b.id?700:500,
+          }}>{b.l}</button>
+        ))}
+        {weeklyTF==='custom' && (
+          <>
+            <input type="date" value={weeklyCustom.since} onChange={e=>setWeeklyCustom(p=>({...p,since:e.target.value}))}
+              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+            <span style={{color:'#555'}}>→</span>
+            <input type="date" value={weeklyCustom.until} onChange={e=>setWeeklyCustom(p=>({...p,until:e.target.value}))}
+              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+          </>
+        )}
+        {onRefresh && (
+          <button onClick={onRefresh} disabled={loadingProp} style={{
+            marginLeft:'auto', fontSize:12, padding:'6px 14px', borderRadius:6,
+            border:'1px solid #1e2d47', background:loadingProp?'#0a1020':'transparent',
+            color:loadingProp?'#555':'#94a3b8', fontWeight:700, cursor:loadingProp?'wait':'pointer',
+            display:'flex', alignItems:'center', gap:6,
+          }}>
+            <span style={{animation:loadingProp?'spin 1s linear infinite':'none'}}>↻</span>
+            {loadingProp?'Aggiorno…':'Aggiorna'}
+          </button>
+        )}
+        <span style={{fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+      </div>
+
+      {/* KPI summary cards */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12,marginBottom:20}}>
+        {kpiCards.map(kpi => (
+          <div key={kpi.label} style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{fontSize:10,color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+              <div style={{fontSize:24,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{kpi.fmt(kpi.val)}</div>
+              <Sparkline dataArr={filled} dataKey={kpi.key} color={kpi.color} />
+            </div>
+            <div style={{marginTop:8}}><DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} /></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Data entry table */}
       <div style={{ ...S.card, marginBottom: 20 }}>
         <div style={{
           display: 'flex',
@@ -1019,7 +1145,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
           }}>
-            Inserimento dati settimanali
+            Dati settimanali
           </span>
 
           <span style={{ fontSize: 10, color: '#22c55e' }}>
@@ -1049,8 +1175,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
             </thead>
 
             <tbody>
-              {allWeeks.map((w, i) => {
-                const p = i > 0 ? allWeeks[i - 1] : null
+              {tfWeeks.map((w, i) => {
+                const p = i > 0 ? tfWeeks[i - 1] : (tfPrevWeeks.length > 0 ? tfPrevWeeks[tfPrevWeeks.length - 1] : null)
 
                 return (
                   <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
@@ -1103,35 +1229,29 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 )
               })}
 
+              {tfWeeks.length > 1 && (
               <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
                 <td style={{
-                  ...TD,
-                  color: '#94a3b8',
-                  fontWeight: 900,
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  fontFamily: 'Barlow Condensed',
-                }}>
-                  Totale
-                </td>
-
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatNC)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatRC)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totMeta)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{totGoog > 0 ? money0(totGoog) : '—'}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totOrd)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totNC)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totRC)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(totSes)}</td>
+                  ...TD, color: '#94a3b8', fontWeight: 900, fontSize: 10,
+                  textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Barlow Condensed',
+                }}>Totale</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.meta)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.google>0?money0(tf.google):'—'}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.ord)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.nc)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.rc)}</td>
+                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.ses)}</td>
               </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {filled.length > 0 && (
+      {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 0 && (
         <div style={{ ...S.card, marginBottom: 20 }}>
           <p style={{
             fontSize: 11,
@@ -1173,8 +1293,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
               </thead>
 
               <tbody>
-                {filled.map((w, i) => {
-                  const p = i > 0 ? filled[i - 1] : null
+                {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).map((w, i, arr) => {
+                  const p = i > 0 ? arr[i - 1] : (tfPrevWeeks.length > 0 ? tfPrevWeeks[tfPrevWeeks.length - 1] : null)
 
                   return (
                     <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
@@ -1207,35 +1327,26 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   )
                 })}
 
+                {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 1 && (
                 <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
-                  <td style={{
-                    ...TD,
-                    color: '#94a3b8',
-                    fontWeight: 900,
-                    fontSize: 10,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    fontFamily: 'Barlow Condensed',
-                  }}>
-                    Media / Totale
-                  </td>
-
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFat)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatNC)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totFatRC)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(totAdv)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgMER != null ? `${dec2(avgMER)}×` : '—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgAMER != null ? `${dec2(avgAMER)}×` : '—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCAC)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgCPO)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOV)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOVNC)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgAOVRC)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgRet != null ? pct1(avgRet) : '—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgCRO != null ? pct2(avgCRO) : '—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money2(avgLTV)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{avgRatio != null ? `${dec2(avgRatio)}:1` : '—'}</td>
+                  <td style={{ ...TD, color:'#94a3b8', fontWeight:900, fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', fontFamily:'Barlow Condensed' }}>Media / Totale</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.adv)}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.mer!=null?`${dec2(tf.mer)}×`:'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatNC'),tf.adv)!=null?`${dec2(divW(sumW(tfWeeks,'fatNC'),tf.adv))}×`:'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.cac?money2(tf.cac):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(tf.adv,tf.ord)?money2(divW(tf.adv,tf.ord)):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.aov?money2(tf.aov):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatNC'),tf.nc)?money2(divW(sumW(tfWeeks,'fatNC'),tf.nc)):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatRC'),tf.rc)?money2(divW(sumW(tfWeeks,'fatRC'),tf.rc)):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.nc+tf.rc>0?pct1(tf.rc/(tf.nc+tf.rc)*100):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.ses>0&&tf.ord>0?pct2(tf.ord/tf.ses*100):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.aov?money2(tf.aov*cfg.freq*cfg.life*cfg.margin/100):'—'}</td>
+                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.ratio?`${dec2(tf.ratio)}:1`:'—'}</td>
                 </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1383,6 +1494,8 @@ export default function App() {
   const [preset, setPreset] = useState('last_90d')
   const [monthlyTF, setMonthlyTF] = useState('this_month')
   const [monthlyCustom, setMonthlyCustom] = useState({ since: '', until: '' })
+  const [weeklyTF, setWeeklyTF] = useState('this_week')
+  const [weeklyCustom, setWeeklyCustom] = useState({ since: '', until: '' })
 
   const avail = getMonths()
 
@@ -2000,7 +2113,16 @@ export default function App() {
                   style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
               </>
             )}
-            <span style={{marginLeft:'auto',fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+            <button onClick={fetchLive} disabled={loading} style={{
+              marginLeft:'auto', fontSize:12, padding:'6px 14px', borderRadius:6,
+              border:'1px solid #1e2d47', background:loading?'#0a1020':'transparent',
+              color:loading?'#555':'#94a3b8', fontWeight:700, cursor:loading?'wait':'pointer',
+              display:'flex', alignItems:'center', gap:6,
+            }}>
+              <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
+              {loading?'Aggiorno…':'Aggiorna'}
+            </button>
+            <span style={{fontSize:11,color:'#64748b'}}>{tfLabel}</span>
           </div>
 
           {/* Summary KPI Cards with sparkline + delta */}
@@ -2235,6 +2357,12 @@ export default function App() {
           onUpdate={updateWeek}
           cfg={cfg}
           S={S}
+          weeklyTF={weeklyTF}
+          setWeeklyTF={setWeeklyTF}
+          weeklyCustom={weeklyCustom}
+          setWeeklyCustom={setWeeklyCustom}
+          onRefresh={fetchLive}
+          loading={loading}
         />
       )}
 

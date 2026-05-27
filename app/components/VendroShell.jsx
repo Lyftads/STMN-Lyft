@@ -32,27 +32,6 @@ function getPageSubtitle(tab, updated) {
   return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
 }
 
-function StatusPill({ label, active, color }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 13px',
-        borderRadius: 12,
-        border: `1px solid ${active ? color : '#332a41'}`,
-        background: active ? `${color}18` : '#171220',
-        color: active ? color : '#a89db8',
-        fontSize: 12,
-        fontWeight: 900,
-        lineHeight: 1,
-      }}
-    >
-      {label} {active ? '✓' : '—'}
-    </span>
-  )
-}
 
 export default function VendroShell({
   tab = 'dashboard',
@@ -148,16 +127,20 @@ export default function VendroShell({
               marginBottom: 22,
             }}
           >
-            <div
-              style={{
-                width: 40,
-                height: 30,
-                borderRadius: 999,
-                background:
-                  'linear-gradient(135deg, #ff6b4a 0%, #ec4899 48%, #7c3aed 100%)',
-                boxShadow: '0 0 26px rgba(236,72,153,.28)',
-              }}
-            />
+            <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="18" width="6" height="9" rx="2" fill="#8b5cf6" opacity="0.35" />
+              <rect x="10" y="12" width="6" height="15" rx="2" fill="#8b5cf6" opacity="0.55" />
+              <rect x="19" y="6" width="6" height="21" rx="2" fill="#8b5cf6" opacity="0.75" />
+              <rect x="28" y="1" width="6" height="26" rx="2" fill="#8b5cf6" />
+              <path d="M4 16 Q12 9, 22 5 T34 1" stroke="url(#lyft_grad)" strokeWidth="2" strokeLinecap="round" fill="none" />
+              <circle cx="34" cy="1" r="2" fill="#c4b5fd" />
+              <defs>
+                <linearGradient id="lyft_grad" x1="4" y1="16" x2="34" y2="1" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#8b5cf6" stopOpacity="0.4" />
+                  <stop offset="1" stopColor="#c4b5fd" />
+                </linearGradient>
+              </defs>
+            </svg>
             <div
               style={{
                 fontSize: 30,
@@ -167,7 +150,7 @@ export default function VendroShell({
                 lineHeight: 1,
               }}
             >
-              Lyft Ads
+              Lyft
             </div>
           </div>
 
@@ -404,19 +387,6 @@ export default function VendroShell({
               </p>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
-              <StatusPill label="Shopify" active={Boolean(live?.sources?.shopify)} color="#22c55e" />
-              <StatusPill label="Meta" active={Boolean(live?.sources?.meta)} color="#3b82f6" />
-              <StatusPill label="Klaviyo" active={Boolean(live?.sources?.klaviyo)} color="#8b5cf6" />
-            </div>
           </header>
 
           {children}

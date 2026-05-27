@@ -21,7 +21,7 @@ export async function GET(request) {
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
 
-  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts] =
+  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`),
       safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
@@ -33,6 +33,7 @@ export async function GET(request) {
       safeFetch(`${base}/api/snapchat?days=${days}`),
       safeFetch(`${base}/api/competitor-intel`),
       safeFetch(`${base}/api/product-costs`),
+      safeFetch(`${base}/api/market-intel`),
     ])
 
   const sources = {
@@ -144,6 +145,25 @@ export async function GET(request) {
   if (productCosts?.products?.length) {
     context.productCosts = productCosts.products
     context.productCostsSummary = productCosts.summary
+  }
+
+  if (marketIntel) {
+    context.marketIntel = {
+      trustpilot: marketIntel.trustpilot || {},
+      amazon: marketIntel.amazon || {},
+      influencers: (marketIntel.influencers || []).map(inf => ({
+        name: inf.name,
+        youtube: inf.youtube ? {
+          subscribers: inf.youtube.subscribers,
+          recentVideos: (inf.youtube.videos || []).slice(0, 3).map(v => ({ title: v.title, date: v.published, views: v.views })),
+        } : null,
+        instagram: inf.instagram && !inf.instagram.error ? {
+          followers: inf.instagram.followers,
+          bio: inf.instagram.bio,
+        } : null,
+      })),
+      fetchedAt: marketIntel.fetchedAt,
+    }
   }
 
   if (competitorIntel?.competitors?.length) {

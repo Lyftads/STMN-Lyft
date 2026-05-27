@@ -115,6 +115,13 @@ export default function VendroShell({
         { id: 'creativeLab', label: 'Creative Lab', icon: '✧' },
       ],
     },
+    {
+      title: 'System',
+      color: '#9f93ad',
+      items: [
+        { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
+      ],
+    },
   ]
 
   const [storeOpen, setStoreOpen] = useState(false)

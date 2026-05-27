@@ -2432,7 +2432,7 @@ export default function App() {
 
 {/* CRO TAB */}
 {tab === 'cro' && (
-  <CROTab />
+  <CROTab data={data} live={live} onRefresh={fetchLive} loading={loading} />
 )}
 
 {/* CREATIVE LAB TAB */}

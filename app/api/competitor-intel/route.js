@@ -87,18 +87,34 @@ const CATEGORY_RULES = [
     match: (p) => {
       const title = p.title.toLowerCase()
       const type = (p.type || '').toLowerCase()
-      const tags = (p.tags || []).join(' ').toLowerCase()
+      const tagsArr = (p.tags || []).map(t => t.toLowerCase())
+      const tags = tagsArr.join(' ')
       const s = `${title} ${type} ${tags}`
-      // Match by tags (STMN uses "uomo" / "abbigliamento uomo")
-      // or by type (Velites: "tshirts", Picsil: "textil > hombre")
-      const isMen = tags.includes('uomo') || tags.includes('abbigliamento uomo') ||
-        s.includes('hombre') || (s.includes('men') && !s.includes('women'))
-      const isApparel = tags.includes('abbigliamento') || s.includes('shirt') || s.includes('short') ||
-        s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('camiseta') ||
-        s.includes('textil') || s.includes('maillot') || type.includes('tshirt')
-      // For products clearly labeled men's by title
-      const titleMen = title.includes('uomo') || title.includes(' men') || title.includes("men's")
-      return (isMen && isApparel) || (titleMen && isApparel)
+
+      const hasMen = tags.includes('uomo') || tags.includes('abbigliamento uomo') ||
+        s.includes('hombre') || type.includes('hombre')
+      const hasWomen = tags.includes('donna') || tags.includes('abbigliamento donna') ||
+        s.includes('mujer') || type.includes('mujer')
+
+      // Unisex (tagged both): only count as men if title says "unisex" or doesn't say "donna/woman"
+      if (hasMen && hasWomen) {
+        return title.includes('unisex') && !title.includes('donna') && !title.includes('woman')
+      }
+
+      // Exclusive men's
+      if (hasMen && !hasWomen) {
+        return s.includes('shirt') || s.includes('short') || s.includes('hoodie') ||
+          s.includes('jogger') || s.includes('sweat') || s.includes('camiseta') ||
+          s.includes('felpa') || s.includes('pantalone') || s.includes('cargo') ||
+          s.includes('workout') || s.includes('maillot') || s.includes('textil') ||
+          tags.includes('abbigliamento')
+      }
+
+      // Competitor: type contains men's indicator exclusively
+      if (type.includes('hombre') && !type.includes('mujer')) return true
+      if ((title.includes(' men') || title.includes("men's")) && !title.includes('women')) return true
+
+      return false
     },
   },
   {
@@ -107,27 +123,53 @@ const CATEGORY_RULES = [
     match: (p) => {
       const title = p.title.toLowerCase()
       const type = (p.type || '').toLowerCase()
-      const tags = (p.tags || []).join(' ').toLowerCase()
+      const tagsArr = (p.tags || []).map(t => t.toLowerCase())
+      const tags = tagsArr.join(' ')
       const s = `${title} ${type} ${tags}`
-      const isWomen = tags.includes('donna') || tags.includes('abbigliamento donna') ||
-        s.includes('mujer') || s.includes('women') || s.includes('woman') ||
+
+      const hasMen = tags.includes('uomo') || tags.includes('abbigliamento uomo') ||
+        s.includes('hombre') || type.includes('hombre')
+      const hasWomen = tags.includes('donna') || tags.includes('abbigliamento donna') ||
+        s.includes('mujer') || type.includes('mujer') ||
         tags.includes('bra') || tags.includes('leggings')
-      const isApparel = tags.includes('abbigliamento') || s.includes('shirt') || s.includes('short') ||
-        s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('crop') ||
-        s.includes('bra') || s.includes('legging') || s.includes('camiseta') || s.includes('textil') ||
-        s.includes('sujetador') || s.includes('top') || type.includes('bra')
-      const titleWomen = title.includes('donna') || title.includes(' women') || title.includes("women's")
-      return (isWomen && isApparel) || (titleWomen && isApparel)
+
+      // Unisex (tagged both): only count as women if title says "donna/woman"
+      if (hasMen && hasWomen) {
+        return title.includes('donna') || title.includes('woman')
+      }
+
+      // Exclusive women's
+      if (hasWomen && !hasMen) {
+        return s.includes('shirt') || s.includes('short') || s.includes('hoodie') ||
+          s.includes('jogger') || s.includes('sweat') || s.includes('crop') ||
+          s.includes('bra') || s.includes('legging') || s.includes('camiseta') ||
+          s.includes('felpa') || s.includes('pantalone') || s.includes('tank') ||
+          s.includes('sujetador') || s.includes('textil') ||
+          tags.includes('abbigliamento') || tags.includes('abbigliamento donna')
+      }
+
+      // Competitor: type contains women's indicator exclusively
+      if (type.includes('mujer') && !type.includes('hombre')) return true
+      if ((title.includes('women') || title.includes("woman")) && !title.includes(' men')) return true
+      if (title.includes('donna') && !title.includes('uomo')) return true
+
+      return false
     },
   },
   {
     id: 'bags',
     label: 'Zaini / Borsoni',
     match: (p) => {
-      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return s.includes('backpack') || s.includes('zaino') || s.includes('borsa') ||
-        s.includes('borsone') || s.includes('mochila') || s.includes('duffel') ||
-        s.includes('tactical') || (s.includes('bag') && !s.includes('sandbag'))
+      const title = p.title.toLowerCase()
+      const s = `${title} ${p.type || ''} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      // Exclude gloves, sandbags, and cheap tote/shopping bags
+      if (title.includes('guant') || title.includes('glove')) return false
+      if (s.includes('sandbag')) return false
+      if (title.includes('tote bag') && p.price < 10) return false
+      return s.includes('backpack') || s.includes('zaino') || s.includes('borsone') ||
+        s.includes('mochila') || s.includes('duffel') ||
+        (s.includes('borsa') && !s.includes('borsetta')) ||
+        (title.includes('bag') && p.price > 15)
     },
   },
 ]

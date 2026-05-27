@@ -131,22 +131,17 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 }
 
 // ── Stat box ──────────────────────────────────────────────────
-function Stat({ label, value, sub, color='#e8e8e8', mono, dim, sparkData, sparkColor, current, previous }) {
+function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous }) {
   return (
-    <div style={{
-      background:'#0a1020',
-      border:'1px solid #111827',
-      borderRadius:8,
-      padding:'14px 16px',
-    }}>
-      <div style={{fontSize:11,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-        <div style={{fontSize:dim?22:30,fontWeight:800,color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{value}</div>
-        {sparkData && <Sparkline data={sparkData} color={sparkColor || color} width={72} height={28} />}
+    <div className="glass-card" style={{ padding: '20px 22px' }}>
+      <div className="label" style={{ marginBottom: 12 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div className={dim ? 'metric-value-sm' : 'metric-value'}>{value}</div>
+        {sparkData && <Sparkline data={sparkData} color={sparkColor || 'var(--accent)'} width={80} height={32} />}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
         <DeltaBadge current={current} previous={previous} />
-        {sub && <div style={{fontSize:12,color:'#64748b'}}>{sub}</div>}
+        {sub && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{sub}</span>}
       </div>
     </div>
   )
@@ -1705,10 +1700,10 @@ export default function App() {
   { id: 'metaDetail', l: 'Meta Detail' },
 ]
 
-  const S = { // shared styles
-    card: { background:'#0a1020', border:'1px solid #111827', borderRadius:10, padding:24 },
-    th:   { padding:'10px 14px', fontSize:11, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid #1e2d47', whiteSpace:'nowrap' },
-    td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid #0d1628', fontFamily:'Barlow', fontWeight:500 },
+  const S = {
+    card: { background:'var(--glass)', backdropFilter:'blur(20px)', border:'1px solid var(--border)', borderRadius:20, padding:28 },
+    th:   { padding:'12px 16px', fontSize:11, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:600, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' },
+    td:   { padding:'12px 16px', fontSize:14, borderBottom:'1px solid var(--border)', fontWeight:500, color:'var(--text)' },
   }
 
   // Meta Detail: variabili sicure per evitare errori client-side

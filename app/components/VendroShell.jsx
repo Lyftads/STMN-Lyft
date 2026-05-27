@@ -1,71 +1,52 @@
 'use client'
 
-
 function getPageTitle(tab) {
-  if (tab === 'kpiBrain') return 'KPI Brain'
-  if (tab === 'dashboard') return 'Dashboard'
-  if (tab === 'monthly') return 'Mensile'
-  if (tab === 'weekly') return 'Weekly'
-  if (tab === 'simulator') return 'Simulatore'
-  if (tab === 'metaDetail') return 'Meta Detail'
-  if (tab === 'creative') return 'Creative'
-  if (tab === 'performanceAgent') return 'Performance Agent'
-  if (tab === 'klaviyo') return 'Klaviyo'
-  if (tab === 'competitorIntel') return 'Competitor Intel'
-  if (tab === 'priceComparison') return 'Prezzi vs Competitor'
-  if (tab === 'integrations') return 'Integrazioni'
-  if (tab === 'cro') return 'CRO'
-  if (tab === 'creativeLab') return 'Creative Lab'
-  return 'Dashboard'
+  const map = {
+    dashboard: 'Dashboard',
+    kpiBrain: 'KPI Brain',
+    monthly: 'Mensile',
+    weekly: 'Weekly',
+    simulator: 'Simulatore',
+    metaDetail: 'Meta Detail',
+    creative: 'Creative',
+    performanceAgent: 'Performance Agent',
+    klaviyo: 'Klaviyo',
+    competitorIntel: 'Competitor Intel',
+    priceComparison: 'Prezzi vs Competitor',
+    integrations: 'Integrazioni',
+    cro: 'CRO',
+    creativeLab: 'Creative Lab',
+  }
+  return map[tab] || 'Dashboard'
 }
 
-function getPageSubtitle(tab, updated) {
-  if (tab === 'kpiBrain') return 'Your business intelligence at a glance'
-  if (tab === 'creative') return 'Analisi creative Meta Ads'
-  if (tab === 'metaDetail') return `Dettaglio performance Meta · ${updated ? updated.toLocaleString('it-IT') : '—'}`
-  if (tab === 'performanceAgent') return 'Consulente AI · Performance · CMO · CRO · Ads'
-  if (tab === 'klaviyo') return 'Email Marketing · Campagne · Flussi · Segmenti'
-  if (tab === 'competitorIntel') return 'Creative attive · Catalogo prodotti · Prezzi · Promozioni'
-  if (tab === 'priceComparison') return 'Confronto prezzi per categoria: Paracalli · Corde · Ginocchiere · Abbigliamento · Zaini'
-  if (tab === 'integrations') return 'Collega e gestisci tutte le piattaforme'
-  if (tab === 'cro') return 'Funnel · Top Pages · Flusso Traffico · Page Scanner'
-  if (tab === 'creativeLab') return 'Genera ad creative con AI da best seller, performance e competitor'
-  return `LTV:CAC Dashboard · ${updated ? updated.toLocaleString('it-IT') : '—'}`
-}
-
-
-function StatusPill({ label, active, color }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '6px 11px',
-        borderRadius: 10,
-        border: `1px solid ${active ? color : '#332a41'}`,
-        background: active ? `${color}18` : '#171220',
-        color: active ? color : '#a89db8',
-        fontSize: 11,
-        fontWeight: 900,
-        lineHeight: 1,
-      }}
-    >
-      {label} {active ? '✓' : '—'}
-    </span>
-  )
+function getPageSubtitle(tab) {
+  const map = {
+    kpiBrain: 'Your business intelligence at a glance',
+    creative: 'Analisi creative Meta Ads',
+    metaDetail: 'Dettaglio performance Meta',
+    performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
+    klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
+    competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
+    priceComparison: 'Confronto prezzi per categoria',
+    integrations: 'Collega e gestisci tutte le piattaforme',
+    cro: 'Funnel · Top Pages · Flusso Traffico',
+    creativeLab: 'Genera ad creative con AI',
+    dashboard: 'Panoramica completa del business',
+  }
+  return map[tab] || 'Panoramica completa del business'
 }
 
 const PRESETS = [
   { value: 'today', label: 'Oggi' },
   { value: 'yesterday', label: 'Ieri' },
-  { value: 'last_7d', label: 'Ultimi 7 giorni' },
-  { value: 'last_14d', label: 'Ultimi 14 giorni' },
-  { value: 'last_28d', label: 'Ultimi 28 giorni' },
-  { value: 'last_90d', label: 'Ultimi 90 giorni' },
+  { value: 'last_7d', label: '7 giorni' },
+  { value: 'last_14d', label: '14 giorni' },
+  { value: 'last_28d', label: '28 giorni' },
+  { value: 'last_90d', label: '90 giorni' },
   { value: 'current_month', label: 'Mese corrente' },
   { value: 'last_month', label: 'Mese scorso' },
-  { value: 'ytd', label: 'Anno corrente (YTD)' },
+  { value: 'ytd', label: 'YTD' },
 ]
 
 export default function VendroShell({
@@ -82,7 +63,7 @@ export default function VendroShell({
   const navGroups = [
     {
       title: 'Commerce',
-      color: '#ff4d7d',
+      color: '#ff375f',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
@@ -95,7 +76,7 @@ export default function VendroShell({
     },
     {
       title: 'Operations',
-      color: '#f6b73c',
+      color: '#ffd60a',
       items: [
         { id: 'simulator', label: 'Simulatore', icon: '⚡' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
@@ -103,7 +84,7 @@ export default function VendroShell({
     },
     {
       title: 'Intelligence',
-      color: '#06b6d4',
+      color: '#64d2ff',
       items: [
         { id: 'competitorIntel', label: 'Competitor Intel', icon: '◈' },
         { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: '⚖' },
@@ -111,7 +92,7 @@ export default function VendroShell({
     },
     {
       title: 'AI',
-      color: '#8b5cf6',
+      color: '#bf5af2',
       items: [
         { id: 'performanceAgent', label: 'Performance Agent', icon: '✦' },
         { id: 'creativeLab', label: 'Creative Lab', icon: '✧' },
@@ -119,130 +100,109 @@ export default function VendroShell({
     },
     {
       title: 'System',
-      color: '#9f93ad',
+      color: '#86868b',
       items: [
         { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
       ],
     },
   ]
 
-
   const goTo = (id) => {
     if (typeof setTab === 'function') setTab(id)
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background:
-          'radial-gradient(circle at 18% 0%, rgba(139,92,246,.13), transparent 30%), #0f0b16',
-        color: '#f7f2ff',
+    <div style={{
+      minHeight: '100vh',
+      background: '#000',
+      color: 'var(--text)',
+      display: 'flex',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+      position: 'relative',
+    }}>
+      {/* Background gradients */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: `
+          radial-gradient(ellipse 60% 50% at 20% 0%, rgba(41,151,255,0.08), transparent 60%),
+          radial-gradient(ellipse 40% 40% at 80% 100%, rgba(99,102,241,0.05), transparent 50%)
+        `,
+      }} />
+
+      {/* Sidebar */}
+      <aside style={{
+        width: 240,
+        minWidth: 240,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        borderRight: '1px solid var(--border)',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(40px) saturate(1.8)',
+        WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
         display: 'flex',
-        fontFamily:
-          'Inter, Barlow, Barlow Condensed, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
-      }}
-    >
-      <aside
-        style={{
-          width: 264,
-          minWidth: 264,
-          height: '100vh',
-          position: 'sticky',
-          top: 0,
-          borderRight: '1px solid #292134',
-          background: 'rgba(16, 12, 24, .92)',
-          backdropFilter: 'blur(18px)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 20,
-        }}
-      >
-        <div style={{ padding: '22px 16px 14px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              marginBottom: 22,
-            }}
-          >
-            <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="18" width="6" height="9" rx="2" fill="#8b5cf6" opacity="0.35" />
-              <rect x="10" y="12" width="6" height="15" rx="2" fill="#8b5cf6" opacity="0.55" />
-              <rect x="19" y="6" width="6" height="21" rx="2" fill="#8b5cf6" opacity="0.75" />
-              <rect x="28" y="1" width="6" height="26" rx="2" fill="#8b5cf6" />
-              <path d="M4 16 Q12 9, 22 5 T34 1" stroke="url(#lyft_grad)" strokeWidth="2" strokeLinecap="round" fill="none" />
-              <circle cx="34" cy="1" r="2" fill="#c4b5fd" />
-              <defs>
-                <linearGradient id="lyft_grad" x1="4" y1="16" x2="34" y2="1" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#8b5cf6" stopOpacity="0.4" />
-                  <stop offset="1" stopColor="#c4b5fd" />
-                </linearGradient>
-              </defs>
+        flexDirection: 'column',
+        zIndex: 20,
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '28px 20px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+            <svg width="28" height="22" viewBox="0 0 36 28" fill="none">
+              <rect x="1" y="18" width="6" height="9" rx="2" fill="#2997ff" opacity="0.3" />
+              <rect x="10" y="12" width="6" height="15" rx="2" fill="#2997ff" opacity="0.5" />
+              <rect x="19" y="6" width="6" height="21" rx="2" fill="#2997ff" opacity="0.7" />
+              <rect x="28" y="1" width="6" height="26" rx="2" fill="#2997ff" />
             </svg>
-            <div
-              style={{
-                fontSize: 30,
-                fontWeight: 950,
-                letterSpacing: '-0.05em',
-                color: '#ffffff',
-                lineHeight: 1,
-              }}
-            >
+            <span style={{
+              fontSize: 22,
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              color: '#fff',
+            }}>
               Lyft
-            </div>
+            </span>
           </div>
 
-          <div
-            style={{
-              width: '100%',
-              border: '1px solid #332a41',
-              background: '#211a2b',
-              borderRadius: 13,
-              padding: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <span style={{ width: 34, height: 34, borderRadius: 8, background: '#fff', display: 'inline-block', flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>
-              <span style={{ display: 'block', fontSize: 14, fontWeight: 900, color: '#fff' }}>STMN Fitness</span>
-              <span style={{ display: 'block', fontSize: 11, color: '#9b90aa', marginTop: 3 }}>Demo workspace</span>
+          {/* Workspace pill */}
+          <div style={{
+            background: 'var(--glass)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}>
+            <span style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
+              display: 'inline-block', flexShrink: 0,
+            }} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#fff' }}>STMN Fitness</span>
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
             </span>
           </div>
         </div>
 
-        <nav
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '10px 4px 16px',
-          }}
-        >
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0 16px' }}>
           {navGroups.map((group) => (
-            <div key={group.title} style={{ marginBottom: 26 }}>
-              <div
-                style={{
-                  margin: '0 0 10px',
-                  padding: '8px 16px',
-                  borderRadius: '0 10px 10px 0',
-                  background: `linear-gradient(90deg, ${group.color}25, transparent)`,
-                  color: group.color,
-                  fontSize: 12,
-                  fontWeight: 950,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.17em',
-                }}
-              >
+            <div key={group.title} style={{ marginBottom: 20 }}>
+              <div style={{
+                padding: '6px 20px',
+                color: 'var(--text3)',
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+              }}>
                 {group.title}
               </div>
 
-              <div style={{ display: 'grid', gap: 6, paddingRight: 10 }}>
+              <div style={{ display: 'grid', gap: 1, padding: '4px 8px 0' }}>
                 {group.items.map((item) => {
                   const active = tab === item.id
-
                   return (
                     <button
                       key={item.id}
@@ -251,32 +211,32 @@ export default function VendroShell({
                       style={{
                         width: '100%',
                         border: 0,
-                        borderRadius: '0 10px 10px 0',
-                        padding: '14px 16px',
+                        borderRadius: 8,
+                        padding: '9px 12px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
+                        gap: 10,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        color: active ? '#ffffff' : '#a99db7',
-                        background: active
-                          ? 'linear-gradient(90deg, #6d28d9, #2a1746)'
-                          : 'transparent',
-                        fontSize: 15,
-                        fontWeight: 900,
-                        boxShadow: active ? 'inset 4px 0 0 #8b5cf6' : 'none',
+                        color: active ? '#fff' : 'var(--text2)',
+                        background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                        fontSize: 13,
+                        fontWeight: active ? 600 : 500,
+                        transition: 'all 0.15s ease',
+                        outline: 'none',
                       }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                     >
-                      <span
-                        style={{
-                          width: 24,
-                          color: active ? '#fff' : group.color,
-                          fontSize: 18,
-                          display: 'inline-flex',
-                          justifyContent: 'center',
-                          opacity: active ? 1 : 0.75,
-                        }}
-                      >
+                      <span style={{
+                        width: 20,
+                        color: active ? '#fff' : group.color,
+                        fontSize: 14,
+                        display: 'inline-flex',
+                        justifyContent: 'center',
+                        opacity: active ? 1 : 0.6,
+                        transition: 'opacity 0.15s',
+                      }}>
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
@@ -288,120 +248,77 @@ export default function VendroShell({
           ))}
         </nav>
 
-        <div
-          style={{
-            borderTop: '1px solid #292134',
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                background: 'linear-gradient(135deg, #ff7a45, #ec4899, #8b5cf6)',
-                color: '#fff',
-                fontSize: 12,
-                fontWeight: 900,
-              }}
-            >
+        {/* User */}
+        <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              display: 'grid', placeItems: 'center',
+              background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
+              color: '#fff', fontSize: 11, fontWeight: 700,
+            }}>
               MC
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 13, color: '#fff', fontWeight: 900 }}>
-                Marino Catasta
-              </div>
-              <div style={{ fontSize: 11, color: '#91849f', marginTop: 2 }}>
-                Admin
-              </div>
+            <div>
+              <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Marino Catasta</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)' }}>Admin</div>
             </div>
-            <div style={{ color: '#9487a2' }}>⌄</div>
           </div>
         </div>
       </aside>
 
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: '34px 44px 70px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1180,
-            margin: '0 auto',
-          }}
-        >
-          <header
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: 20,
-              marginBottom: 30,
-            }}
-          >
+      {/* Main */}
+      <main style={{
+        flex: 1,
+        minWidth: 0,
+        padding: '40px 48px 80px',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          {/* Header */}
+          <header style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 24,
+            marginBottom: 40,
+          }}>
             <div>
-              <h1
-                style={{
-                  margin: 0,
-                  color: '#ffffff',
-                  fontSize: 30,
-                  fontWeight: 950,
-                  letterSpacing: '-0.045em',
-                  lineHeight: 1.05,
-                }}
-              >
+              <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                 {getPageTitle(tab)}
               </h1>
-
-              <p
-                style={{
-                  margin: '12px 0 0',
-                  color: '#9f93ad',
-                  fontSize: 13,
-                  lineHeight: 1.45,
-                }}
-              >
-                {getPageSubtitle(tab, updated)}
+              <p style={{
+                margin: 0,
+                color: 'var(--text3)',
+                fontSize: 14,
+                fontWeight: 400,
+              }}>
+                {getPageSubtitle(tab)}
               </p>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              flexShrink: 0,
+            }}>
               {setPreset && (
                 <select
                   value={preset}
                   onChange={e => setPreset(e.target.value)}
                   disabled={loading}
+                  className="btn-glass"
                   style={{
-                    background: '#201b2b',
-                    border: '1px solid #3b324a',
-                    color: '#fff',
-                    borderRadius: 10,
-                    padding: '8px 14px',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    outline: 'none',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    paddingRight: 32,
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
                     cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
+                    opacity: loading ? 0.5 : 1,
                   }}
                 >
                   {PRESETS.map(p => (
@@ -414,28 +331,20 @@ export default function VendroShell({
                   type="button"
                   onClick={onRefresh}
                   disabled={loading}
+                  className="btn-glass"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    border: '1px solid #3b324a',
-                    background: loading ? '#201b2b' : '#201b2b',
-                    color: loading ? '#6b5f7d' : '#f7f2ff',
-                    fontSize: 13,
-                    fontWeight: 700,
                     cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
-                    transition: 'all .15s',
+                    opacity: loading ? 0.5 : 1,
                   }}
                 >
                   <span style={{
                     display: 'inline-block',
-                    fontSize: 15,
                     animation: loading ? 'spin 1s linear infinite' : 'none',
                   }}>↻</span>
-                  {loading ? 'Caricamento…' : 'Aggiorna'}
+                  {loading ? 'Carico…' : 'Aggiorna'}
                 </button>
               )}
             </div>

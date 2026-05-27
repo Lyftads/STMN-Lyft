@@ -23,8 +23,23 @@ export async function GET() {
     for (const p of (data.products || [])) {
       const title = p.title || ''
       const image = p.images?.[0]?.src || ''
-      if (title && image) {
-        map[title] = image
+      if (!title || !image) continue
+
+      // Exact title
+      map[title] = image
+      // Lowercase
+      map[title.toLowerCase()] = image
+      // Without quotes and special chars
+      map[title.replace(/["'"]/g, '').trim()] = image
+      map[title.replace(/["'"]/g, '').trim().toLowerCase()] = image
+
+      // Also index by variant titles (order line items often include variant)
+      for (const v of (p.variants || [])) {
+        if (v.title && v.title !== 'Default Title') {
+          map[`${title} - ${v.title}`] = image
+          map[`${title} - ${v.title}`.toLowerCase()] = image
+          map[`${title} / ${v.title}`] = image
+        }
       }
     }
 

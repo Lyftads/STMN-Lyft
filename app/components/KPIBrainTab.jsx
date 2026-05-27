@@ -101,13 +101,23 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     }).catch(() => {})
   }, [])
 
+  const findImage = (name) => {
+    if (!name) return null
+    return productImages[name] || productImages[name.toLowerCase()] ||
+      productImages[name.replace(/["'"]/g,'').trim()] ||
+      productImages[name.replace(/["'"]/g,'').trim().toLowerCase()] ||
+      // Partial match: find a key that contains the product name
+      Object.entries(productImages).find(([k]) => k.toLowerCase().includes(name.toLowerCase().slice(0,20)))?.[1] ||
+      null
+  }
+
   const topProducts = (live?.shopifyTopProducts || []).map(r => {
     const label = r.label || r.name || r.title || r.product_title || '—'
     return {
       label,
       value: asNum(r.value ?? r.revenue ?? r.total_sales),
       orders: asNum(r.orders),
-      image: r.image || r.imageUrl || productImages[label] || null,
+      image: r.image || r.imageUrl || findImage(label),
     }
   }).filter(r => r.value > 0)
 
@@ -240,10 +250,63 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
       </div>
 
+      {/* Charts */}
+      {currentMonths.length > 0 && (
+      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Andamento</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div style={panel}>
+            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>Revenue & Spesa Ads</div>
+            <div style={{display:'flex',gap:20,alignItems:'flex-end',height:120}}>
+              {currentMonths.map(m => {
+                const maxVal = Math.max(...currentMonths.map(x=>Math.max(x.fatturato||0,x.totalSpend||0)),1)
+                return (
+                  <div key={m.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                    <div style={{display:'flex',gap:3,alignItems:'flex-end',height:90,width:'100%',justifyContent:'center'}}>
+                      <div style={{width:'40%',background:'#22c55e',borderRadius:'4px 4px 0 0',height:`${Math.max(4,(m.fatturato/maxVal)*90)}px`}} />
+                      <div style={{width:'40%',background:'#3b82f6',borderRadius:'4px 4px 0 0',height:`${Math.max(4,((m.totalSpend||0)/maxVal)*90)}px`}} />
+                    </div>
+                    <div style={{fontSize:9,color:'#6b6580',whiteSpace:'nowrap'}}>{m.month}</div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:10}}>
+              <span style={{fontSize:10,color:'#22c55e',display:'flex',alignItems:'center',gap:4}}><span style={{width:8,height:8,borderRadius:2,background:'#22c55e',display:'inline-block'}} />Revenue</span>
+              <span style={{fontSize:10,color:'#3b82f6',display:'flex',alignItems:'center',gap:4}}><span style={{width:8,height:8,borderRadius:2,background:'#3b82f6',display:'inline-block'}} />Spesa Ads</span>
+            </div>
+          </div>
+          <div style={panel}>
+            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>NC & RC</div>
+            <div style={{display:'flex',gap:20,alignItems:'flex-end',height:120}}>
+              {currentMonths.map(m => {
+                const maxVal = Math.max(...currentMonths.map(x=>Math.max(x.nc||0,x.rc||0)),1)
+                return (
+                  <div key={m.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                    <div style={{display:'flex',gap:3,alignItems:'flex-end',height:90,width:'100%',justifyContent:'center'}}>
+                      <div style={{width:'40%',background:'#06b6d4',borderRadius:'4px 4px 0 0',height:`${Math.max(4,(m.nc/maxVal)*90)}px`}} />
+                      <div style={{width:'40%',background:'#a78bfa',borderRadius:'4px 4px 0 0',height:`${Math.max(4,(m.rc/maxVal)*90)}px`}} />
+                    </div>
+                    <div style={{fontSize:9,color:'#6b6580',whiteSpace:'nowrap'}}>{m.month}</div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:10}}>
+              <span style={{fontSize:10,color:'#06b6d4',display:'flex',alignItems:'center',gap:4}}><span style={{width:8,height:8,borderRadius:2,background:'#06b6d4',display:'inline-block'}} />Nuovi</span>
+              <span style={{fontSize:10,color:'#a78bfa',display:'flex',alignItems:'center',gap:4}}><span style={{width:8,height:8,borderRadius:2,background:'#a78bfa',display:'inline-block'}} />Ritorno</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
+
       {/* Breakdowns */}
       <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
         <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Breakdowns</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+
+        {/* Row 1: Top Products + Day Breakdown (affiancati) */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={panel}>
             <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Top 10 prodotti per revenue</div>
             <div style={{display:'grid',gap:10}}>
@@ -268,22 +331,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             </div>
           </div>
 
-          <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
-            <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
-          </div>
-
-          <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>New vs Returning</div>
-            <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
-          </div>
-
-          {/* Day breakdown */}
-          {dayBreakdown.length > 0 && (
+          {/* Day breakdown (affiancato) */}
           <div style={panel}>
             <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Vendite per giorno della settimana</div>
             <div style={{display:'grid',gap:10}}>
-              {dayBreakdown.map(row => {
+              {dayBreakdown.length > 0 ? dayBreakdown.map(row => {
                 const max = Math.max(...dayBreakdown.map(r => r.value), 1)
                 return (
                   <div key={row.label}>
@@ -296,10 +348,22 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                     </div>
                   </div>
                 )
-              })}
+              }) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato.</div>}
             </div>
           </div>
-          )}
+        </div>
+
+        {/* Row 2: Spesa marketing + New vs Returning (sotto) */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
+            <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
+          </div>
+
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>New vs Returning</div>
+            <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
+          </div>
         </div>
       </div>
 

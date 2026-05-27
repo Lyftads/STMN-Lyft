@@ -88,47 +88,53 @@ export async function GET() {
       headers['login-customer-id'] = cleanMccId
     }
 
-    // Try all URL patterns × versions to find one that works
-    const versions = ['v19', 'v18', 'v17', 'v16']
-    const patterns = [
-      (ver, cid) => `https://googleads.googleapis.com/${ver}/customers/${cid}/googleAds:search`,
-      (ver, cid) => `https://googleads.googleapis.com/${ver}/customers/${cid}/googleAds:searchStream`,
-      (ver, cid) => `https://content-googleads.googleapis.com/${ver}/customers/${cid}/googleAds:search`,
-    ]
+    // Diagnostic: try 3 different approaches to find one that works
+    const ver = 'v17'
+    const diag = []
 
-    let adsText = ''
-    let adsStatus = 0
-    let usedUrl = ''
-    const diagnosticResults = []
+    // Test 1: standard URL with client account ID
+    const url1 = `https://googleads.googleapis.com/${ver}/customers/${cleanCustomerId}/googleAds:search`
+    const r1 = await fetch(url1, { method: 'POST', headers, body: JSON.stringify({ query }) })
+    const t1 = await r1.text()
+    diag.push({ test: 'client_id_in_url', status: r1.status, body: t1.slice(0, 200) })
 
-    outer:
-    for (const ver of versions) {
-      for (const pat of patterns) {
-        const url = pat(ver, cleanCustomerId)
-        const adsRes = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ query }) })
-        diagnosticResults.push({ url: url.replace(cleanCustomerId, 'CID'), status: adsRes.status })
-        if (adsRes.status !== 404) {
-          adsText = await adsRes.text()
-          adsStatus = adsRes.status
-          usedUrl = url
-          break outer
-        }
+    if (r1.status !== 404) {
+      // This worked — continue with normal flow
+      var adsText = t1
+      var adsStatus = r1.status
+    } else {
+      // Test 2: use MCC ID in URL instead of client ID
+      const url2 = `https://googleads.googleapis.com/${ver}/customers/${cleanMccId}/googleAds:search`
+      const r2 = await fetch(url2, { method: 'POST', headers, body: JSON.stringify({ query }) })
+      const t2 = await r2.text()
+      diag.push({ test: 'mcc_id_in_url', status: r2.status, body: t2.slice(0, 200) })
+
+      if (r2.status !== 404) {
+        var adsText = t2
+        var adsStatus = r2.status
+      } else {
+        // Test 3: no developer-token (to see if error changes)
+        const headersNoDev = { ...headers }
+        delete headersNoDev['developer-token']
+        delete headersNoDev['login-customer-id']
+        const r3 = await fetch(url1, { method: 'POST', headers: headersNoDev, body: JSON.stringify({ query }) })
+        const t3 = await r3.text()
+        diag.push({ test: 'no_dev_token', status: r3.status, body: t3.slice(0, 200) })
+
+        // Test 4: simple GET to check if domain is reachable at all
+        const r4 = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanCustomerId}`, {
+          headers: { 'Authorization': headers['Authorization'], 'developer-token': headers['developer-token'] },
+        })
+        diag.push({ test: 'simple_get', status: r4.status, body: (await r4.text()).slice(0, 200) })
+
+        return NextResponse.json({
+          error: 'All approaches failed',
+          diagnostic: diag,
+          debug: { customerId: cleanCustomerId, mccId: cleanMccId, ver },
+          totalSpend: 0,
+          monthly: [],
+        }, { status: 502 })
       }
-    }
-
-    if (!usedUrl) {
-      return NextResponse.json({
-        error: 'Google Ads API 404 on all URL variants and versions',
-        diagnostic: diagnosticResults,
-        debug: {
-          customerId: cleanCustomerId,
-          mccId: cleanMccId || '(not set)',
-          devTokenPrefix: DEVELOPER_TOKEN?.slice(0, 8) + '...',
-          accessTokenOk: true,
-        },
-        totalSpend: 0,
-        monthly: [],
-      }, { status: 502 })
     }
 
     let rows

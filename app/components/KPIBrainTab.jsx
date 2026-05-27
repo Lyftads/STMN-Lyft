@@ -255,7 +255,7 @@ const customerBreakdown = [
   const card = {}
 
   const panel = {
-    background: 'rgba(255,255,255,0.015)',
+    background: 'transparent',
     border: '1px solid var(--border)',
     borderRadius: 20,
     padding: 24,
@@ -543,7 +543,7 @@ const customerBreakdown = [
                     width: 28,
                     height: 28,
                     borderRadius: 999,
-                    background: '#ffffff22',
+                    background: 'rgba(255,255,255,0.06)',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',

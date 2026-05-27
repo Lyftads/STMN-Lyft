@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 
 function getPageTitle(tab) {
   if (tab === 'kpiBrain') return 'KPI Brain'
@@ -124,13 +123,6 @@ export default function VendroShell({
     },
   ]
 
-  const [storeOpen, setStoreOpen] = useState(false)
-  const [integrations, setIntegrations] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/integrations', { cache: 'no-store' })
-      .then(r => r.json()).then(setIntegrations).catch(() => {})
-  }, [])
 
   const goTo = (id) => {
     if (typeof setTab === 'function') setTab(id)
@@ -199,74 +191,23 @@ export default function VendroShell({
             </div>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setStoreOpen(!storeOpen)}
-              style={{
-                width: '100%',
-                border: '1px solid #332a41',
-                background: '#211a2b',
-                color: '#ffffff',
-                borderRadius: 13,
-                padding: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ width: 34, height: 34, borderRadius: 8, background: '#fff', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>
-                <span style={{ display: 'block', fontSize: 14, fontWeight: 900 }}>STMN Fitness</span>
-                <span style={{ display: 'block', fontSize: 11, color: '#9b90aa', marginTop: 3 }}>
-                  {integrations ? `${integrations.active?.length || 0} integrazion${(integrations.active?.length || 0) === 1 ? 'e' : 'i'} attiv${(integrations.active?.length || 0) === 1 ? 'a' : 'e'}` : 'Shopify + Meta'}
-                </span>
-              </span>
-              <span style={{ color: '#9285a4', fontSize: 14, transition: 'transform .2s', transform: storeOpen ? 'rotate(180deg)' : 'none' }}>⌄</span>
-            </button>
-
-            {storeOpen && (
-              <div style={{
-                marginTop: 8, background: '#1a1525', border: '1px solid #332a41', borderRadius: 12,
-                padding: '10px 0', maxHeight: 320, overflowY: 'auto',
-              }}>
-                {integrations?.active?.map(int => (
-                  <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}>
-                    <span style={{ fontSize: 16 }}>{int.icon}</span>
-                    <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#f7f2ff' }}>{int.name}</span>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-                  </div>
-                ))}
-
-                {integrations?.available?.length > 0 && (
-                  <>
-                    <div style={{ height: 1, background: '#292134', margin: '6px 0' }} />
-                    <div style={{ padding: '4px 14px', fontSize: 9, fontWeight: 800, color: '#776a86', textTransform: 'uppercase', letterSpacing: '.1em' }}>Disponibili</div>
-                    {integrations.available.slice(0, 4).map(int => (
-                      <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 14px' }}>
-                        <span style={{ fontSize: 16, opacity: 0.5 }}>{int.icon}</span>
-                        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#776a86' }}>{int.name}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-
-                <div style={{ height: 1, background: '#292134', margin: '6px 0' }} />
-                <button
-                  type="button"
-                  onClick={() => { goTo('integrations'); setStoreOpen(false) }}
-                  style={{
-                    width: '100%', border: 'none', background: 'none', padding: '8px 14px',
-                    display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                    color: '#8b5cf6', fontSize: 12, fontWeight: 800, textAlign: 'left',
-                  }}
-                >
-                  <span>⚙</span> Gestisci integrazioni
-                </button>
-              </div>
-            )}
+          <div
+            style={{
+              width: '100%',
+              border: '1px solid #332a41',
+              background: '#211a2b',
+              borderRadius: 13,
+              padding: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <span style={{ width: 34, height: 34, borderRadius: 8, background: '#fff', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 900, color: '#fff' }}>STMN Fitness</span>
+              <span style={{ display: 'block', fontSize: 11, color: '#9b90aa', marginTop: 3 }}>Demo workspace</span>
+            </span>
           </div>
         </div>
 

@@ -56,15 +56,9 @@ export async function GET() {
     const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const until = new Date().toISOString().slice(0, 10)
 
-    const query = `
-      SELECT segments.month, metrics.cost_micros, metrics.impressions, metrics.clicks,
-             metrics.conversions, metrics.conversions_value
-      FROM campaign
-      WHERE segments.date BETWEEN '${since}' AND '${until}'
-        AND campaign.status = 'ENABLED'
-    `
+    const query = `SELECT segments.month, metrics.cost_micros, metrics.impressions, metrics.clicks FROM campaign WHERE segments.date BETWEEN '${since}' AND '${until}'`
 
-    const request = { customerId: CUSTOMER_ID, query }
+    const request = { customer_id: CUSTOMER_ID, query }
 
     const callOptions = {
       otherArgs: {
@@ -113,6 +107,7 @@ export async function GET() {
   } catch (err) {
     const msg = err?.message || err?.details || String(err)
     const code = err?.code
+    const details = err?.statusDetails || err?.metadata?.internalRepr ? Object.fromEntries([...(err.metadata?.internalRepr?.entries?.() || [])].map(([k,v]) => [k, String(v)])) : null
 
     let hint = null
     if (code === 7 || msg.includes('PERMISSION_DENIED'))
@@ -131,6 +126,7 @@ export async function GET() {
     return NextResponse.json({
       error: msg,
       grpcCode: code,
+      details,
       hint,
       totalSpend: 0,
       monthly: [],

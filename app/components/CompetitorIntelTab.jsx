@@ -45,8 +45,8 @@ function StatMini({ label, value, tone = '#fff' }) {
   return (
     <div
       style={{
-        background: '#0d0a16',
-        border: '1px solid #252033',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '12px 14px',
       }}
@@ -121,8 +121,8 @@ function AdCard({ ad, index }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
         display: 'flex',
@@ -134,8 +134,8 @@ function AdCard({ ad, index }) {
         <div style={{
           position: 'relative',
           aspectRatio: '1 / 1',
-          background: '#0a0818',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
           overflow: 'hidden',
         }}>
           {ad.videoUrl ? (
@@ -247,8 +247,8 @@ function ProductCard({ product }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
         position: 'relative',
@@ -279,7 +279,7 @@ function ProductCard({ product }) {
             position: 'absolute',
             top: 10,
             left: 10,
-            background: '#1a1425',
+            background: 'var(--glass)',
             color: '#ef4444',
             padding: '4px 10px',
             borderRadius: 8,
@@ -296,8 +296,8 @@ function ProductCard({ product }) {
       <div
         style={{
           aspectRatio: '1 / 1',
-          background: '#0a0818',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -433,8 +433,8 @@ function CompetitorSection({ competitor, meta }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',
         marginBottom: 24,
@@ -444,7 +444,7 @@ function CompetitorSection({ competitor, meta }) {
       <div
         style={{
           padding: '20px 24px',
-          borderBottom: '1px solid #2c2638',
+          borderBottom: '1px solid var(--border)',
           background: `linear-gradient(135deg, ${meta.color}15, transparent)`,
           display: 'flex',
           justifyContent: 'space-between',
@@ -487,8 +487,8 @@ function CompetitorSection({ competitor, meta }) {
             style={{
               padding: '6px 14px',
               borderRadius: 10,
-              background: '#1a1425',
-              border: '1px solid #332a41',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
               color: '#c8c0d6',
               fontSize: 12,
               fontWeight: 800,
@@ -500,8 +500,8 @@ function CompetitorSection({ competitor, meta }) {
             style={{
               padding: '6px 14px',
               borderRadius: 10,
-              background: '#1a1425',
-              border: '1px solid #332a41',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
               color: '#c8c0d6',
               fontSize: 12,
               fontWeight: 800,
@@ -532,7 +532,7 @@ function CompetitorSection({ competitor, meta }) {
         style={{
           display: 'flex',
           gap: 0,
-          borderBottom: '1px solid #2c2638',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         {[
@@ -748,8 +748,8 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '5px 12px',
                         borderRadius: 8,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
                         color: '#c8c0d6',
                         fontSize: 11,
                         fontWeight: 700,
@@ -816,8 +816,8 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '10px 28px',
                         borderRadius: 12,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
                         color: '#c8c0d6',
                         fontSize: 13,
                         fontWeight: 800,
@@ -836,8 +836,8 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '10px 28px',
                         borderRadius: 12,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
                         color: '#c8c0d6',
                         fontSize: 13,
                         fontWeight: 800,
@@ -852,7 +852,7 @@ function CompetitorSection({ competitor, meta }) {
             ) : (
               <div
                 style={{
-                  border: '1px dashed #3a2d4b',
+                  border: '1px dashed var(--border)',
                   borderRadius: 16,
                   padding: 40,
                   textAlign: 'center',
@@ -929,7 +929,7 @@ export default function CompetitorIntelTab() {
               </span>
             )}
             <br />
-            <span style={{ fontSize: 11, color: '#3a2d4b' }}>
+            <span style={{ fontSize: 11, color: 'var(--border)' }}>
               Aggiornamento automatico ogni lunedì alle 06:00
               {data?.nextRefresh && ` · Prossimo: ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
             </span>
@@ -941,9 +941,9 @@ export default function CompetitorIntelTab() {
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             style={{
-              background: '#1a1425',
+              background: 'var(--glass)',
               color: '#fff',
-              border: '1px solid #3a2d4b',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               padding: '10px 14px',
               fontSize: 13,
@@ -964,8 +964,8 @@ export default function CompetitorIntelTab() {
             style={{
               padding: '10px 20px',
               borderRadius: 12,
-              border: '1px solid #332a41',
-              background: loading ? '#1a1425' : '#8b5cf620',
+              border: '1px solid var(--border)',
+              background: loading ? 'var(--glass)' : '#8b5cf620',
               color: loading ? '#6b6580' : '#c4b5fd',
               fontSize: 13,
               fontWeight: 800,
@@ -1024,8 +1024,8 @@ export default function CompetitorIntelTab() {
               <div
                 key={comp.id}
                 style={{
-                  background: '#14111d',
-                  border: '1px solid #2c2638',
+                  background: 'var(--glass)',
+                  border: '1px solid var(--border)',
                   borderRadius: 16,
                   padding: 20,
                   borderTop: `3px solid ${meta.color || '#555'}`,

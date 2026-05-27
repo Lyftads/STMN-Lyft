@@ -23,19 +23,19 @@ function money(v, currency = 'EUR') {
 function ProductCard({ product }) {
   return (
     <div style={{
-      background: '#0d0a16', border: '1px solid #252033', borderRadius: 14,
+      background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14,
       overflow: 'hidden', width: 170, flexShrink: 0,
     }}>
       <div style={{
-        aspectRatio: '1/1', background: '#08060f', overflow: 'hidden',
-        borderBottom: '1px solid #252033',
+        aspectRatio: '1/1', background: 'var(--surface)', overflow: 'hidden',
+        borderBottom: '1px solid var(--border)',
       }}>
         {product.image ? (
           <img src={product.image} alt={product.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={e => { e.target.style.display = 'none' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#3a2d4b', fontSize: 11 }}>No image</div>
+          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--border)', fontSize: 11 }}>No image</div>
         )}
       </div>
       <div style={{ padding: '8px 10px' }}>
@@ -71,8 +71,8 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
 
   return (
     <div style={{
-      background: isOwn ? '#22c55e06' : '#0d0a16',
-      border: `1px solid ${isOwn ? '#22c55e25' : '#252033'}`,
+      background: isOwn ? '#22c55e06' : 'var(--glass)',
+      border: `1px solid ${isOwn ? '#22c55e25' : 'var(--border)'}`,
       borderRadius: 14, overflow: 'hidden', marginBottom: 8,
     }}>
       <div onClick={() => products.length > 0 && setExpanded(!expanded)} style={{
@@ -103,7 +103,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
         </div>
       </div>
       {expanded && products.length > 0 && (
-        <div style={{ padding: '10px 16px 14px', borderTop: '1px solid #252033', display: 'flex', gap: 10, overflowX: 'auto' }}>
+        <div style={{ padding: '10px 16px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, overflowX: 'auto' }}>
           {products.map((p, i) => <ProductCard key={i} product={p} />)}
         </div>
       )}
@@ -254,31 +254,31 @@ export default function PriceComparisonTab() {
       {/* ── SUMMARY CARDS ── */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Nostri prodotti</div>
             <div style={{ fontSize: 28, fontWeight: 950, color: '#22c55e', fontFamily: 'Barlow' }}>{summary.countOwn}</div>
             <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>in {summary.catCount} categorie</div>
           </div>
 
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Prezzo medio nostro</div>
             <div style={{ fontSize: 28, fontWeight: 950, color: '#fff', fontFamily: 'Barlow' }}>€{summary.avgOwn.toFixed(2)}</div>
             <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>vs competitor €{summary.avgComp.toFixed(2)}</div>
           </div>
 
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Più economici</div>
             <div style={{ fontSize: 28, fontWeight: 950, color: '#22c55e', fontFamily: 'Barlow' }}>{summary.cheaperCount}</div>
             <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>su {summary.totalComparisons} confronti</div>
           </div>
 
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Più cari</div>
             <div style={{ fontSize: 28, fontWeight: 950, color: summary.moreExpensiveCount > 0 ? '#ef4444' : '#8b8aa0', fontFamily: 'Barlow' }}>{summary.moreExpensiveCount}</div>
             <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>su {summary.totalComparisons} confronti</div>
           </div>
 
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Posizionamento prezzo</div>
             <div style={{ fontSize: 28, fontWeight: 950, color: summary.positionPct >= 50 ? '#22c55e' : '#f59e0b', fontFamily: 'Barlow' }}>{summary.positionPct}%</div>
             <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>categorie più economici</div>
@@ -291,7 +291,7 @@ export default function PriceComparisonTab() {
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: 20, padding: '10px 16px',
-          background: '#14111d', border: '1px solid #2c2638', borderRadius: 10,
+          background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10,
         }}>
           <div style={{ fontSize: 11, color: '#6b6580' }}>
             Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
@@ -311,11 +311,11 @@ export default function PriceComparisonTab() {
 
         return (
           <div key={cat.id} style={{
-            background: '#14111d', border: '1px solid #2c2638', borderRadius: 18,
+            background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18,
             overflow: 'hidden', marginBottom: 20,
           }}>
             <div style={{
-              padding: '16px 22px', borderBottom: '1px solid #2c2638',
+              padding: '16px 22px', borderBottom: '1px solid var(--border)',
               background: 'linear-gradient(135deg, #8b5cf610, transparent)',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
@@ -354,11 +354,11 @@ export default function PriceComparisonTab() {
       {/* ── REPORTS ── */}
       {reports.length > 0 && (
         <div style={{
-          background: '#14111d', border: '1px solid #2c2638', borderRadius: 18,
+          background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18,
           overflow: 'hidden', marginTop: 8,
         }}>
           <div style={{
-            padding: '16px 22px', borderBottom: '1px solid #2c2638',
+            padding: '16px 22px', borderBottom: '1px solid var(--border)',
             background: 'linear-gradient(135deg, #06b6d410, transparent)',
           }}>
             <div style={{ fontSize: 18, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>
@@ -373,7 +373,7 @@ export default function PriceComparisonTab() {
             {reports.map((r, i) => (
               <div key={i} style={{
                 padding: '14px 16px', borderRadius: 12,
-                background: '#0d0a16', borderLeft: `3px solid ${sevColor(r.severity)}`,
+                background: 'var(--glass)', borderLeft: `3px solid ${sevColor(r.severity)}`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{

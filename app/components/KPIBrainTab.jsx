@@ -181,13 +181,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     return items
   }, [c, p])
 
-  const card = { background:'#171220', border:'1px solid #2c2638', borderRadius:16, padding:20 }
-  const panel = { background:'#171220', border:'1px solid #2c2638', borderRadius:18, padding:22 }
+  const card = { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:16, padding:20 }
+  const panel = { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:18, padding:22 }
   const sevColor = s => ({positive:'#22c55e',warning:'#f59e0b',neutral:'#8b5cf6'}[s]||'#8b8aa0')
 
   const MetricCard = ({ item }) => (
-    <div style={card}>
-      <div style={{color:'#a5a0b3',fontSize:13,marginBottom:10}}>{item.title}</div>
+    <div className="glass-card" style={card}>
+      <div style={{color:'var(--text2)',fontSize:13,marginBottom:10}}>{item.title}</div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
         <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
         {item.sparkKey && <Sparkline data={sparkFor(item.sparkKey)} color={item.color} width={80} height={32} />}
@@ -203,14 +203,14 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     return rows.length > 0 ? rows.map(row => (
       <div key={row.label}>
         <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}>
-          <span style={{color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</span>
-          <span style={{color:'#94a3b8',fontWeight:800}}>{format(row.value)}</span>
+          <span style={{color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</span>
+          <span style={{color:'var(--text2)',fontWeight:800}}>{format(row.value)}</span>
         </div>
-        <div style={{height:8,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+        <div style={{height:8,background:'var(--surface)',borderRadius:999,overflow:'hidden'}}>
           <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:color,borderRadius:999}} />
         </div>
       </div>
-    )) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato.</div>
+    )) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato.</div>
   }
 
   return (
@@ -220,21 +220,21 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         {[{id:'this_month',l:'Questo mese'},{id:'last_month',l:'Mese precedente'},{id:'custom',l:'Custom'}].map(b => (
           <button key={b.id} onClick={()=>setTf(b.id)} style={{
             fontSize:12,padding:'6px 14px',borderRadius:6,cursor:'pointer',
-            border:tf===b.id?'1px solid #22c55e':'1px solid #2c2638',
+            border:tf===b.id?'1px solid #22c55e':'1px solid var(--border)',
             background:tf===b.id?'#22c55e20':'transparent',
             color:tf===b.id?'#22c55e':'#94a3b8',fontWeight:tf===b.id?700:500,
           }}>{b.l}</button>
         ))}
         {tf==='custom' && (
           <>
-            <span style={{fontSize:11,color:'#6b6580'}}>Da:</span>
-            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'#0d0a16',border:'1px solid #2c2638',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+            <span style={{fontSize:11,color:'var(--text3)'}}>Da:</span>
+            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
               <option value="">Seleziona</option>
               {availableMonths.map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
             <span style={{color:'#555'}}>→</span>
-            <span style={{fontSize:11,color:'#6b6580'}}>A:</span>
-            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'#0d0a16',border:'1px solid #2c2638',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+            <span style={{fontSize:11,color:'var(--text3)'}}>A:</span>
+            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
               <option value="">Seleziona</option>
               {availableMonths.filter(m=>!customSince||m.month>=customSince).map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
@@ -243,77 +243,77 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         {onRefresh && (
           <button onClick={onRefresh} disabled={loading} style={{
             marginLeft:'auto',fontSize:12,padding:'6px 14px',borderRadius:6,
-            border:'1px solid #2c2638',background:loading?'#0d0a16':'transparent',
+            border:'1px solid var(--border)',background:loading?'var(--glass)':'transparent',
             color:loading?'#555':'#94a3b8',fontWeight:700,cursor:loading?'wait':'pointer',
             display:'flex',alignItems:'center',gap:6,
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
         )}
-        <span style={{fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+        <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
       </div>
 
       {/* Key Metrics */}
-      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
         <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>Key Metrics</div>
-        <div style={{fontSize:12,color:'#8b829b',marginBottom:20}}>Shopify + Meta Ads · {tfLabel}</div>
+        <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads · {tfLabel}</div>
         <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Shopify</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Meta Ads</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
       </div>
 
 
       {/* Breakdowns */}
-      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
         <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Breakdowns</div>
 
         {/* Row 1: Top Products + Day Breakdown (affiancati) */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Top 10 prodotti per revenue</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Top 10 prodotti per revenue</div>
             <div style={{display:'grid',gap:10}}>
               {topProducts.length > 0 ? topProducts.slice(0,10).map((row,i) => {
                 const max = topProducts[0]?.value || 1
                 return (
                   <div key={row.label}>
                     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-                      {row.image ? <img src={row.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,border:'1px solid #2c2638'}} onError={e=>{e.target.style.display='none'}} />
-                        : <div style={{width:36,height:36,borderRadius:8,background:'#0f0b17',display:'grid',placeItems:'center',fontSize:12,color:'#4a4060',flexShrink:0}}>{i+1}</div>}
+                      {row.image ? <img src={row.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,border:'1px solid var(--border)'}} onError={e=>{e.target.style.display='none'}} />
+                        : <div style={{width:36,height:36,borderRadius:8,background:'var(--surface)',display:'grid',placeItems:'center',fontSize:12,color:'var(--text3)',flexShrink:0}}>{i+1}</div>}
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:12,color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</div>
-                        <div style={{fontSize:11,color:'#94a3b8',fontWeight:800}}>{money(row.value)}{row.orders?` · ${int0(row.orders)} ordini`:''}</div>
+                        <div style={{fontSize:12,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</div>
+                        <div style={{fontSize:11,color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders?` · ${int0(row.orders)} ordini`:''}</div>
                       </div>
                     </div>
-                    <div style={{height:6,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+                    <div style={{height:6,background:'var(--surface)',borderRadius:999,overflow:'hidden'}}>
                       <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:'#ec4899',borderRadius:999}} />
                     </div>
                   </div>
                 )
-              }) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato disponibile.</div>}
+              }) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato disponibile.</div>}
             </div>
           </div>
 
           {/* Day breakdown (affiancato) */}
           <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Vendite per giorno della settimana</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Vendite per giorno della settimana</div>
             <div style={{display:'grid',gap:10}}>
               {dayBreakdown.length > 0 ? dayBreakdown.map(row => {
                 const max = Math.max(...dayBreakdown.map(r => r.value), 1)
                 return (
                   <div key={row.label}>
                     <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}>
-                      <span style={{color:'#e2e8f0'}}>{row.label}</span>
-                      <span style={{color:'#94a3b8',fontWeight:800}}>{money(row.value)}{row.orders ? ` · ${int0(row.orders)} ordini` : ''}</span>
+                      <span style={{color:'var(--text)'}}>{row.label}</span>
+                      <span style={{color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders ? ` · ${int0(row.orders)} ordini` : ''}</span>
                     </div>
-                    <div style={{height:8,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+                    <div style={{height:8,background:'var(--surface)',borderRadius:999,overflow:'hidden'}}>
                       <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:'#14b8a6',borderRadius:999}} />
                     </div>
                   </div>
                 )
-              }) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato.</div>}
+              }) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato.</div>}
             </div>
           </div>
         </div>
@@ -321,12 +321,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         {/* Row 2: Spesa marketing + New vs Returning (sotto) */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
           </div>
 
           <div style={panel}>
-            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>New vs Returning</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>New vs Returning</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
           </div>
         </div>
@@ -334,19 +334,19 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
       {/* Top Performers */}
       {topProducts.length > 0 && (
-        <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+        <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
           <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Top Performers</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
             {topProducts.slice(0,4).map((item,i) => (
-              <div key={item.label} style={{...card,display:'flex',flexDirection:'column',gap:12}}>
+              <div key={item.label} className="glass-card" style={{...card,display:'flex',flexDirection:'column',gap:12}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <div style={{width:28,height:28,borderRadius:999,background:'#ffffff22',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,flexShrink:0}}>{i+1}</div>
-                  {item.image && <img src={item.image} alt="" style={{width:40,height:40,borderRadius:10,objectFit:'cover',border:'1px solid #2c2638'}} onError={e=>{e.target.style.display='none'}} />}
+                  {item.image && <img src={item.image} alt="" style={{width:40,height:40,borderRadius:10,objectFit:'cover',border:'1px solid var(--border)'}} onError={e=>{e.target.style.display='none'}} />}
                 </div>
-                <div style={{color:'#f8fafc',fontWeight:900,fontSize:14,lineHeight:1.3}}>{item.label}</div>
+                <div style={{color:'var(--text)',fontWeight:900,fontSize:14,lineHeight:1.3}}>{item.label}</div>
                 <div>
-                  <div style={{color:'#94a3b8',fontSize:11,marginBottom:4}}>Revenue</div>
-                  <div style={{color:'#f8fafc',fontWeight:900,fontSize:22}}>{money(item.value)}</div>
+                  <div style={{color:'var(--text2)',fontSize:11,marginBottom:4}}>Revenue</div>
+                  <div style={{color:'var(--text)',fontWeight:900,fontSize:22}}>{money(item.value)}</div>
                 </div>
               </div>
             ))}
@@ -355,18 +355,18 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       )}
 
       {/* Insights */}
-      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24}}>
+      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
           <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:16}}>✦</div>
           <div>
-            <div style={{fontSize:18,fontWeight:900,color:'#f8fafc'}}>Insight & Riepilogo</div>
-            <div style={{color:'#94a3b8',fontSize:12}}>{insights.length} osservazioni sul periodo</div>
+            <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>Insight & Riepilogo</div>
+            <div style={{color:'var(--text2)',fontSize:12}}>{insights.length} osservazioni sul periodo</div>
           </div>
         </div>
         <div style={{display:'grid',gap:12}}>
           {insights.length > 0 ? insights.map((item,i) => (
-            <div key={i} style={{padding:16,borderRadius:12,background:'#0d0a16',borderLeft:`3px solid ${sevColor(item.sev)}`}}>
-              <div style={{color:'#e2dcf0',fontSize:13,lineHeight:1.6}}>{item.text}</div>
+            <div key={i} style={{padding:16,borderRadius:12,background:'var(--glass)',borderLeft:`3px solid ${sevColor(item.sev)}`}}>
+              <div style={{color:'var(--text)',fontSize:13,lineHeight:1.6}}>{item.text}</div>
             </div>
           )) : (
             <div style={{border:'1px solid #22c55e44',background:'#22c55e10',borderRadius:12,padding:18,color:'#22c55e',fontWeight:800}}>

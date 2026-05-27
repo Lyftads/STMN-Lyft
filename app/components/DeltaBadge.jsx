@@ -10,29 +10,25 @@ export default function DeltaBadge({ current, previous }) {
   const pct = ((c - p) / Math.abs(p)) * 100
   if (!Number.isFinite(pct)) return null
 
-  const isUp = pct >= 0
-  const color = isUp ? '#22c55e' : '#ef4444'
-  const bg = isUp ? '#22c55e18' : '#ef444418'
-  const sign = isUp ? '+' : ''
+  const isDown = pct < 0
+  const sign = pct >= 0 ? '+' : ''
   const display = Math.abs(pct) >= 100
     ? `${sign}${Math.round(pct)}%`
-    : `${sign}${pct.toFixed(2).replace('.', ',')}%`
+    : `${sign}${pct.toFixed(1).replace('.', ',')}%`
 
   return (
     <span
+      className={isDown ? 'delta-down' : 'delta-up'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        fontSize: 11,
-        fontWeight: 800,
-        color,
-        background: bg,
-        borderRadius: 999,
-        padding: '4px 9px',
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
+        gap: 3,
+        fontSize: 13,
+        fontWeight: 700,
+        fontVariantNumeric: 'tabular-nums',
       }}
     >
+      <span style={{ fontSize: 10 }}>{isDown ? '▼' : '▲'}</span>
       {display}
     </span>
   )

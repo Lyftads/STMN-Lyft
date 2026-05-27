@@ -8,7 +8,7 @@ const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT
 
 function Card({ label, value, color = '#fff', sub }) {
   return (
-    <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '16px 20px' }}>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px' }}>
       <div style={{ fontSize: 10, color: '#776a86', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 950, color }}>{value}</div>
       {sub && <div style={{ fontSize: 10, color: '#776a86', marginTop: 4 }}>{sub}</div>}
@@ -27,7 +27,7 @@ function FunnelChart({ funnel }) {
   const maxVal = steps[0].value || 1
 
   return (
-    <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: '28px 32px' }}>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Purchase Journey</div>
         <span style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 6, background: '#22c55e22', color: '#22c55e' }}>{funnel.source}</span>
@@ -36,7 +36,7 @@ function FunnelChart({ funnel }) {
         {steps.map((s, i) => {
           const pct = steps[0].value > 0 ? (s.value / steps[0].value) * 100 : 0
           return (
-            <div key={i} style={{ flex: 1, padding: '0 8px', borderLeft: i > 0 ? '1px solid #292134' : 'none' }}>
+            <div key={i} style={{ flex: 1, padding: '0 8px', borderLeft: i > 0 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ fontSize: 10, color: '#776a86', fontWeight: 700, marginBottom: 2 }}>Step {i + 1}</div>
               <div style={{ fontSize: 13, color: '#f7f2ff', fontWeight: 800 }}>{s.name}</div>
               <div style={{ fontSize: 20, fontWeight: 950, color: '#fff', marginTop: 4 }}>{i === 0 ? '100%' : fmtP(pct)}</div>
@@ -131,7 +131,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
     return ins
   }, [c, p, prevCro])
 
-  const panel = { background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 22 }
+  const panel = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }
 
   const DeltaBadge = ({ curr, prev }) => {
     if (prev == null || prev === 0 || curr == null) return null
@@ -148,21 +148,21 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         {[{id:'this_month',l:'Questo mese'},{id:'last_month',l:'Mese precedente'},{id:'custom',l:'Custom'}].map(b => (
           <button key={b.id} onClick={()=>setTf(b.id)} style={{
             fontSize:12,padding:'6px 14px',borderRadius:6,cursor:'pointer',
-            border:tf===b.id?'1px solid #22c55e':'1px solid #292134',
+            border:tf===b.id?'1px solid #22c55e':'1px solid var(--border)',
             background:tf===b.id?'#22c55e20':'transparent',
             color:tf===b.id?'#22c55e':'#94a3b8',fontWeight:tf===b.id?700:500,
           }}>{b.l}</button>
         ))}
         {tf==='custom' && (
           <>
-            <span style={{fontSize:11,color:'#6b6580'}}>Da:</span>
-            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'#0d0a16',border:'1px solid #292134',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+            <span style={{fontSize:11,color:'var(--text3)'}}>Da:</span>
+            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
               <option value="">Seleziona</option>
               {availableMonths.map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
             <span style={{color:'#555'}}>→</span>
-            <span style={{fontSize:11,color:'#6b6580'}}>A:</span>
-            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'#0d0a16',border:'1px solid #292134',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+            <span style={{fontSize:11,color:'var(--text3)'}}>A:</span>
+            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
               <option value="">Seleziona</option>
               {availableMonths.filter(m=>!customSince||m.month>=customSince).map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
@@ -171,12 +171,12 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         {onRefresh && (
           <button onClick={onRefresh} disabled={loading} style={{
             marginLeft:'auto',fontSize:12,padding:'6px 14px',borderRadius:6,
-            border:'1px solid #292134',background:loading?'#0d0a16':'transparent',
+            border:'1px solid var(--border)',background:loading?'var(--glass)':'transparent',
             color:loading?'#555':'#94a3b8',fontWeight:700,cursor:loading?'wait':'pointer',
             display:'flex',alignItems:'center',gap:6,
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
         )}
-        <span style={{fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+        <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
       </div>
 
       {/* KPI Cards */}
@@ -203,7 +203,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         <div style={{ ...panel, marginTop: 24 }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: '#8b5cf6', marginBottom: 16 }}>CRO Insights</div>
           {insights.map((ins, i) => (
-            <div key={i} style={{ padding: '10px 0', borderBottom: i < insights.length - 1 ? '1px solid #1e1530' : 'none', color: '#f7f2ff', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>{ins}</div>
+            <div key={i} style={{ padding: '10px 0', borderBottom: i < insights.length - 1 ? '1px solid var(--border)' : 'none', color: '#f7f2ff', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>{ins}</div>
           ))}
         </div>
       )}

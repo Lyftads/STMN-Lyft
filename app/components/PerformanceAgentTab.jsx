@@ -25,13 +25,13 @@ const SUGGESTIONS = [
 ]
 
 const palette = {
-  bg: '#0f0b16',
-  panel: '#14111d',
-  border: '#2c2638',
+  bg: 'var(--surface)',
+  panel: 'var(--glass)',
+  border: 'var(--border)',
   bubbleUser: 'linear-gradient(135deg, #6d28d9, #2a1746)',
-  bubbleAgent: '#171220',
-  text: '#f7f2ff',
-  muted: '#9b90aa',
+  bubbleAgent: 'var(--glass)',
+  text: 'var(--text)',
+  muted: 'var(--text2)',
   accent: '#8b5cf6',
 }
 
@@ -246,9 +246,9 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                   disabled={loading}
                   style={{
                     textAlign: 'left',
-                    background: '#1a1525',
+                    background: 'var(--glass)',
                     border: `1px solid ${palette.border}`,
-                    color: '#e2dcf0',
+                    color: 'var(--text)',
                     borderRadius: 12,
                     padding: '12px 16px',
                     fontSize: 13,
@@ -361,7 +361,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             disabled={loading}
             style={{
               flex: 1,
-              background: '#201b2b',
+              background: 'var(--glass)',
               border: `1px solid ${palette.border}`,
               color: '#fff',
               borderRadius: 12,
@@ -377,7 +377,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             disabled={loading || !input.trim()}
             style={{
               background: loading || !input.trim()
-                ? '#2a1f3f'
+                ? 'var(--glass)'
                 : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
               color: '#fff',
               border: 'none',

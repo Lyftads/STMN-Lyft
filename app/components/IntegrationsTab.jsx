@@ -32,7 +32,7 @@ function BrandLogo({ domain, size = 40 }) {
     return (
       <div style={{
         width: size, height: size, borderRadius: 12,
-        background: entry.dark ? '#1a1525' : '#fff',
+        background: entry.dark ? 'var(--glass)' : '#fff',
         display: 'grid', placeItems: 'center', flexShrink: 0,
         padding: Math.round(size * 0.18),
       }}>
@@ -64,7 +64,7 @@ function BrandLogo({ domain, size = 40 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 12,
-      background: '#1a1525', display: 'grid', placeItems: 'center',
+      background: 'var(--glass)', display: 'grid', placeItems: 'center',
       fontSize: size * 0.4, color: '#776a86', fontWeight: 900, flexShrink: 0,
     }}>
       {(domain || '?').charAt(0).toUpperCase()}
@@ -108,7 +108,7 @@ function ConnectedCard({ integration }) {
   const { name, description, domain, category, scope } = integration
   return (
     <div style={{
-      background: '#110d1a',
+      background: 'var(--glass)',
       border: '1px solid #22c55e33',
       borderRadius: 16,
       padding: '20px 22px',
@@ -151,8 +151,8 @@ function AvailableCard({ integration, onConnect }) {
   const { name, description, domain, category, scope } = integration
   return (
     <div style={{
-      background: '#110d1a',
-      border: '1px solid #292134',
+      background: 'var(--glass)',
+      border: '1px solid var(--border)',
       borderRadius: 16,
       padding: '20px 22px',
       display: 'flex',
@@ -212,8 +212,8 @@ function ConnectModal({ integration, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#14111d',
-          border: '1px solid #292134',
+          background: 'var(--glass)',
+          border: '1px solid var(--border)',
           borderRadius: 20,
           padding: '28px 32px',
           maxWidth: 480,
@@ -230,7 +230,7 @@ function ConnectModal({ integration, onClose }) {
             onClick={onClose}
             style={{
               width: 32, height: 32, borderRadius: 10,
-              background: '#1a1525', border: '1px solid #292134',
+              background: 'var(--glass)', border: '1px solid var(--border)',
               color: '#776a86', fontSize: 16, cursor: 'pointer',
               display: 'grid', placeItems: 'center',
             }}
@@ -275,7 +275,7 @@ function ConnectModal({ integration, onClose }) {
 
         {envVars?.length > 0 && (
           <div style={{
-            background: '#1a1525', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+            background: 'var(--glass)', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
           }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: '#776a86', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
               Environment variables (Vercel)
@@ -373,8 +373,8 @@ export default function IntegrationsTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
           {COMING_SOON.map(cs => (
             <div key={cs.name} style={{
-              background: '#110d1a',
-              border: '1px solid #1e1829',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
               borderRadius: 16,
               padding: '18px 22px',
               display: 'flex',
@@ -389,7 +389,7 @@ export default function IntegrationsTab() {
               </div>
               <span style={{
                 fontSize: 10, fontWeight: 800, color: '#776a86',
-                padding: '3px 10px', borderRadius: 6, background: '#1a1525',
+                padding: '3px 10px', borderRadius: 6, background: 'var(--glass)',
               }}>
                 Soon
               </span>

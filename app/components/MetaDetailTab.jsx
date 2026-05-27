@@ -16,11 +16,11 @@ const PRESETS = [
 const GREEN = '#22c55e'
 const RED = '#ef4444'
 const BLUE = '#3b82f6'
-const TEXT = '#e8edf7'
-const MUTED = '#7c8aa5'
-const CARD = '#0a1020'
-const BORDER = '#1d3151'
-const BG = '#030817'
+const TEXT = 'var(--text)'
+const MUTED = 'var(--text2)'
+const CARD = 'var(--glass)'
+const BORDER = 'var(--border)'
+const BG = 'var(--surface)'
 
 function n(v) {
   const x = Number(v)
@@ -98,7 +98,7 @@ function PresetButton({ active, children, onClick }) {
         ...styles.preset,
         borderColor: active ? GREEN : BORDER,
         color: active ? GREEN : MUTED,
-        background: active ? '#052e16' : '#071124',
+        background: active ? '#052e16' : 'var(--surface)',
       }}
     >
       {children}
@@ -638,7 +638,7 @@ const styles = {
   },
 
   input: {
-    background: '#071124',
+    background: 'var(--surface)',
     border: `1px solid ${BORDER}`,
     color: TEXT,
     borderRadius: 8,
@@ -716,7 +716,7 @@ const styles = {
   },
 
   paragraph: {
-    color: '#cbd5e1',
+    color: 'var(--text)',
     fontSize: 15,
     lineHeight: 1.6,
     margin: 0,
@@ -732,7 +732,7 @@ const styles = {
     border: `1px solid ${BORDER}`,
     borderRadius: 8,
     padding: 14,
-    background: '#071124',
+    background: 'var(--surface)',
   },
 
   compareLabel: {
@@ -754,8 +754,8 @@ const styles = {
     border: `1px solid ${BORDER}`,
     borderRadius: 8,
     padding: 14,
-    color: '#cbd5e1',
-    background: '#071124',
+    color: 'var(--text)',
+    background: 'var(--surface)',
     lineHeight: 1.5,
   },
 
@@ -792,7 +792,7 @@ const styles = {
   },
 
   tr: {
-    borderBottom: '1px solid #12223a',
+    borderBottom: '1px solid var(--border)',
   },
 
   tdLevel: {
@@ -826,14 +826,14 @@ const styles = {
 
   td: {
     padding: '13px 14px',
-    color: '#dbe4f0',
+    color: 'var(--text)',
     fontSize: 14,
     whiteSpace: 'nowrap',
   },
 
   tdCenter: {
     padding: '13px 14px',
-    color: '#dbe4f0',
+    color: 'var(--text)',
     fontSize: 14,
     whiteSpace: 'nowrap',
     textAlign: 'left',

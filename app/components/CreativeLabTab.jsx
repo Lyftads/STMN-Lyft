@@ -43,8 +43,8 @@ function Pagination({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
         style={{
-          padding: '8px 14px', borderRadius: 8, border: '1px solid #332a41',
-          background: '#1a1425', color: page <= 1 ? '#4a4060' : '#c8c0d6',
+          padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)',
+          background: 'var(--glass)', color: page <= 1 ? '#4a4060' : '#c8c0d6',
           fontSize: 13, fontWeight: 700, cursor: page <= 1 ? 'default' : 'pointer',
         }}
       >
@@ -59,8 +59,8 @@ function Pagination({ page, totalPages, onPageChange }) {
             onClick={() => onPageChange(p)}
             style={{
               padding: '8px 14px', borderRadius: 8,
-              border: `1px solid ${p === page ? '#8b5cf6' : '#332a41'}`,
-              background: p === page ? '#8b5cf620' : '#1a1425',
+              border: `1px solid ${p === page ? '#8b5cf6' : 'var(--border)'}`,
+              background: p === page ? '#8b5cf620' : 'var(--glass)',
               color: p === page ? '#c4b5fd' : '#8b8aa0',
               fontSize: 13, fontWeight: 800, cursor: 'pointer',
             }}
@@ -73,8 +73,8 @@ function Pagination({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
         style={{
-          padding: '8px 14px', borderRadius: 8, border: '1px solid #332a41',
-          background: '#1a1425', color: page >= totalPages ? '#4a4060' : '#c8c0d6',
+          padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)',
+          background: 'var(--glass)', color: page >= totalPages ? '#4a4060' : '#c8c0d6',
           fontSize: 13, fontWeight: 700, cursor: page >= totalPages ? 'default' : 'pointer',
         }}
       >
@@ -88,8 +88,8 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
   return (
     <div
       style={{
-        background: '#14111d',
-        border: `2px solid ${accepted ? '#22c55e' : '#2c2638'}`,
+        background: 'var(--glass)',
+        border: `2px solid ${accepted ? '#22c55e' : 'var(--border)'}`,
         borderRadius: 22,
         overflow: 'hidden',
         position: 'relative',
@@ -115,7 +115,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
         style={{
           aspectRatio: format === 'story' ? '9/16' : '1/1',
           maxHeight: format === 'story' ? 500 : 350,
-          background: '#0a0818',
+          background: 'var(--surface)',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -228,7 +228,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
           <div
             style={{
               padding: 12, borderRadius: 10,
-              background: '#0d0a16', border: '1px solid #252033', marginTop: 12,
+              background: 'var(--glass)', border: '1px solid var(--border)', marginTop: 12,
             }}
           >
             <div style={{ color: '#6b6580', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
@@ -256,8 +256,8 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
               onClick={onReject}
               disabled={rejecting}
               style={{
-                flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #332a41',
-                background: '#1a1425', color: rejecting ? '#4a4060' : '#c8c0d6',
+                flex: 1, padding: '10px', borderRadius: 10, border: '1px solid var(--border)',
+                background: 'var(--glass)', color: rejecting ? '#4a4060' : '#c8c0d6',
                 fontSize: 13, fontWeight: 800, cursor: rejecting ? 'wait' : 'pointer',
               }}
             >
@@ -273,7 +273,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             rel="noopener noreferrer"
             style={{
               display: 'inline-block', marginTop: 12, padding: '8px 16px',
-              borderRadius: 8, background: '#1a1425', border: '1px solid #332a41',
+              borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)',
               color: '#c8c0d6', fontSize: 12, fontWeight: 700, textDecoration: 'none',
             }}
           >
@@ -482,7 +482,7 @@ export default function CreativeLabTab() {
               </div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
                 {bestAds.slice(0, 6).map((ad, i) => (
-                  <div key={i} style={{ background: '#0d0a16', border: '1px solid #252033', borderRadius: 12, padding: 14, minWidth: 200 }}>
+                  <div key={i} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, minWidth: 200 }}>
                     <div style={{ color: '#fff', fontSize: 12, fontWeight: 800, marginBottom: 6, lineHeight: 1.3, maxHeight: 30, overflow: 'hidden' }}>
                       {ad.name || 'Ad'}
                     </div>
@@ -497,7 +497,7 @@ export default function CreativeLabTab() {
           )}
 
           {/* Product Selection */}
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 22, padding: 24, marginBottom: 24 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 22, padding: 24, marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
                 <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>Seleziona prodotti</h2>
@@ -523,8 +523,8 @@ export default function CreativeLabTab() {
                 width: '100%',
                 padding: '12px 18px',
                 borderRadius: 12,
-                border: '1px solid #332a41',
-                background: '#0d0a16',
+                border: '1px solid var(--border)',
+                background: 'var(--glass)',
                 color: '#fff',
                 fontSize: 14,
                 fontWeight: 600,
@@ -542,12 +542,12 @@ export default function CreativeLabTab() {
                     key={p.handle} type="button"
                     onClick={() => toggleProduct(p.handle)}
                     style={{
-                      background: isSel ? '#6d28d915' : '#0d0a16',
-                      border: `2px solid ${isSel ? '#8b5cf6' : '#252033'}`,
+                      background: isSel ? '#6d28d915' : 'var(--glass)',
+                      border: `2px solid ${isSel ? '#8b5cf6' : 'var(--border)'}`,
                       borderRadius: 14, padding: 0, cursor: 'pointer', textAlign: 'left', overflow: 'hidden',
                     }}
                   >
-                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#0a0818', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: 'var(--surface)', overflow: 'hidden', position: 'relative' }}>
                       {p.image ? (
                         <img src={p.image} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -578,8 +578,8 @@ export default function CreativeLabTab() {
           {selected.length > 0 && (
             <div
               style={{
-                background: '#14111d',
-                border: '1px solid #2c2638',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
                 borderRadius: 18,
                 padding: 20,
                 marginBottom: 20,
@@ -605,11 +605,11 @@ export default function CreativeLabTab() {
                       alignItems: 'center',
                       gap: 14,
                       padding: '12px 0',
-                      borderBottom: '1px solid #252033',
+                      borderBottom: '1px solid var(--border)',
                     }}
                   >
                     {/* Product thumb */}
-                    <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0a0818' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'var(--surface)' }}>
                       {product.image && <img src={product.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
 
@@ -621,7 +621,7 @@ export default function CreativeLabTab() {
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {/* Uploaded previews */}
                         {refs.map((src, i) => (
-                          <div key={i} style={{ position: 'relative', width: 40, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid #332a41' }}>
+                          <div key={i} style={{ position: 'relative', width: 40, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
                             <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             <button
                               onClick={() => removeRef(product.title, i)}
@@ -643,7 +643,7 @@ export default function CreativeLabTab() {
                           <label
                             style={{
                               width: 40, height: 40, borderRadius: 8,
-                              border: '1px dashed #332a41', background: '#0d0a16',
+                              border: '1px dashed var(--border)', background: 'var(--glass)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               cursor: 'pointer', color: '#6b6580', fontSize: 18,
                             }}
@@ -674,8 +674,8 @@ export default function CreativeLabTab() {
           {selected.length > 0 && (
             <div
               style={{
-                background: '#14111d',
-                border: '1px solid #2c2638',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
                 borderRadius: 18,
                 padding: 20,
                 marginBottom: 20,
@@ -700,7 +700,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid var(--border)', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -718,7 +718,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid var(--border)', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -736,7 +736,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid var(--border)', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -749,8 +749,8 @@ export default function CreativeLabTab() {
           {/* Funnel Stage Selector */}
           <div
             style={{
-              background: '#14111d',
-              border: '1px solid #2c2638',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
               borderRadius: 18,
               padding: 20,
               marginBottom: 20,
@@ -767,8 +767,8 @@ export default function CreativeLabTab() {
                   style={{
                     padding: '14px 16px',
                     borderRadius: 14,
-                    border: `2px solid ${funnelStage === f.id ? f.color : '#292134'}`,
-                    background: funnelStage === f.id ? `${f.color}15` : '#0d0a16',
+                    border: `2px solid ${funnelStage === f.id ? f.color : 'var(--border)'}`,
+                    background: funnelStage === f.id ? `${f.color}15` : 'var(--glass)',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
@@ -796,8 +796,8 @@ export default function CreativeLabTab() {
                   <button key={s.id} onClick={() => setStyle(s.id)} title={s.desc}
                     style={{
                       padding: '9px 16px', borderRadius: 10,
-                      border: `1px solid ${style === s.id ? '#8b5cf6' : '#332a41'}`,
-                      background: style === s.id ? '#8b5cf620' : '#1a1425',
+                      border: `1px solid ${style === s.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: style === s.id ? '#8b5cf620' : 'var(--glass)',
                       color: style === s.id ? '#c4b5fd' : '#8b8aa0',
                       fontSize: 12, fontWeight: 800, cursor: 'pointer',
                     }}
@@ -814,8 +814,8 @@ export default function CreativeLabTab() {
                   <button key={f.id} onClick={() => setFormat(f.id)}
                     style={{
                       padding: '9px 14px', borderRadius: 10,
-                      border: `1px solid ${format === f.id ? '#8b5cf6' : '#332a41'}`,
-                      background: format === f.id ? '#8b5cf620' : '#1a1425',
+                      border: `1px solid ${format === f.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: format === f.id ? '#8b5cf620' : 'var(--glass)',
                       color: format === f.id ? '#c4b5fd' : '#8b8aa0',
                       fontSize: 12, fontWeight: 800, cursor: 'pointer',
                     }}
@@ -836,8 +836,8 @@ export default function CreativeLabTab() {
                   <button key={m.id} onClick={() => m.ready && setImageModel(m.id)}
                     style={{
                       padding: '9px 14px', borderRadius: 10,
-                      border: `1px solid ${imageModel === m.id ? '#8b5cf6' : '#332a41'}`,
-                      background: imageModel === m.id ? '#8b5cf620' : '#1a1425',
+                      border: `1px solid ${imageModel === m.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: imageModel === m.id ? '#8b5cf620' : 'var(--glass)',
                       color: !m.ready ? '#4a4060' : imageModel === m.id ? '#c4b5fd' : '#8b8aa0',
                       fontSize: 12, fontWeight: 800,
                       cursor: m.ready ? 'pointer' : 'not-allowed',
@@ -857,7 +857,7 @@ export default function CreativeLabTab() {
               disabled={!selected.length || generating}
               style={{
                 padding: '12px 28px', borderRadius: 12, border: 'none', marginLeft: 'auto',
-                background: selected.length && !generating ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : '#1a1425',
+                background: selected.length && !generating ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'var(--glass)',
                 color: selected.length && !generating ? '#fff' : '#6b6580',
                 fontSize: 14, fontWeight: 900, cursor: selected.length && !generating ? 'pointer' : 'not-allowed',
                 boxShadow: selected.length && !generating ? '0 4px 20px rgba(139,92,246,.3)' : 'none',

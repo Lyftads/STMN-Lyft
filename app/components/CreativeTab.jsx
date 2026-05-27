@@ -54,9 +54,10 @@ function getCreativeName(row) {
 function Stat({ label, value, tone = '#fff' }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: '#0a1020',
-        border: '1px solid #1e2d47',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 14,
         padding: '14px 16px',
       }}
@@ -64,7 +65,7 @@ function Stat({ label, value, tone = '#fff' }) {
       <div
         style={{
           fontSize: 10,
-          color: '#8b8aa0',
+          color: 'var(--text3)',
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
           marginBottom: 8,
@@ -96,8 +97,8 @@ function CreativeCard({ row, index }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',
       }}
@@ -105,8 +106,8 @@ function CreativeCard({ row, index }) {
       <div
         style={{
           aspectRatio: '1 / 1',
-          background: '#0a1020',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--glass)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -125,7 +126,7 @@ function CreativeCard({ row, index }) {
             }}
           />
         ) : (
-          <div style={{ color: '#8b8aa0', fontSize: 13 }}>Nessuna immagine</div>
+          <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna immagine</div>
         )}
       </div>
 
@@ -169,7 +170,7 @@ function CreativeCard({ row, index }) {
               {name}
             </div>
 
-            <div style={{ color: '#8b8aa0', fontSize: 11 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 11 }}>
               {row.campaign_name || 'Campagna non disponibile'}
             </div>
           </div>
@@ -200,15 +201,15 @@ function Mini({ label, value }) {
   return (
     <div
       style={{
-        background: '#0d0a16',
-        border: '1px solid #252033',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '10px 12px',
       }}
     >
       <div
         style={{
-          color: '#8b8aa0',
+          color: 'var(--text3)',
           fontSize: 9,
           textTransform: 'uppercase',
           letterSpacing: '0.1em',
@@ -331,7 +332,7 @@ export default function CreativeTab() {
           <p
             style={{
               margin: '8px 0 0',
-              color: '#8b8aa0',
+              color: 'var(--text3)',
               fontSize: 14,
             }}
           >
@@ -346,9 +347,9 @@ export default function CreativeTab() {
           value={preset}
           onChange={(e) => setPreset(e.target.value)}
           style={{
-            background: '#1a1425',
+            background: 'var(--glass)',
             color: '#fff',
-            border: '1px solid #3a2d4b',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             padding: '12px 16px',
             fontSize: 14,
@@ -379,9 +380,10 @@ export default function CreativeTab() {
       </div>
 
       <div
+        className="glass-section reveal-zoom"
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
+          background: 'var(--glass)',
+          border: '1px solid var(--border)',
           borderRadius: 22,
           padding: 24,
         }}
@@ -409,7 +411,7 @@ export default function CreativeTab() {
             <p
               style={{
                 margin: '6px 0 0',
-                color: '#8b8aa0',
+                color: 'var(--text3)',
                 fontSize: 13,
               }}
             >
@@ -417,13 +419,14 @@ export default function CreativeTab() {
             </p>
           </div>
 
-          <div style={{ color: '#8b8aa0', fontSize: 13 }}>
+          <div style={{ color: 'var(--text3)', fontSize: 13 }}>
             {loading ? 'Caricamento…' : `${rows.length} creative`}
           </div>
         </div>
 
         {sortedRows.length > 0 ? (
           <div
+            className="stagger-zoom"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -441,11 +444,11 @@ export default function CreativeTab() {
         ) : (
           <div
             style={{
-              border: '1px dashed #3a2d4b',
+              border: '1px dashed var(--border)',
               borderRadius: 18,
               padding: 40,
               textAlign: 'center',
-              color: '#8b8aa0',
+              color: 'var(--text3)',
             }}
           >
             {loading

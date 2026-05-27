@@ -33,7 +33,7 @@ function kpiComment(kpis) {
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#0a1020', border: '1px solid #1e2d47', borderRadius: 6, padding: '8px 12px', fontSize: 11, fontWeight: 700 }}>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 12px', fontSize: 11, fontWeight: 700 }}>
       <p style={{ color: '#888', marginBottom: 4 }}>{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }}>{p.name}: {typeof p.value === 'number' && p.value > 100 ? fmtN(p.value) : p.value?.toFixed?.(2) ?? p.value}</p>
@@ -45,8 +45,8 @@ const ChartTip = ({ active, payload, label }) => {
 function Card({ title, value, badge, color = '#8b5cf6' }) {
   return (
     <div style={{
-      background: '#110d1a',
-      border: '1px solid #292134',
+      background: 'var(--glass)',
+      border: '1px solid var(--border)',
       borderRadius: 14,
       padding: '18px 20px',
       minWidth: 0,
@@ -135,8 +135,8 @@ export default function KlaviyoTab() {
         <div style={{ display: 'flex', gap: 6 }}>
           {[7, 14, 30, 60, 90].map(d => (
             <button key={d} onClick={() => setDays(d)} style={{
-              border: days === d ? '1px solid #8b5cf6' : '1px solid #332a41',
-              background: days === d ? '#8b5cf622' : '#171220',
+              border: days === d ? '1px solid #8b5cf6' : '1px solid var(--border)',
+              background: days === d ? '#8b5cf622' : 'var(--glass)',
               color: days === d ? '#c4b5fd' : '#9b90aa',
               borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
             }}>{d}g</button>
@@ -145,7 +145,7 @@ export default function KlaviyoTab() {
       </div>
 
       <div style={{
-        background: '#1a1226', border: '1px solid #292134', borderRadius: 12,
+        background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12,
         padding: '12px 18px', marginBottom: 24, color: '#c4b5fd', fontSize: 13, fontWeight: 600,
       }}>
         {kpiComment(kpis)}
@@ -172,14 +172,14 @@ export default function KlaviyoTab() {
           <SectionTitle color="#22c55e">Revenue Breakdown — Campagne vs Flussi</SectionTitle>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
-            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '20px 24px' }}>
+            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#ec4899' }}>Campagne</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.campaigns?.total)}</span>
               </div>
               <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.campaigns?.totalConversions)} conversioni</div>
               {(data.revenueBreakdown.campaigns?.rows || []).map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1e1530', fontSize: 12, gap: 10 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12, gap: 10 }}>
                   <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
@@ -189,14 +189,14 @@ export default function KlaviyoTab() {
               ))}
             </div>
 
-            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '20px 24px' }}>
+            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#f6b73c' }}>Flussi</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.flows?.total)}</span>
               </div>
               <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.flows?.totalConversions)} conversioni</div>
               {(data.revenueBreakdown.flows?.rows || []).map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1e1530', fontSize: 12, gap: 10 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12, gap: 10 }}>
                   <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
@@ -220,19 +220,19 @@ export default function KlaviyoTab() {
           { id: 'revenue', label: 'Revenue' },
         ].map(t => (
           <button key={t.id} onClick={() => setChartTab(t.id)} style={{
-            border: chartTab === t.id ? '1px solid #8b5cf6' : '1px solid #332a41',
-            background: chartTab === t.id ? '#8b5cf622' : '#171220',
+            border: chartTab === t.id ? '1px solid #8b5cf6' : '1px solid var(--border)',
+            background: chartTab === t.id ? '#8b5cf622' : 'var(--glass)',
             color: chartTab === t.id ? '#c4b5fd' : '#9b90aa',
             borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
           }}>{t.label}</button>
         ))}
       </div>
 
-      <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: 20, marginBottom: 8 }}>
+      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, marginBottom: 8 }}>
         <ResponsiveContainer width="100%" height={260}>
           {chartTab === 'revenue' ? (
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1530" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
               <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
               <Tooltip content={<ChartTip />} />
@@ -240,7 +240,7 @@ export default function KlaviyoTab() {
             </LineChart>
           ) : chartTab === 'opened' || chartTab === 'clicked' ? (
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1530" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
               <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
               <Tooltip content={<ChartTip />} />
@@ -248,7 +248,7 @@ export default function KlaviyoTab() {
             </AreaChart>
           ) : (
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1530" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
               <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
               <Tooltip content={<ChartTip />} />
@@ -268,18 +268,18 @@ export default function KlaviyoTab() {
           { id: 'scheduled', label: `Programmate (${campaigns?.scheduled?.length || 0})` },
         ].map(t => (
           <button key={t.id} onClick={() => setCampTab(t.id)} style={{
-            border: campTab === t.id ? '1px solid #ec4899' : '1px solid #332a41',
-            background: campTab === t.id ? '#ec489922' : '#171220',
+            border: campTab === t.id ? '1px solid #ec4899' : '1px solid var(--border)',
+            background: campTab === t.id ? '#ec489922' : 'var(--glass)',
             color: campTab === t.id ? '#f9a8d4' : '#9b90aa',
             borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
           }}>{t.label}</button>
         ))}
       </div>
 
-      <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #292134' }}>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
               <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Campagna</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
               <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Data Invio</th>
@@ -287,7 +287,7 @@ export default function KlaviyoTab() {
           </thead>
           <tbody>
             {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => (
-              <tr key={c.id || i} style={{ borderBottom: '1px solid #1e1530' }}>
+              <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{c.name}</td>
                 <td style={{ padding: '10px 16px' }}>
                   <span style={{
@@ -309,7 +309,7 @@ export default function KlaviyoTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
         {(flows || []).map((f, i) => (
           <div key={f.id || i} style={{
-            background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '16px 20px',
+            background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14 }}>{f.name}</span>
@@ -329,9 +329,9 @@ export default function KlaviyoTab() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 12 }}>
         <div>
           <SectionTitle color="#06b6d4">Segmenti</SectionTitle>
-          <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: 16 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             {(segments || []).map((s, i) => (
-              <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid #1e1530' : 'none', display: 'flex', alignItems: 'center' }}>
+              <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center' }}>
                 <StatusDot active={s.isActive} />
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{s.name}</span>
               </div>
@@ -340,9 +340,9 @@ export default function KlaviyoTab() {
         </div>
         <div>
           <SectionTitle color="#a855f7">Liste</SectionTitle>
-          <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: 16 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
             {(lists || []).map((l, i) => (
-              <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid #1e1530' : 'none' }}>
+              <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{l.name}</span>
               </div>
             ))}

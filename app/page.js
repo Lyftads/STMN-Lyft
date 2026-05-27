@@ -1732,11 +1732,11 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
-          <div className="reveal" style={{marginBottom:24}}>
+          <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>
 
-          <div className="stagger" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
             <Stat label="Fatturato" value={f0(periodTotals.revenue || totFat)}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={periodTotals.revenue} previous={prevTotals.revenue} />
@@ -1751,7 +1751,7 @@ export default function App() {
               current={periodTotals.nc} previous={prevTotals.nc} />
           </div>
 
-          <div className="stagger" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
             <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} NC`} />
             <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'}
@@ -1761,14 +1761,14 @@ export default function App() {
           </div>
 
           {totResi > 0 && (
-            <div className="stagger" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
+            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
               <Stat label="Resi totali" value={f0(totResi)} />
               <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} dim />
               <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} dim />
             </div>
           )}
 
-          <div className="reveal" style={S.card}>
+          <div className="reveal-zoom" style={S.card}>
             <p className="label" style={{marginBottom:18}}>
               Ratio LTV:CAC mensile
             </p>

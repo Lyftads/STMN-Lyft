@@ -377,7 +377,7 @@ function TabContent({ children }) {
 
   useEffect(() => {
     if (!ref.current) return
-    const els = ref.current.querySelectorAll('.reveal, .reveal-scale, .stagger')
+    const els = ref.current.querySelectorAll('.reveal, .reveal-scale, .reveal-zoom, .stagger, .stagger-zoom')
     const observer = new IntersectionObserver(
       entries => {
         for (const entry of entries) {

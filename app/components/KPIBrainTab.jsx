@@ -385,7 +385,7 @@ const customerBreakdown = [
   return (
     <div>
       <div
-        className="reveal"
+        className="reveal-zoom"
         style={{
           background: 'var(--glass)',
           backdropFilter: 'blur(20px)',
@@ -417,7 +417,7 @@ const customerBreakdown = [
           </div>
 
           <div
-            className="stagger"
+            className="stagger-zoom"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -438,7 +438,7 @@ const customerBreakdown = [
           </div>
 
           <div
-            className="stagger"
+            className="stagger-zoom"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -455,16 +455,18 @@ const customerBreakdown = [
       </div>
 
       <div
+        className="reveal-zoom"
         style={{
           background: 'var(--glass)',
+          backdropFilter: 'blur(20px)',
           border: '1px solid var(--border)',
-          borderRadius: 22,
-          padding: 24,
+          borderRadius: 20,
+          padding: 28,
           marginBottom: 24,
                 }}
       >
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
+          <h2 className="heading-md" style={{ margin: 0 }}>
             KPI Brain
           </h2>
           <p style={{margin: '6px 0 0', color: 'var(--text3)', fontSize: 13}}>
@@ -526,20 +528,20 @@ const customerBreakdown = [
       </div>
 
       <div
+        className="reveal-zoom"
         style={{
           background: 'var(--glass)',
+          backdropFilter: 'blur(20px)',
           border: '1px solid var(--border)',
-          borderRadius: 22,
-          padding: 24,
+          borderRadius: 20,
+          padding: 28,
           marginBottom: 24,
         }}
       >
         <div
+          className="heading-md"
           style={{
-            fontSize: 18,
-            fontWeight: 900,
-            color: '#fff',
-            marginBottom: 18,
+            marginBottom: 20,
           }}
         >
           Top Performers
@@ -619,11 +621,13 @@ const customerBreakdown = [
       </div>
 
       <div
+        className="reveal-zoom"
         style={{
           background: 'var(--glass)',
+          backdropFilter: 'blur(20px)',
           border: '1px solid var(--border)',
-          borderRadius: 22,
-          padding: 24,
+          borderRadius: 20,
+          padding: 28,
         }}
       >
         <div

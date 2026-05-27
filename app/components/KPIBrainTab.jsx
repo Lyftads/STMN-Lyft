@@ -252,18 +252,10 @@ const customerBreakdown = [
       : null,
   ].filter(Boolean)
 
-  const card = {
-    background: 'var(--glass)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid var(--border)',
-    borderRadius: 20,
-    padding: 22,
-    transition: 'border-color 0.3s, box-shadow 0.3s, transform 0.3s',
-  }
+  const card = {}
 
   const panel = {
-    background: 'var(--glass)',
-    backdropFilter: 'blur(20px)',
+    background: 'rgba(255,255,255,0.015)',
     border: '1px solid var(--border)',
     borderRadius: 20,
     padding: 24,
@@ -345,7 +337,7 @@ const customerBreakdown = [
   }
 
   const MetricCard = ({ item }) => (
-    <div style={card}>
+    <div className="glass-card" style={{padding: 22}}>
       <div style={{ color: '#a5a0b3', fontSize: 13, marginBottom: 10 }}>
         {item.title}
       </div>
@@ -536,8 +528,9 @@ const customerBreakdown = [
           {productBreakdown.slice(0, 4).map((item, index) => (
             <div
               key={item.label}
+              className="glass-card"
               style={{
-                ...card,
+                padding: 22,
                 minHeight: 150,
                 display: 'flex',
                 flexDirection: 'column',

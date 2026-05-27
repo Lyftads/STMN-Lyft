@@ -87,8 +87,8 @@ function Pagination({ page, totalPages, onPageChange }) {
 function PreviewCard({ creative, productImage, format, onAccept, onReject, accepted, rejecting }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'var(--glass)',
         border: `2px solid ${accepted ? '#22c55e' : 'var(--border)'}`,
         borderRadius: 22,
         overflow: 'hidden',
@@ -577,8 +577,8 @@ export default function CreativeLabTab() {
           {/* Reference Images Upload */}
           {selected.length > 0 && (
             <div
+              className="glass-card"
               style={{
-                background: 'var(--glass)',
                 border: '1px solid #2c2638',
                 borderRadius: 18,
                 padding: 20,
@@ -673,8 +673,8 @@ export default function CreativeLabTab() {
           {/* Manual Brief */}
           {selected.length > 0 && (
             <div
+              className="glass-card"
               style={{
-                background: 'var(--glass)',
                 border: '1px solid #2c2638',
                 borderRadius: 18,
                 padding: 20,
@@ -748,8 +748,8 @@ export default function CreativeLabTab() {
 
           {/* Funnel Stage Selector */}
           <div
+            className="glass-card"
             style={{
-              background: 'var(--glass)',
               border: '1px solid #2c2638',
               borderRadius: 18,
               padding: 20,

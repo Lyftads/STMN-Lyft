@@ -31,7 +31,7 @@ function Card({ label, value, color = '#fff', sub }) {
 function InsightBox({ title, insights }) {
   if (!insights?.length) return null
   return (
-    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginTop: 24 }}>
+    <div className="glass-card" style={{ borderRadius: 16, padding: '24px 28px', marginTop: 24 }}>
       <div style={{ fontSize: 14, fontWeight: 900, color: '#8b5cf6', marginBottom: 16 }}>{title}</div>
       {insights.map((ins, i) => (
         <div key={i} style={{ padding: '10px 0', borderBottom: i < insights.length - 1 ? '1px solid #1e1530' : 'none', color: 'var(--text)', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>{ins}</div>
@@ -63,7 +63,7 @@ function GA4Funnel({ funnel }) {
   const maxVal = steps[0].value || 1
 
   return (
-    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px' }}>
+    <div className="glass-card" style={{ borderRadius: 16, padding: '28px 32px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Purchase Journey</div>
         <span style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 6, background: '#22c55e22', color: '#22c55e' }}>{funnel.source}</span>
@@ -411,7 +411,7 @@ export default function CROTab() {
       {/* TOP PAGES */}
       {!loading && !data?.error && activeSection === 'pages' && (
         <>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
+          <div className="glass-card" style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 1000, borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
@@ -445,7 +445,7 @@ export default function CROTab() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+            <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
               <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Visitatori unici per pagina</div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={sortedPages.slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), visitatori: p.visitors }))} layout="vertical" margin={{ left: 130 }}>
@@ -457,7 +457,7 @@ export default function CROTab() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+            <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
               <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Ordini e Revenue per pagina</div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={sortedPages.filter(p => p.orders > 0).slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), ordini: p.orders, revenue: p.revenue }))} layout="vertical" margin={{ left: 130 }}>
@@ -482,7 +482,7 @@ export default function CROTab() {
       {/* FLOW */}
       {!loading && !data?.error && activeSection === 'flow' && (
         <>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
+          <div className="glass-card" style={{ borderRadius: 16, padding: 28 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 950, color: '#fff' }}>Canalizzazione del Traffico</div>
@@ -504,7 +504,7 @@ export default function CROTab() {
       {/* SCANNER */}
       {activeSection === 'scanner' && (
         <>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
+          <div className="glass-card" style={{ borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text)', marginBottom: 6 }}>Analizza una pagina</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>L'AI analizzerà UX, CTA, trust signals, copy e struttura</div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -519,10 +519,10 @@ export default function CROTab() {
 
           {scanning && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', height: 420 }}>
+              <div className="glass-card" style={{ borderRadius: 16, overflow: 'hidden', height: 420 }}>
                 <iframe src={scanUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Preview" sandbox="allow-same-origin allow-scripts" />
               </div>
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="glass-card" style={{ borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 48, height: 48, border: '4px solid #292134', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 <div style={{ color: '#c4b5fd', fontWeight: 800, marginTop: 16, fontSize: 14 }}>Analisi AI in corso...</div>
                 <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 6 }}>UX · Copy · CTA · Trust Signals · Struttura · Mobile</div>
@@ -536,27 +536,27 @@ export default function CROTab() {
           {scanResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 16 }}>
-                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+                <div className="glass-card" style={{ borderRadius: 16, padding: 24, textAlign: 'center' }}>
                   <ScoreRing score={scanResult.score} />
                   <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 8, fontWeight: 700 }}>CRO Score</div>
                 </div>
-                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+                <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                   <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text)', marginBottom: 12 }}>{scanResult.verdict}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>PUNTI DI FORZA</div>
                   {(scanResult.strengths || []).map((s, i) => <div key={i} style={{ color: '#c4b5fd', fontSize: 12, padding: '3px 0', lineHeight: 1.5 }}>✓ {s}</div>)}
                 </div>
-                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+                <div className="glass-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
                   <iframe src={scanUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Preview" sandbox="allow-same-origin allow-scripts" />
                 </div>
               </div>
 
               {scanResult.attentionMap && (
-                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+                <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                   <AttentionBar sections={scanResult.attentionMap} />
                 </div>
               )}
 
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+              <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#ef4444', marginBottom: 16 }}>Problemi ({(scanResult.issues || []).length})</div>
                 {(scanResult.issues || []).map((issue, i) => (
                   <div key={i} style={{ background: 'var(--glass)', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
@@ -567,7 +567,7 @@ export default function CROTab() {
                 ))}
               </div>
 
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+              <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#f59e0b', marginBottom: 16 }}>Colli di Bottiglia</div>
                 {(scanResult.bottlenecks || []).map((b, i) => (
                   <div key={i} style={{ background: 'var(--glass)', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
@@ -579,7 +579,7 @@ export default function CROTab() {
                 ))}
               </div>
 
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+              <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#22c55e', marginBottom: 16 }}>Quick Wins</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                   {(scanResult.quickWins || []).map((qw, i) => (
@@ -596,7 +596,7 @@ export default function CROTab() {
               </div>
 
               {scanResult.recommendations?.length > 0 && (
-                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+                <div className="glass-card" style={{ borderRadius: 16, padding: 24 }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: '#8b5cf6', marginBottom: 14 }}>Raccomandazioni Strategiche</div>
                   {scanResult.recommendations.map((r, i) => (
                     <div key={i} style={{ color: 'var(--text)', fontSize: 13, padding: '8px 0', lineHeight: 1.6, fontWeight: 600, borderBottom: i < scanResult.recommendations.length - 1 ? '1px solid #1e1530' : 'none' }}>

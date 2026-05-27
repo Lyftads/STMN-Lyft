@@ -44,8 +44,8 @@ function money(v) {
 function StatMini({ label, value, tone = '#fff' }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '12px 14px',
@@ -120,8 +120,8 @@ function AdCard({ ad, index }) {
 
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
@@ -246,8 +246,8 @@ function AdCard({ ad, index }) {
 function ProductCard({ product }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
@@ -432,8 +432,8 @@ function CompetitorSection({ competitor, meta }) {
 
   return (
     <div
+      className="glass-card"
       style={{
-        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',

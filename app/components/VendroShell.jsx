@@ -12,6 +12,7 @@ function getPageTitle(tab) {
   if (tab === 'performanceAgent') return 'Performance Agent'
   if (tab === 'klaviyo') return 'Klaviyo'
   if (tab === 'competitorIntel') return 'Competitor Intel'
+  if (tab === 'priceComparison') return 'Prezzi vs Competitor'
   if (tab === 'integrations') return 'Integrazioni'
   if (tab === 'cro') return 'CRO'
   if (tab === 'creativeLab') return 'Creative Lab'
@@ -25,6 +26,7 @@ function getPageSubtitle(tab, updated) {
   if (tab === 'performanceAgent') return 'Consulente AI · Performance · CMO · CRO · Ads'
   if (tab === 'klaviyo') return 'Email Marketing · Campagne · Flussi · Segmenti'
   if (tab === 'competitorIntel') return 'Creative attive · Catalogo prodotti · Prezzi · Promozioni'
+  if (tab === 'priceComparison') return 'Confronto prezzi per categoria: Paracalli · Corde · Ginocchiere · Abbigliamento · Zaini'
   if (tab === 'integrations') return 'Collega e gestisci tutte le piattaforme'
   if (tab === 'cro') return 'Funnel · Top Pages · Flusso Traffico · Page Scanner'
   if (tab === 'creativeLab') return 'Genera ad creative con AI da best seller, performance e competitor'
@@ -104,6 +106,7 @@ export default function VendroShell({
       color: '#06b6d4',
       items: [
         { id: 'competitorIntel', label: 'Competitor Intel', icon: '◈' },
+        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: '⚖' },
       ],
     },
     {

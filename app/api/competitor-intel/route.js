@@ -54,15 +54,23 @@ const CATEGORY_RULES = [
     label: 'Paracalli',
     match: (p) => {
       const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return s.includes('grip') || s.includes('paracall') || s.includes('callera') || s.includes('hand grip') || s.includes('gymnastic')
+      return s.includes('grip') || s.includes('paracall') || s.includes('callera') || s.includes('hand grip') || s.includes('gymnastic grip')
     },
   },
   {
     id: 'ropes',
     label: 'Corde',
     match: (p) => {
+      const title = p.title.toLowerCase()
       const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return (s.includes('rope') || s.includes('corda') || s.includes('comba') || s.includes('jump')) && !s.includes('cable') && !s.includes('extension')
+      // Match: "corda da salto", "jump rope", "comba" (Spanish for rope)
+      // Exclude: accessories like cables, extensions, handles, kits
+      const isRope = title.includes('corda da salto') || title.includes('jump rope') ||
+        s.includes('comba') || (s.includes('jump ropes') && !title.includes('kit') && !title.includes('cavo'))
+      const isAccessory = title.includes('cavo') || title.includes('cable') || title.includes('kit cavo') ||
+        title.includes('extension') || title.includes('handle') || title.includes('impugnatura') ||
+        s.includes('accessori corda') || s.includes('accessori combas')
+      return isRope && !isAccessory
     },
   },
   {
@@ -77,18 +85,39 @@ const CATEGORY_RULES = [
     id: 'men_apparel',
     label: 'Abbigliamento Uomo',
     match: (p) => {
-      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return (s.includes('hombre') || s.includes('uomo') || s.includes('men') || s.includes("man's")) &&
-        (s.includes('shirt') || s.includes('short') || s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('camiseta') || s.includes('apparel') || s.includes('textil') || s.includes('abbigliamento') || s.includes('maillot'))
+      const title = p.title.toLowerCase()
+      const type = (p.type || '').toLowerCase()
+      const tags = (p.tags || []).join(' ').toLowerCase()
+      const s = `${title} ${type} ${tags}`
+      // Match by tags (STMN uses "uomo" / "abbigliamento uomo")
+      // or by type (Velites: "tshirts", Picsil: "textil > hombre")
+      const isMen = tags.includes('uomo') || tags.includes('abbigliamento uomo') ||
+        s.includes('hombre') || (s.includes('men') && !s.includes('women'))
+      const isApparel = tags.includes('abbigliamento') || s.includes('shirt') || s.includes('short') ||
+        s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('camiseta') ||
+        s.includes('textil') || s.includes('maillot') || type.includes('tshirt')
+      // For products clearly labeled men's by title
+      const titleMen = title.includes('uomo') || title.includes(' men') || title.includes("men's")
+      return (isMen && isApparel) || (titleMen && isApparel)
     },
   },
   {
     id: 'women_apparel',
     label: 'Abbigliamento Donna',
     match: (p) => {
-      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return (s.includes('mujer') || s.includes('donna') || s.includes('women') || s.includes("woman") || s.includes('bra') || s.includes('legging') || s.includes('sujetador')) &&
-        (s.includes('shirt') || s.includes('short') || s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('crop') || s.includes('bra') || s.includes('legging') || s.includes('camiseta') || s.includes('apparel') || s.includes('textil') || s.includes('abbigliamento'))
+      const title = p.title.toLowerCase()
+      const type = (p.type || '').toLowerCase()
+      const tags = (p.tags || []).join(' ').toLowerCase()
+      const s = `${title} ${type} ${tags}`
+      const isWomen = tags.includes('donna') || tags.includes('abbigliamento donna') ||
+        s.includes('mujer') || s.includes('women') || s.includes('woman') ||
+        tags.includes('bra') || tags.includes('leggings')
+      const isApparel = tags.includes('abbigliamento') || s.includes('shirt') || s.includes('short') ||
+        s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('crop') ||
+        s.includes('bra') || s.includes('legging') || s.includes('camiseta') || s.includes('textil') ||
+        s.includes('sujetador') || s.includes('top') || type.includes('bra')
+      const titleWomen = title.includes('donna') || title.includes(' women') || title.includes("women's")
+      return (isWomen && isApparel) || (titleWomen && isApparel)
     },
   },
   {
@@ -96,7 +125,9 @@ const CATEGORY_RULES = [
     label: 'Zaini / Borsoni',
     match: (p) => {
       const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return s.includes('backpack') || s.includes('bag') || s.includes('zaino') || s.includes('borsa') || s.includes('borsone') || s.includes('mochila') || s.includes('duffel') || s.includes('tote')
+      return s.includes('backpack') || s.includes('zaino') || s.includes('borsa') ||
+        s.includes('borsone') || s.includes('mochila') || s.includes('duffel') ||
+        s.includes('tactical') || (s.includes('bag') && !s.includes('sandbag'))
     },
   },
 ]
@@ -127,6 +158,7 @@ function buildPriceComparison(ownProducts, competitorProductsMap) {
           max: Math.round(Math.max(...matched.map(p => p.price)) * 100) / 100,
           deltaEuro: ownAvg != null ? Math.round((ownAvg - avg) * 100) / 100 : null,
           deltaPct: ownAvg != null && avg > 0 ? Math.round(((ownAvg - avg) / avg) * 10000) / 100 : null,
+          products: matched.sort((a,b)=>a.price-b.price).map(p => ({ title: p.title, price: p.price, compareAtPrice: p.compareAtPrice||0, onSale: p.onSale||false, image: p.image })),
         }
       }
     }
@@ -139,7 +171,7 @@ function buildPriceComparison(ownProducts, competitorProductsMap) {
         avg: ownAvg != null ? Math.round(ownAvg * 100) / 100 : null,
         min: ownMin != null ? Math.round(ownMin * 100) / 100 : null,
         max: ownMax != null ? Math.round(ownMax * 100) / 100 : null,
-        products: own.slice(0, 5).map(p => ({ title: p.title, price: p.price, image: p.image })),
+        products: own.sort((a,b)=>a.price-b.price).map(p => ({ title: p.title, price: p.price, compareAtPrice: p.compareAtPrice||0, onSale: p.onSale||false, image: p.image })),
       },
       competitors,
     }

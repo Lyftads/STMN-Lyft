@@ -8,6 +8,7 @@ import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
 import KlaviyoTab from './components/KlaviyoTab'
 import CompetitorIntelTab from './components/CompetitorIntelTab'
+import PriceComparisonTab from './components/PriceComparisonTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import CROTab from './components/CROTab'
 import CreativeLabTab from './components/CreativeLabTab'
@@ -2261,6 +2262,11 @@ export default function App() {
 {/* COMPETITOR INTEL TAB */}
 {tab === 'competitorIntel' && (
   <CompetitorIntelTab />
+)}
+
+{/* PRICE COMPARISON TAB */}
+{tab === 'priceComparison' && (
+  <PriceComparisonTab />
 )}
 
 {/* INTEGRATIONS TAB */}

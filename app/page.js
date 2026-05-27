@@ -1380,6 +1380,8 @@ export default function App() {
   const [weeks, setWeeks] = useState({})
   const [updated, setUpdated] = useState(null)
   const [preset, setPreset] = useState('last_90d')
+  const [monthlyTF, setMonthlyTF] = useState('this_month')
+  const [monthlyCustom, setMonthlyCustom] = useState({ since: '', until: '' })
 
   const avail = getMonths()
 
@@ -1850,30 +1852,170 @@ export default function App() {
           return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind)}</div>)
         }
 
+        // ── Timeframe mensile: calcola periodo corrente e precedente ──
+        const now = new Date()
+        const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+        const thisMonth = fmtM(now)
+        const prevMonth = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
+
+        let tfMonths = []
+        let tfPrevMonths = []
+        let tfLabel = ''
+
+        if (monthlyTF === 'this_month') {
+          tfMonths = data.filter(m => m.month === thisMonth)
+          tfPrevMonths = data.filter(m => m.month === prevMonth)
+          tfLabel = `${thisMonth} vs ${prevMonth}`
+        } else if (monthlyTF === 'last_month') {
+          const beforePrev = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
+          tfMonths = data.filter(m => m.month === prevMonth)
+          tfPrevMonths = data.filter(m => m.month === beforePrev)
+          tfLabel = `${prevMonth} vs ${beforePrev}`
+        } else if (monthlyTF === 'custom' && monthlyCustom.since && monthlyCustom.until) {
+          tfMonths = data.filter(m => m.month >= monthlyCustom.since && m.month <= monthlyCustom.until)
+          const startDate = new Date(monthlyCustom.since + '-01')
+          const endDate = new Date(monthlyCustom.until + '-01')
+          const span = (endDate.getFullYear() - startDate.getFullYear()) * 12 + endDate.getMonth() - startDate.getMonth() + 1
+          const prevEnd = new Date(startDate); prevEnd.setMonth(prevEnd.getMonth() - 1)
+          const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
+          tfPrevMonths = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
+          tfLabel = `${monthlyCustom.since} → ${monthlyCustom.until} vs periodo prec.`
+        } else {
+          tfMonths = data.filter(m => m.month === thisMonth)
+          tfPrevMonths = data.filter(m => m.month === prevMonth)
+          tfLabel = `${thisMonth} vs ${prevMonth}`
+        }
+
+        const sumField = (arr, key) => arr.reduce((s,m) => s + Number(m[key] || 0), 0)
+        const divSafe = (a, b) => b > 0 ? a / b : null
+
+        const tf = {
+          fat: sumField(tfMonths, 'fatturato'),
+          ord: sumField(tfMonths, 'ordini'),
+          nc: sumField(tfMonths, 'nc'),
+          rc: sumField(tfMonths, 'rc'),
+          meta: sumField(tfMonths, 'metaSpend'),
+          goog: sumField(tfMonths, 'googleSpend'),
+          spend: sumField(tfMonths, 'totalSpend'),
+          ses: sumField(tfMonths, 'sessioni'),
+        }
+        tf.aov = divSafe(tf.fat, tf.ord)
+        tf.mer = divSafe(tf.fat, tf.spend)
+        tf.cac = divSafe(tf.spend, tf.nc)
+        tf.ratio = tf.aov && tf.cac ? (tf.aov * cfg.freq * cfg.life * cfg.margin / 100) / tf.cac : null
+
+        const tfP = {
+          fat: sumField(tfPrevMonths, 'fatturato'),
+          ord: sumField(tfPrevMonths, 'ordini'),
+          nc: sumField(tfPrevMonths, 'nc'),
+          rc: sumField(tfPrevMonths, 'rc'),
+          meta: sumField(tfPrevMonths, 'metaSpend'),
+          goog: sumField(tfPrevMonths, 'googleSpend'),
+          spend: sumField(tfPrevMonths, 'totalSpend'),
+          ses: sumField(tfPrevMonths, 'sessioni'),
+        }
+        tfP.aov = divSafe(tfP.fat, tfP.ord)
+        tfP.mer = divSafe(tfP.fat, tfP.spend)
+        tfP.cac = divSafe(tfP.spend, tfP.nc)
+        tfP.ratio = tfP.aov && tfP.cac ? (tfP.aov * cfg.freq * cfg.life * cfg.margin / 100) / tfP.cac : null
+
+        // ── Sparkline SVG builder ──
+        const Sparkline = ({ dataArr, dataKey, color = '#22c55e', width = 80, height = 32 }) => {
+          const vals = dataArr.map(d => Number(d[dataKey] || 0))
+          if (vals.length < 2 || vals.every(v => v === 0)) return null
+          const max = Math.max(...vals), min = Math.min(...vals)
+          const range = max - min || 1
+          const points = vals.map((v, i) => {
+            const x = (i / (vals.length - 1)) * width
+            const y = height - ((v - min) / range) * (height - 4) - 2
+            return `${x},${y}`
+          }).join(' ')
+          return (
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{opacity:0.7}}>
+              <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )
+        }
+
+        // ── Delta badge (%) ──
+        const DeltaBadge = ({ curr, prev, isLowerBetter = false }) => {
+          if (prev == null || prev === 0 || curr == null) return null
+          const pct = ((curr - prev) / prev) * 100
+          if (Math.abs(pct) < 0.1) return null
+          const up = pct > 0
+          const good = isLowerBetter ? !up : up
+          return (
+            <span style={{
+              fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+              background: good ? '#22c55e20' : '#ef444420',
+              color: good ? '#22c55e' : '#ef4444',
+            }}>
+              {up ? '+' : ''}{pct.toFixed(2)}%
+            </span>
+          )
+        }
+
         const chartData = filled.map(m => ({
           label: m.month, fatturato: m.fatturato, spesa: m.totalSpend,
           nc: m.nc, rc: m.rc, mer: m.mer, aov: m.aov, cro: m.cro, ratio: m.ratio,
         }))
 
+        const kpiCards = [
+          { label: 'Fatturato', val: tf.fat, prev: tfP.fat, fmt: f0, color: '#22c55e', key: 'fatturato' },
+          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: '#f8fafc', key: 'ordini' },
+          { label: 'AOV', val: tf.aov, prev: tfP.aov, fmt: f2, color: '#f59e0b', key: 'aov' },
+          { label: 'Nuovi Clienti', val: tf.nc, prev: tfP.nc, fmt: fn, color: '#06b6d4', key: 'nc' },
+          { label: 'Clienti Ritorno', val: tf.rc, prev: tfP.rc, fmt: fn, color: '#a78bfa', key: 'rc' },
+          { label: 'MER', val: tf.mer, prev: tfP.mer, fmt: v => v != null ? `${fr(v)}×` : '—', color: tf.mer != null ? (tf.mer >= 3 ? '#22c55e' : tf.mer >= 2 ? '#f59e0b' : '#ef4444') : '#555', key: 'mer' },
+          { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: '#f8fafc', key: 'cac', lower: true },
+          { label: 'Ratio LTV:CAC', val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio' },
+          { label: 'Meta Spend', val: tf.meta, prev: tfP.meta, fmt: f0, color: '#3b82f6', key: 'metaSpend' },
+          { label: 'Google Spend', val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: '#eab308', key: 'googleSpend' },
+        ]
+
         return (
         <>
-          {/* Summary KPI Cards */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',gap:12,marginBottom:20}}>
+          {/* Timeframe selector */}
+          <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
             {[
-              {label:'Fatturato', value:f0(totFat), color:'#22c55e'},
-              {label:'Ordini', value:fn(totOrd), color:'#f8fafc'},
-              {label:'Nuovi Clienti', value:fn(totNC), color:'#06b6d4'},
-              {label:'Clienti Ritorno', value:fn(totRC), color:'#a78bfa'},
-              {label:'Meta Spend', value:totMeta>0?f0(totMeta):'—', color:'#3b82f6'},
-              {label:'Google Spend', value:totGoog>0?f0(totGoog):'—', color:'#eab308'},
-              {label:'AOV', value:avgAOV>0?f2(avgAOV):'—', color:'#f59e0b'},
-              {label:'MER', value:avgMER!=null?`${fr(avgMER)}×`:'—', color:avgMER!=null?(avgMER>=3?'#22c55e':avgMER>=2?'#f59e0b':'#ef4444'):'#555'},
-              {label:'CAC', value:avgCAC?f2(avgCAC):'—', color:'#f8fafc'},
-              {label:'Ratio', value:avgRatio?`${fr(avgRatio)}:1`:'—', color:ratioColor(avgRatio)},
-            ].map(kpi => (
+              { id: 'this_month', l: 'Questo mese' },
+              { id: 'last_month', l: 'Mese precedente' },
+              { id: 'custom', l: 'Custom' },
+            ].map(b => (
+              <button key={b.id} onClick={() => setMonthlyTF(b.id)} style={{
+                fontSize:12, padding:'6px 14px', borderRadius:6, cursor:'pointer',
+                border: monthlyTF === b.id ? '1px solid #22c55e' : '1px solid #1e2d47',
+                background: monthlyTF === b.id ? '#22c55e20' : 'transparent',
+                color: monthlyTF === b.id ? '#22c55e' : '#94a3b8',
+                fontWeight: monthlyTF === b.id ? 700 : 500,
+              }}>{b.l}</button>
+            ))}
+            {monthlyTF === 'custom' && (
+              <>
+                <input type="month" value={monthlyCustom.since} onChange={e => setMonthlyCustom(p => ({...p, since: e.target.value}))}
+                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+                <span style={{color:'#555'}}>→</span>
+                <input type="month" value={monthlyCustom.until} onChange={e => setMonthlyCustom(p => ({...p, until: e.target.value}))}
+                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+              </>
+            )}
+            <span style={{marginLeft:'auto',fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+          </div>
+
+          {/* Summary KPI Cards with sparkline + delta */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12,marginBottom:20}}>
+            {kpiCards.map(kpi => (
               <div key={kpi.label} style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:'16px 18px'}}>
-                <div style={{fontSize:10,color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:6,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
-                <div style={{fontSize:22,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{kpi.value}</div>
+                <div style={{fontSize:10,color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                  <div style={{fontSize:24,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>
+                    {kpi.fmt(kpi.val)}
+                  </div>
+                  <Sparkline dataArr={filled} dataKey={kpi.key} color={kpi.color} />
+                </div>
+                <div style={{marginTop:8}}>
+                  <DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} />
+                </div>
               </div>
             ))}
           </div>

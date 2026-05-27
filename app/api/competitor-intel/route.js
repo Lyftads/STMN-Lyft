@@ -42,6 +42,7 @@ const COMPETITORS = [
     name: 'Frog Grips',
     pageId: '114720846967132',
     origin: 'https://froggrips.com.au',
+    currency: 'AUD',
     homepage: 'https://froggrips.com.au',
     instagram: 'froggrips',
     facebook: 'froggrips',
@@ -53,8 +54,11 @@ const CATEGORY_RULES = [
     id: 'grips',
     label: 'Paracalli',
     match: (p) => {
-      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      return s.includes('grip') || s.includes('paracall') || s.includes('callera') || s.includes('hand grip') || s.includes('gymnastic grip')
+      const title = p.title.toLowerCase()
+      const s = `${title} ${p.type || ''} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      if (title.includes('borsa') || title.includes('bag') || title.includes('custodia')) return false
+      return s.includes('grip') || s.includes('paracall') || s.includes('callera') ||
+        s.includes('impugnatur') || s.includes('hand grip')
     },
   },
   {
@@ -62,15 +66,18 @@ const CATEGORY_RULES = [
     label: 'Corde',
     match: (p) => {
       const title = p.title.toLowerCase()
-      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
-      // Match: "corda da salto", "jump rope", "comba" (Spanish for rope)
-      // Exclude: accessories like cables, extensions, handles, kits
-      const isRope = title.includes('corda da salto') || title.includes('jump rope') ||
-        s.includes('comba') || (s.includes('jump ropes') && !title.includes('kit') && !title.includes('cavo'))
-      const isAccessory = title.includes('cavo') || title.includes('cable') || title.includes('kit cavo') ||
-        title.includes('extension') || title.includes('handle') || title.includes('impugnatura') ||
-        s.includes('accessori corda') || s.includes('accessori combas')
-      return isRope && !isAccessory
+      const type = (p.type || '').toLowerCase()
+      // Must contain a clear rope indicator in the TITLE
+      const isRope = title.includes('corda da salto') || title.includes('corda veloce') ||
+        title.includes('jump rope') || title.includes('corda rook') ||
+        title.includes('corda abs') ||
+        (type.includes('comba') && type.includes('veloci'))
+      // Exclude accessories, bundles, cables
+      const isExcluded = title.includes('cavo') || title.includes('cavi') || title.includes('cable') ||
+        title.includes('anelli') || title.includes('kit cavo') ||
+        title.includes('extension') || title.includes('pacchetto') || title.includes('pack') ||
+        title.includes('handle') || title.includes('borsa')
+      return isRope && !isExcluded
     },
   },
   {
@@ -758,12 +765,33 @@ async function scrapeProducts(origin, homepage) {
 async function fetchAllCompetitors(countries) {
   return Promise.all(
     COMPETITORS.map(async (comp) => {
-      const [adLibrary, websiteData, facebookData, instagramData] = await Promise.all([
+      const [adLibrary, websiteDataRaw, facebookData, instagramData] = await Promise.all([
         fetchAdLibrary(comp.pageId, countries, comp.name),
         scrapeProducts(comp.origin, comp.homepage),
         fetchFacebookPage(comp.pageId),
         fetchInstagramProfile(comp.instagram),
       ])
+
+      // Convert prices to EUR if store uses different currency
+      const FX_RATES = { AUD: 0.61, USD: 0.92, GBP: 1.17 }
+      const websiteData = { ...websiteDataRaw }
+      if (comp.currency && FX_RATES[comp.currency]) {
+        const rate = FX_RATES[comp.currency]
+        websiteData.products = (websiteDataRaw.products || []).map(p => ({
+          ...p,
+          price: Math.round(p.price * rate * 100) / 100,
+          compareAtPrice: p.compareAtPrice > 0 ? Math.round(p.compareAtPrice * rate * 100) / 100 : 0,
+        }))
+        const prices = websiteData.products.filter(p => p.price > 0).map(p => p.price)
+        if (prices.length > 0 && websiteData.stats) {
+          websiteData.stats = {
+            ...websiteData.stats,
+            avgPrice: prices.reduce((a, b) => a + b, 0) / prices.length,
+            minPrice: Math.min(...prices),
+            maxPrice: Math.max(...prices),
+          }
+        }
+      }
 
       return {
         id: comp.id,

@@ -396,38 +396,6 @@ function TabContent({ children }) {
     return () => observer.disconnect()
   }, [entered])
 
-  // Scroll-driven fluid motion on ALL glass cards and sections
-  useEffect(() => {
-    if (!ref.current) return
-    let ticking = false
-
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(() => {
-        const cards = ref.current?.querySelectorAll('.glass-card, .glass-section') || []
-        const vh = window.innerHeight
-        for (const el of cards) {
-          const rect = el.getBoundingClientRect()
-          const center = rect.top + rect.height / 2
-          const distFromCenter = (center - vh / 2) / (vh / 2)
-          const clamped = Math.max(-1, Math.min(1, distFromCenter))
-
-          const y = clamped * 18
-          const scale = 1 - Math.abs(clamped) * 0.03
-          const opacity = 1 - Math.abs(clamped) * 0.15
-
-          el.style.transform = `translateY(${y.toFixed(1)}px) scale(${scale.toFixed(4)})`
-          el.style.opacity = Math.max(0.6, opacity).toFixed(2)
-        }
-        ticking = false
-      })
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [entered])
 
   return (
     <div

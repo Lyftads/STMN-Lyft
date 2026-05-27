@@ -194,30 +194,43 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(255,255,255,0.03);
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-top-color: rgba(255,255,255,0.14);
-  border-left-color: rgba(255,255,255,0.10);
-  border-bottom-color: rgba(0,0,0,0.2);
-  border-right-color: rgba(255,255,255,0.05);
   border-radius: 20px;
-  box-shadow:
-    0 8px 32px rgba(0,0,0,0.6),
-    0 2px 4px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.07),
-    inset 0 -1px 0 rgba(0,0,0,0.15);
-  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1);
   position: relative;
-  will-change: transform;
+
+  /* 3D border — bright top/left, dark bottom/right */
+  border: 1.5px solid transparent;
+  border-top-color: rgba(255,255,255,0.18);
+  border-left-color: rgba(255,255,255,0.12);
+  border-bottom-color: rgba(0,0,0,0.35);
+  border-right-color: rgba(0,0,0,0.20);
+
+  /* Deep 3D shadow — card "lifted" off background */
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.70),
+    0 4px 8px rgba(0,0,0,0.50),
+    0 1px 2px rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -1px 0 rgba(0,0,0,0.20);
+
+  transition: box-shadow 0.4s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.4s ease;
+  animation: card-pulse 4s ease-in-out infinite;
 }
 
 .glass-card:hover {
-  border-color: rgba(255,255,255,0.16);
+  border-top-color: rgba(255,255,255,0.25);
+  border-left-color: rgba(255,255,255,0.18);
   box-shadow:
-    0 16px 56px rgba(0,0,0,0.7),
-    0 6px 16px rgba(0,0,0,0.5),
-    0 0 50px rgba(41,151,255,0.07),
-    inset 0 1px 0 rgba(255,255,255,0.10);
-  transform: translateY(-4px) scale(1.015);
+    0 20px 60px rgba(0,0,0,0.80),
+    0 8px 20px rgba(0,0,0,0.60),
+    0 0 60px rgba(41,151,255,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  transform: translateY(-4px) scale(1.02);
+  animation-play-state: paused;
+}
+
+@keyframes card-pulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-2px) scale(1.005); }
 }
 
 .glass-card-static {
@@ -249,17 +262,20 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(255,255,255,0.025);
   backdrop-filter: blur(30px) saturate(1.8);
   -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-top-color: rgba(255,255,255,0.12);
-  border-bottom-color: rgba(0,0,0,0.2);
   border-radius: 24px;
-  box-shadow:
-    0 10px 48px rgba(0,0,0,0.6),
-    0 3px 8px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.06),
-    inset 0 -1px 0 rgba(0,0,0,0.12);
   position: relative;
-  will-change: transform;
+
+  border: 1.5px solid transparent;
+  border-top-color: rgba(255,255,255,0.15);
+  border-left-color: rgba(255,255,255,0.10);
+  border-bottom-color: rgba(0,0,0,0.35);
+  border-right-color: rgba(0,0,0,0.20);
+
+  box-shadow:
+    0 14px 50px rgba(0,0,0,0.70),
+    0 5px 12px rgba(0,0,0,0.50),
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
 }
 
 /* ── Typography ───────────────────────────────────────── */

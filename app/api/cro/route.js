@@ -7,12 +7,14 @@ const STORE = process.env.SHOPIFY_STORE_URL
 const TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 
 async function shopifyRest(path) {
-  const res = await fetch(`https://${STORE}/admin/api/2024-04/${path}`, {
-    headers: { 'X-Shopify-Access-Token': TOKEN },
-    cache: 'no-store',
-  })
-  if (!res.ok) return null
-  return res.json()
+  try {
+    const res = await fetch(`https://${STORE}/admin/api/2026-04/${path}`, {
+      headers: { 'X-Shopify-Access-Token': TOKEN },
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
 }
 
 function daysAgo(n) {
@@ -148,9 +150,9 @@ export async function GET(request) {
   const since = daysAgo(days)
 
   try {
-    const [orders, checkoutsRes, ga4, collectionsRes, smartCollRes, productsRes] = await Promise.all([
+    const [orders, abandonedRes, ga4, collectionsRes, smartCollRes, productsRes] = await Promise.all([
       getAllOrders(since),
-      shopifyRest(`checkouts.json?created_at_min=${since}&limit=250`),
+      shopifyRest(`abandoned_checkouts.json?created_at_min=${since}&limit=250&status=open`).catch(() => null),
       getGA4Data(days),
       shopifyRest('custom_collections.json?limit=50&fields=id,title,handle'),
       shopifyRest('smart_collections.json?limit=50&fields=id,title,handle'),
@@ -159,7 +161,7 @@ export async function GET(request) {
 
     const collections = [...(collectionsRes?.custom_collections || []), ...(smartCollRes?.smart_collections || [])]
     const products = productsRes?.products || []
-    const abandonedCheckouts = checkoutsRes?.checkouts?.length || 0
+    const abandonedCheckouts = abandonedRes?.checkouts?.length || 0
     const hasGA4 = !!ga4
 
     const totalSessions = hasGA4 ? ga4.sessions : Math.round(orders.length / 0.028)
@@ -305,6 +307,14 @@ export async function GET(request) {
       updatedAt: new Date().toISOString(),
     })
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    console.error('CRO route error:', e.message)
+    return NextResponse.json({
+      error: e.message,
+      funnel: { sessions:0, visitors:0, pageViews:0, addToCart:0, checkout:0, purchase:0,
+        addToCartRate:0, checkoutRate:0, purchaseRate:0, cartToCheckout:0, checkoutToPurchase:0,
+        dropoffs:{}, source:'Errore' },
+      topPages: [], flow: { nodes:[], links:[] },
+      totalRevenue:0, totalOrders:0, days, hasGA4: false,
+    })
   }
 }

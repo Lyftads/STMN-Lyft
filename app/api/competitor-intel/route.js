@@ -198,82 +198,184 @@ async function extractCreativeMedia(snapshotUrl) {
   }
 }
 
-async function fetchAdLibrary(pageId, countries) {
-  if (!ACCESS_TOKEN) {
-    return { error: 'META_ACCESS_TOKEN non configurato', ads: [], count: 0 }
+// ── Scrape della pagina pubblica Ad Library (no API, no permessi) ──
+async function scrapeAdLibraryPage(pageId, pageName) {
+  const libraryUrl = `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${pageId}&search_type=page&media_type=all`
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
   }
 
-  const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
-  url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
-  url.searchParams.set('ad_reached_countries', JSON.stringify(countries))
-  url.searchParams.set('ad_active_status', 'ACTIVE')
-  url.searchParams.set('ad_type', 'ALL')
-  url.searchParams.set(
-    'fields',
-    [
-      'ad_creative_bodies',
-      'ad_creative_link_captions',
-      'ad_creative_link_descriptions',
-      'ad_creative_link_titles',
-      'ad_delivery_start_time',
-      'ad_snapshot_url',
-      'page_name',
-      'publisher_platforms',
-    ].join(',')
-  )
-  url.searchParams.set('limit', '50')
-  url.searchParams.set('access_token', ACCESS_TOKEN)
-
   try {
-    const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(15000),
-    })
-    const json = await res.json()
+    const res = await fetch(libraryUrl, { headers, signal: AbortSignal.timeout(12000), redirect: 'follow' })
+    if (!res.ok) return { ads: [], count: 0, error: `HTTP ${res.status}`, source: 'scrape' }
+    const html = await res.text()
 
-    if (json.error) {
-      return {
-        error: `Meta API: ${json.error.message}`,
-        code: json.error.code,
-        ads: [],
-        count: 0,
+    const ads = []
+
+    // Extract ad snapshot URLs from the HTML
+    const snapshotMatches = [...html.matchAll(/ad_snapshot_url["\s:]+["']?(https:\/\/www\.facebook\.com\/ads\/archive\/render_ad\/\?[^"'\s<]+)/g)]
+    const snapshotUrls = [...new Set(snapshotMatches.map(m => m[1].replace(/\\u0025/g, '%').replace(/\\\//g, '/').replace(/&amp;/g, '&')))]
+
+    // Extract images from the page (ad creative thumbnails)
+    const imageMatches = [...html.matchAll(/src="(https:\/\/scontent[^"]+)"/g)]
+    const allImages = [...new Set(imageMatches.map(m => m[1].replace(/&amp;/g, '&')))]
+      .filter(url => !url.includes('emoji') && !url.includes('profile') && !url.includes('safe_image'))
+
+    // Extract ad copy/bodies from the page
+    const bodyMatches = [...html.matchAll(/"ad_creative_bodies":\["([^"]+)"\]/g)]
+    const titleMatches = [...html.matchAll(/"ad_creative_link_titles":\["([^"]+)"\]/g)]
+    const startDateMatches = [...html.matchAll(/"ad_delivery_start_time":"(\d{4}-\d{2}-\d{2})"/g)]
+
+    // Try to extract structured ad data from JSON embedded in HTML
+    const jsonChunks = [...html.matchAll(/\{"ad_creative_bodies":\[([^\]]*)\][^}]*"ad_snapshot_url":"([^"]+)"[^}]*\}/g)]
+
+    if (jsonChunks.length > 0) {
+      for (const chunk of jsonChunks.slice(0, 15)) {
+        const bodiesRaw = chunk[1]
+        const snapshotRaw = chunk[2].replace(/\\\//g, '/').replace(/\\u0025/g, '%')
+        const bodies = bodiesRaw ? [sanitize(bodiesRaw.replace(/^"|"$/g, '').replace(/\\n/g, '\n'))] : []
+
+        ads.push({
+          id: `scrape_${ads.length}`,
+          bodies,
+          titles: [],
+          captions: [],
+          descriptions: [],
+          startDate: null,
+          snapshotUrl: snapshotRaw,
+          pageName: pageName || '',
+          platforms: ['facebook', 'instagram'],
+          imageUrl: null,
+          videoUrl: null,
+          isVideo: false,
+        })
       }
     }
 
-    const rawAds = (json.data || []).map((ad) => ({
-      id: ad.id,
-      bodies: (ad.ad_creative_bodies || []).map(sanitize),
-      captions: (ad.ad_creative_link_captions || []).map(sanitize),
-      descriptions: (ad.ad_creative_link_descriptions || []).map(sanitize),
-      titles: (ad.ad_creative_link_titles || []).map(sanitize),
-      startDate: ad.ad_delivery_start_time || null,
-      snapshotUrl: ad.ad_snapshot_url || null,
-      pageName: sanitize(ad.page_name || ''),
-      platforms: ad.publisher_platforms || [],
-    }))
+    // If no structured data found, build ads from individual matches
+    if (ads.length === 0) {
+      const maxAds = Math.max(snapshotUrls.length, allImages.length, bodyMatches.length)
+      for (let i = 0; i < Math.min(maxAds, 15); i++) {
+        ads.push({
+          id: `scrape_${i}`,
+          bodies: bodyMatches[i] ? [sanitize(bodyMatches[i][1].replace(/\\n/g, '\n'))] : [],
+          titles: titleMatches[i] ? [sanitize(titleMatches[i][1])] : [],
+          captions: [],
+          descriptions: [],
+          startDate: startDateMatches[i]?.[1] || null,
+          snapshotUrl: snapshotUrls[i] || null,
+          pageName: pageName || '',
+          platforms: ['facebook', 'instagram'],
+          imageUrl: allImages[i] || null,
+          videoUrl: null,
+          isVideo: false,
+        })
+      }
+    }
 
-    // Extract creative media for the first 12 ads (batched 4 at a time)
-    const adsToEnrich = rawAds.slice(0, 12)
-    const enriched = []
-    for (let i = 0; i < adsToEnrich.length; i += 4) {
-      const batch = adsToEnrich.slice(i, i + 4)
+    // Enrich ads that have snapshot URLs but no images (batch 4 at a time)
+    const toEnrich = ads.filter(a => a.snapshotUrl && !a.imageUrl).slice(0, 8)
+    for (let i = 0; i < toEnrich.length; i += 4) {
+      const batch = toEnrich.slice(i, i + 4)
       const mediaResults = await Promise.all(
-        batch.map(ad => extractCreativeMedia(ad.snapshotUrl))
+        batch.map(a => extractCreativeMedia(a.snapshotUrl))
       )
       batch.forEach((ad, j) => {
-        enriched.push({ ...ad, ...mediaResults[j] })
+        ad.imageUrl = mediaResults[j].imageUrl
+        ad.videoUrl = mediaResults[j].videoUrl
+        ad.isVideo = mediaResults[j].isVideo
       })
     }
 
-    // Remaining ads (beyond 12) without media extraction
-    const remaining = rawAds.slice(12).map(ad => ({
-      ...ad, imageUrl: null, videoUrl: null, isVideo: false,
-    }))
+    // Assign remaining images to ads without one
+    let imgIdx = 0
+    for (const ad of ads) {
+      if (!ad.imageUrl && allImages[imgIdx]) {
+        ad.imageUrl = allImages[imgIdx]
+        imgIdx++
+      }
+    }
 
-    const ads = [...enriched, ...remaining]
-    return { ads, count: ads.length, error: null }
+    return {
+      ads: ads.filter(a => a.imageUrl || a.bodies.length > 0 || a.snapshotUrl),
+      count: ads.length,
+      error: null,
+      source: 'scrape',
+    }
   } catch (e) {
-    return { error: e.message, ads: [], count: 0 }
+    return { ads: [], count: 0, error: `Scrape failed: ${e.message}`, source: 'scrape' }
   }
+}
+
+async function fetchAdLibrary(pageId, countries, pageName) {
+  // Try API first
+  if (ACCESS_TOKEN) {
+    const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
+    url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
+    url.searchParams.set('ad_reached_countries', JSON.stringify(countries))
+    url.searchParams.set('ad_active_status', 'ACTIVE')
+    url.searchParams.set('ad_type', 'ALL')
+    url.searchParams.set(
+      'fields',
+      [
+        'ad_creative_bodies',
+        'ad_creative_link_captions',
+        'ad_creative_link_descriptions',
+        'ad_creative_link_titles',
+        'ad_delivery_start_time',
+        'ad_snapshot_url',
+        'page_name',
+        'publisher_platforms',
+      ].join(',')
+    )
+    url.searchParams.set('limit', '50')
+    url.searchParams.set('access_token', ACCESS_TOKEN)
+
+    try {
+      const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
+      const json = await res.json()
+
+      if (!json.error && json.data?.length > 0) {
+        const rawAds = json.data.map((ad) => ({
+          id: ad.id,
+          bodies: (ad.ad_creative_bodies || []).map(sanitize),
+          captions: (ad.ad_creative_link_captions || []).map(sanitize),
+          descriptions: (ad.ad_creative_link_descriptions || []).map(sanitize),
+          titles: (ad.ad_creative_link_titles || []).map(sanitize),
+          startDate: ad.ad_delivery_start_time || null,
+          snapshotUrl: ad.ad_snapshot_url || null,
+          pageName: sanitize(ad.page_name || ''),
+          platforms: ad.publisher_platforms || [],
+        }))
+
+        const adsToEnrich = rawAds.slice(0, 12)
+        const enriched = []
+        for (let i = 0; i < adsToEnrich.length; i += 4) {
+          const batch = adsToEnrich.slice(i, i + 4)
+          const mediaResults = await Promise.all(
+            batch.map(ad => extractCreativeMedia(ad.snapshotUrl))
+          )
+          batch.forEach((ad, j) => {
+            enriched.push({ ...ad, ...mediaResults[j] })
+          })
+        }
+
+        const remaining = rawAds.slice(12).map(ad => ({
+          ...ad, imageUrl: null, videoUrl: null, isVideo: false,
+        }))
+
+        return { ads: [...enriched, ...remaining], count: rawAds.length, error: null, source: 'api' }
+      }
+    } catch {}
+  }
+
+  // Fallback: scrape public Ad Library page
+  return scrapeAdLibraryPage(pageId, pageName)
 }
 
 async function scrapeProducts(origin, homepage) {
@@ -477,7 +579,7 @@ async function fetchAllCompetitors(countries) {
   return Promise.all(
     COMPETITORS.map(async (comp) => {
       const [adLibrary, websiteData, facebookData, instagramData] = await Promise.all([
-        fetchAdLibrary(comp.pageId, countries),
+        fetchAdLibrary(comp.pageId, countries, comp.name),
         scrapeProducts(comp.origin, comp.homepage),
         fetchFacebookPage(comp.pageId),
         fetchInstagramProfile(comp.instagram),

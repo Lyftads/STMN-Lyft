@@ -575,7 +575,17 @@ function CompetitorSection({ competitor, meta }) {
                 }}
               >
                 <span style={{ fontSize: 13, color: '#8b8aa0' }}>
-                  {ads.length} creative attive trovate via API
+                  {ads.length} creative attive
+                  {adLibrary?.source === 'scrape' && (
+                    <span style={{ marginLeft: 8, fontSize: 10, color: '#f59e0b', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f59e0b18' }}>
+                      via Ad Library scrape
+                    </span>
+                  )}
+                  {adLibrary?.source === 'api' && (
+                    <span style={{ marginLeft: 8, fontSize: 10, color: '#22c55e', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#22c55e18' }}>
+                      via Meta API
+                    </span>
+                  )}
                 </span>
                 <a
                   href={meta.adLibraryUrl}

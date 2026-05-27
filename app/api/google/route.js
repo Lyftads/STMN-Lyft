@@ -44,14 +44,23 @@ export async function GET() {
     const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const until = new Date().toISOString().slice(0, 10)
 
-    // Patch: the library crashes in getGoogleAdsError when parsing gRPC errors
-    // Wrap it so we can see the REAL Google Ads error
+    // Patch: the library crashes in getGoogleAdsError when parsing gRPC errors.
+    // We intercept at the `querier` level to capture the RAW gRPC error.
     try {
       const proto = Object.getPrototypeOf(customer)
-      if (proto && typeof proto.getGoogleAdsError === 'function') {
-        const orig = proto.getGoogleAdsError
-        proto.getGoogleAdsError = function (buffer) {
-          try { return orig.call(this, buffer) } catch { return null }
+      if (proto?.querier) {
+        const origQuerier = proto.querier
+        proto.querier = async function (...args) {
+          try {
+            return await origQuerier.call(this, ...args)
+          } catch (grpcErr) {
+            const enhanced = new Error(`gRPC code ${grpcErr?.code}: ${grpcErr?.details || grpcErr?.message || 'unknown'}`)
+            enhanced.grpcCode = grpcErr?.code
+            enhanced.grpcDetails = grpcErr?.details
+            enhanced.grpcMessage = grpcErr?.message
+            try { enhanced.grpcMetaKeys = [...(grpcErr?.metadata?.internalRepr?.keys() || [])] } catch {}
+            throw enhanced
+          }
         }
       }
     } catch {}

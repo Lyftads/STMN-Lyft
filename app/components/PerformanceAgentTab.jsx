@@ -57,10 +57,10 @@ function formatMessage(text) {
   })
 }
 
-export default function PerformanceAgentTab({ cfg }) {
+export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [preset, setPreset] = useState('last_28d')
+  const preset = globalPreset || 'last_28d'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [dataSummary, setDataSummary] = useState(null)
@@ -192,27 +192,6 @@ export default function PerformanceAgentTab({ cfg }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <select
-            value={preset}
-            onChange={e => setPreset(e.target.value)}
-            disabled={loading}
-            style={{
-              background: '#201b2b',
-              border: `1px solid ${palette.border}`,
-              color: '#fff',
-              borderRadius: 10,
-              padding: '8px 12px',
-              fontSize: 13,
-              outline: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {PRESETS.map(p => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
           {messages.length > 0 && (
             <button
               type="button"

@@ -1,51 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import Sparkline from './Sparkline'
+import DeltaBadge from './DeltaBadge'
 
-export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
+export default function KPIBrainTab({ data, dataYear, live, cfg, S, preset, kpiRange, swCurrent = [], swPrev = [], mwCurrent = [], mwPrev = [], periodTotals = {}, prevTotals = {} }) {
 
-  
-    const [selectedPreset, setSelectedPreset] = useState('last_90d')
-  const [periodLive, setPeriodLive] = useState(null)
-  const [periodLoading, setPeriodLoading] = useState(false)
-
-  useEffect(() => {
-    let active = true
-
-    async function loadPeriod() {
-      try {
-        setPeriodLoading(true)
-
-        const res = await fetch(`/api/metrics?preset=${encodeURIComponent(selectedPreset)}`, {
-          cache: 'no-store',
-        })
-
-        const json = await res.json()
-
-        if (active) {
-          setPeriodLive(json)
-        }
-      } catch (e) {
-        console.log('KPI Brain period fetch error:', e.message)
-
-        if (active) {
-          setPeriodLive(null)
-        }
-      } finally {
-        if (active) {
-          setPeriodLoading(false)
-        }
-      }
-    }
-
-    loadPeriod()
-
-    return () => {
-      active = false
-    }
-  }, [selectedPreset])
-
-  const activeLive = periodLive || live
+  const activeLive = live
   const kpiMeta = activeLive?.kpiBrain || {}
   const asNum = v => {
     const n = Number(v)
@@ -169,22 +130,30 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S }) {
     return int0(v)
   }
 
+  const prevAov = prevTotals.orders > 0 ? prevTotals.revenue / prevTotals.orders : null
+  const prevRepeatRate = prevTotals.nc + prevTotals.rc > 0 ? (prevTotals.rc / (prevTotals.nc + prevTotals.rc)) * 100 : null
+  const prevRoas = prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null
+  const prevMer = (prevTotals.metaSpend) > 0 ? prevTotals.revenue / (prevTotals.metaSpend) : null
+  const prevCtr = prevTotals.impressions > 0 ? (prevTotals.clicks / prevTotals.impressions) * 100 : null
+  const prevCpc = prevTotals.clicks > 0 ? prevTotals.metaSpend / prevTotals.clicks : null
+  const prevCpm = prevTotals.impressions > 0 ? (prevTotals.metaSpend / prevTotals.impressions) * 1000 : null
+
   const metrics = [
-    { group: 'Shopify', title: 'Revenue', value: shortMoney(totals.revenue), badge: 'Live', color: '#22c55e' },
-    { group: 'Shopify', title: 'Total Orders', value: int0(totals.orders), badge: 'Live', color: '#22c55e' },
-    { group: 'Shopify', title: 'Average Order Value', value: money1(aov), badge: 'AOV', color: '#3b82f6' },
-    { group: 'Shopify', title: 'New Customers', value: int0(totals.newCustomers), badge: 'Live', color: '#22c55e' },
-    { group: 'Shopify', title: 'Repeat Purchase Rate', value: pct(repeatRate), badge: 'Lifetime', color: '#0ea5e9' },
+    { group: 'Shopify', title: 'Revenue', value: shortMoney(totals.revenue), badge: 'Live', color: '#22c55e', sparkData: swCurrent.map(w => w.fatturato), current: totals.revenue, previous: prevTotals.revenue },
+    { group: 'Shopify', title: 'Total Orders', value: int0(totals.orders), badge: 'Live', color: '#22c55e', sparkData: swCurrent.map(w => w.ordini), current: totals.orders, previous: prevTotals.orders },
+    { group: 'Shopify', title: 'Average Order Value', value: money1(aov), badge: 'AOV', color: '#3b82f6', sparkData: swCurrent.map(w => w.ordini > 0 ? w.fatturato / w.ordini : 0), current: aov, previous: prevAov },
+    { group: 'Shopify', title: 'New Customers', value: int0(totals.newCustomers), badge: 'Live', color: '#06b6d4', sparkData: swCurrent.map(w => w.nc), current: totals.newCustomers, previous: prevTotals.nc },
+    { group: 'Shopify', title: 'Repeat Purchase Rate', value: pct(repeatRate), badge: 'Lifetime', color: '#0ea5e9', current: repeatRate, previous: prevRepeatRate },
     { group: 'Shopify', title: 'Average LTV', value: money1(ltv), badge: 'Lifetime', color: '#0ea5e9' },
 
-    { group: 'Meta Ads', title: 'Spend', value: shortMoney(totals.metaSpend), badge: 'Meta', color: '#3b82f6' },
-    { group: 'Meta Ads', title: 'ROAS', value: ratio(roas), badge: 'Live', color: '#22c55e' },
-    { group: 'Meta Ads', title: 'MER', value: ratio(mer), badge: 'Blended', color: '#a855f7' },
-    { group: 'Meta Ads', title: 'CTR', value: pct(ctr), badge: 'Meta', color: '#3b82f6' },
-    { group: 'Meta Ads', title: 'CPC', value: money2(cpc), badge: 'Meta', color: '#3b82f6' },
-    { group: 'Meta Ads', title: 'CPM', value: money2(cpm), badge: 'Meta', color: '#3b82f6' },
-    { group: 'Meta Ads', title: 'Impressions', value: shortNumber(totals.impressions), badge: 'Meta', color: '#3b82f6' },
-    { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6' },
+    { group: 'Meta Ads', title: 'Spend', value: shortMoney(totals.metaSpend), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.spend), current: totals.metaSpend, previous: prevTotals.metaSpend },
+    { group: 'Meta Ads', title: 'ROAS', value: ratio(roas), badge: 'Live', color: '#22c55e', sparkData: mwCurrent.map((w, i) => { const sw = swCurrent[i]; return sw && w.spend > 0 ? sw.fatturato / w.spend : 0 }), current: roas, previous: prevRoas },
+    { group: 'Meta Ads', title: 'MER', value: ratio(mer), badge: 'Blended', color: '#a855f7', current: mer, previous: prevMer },
+    { group: 'Meta Ads', title: 'CTR', value: pct(ctr), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.ctr), current: ctr, previous: prevCtr },
+    { group: 'Meta Ads', title: 'CPC', value: money2(cpc), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.linkClicks > 0 ? w.spend / w.linkClicks : 0), current: cpc, previous: prevCpc },
+    { group: 'Meta Ads', title: 'CPM', value: money2(cpm), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.impressions > 0 ? (w.spend / w.impressions) * 1000 : 0), current: cpm, previous: prevCpm },
+    { group: 'Meta Ads', title: 'Impressions', value: shortNumber(totals.impressions), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.impressions), current: totals.impressions, previous: prevTotals.impressions },
+    { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.linkClicks), current: totals.clicks, previous: prevTotals.clicks },
   ]
 
   const topProducts = Array.isArray(activeLive?.shopifyTopProducts)
@@ -395,30 +364,34 @@ const customerBreakdown = [
         {item.title}
       </div>
 
-      <div
-        style={{
-          color: '#fff',
-          fontSize: 28,
-          fontWeight: 900,
-          letterSpacing: '-0.03em',
-        }}
-      >
-        {item.value}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div
+          style={{
+            color: '#fff',
+            fontSize: 28,
+            fontWeight: 900,
+            letterSpacing: '-0.03em',
+          }}
+        >
+          {item.value}
+        </div>
+        {item.sparkData && <Sparkline data={item.sparkData} color={item.color} width={72} height={28} />}
       </div>
 
-      <div
-        style={{
-          marginTop: 13,
-          display: 'inline-block',
-          fontSize: 11,
-          color: item.color,
-          background: `${item.color}22`,
-          borderRadius: 999,
-          padding: '5px 10px',
-          fontWeight: 800,
-        }}
-      >
-        {item.badge}
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <DeltaBadge current={item.current} previous={item.previous} />
+        <span
+          style={{
+            fontSize: 11,
+            color: item.color,
+            background: `${item.color}22`,
+            borderRadius: 999,
+            padding: '4px 9px',
+            fontWeight: 800,
+          }}
+        >
+          {item.badge}
+        </span>
       </div>
     </div>
   )
@@ -515,61 +488,20 @@ const customerBreakdown = [
           marginBottom: 24,
                 }}
       >
-        <div style={{
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 16,
-  marginBottom: 20,
-}}>
-  <div>
-    <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
-      KPI Brain
-    </h2>
-
-    <p style={{margin: '6px 0 0', color: '#8b8aa0', fontSize: 13}}>
-      {kpiMeta?.range?.label || 'Periodo selezionato'}
-      {kpiMeta?.range?.since && kpiMeta?.range?.until
-        ? ` · ${kpiMeta.range.since} – ${kpiMeta.range.until}`
-        : ''}
-      {kpiMeta?.previousRange?.since && kpiMeta?.previousRange?.until
-        ? ` vs ${kpiMeta.previousRange.since} – ${kpiMeta.previousRange.until}`
-        : ''}
-    </p>
-  </div>
-
-  <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-    {periodLoading && (
-      <span style={{fontSize: 12, color: '#8b8aa0'}}>
-        Aggiorno…
-      </span>
-    )}
-
-    <select
-      value={selectedPreset}
-      onChange={e => setSelectedPreset(e.target.value)}
-      style={{
-        background: '#201b2b',
-        border: '1px solid #3b324a',
-        color: '#fff',
-        borderRadius: 10,
-        padding: '10px 14px',
-        fontSize: 14,
-        outline: 'none',
-        cursor: 'pointer',
-      }}
-    >
-      <option value="today">Oggi</option>
-      <option value="yesterday">Ieri</option>
-      <option value="last_7d">Ultimi 7 giorni</option>
-      <option value="last_14d">Ultimi 14 giorni</option>
-      <option value="last_28d">Ultimi 28 giorni</option>
-      <option value="last_90d">Ultimi 90 giorni</option>
-      <option value="current_month">Mese corrente</option>
-      <option value="last_month">Mese scorso</option>
-    </select>
-  </div>
-</div>
+        <div style={{ marginBottom: 20 }}>
+          <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
+            KPI Brain
+          </h2>
+          <p style={{margin: '6px 0 0', color: '#8b8aa0', fontSize: 13}}>
+            {kpiMeta?.range?.label || 'Periodo selezionato'}
+            {kpiMeta?.range?.since && kpiMeta?.range?.until
+              ? ` · ${kpiMeta.range.since} – ${kpiMeta.range.until}`
+              : ''}
+            {kpiMeta?.previousRange?.since && kpiMeta?.previousRange?.until
+              ? ` vs ${kpiMeta.previousRange.since} – ${kpiMeta.previousRange.until}`
+              : ''}
+          </p>
+        </div>
         <div
           style={{
             fontSize: 18,

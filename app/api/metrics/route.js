@@ -102,59 +102,50 @@ function getPresetRange(preset = 'last_90d') {
   const today = new Date()
   const until = toDateString(today)
 
+  if (preset === 'today') {
+    return { since: until, until, label: 'Oggi' }
+  }
+
+  if (preset === 'yesterday') {
+    const y = toDateString(addDays(today, -1))
+    return { since: y, until: y, label: 'Ieri' }
+  }
+
   if (preset === 'last_7d') {
-    return {
-      since: toDateString(addDays(today, -6)),
-      until,
-      label: 'Ultimi 7 giorni',
-    }
+    return { since: toDateString(addDays(today, -6)), until, label: 'Ultimi 7 giorni' }
   }
 
   if (preset === 'last_14d') {
-    return {
-      since: toDateString(addDays(today, -13)),
-      until,
-      label: 'Ultimi 14 giorni',
-    }
+    return { since: toDateString(addDays(today, -13)), until, label: 'Ultimi 14 giorni' }
+  }
+
+  if (preset === 'last_28d') {
+    return { since: toDateString(addDays(today, -27)), until, label: 'Ultimi 28 giorni' }
   }
 
   if (preset === 'last_30d') {
-    return {
-      since: toDateString(addDays(today, -29)),
-      until,
-      label: 'Ultimi 30 giorni',
-    }
+    return { since: toDateString(addDays(today, -29)), until, label: 'Ultimi 30 giorni' }
   }
 
   if (preset === 'last_90d') {
-    return {
-      since: toDateString(addDays(today, -89)),
-      until,
-      label: 'Ultimi 90 giorni',
-    }
+    return { since: toDateString(addDays(today, -89)), until, label: 'Ultimi 90 giorni' }
   }
 
-  if (preset === 'mtd') {
-    return {
-      since: `${until.slice(0, 7)}-01`,
-      until,
-      label: 'Mese corrente',
-    }
+  if (preset === 'current_month' || preset === 'mtd') {
+    return { since: `${until.slice(0, 7)}-01`, until, label: 'Mese corrente' }
+  }
+
+  if (preset === 'last_month') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const end = new Date(today.getFullYear(), today.getMonth(), 0)
+    return { since: toDateString(d), until: toDateString(end), label: 'Mese scorso' }
   }
 
   if (preset === 'ytd') {
-    return {
-      since: `${until.slice(0, 4)}-01-01`,
-      until,
-      label: 'Anno corrente',
-    }
+    return { since: `${until.slice(0, 4)}-01-01`, until, label: 'Anno corrente' }
   }
 
-  return {
-    since: toDateString(addDays(today, -89)),
-    until,
-    label: 'Ultimi 90 giorni',
-  }
+  return { since: toDateString(addDays(today, -89)), until, label: 'Ultimi 90 giorni' }
 }
 
 function getPreviousRange(range) {

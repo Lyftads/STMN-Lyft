@@ -11,6 +11,8 @@ import CompetitorIntelTab from './components/CompetitorIntelTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import CROTab from './components/CROTab'
 import CreativeLabTab from './components/CreativeLabTab'
+import Sparkline from './components/Sparkline'
+import DeltaBadge from './components/DeltaBadge'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -128,7 +130,7 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 }
 
 // ── Stat box ──────────────────────────────────────────────────
-function Stat({ label, value, sub, color='#e8e8e8', mono, dim }) {
+function Stat({ label, value, sub, color='#e8e8e8', mono, dim, sparkData, sparkColor, current, previous }) {
   return (
     <div style={{
       background:'#0a1020',
@@ -137,8 +139,14 @@ function Stat({ label, value, sub, color='#e8e8e8', mono, dim }) {
       padding:'14px 16px',
     }}>
       <div style={{fontSize:11,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
-      <div style={{fontSize:dim?22:30,fontWeight:800,color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{value}</div>
-      {sub && <div style={{fontSize:12,color:'#64748b',marginTop:5}}>{sub}</div>}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+        <div style={{fontSize:dim?22:30,fontWeight:800,color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{value}</div>
+        {sparkData && <Sparkline data={sparkData} color={sparkColor || color} width={72} height={28} />}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+        <DeltaBadge current={current} previous={previous} />
+        {sub && <div style={{fontSize:12,color:'#64748b'}}>{sub}</div>}
+      </div>
     </div>
   )
 }
@@ -1371,6 +1379,7 @@ export default function App() {
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
   const [updated, setUpdated] = useState(null)
+  const [preset, setPreset] = useState('last_90d')
 
   const avail = getMonths()
 
@@ -1384,15 +1393,61 @@ export default function App() {
   const fetchLive = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await fetch('/api/metrics')
+      const r = await fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`)
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       setLive(await r.json())
       setUpdated(new Date())
     } catch(e) { console.log(e.message) }
     finally { setLoading(false) }
-  }, [])
+  }, [preset])
 
   useEffect(() => { fetchLive() }, [fetchLive])
+
+  // ── Range helpers for sparklines + deltas ──
+  const kpiRange = live?.kpiBrain?.range || null
+  const kpiPrevRange = live?.kpiBrain?.previousRange || null
+
+  const filterByRange = (rows, range, dateField) => {
+    if (!range?.since || !range?.until || !Array.isArray(rows)) return []
+    return rows.filter(r => {
+      const d = r[dateField || 'date'] || r.month
+      return d && d >= range.since && d <= range.until
+    })
+  }
+
+  const shopifyWeeklyAll = live?.shopifyWeekly || []
+  const metaWeeklyAll = live?.metaWeekly || []
+
+  const swCurrent = filterByRange(shopifyWeeklyAll, kpiRange)
+  const swPrev = filterByRange(shopifyWeeklyAll, kpiPrevRange)
+  const mwCurrent = filterByRange(metaWeeklyAll, kpiRange)
+  const mwPrev = filterByRange(metaWeeklyAll, kpiPrevRange)
+
+  const sumField = (rows, field) => rows.reduce((s, r) => s + (Number(r[field]) || 0), 0)
+
+  const periodTotals = {
+    revenue: sumField(swCurrent, 'fatturato'),
+    orders: sumField(swCurrent, 'ordini'),
+    nc: sumField(swCurrent, 'nc'),
+    rc: sumField(swCurrent, 'rc'),
+    sessions: sumField(swCurrent, 'uniqueSessions'),
+    resi: sumField(swCurrent, 'resi'),
+    metaSpend: sumField(mwCurrent, 'spend'),
+    impressions: sumField(mwCurrent, 'impressions'),
+    clicks: sumField(mwCurrent, 'linkClicks'),
+  }
+
+  const prevTotals = {
+    revenue: sumField(swPrev, 'fatturato'),
+    orders: sumField(swPrev, 'ordini'),
+    nc: sumField(swPrev, 'nc'),
+    rc: sumField(swPrev, 'rc'),
+    sessions: sumField(swPrev, 'uniqueSessions'),
+    resi: sumField(swPrev, 'resi'),
+    metaSpend: sumField(mwPrev, 'spend'),
+    impressions: sumField(mwPrev, 'impressions'),
+    clicks: sumField(mwPrev, 'linkClicks'),
+  }
 
   const updateWeek = (week, key, value) => {
     setWeeks(prev => {
@@ -1663,6 +1718,9 @@ export default function App() {
     setTab={setTab}
     live={live}
     updated={updated}
+    preset={preset}
+    setPreset={setPreset}
+    loading={loading}
   >
     {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
@@ -1678,15 +1736,26 @@ export default function App() {
           </div>
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} color="#22c55e" />
-            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} nuovi clienti`} />
-            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} sub={`${fn(totOrd)} ordini`} color="#3b82f6" />
-            <Stat label="Fatturato totale" value={f0(totFat)} sub={`Anno ${currentYear}`} color="#22c55e" />
+            <Stat label="Fatturato" value={f0(periodTotals.revenue || totFat)} color="#22c55e"
+              sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="#22c55e"
+              current={periodTotals.revenue} previous={prevTotals.revenue} />
+            <Stat label="Ordini" value={fn(periodTotals.orders || totOrd)}
+              sparkData={swCurrent.map(w=>w.ordini)} sparkColor="#3b82f6"
+              current={periodTotals.orders} previous={prevTotals.orders} />
+            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} color="#3b82f6"
+              sparkData={swCurrent.map(w=> w.ordini > 0 ? w.fatturato/w.ordini : 0)}
+              current={avgAOV} previous={prevTotals.orders > 0 ? prevTotals.revenue/prevTotals.orders : null} />
+            <Stat label="Nuovi clienti" value={fn(periodTotals.nc || totNC)} color="#06b6d4"
+              sparkData={swCurrent.map(w=>w.nc)} sparkColor="#06b6d4"
+              current={periodTotals.nc} previous={prevTotals.nc} />
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} color="#3b82f6" />
-            <Stat label="Spesa Google" value={totGoog>0?f0(totGoog):'—'} color="#eab308" />
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} color="#22c55e" />
+            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} NC`} />
+            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} color="#3b82f6"
+              sparkData={mwCurrent.map(w=>w.spend)} sparkColor="#3b82f6"
+              current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
             <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sub="Meta + Google" />
           </div>
 
@@ -1726,6 +1795,14 @@ export default function App() {
     live={live}
     cfg={cfg}
     S={S}
+    preset={preset}
+    kpiRange={kpiRange}
+    swCurrent={swCurrent}
+    swPrev={swPrev}
+    mwCurrent={mwCurrent}
+    mwPrev={mwPrev}
+    periodTotals={periodTotals}
+    prevTotals={prevTotals}
   />
 )}
       {/* MENSILE TAB */}
@@ -2024,7 +2101,7 @@ export default function App() {
 
 {/* PERFORMANCE AGENT TAB */}
 {tab === 'performanceAgent' && (
-  <PerformanceAgentTab cfg={cfg} />
+  <PerformanceAgentTab cfg={cfg} preset={preset} />
 )}
 
 {/* KLAVIYO TAB */}

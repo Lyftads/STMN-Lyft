@@ -33,11 +33,26 @@ function getPageSubtitle(tab, updated) {
 }
 
 
+const PRESETS = [
+  { value: 'today', label: 'Oggi' },
+  { value: 'yesterday', label: 'Ieri' },
+  { value: 'last_7d', label: 'Ultimi 7 giorni' },
+  { value: 'last_14d', label: 'Ultimi 14 giorni' },
+  { value: 'last_28d', label: 'Ultimi 28 giorni' },
+  { value: 'last_90d', label: 'Ultimi 90 giorni' },
+  { value: 'current_month', label: 'Mese corrente' },
+  { value: 'last_month', label: 'Mese scorso' },
+  { value: 'ytd', label: 'Anno corrente (YTD)' },
+]
+
 export default function VendroShell({
   tab = 'dashboard',
   setTab,
   live,
   updated,
+  preset = 'last_90d',
+  setPreset,
+  loading,
   children,
 }) {
   const navGroups = [
@@ -387,6 +402,42 @@ export default function VendroShell({
               </p>
             </div>
 
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
+              }}
+            >
+              {setPreset && (
+                <select
+                  value={preset}
+                  onChange={e => setPreset(e.target.value)}
+                  disabled={loading}
+                  style={{
+                    background: '#201b2b',
+                    border: '1px solid #3b324a',
+                    color: '#fff',
+                    borderRadius: 10,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    outline: 'none',
+                    cursor: loading ? 'wait' : 'pointer',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  {PRESETS.map(p => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              )}
+              <StatusPill label="Shopify" active={Boolean(live?.sources?.shopify)} color="#22c55e" />
+              <StatusPill label="Meta" active={Boolean(live?.sources?.meta)} color="#3b82f6" />
+              <StatusPill label="Klaviyo" active={Boolean(live?.sources?.klaviyo)} color="#8b5cf6" />
+            </div>
           </header>
 
           {children}

@@ -267,10 +267,11 @@ export default function VendroShell({
                       <span
                         style={{
                           width: 24,
-                          color: active ? '#c4b5fd' : '#776a86',
+                          color: active ? '#fff' : group.color,
                           fontSize: 18,
                           display: 'inline-flex',
                           justifyContent: 'center',
+                          opacity: active ? 1 : 0.75,
                         }}
                       >
                         {item.icon}

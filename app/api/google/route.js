@@ -88,35 +88,44 @@ export async function GET() {
       headers['login-customer-id'] = cleanMccId
     }
 
-    // Diagnostic: check which API versions exist
+    // Try all URL patterns × versions to find one that works
     const versions = ['v19', 'v18', 'v17', 'v16']
+    const patterns = [
+      (ver, cid) => `https://googleads.googleapis.com/${ver}/customers/${cid}/googleAds:search`,
+      (ver, cid) => `https://googleads.googleapis.com/${ver}/customers/${cid}/googleAds:searchStream`,
+      (ver, cid) => `https://content-googleads.googleapis.com/${ver}/customers/${cid}/googleAds:search`,
+    ]
+
     let adsText = ''
     let adsStatus = 0
-    let usedVersion = ''
+    let usedUrl = ''
+    const diagnosticResults = []
 
+    outer:
     for (const ver of versions) {
-      const url = `https://googleads.googleapis.com/${ver}/customers/${cleanCustomerId}/googleAds:search`
-      const adsRes = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ query }),
-      })
-      adsText = await adsRes.text()
-      adsStatus = adsRes.status
-      usedVersion = ver
-      if (adsRes.status !== 404) break
+      for (const pat of patterns) {
+        const url = pat(ver, cleanCustomerId)
+        const adsRes = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ query }) })
+        diagnosticResults.push({ url: url.replace(cleanCustomerId, 'CID'), status: adsRes.status })
+        if (adsRes.status !== 404) {
+          adsText = await adsRes.text()
+          adsStatus = adsRes.status
+          usedUrl = url
+          break outer
+        }
+      }
     }
 
-    if (adsStatus === 404) {
+    if (!usedUrl) {
       return NextResponse.json({
-        error: 'Google Ads API 404 on all versions (v19-v16)',
+        error: 'Google Ads API 404 on all URL variants and versions',
+        diagnostic: diagnosticResults,
         debug: {
           customerId: cleanCustomerId,
           mccId: cleanMccId || '(not set)',
-          triedVersions: versions,
-          headersSent: { 'developer-token': DEVELOPER_TOKEN?.slice(0, 6) + '...', 'login-customer-id': cleanMccId || '(none)' },
+          devTokenPrefix: DEVELOPER_TOKEN?.slice(0, 8) + '...',
+          accessTokenOk: true,
         },
-        hint: 'Verifica: (1) Vai su console.cloud.google.com/apis/library e cerca esattamente "Google Ads API" — deve dire ENABLED. (2) Il progetto Cloud deve essere lo STESSO da cui hai creato Client ID/Secret.',
         totalSpend: 0,
         monthly: [],
       }, { status: 502 })

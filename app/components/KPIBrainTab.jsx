@@ -385,15 +385,8 @@ const customerBreakdown = [
   return (
     <div>
       <div
-        className="reveal-zoom"
-        style={{
-          background: 'var(--glass)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          padding: 28,
-          marginBottom: 24,
-        }}
+        className="reveal-zoom glass-section"
+        style={{ padding: 28, marginBottom: 24 }}
       >
         <div style={{ marginBottom: 28 }}>
           <div className="heading-md" style={{ marginBottom: 6 }}>
@@ -455,15 +448,8 @@ const customerBreakdown = [
       </div>
 
       <div
-        className="reveal-zoom"
-        style={{
-          background: 'var(--glass)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          padding: 28,
-          marginBottom: 24,
-                }}
+        className="reveal-zoom glass-section"
+        style={{ padding: 28, marginBottom: 24 }}
       >
         <div style={{ marginBottom: 20 }}>
           <h2 className="heading-md" style={{ margin: 0 }}>
@@ -528,15 +514,8 @@ const customerBreakdown = [
       </div>
 
       <div
-        className="reveal-zoom"
-        style={{
-          background: 'var(--glass)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          padding: 28,
-          marginBottom: 24,
-        }}
+        className="reveal-zoom glass-section"
+        style={{ padding: 28, marginBottom: 24 }}
       >
         <div
           className="heading-md"
@@ -621,14 +600,8 @@ const customerBreakdown = [
       </div>
 
       <div
-        className="reveal-zoom"
-        style={{
-          background: 'var(--glass)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          padding: 28,
-        }}
+        className="reveal-zoom glass-section"
+        style={{ padding: 28 }}
       >
         <div
           style={{

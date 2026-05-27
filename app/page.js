@@ -1701,7 +1701,7 @@ export default function App() {
 ]
 
   const S = {
-    card: { background:'var(--glass)', backdropFilter:'blur(20px)', border:'1px solid var(--border)', borderRadius:20, padding:28 },
+    card: {},
     th:   { padding:'12px 16px', fontSize:11, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:600, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' },
     td:   { padding:'12px 16px', fontSize:14, borderBottom:'1px solid var(--border)', fontWeight:500, color:'var(--text)' },
   }
@@ -1768,7 +1768,7 @@ export default function App() {
             </div>
           )}
 
-          <div className="reveal-zoom" style={S.card}>
+          <div className="reveal-zoom glass-section" style={{padding:28}}>
             <p className="label" style={{marginBottom:18}}>
               Ratio LTV:CAC mensile
             </p>

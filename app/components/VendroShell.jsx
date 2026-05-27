@@ -367,17 +367,22 @@ export default function VendroShell({
 
 function TabContent({ children }) {
   const ref = useRef(null)
-  const [visible, setVisible] = useState(false)
+  const [entered, setEntered] = useState(false)
 
   useEffect(() => {
-    setVisible(false)
-    const t = requestAnimationFrame(() => setVisible(true))
-    return () => cancelAnimationFrame(t)
+    setEntered(false)
+    requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)))
   }, [])
 
   useEffect(() => {
-    if (!ref.current) return
-    const els = ref.current.querySelectorAll('.reveal, .reveal-scale, .reveal-zoom, .stagger, .stagger-zoom')
+    if (!entered || !ref.current) return
+
+    const allAnimated = ref.current.querySelectorAll(
+      '.reveal, .reveal-scale, .reveal-zoom, .stagger, .stagger-zoom, [data-scroll]'
+    )
+
+    if (!allAnimated.length) return
+
     const observer = new IntersectionObserver(
       entries => {
         for (const entry of entries) {
@@ -387,19 +392,47 @@ function TabContent({ children }) {
           }
         }
       },
-      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+      { threshold: 0.05, rootMargin: '0px 0px -20px 0px' }
     )
-    els.forEach(el => observer.observe(el))
+
+    allAnimated.forEach(el => observer.observe(el))
     return () => observer.disconnect()
-  }, [visible])
+  }, [entered])
+
+  // Scroll-driven parallax on glass sections
+  useEffect(() => {
+    if (!ref.current) return
+    let ticking = false
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const sections = ref.current?.querySelectorAll('.glass-section, .glass-card-static') || []
+        for (const el of sections) {
+          const rect = el.getBoundingClientRect()
+          const vh = window.innerHeight
+          const progress = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)))
+          const y = (1 - progress) * 12
+          const scale = 0.97 + progress * 0.03
+          el.style.transform = `translateY(${y}px) scale(${scale})`
+        }
+        ticking = false
+      })
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [entered])
 
   return (
     <div
       ref={ref}
       style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+        opacity: entered ? 1 : 0,
+        transform: entered ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.97)',
+        transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)',
       }}
     >
       {children}

@@ -90,19 +90,48 @@ export async function GET() {
     })
   } catch (err) {
     const msg = err?.message || String(err)
-    const stack = (err?.stack || '').split('\n').slice(0, 6).join('\n')
+
+    // Extract the real Google Ads error from the gRPC failure
+    const failures = err?.failures || err?.errors || []
+    const gadsErrors = []
+    try {
+      for (const f of (Array.isArray(failures) ? failures : [])) {
+        for (const e of (f?.errors || [])) {
+          gadsErrors.push({
+            message: e?.message,
+            errorCode: e?.errorCode,
+          })
+        }
+      }
+    } catch {}
+
+    // Also check metadata/details in the gRPC error
+    const details = err?.metadata?.getMap?.() || err?.details || null
+    const code = err?.code || null
+
+    const combined = gadsErrors.length
+      ? gadsErrors.map(e => e.message).join('; ')
+      : msg
+
+    let hint = null
+    if (combined.includes('DEVELOPER_TOKEN') || combined.includes('developer_token'))
+      hint = 'Il Developer Token è in stato "Test Account" — può accedere solo a test account, non a account reali. Devi richiedere "Basic Access" dal pannello API Center del tuo MCC.'
+    else if (combined.includes('PERMISSION_DENIED') || code === 7)
+      hint = 'L\'MCC non ha accesso a questo account Ads. Verifica che il link tra MCC (1825952409) e account (5152245976) sia stato accettato.'
+    else if (combined.includes('CUSTOMER_NOT_FOUND') || combined.includes('customer_not_found'))
+      hint = 'Customer ID non trovato. Verifica il numero.'
+    else if (combined.includes('invalid_grant'))
+      hint = 'Refresh Token scaduto. Rigeneralo da OAuth Playground.'
+    else if (combined.includes('UNAUTHENTICATED') || code === 16)
+      hint = 'Autenticazione fallita. Verifica Developer Token e Refresh Token.'
+    else if (combined.includes('NOT_ADS_USER'))
+      hint = 'L\'account Google usato per il Refresh Token non ha accesso a Google Ads.'
+
     return NextResponse.json({
-      error: msg,
-      stack,
-      hint: msg.includes('DEVELOPER_TOKEN')
-        ? 'Il Developer Token potrebbe essere in stato "Test". Per accedere ad account reali serve Basic Access.'
-        : msg.includes('PERMISSION_DENIED')
-        ? 'L\'MCC non ha accesso a questo account Ads. Verifica il link tra MCC e account.'
-        : msg.includes('CUSTOMER_NOT_FOUND')
-        ? 'Customer ID non trovato. Verifica il numero.'
-        : msg.includes('invalid_grant')
-        ? 'Refresh Token scaduto. Rigeneralo da OAuth Playground.'
-        : null,
+      error: combined,
+      gadsErrors: gadsErrors.length ? gadsErrors : undefined,
+      grpcCode: code,
+      hint,
       totalSpend: 0,
       monthly: [],
     }, { status: 502 })

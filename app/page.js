@@ -1645,11 +1645,13 @@ export default function App() {
       }
     })
 
-  // ── Subset per dashboard: solo anno corrente ───────────────
+  // ── Subset filtrato per periodo selezionato ───────────────
   const currentYear = String(new Date().getFullYear())
-  const dataYear = data.filter(m => m.month?.startsWith(currentYear))
+  const rangeStart = kpiRange?.since?.slice(0, 7) || `${currentYear}-01`
+  const rangeEnd = kpiRange?.until?.slice(0, 7) || `${currentYear}-12`
+  const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
-  // ── Totali periodo (anno corrente, usati dalla Dashboard) ──
+  // ── Totali periodo selezionato ──
   const totFat   = dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0)
   const totFatNC = dataYear.reduce((s,m)=>s + Number(m.fatturNC  || 0), 0)
   const totFatRC = dataYear.reduce((s,m)=>s + Number(m.fatturRC  || 0), 0)
@@ -1721,6 +1723,7 @@ export default function App() {
     preset={preset}
     setPreset={setPreset}
     loading={loading}
+    onRefresh={fetchLive}
   >
     {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 

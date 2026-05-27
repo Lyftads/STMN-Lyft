@@ -75,6 +75,7 @@ export default function VendroShell({
   preset = 'last_90d',
   setPreset,
   loading,
+  onRefresh,
   children,
 }) {
   const navGroups = [
@@ -456,9 +457,35 @@ export default function VendroShell({
                   ))}
                 </select>
               )}
-              <StatusPill label="Shopify" active={Boolean(live?.sources?.shopify)} color="#22c55e" />
-              <StatusPill label="Meta" active={Boolean(live?.sources?.meta)} color="#3b82f6" />
-              <StatusPill label="Klaviyo" active={Boolean(live?.sources?.klaviyo)} color="#8b5cf6" />
+              {onRefresh && (
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  disabled={loading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    border: '1px solid #3b324a',
+                    background: loading ? '#201b2b' : '#201b2b',
+                    color: loading ? '#6b5f7d' : '#f7f2ff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: loading ? 'wait' : 'pointer',
+                    opacity: loading ? 0.6 : 1,
+                    transition: 'all .15s',
+                  }}
+                >
+                  <span style={{
+                    display: 'inline-block',
+                    fontSize: 15,
+                    animation: loading ? 'spin 1s linear infinite' : 'none',
+                  }}>↻</span>
+                  {loading ? 'Caricamento…' : 'Aggiorna'}
+                </button>
+              )}
             </div>
           </header>
 

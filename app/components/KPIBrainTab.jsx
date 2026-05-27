@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Sparkline from './Sparkline'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
@@ -22,14 +22,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
     let cur = [], prev = [], label = ''
     if (tf === 'this_month') {
-      cur = data.filter(m => m.month === thisM || m.month === prevM)
-      prev = data.filter(m => m.month === m2ago || m.month === m3ago)
-      label = `Ultimi 2 mesi vs 2 precedenti`
+      cur = data.filter(m => m.month === thisM)
+      prev = data.filter(m => m.month === prevM)
+      label = `${thisM} vs ${prevM}`
     } else if (tf === 'last_month') {
-      const m4ago = fmtM(new Date(now.getFullYear(), now.getMonth()-4, 1))
-      cur = data.filter(m => m.month === prevM || m.month === m2ago)
-      prev = data.filter(m => m.month === m3ago || m.month === m4ago)
-      label = `2 mesi precedenti vs 2 prima`
+      cur = data.filter(m => m.month === prevM)
+      prev = data.filter(m => m.month === m2ago)
+      label = `${prevM} vs ${m2ago}`
     } else if (tf === 'custom' && customSince && customUntil) {
       cur = data.filter(m => m.month >= customSince && m.month <= customUntil)
       const span = cur.length || 1
@@ -39,9 +38,9 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       prev = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
       label = `${customSince} → ${customUntil} vs periodo prec.`
     } else {
-      cur = data.filter(m => m.month === thisM || m.month === prevM)
-      prev = data.filter(m => m.month === m2ago || m.month === m3ago)
-      label = `Ultimi 2 mesi`
+      cur = data.filter(m => m.month === thisM)
+      prev = data.filter(m => m.month === prevM)
+      label = `${thisM} vs ${prevM}`
     }
 
     const sum = (arr, k) => arr.reduce((s, m) => s + asNum(m[k]), 0)
@@ -94,12 +93,35 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', curr:c.clicks, prev:p.clicks },
   ]
 
-  const topProducts = (live?.shopifyTopProducts || []).map(r => ({
-    label: r.label || r.name || r.title || r.product_title || '—',
-    value: asNum(r.value ?? r.revenue ?? r.total_sales),
+  // ── Top products: match images from store products.json ──
+  const [productImages, setProductImages] = useState({})
+  useEffect(() => {
+    fetch('/api/product-images').then(r => r.json()).then(imgs => {
+      if (imgs && typeof imgs === 'object') setProductImages(imgs)
+    }).catch(() => {})
+  }, [])
+
+  const topProducts = (live?.shopifyTopProducts || []).map(r => {
+    const label = r.label || r.name || r.title || r.product_title || '—'
+    return {
+      label,
+      value: asNum(r.value ?? r.revenue ?? r.total_sales),
+      orders: asNum(r.orders),
+      image: r.image || r.imageUrl || productImages[label] || null,
+    }
+  }).filter(r => r.value > 0)
+
+  // ── Day breakdown ──
+  const dayNameIT = d => {
+    const map = { sun:'Domenica',sunday:'Domenica',mon:'Lunedì',monday:'Lunedì',tue:'Martedì',tuesday:'Martedì',wed:'Mercoledì',wednesday:'Mercoledì',thu:'Giovedì',thursday:'Giovedì',fri:'Venerdì',friday:'Venerdì',sat:'Sabato',saturday:'Sabato',
+      domenica:'Domenica',lunedi:'Lunedì',lunedì:'Lunedì',martedi:'Martedì',martedì:'Martedì',mercoledi:'Mercoledì',mercoledì:'Mercoledì',giovedi:'Giovedì',giovedì:'Giovedì',venerdi:'Venerdì',venerdì:'Venerdì',sabato:'Sabato' }
+    return map[String(d||'').toLowerCase()] || d
+  }
+  const dayBreakdown = (live?.shopifyDayBreakdown || []).map(r => ({
+    label: dayNameIT(r.day || r.label),
+    value: asNum(r.value ?? r.revenue ?? r.sales),
     orders: asNum(r.orders),
-    image: r.image || r.imageUrl || r.product_image || null,
-  })).filter(r => r.value > 0)
+  })).filter(r => r.value > 0 || r.orders > 0)
 
   const marketingSources = [
     { label: 'Meta Ads', value: c.meta },
@@ -255,6 +277,29 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>New vs Returning</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
           </div>
+
+          {/* Day breakdown */}
+          {dayBreakdown.length > 0 && (
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Vendite per giorno della settimana</div>
+            <div style={{display:'grid',gap:10}}>
+              {dayBreakdown.map(row => {
+                const max = Math.max(...dayBreakdown.map(r => r.value), 1)
+                return (
+                  <div key={row.label}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}>
+                      <span style={{color:'#e2e8f0'}}>{row.label}</span>
+                      <span style={{color:'#94a3b8',fontWeight:800}}>{money(row.value)}{row.orders ? ` · ${int0(row.orders)} ordini` : ''}</span>
+                    </div>
+                    <div style={{height:8,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+                      <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:'#14b8a6',borderRadius:999}} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          )}
         </div>
       </div>
 

@@ -88,10 +88,11 @@ export async function GET() {
       headers['login-customer-id'] = cleanMccId
     }
 
-    // Try multiple API versions (newest first)
-    const versions = ['v17', 'v16', 'v15']
+    // Diagnostic: check which API versions exist
+    const versions = ['v19', 'v18', 'v17', 'v16']
     let adsText = ''
     let adsStatus = 0
+    let usedVersion = ''
 
     for (const ver of versions) {
       const url = `https://googleads.googleapis.com/${ver}/customers/${cleanCustomerId}/googleAds:search`
@@ -102,7 +103,23 @@ export async function GET() {
       })
       adsText = await adsRes.text()
       adsStatus = adsRes.status
+      usedVersion = ver
       if (adsRes.status !== 404) break
+    }
+
+    if (adsStatus === 404) {
+      return NextResponse.json({
+        error: 'Google Ads API 404 on all versions (v19-v16)',
+        debug: {
+          customerId: cleanCustomerId,
+          mccId: cleanMccId || '(not set)',
+          triedVersions: versions,
+          headersSent: { 'developer-token': DEVELOPER_TOKEN?.slice(0, 6) + '...', 'login-customer-id': cleanMccId || '(none)' },
+        },
+        hint: 'Verifica: (1) Vai su console.cloud.google.com/apis/library e cerca esattamente "Google Ads API" — deve dire ENABLED. (2) Il progetto Cloud deve essere lo STESSO da cui hai creato Client ID/Secret.',
+        totalSpend: 0,
+        monthly: [],
+      }, { status: 502 })
     }
 
     let rows

@@ -568,7 +568,7 @@ async function fetchAdLibrary(pageId, countries, pageName) {
   return scrapeAdLibraryPage(pageId, pageName)
 }
 
-async function scrapeProducts(origin, homepage) {
+async function scrapeProducts(origin, homepage, forceCountry = null) {
   const result = {
     products: [],
     meta: {},
@@ -586,8 +586,15 @@ async function scrapeProducts(origin, homepage) {
   }
 
   try {
+    const cookieHeader = forceCountry
+      ? `localization=${forceCountry}; cart_currency=${forceCountry === 'AU' ? 'AUD' : 'EUR'}`
+      : 'localization=IT; cart_currency=EUR'
     const shopifyRes = await fetch(`${origin}/products.json?limit=250`, {
-      headers: { ...headers, Accept: 'application/json' },
+      headers: {
+        ...headers,
+        Accept: 'application/json',
+        Cookie: cookieHeader,
+      },
       signal: AbortSignal.timeout(12000),
     })
 
@@ -770,7 +777,7 @@ async function fetchAllCompetitors(countries) {
     COMPETITORS.map(async (comp) => {
       const [adLibrary, websiteDataRaw, facebookData, instagramData] = await Promise.all([
         fetchAdLibrary(comp.pageId, countries, comp.name),
-        scrapeProducts(comp.origin, comp.homepage),
+        scrapeProducts(comp.origin, comp.homepage, comp.currency === 'AUD' ? 'AU' : 'IT'),
         fetchFacebookPage(comp.pageId),
         fetchInstagramProfile(comp.instagram),
       ])
@@ -846,7 +853,7 @@ export async function GET(request) {
   // Scrape own products for price comparison
   let priceComparison = null
   try {
-    const ownData = await scrapeProducts(OWN_STORE.origin, OWN_STORE.origin)
+    const ownData = await scrapeProducts(OWN_STORE.origin, OWN_STORE.origin, 'IT')
     const ownProducts = ownData.products || []
     const competitorProductsMap = {}
     for (const comp of results) {

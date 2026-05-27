@@ -1,724 +1,302 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Sparkline from './Sparkline'
-import DeltaBadge from './DeltaBadge'
 
-export default function KPIBrainTab({ data, dataYear, live, cfg, S, preset, kpiRange, swCurrent = [], swPrev = [], mwCurrent = [], mwPrev = [], periodTotals = {}, prevTotals = {} }) {
+export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
 
-  const activeLive = live
-  const kpiMeta = activeLive?.kpiBrain || {}
-  const asNum = v => {
-    const n = Number(v)
-    return Number.isFinite(n) ? n : 0
+  const [tf, setTf] = useState('this_month')
+  const [customSince, setCustomSince] = useState('')
+  const [customUntil, setCustomUntil] = useState('')
+
+  const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+  const safeDiv = (a, b) => b > 0 ? a / b : null
+
+  const { current: c, previous: p, label: tfLabel, currentMonths } = useMemo(() => {
+    const now = new Date()
+    const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+    const thisM = fmtM(now)
+    const prevM = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
+    const m2ago = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
+    const m3ago = fmtM(new Date(now.getFullYear(), now.getMonth()-3, 1))
+
+    let cur = [], prev = [], label = ''
+    if (tf === 'this_month') {
+      cur = data.filter(m => m.month === thisM || m.month === prevM)
+      prev = data.filter(m => m.month === m2ago || m.month === m3ago)
+      label = `Ultimi 2 mesi vs 2 precedenti`
+    } else if (tf === 'last_month') {
+      const m4ago = fmtM(new Date(now.getFullYear(), now.getMonth()-4, 1))
+      cur = data.filter(m => m.month === prevM || m.month === m2ago)
+      prev = data.filter(m => m.month === m3ago || m.month === m4ago)
+      label = `2 mesi precedenti vs 2 prima`
+    } else if (tf === 'custom' && customSince && customUntil) {
+      cur = data.filter(m => m.month >= customSince && m.month <= customUntil)
+      const span = cur.length || 1
+      const startD = new Date(customSince + '-01')
+      const prevEnd = new Date(startD); prevEnd.setMonth(prevEnd.getMonth() - 1)
+      const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
+      prev = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
+      label = `${customSince} → ${customUntil} vs periodo prec.`
+    } else {
+      cur = data.filter(m => m.month === thisM || m.month === prevM)
+      prev = data.filter(m => m.month === m2ago || m.month === m3ago)
+      label = `Ultimi 2 mesi`
+    }
+
+    const sum = (arr, k) => arr.reduce((s, m) => s + asNum(m[k]), 0)
+    const compute = arr => {
+      const fat = sum(arr,'fatturato'), ord = sum(arr,'ordini'), nc = sum(arr,'nc'), rc = sum(arr,'rc')
+      const ses = sum(arr,'sessioni'), meta = sum(arr,'metaSpend'), goog = sum(arr,'googleSpend')
+      const spend = meta + goog, impr = sum(arr,'impressions'), clicks = sum(arr,'linkClicks')
+      const aov = safeDiv(fat,ord), roas = safeDiv(fat,meta), mer = safeDiv(fat,spend)
+      const cac = safeDiv(spend,nc), ctr = impr>0?(clicks/impr)*100:null
+      const cpc = safeDiv(meta,clicks), cpm = impr>0?(meta/impr)*1000:null
+      const repeatRate = nc+rc>0?(rc/(nc+rc))*100:null
+      const ltv = aov?(aov*cfg.freq*cfg.life*cfg.margin)/100:null
+      return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv }
+    }
+    return { current: compute(cur), previous: compute(prev), label, currentMonths: cur }
+  }, [data, tf, customSince, customUntil, cfg])
+
+  const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
+
+  const money = n => n > 0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
+  const money2 = n => n > 0 ? `€${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—'
+  const int0 = n => n > 0 ? Math.round(n).toLocaleString('it-IT') : '—'
+  const pct = n => n != null ? `${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%` : '—'
+  const ratio = n => n != null ? `${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}x` : '—'
+  const shortMoney = n => { const v=Number(n||0); if(v>=1e6)return`€${(v/1e6).toFixed(1)}M`; if(v>=1e3)return`€${(v/1e3).toFixed(1)}K`; return money(v) }
+  const shortNum = n => { const v=Number(n||0); if(v>=1e6)return`${(v/1e6).toFixed(2)}M`; if(v>=1e3)return`${(v/1e3).toFixed(1)}K`; return int0(v) }
+
+  const DeltaBadge = ({ curr, prev, isLower = false }) => {
+    if (prev == null || prev === 0 || curr == null) return null
+    const d = ((curr - prev) / prev) * 100
+    if (Math.abs(d) < 0.1) return null
+    const up = d > 0, good = isLower ? !up : up
+    return <span style={{fontSize:11,fontWeight:800,padding:'3px 8px',borderRadius:6,background:good?'#22c55e20':'#ef444420',color:good?'#22c55e':'#ef4444'}}>{up?'+':''}{d.toFixed(1)}%</span>
   }
-
-  const safeDiv = (a, b) => {
-    const x = asNum(a)
-    const y = asNum(b)
-    return y > 0 ? x / y : null
-  }
-
-  const totals = {
-    revenue: asNum(periodTotals.revenue),
-    orders: asNum(periodTotals.orders),
-    newCustomers: asNum(periodTotals.nc),
-    returningCustomers: asNum(periodTotals.rc),
-    sessions: asNum(periodTotals.sessions),
-    metaSpend: asNum(periodTotals.metaSpend),
-    googleSpend: 0,
-    totalSpend: asNum(periodTotals.metaSpend),
-    impressions: asNum(periodTotals.impressions),
-    clicks: asNum(periodTotals.clicks),
-  }
-
-  const aov = safeDiv(totals.revenue, totals.orders)
-  const roas = safeDiv(totals.revenue, totals.metaSpend)
-  const mer = safeDiv(totals.revenue, totals.totalSpend)
-  const ctr =
-    totals.impressions > 0
-      ? (totals.clicks / totals.impressions) * 100
-      : null
-  const cpc = safeDiv(totals.metaSpend, totals.clicks)
-  const cpm =
-    totals.impressions > 0
-      ? (totals.metaSpend / totals.impressions) * 1000
-      : null
-
-  const repeatRate =
-    totals.newCustomers + totals.returningCustomers > 0
-      ? (totals.returningCustomers /
-          (totals.newCustomers + totals.returningCustomers)) *
-        100
-      : null
-
-  const ltv =
-    aov != null
-      ? (aov * cfg.freq * cfg.life * cfg.margin) / 100
-      : null
-
-  const money = n =>
-    n != null && Number(n) > 0
-      ? `€${Math.round(Number(n)).toLocaleString('it-IT')}`
-      : '—'
-
-  const money1 = n =>
-    n != null && Number(n) > 0
-      ? `€${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        })}`
-      : '—'
-
-  const money2 = n =>
-    n != null && Number(n) > 0
-      ? `€${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
-      : '—'
-
-  const int0 = n =>
-    n != null && Number(n) > 0
-      ? Math.round(Number(n)).toLocaleString('it-IT')
-      : '—'
-
-  const pct = n =>
-    n != null
-      ? `${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}%`
-      : '—'
-
-  const ratio = n =>
-    n != null
-      ? `${Number(n).toLocaleString('it-IT', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}x`
-      : '—'
-
-  const shortMoney = n => {
-    const v = Number(n || 0)
-    if (v >= 1000000) return `€${(v / 1000000).toFixed(1)}M`
-    if (v >= 1000) return `€${(v / 1000).toFixed(1)}K`
-    return money(v)
-  }
-
-  const shortNumber = n => {
-    const v = Number(n || 0)
-    if (v >= 1000000) return `${(v / 1000000).toFixed(2)}M`
-    if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
-    return int0(v)
-  }
-
-  const prevAov = prevTotals.orders > 0 ? prevTotals.revenue / prevTotals.orders : null
-  const prevRepeatRate = prevTotals.nc + prevTotals.rc > 0 ? (prevTotals.rc / (prevTotals.nc + prevTotals.rc)) * 100 : null
-  const prevRoas = prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null
-  const prevMer = (prevTotals.metaSpend) > 0 ? prevTotals.revenue / (prevTotals.metaSpend) : null
-  const prevCtr = prevTotals.impressions > 0 ? (prevTotals.clicks / prevTotals.impressions) * 100 : null
-  const prevCpc = prevTotals.clicks > 0 ? prevTotals.metaSpend / prevTotals.clicks : null
-  const prevCpm = prevTotals.impressions > 0 ? (prevTotals.metaSpend / prevTotals.impressions) * 1000 : null
 
   const metrics = [
-    { group: 'Shopify', title: 'Revenue', value: shortMoney(totals.revenue), badge: 'Live', color: '#22c55e', sparkData: swCurrent.map(w => w.fatturato), current: totals.revenue, previous: prevTotals.revenue },
-    { group: 'Shopify', title: 'Total Orders', value: int0(totals.orders), badge: 'Live', color: '#22c55e', sparkData: swCurrent.map(w => w.ordini), current: totals.orders, previous: prevTotals.orders },
-    { group: 'Shopify', title: 'Average Order Value', value: money1(aov), badge: 'AOV', color: '#3b82f6', sparkData: swCurrent.map(w => w.ordini > 0 ? w.fatturato / w.ordini : 0), current: aov, previous: prevAov },
-    { group: 'Shopify', title: 'New Customers', value: int0(totals.newCustomers), badge: 'Live', color: '#06b6d4', sparkData: swCurrent.map(w => w.nc), current: totals.newCustomers, previous: prevTotals.nc },
-    { group: 'Shopify', title: 'Repeat Purchase Rate', value: pct(repeatRate), badge: 'Lifetime', color: '#0ea5e9', current: repeatRate, previous: prevRepeatRate },
-    { group: 'Shopify', title: 'Average LTV', value: money1(ltv), badge: 'Lifetime', color: '#0ea5e9' },
-
-    { group: 'Meta Ads', title: 'Spend', value: shortMoney(totals.metaSpend), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.spend), current: totals.metaSpend, previous: prevTotals.metaSpend },
-    { group: 'Meta Ads', title: 'ROAS', value: ratio(roas), badge: 'Live', color: '#22c55e', sparkData: mwCurrent.map((w, i) => { const sw = swCurrent[i]; return sw && w.spend > 0 ? sw.fatturato / w.spend : 0 }), current: roas, previous: prevRoas },
-    { group: 'Meta Ads', title: 'MER', value: ratio(mer), badge: 'Blended', color: '#a855f7', current: mer, previous: prevMer },
-    { group: 'Meta Ads', title: 'CTR', value: pct(ctr), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.ctr), current: ctr, previous: prevCtr },
-    { group: 'Meta Ads', title: 'CPC', value: money2(cpc), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.linkClicks > 0 ? w.spend / w.linkClicks : 0), current: cpc, previous: prevCpc },
-    { group: 'Meta Ads', title: 'CPM', value: money2(cpm), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.impressions > 0 ? (w.spend / w.impressions) * 1000 : 0), current: cpm, previous: prevCpm },
-    { group: 'Meta Ads', title: 'Impressions', value: shortNumber(totals.impressions), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.impressions), current: totals.impressions, previous: prevTotals.impressions },
-    { group: 'Meta Ads', title: 'Clicks', value: shortNumber(totals.clicks), badge: 'Meta', color: '#3b82f6', sparkData: mwCurrent.map(w => w.linkClicks), current: totals.clicks, previous: prevTotals.clicks },
+    { group:'Shopify', title:'Revenue', value:shortMoney(c.fat), color:'#22c55e', sparkKey:'fatturato', curr:c.fat, prev:p.fat },
+    { group:'Shopify', title:'Total Orders', value:int0(c.ord), color:'#22c55e', sparkKey:'ordini', curr:c.ord, prev:p.ord },
+    { group:'Shopify', title:'AOV', value:money2(c.aov), color:'#3b82f6', curr:c.aov, prev:p.aov },
+    { group:'Shopify', title:'New Customers', value:int0(c.nc), color:'#06b6d4', sparkKey:'nc', curr:c.nc, prev:p.nc },
+    { group:'Shopify', title:'Repeat Rate', value:pct(c.repeatRate), color:'#0ea5e9', curr:c.repeatRate, prev:p.repeatRate },
+    { group:'Shopify', title:'LTV', value:money2(c.ltv), color:'#0ea5e9' },
+    { group:'Meta Ads', title:'Spend', value:shortMoney(c.meta), color:'#3b82f6', curr:c.meta, prev:p.meta },
+    { group:'Meta Ads', title:'ROAS', value:ratio(c.roas), color:'#22c55e', curr:c.roas, prev:p.roas },
+    { group:'Meta Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', curr:c.mer, prev:p.mer },
+    { group:'Meta Ads', title:'CTR', value:pct(c.ctr), color:'#3b82f6', curr:c.ctr, prev:p.ctr },
+    { group:'Meta Ads', title:'CPC', value:money2(c.cpc), color:'#3b82f6', curr:c.cpc, prev:p.cpc, lower:true },
+    { group:'Meta Ads', title:'CPM', value:money2(c.cpm), color:'#3b82f6', curr:c.cpm, prev:p.cpm, lower:true },
+    { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', curr:c.impr, prev:p.impr },
+    { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', curr:c.clicks, prev:p.clicks },
   ]
 
-  const topProducts = Array.isArray(activeLive?.shopifyTopProducts)
-    ? activeLive.shopifyTopProducts
-        .map(row => ({
-          label: row.label || row.name || row.title || row.product_title || 'Prodotto senza nome',
-          value: asNum(row.value ?? row.revenue ?? row.total_sales ?? row.sales),
-          orders: asNum(row.orders),
-          quantity: asNum(row.quantity),
-        }))
-        .filter(row => row.value > 0)
-    : []
+  const topProducts = (live?.shopifyTopProducts || []).map(r => ({
+    label: r.label || r.name || r.title || r.product_title || '—',
+    value: asNum(r.value ?? r.revenue ?? r.total_sales),
+    orders: asNum(r.orders),
+    image: r.image || r.imageUrl || r.product_image || null,
+  })).filter(r => r.value > 0)
 
-const productBreakdown = topProducts
+  const marketingSources = [
+    { label: 'Meta Ads', value: c.meta },
+    { label: 'Google Ads', value: c.goog },
+  ].filter(r => r.value > 0)
 
-const sourceBreakdown = Array.isArray(activeLive?.shopifyMarketingSources)
-  ? activeLive.shopifyMarketingSources.map(row => ({
-      label: row.source || 'Marketing',
-      value: asNum(row.revenue),
-      orders: asNum(row.orders),
-    }))
-  : []
+  const customerBreakdown = [
+    { label: 'Nuovi Clienti', value: c.nc },
+    { label: 'Clienti di Ritorno', value: c.rc },
+  ].filter(r => r.value > 0)
 
-const fallbackSourceBreakdown = [
-  { label: 'Meta Ads', value: totals.metaSpend, orders: 0 },
-  { label: 'Google Ads', value: totals.googleSpend, orders: 0 },
-].filter(row => row.value > 0)
+  const insights = useMemo(() => {
+    const items = []
+    if (c.roas != null) {
+      if (c.roas >= 3) items.push({sev:'positive',text:`ROAS Meta a ${ratio(c.roas)}: rendimento eccellente, le campagne generano un ritorno triplo.`})
+      else if (c.roas >= 1.5) items.push({sev:'neutral',text:`ROAS Meta a ${ratio(c.roas)}: profittabile ma sotto 3x. Ottimizzare creative e targeting.`})
+      else if (c.roas < 1) items.push({sev:'warning',text:`ROAS Meta a ${ratio(c.roas)}: sotto break-even, si perde denaro sulle campagne.`})
+    }
+    if (c.aov && p.aov) {
+      const d = ((c.aov-p.aov)/p.aov)*100
+      if (d > 10) items.push({sev:'positive',text:`AOV in crescita del ${d.toFixed(1)}% (${money2(c.aov)} vs ${money2(p.aov)}).`})
+      if (d < -10) items.push({sev:'warning',text:`AOV in calo del ${Math.abs(d).toFixed(1)}% (${money2(c.aov)} vs ${money2(p.aov)}). Verificare prodotti e upsell.`})
+    }
+    if (c.repeatRate != null && c.repeatRate < 15) items.push({sev:'warning',text:`Repeat Rate al ${pct(c.repeatRate)}: pochi clienti ritornano. Valutare programmi fedeltà e email post-acquisto.`})
+    if (c.repeatRate != null && c.repeatRate >= 25) items.push({sev:'positive',text:`Repeat Rate al ${pct(c.repeatRate)}: ottima fidelizzazione.`})
+    if (c.ctr != null && c.ctr < 1) items.push({sev:'warning',text:`CTR Meta a ${pct(c.ctr)}: le creatività non attraggono click. Rinnovare copy e visual.`})
+    if (c.fat > 0 && p.fat > 0) {
+      const d = ((c.fat-p.fat)/p.fat)*100
+      if (d > 15) items.push({sev:'positive',text:`Revenue in crescita del ${d.toFixed(1)}% vs periodo precedente.`})
+      if (d < -15) items.push({sev:'warning',text:`Revenue in calo del ${Math.abs(d).toFixed(1)}% vs periodo precedente. Analizzare cause.`})
+    }
+    return items
+  }, [c, p])
 
-const marketingSourceBreakdown = sourceBreakdown.length
-  ? sourceBreakdown
-  : fallbackSourceBreakdown
-const dayNameIT = day => {
-  const normalized = String(day || '').toLowerCase()
-
-  const map = {
-    sun: 'Domenica',
-    sunday: 'Domenica',
-    domenica: 'Domenica',
-
-    mon: 'Lunedì',
-    monday: 'Lunedì',
-    lunedi: 'Lunedì',
-    lunedì: 'Lunedì',
-
-    tue: 'Martedì',
-    tuesday: 'Martedì',
-    martedi: 'Martedì',
-    martedì: 'Martedì',
-
-    wed: 'Mercoledì',
-    wednesday: 'Mercoledì',
-    mercoledi: 'Mercoledì',
-    mercoledì: 'Mercoledì',
-
-    thu: 'Giovedì',
-    thursday: 'Giovedì',
-    giovedi: 'Giovedì',
-    giovedì: 'Giovedì',
-
-    fri: 'Venerdì',
-    friday: 'Venerdì',
-    venerdi: 'Venerdì',
-    venerdì: 'Venerdì',
-
-    sat: 'Sabato',
-    saturday: 'Sabato',
-    sabato: 'Sabato',
-  }
-
-  return map[normalized] || day
-}
-   const dayBreakdown = Array.isArray(activeLive?.shopifyDayBreakdown)
-    ? activeLive.shopifyDayBreakdown
-        .map(row => ({
-          label: dayNameIT(row.day || row.label),
-          value: asNum(row.value ?? row.revenue ?? row.sales),
-          orders: asNum(row.orders),
-        }))
-        .filter(row => row.value > 0 || row.orders > 0)
-    : []
-
-const weekdayBreakdown = dayBreakdown
-
-const customerBreakdown = [
-  { label: 'New Customers', value: totals.newCustomers },
-  { label: 'Returning Customers', value: totals.returningCustomers },
-].filter(row => row.value > 0)
-
-  const attention = [
-    totals.revenue <= 0
-      ? {
-          title: 'Shopify Revenue non disponibile',
-          text: 'Non risultano dati revenue nel periodo selezionato.',
-        }
-      : null,
-    roas != null && roas < 2
-      ? {
-          title: 'ROAS sotto soglia',
-          text: `ROAS Meta attuale ${ratio(roas)}. Verifica campagne e creatività.`,
-        }
-      : null,
-    ctr != null && ctr < 1
-      ? {
-          title: 'CTR Meta basso',
-          text: `CTR attuale ${pct(ctr)}. Possibile fatigue creativa o mismatch audience.`,
-        }
-      : null,
-    repeatRate != null && repeatRate < 10
-      ? {
-          title: 'Returning customers bassi',
-          text: `Repeat purchase rate attuale ${pct(repeatRate)}.`,
-        }
-      : null,
-  ].filter(Boolean)
-
-  const card = {
-    background: '#171220',
-    border: '1px solid #2c2638',
-    borderRadius: 16,
-    padding: 20,
-  }
-
-  const panel = {
-    background: '#171220',
-    border: '1px solid #2c2638',
-    borderRadius: 18,
-    padding: 22,
-  }
-
-  const ProgressList = ({ title, rows, color = '#22c55e', format = money }) => {
-    const max = Math.max(...rows.map(row => Number(row.value || 0)), 1)
-
-    return (
-      <div style={panel}>
-        <div
-          style={{
-            fontSize: 14,
-            color: '#f8fafc',
-            fontWeight: 800,
-            marginBottom: 18,
-          }}
-        >
-          {title}
-        </div>
-
-        <div style={{ display: 'grid', gap: 14 }}>
-          {rows.length ? (
-            rows.map(row => (
-              <div key={row.label}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    marginBottom: 7,
-                    fontSize: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#e2e8f0',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {row.label}
-                  </span>
-
-                 <span style={{ color: '#94a3b8', fontWeight: 800 }}>
-  {format(row.value)}
-  {row.orders ? ` · ${int0(row.orders)} ordini` : ''}
-</span>
-                </div>
-
-                <div
-                  style={{
-                    height: 8,
-                    background: '#0f0b17',
-                    borderRadius: 999,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.max(4, (row.value / max) * 100)}%`,
-                      height: '100%',
-                      background: color,
-                      borderRadius: 999,
-                    }}
-                  />
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ color: '#64748b', fontSize: 13 }}>
-              Nessun dato disponibile.
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
+  const card = { background:'#171220', border:'1px solid #2c2638', borderRadius:16, padding:20 }
+  const panel = { background:'#171220', border:'1px solid #2c2638', borderRadius:18, padding:22 }
+  const sevColor = s => ({positive:'#22c55e',warning:'#f59e0b',neutral:'#8b5cf6'}[s]||'#8b8aa0')
 
   const MetricCard = ({ item }) => (
     <div style={card}>
-      <div style={{ color: '#a5a0b3', fontSize: 13, marginBottom: 10 }}>
-        {item.title}
+      <div style={{color:'#a5a0b3',fontSize:13,marginBottom:10}}>{item.title}</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+        <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
+        {item.sparkKey && <Sparkline data={currentMonths.map(m=>m[item.sparkKey]||0)} color={item.color} width={72} height={28} />}
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div
-          style={{
-            color: '#fff',
-            fontSize: 28,
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-          }}
-        >
-          {item.value}
-        </div>
-        {item.sparkData && <Sparkline data={item.sparkData} color={item.color} width={72} height={28} />}
-      </div>
-
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <DeltaBadge current={item.current} previous={item.previous} />
-        <span
-          style={{
-            fontSize: 11,
-            color: item.color,
-            background: `${item.color}22`,
-            borderRadius: 999,
-            padding: '4px 9px',
-            fontWeight: 800,
-          }}
-        >
-          {item.badge}
-        </span>
+      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8}}>
+        <DeltaBadge curr={item.curr} prev={item.prev} isLower={item.lower} />
       </div>
     </div>
   )
 
+  const ProgressBar = ({ rows, color, format = money }) => {
+    const max = Math.max(...rows.map(r => Number(r.value || 0)), 1)
+    return rows.length > 0 ? rows.map(row => (
+      <div key={row.label}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}>
+          <span style={{color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</span>
+          <span style={{color:'#94a3b8',fontWeight:800}}>{format(row.value)}</span>
+        </div>
+        <div style={{height:8,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+          <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:color,borderRadius:999}} />
+        </div>
+      </div>
+    )) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato.</div>
+  }
+
   return (
     <div>
-      <div
-        style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 900,
-              color: '#fff',
-              marginBottom: 6,
-            }}
-          >
-            Key Metrics
-          </div>
+      {/* Timeframe */}
+      <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+        {[{id:'this_month',l:'Questo mese'},{id:'last_month',l:'Mese precedente'},{id:'custom',l:'Custom'}].map(b => (
+          <button key={b.id} onClick={()=>setTf(b.id)} style={{
+            fontSize:12,padding:'6px 14px',borderRadius:6,cursor:'pointer',
+            border:tf===b.id?'1px solid #22c55e':'1px solid #2c2638',
+            background:tf===b.id?'#22c55e20':'transparent',
+            color:tf===b.id?'#22c55e':'#94a3b8',fontWeight:tf===b.id?700:500,
+          }}>{b.l}</button>
+        ))}
+        {tf==='custom' && (
+          <>
+            <span style={{fontSize:11,color:'#6b6580'}}>Da:</span>
+            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'#0d0a16',border:'1px solid #2c2638',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+              <option value="">Seleziona</option>
+              {availableMonths.map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
+            </select>
+            <span style={{color:'#555'}}>→</span>
+            <span style={{fontSize:11,color:'#6b6580'}}>A:</span>
+            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'#0d0a16',border:'1px solid #2c2638',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+              <option value="">Seleziona</option>
+              {availableMonths.filter(m=>!customSince||m.month>=customSince).map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
+            </select>
+          </>
+        )}
+        {onRefresh && (
+          <button onClick={onRefresh} disabled={loading} style={{
+            marginLeft:'auto',fontSize:12,padding:'6px 14px',borderRadius:6,
+            border:'1px solid #2c2638',background:loading?'#0d0a16':'transparent',
+            color:loading?'#555':'#94a3b8',fontWeight:700,cursor:loading?'wait':'pointer',
+            display:'flex',alignItems:'center',gap:6,
+          }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
+        )}
+        <span style={{fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+      </div>
 
-          <div style={{ fontSize: 12, color: '#8b829b' }}>
-            Shopify + Meta Ads · dati aggregati dal periodo disponibile
-          </div>
+      {/* Key Metrics */}
+      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>Key Metrics</div>
+        <div style={{fontSize:12,color:'#8b829b',marginBottom:20}}>Shopify + Meta Ads · {tfLabel}</div>
+        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Shopify</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
+          {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 13,
-              color: '#fff',
-              fontWeight: 900,
-              marginBottom: 12,
-            }}
-          >
-            Shopify
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: 14,
-            }}
-          >
-            {metrics
-              .filter(m => m.group === 'Shopify')
-              .map(item => (
-                <MetricCard key={item.title} item={item} />
-              ))}
-          </div>
-        </div>
-
-        <div>
-          <div
-            style={{
-              fontSize: 13,
-              color: '#fff',
-              fontWeight: 900,
-              marginBottom: 12,
-            }}
-          >
-            Meta Ads
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: 14,
-            }}
-          >
-            {metrics
-              .filter(m => m.group === 'Meta Ads')
-              .map(item => (
-                <MetricCard key={item.title} item={item} />
-              ))}
-          </div>
+        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Meta Ads</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
+          {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
       </div>
 
-      <div
-        style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
-          marginBottom: 24,
-                }}
-      >
-        <div style={{ marginBottom: 20 }}>
-          <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
-            KPI Brain
-          </h2>
-          <p style={{margin: '6px 0 0', color: '#8b8aa0', fontSize: 13}}>
-            {kpiMeta?.range?.label || 'Periodo selezionato'}
-            {kpiMeta?.range?.since && kpiMeta?.range?.until
-              ? ` · ${kpiMeta.range.since} – ${kpiMeta.range.until}`
-              : ''}
-            {kpiMeta?.previousRange?.since && kpiMeta?.previousRange?.until
-              ? ` vs ${kpiMeta.previousRange.since} – ${kpiMeta.previousRange.until}`
-              : ''}
-          </p>
-        </div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 900,
-            color: '#fff',
-            marginBottom: 18,
-          }}
-        >
-          Breakdowns
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 16,
-          }}
-        >
-          <ProgressList
-  title="Top 10 prodotti per revenue"
-  rows={productBreakdown}
-  color="#ec4899"
-  format={money}
-/>
-
-<ProgressList
-  title="Vendite per giorno della settimana"
-  rows={weekdayBreakdown}
-  color="#14b8a6"
-  format={money}
-/>
-
-<ProgressList
-  title="Vendite attribuite al marketing"
-  rows={marketingSourceBreakdown}
-  color="#3b82f6"
-  format={money}
-/>
-
-          <ProgressList
-            title="New vs Returning"
-            rows={customerBreakdown}
-            color="#f97316"
-            format={int0}
-          />
-        </div>
-      </div>
-
-      <div
-        style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
-          marginBottom: 24,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 900,
-            color: '#fff',
-            marginBottom: 18,
-          }}
-        >
-          Top Performers
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-            gap: 16,
-          }}
-        >
-          {productBreakdown.slice(0, 4).map((item, index) => (
-            <div
-              key={item.label}
-              style={{
-                ...card,
-                minHeight: 150,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 999,
-                    background: '#ffffff22',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    marginBottom: 14,
-                  }}
-                >
-                  {index + 1}
-                </div>
-
-                <div
-                  style={{
-                    color: '#f8fafc',
-                    fontWeight: 900,
-                    fontSize: 15,
-                  }}
-                >
-                  {item.label}
-                </div>
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    color: '#94a3b8',
-                    fontSize: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  Revenue
-                </div>
-
-                <div
-                  style={{
-                    color: '#f8fafc',
-                    fontWeight: 900,
-                    fontSize: 24,
-                  }}
-                >
-                  {money(item.value)}
-                </div>
-              </div>
+      {/* Breakdowns */}
+      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Breakdowns</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Top 10 prodotti per revenue</div>
+            <div style={{display:'grid',gap:10}}>
+              {topProducts.length > 0 ? topProducts.slice(0,10).map((row,i) => {
+                const max = topProducts[0]?.value || 1
+                return (
+                  <div key={row.label}>
+                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                      {row.image ? <img src={row.image} alt="" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,border:'1px solid #2c2638'}} onError={e=>{e.target.style.display='none'}} />
+                        : <div style={{width:36,height:36,borderRadius:8,background:'#0f0b17',display:'grid',placeItems:'center',fontSize:12,color:'#4a4060',flexShrink:0}}>{i+1}</div>}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</div>
+                        <div style={{fontSize:11,color:'#94a3b8',fontWeight:800}}>{money(row.value)}{row.orders?` · ${int0(row.orders)} ordini`:''}</div>
+                      </div>
+                    </div>
+                    <div style={{height:6,background:'#0f0b17',borderRadius:999,overflow:'hidden'}}>
+                      <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:'#ec4899',borderRadius:999}} />
+                    </div>
+                  </div>
+                )
+              }) : <div style={{color:'#64748b',fontSize:13}}>Nessun dato disponibile.</div>}
             </div>
-          ))}
+          </div>
+
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
+            <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
+          </div>
+
+          <div style={panel}>
+            <div style={{fontSize:14,color:'#f8fafc',fontWeight:800,marginBottom:18}}>New vs Returning</div>
+            <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
+          </div>
         </div>
       </div>
 
-      <div
-        style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            marginBottom: 18,
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: '#f59e0b22',
-              color: '#f59e0b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-            }}
-          >
-            !
+      {/* Top Performers */}
+      {topProducts.length > 0 && (
+        <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>
+          <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Top Performers</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
+            {topProducts.slice(0,4).map((item,i) => (
+              <div key={item.label} style={{...card,display:'flex',flexDirection:'column',gap:12}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{width:28,height:28,borderRadius:999,background:'#ffffff22',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,flexShrink:0}}>{i+1}</div>
+                  {item.image && <img src={item.image} alt="" style={{width:40,height:40,borderRadius:10,objectFit:'cover',border:'1px solid #2c2638'}} onError={e=>{e.target.style.display='none'}} />}
+                </div>
+                <div style={{color:'#f8fafc',fontWeight:900,fontSize:14,lineHeight:1.3}}>{item.label}</div>
+                <div>
+                  <div style={{color:'#94a3b8',fontSize:11,marginBottom:4}}>Revenue</div>
+                  <div style={{color:'#f8fafc',fontWeight:900,fontSize:22}}>{money(item.value)}</div>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      )}
 
+      {/* Insights */}
+      <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:16}}>✦</div>
           <div>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 900,
-                color: '#f8fafc',
-              }}
-            >
-              Needs Attention
-            </div>
-
-            <div style={{ color: '#94a3b8', fontSize: 12 }}>
-              {attention.length || 0} items require review
-            </div>
+            <div style={{fontSize:18,fontWeight:900,color:'#f8fafc'}}>Insight & Riepilogo</div>
+            <div style={{color:'#94a3b8',fontSize:12}}>{insights.length} osservazioni sul periodo</div>
           </div>
         </div>
-
-        <div style={{ display: 'grid', gap: 12 }}>
-          {attention.length ? (
-            attention.map(item => (
-              <div
-                key={item.title}
-                style={{
-                  border: '1px solid #ef444455',
-                  background: '#ef444415',
-                  borderRadius: 12,
-                  padding: 18,
-                }}
-              >
-                <div
-                  style={{
-                    color: '#f8fafc',
-                    fontWeight: 900,
-                    marginBottom: 6,
-                  }}
-                >
-                  {item.title}
-                </div>
-
-                <div
-                  style={{
-                    color: '#94a3b8',
-                    fontSize: 13,
-                  }}
-                >
-                  {item.text}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div
-              style={{
-                border: '1px solid #22c55e44',
-                background: '#22c55e10',
-                borderRadius: 12,
-                padding: 18,
-                color: '#22c55e',
-                fontWeight: 800,
-              }}
-            >
-              Nessuna criticità rilevata sui dati disponibili.
+        <div style={{display:'grid',gap:12}}>
+          {insights.length > 0 ? insights.map((item,i) => (
+            <div key={i} style={{padding:16,borderRadius:12,background:'#0d0a16',borderLeft:`3px solid ${sevColor(item.sev)}`}}>
+              <div style={{color:'#e2dcf0',fontSize:13,lineHeight:1.6}}>{item.text}</div>
+            </div>
+          )) : (
+            <div style={{border:'1px solid #22c55e44',background:'#22c55e10',borderRadius:12,padding:18,color:'#22c55e',fontWeight:800}}>
+              Nessuna criticità rilevata.
             </div>
           )}
         </div>

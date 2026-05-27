@@ -1931,14 +1931,10 @@ export default function App() {
     live={live}
     cfg={cfg}
     S={S}
-    preset={preset}
-    kpiRange={kpiRange}
-    swCurrent={swCurrent}
-    swPrev={swPrev}
-    mwCurrent={mwCurrent}
-    mwPrev={mwPrev}
-    periodTotals={periodTotals}
-    prevTotals={prevTotals}
+    shopifyWeeklyAll={shopifyWeeklyAll}
+    metaWeeklyAll={metaWeeklyAll}
+    onRefresh={fetchLive}
+    loading={loading}
   />
 )}
       {/* MENSILE TAB */}

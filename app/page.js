@@ -1989,33 +1989,40 @@ export default function App() {
         const thisMonth = fmtM(now)
         const prevMonth = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
 
+        const month2ago = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
+        const month3ago = fmtM(new Date(now.getFullYear(), now.getMonth()-3, 1))
+
         let tfMonths = []
         let tfPrevMonths = []
         let tfLabel = ''
 
         if (monthlyTF === 'this_month') {
-          tfMonths = data.filter(m => m.month === thisMonth)
-          tfPrevMonths = data.filter(m => m.month === prevMonth)
-          tfLabel = `${thisMonth} vs ${prevMonth}`
+          // Show this month + last month, compare vs 2 months before
+          tfMonths = data.filter(m => m.month === thisMonth || m.month === prevMonth)
+          tfPrevMonths = data.filter(m => m.month === month2ago || m.month === month3ago)
+          tfLabel = `Ultimi 2 mesi vs 2 precedenti`
         } else if (monthlyTF === 'last_month') {
-          const beforePrev = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
-          tfMonths = data.filter(m => m.month === prevMonth)
-          tfPrevMonths = data.filter(m => m.month === beforePrev)
-          tfLabel = `${prevMonth} vs ${beforePrev}`
+          // Show last month + month before, compare vs 2 months before those
+          const month4ago = fmtM(new Date(now.getFullYear(), now.getMonth()-4, 1))
+          tfMonths = data.filter(m => m.month === prevMonth || m.month === month2ago)
+          tfPrevMonths = data.filter(m => m.month === month3ago || m.month === month4ago)
+          tfLabel = `2 mesi precedenti vs 2 prima`
         } else if (monthlyTF === 'custom' && monthlyCustom.since && monthlyCustom.until) {
           tfMonths = data.filter(m => m.month >= monthlyCustom.since && m.month <= monthlyCustom.until)
+          const span = tfMonths.length || 1
           const startDate = new Date(monthlyCustom.since + '-01')
-          const endDate = new Date(monthlyCustom.until + '-01')
-          const span = (endDate.getFullYear() - startDate.getFullYear()) * 12 + endDate.getMonth() - startDate.getMonth() + 1
           const prevEnd = new Date(startDate); prevEnd.setMonth(prevEnd.getMonth() - 1)
           const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
           tfPrevMonths = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
           tfLabel = `${monthlyCustom.since} → ${monthlyCustom.until} vs periodo prec.`
         } else {
-          tfMonths = data.filter(m => m.month === thisMonth)
-          tfPrevMonths = data.filter(m => m.month === prevMonth)
-          tfLabel = `${thisMonth} vs ${prevMonth}`
+          tfMonths = data.filter(m => m.month === thisMonth || m.month === prevMonth)
+          tfPrevMonths = data.filter(m => m.month === month2ago || m.month === month3ago)
+          tfLabel = `Ultimi 2 mesi`
         }
+
+        // Available months for custom selector
+        const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
 
         const sumField = (arr, key) => arr.reduce((s,m) => s + Number(m[key] || 0), 0)
         const divSafe = (a, b) => b > 0 ? a / b : null
@@ -2123,11 +2130,19 @@ export default function App() {
             ))}
             {monthlyTF === 'custom' && (
               <>
-                <input type="month" value={monthlyCustom.since} onChange={e => setMonthlyCustom(p => ({...p, since: e.target.value}))}
-                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+                <span style={{fontSize:11,color:'#6b6580'}}>Da:</span>
+                <select value={monthlyCustom.since} onChange={e => setMonthlyCustom(p => ({...p, since: e.target.value}))}
+                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+                  <option value="">Seleziona mese</option>
+                  {availableMonths.map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
+                </select>
                 <span style={{color:'#555'}}>→</span>
-                <input type="month" value={monthlyCustom.until} onChange={e => setMonthlyCustom(p => ({...p, until: e.target.value}))}
-                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+                <span style={{fontSize:11,color:'#6b6580'}}>A:</span>
+                <select value={monthlyCustom.until} onChange={e => setMonthlyCustom(p => ({...p, until: e.target.value}))}
+                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+                  <option value="">Seleziona mese</option>
+                  {availableMonths.filter(m => !monthlyCustom.since || m.month >= monthlyCustom.since).map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
+                </select>
               </>
             )}
             <button onClick={fetchLive} disabled={loading} style={{

@@ -11,10 +11,13 @@ const CATEGORIES = [
   { id: 'bags', label: 'Zaini / Borsoni', icon: '🎒' },
 ]
 
-function money(v) {
+const CURRENCY_SYMBOLS = { EUR: '€', AUD: 'A$', USD: '$', GBP: '£' }
+
+function money(v, currency = 'EUR') {
   const n = Number(v)
   if (!Number.isFinite(n) || n <= 0) return '—'
-  return `€${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const sym = CURRENCY_SYMBOLS[currency] || '€'
+  return `${sym}${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function ProductCard({ product }) {
@@ -57,11 +60,11 @@ function ProductCard({ product }) {
             fontSize: 15, fontWeight: 900, fontFamily: 'Barlow',
             color: product.onSale ? '#e63946' : '#22c55e',
           }}>
-            {money(product.price)}
+            {money(product.price, product.currency)}
           </span>
           {product.onSale && product.compareAtPrice > 0 && (
             <span style={{ fontSize: 10, color: '#6b6580', textDecoration: 'line-through' }}>
-              {money(product.compareAtPrice)}
+              {money(product.compareAtPrice, product.currency)}
             </span>
           )}
         </div>
@@ -73,9 +76,12 @@ function ProductCard({ product }) {
 function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
   const [expanded, setExpanded] = useState(false)
   const products = brandData.products || []
+  const cur = brandData.currency || 'EUR'
+  const sym = CURRENCY_SYMBOLS[cur] || '€'
 
-  const deltaEuro = isOwn ? null : (ownAvg != null && brandData.avg != null ? ownAvg - brandData.avg : null)
-  const deltaPct = isOwn ? null : (ownAvg != null && brandData.avg > 0 ? ((ownAvg - brandData.avg) / brandData.avg) * 100 : null)
+  const sameUnit = cur === 'EUR'
+  const deltaEuro = isOwn || !sameUnit ? null : (ownAvg != null && brandData.avg != null ? ownAvg - brandData.avg : null)
+  const deltaPct = isOwn || !sameUnit ? null : (ownAvg != null && brandData.avg > 0 ? ((ownAvg - brandData.avg) / brandData.avg) * 100 : null)
 
   const deltaColor = deltaEuro != null
     ? (deltaEuro < 0 ? '#22c55e' : deltaEuro > 0 ? '#ef4444' : '#8b8aa0')
@@ -118,16 +124,16 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
           {brandData.count}
         </div>
         <div style={{ fontSize: 16, fontWeight: 900, color: isOwn ? '#22c55e' : '#fff', textAlign: 'right', fontFamily: 'Barlow' }}>
-          {money(brandData.avg)}
+          {money(brandData.avg, cur)}
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>
-          {money(brandData.min)}
+          {money(brandData.min, cur)}
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>
-          {money(brandData.max)}
+          {money(brandData.max, cur)}
         </div>
         <div style={{ fontSize: 14, fontWeight: 900, color: deltaColor, textAlign: 'right', fontFamily: 'Barlow' }}>
-          {deltaEuro != null ? `${deltaEuro > 0 ? '+' : ''}€${Math.abs(deltaEuro).toFixed(2)}` : '—'}
+          {deltaEuro != null ? `${deltaEuro > 0 ? '+' : ''}€${Math.abs(deltaEuro).toFixed(2)}` : (sameUnit ? '—' : cur)}
         </div>
         <div style={{ textAlign: 'right' }}>
           {deltaPct != null ? (

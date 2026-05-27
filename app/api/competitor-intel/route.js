@@ -200,14 +200,17 @@ function buildPriceComparison(ownProducts, competitorProductsMap) {
       const matched = products.filter(p => categorizeProduct(p) === rule.id && p.price > 0)
       if (matched.length > 0) {
         const avg = matched.reduce((s, p) => s + p.price, 0) / matched.length
+        const compCurrency = matched[0]?.currency || 'EUR'
+        const sameUnit = compCurrency === 'EUR'
         competitors[compId] = {
           count: matched.length,
           avg: Math.round(avg * 100) / 100,
           min: Math.round(Math.min(...matched.map(p => p.price)) * 100) / 100,
           max: Math.round(Math.max(...matched.map(p => p.price)) * 100) / 100,
-          deltaEuro: ownAvg != null ? Math.round((ownAvg - avg) * 100) / 100 : null,
-          deltaPct: ownAvg != null && avg > 0 ? Math.round(((ownAvg - avg) / avg) * 10000) / 100 : null,
-          products: matched.sort((a,b)=>a.price-b.price).map(p => ({ title: p.title, price: p.price, compareAtPrice: p.compareAtPrice||0, onSale: p.onSale||false, image: p.image })),
+          currency: compCurrency,
+          deltaEuro: sameUnit && ownAvg != null ? Math.round((ownAvg - avg) * 100) / 100 : null,
+          deltaPct: sameUnit && ownAvg != null && avg > 0 ? Math.round(((ownAvg - avg) / avg) * 10000) / 100 : null,
+          products: matched.sort((a,b)=>a.price-b.price).map(p => ({ title: p.title, price: p.price, compareAtPrice: p.compareAtPrice||0, onSale: p.onSale||false, image: p.image, currency: compCurrency })),
         }
       }
     }
@@ -772,25 +775,13 @@ async function fetchAllCompetitors(countries) {
         fetchInstagramProfile(comp.instagram),
       ])
 
-      // Convert prices to EUR if store uses different currency
-      const FX_RATES = { AUD: 0.61, USD: 0.92, GBP: 1.17 }
       const websiteData = { ...websiteDataRaw }
-      if (comp.currency && FX_RATES[comp.currency]) {
-        const rate = FX_RATES[comp.currency]
+      if (comp.currency) {
+        websiteData.currency = comp.currency
         websiteData.products = (websiteDataRaw.products || []).map(p => ({
           ...p,
-          price: Math.round(p.price * rate * 100) / 100,
-          compareAtPrice: p.compareAtPrice > 0 ? Math.round(p.compareAtPrice * rate * 100) / 100 : 0,
+          currency: comp.currency,
         }))
-        const prices = websiteData.products.filter(p => p.price > 0).map(p => p.price)
-        if (prices.length > 0 && websiteData.stats) {
-          websiteData.stats = {
-            ...websiteData.stats,
-            avgPrice: prices.reduce((a, b) => a + b, 0) / prices.length,
-            minPrice: Math.min(...prices),
-            maxPrice: Math.max(...prices),
-          }
-        }
       }
 
       return {

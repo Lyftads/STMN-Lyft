@@ -88,24 +88,32 @@ export async function GET() {
       headers['login-customer-id'] = cleanMccId
     }
 
-    const adsRes = await fetch(
-      `https://googleads.googleapis.com/v17/customers/${cleanCustomerId}/googleAds:searchStream`,
-      {
+    // Try multiple API versions (newest first)
+    const versions = ['v17', 'v16', 'v15']
+    let adsText = ''
+    let adsStatus = 0
+
+    for (const ver of versions) {
+      const url = `https://googleads.googleapis.com/${ver}/customers/${cleanCustomerId}/googleAds:search`
+      const adsRes = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify({ query }),
-      }
-    )
+      })
+      adsText = await adsRes.text()
+      adsStatus = adsRes.status
+      if (adsRes.status !== 404) break
+    }
 
-    const adsText = await adsRes.text()
     let rows
     try {
       rows = JSON.parse(adsText)
     } catch {
       return NextResponse.json({
         error: 'Google Ads API returned non-JSON',
-        status: adsRes.status,
+        status: adsStatus,
         hint: adsText.slice(0, 300),
+        debug: { customerId: cleanCustomerId, mccId: cleanMccId || '(not set)' },
         totalSpend: 0,
         monthly: [],
       }, { status: 502 })
@@ -113,20 +121,24 @@ export async function GET() {
 
     if (rows.error) {
       return NextResponse.json({
-        error: `Google Ads API error: ${rows.error.message}`,
+        error: `Google Ads API: ${rows.error.message}`,
         code: rows.error.code,
-        status: rows.error.status,
+        googleStatus: rows.error.status,
         hint: rows.error.code === 403
-          ? 'Il Developer Token potrebbe non avere accesso. Se è un test token, aggiungi GOOGLE_ADS_MCC_ID col Customer ID del tuo MCC.'
+          ? 'Developer Token senza accesso. Aggiungi GOOGLE_ADS_MCC_ID con il Customer ID del MCC.'
+          : rows.error.code === 401
+          ? 'Token scaduto o revocato. Rigenera GOOGLE_REFRESH_TOKEN.'
           : null,
+        details: rows.error.details?.slice(0, 3),
         totalSpend: 0,
         monthly: [],
       }, { status: 502 })
     }
 
     // Parse results
+    const resultRows = Array.isArray(rows) ? rows : [rows]
     const monthlyMap = {}
-    for (const batch of (Array.isArray(rows) ? rows : [rows])) {
+    for (const batch of resultRows) {
       for (const row of (batch.results || [])) {
         const month = row.segments?.month?.slice(0, 7)
         if (!month) continue

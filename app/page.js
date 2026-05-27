@@ -2039,8 +2039,8 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((m,i)=>{
-                    const p = i > 0 ? data[i-1] : null
+                  {tfMonths.map((m,i)=>{
+                    const p = i > 0 ? tfMonths[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
                     return (
                     <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
                       <td style={{...mTD,color:'#f8fafc',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
@@ -2058,26 +2058,28 @@ export default function App() {
                       <td style={mTD}><MV value={m.sessioni||null} prev={p?.sessioni||null} kind="int"/></td>
                     </tr>
                   )})}
+                  {tfMonths.length > 1 && (
                   <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
                     <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Totale</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFat)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFatNC)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFatRC)}</td>
-                    <td style={{...mTD,...mVal}}>{totResi>0?f0(totResi):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{totMeta>0?f0(totMeta):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{totGoog>0?f0(totGoog):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{fn(totOrd)}</td>
-                    <td style={{...mTD,...mVal}}>{fn(totNC)}</td>
-                    <td style={{...mTD,...mVal}}>{fn(totRC)}</td>
-                    <td style={{...mTD,...mVal}}>{totSes>0?fn(totSes):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
+                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
+                    <td style={{...mTD,...mVal}}>{sumField(tfMonths,'resi')>0?f0(sumField(tfMonths,'resi')):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.meta>0?f0(tf.meta):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.goog>0?f0(tf.goog):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{fn(tf.ord)}</td>
+                    <td style={{...mTD,...mVal}}>{fn(tf.nc)}</td>
+                    <td style={{...mTD,...mVal}}>{fn(tf.rc)}</td>
+                    <td style={{...mTD,...mVal}}>{tf.ses>0?fn(tf.ses):'—'}</td>
                   </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
           {/* KPI Calcolati Table */}
-          {filled.length > 0 && (
+          {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 0 && (
           <div style={{...S.card, marginBottom:20}}>
             <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>
               KPI calcolati
@@ -2092,8 +2094,8 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filled.map((m,i)=>{
-                    const p = i > 0 ? filled[i-1] : null
+                  {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).map((m,i,arr)=>{
+                    const p = i > 0 ? arr[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
                     return (
                     <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
                       <td style={{...mTD,color:'#f8fafc',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>
@@ -2114,24 +2116,26 @@ export default function App() {
                       <td style={mTD}><MV value={m.ratio} prev={p?.ratio} kind="ratio" suffix=":1"/></td>
                     </tr>
                   )})}
+                  {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 1 && (
                   <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
                     <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Media / Totale</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFat)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFatNC)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(totFatRC)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(totSpend)}</td>
-                    <td style={{...mTD,...mVal}}>{avgMER!=null?`${fr(avgMER)}×`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgAMER!=null?`${fr(avgAMER)}×`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgCAC?f2(avgCAC):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgCPO?f2(avgCPO):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgAOV>0?f2(avgAOV):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgAOVNC>0?f2(avgAOVNC):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgAOVRC>0?f2(avgAOVRC):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgRet!=null?`${Number(avgRet).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgCRO!=null?`${Number(avgCRO).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgLTV?f2(avgLTV):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{avgRatio?`${fr(avgRatio)}:1`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
+                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
+                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
+                    <td style={{...mTD,...mVal}}>{f0(tf.spend)}</td>
+                    <td style={{...mTD,...mVal}}>{tf.mer!=null?`${fr(tf.mer)}×`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturNC'),tf.spend)!=null?`${fr(divSafe(sumField(tfMonths,'fatturNC'),tf.spend))}×`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.cac?f2(tf.cac):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{divSafe(tf.spend,tf.ord)?f2(divSafe(tf.spend,tf.ord)):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.aov>0?f2(tf.aov):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturNC'),tf.nc)>0?f2(divSafe(sumField(tfMonths,'fatturNC'),tf.nc)):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturRC'),tf.rc)>0?f2(divSafe(sumField(tfMonths,'fatturRC'),tf.rc)):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.nc+tf.rc>0?`${(tf.rc/(tf.nc+tf.rc)*100).toFixed(1)}%`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.ses>0&&tf.ord>0?`${(tf.ord/tf.ses*100).toFixed(2)}%`:'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.aov>0?f2(tf.aov*cfg.freq*cfg.life*cfg.margin/100):'—'}</td>
+                    <td style={{...mTD,...mVal}}>{tf.ratio?`${fr(tf.ratio)}:1`:'—'}</td>
                   </tr>
+                  )}
                 </tbody>
               </table>
             </div>

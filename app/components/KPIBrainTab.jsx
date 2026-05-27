@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import Sparkline from './Sparkline'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
@@ -251,94 +250,6 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
       </div>
 
-      {/* Charts */}
-      {currentMonths.length > 0 && (() => {
-        const ChartTip = ({ active, payload, label }) => {
-          if (!active || !payload?.length) return null
-          return (
-            <div style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'8px 12px',fontSize:11,fontWeight:700}}>
-              <p style={{color:'#888',marginBottom:4}}>{label}</p>
-              {payload.map((p,i) => (
-                <p key={i} style={{color:p.color}}>
-                  {p.name}: {typeof p.value==='number'&&p.value>100?`€${Math.round(p.value).toLocaleString('it-IT')}`:p.value?.toFixed?.(2)??p.value}
-                </p>
-              ))}
-            </div>
-          )
-        }
-        const chartData = currentMonths.map(m => ({
-          label: m.month, fatturato: m.fatturato, spesa: m.totalSpend||0,
-          nc: m.nc, rc: m.rc, mer: m.mer, aov: m.aov, cro: m.cro, ratio: m.ratio,
-        }))
-        const tickStyle = {fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}
-        return (
-      <>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-          <div style={panel}>
-            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>Fatturato, Spesa e MER</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#1e1829" />
-                <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
-                <YAxis yAxisId="right" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTip />} />
-                <Legend />
-                <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={panel}>
-            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>Nuovi clienti e clienti di ritorno</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#1e1829" />
-                <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
-                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTip />} />
-                <Legend />
-                <Bar dataKey="nc" name="Nuovi clienti" fill="#06b6d4" radius={[4,4,0,0]} />
-                <Bar dataKey="rc" name="Clienti ritorno" fill="#a78bfa" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-          <div style={panel}>
-            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>AOV e CRO</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#1e1829" />
-                <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
-                <YAxis yAxisId="right" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
-                <Tooltip content={<ChartTip />} />
-                <Legend />
-                <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{r:3}} connectNulls />
-                <Line yAxisId="right" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={panel}>
-            <div style={{fontSize:13,color:'#fff',fontWeight:800,marginBottom:14}}>Ratio LTV:CAC</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#1e1829" />
-                <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
-                <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-                <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
-                <Tooltip content={<ChartTip />} />
-                <Legend />
-                <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </>
-        )
-      })()}
 
       {/* Breakdowns */}
       <div style={{background:'#14111d',border:'1px solid #2c2638',borderRadius:22,padding:24,marginBottom:24}}>

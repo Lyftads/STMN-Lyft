@@ -197,31 +197,29 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   border-radius: 20px;
   position: relative;
 
-  border: 2px solid transparent;
-  border-top-color: rgba(255,255,255,0.35);
-  border-left-color: rgba(255,255,255,0.25);
-  border-bottom-color: rgba(0,0,0,0.60);
-  border-right-color: rgba(0,0,0,0.40);
+  border: 1.5px solid rgba(255,255,255,0.06);
+  border-top-color: rgba(255,255,255,0.10);
+  border-bottom-color: rgba(0,0,0,0.50);
 
   box-shadow:
     0 30px 80px rgba(0,0,0,0.85),
     0 12px 24px rgba(0,0,0,0.70),
     0 4px 8px rgba(0,0,0,0.60),
-    inset 0 2px 1px rgba(255,255,255,0.15),
-    inset 0 -2px 1px rgba(0,0,0,0.35);
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.30);
 
   transition: box-shadow 0.4s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.4s ease;
   animation: card-pulse 3.5s ease-in-out infinite;
 }
 
 .glass-card:hover {
-  border-top-color: rgba(255,255,255,0.50);
-  border-left-color: rgba(255,255,255,0.35);
+  border-top-color: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.10);
   box-shadow:
     0 40px 100px rgba(0,0,0,0.90),
     0 16px 40px rgba(0,0,0,0.75),
     0 0 80px rgba(41,151,255,0.12),
-    inset 0 2px 1px rgba(255,255,255,0.20);
+    inset 0 1px 0 rgba(255,255,255,0.08);
   transform: translateY(-8px) scale(1.03);
   animation-play-state: paused;
 }
@@ -235,56 +233,50 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(40px) saturate(2.2);
   -webkit-backdrop-filter: blur(40px) saturate(2.2);
-  border: 2px solid transparent;
-  border-top-color: rgba(255,255,255,0.30);
-  border-left-color: rgba(255,255,255,0.20);
-  border-bottom-color: rgba(0,0,0,0.55);
-  border-right-color: rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(255,255,255,0.06);
+  border-top-color: rgba(255,255,255,0.10);
+  border-bottom-color: rgba(0,0,0,0.45);
   border-radius: 20px;
   box-shadow:
     0 25px 70px rgba(0,0,0,0.80),
     0 10px 20px rgba(0,0,0,0.60),
-    inset 0 2px 1px rgba(255,255,255,0.12),
-    inset 0 -2px 1px rgba(0,0,0,0.30);
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 
 .glass-panel {
   background: rgba(255,255,255,0.04);
   backdrop-filter: blur(40px) saturate(2.2);
   -webkit-backdrop-filter: blur(40px) saturate(2.2);
-  border: 2px solid transparent;
-  border-top-color: rgba(255,255,255,0.25);
-  border-left-color: rgba(255,255,255,0.15);
-  border-bottom-color: rgba(0,0,0,0.55);
-  border-right-color: rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(255,255,255,0.06);
+  border-top-color: rgba(255,255,255,0.10);
+  border-bottom-color: rgba(0,0,0,0.45);
   box-shadow:
     0 30px 80px rgba(0,0,0,0.80),
     0 12px 24px rgba(0,0,0,0.60),
-    inset 0 2px 1px rgba(255,255,255,0.10),
-    inset 0 -2px 1px rgba(0,0,0,0.25);
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.20);
 }
 
 /* ── Section glass (bigger panels like KPI Brain sections) ── */
 
 .glass-section {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.03);
   backdrop-filter: blur(40px) saturate(2.2);
   -webkit-backdrop-filter: blur(40px) saturate(2.2);
   border-radius: 24px;
   position: relative;
 
-  border: 2px solid transparent;
-  border-top-color: rgba(255,255,255,0.30);
-  border-left-color: rgba(255,255,255,0.20);
-  border-bottom-color: rgba(0,0,0,0.60);
-  border-right-color: rgba(0,0,0,0.40);
+  border: 1.5px solid rgba(255,255,255,0.06);
+  border-top-color: rgba(255,255,255,0.10);
+  border-bottom-color: rgba(0,0,0,0.50);
 
   box-shadow:
     0 35px 90px rgba(0,0,0,0.85),
     0 14px 30px rgba(0,0,0,0.65),
     0 5px 10px rgba(0,0,0,0.50),
-    inset 0 2px 1px rgba(255,255,255,0.12),
-    inset 0 -2px 1px rgba(0,0,0,0.30);
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 
 /* ── Typography ───────────────────────────────────────── */

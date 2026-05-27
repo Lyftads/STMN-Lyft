@@ -1010,28 +1010,37 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, w
   const lastSunday = (() => { const d = new Date(thisMonday); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()
   const prevPrevMonday = (() => { const d = new Date(lastMonday); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
 
+  const week3ago = (() => { const d = new Date(prevPrevMonday); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
+
   let tfWeeks = [], tfPrevWeeks = [], tfLabel = ''
   if (weeklyTF === 'this_week') {
-    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
-    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
-    tfLabel = `Questa settimana vs precedente`
+    // Show this week + last week, compare vs 2 weeks before
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday || w.key === lastMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday || w.key === week3ago)
+    tfLabel = `Ultime 2 settimane vs 2 precedenti`
   } else if (weeklyTF === 'last_week') {
-    tfWeeks = allWeeks.filter(w => w.key === lastMonday)
-    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday)
-    tfLabel = `Settimana scorsa vs precedente`
+    // Show last week + week before, compare vs 2 weeks before those
+    tfWeeks = allWeeks.filter(w => w.key === lastMonday || w.key === prevPrevMonday)
+    const w4ago = (() => { const d = new Date(week3ago); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
+    tfPrevWeeks = allWeeks.filter(w => w.key === week3ago || w.key === w4ago)
+    tfLabel = `2 settimane precedenti vs 2 prima`
   } else if (weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until) {
-    const s = getMonday(weeklyCustom.since), u = weeklyCustom.until
-    tfWeeks = allWeeks.filter(w => w.key >= s && w.key <= u)
+    // Custom: since/until are already Monday dates (from week selector)
+    tfWeeks = allWeeks.filter(w => w.key >= weeklyCustom.since && w.key <= weeklyCustom.until)
     const span = tfWeeks.length || 1
-    const prevEnd = (() => { const d = new Date(s); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()
-    const prevStart = (() => { const d = new Date(s); d.setUTCDate(d.getUTCDate() - span * 7); return d.toISOString().slice(0,10) })()
+    const firstKey = tfWeeks[0]?.key || weeklyCustom.since
+    const prevEnd = (() => { const d = new Date(firstKey); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()
+    const prevStart = (() => { const d = new Date(firstKey); d.setUTCDate(d.getUTCDate() - span * 7); return d.toISOString().slice(0,10) })()
     tfPrevWeeks = allWeeks.filter(w => w.key >= prevStart && w.key <= prevEnd)
-    tfLabel = `${s} → ${u} vs periodo prec.`
+    tfLabel = `${weeklyCustom.since} → ${weeklyCustom.until} vs periodo prec.`
   } else {
-    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
-    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
-    tfLabel = `Questa settimana`
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday || w.key === lastMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday || w.key === week3ago)
+    tfLabel = `Ultime 2 settimane`
   }
+
+  // Available weeks for custom selector (all Monday dates with data)
+  const availableWeeks = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
 
   const sumW = (arr, key) => arr.reduce((s, w) => s + asNum(w[key]), 0)
   const divW = (a, b) => b > 0 ? a / b : null
@@ -1094,11 +1103,19 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, w
         ))}
         {weeklyTF==='custom' && (
           <>
-            <input type="date" value={weeklyCustom.since} onChange={e=>setWeeklyCustom(p=>({...p,since:e.target.value}))}
-              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+            <span style={{fontSize:11,color:'#6b6580'}}>Da:</span>
+            <select value={weeklyCustom.since} onChange={e=>setWeeklyCustom(p=>({...p,since:e.target.value}))}
+              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+              <option value="">Seleziona settimana</option>
+              {availableWeeks.map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
+            </select>
             <span style={{color:'#555'}}>→</span>
-            <input type="date" value={weeklyCustom.until} onChange={e=>setWeeklyCustom(p=>({...p,until:e.target.value}))}
-              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+            <span style={{fontSize:11,color:'#6b6580'}}>A:</span>
+            <select value={weeklyCustom.until} onChange={e=>setWeeklyCustom(p=>({...p,until:e.target.value}))}
+              style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
+              <option value="">Seleziona settimana</option>
+              {availableWeeks.filter(w => !weeklyCustom.since || w.key >= weeklyCustom.since).map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
+            </select>
           </>
         )}
         {onRefresh && (

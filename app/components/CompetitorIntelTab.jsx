@@ -1089,6 +1089,145 @@ export default function CompetitorIntelTab() {
         </div>
       )}
 
+      {/* Price Comparison Section */}
+      {data?.priceComparison?.length > 0 && (
+        <div style={{
+          background: '#14111d', border: '1px solid #2c2638', borderRadius: 22,
+          overflow: 'hidden', marginBottom: 24,
+        }}>
+          <div style={{
+            padding: '20px 24px', borderBottom: '1px solid #2c2638',
+            background: 'linear-gradient(135deg, #22c55e12, transparent)',
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>
+              Comparazione Prezzi
+            </div>
+            <div style={{ fontSize: 12, color: '#8b8aa0', marginTop: 4 }}>
+              {data.ownStoreName || 'STMN Fitness'} vs Competitor — prezzo medio per categoria
+            </div>
+          </div>
+
+          <div style={{ padding: 24 }}>
+            {data.priceComparison.map(cat => {
+              const compEntries = Object.entries(cat.competitors)
+              if (cat.own.count === 0 && compEntries.every(([,v]) => v.count === 0)) return null
+
+              return (
+                <div key={cat.id} style={{ marginBottom: 28 }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                  }}>
+                    <div style={{
+                      width: 4, height: 20, borderRadius: 2, background: '#8b5cf6',
+                    }} />
+                    <div style={{ fontSize: 16, fontWeight: 950, color: '#fff', letterSpacing: '-0.02em' }}>
+                      {cat.label}
+                    </div>
+                    <span style={{ fontSize: 11, color: '#6b6580', fontWeight: 700 }}>
+                      {cat.own.count} nostri prodotti
+                    </span>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'left', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Brand
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Prodotti
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Prezzo medio
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Min
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Max
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Delta €
+                          </th>
+                          <th style={{ padding: '10px 14px', fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', textAlign: 'right', fontWeight: 800, borderBottom: '1px solid #2c2638' }}>
+                            Delta %
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Own store row */}
+                        <tr style={{ background: '#22c55e08' }}>
+                          <td style={{ padding: '12px 14px', fontSize: 14, fontWeight: 900, color: '#22c55e', borderBottom: '1px solid #1e1829' }}>
+                            {data.ownStoreName || 'STMN Fitness'}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                            {cat.own.count}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 16, fontWeight: 900, color: '#22c55e', textAlign: 'right', borderBottom: '1px solid #1e1829', fontFamily: 'Barlow' }}>
+                            {cat.own.avg != null ? `€${cat.own.avg.toFixed(2)}` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#8b8aa0', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                            {cat.own.min != null ? `€${cat.own.min.toFixed(2)}` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#8b8aa0', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                            {cat.own.max != null ? `€${cat.own.max.toFixed(2)}` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>—</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>—</td>
+                        </tr>
+
+                        {/* Competitor rows */}
+                        {compEntries.map(([compName, v]) => {
+                          const deltaColor = v.deltaEuro != null
+                            ? (v.deltaEuro < 0 ? '#22c55e' : v.deltaEuro > 0 ? '#ef4444' : '#8b8aa0')
+                            : '#8b8aa0'
+                          const deltaSign = v.deltaEuro > 0 ? '+' : v.deltaEuro < 0 ? '' : ''
+
+                          return (
+                            <tr key={compName}>
+                              <td style={{ padding: '12px 14px', fontSize: 14, fontWeight: 800, color: '#e2dcf0', borderBottom: '1px solid #1e1829' }}>
+                                {compName}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 14, fontWeight: 700, color: '#c8c0d6', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                                {v.count}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 16, fontWeight: 900, color: '#fff', textAlign: 'right', borderBottom: '1px solid #1e1829', fontFamily: 'Barlow' }}>
+                                €{v.avg.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#8b8aa0', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                                €{v.min.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#8b8aa0', textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                                €{v.max.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 14, fontWeight: 900, color: deltaColor, textAlign: 'right', borderBottom: '1px solid #1e1829', fontFamily: 'Barlow' }}>
+                                {v.deltaEuro != null ? `${deltaSign}€${Math.abs(v.deltaEuro).toFixed(2)}` : '—'}
+                              </td>
+                              <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 800, textAlign: 'right', borderBottom: '1px solid #1e1829' }}>
+                                {v.deltaPct != null ? (
+                                  <span style={{
+                                    padding: '3px 8px', borderRadius: 6,
+                                    background: v.deltaPct < 0 ? '#22c55e18' : v.deltaPct > 0 ? '#ef444418' : '#8b8aa018',
+                                    color: v.deltaPct < 0 ? '#22c55e' : v.deltaPct > 0 ? '#ef4444' : '#8b8aa0',
+                                  }}>
+                                    {v.deltaPct > 0 ? '+' : ''}{v.deltaPct.toFixed(1)}%
+                                  </span>
+                                ) : '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Competitor Detail Sections */}
       {competitors.map((comp) => {
         const meta = COMPETITOR_META[comp.id] || {

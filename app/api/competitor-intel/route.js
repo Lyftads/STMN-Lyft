@@ -12,6 +12,12 @@ const ACCESS_TOKEN =
 
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
 
+const OWN_STORE = {
+  id: 'stmn',
+  name: 'STMN Fitness',
+  origin: `https://${process.env.SHOPIFY_STORE_URL || 'stamina-fitness3.myshopify.com'}`,
+}
+
 const COMPETITORS = [
   {
     id: 'velites',
@@ -41,6 +47,106 @@ const COMPETITORS = [
     facebook: 'froggrips',
   },
 ]
+
+const CATEGORY_RULES = [
+  {
+    id: 'grips',
+    label: 'Paracalli',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return s.includes('grip') || s.includes('paracall') || s.includes('callera') || s.includes('hand grip') || s.includes('gymnastic')
+    },
+  },
+  {
+    id: 'ropes',
+    label: 'Corde',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return (s.includes('rope') || s.includes('corda') || s.includes('comba') || s.includes('jump')) && !s.includes('cable') && !s.includes('extension')
+    },
+  },
+  {
+    id: 'knee_sleeves',
+    label: 'Ginocchiere',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return s.includes('knee') || s.includes('ginocch') || s.includes('rodillera') || s.includes('neoboost')
+    },
+  },
+  {
+    id: 'men_apparel',
+    label: 'Abbigliamento Uomo',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return (s.includes('hombre') || s.includes('uomo') || s.includes('men') || s.includes("man's")) &&
+        (s.includes('shirt') || s.includes('short') || s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('camiseta') || s.includes('apparel') || s.includes('textil') || s.includes('abbigliamento') || s.includes('maillot'))
+    },
+  },
+  {
+    id: 'women_apparel',
+    label: 'Abbigliamento Donna',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return (s.includes('mujer') || s.includes('donna') || s.includes('women') || s.includes("woman") || s.includes('bra') || s.includes('legging') || s.includes('sujetador')) &&
+        (s.includes('shirt') || s.includes('short') || s.includes('hoodie') || s.includes('jogger') || s.includes('sweat') || s.includes('crop') || s.includes('bra') || s.includes('legging') || s.includes('camiseta') || s.includes('apparel') || s.includes('textil') || s.includes('abbigliamento'))
+    },
+  },
+  {
+    id: 'bags',
+    label: 'Zaini / Borsoni',
+    match: (p) => {
+      const s = `${p.title} ${p.type} ${(p.tags||[]).join(' ')}`.toLowerCase()
+      return s.includes('backpack') || s.includes('bag') || s.includes('zaino') || s.includes('borsa') || s.includes('borsone') || s.includes('mochila') || s.includes('duffel') || s.includes('tote')
+    },
+  },
+]
+
+function categorizeProduct(product) {
+  for (const rule of CATEGORY_RULES) {
+    if (rule.match(product)) return rule.id
+  }
+  return null
+}
+
+function buildPriceComparison(ownProducts, competitorProductsMap) {
+  const categories = CATEGORY_RULES.map(rule => {
+    const own = ownProducts.filter(p => categorizeProduct(p) === rule.id && p.price > 0)
+    const ownAvg = own.length > 0 ? own.reduce((s, p) => s + p.price, 0) / own.length : null
+    const ownMin = own.length > 0 ? Math.min(...own.map(p => p.price)) : null
+    const ownMax = own.length > 0 ? Math.max(...own.map(p => p.price)) : null
+
+    const competitors = {}
+    for (const [compId, products] of Object.entries(competitorProductsMap)) {
+      const matched = products.filter(p => categorizeProduct(p) === rule.id && p.price > 0)
+      if (matched.length > 0) {
+        const avg = matched.reduce((s, p) => s + p.price, 0) / matched.length
+        competitors[compId] = {
+          count: matched.length,
+          avg: Math.round(avg * 100) / 100,
+          min: Math.round(Math.min(...matched.map(p => p.price)) * 100) / 100,
+          max: Math.round(Math.max(...matched.map(p => p.price)) * 100) / 100,
+          deltaEuro: ownAvg != null ? Math.round((ownAvg - avg) * 100) / 100 : null,
+          deltaPct: ownAvg != null && avg > 0 ? Math.round(((ownAvg - avg) / avg) * 10000) / 100 : null,
+        }
+      }
+    }
+
+    return {
+      id: rule.id,
+      label: rule.label,
+      own: {
+        count: own.length,
+        avg: ownAvg != null ? Math.round(ownAvg * 100) / 100 : null,
+        min: ownMin != null ? Math.round(ownMin * 100) / 100 : null,
+        max: ownMax != null ? Math.round(ownMax * 100) / 100 : null,
+        products: own.slice(0, 5).map(p => ({ title: p.title, price: p.price, image: p.image })),
+      },
+      competitors,
+    }
+  })
+
+  return categories.filter(c => c.own.count > 0 || Object.values(c.competitors).some(v => v.count > 0))
+}
 
 // In-memory cache — survives across requests within same serverless instance
 let cachedData = null
@@ -644,9 +750,30 @@ export async function GET(request) {
     }
   }
 
+  // Scrape own products for price comparison
+  let priceComparison = null
+  try {
+    const ownData = await scrapeProducts(OWN_STORE.origin, OWN_STORE.origin)
+    const ownProducts = ownData.products || []
+    const competitorProductsMap = {}
+    for (const comp of results) {
+      const name = COMPETITORS.find(c => c.id === comp.id)?.name || comp.id
+      if (comp.websiteData?.products?.length > 0) {
+        competitorProductsMap[name] = comp.websiteData.products
+      }
+    }
+    if (ownProducts.length > 0) {
+      priceComparison = buildPriceComparison(ownProducts, competitorProductsMap)
+    }
+  } catch (e) {
+    console.log('Price comparison error:', e.message)
+  }
+
   return NextResponse.json(
     {
       competitors: results,
+      priceComparison,
+      ownStoreName: OWN_STORE.name,
       countries,
       fetchedAt: cachedAt
         ? new Date(cachedAt).toISOString()

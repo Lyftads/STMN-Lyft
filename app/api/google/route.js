@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server'
-import { GoogleAdsApi } from 'google-ads-api'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
+
+async function getAccessToken(clientId, clientSecret, refreshToken) {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  })
+  const data = await res.json()
+  if (!data.access_token) throw new Error('OAuth failed: ' + (data.error_description || data.error))
+  return data.access_token
+}
 
 export async function GET() {
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
@@ -14,9 +29,7 @@ export async function GET() {
 
   if (!DEVELOPER_TOKEN || !CUSTOMER_ID || !REFRESH_TOKEN || !CLIENT_ID || !CLIENT_SECRET) {
     return NextResponse.json({
-      totalSpend: 0,
-      monthly: [],
-      configured: false,
+      totalSpend: 0, monthly: [], configured: false,
       missing: [
         !DEVELOPER_TOKEN && 'GOOGLE_ADS_DEVELOPER_TOKEN',
         !CUSTOMER_ID && 'GOOGLE_ADS_CUSTOMER_ID',
@@ -24,70 +37,58 @@ export async function GET() {
         !CLIENT_ID && 'GOOGLE_CLIENT_ID',
         !CLIENT_SECRET && 'GOOGLE_CLIENT_SECRET',
       ].filter(Boolean),
-      updatedAt: new Date().toISOString(),
     })
   }
 
   try {
-    const client = new GoogleAdsApi({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      developer_token: DEVELOPER_TOKEN,
-    })
+    const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
 
-    const customer = client.Customer({
-      customer_id: CUSTOMER_ID,
-      login_customer_id: MCC_ID || undefined,
-      refresh_token: REFRESH_TOKEN,
+    const { GoogleAdsServiceClient } = await import('google-ads-node')
+
+    const grpc = await import('@grpc/grpc-js')
+
+    const client = new GoogleAdsServiceClient({
+      sslCreds: grpc.credentials.createSsl(),
+      servicePath: 'googleads.googleapis.com',
+      port: 443,
     })
 
     const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const until = new Date().toISOString().slice(0, 10)
 
-    // Patch: the library crashes in getGoogleAdsError when parsing gRPC errors.
-    // We intercept at the `querier` level to capture the RAW gRPC error.
-    try {
-      const proto = Object.getPrototypeOf(customer)
-      if (proto?.querier) {
-        const origQuerier = proto.querier
-        proto.querier = async function (...args) {
-          try {
-            return await origQuerier.call(this, ...args)
-          } catch (grpcErr) {
-            const enhanced = new Error(`gRPC code ${grpcErr?.code}: ${grpcErr?.details || grpcErr?.message || 'unknown'}`)
-            enhanced.grpcCode = grpcErr?.code
-            enhanced.grpcDetails = grpcErr?.details
-            enhanced.grpcMessage = grpcErr?.message
-            try { enhanced.grpcMetaKeys = [...(grpcErr?.metadata?.internalRepr?.keys() || [])] } catch {}
-            throw enhanced
-          }
-        }
-      }
-    } catch {}
-
-    const rows = await customer.query(`
-      SELECT
-        segments.month,
-        metrics.cost_micros,
-        metrics.impressions,
-        metrics.clicks,
-        metrics.conversions,
-        metrics.conversions_value
+    const query = `
+      SELECT segments.month, metrics.cost_micros, metrics.impressions, metrics.clicks,
+             metrics.conversions, metrics.conversions_value
       FROM campaign
       WHERE segments.date BETWEEN '${since}' AND '${until}'
         AND campaign.status = 'ENABLED'
-    `)
+    `
+
+    const request = { customerId: CUSTOMER_ID, query }
+
+    const callOptions = {
+      otherArgs: {
+        headers: {
+          'authorization': `Bearer ${accessToken}`,
+          'developer-token': DEVELOPER_TOKEN,
+          ...(MCC_ID ? { 'login-customer-id': MCC_ID } : {}),
+        },
+      },
+    }
+
+    const [response] = await client.search(request, callOptions)
 
     const monthlyMap = {}
-    for (const row of rows) {
-      const month = row.segments?.month?.slice(0, 7)
+    for (const row of (response || [])) {
+      const month = row?.segments?.month
       if (!month) continue
-      if (!monthlyMap[month]) monthlyMap[month] = { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 }
-      monthlyMap[month].spend += (Number(row.metrics?.cost_micros) || 0) / 1_000_000
-      monthlyMap[month].impressions += Number(row.metrics?.impressions) || 0
-      monthlyMap[month].clicks += Number(row.metrics?.clicks) || 0
-      monthlyMap[month].conversions += Number(row.metrics?.conversions) || 0
-      monthlyMap[month].convValue += Number(row.metrics?.conversions_value) || 0
+      const m = month.slice(0, 7)
+      if (!monthlyMap[m]) monthlyMap[m] = { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 }
+      monthlyMap[m].spend += (Number(row.metrics?.costMicros) || 0) / 1_000_000
+      monthlyMap[m].impressions += Number(row.metrics?.impressions) || 0
+      monthlyMap[m].clicks += Number(row.metrics?.clicks) || 0
+      monthlyMap[m].conversions += Number(row.metrics?.conversions) || 0
+      monthlyMap[m].convValue += Number(row.metrics?.conversionsValue) || 0
     }
 
     const monthly = Object.entries(monthlyMap)
@@ -110,65 +111,26 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    // Dump every property of the error to find the real cause
-    const errDump = {}
-    try {
-      for (const key of Object.getOwnPropertyNames(err || {})) {
-        const val = err[key]
-        if (typeof val === 'function') continue
-        try { errDump[key] = JSON.parse(JSON.stringify(val)) } catch { errDump[key] = String(val) }
-      }
-      errDump._type = err?.constructor?.name
-      errDump._code = err?.code
-      errDump._details = err?.details
-      errDump._metadata_keys = err?.metadata?.internalRepr ? [...err.metadata.internalRepr.keys()] : null
-    } catch {}
-
     const msg = err?.message || err?.details || String(err)
-
-    // Extract the real Google Ads error from the gRPC failure
-    const failures = err?.failures || err?.errors || []
-    const gadsErrors = []
-    try {
-      for (const f of (Array.isArray(failures) ? failures : [])) {
-        for (const e of (f?.errors || [])) {
-          gadsErrors.push({
-            message: e?.message,
-            errorCode: e?.errorCode,
-          })
-        }
-      }
-    } catch {}
-
-    // Extract gRPC metadata if available
-    let metaMap = null
-    try { metaMap = err?.metadata?.getMap?.() } catch {}
-    const details = err?.details || metaMap || null
-    const code = err?.code ?? null
-
-    const combined = gadsErrors.length
-      ? gadsErrors.map(e => e.message).join('; ')
-      : msg
+    const code = err?.code
 
     let hint = null
-    if (combined.includes('DEVELOPER_TOKEN') || combined.includes('developer_token'))
-      hint = 'Il Developer Token è in stato "Test Account" — può accedere solo a test account, non a account reali. Devi richiedere "Basic Access" dal pannello API Center del tuo MCC.'
-    else if (combined.includes('PERMISSION_DENIED') || code === 7)
-      hint = 'L\'MCC non ha accesso a questo account Ads. Verifica che il link tra MCC (1825952409) e account (5152245976) sia stato accettato.'
-    else if (combined.includes('CUSTOMER_NOT_FOUND') || combined.includes('customer_not_found'))
-      hint = 'Customer ID non trovato. Verifica il numero.'
-    else if (combined.includes('invalid_grant'))
-      hint = 'Refresh Token scaduto. Rigeneralo da OAuth Playground.'
-    else if (combined.includes('UNAUTHENTICATED') || code === 16)
-      hint = 'Autenticazione fallita. Verifica Developer Token e Refresh Token.'
-    else if (combined.includes('NOT_ADS_USER'))
-      hint = 'L\'account Google usato per il Refresh Token non ha accesso a Google Ads.'
+    if (code === 7 || msg.includes('PERMISSION_DENIED'))
+      hint = 'Developer Token "Test" non può accedere ad account reali. Richiedi Basic Access dal MCC → API Center.'
+    else if (code === 16 || msg.includes('UNAUTHENTICATED'))
+      hint = 'Token scaduto o Developer Token non valido.'
+    else if (msg.includes('CUSTOMER_NOT_FOUND'))
+      hint = 'Account Ads non trovato. Verifica il Customer ID.'
+    else if (msg.includes('USER_PERMISSION_DENIED'))
+      hint = 'L\'account Google non ha accesso a questo account Ads.'
+    else if (msg.includes('NOT_ADS_USER'))
+      hint = 'L\'account Google usato per OAuth non è un utente Google Ads.'
+    else if (msg.includes('DEVELOPER_TOKEN_NOT_APPROVED'))
+      hint = 'Il Developer Token è in stato Test. Devi richiedere Basic Access: MCC → Tools → API Center → Apply for Basic Access.'
 
     return NextResponse.json({
-      error: combined,
-      gadsErrors: gadsErrors.length ? gadsErrors : undefined,
+      error: msg,
       grpcCode: code,
-      errDump,
       hint,
       totalSpend: 0,
       monthly: [],

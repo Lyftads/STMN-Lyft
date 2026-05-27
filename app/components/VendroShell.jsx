@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 function getPageTitle(tab) {
   const map = {
     dashboard: 'Dashboard',
@@ -120,12 +122,16 @@ export default function VendroShell({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
       position: 'relative',
     }}>
-      {/* Background gradients */}
+      {/* Background gradient blobs */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
         background: `
-          radial-gradient(ellipse 60% 50% at 20% 0%, rgba(41,151,255,0.08), transparent 60%),
-          radial-gradient(ellipse 40% 40% at 80% 100%, rgba(99,102,241,0.05), transparent 50%)
+          radial-gradient(ellipse 70% 50% at 15% 0%, rgba(20,80,180,0.15), transparent 55%),
+          radial-gradient(ellipse 50% 50% at 85% 15%, rgba(41,151,255,0.08), transparent 50%),
+          radial-gradient(ellipse 60% 40% at 50% 50%, rgba(30,60,160,0.06), transparent 55%),
+          radial-gradient(ellipse 50% 60% at 80% 85%, rgba(99,102,241,0.10), transparent 50%),
+          radial-gradient(ellipse 40% 40% at 10% 90%, rgba(41,151,255,0.07), transparent 45%),
+          radial-gradient(ellipse 30% 30% at 60% 30%, rgba(191,90,242,0.04), transparent 40%)
         `,
       }} />
 
@@ -350,9 +356,53 @@ export default function VendroShell({
             </div>
           </header>
 
-          {children}
+          <TabContent key={tab}>
+            {children}
+          </TabContent>
         </div>
       </main>
+    </div>
+  )
+}
+
+function TabContent({ children }) {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    setVisible(false)
+    const t = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  useEffect(() => {
+    if (!ref.current) return
+    const els = ref.current.querySelectorAll('.reveal, .reveal-scale, .stagger')
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+            observer.unobserve(entry.target)
+          }
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [visible])
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+      }}
+    >
+      {children}
     </div>
   )
 }

@@ -253,17 +253,20 @@ const customerBreakdown = [
   ].filter(Boolean)
 
   const card = {
-    background: '#171220',
-    border: '1px solid #2c2638',
-    borderRadius: 16,
-    padding: 20,
+    background: 'var(--glass)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid var(--border)',
+    borderRadius: 20,
+    padding: 22,
+    transition: 'border-color 0.3s, box-shadow 0.3s, transform 0.3s',
   }
 
   const panel = {
-    background: '#171220',
-    border: '1px solid #2c2638',
-    borderRadius: 18,
-    padding: 22,
+    background: 'var(--glass)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid var(--border)',
+    borderRadius: 20,
+    padding: 24,
   }
 
   const ProgressList = ({ title, rows, color = '#22c55e', format = money }) => {
@@ -274,7 +277,7 @@ const customerBreakdown = [
         <div
           style={{
             fontSize: 14,
-            color: '#f8fafc',
+            color: 'var(--text)',
             fontWeight: 800,
             marginBottom: 18,
           }}
@@ -306,7 +309,7 @@ const customerBreakdown = [
                     {row.label}
                   </span>
 
-                 <span style={{ color: '#94a3b8', fontWeight: 800 }}>
+                 <span style={{ color: 'var(--text2)', fontWeight: 800 }}>
   {format(row.value)}
   {row.orders ? ` · ${int0(row.orders)} ordini` : ''}
 </span>
@@ -315,7 +318,7 @@ const customerBreakdown = [
                 <div
                   style={{
                     height: 8,
-                    background: '#0f0b17',
+                    background: 'rgba(0,0,0,0.3)',
                     borderRadius: 999,
                     overflow: 'hidden',
                   }}
@@ -332,7 +335,7 @@ const customerBreakdown = [
               </div>
             ))
           ) : (
-            <div style={{ color: '#64748b', fontSize: 13 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 13 }}>
               Nessun dato disponibile.
             </div>
           )}
@@ -382,27 +385,21 @@ const customerBreakdown = [
   return (
     <div>
       <div
+        className="reveal"
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
+          background: 'var(--glass)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          padding: 28,
           marginBottom: 24,
         }}
       >
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 900,
-              color: '#fff',
-              marginBottom: 6,
-            }}
-          >
+        <div style={{ marginBottom: 28 }}>
+          <div className="heading-md" style={{ marginBottom: 6 }}>
             Key Metrics
           </div>
-
-          <div style={{ fontSize: 12, color: '#8b829b' }}>
+          <div className="body" style={{ fontSize: 13 }}>
             Shopify + Meta Ads · dati aggregati dal periodo disponibile
           </div>
         </div>
@@ -420,6 +417,7 @@ const customerBreakdown = [
           </div>
 
           <div
+            className="stagger"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -435,18 +433,12 @@ const customerBreakdown = [
         </div>
 
         <div>
-          <div
-            style={{
-              fontSize: 13,
-              color: '#fff',
-              fontWeight: 900,
-              marginBottom: 12,
-            }}
-          >
+          <div className="heading-sm" style={{ marginBottom: 14 }}>
             Meta Ads
           </div>
 
           <div
+            className="stagger"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -464,8 +456,8 @@ const customerBreakdown = [
 
       <div
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
+          background: 'var(--glass)',
+          border: '1px solid var(--border)',
           borderRadius: 22,
           padding: 24,
           marginBottom: 24,
@@ -475,7 +467,7 @@ const customerBreakdown = [
           <h2 style={{fontSize: 22, margin: 0, color: '#fff'}}>
             KPI Brain
           </h2>
-          <p style={{margin: '6px 0 0', color: '#8b8aa0', fontSize: 13}}>
+          <p style={{margin: '6px 0 0', color: 'var(--text3)', fontSize: 13}}>
             {kpiMeta?.range?.label || 'Periodo selezionato'}
             {kpiMeta?.range?.since && kpiMeta?.range?.until
               ? ` · ${kpiMeta.range.since} – ${kpiMeta.range.until}`
@@ -535,8 +527,8 @@ const customerBreakdown = [
 
       <div
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
+          background: 'var(--glass)',
+          border: '1px solid var(--border)',
           borderRadius: 22,
           padding: 24,
           marginBottom: 24,
@@ -591,7 +583,7 @@ const customerBreakdown = [
 
                 <div
                   style={{
-                    color: '#f8fafc',
+                    color: 'var(--text)',
                     fontWeight: 900,
                     fontSize: 15,
                   }}
@@ -603,7 +595,7 @@ const customerBreakdown = [
               <div>
                 <div
                   style={{
-                    color: '#94a3b8',
+                    color: 'var(--text2)',
                     fontSize: 12,
                     marginBottom: 4,
                   }}
@@ -613,7 +605,7 @@ const customerBreakdown = [
 
                 <div
                   style={{
-                    color: '#f8fafc',
+                    color: 'var(--text)',
                     fontWeight: 900,
                     fontSize: 24,
                   }}
@@ -628,8 +620,8 @@ const customerBreakdown = [
 
       <div
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
+          background: 'var(--glass)',
+          border: '1px solid var(--border)',
           borderRadius: 22,
           padding: 24,
         }}
@@ -663,13 +655,13 @@ const customerBreakdown = [
               style={{
                 fontSize: 18,
                 fontWeight: 900,
-                color: '#f8fafc',
+                color: 'var(--text)',
               }}
             >
               Needs Attention
             </div>
 
-            <div style={{ color: '#94a3b8', fontSize: 12 }}>
+            <div style={{ color: 'var(--text2)', fontSize: 12 }}>
               {attention.length || 0} items require review
             </div>
           </div>
@@ -689,7 +681,7 @@ const customerBreakdown = [
               >
                 <div
                   style={{
-                    color: '#f8fafc',
+                    color: 'var(--text)',
                     fontWeight: 900,
                     marginBottom: 6,
                   }}
@@ -699,7 +691,7 @@ const customerBreakdown = [
 
                 <div
                   style={{
-                    color: '#94a3b8',
+                    color: 'var(--text2)',
                     fontSize: 13,
                   }}
                 >

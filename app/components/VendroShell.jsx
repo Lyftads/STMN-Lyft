@@ -33,6 +33,28 @@ function getPageSubtitle(tab, updated) {
 }
 
 
+function StatusPill({ label, active, color }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 11px',
+        borderRadius: 10,
+        border: `1px solid ${active ? color : '#332a41'}`,
+        background: active ? `${color}18` : '#171220',
+        color: active ? color : '#a89db8',
+        fontSize: 11,
+        fontWeight: 900,
+        lineHeight: 1,
+      }}
+    >
+      {label} {active ? '✓' : '—'}
+    </span>
+  )
+}
+
 const PRESETS = [
   { value: 'today', label: 'Oggi' },
   { value: 'yesterday', label: 'Ieri' },

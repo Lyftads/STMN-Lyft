@@ -122,16 +122,13 @@ export default function VendroShell({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
       position: 'relative',
     }}>
-      {/* Background gradient blobs */}
+      {/* Background — clean black, gradients only behind card areas */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
         background: `
-          radial-gradient(ellipse 70% 50% at 15% 0%, rgba(20,80,180,0.15), transparent 55%),
-          radial-gradient(ellipse 50% 50% at 85% 15%, rgba(41,151,255,0.08), transparent 50%),
-          radial-gradient(ellipse 60% 40% at 50% 50%, rgba(30,60,160,0.06), transparent 55%),
-          radial-gradient(ellipse 50% 60% at 80% 85%, rgba(99,102,241,0.10), transparent 50%),
-          radial-gradient(ellipse 40% 40% at 10% 90%, rgba(41,151,255,0.07), transparent 45%),
-          radial-gradient(ellipse 30% 30% at 60% 30%, rgba(191,90,242,0.04), transparent 40%)
+          radial-gradient(ellipse 50% 40% at 50% 45%, rgba(20,60,160,0.10), transparent 60%),
+          radial-gradient(ellipse 40% 35% at 75% 65%, rgba(41,100,255,0.06), transparent 50%),
+          radial-gradient(ellipse 35% 30% at 25% 70%, rgba(99,102,241,0.05), transparent 45%)
         `,
       }} />
 
@@ -399,7 +396,7 @@ function TabContent({ children }) {
     return () => observer.disconnect()
   }, [entered])
 
-  // Scroll-driven parallax on glass sections
+  // Scroll-driven fluid motion on ALL glass cards and sections
   useEffect(() => {
     if (!ref.current) return
     let ticking = false
@@ -408,14 +405,20 @@ function TabContent({ children }) {
       if (ticking) return
       ticking = true
       requestAnimationFrame(() => {
-        const sections = ref.current?.querySelectorAll('.glass-section, .glass-card-static') || []
-        for (const el of sections) {
+        const cards = ref.current?.querySelectorAll('.glass-card, .glass-section') || []
+        const vh = window.innerHeight
+        for (const el of cards) {
           const rect = el.getBoundingClientRect()
-          const vh = window.innerHeight
-          const progress = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)))
-          const y = (1 - progress) * 12
-          const scale = 0.97 + progress * 0.03
-          el.style.transform = `translateY(${y}px) scale(${scale})`
+          const center = rect.top + rect.height / 2
+          const distFromCenter = (center - vh / 2) / (vh / 2)
+          const clamped = Math.max(-1, Math.min(1, distFromCenter))
+
+          const y = clamped * 18
+          const scale = 1 - Math.abs(clamped) * 0.03
+          const opacity = 1 - Math.abs(clamped) * 0.15
+
+          el.style.transform = `translateY(${y.toFixed(1)}px) scale(${scale.toFixed(4)})`
+          el.style.opacity = Math.max(0.6, opacity).toFixed(2)
         }
         ticking = false
       })

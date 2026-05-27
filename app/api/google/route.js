@@ -44,6 +44,18 @@ export async function GET() {
     const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const until = new Date().toISOString().slice(0, 10)
 
+    // Patch: the library crashes in getGoogleAdsError when parsing gRPC errors
+    // Wrap it so we can see the REAL Google Ads error
+    try {
+      const proto = Object.getPrototypeOf(customer)
+      if (proto && typeof proto.getGoogleAdsError === 'function') {
+        const orig = proto.getGoogleAdsError
+        proto.getGoogleAdsError = function (buffer) {
+          try { return orig.call(this, buffer) } catch { return null }
+        }
+      }
+    } catch {}
+
     const rows = await customer.query(`
       SELECT
         segments.month,
@@ -105,9 +117,11 @@ export async function GET() {
       }
     } catch {}
 
-    // Also check metadata/details in the gRPC error
-    const details = err?.metadata?.getMap?.() || err?.details || null
-    const code = err?.code || null
+    // Extract gRPC metadata if available
+    let metaMap = null
+    try { metaMap = err?.metadata?.getMap?.() } catch {}
+    const details = err?.details || metaMap || null
+    const code = err?.code ?? null
 
     const combined = gadsErrors.length
       ? gadsErrors.map(e => e.message).join('; ')

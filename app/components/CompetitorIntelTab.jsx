@@ -45,8 +45,8 @@ function StatMini({ label, value, tone = '#fff' }) {
   return (
     <div
       style={{
-        background: '#0d0a16',
-        border: '1px solid #252033',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '12px 14px',
       }}
@@ -54,7 +54,7 @@ function StatMini({ label, value, tone = '#fff' }) {
       <div
         style={{
           fontSize: 9,
-          color: '#8b8aa0',
+          color: 'var(--text3)',
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
           marginBottom: 6,
@@ -121,8 +121,8 @@ function AdCard({ ad, index }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
         display: 'flex',
@@ -134,8 +134,8 @@ function AdCard({ ad, index }) {
         <div style={{
           position: 'relative',
           aspectRatio: '1 / 1',
-          background: '#0a0818',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--glass)',
+          borderBottom: '1px solid var(--border)',
           overflow: 'hidden',
         }}>
           {ad.videoUrl ? (
@@ -160,7 +160,7 @@ function AdCard({ ad, index }) {
             <div style={{
               position: 'absolute', top: 10, left: 10,
               background: '#000a', padding: '3px 8px', borderRadius: 6,
-              fontSize: 10, fontWeight: 800, color: '#fff',
+              fontSize: 10, fontWeight: 800, color: 'var(--text)',
             }}>
               VIDEO
             </div>
@@ -187,14 +187,14 @@ function AdCard({ ad, index }) {
             ))}
           </div>
           {!hasMedia && startDate && (
-            <span style={{ fontSize: 10, color: '#6b6580', fontWeight: 600 }}>{startDate}</span>
+            <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>{startDate}</span>
           )}
         </div>
 
         {/* Title */}
         {title && (
           <div style={{
-            color: '#fff', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
+            color: 'var(--text)', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
           }}>
             {title}
           </div>
@@ -203,7 +203,7 @@ function AdCard({ ad, index }) {
         {/* Body / Copy */}
         {body && (
           <div style={{
-            color: '#c8c0d6', fontSize: 12, lineHeight: 1.55,
+            color: 'var(--text2)', fontSize: 12, lineHeight: 1.55,
             maxHeight: hasMedia ? 80 : 120, overflow: 'hidden',
             WebkitLineClamp: hasMedia ? 4 : 5,
             WebkitBoxOrient: 'vertical', display: '-webkit-box',
@@ -217,7 +217,7 @@ function AdCard({ ad, index }) {
         )}
 
         {caption && (
-          <div style={{ color: '#6b6580', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
+          <div style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
         )}
 
         {/* Link to snapshot */}
@@ -247,8 +247,8 @@ function ProductCard({ product }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
         position: 'relative',
@@ -261,7 +261,7 @@ function ProductCard({ product }) {
             top: 10,
             right: 10,
             background: '#e63946',
-            color: '#fff',
+            color: 'var(--text)',
             padding: '4px 10px',
             borderRadius: 8,
             fontSize: 11,
@@ -279,7 +279,7 @@ function ProductCard({ product }) {
             position: 'absolute',
             top: 10,
             left: 10,
-            background: '#1a1425',
+            background: 'var(--glass)',
             color: '#ef4444',
             padding: '4px 10px',
             borderRadius: 8,
@@ -296,8 +296,8 @@ function ProductCard({ product }) {
       <div
         style={{
           aspectRatio: '1 / 1',
-          background: '#0a0818',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--glass)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -316,14 +316,14 @@ function ProductCard({ product }) {
             }}
           />
         ) : (
-          <div style={{ color: '#4a4060', fontSize: 12 }}>No image</div>
+          <div style={{ color: 'var(--text3)', fontSize: 12 }}>No image</div>
         )}
       </div>
 
       <div style={{ padding: 14 }}>
         <div
           style={{
-            color: '#fff',
+            color: 'var(--text)',
             fontSize: 13,
             fontWeight: 800,
             lineHeight: 1.3,
@@ -339,7 +339,7 @@ function ProductCard({ product }) {
           <div
             style={{
               fontSize: 10,
-              color: '#6b6580',
+              color: 'var(--text3)',
               marginBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -366,7 +366,7 @@ function ProductCard({ product }) {
             <span
               style={{
                 fontSize: 12,
-                color: '#6b6580',
+                color: 'var(--text3)',
                 textDecoration: 'line-through',
                 fontWeight: 600,
               }}
@@ -433,8 +433,8 @@ function CompetitorSection({ competitor, meta }) {
   return (
     <div
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',
         marginBottom: 24,
@@ -444,7 +444,7 @@ function CompetitorSection({ competitor, meta }) {
       <div
         style={{
           padding: '20px 24px',
-          borderBottom: '1px solid #2c2638',
+          borderBottom: '1px solid var(--border)',
           background: `linear-gradient(135deg, ${meta.color}15, transparent)`,
           display: 'flex',
           justifyContent: 'space-between',
@@ -465,7 +465,7 @@ function CompetitorSection({ competitor, meta }) {
               style={{
                 fontSize: 22,
                 fontWeight: 950,
-                color: '#fff',
+                color: 'var(--text)',
                 letterSpacing: '-0.03em',
               }}
             >
@@ -475,7 +475,7 @@ function CompetitorSection({ competitor, meta }) {
               href={meta.websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 12, color: '#8b8aa0', textDecoration: 'none' }}
+              style={{ fontSize: 12, color: 'var(--text2)', textDecoration: 'none' }}
             >
               {meta.websiteUrl} ↗
             </a>
@@ -487,9 +487,9 @@ function CompetitorSection({ competitor, meta }) {
             style={{
               padding: '6px 14px',
               borderRadius: 10,
-              background: '#1a1425',
-              border: '1px solid #332a41',
-              color: '#c8c0d6',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
+              color: 'var(--text2)',
               fontSize: 12,
               fontWeight: 800,
             }}
@@ -500,9 +500,9 @@ function CompetitorSection({ competitor, meta }) {
             style={{
               padding: '6px 14px',
               borderRadius: 10,
-              background: '#1a1425',
-              border: '1px solid #332a41',
-              color: '#c8c0d6',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
+              color: 'var(--text2)',
               fontSize: 12,
               fontWeight: 800,
             }}
@@ -532,7 +532,7 @@ function CompetitorSection({ competitor, meta }) {
         style={{
           display: 'flex',
           gap: 0,
-          borderBottom: '1px solid #2c2638',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         {[
@@ -645,10 +645,10 @@ function CompetitorSection({ competitor, meta }) {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
+                    <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
                       Apri Ad Library di {meta.name}
                     </div>
-                    <div style={{ color: '#8b8aa0', fontSize: 12, lineHeight: 1.5 }}>
+                    <div style={{ color: 'var(--text2)', fontSize: 12, lineHeight: 1.5 }}>
                       Visualizza tutte le inserzioni attive con immagini, video e copy
                     </div>
                   </div>
@@ -668,10 +668,10 @@ function CompetitorSection({ competitor, meta }) {
                     background: '#f59e0b', flexShrink: 0,
                     animation: 'pulse 2s ease-in-out infinite',
                   }} />
-                  <div style={{ fontSize: 12, color: '#c8c0d6', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
                     <strong style={{ color: '#f59e0b', fontWeight: 800 }}>In attesa di approvazione</strong>
                     {' — '}
-                    La richiesta di accesso <span style={{ color: '#e2dcf0', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
+                    La richiesta di accesso <span style={{ color: 'var(--text)', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
                     Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.
                   </div>
                 </div>
@@ -732,7 +732,7 @@ function CompetitorSection({ competitor, meta }) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#8b8aa0',
+                    color: 'var(--text2)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.12em',
                     fontWeight: 800,
@@ -748,9 +748,9 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '5px 12px',
                         borderRadius: 8,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
-                        color: '#c8c0d6',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text2)',
                         fontSize: 11,
                         fontWeight: 700,
                       }}
@@ -769,7 +769,7 @@ function CompetitorSection({ competitor, meta }) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#8b8aa0',
+                    color: 'var(--text2)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.12em',
                     fontWeight: 800,
@@ -816,9 +816,9 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '10px 28px',
                         borderRadius: 12,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
-                        color: '#c8c0d6',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text2)',
                         fontSize: 13,
                         fontWeight: 800,
                         cursor: 'pointer',
@@ -836,9 +836,9 @@ function CompetitorSection({ competitor, meta }) {
                       style={{
                         padding: '10px 28px',
                         borderRadius: 12,
-                        background: '#1a1425',
-                        border: '1px solid #332a41',
-                        color: '#c8c0d6',
+                        background: 'var(--glass)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text2)',
                         fontSize: 13,
                         fontWeight: 800,
                         cursor: 'pointer',
@@ -856,7 +856,7 @@ function CompetitorSection({ competitor, meta }) {
                   borderRadius: 16,
                   padding: 40,
                   textAlign: 'center',
-                  color: '#6b6580',
+                  color: 'var(--text3)',
                 }}
               >
                 {websiteData?.error
@@ -912,7 +912,7 @@ export default function CompetitorIntelTab() {
           <h1
             style={{
               margin: 0,
-              color: '#fff',
+              color: 'var(--text)',
               fontSize: 32,
               fontWeight: 950,
               letterSpacing: '-0.04em',
@@ -920,7 +920,7 @@ export default function CompetitorIntelTab() {
           >
             Competitor Intelligence
           </h1>
-          <p style={{ margin: '8px 0 0', color: '#8b8aa0', fontSize: 14 }}>
+          <p style={{ margin: '8px 0 0', color: 'var(--text2)', fontSize: 14 }}>
             Creative attive · Catalogo prodotti · Prezzi · Promozioni
             {data?.fetchedAt && (
               <span style={{ marginLeft: 12, color: '#4a4060' }}>
@@ -941,9 +941,9 @@ export default function CompetitorIntelTab() {
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             style={{
-              background: '#1a1425',
-              color: '#fff',
-              border: '1px solid #3a2d4b',
+              background: 'var(--glass)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               padding: '10px 14px',
               fontSize: 13,
@@ -964,7 +964,7 @@ export default function CompetitorIntelTab() {
             style={{
               padding: '10px 20px',
               borderRadius: 12,
-              border: '1px solid #332a41',
+              border: '1px solid var(--border)',
               background: loading ? '#1a1425' : '#8b5cf620',
               color: loading ? '#6b6580' : '#c4b5fd',
               fontSize: 13,
@@ -983,7 +983,7 @@ export default function CompetitorIntelTab() {
           style={{
             textAlign: 'center',
             padding: 80,
-            color: '#6b6580',
+            color: 'var(--text3)',
           }}
         >
           <div
@@ -1035,7 +1035,7 @@ export default function CompetitorIntelTab() {
                   style={{
                     fontSize: 16,
                     fontWeight: 950,
-                    color: '#fff',
+                    color: 'var(--text)',
                     marginBottom: 14,
                     letterSpacing: '-0.02em',
                   }}
@@ -1051,7 +1051,7 @@ export default function CompetitorIntelTab() {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
                       Ads attive
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: al.count > 0 ? '#fff' : '#4a4060', fontFamily: 'Barlow' }}>
@@ -1059,7 +1059,7 @@ export default function CompetitorIntelTab() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
                       Prodotti
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: s.totalProducts > 0 ? '#fff' : '#4a4060', fontFamily: 'Barlow' }}>
@@ -1067,7 +1067,7 @@ export default function CompetitorIntelTab() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
                       Prezzo medio
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 900, color: '#22c55e', fontFamily: 'Barlow' }}>
@@ -1075,7 +1075,7 @@ export default function CompetitorIntelTab() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
                       In saldo
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 900, color: s.onSaleCount > 0 ? '#e63946' : '#4a4060', fontFamily: 'Barlow' }}>

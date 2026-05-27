@@ -20,10 +20,10 @@ const ChartTip = ({ active, payload, label }) => {
 
 function Card({ label, value, color = '#fff', sub }) {
   return (
-    <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 14, padding: '16px 20px' }}>
-      <div style={{ fontSize: 10, color: '#776a86', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px' }}>
+      <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 950, color }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: '#776a86', marginTop: 4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
@@ -31,10 +31,10 @@ function Card({ label, value, color = '#fff', sub }) {
 function InsightBox({ title, insights }) {
   if (!insights?.length) return null
   return (
-    <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: '24px 28px', marginTop: 24 }}>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginTop: 24 }}>
       <div style={{ fontSize: 14, fontWeight: 900, color: '#8b5cf6', marginBottom: 16 }}>{title}</div>
       {insights.map((ins, i) => (
-        <div key={i} style={{ padding: '10px 0', borderBottom: i < insights.length - 1 ? '1px solid #1e1530' : 'none', color: '#f7f2ff', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>{ins}</div>
+        <div key={i} style={{ padding: '10px 0', borderBottom: i < insights.length - 1 ? '1px solid #1e1530' : 'none', color: 'var(--text)', fontSize: 13, fontWeight: 700, lineHeight: 1.5 }}>{ins}</div>
       ))}
     </div>
   )
@@ -63,7 +63,7 @@ function GA4Funnel({ funnel }) {
   const maxVal = steps[0].value || 1
 
   return (
-    <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: '28px 32px' }}>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Purchase Journey</div>
         <span style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 6, background: '#22c55e22', color: '#22c55e' }}>{funnel.source}</span>
@@ -76,9 +76,9 @@ function GA4Funnel({ funnel }) {
           const dropPct = i > 0 && steps[i - 1].value > 0 ? ((steps[i - 1].value - s.value) / steps[i - 1].value) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, padding: '0 8px', borderLeft: i > 0 ? '1px solid #292134' : 'none' }}>
-              <div style={{ fontSize: 10, color: '#776a86', fontWeight: 700, marginBottom: 2 }}>Passaggio {i + 1}</div>
-              <div style={{ fontSize: 13, color: '#f7f2ff', fontWeight: 800 }}>{s.name}</div>
-              <div style={{ fontSize: 20, fontWeight: 950, color: '#fff', marginTop: 4 }}>{fmtP(pct)}</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, marginBottom: 2 }}>Passaggio {i + 1}</div>
+              <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 800 }}>{s.name}</div>
+              <div style={{ fontSize: 20, fontWeight: 950, color: 'var(--text)', marginTop: 4 }}>{fmtP(pct)}</div>
             </div>
           )
         })}
@@ -90,7 +90,7 @@ function GA4Funnel({ funnel }) {
           const pct = maxVal > 0 ? (s.value / maxVal) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ fontSize: 11, color: '#fff', fontWeight: 800, marginBottom: 4 }}>{fmtN(s.value)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text)', fontWeight: 800, marginBottom: 4 }}>{fmtN(s.value)}</div>
               <div style={{ width: '80%', background: s.color, borderRadius: '6px 6px 0 0', height: `${Math.max(pct, 2)}%`, transition: 'height .6s', opacity: 0.85 }} />
             </div>
           )
@@ -105,7 +105,7 @@ function GA4Funnel({ funnel }) {
           const dropPct = steps[i - 1].value > 0 ? (drop / steps[i - 1].value) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: '#776a86', marginBottom: 2 }}>Tasso di abbandono</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Tasso di abbandono</div>
               <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>{fmtN(drop)} · {fmtP(dropPct)}</div>
             </div>
           )
@@ -117,7 +117,7 @@ function GA4Funnel({ funnel }) {
 
 // ── Flow with expandable nodes — shows intermediate pages before cart ──
 function FlowDiagram({ nodes, links, expanded, onExpand }) {
-  if (!nodes?.length) return <div style={{ color: '#776a86', padding: 20 }}>Dati flusso non disponibili</div>
+  if (!nodes?.length) return <div style={{ color: 'var(--text3)', padding: 20 }}>Dati flusso non disponibili</div>
 
   const width = 1200
   const height = 700
@@ -244,7 +244,7 @@ function FlowDiagram({ nodes, links, expanded, onExpand }) {
             <g key={n.id} onClick={() => isClickable && onExpand(isExp ? null : n.id)}
                style={{ cursor: isClickable ? 'pointer' : 'default', opacity: highlighted ? 1 : 0.12, transition: 'opacity .3s' }}>
               <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={10}
-                fill={isExp ? '#1a1525' : '#110d1a'} stroke={isExp ? '#8b5cf6' : '#292134'} strokeWidth={isExp ? 2 : 1} />
+                fill={isExp ? 'var(--glass)' : 'var(--glass)'} stroke={isExp ? '#8b5cf6' : 'var(--border)'} strokeWidth={isExp ? 2 : 1} />
               <text x={n.x + 14} y={n.y + 18} fill="#f7f2ff" fontSize={11} fontWeight={800}>
                 {n.name.length > 18 ? n.name.slice(0, 17) + '…' : n.name}
               </text>
@@ -280,11 +280,11 @@ function AttentionBar({ sections }) {
   if (!sections?.length) return null
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', marginBottom: 10 }}>Stima Attenzione Utente</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>Stima Attenzione Utente</div>
       {sections.map((s, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: '#9b90aa', width: 100, flexShrink: 0 }}>{s.area}</span>
-          <div style={{ flex: 1, height: 14, background: '#1a1525', borderRadius: 4, overflow: 'hidden' }}>
+          <span style={{ fontSize: 10, color: 'var(--text2)', width: 100, flexShrink: 0 }}>{s.area}</span>
+          <div style={{ flex: 1, height: 14, background: 'var(--glass)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', borderRadius: 4, width: `${s.attention}%`, background: s.attention >= 70 ? '#22c55e' : s.attention >= 40 ? '#f59e0b' : '#ef4444', transition: 'width .6s' }} />
           </div>
           <span style={{ fontSize: 10, fontWeight: 800, color: s.attention >= 70 ? '#22c55e' : s.attention >= 40 ? '#f59e0b' : '#ef4444', width: 35 }}>{s.attention}%</span>
@@ -367,7 +367,7 @@ export default function CROTab() {
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveSection(t.id)} style={{
               border: activeSection === t.id ? '1px solid #8b5cf6' : '1px solid #292134',
-              background: activeSection === t.id ? '#8b5cf622' : '#110d1a',
+              background: activeSection === t.id ? '#8b5cf622' : 'var(--glass)',
               color: activeSection === t.id ? '#c4b5fd' : '#9b90aa',
               borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 800, cursor: 'pointer',
             }}>{t.label}</button>
@@ -377,7 +377,7 @@ export default function CROTab() {
           {DAYS_OPTIONS.map(d => (
             <button key={d} onClick={() => setDays(d)} style={{
               border: days === d ? '1px solid #8b5cf6' : '1px solid #292134',
-              background: days === d ? '#8b5cf622' : '#110d1a',
+              background: days === d ? '#8b5cf622' : 'var(--glass)',
               color: days === d ? '#c4b5fd' : '#9b90aa',
               borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
             }}>{d}g</button>
@@ -385,7 +385,7 @@ export default function CROTab() {
         </div>
       </div>
 
-      {loading && <div style={{ color: '#9b90aa', padding: 40, fontWeight: 700 }}>Carico i dati CRO...</div>}
+      {loading && <div style={{ color: 'var(--text2)', padding: 40, fontWeight: 700 }}>Carico i dati CRO...</div>}
       {!loading && data?.error && <div style={{ color: '#ef4444', padding: 20 }}>Errore: {data.error}</div>}
 
       {/* FUNNEL */}
@@ -411,13 +411,13 @@ export default function CROTab() {
       {/* TOP PAGES */}
       {!loading && !data?.error && activeSection === 'pages' && (
         <>
-          <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 1000, borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #292134' }}>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>#</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Pagina</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', color: 'var(--text3)', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>#</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', color: 'var(--text3)', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Pagina</th>
                     <SortHeader label="Visitatori" field="visitors" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                     <SortHeader label="Page Views" field="pageViews" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                     {data?.hasGA4 && <SortHeader label="ATC" field="addToCarts" sortField={sortField} sortDir={sortDir} onSort={handleSort} />}
@@ -429,10 +429,10 @@ export default function CROTab() {
                 <tbody>
                   {sortedPages.map((p, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #1e1530' }}>
-                      <td style={{ padding: '12px 16px', color: '#776a86', fontWeight: 700 }}>{i + 1}</td>
-                      <td style={{ padding: '12px 16px', color: '#f7f2ff', fontWeight: 700, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title || p.page}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text3)', fontWeight: 700 }}>{i + 1}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text)', fontWeight: 700, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title || p.page}</td>
                       <td style={{ padding: '12px 16px', color: '#c4b5fd', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.visitors)}</td>
-                      <td style={{ padding: '12px 16px', color: '#9b90aa', fontWeight: 700, textAlign: 'right' }}>{fmtN(p.pageViews)}</td>
+                      <td style={{ padding: '12px 16px', color: 'var(--text2)', fontWeight: 700, textAlign: 'right' }}>{fmtN(p.pageViews)}</td>
                       {data?.hasGA4 && <td style={{ padding: '12px 16px', color: '#06b6d4', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.addToCarts)}</td>}
                       <td style={{ padding: '12px 16px', color: '#22c55e', fontWeight: 800, textAlign: 'right' }}>{fmtN(p.orders)}</td>
                       <td style={{ padding: '12px 16px', color: '#f59e0b', fontWeight: 800, textAlign: 'right' }}>{fmtE(p.revenue)}</td>
@@ -445,11 +445,11 @@ export default function CROTab() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, color: '#fff', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Visitatori unici per pagina</div>
+            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Visitatori unici per pagina</div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={sortedPages.slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), visitatori: p.visitors }))} layout="vertical" margin={{ left: 130 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1e1530" horizontal={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" horizontal={false} />
                   <XAxis type="number" tick={{ fill: '#776a86', fontSize: 10 }} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fill: '#c4b5fd', fontSize: 9, fontWeight: 700 }} axisLine={false} width={130} />
                   <Tooltip content={<ChartTip />} />
@@ -457,11 +457,11 @@ export default function CROTab() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, color: '#fff', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Ordini e Revenue per pagina</div>
+            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16 }}>Ordini e Revenue per pagina</div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={sortedPages.filter(p => p.orders > 0).slice(0, 10).map(p => ({ name: (p.title || p.page).slice(0, 25), ordini: p.orders, revenue: p.revenue }))} layout="vertical" margin={{ left: 130 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#1e1530" horizontal={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" horizontal={false} />
                   <XAxis type="number" tick={{ fill: '#776a86', fontSize: 10 }} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fill: '#c4b5fd', fontSize: 9, fontWeight: 700 }} axisLine={false} width={130} />
                   <Tooltip content={<ChartTip />} />
@@ -482,13 +482,13 @@ export default function CROTab() {
       {/* FLOW */}
       {!loading && !data?.error && activeSection === 'flow' && (
         <>
-          <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 28 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 950, color: '#fff' }}>Canalizzazione del Traffico</div>
-                <div style={{ fontSize: 12, color: '#776a86', marginTop: 4 }}>Clicca una pagina per vedere le altre pagine visitate prima del carrello</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Clicca una pagina per vedere le altre pagine visitate prima del carrello</div>
               </div>
-              {expandedNode && <button onClick={() => setExpandedNode(null)} style={{ background: '#1a1525', border: '1px solid #8b5cf6', borderRadius: 8, padding: '8px 16px', color: '#c4b5fd', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Mostra tutto</button>}
+              {expandedNode && <button onClick={() => setExpandedNode(null)} style={{ background: 'var(--glass)', border: '1px solid #8b5cf6', borderRadius: 8, padding: '8px 16px', color: '#c4b5fd', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Mostra tutto</button>}
             </div>
             <FlowDiagram nodes={data?.flow?.nodes} links={data?.flow?.links} expanded={expandedNode} onExpand={setExpandedNode} />
           </div>
@@ -504,28 +504,28 @@ export default function CROTab() {
       {/* SCANNER */}
       {activeSection === 'scanner' && (
         <>
-          <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Analizza una pagina</div>
-            <div style={{ fontSize: 12, color: '#776a86', marginBottom: 14 }}>L'AI analizzerà UX, CTA, trust signals, copy e struttura</div>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text)', marginBottom: 6 }}>Analizza una pagina</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>L'AI analizzerà UX, CTA, trust signals, copy e struttura</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input type="url" value={scanUrl} onChange={e => setScanUrl(e.target.value)} placeholder="https://stmnfitness.com/products/..." onKeyDown={e => e.key === 'Enter' && runScan()}
-                style={{ flex: 1, background: '#1a1525', border: '1px solid #292134', color: '#fff', borderRadius: 12, padding: '14px 18px', fontSize: 14, outline: 'none' }} />
+                style={{ flex: 1, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 12, padding: '14px 18px', fontSize: 14, outline: 'none' }} />
               <button onClick={runScan} disabled={scanning || !scanUrl.trim()} style={{
                 background: scanning ? '#2a1f3f' : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                color: '#fff', border: 'none', borderRadius: 12, padding: '0 28px', fontWeight: 900, fontSize: 14, cursor: scanning ? 'not-allowed' : 'pointer',
+                color: 'var(--text)', border: 'none', borderRadius: 12, padding: '0 28px', fontWeight: 900, fontSize: 14, cursor: scanning ? 'not-allowed' : 'pointer',
               }}>{scanning ? 'Analisi...' : 'Scansiona'}</button>
             </div>
           </div>
 
           {scanning && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-              <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, overflow: 'hidden', height: 420 }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', height: 420 }}>
                 <iframe src={scanUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Preview" sandbox="allow-same-origin allow-scripts" />
               </div>
-              <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 48, height: 48, border: '4px solid #292134', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 <div style={{ color: '#c4b5fd', fontWeight: 800, marginTop: 16, fontSize: 14 }}>Analisi AI in corso...</div>
-                <div style={{ color: '#776a86', fontSize: 12, marginTop: 6 }}>UX · Copy · CTA · Trust Signals · Struttura · Mobile</div>
+                <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 6 }}>UX · Copy · CTA · Trust Signals · Struttura · Mobile</div>
                 <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             </div>
@@ -536,55 +536,55 @@ export default function CROTab() {
           {scanResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 16 }}>
-                <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, textAlign: 'center' }}>
                   <ScoreRing score={scanResult.score} />
-                  <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 8, fontWeight: 700 }}>CRO Score</div>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 8, fontWeight: 700 }}>CRO Score</div>
                 </div>
-                <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 12 }}>{scanResult.verdict}</div>
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text)', marginBottom: 12 }}>{scanResult.verdict}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>PUNTI DI FORZA</div>
                   {(scanResult.strengths || []).map((s, i) => <div key={i} style={{ color: '#c4b5fd', fontSize: 12, padding: '3px 0', lineHeight: 1.5 }}>✓ {s}</div>)}
                 </div>
-                <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
                   <iframe src={scanUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Preview" sandbox="allow-same-origin allow-scripts" />
                 </div>
               </div>
 
               {scanResult.attentionMap && (
-                <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
                   <AttentionBar sections={scanResult.attentionMap} />
                 </div>
               )}
 
-              <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#ef4444', marginBottom: 16 }}>Problemi ({(scanResult.issues || []).length})</div>
                 {(scanResult.issues || []).map((issue, i) => (
-                  <div key={i} style={{ background: '#1a1525', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}><SeverityBadge severity={issue.severity} /><span style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14 }}>{issue.title}</span></div>
-                    <div style={{ color: '#9b90aa', fontSize: 13, lineHeight: 1.6, marginBottom: 8 }}>{issue.description}</div>
-                    <div style={{ background: '#110d1a', borderRadius: 8, padding: '10px 14px' }}><span style={{ color: '#22c55e', fontSize: 11, fontWeight: 800 }}>FIX → </span><span style={{ color: '#c4b5fd', fontSize: 12, lineHeight: 1.5 }}>{issue.fix}</span></div>
+                  <div key={i} style={{ background: 'var(--glass)', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}><SeverityBadge severity={issue.severity} /><span style={{ color: 'var(--text)', fontWeight: 800, fontSize: 14 }}>{issue.title}</span></div>
+                    <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.6, marginBottom: 8 }}>{issue.description}</div>
+                    <div style={{ background: 'var(--glass)', borderRadius: 8, padding: '10px 14px' }}><span style={{ color: '#22c55e', fontSize: 11, fontWeight: 800 }}>FIX → </span><span style={{ color: '#c4b5fd', fontSize: 12, lineHeight: 1.5 }}>{issue.fix}</span></div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#f59e0b', marginBottom: 16 }}>Colli di Bottiglia</div>
                 {(scanResult.bottlenecks || []).map((b, i) => (
-                  <div key={i} style={{ background: '#1a1525', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
-                    <div style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>{b.area}</div>
-                    <div style={{ color: '#9b90aa', fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>{b.problem}</div>
-                    <div style={{ fontSize: 12 }}><span style={{ color: '#f59e0b', fontWeight: 800 }}>Impatto: </span><span style={{ color: '#e2dcf0' }}>{b.impact}</span></div>
-                    <div style={{ fontSize: 12, marginTop: 2 }}><span style={{ color: '#22c55e', fontWeight: 800 }}>Fix: </span><span style={{ color: '#e2dcf0' }}>{b.solution}</span></div>
+                  <div key={i} style={{ background: 'var(--glass)', borderRadius: 12, padding: '16px 20px', marginBottom: 10 }}>
+                    <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>{b.area}</div>
+                    <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>{b.problem}</div>
+                    <div style={{ fontSize: 12 }}><span style={{ color: '#f59e0b', fontWeight: 800 }}>Impatto: </span><span style={{ color: 'var(--text)' }}>{b.impact}</span></div>
+                    <div style={{ fontSize: 12, marginTop: 2 }}><span style={{ color: '#22c55e', fontWeight: 800 }}>Fix: </span><span style={{ color: 'var(--text)' }}>{b.solution}</span></div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: '#22c55e', marginBottom: 16 }}>Quick Wins</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                   {(scanResult.quickWins || []).map((qw, i) => (
-                    <div key={i} style={{ background: '#1a1525', borderRadius: 12, padding: '16px 20px' }}>
-                      <div style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 13, marginBottom: 8 }}>{qw.action}</div>
+                    <div key={i} style={{ background: 'var(--glass)', borderRadius: 12, padding: '16px 20px' }}>
+                      <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13, marginBottom: 8 }}>{qw.action}</div>
                       <div style={{ display: 'flex', gap: 8, fontSize: 10, marginBottom: 6 }}>
                         <span style={{ padding: '3px 8px', borderRadius: 6, background: qw.impact === 'high' ? '#22c55e22' : '#f59e0b22', color: qw.impact === 'high' ? '#22c55e' : '#f59e0b', fontWeight: 800 }}>Impatto: {qw.impact}</span>
                         <span style={{ padding: '3px 8px', borderRadius: 6, background: qw.effort === 'low' ? '#22c55e22' : '#f59e0b22', color: qw.effort === 'low' ? '#22c55e' : '#f59e0b', fontWeight: 800 }}>Effort: {qw.effort}</span>
@@ -596,10 +596,10 @@ export default function CROTab() {
               </div>
 
               {scanResult.recommendations?.length > 0 && (
-                <div style={{ background: '#110d1a', border: '1px solid #292134', borderRadius: 16, padding: 24 }}>
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: '#8b5cf6', marginBottom: 14 }}>Raccomandazioni Strategiche</div>
                   {scanResult.recommendations.map((r, i) => (
-                    <div key={i} style={{ color: '#e2dcf0', fontSize: 13, padding: '8px 0', lineHeight: 1.6, fontWeight: 600, borderBottom: i < scanResult.recommendations.length - 1 ? '1px solid #1e1530' : 'none' }}>
+                    <div key={i} style={{ color: 'var(--text)', fontSize: 13, padding: '8px 0', lineHeight: 1.6, fontWeight: 600, borderBottom: i < scanResult.recommendations.length - 1 ? '1px solid #1e1530' : 'none' }}>
                       <span style={{ color: '#8b5cf6', fontWeight: 900 }}>{i + 1}.</span> {r}
                     </div>
                   ))}

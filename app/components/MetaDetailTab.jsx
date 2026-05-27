@@ -13,14 +13,14 @@ const PRESETS = [
   { id: 'custom', label: 'Custom' },
 ]
 
-const GREEN = '#22c55e'
-const RED = '#ef4444'
-const BLUE = '#3b82f6'
-const TEXT = '#e8edf7'
-const MUTED = '#7c8aa5'
-const CARD = '#0a1020'
-const BORDER = '#1d3151'
-const BG = '#030817'
+const GREEN = 'var(--green)'
+const RED = 'var(--red)'
+const BLUE = 'var(--blue)'
+const TEXT = 'var(--text)'
+const MUTED = 'var(--text2)'
+const CARD = 'var(--glass)'
+const BORDER = 'var(--border)'
+const BG = 'var(--bg)'
 
 function n(v) {
   const x = Number(v)
@@ -83,7 +83,7 @@ function levelLabel(row) {
 
 function MetricCard({ label, value }) {
   return (
-    <div style={styles.metricCard}>
+    <div className="glass-card" style={styles.metricCard}>
       <div style={styles.metricLabel}>{label}</div>
       <div style={styles.metricValue}>{value}</div>
     </div>
@@ -98,7 +98,7 @@ function PresetButton({ active, children, onClick }) {
         ...styles.preset,
         borderColor: active ? GREEN : BORDER,
         color: active ? GREEN : MUTED,
-        background: active ? '#052e16' : '#071124',
+        background: active ? 'rgba(34,197,94,0.1)' : 'var(--glass)',
       }}
     >
       {children}
@@ -371,7 +371,7 @@ export default function MetaPage() {
           </div>
         </header>
 
-        <section style={styles.presetsBox}>
+        <section className="glass-section" style={styles.presetsBox}>
           <div style={styles.presets}>
             {PRESETS.map(p => (
               <PresetButton
@@ -416,7 +416,7 @@ export default function MetaPage() {
           </div>
         )}
 
-        <section style={styles.metrics}>
+        <section className="stagger-zoom" style={styles.metrics}>
           <MetricCard label="Importo speso" value={fmtMoney(summary.spend, 0)} />
           <MetricCard label="ROAS" value={fmtRatio(summary.roas)} />
           <MetricCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} />
@@ -425,8 +425,8 @@ export default function MetaPage() {
           <MetricCard label="Frequenza" value={n(summary.frequency).toFixed(2)} />
         </section>
 
-        <section style={styles.twoCols}>
-          <div style={styles.card}>
+        <section className="reveal-zoom" style={styles.twoCols}>
+          <div className="glass-section" style={styles.card}>
             <h2 style={styles.sectionTitle}>Confronto · periodo vs precedente</h2>
             <p style={styles.small}>
               Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
@@ -463,13 +463,13 @@ export default function MetaPage() {
             </div>
           </div>
 
-          <div style={styles.card}>
+          <div className="glass-section" style={styles.card}>
             <h2 style={styles.sectionTitle}>Insight automatico</h2>
             <p style={styles.paragraph}>{data?.insight || '—'}</p>
           </div>
         </section>
 
-        <section style={styles.card}>
+        <section className="reveal-zoom glass-section" style={styles.card}>
           <h2 style={styles.sectionTitle}>To-do consigliate</h2>
 
           <div style={styles.todoList}>
@@ -481,7 +481,7 @@ export default function MetaPage() {
           </div>
         </section>
 
-        <section style={styles.card}>
+        <section className="reveal-zoom glass-section" style={styles.card}>
           <h2 style={styles.sectionTitle}>Gerarchia Meta · campagne / ad set / ads</h2>
           <p style={styles.small}>
             Mostra solo campagne attive. Clicca su una campagna per aprire gli ad set attivi.
@@ -559,8 +559,7 @@ export default function MetaPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: BG,
-    color: TEXT,
+    color: 'var(--text)',
     fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
     padding: '34px 22px',
   },
@@ -596,9 +595,6 @@ const styles = {
   },
 
   presetsBox: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
     padding: 18,
     marginBottom: 18,
   },
@@ -638,16 +634,16 @@ const styles = {
   },
 
   input: {
-    background: '#071124',
-    border: `1px solid ${BORDER}`,
+    background: 'var(--glass)',
+    border: `1px solid var(--border)`,
     color: TEXT,
     borderRadius: 8,
     padding: '10px 12px',
   },
 
   error: {
-    border: `1px solid ${RED}`,
-    background: '#2b0b12',
+    border: `1px solid var(--red)`,
+    background: 'rgba(239,68,68,0.1)',
     color: '#ff6b6b',
     padding: 16,
     borderRadius: 10,
@@ -663,9 +659,6 @@ const styles = {
   },
 
   metricCard: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
     padding: 20,
     minHeight: 90,
   },
@@ -693,9 +686,6 @@ const styles = {
   },
 
   card: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
     padding: 22,
     marginBottom: 18,
   },
@@ -716,7 +706,7 @@ const styles = {
   },
 
   paragraph: {
-    color: '#cbd5e1',
+    color: 'var(--text2)',
     fontSize: 15,
     lineHeight: 1.6,
     margin: 0,
@@ -729,10 +719,10 @@ const styles = {
   },
 
   compareItem: {
-    border: `1px solid ${BORDER}`,
+    border: `1px solid var(--border)`,
     borderRadius: 8,
     padding: 14,
-    background: '#071124',
+    background: 'var(--glass)',
   },
 
   compareLabel: {
@@ -751,11 +741,11 @@ const styles = {
   },
 
   todo: {
-    border: `1px solid ${BORDER}`,
+    border: `1px solid var(--border)`,
     borderRadius: 8,
     padding: 14,
-    color: '#cbd5e1',
-    background: '#071124',
+    color: 'var(--text2)',
+    background: 'var(--glass)',
     lineHeight: 1.5,
   },
 
@@ -772,8 +762,8 @@ const styles = {
   thLevel: {
     textAlign: 'left',
     padding: '14px 14px',
-    borderBottom: `1px solid ${BORDER}`,
-    color: '#fff',
+    borderBottom: `1px solid var(--border)`,
+    color: 'var(--text)',
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: '0.18em',
@@ -783,8 +773,8 @@ const styles = {
   th: {
     textAlign: 'left',
     padding: '14px 14px',
-    borderBottom: `1px solid ${BORDER}`,
-    color: '#fff',
+    borderBottom: `1px solid var(--border)`,
+    color: 'var(--text)',
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: '0.18em',
@@ -792,7 +782,7 @@ const styles = {
   },
 
   tr: {
-    borderBottom: '1px solid #12223a',
+    borderBottom: '1px solid var(--border)',
   },
 
   tdLevel: {
@@ -826,14 +816,14 @@ const styles = {
 
   td: {
     padding: '13px 14px',
-    color: '#dbe4f0',
+    color: 'var(--text)',
     fontSize: 14,
     whiteSpace: 'nowrap',
   },
 
   tdCenter: {
     padding: '13px 14px',
-    color: '#dbe4f0',
+    color: 'var(--text)',
     fontSize: 14,
     whiteSpace: 'nowrap',
     textAlign: 'left',
@@ -844,14 +834,14 @@ const styles = {
     height: 54,
     objectFit: 'cover',
     borderRadius: 8,
-    border: `1px solid ${BORDER}`,
+    border: `1px solid var(--border)`,
   },
 
   thumbEmpty: {
     width: 54,
     height: 54,
     borderRadius: 8,
-    border: `1px solid ${BORDER}`,
+    border: `1px solid var(--border)`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

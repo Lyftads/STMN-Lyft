@@ -25,14 +25,14 @@ const SUGGESTIONS = [
 ]
 
 const palette = {
-  bg: '#0f0b16',
-  panel: '#14111d',
-  border: '#2c2638',
+  bg: 'var(--bg2)',
+  panel: 'var(--glass)',
+  border: 'var(--border)',
   bubbleUser: 'linear-gradient(135deg, #6d28d9, #2a1746)',
-  bubbleAgent: '#171220',
-  text: '#f7f2ff',
-  muted: '#9b90aa',
-  accent: '#8b5cf6',
+  bubbleAgent: 'var(--glass)',
+  text: 'var(--text)',
+  muted: 'var(--text2)',
+  accent: 'var(--accent2)',
 }
 
 function formatMessage(text) {
@@ -42,7 +42,7 @@ function formatMessage(text) {
     const parts = line.split(/(\*\*[^*]+\*\*)/g).map((seg, j) => {
       if (seg.startsWith('**') && seg.endsWith('**')) {
         return (
-          <strong key={j} style={{ color: '#fff' }}>
+          <strong key={j} style={{ color: 'var(--text)' }}>
             {seg.slice(2, -2)}
           </strong>
         )
@@ -145,10 +145,8 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
 
   return (
     <div
+      className="glass-section"
       style={{
-        background: palette.panel,
-        border: `1px solid ${palette.border}`,
-        borderRadius: 22,
         padding: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -161,7 +159,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
           alignItems: 'center',
           gap: 12,
           padding: '20px 24px',
-          borderBottom: `1px solid ${palette.border}`,
+          borderBottom: `1px solid var(--border)`,
           justifyContent: 'space-between',
           flexWrap: 'wrap',
         }}
@@ -182,10 +180,10 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             ✦
           </div>
           <div>
-            <div style={{ fontWeight: 900, color: palette.text, fontSize: 16 }}>
+            <div style={{ fontWeight: 900, color: 'var(--text)', fontSize: 16 }}>
               Performance Agent
             </div>
-            <div style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>
               Performance · CMO · CRO · Ads · Klaviyo · usa i dati live di Shopify + Meta + Email
             </div>
           </div>
@@ -199,8 +197,8 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               disabled={loading}
               style={{
                 background: 'transparent',
-                color: palette.muted,
-                border: `1px solid ${palette.border}`,
+                color: 'var(--text2)',
+                border: `1px solid var(--border)`,
                 borderRadius: 10,
                 padding: '8px 12px',
                 fontSize: 12,
@@ -234,7 +232,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               alignItems: 'flex-start',
             }}
           >
-            <div style={{ color: palette.muted, fontSize: 14, lineHeight: 1.5, maxWidth: 640 }}>
+            <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.5, maxWidth: 640 }}>
               Ehi Marino, chiedimi quello che vuoi — Shopify, Meta, Klaviyo, ho tutto sotto mano. Trend, campagne da scalare o tagliare, email che funzionano e quelle che no. Sparami la domanda.
             </div>
             <div style={{ display: 'grid', gap: 8, width: '100%' }}>
@@ -246,17 +244,17 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                   disabled={loading}
                   style={{
                     textAlign: 'left',
-                    background: '#1a1525',
-                    border: `1px solid ${palette.border}`,
-                    color: '#e2dcf0',
+                    background: 'var(--glass)',
+                    border: `1px solid var(--border)`,
+                    color: 'var(--text)',
                     borderRadius: 12,
                     padding: '12px 16px',
                     fontSize: 13,
                     cursor: loading ? 'not-allowed' : 'pointer',
                     transition: 'border-color .15s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = palette.accent)}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = palette.border)}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent2)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                 >
                   {s}
                 </button>
@@ -282,8 +280,8 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                     ? 'none'
                     : m.isError
                     ? '1px solid #ef444455'
-                    : `1px solid ${palette.border}`,
-                color: m.isError ? '#fecaca' : '#f1ecfb',
+                    : `1px solid var(--border)`,
+                color: m.isError ? '#fecaca' : 'var(--text)',
                 borderRadius: 14,
                 padding: '12px 16px',
                 fontSize: 14,
@@ -302,10 +300,10 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             <div
               style={{
                 background: palette.bubbleAgent,
-                border: `1px solid ${palette.border}`,
+                border: `1px solid var(--border)`,
                 borderRadius: 14,
                 padding: '12px 16px',
-                color: palette.muted,
+                color: 'var(--text2)',
                 fontSize: 13,
                 display: 'flex',
                 alignItems: 'center',
@@ -325,7 +323,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
 
       <div
         style={{
-          borderTop: `1px solid ${palette.border}`,
+          borderTop: `1px solid var(--border)`,
           padding: '16px 24px 20px',
         }}
       >
@@ -361,23 +359,23 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             disabled={loading}
             style={{
               flex: 1,
-              background: '#201b2b',
-              border: `1px solid ${palette.border}`,
-              color: '#fff',
+              background: 'var(--glass)',
+              border: `1px solid var(--border)`,
+              color: 'var(--text)',
               borderRadius: 12,
               padding: '12px 16px',
               fontSize: 14,
               outline: 'none',
             }}
-            onFocus={e => (e.currentTarget.style.borderColor = palette.accent)}
-            onBlur={e => (e.currentTarget.style.borderColor = palette.border)}
+            onFocus={e => (e.currentTarget.style.borderColor = 'var(--accent2)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
             style={{
               background: loading || !input.trim()
-                ? '#2a1f3f'
+                ? 'var(--glass)'
                 : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
               color: '#fff',
               border: 'none',
@@ -391,10 +389,10 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             Invia
           </button>
         </form>
-        <div style={{ marginTop: 8, fontSize: 11, color: palette.muted, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text2)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <span>Dati live da tutte le piattaforme collegate. Niente è inventato.</span>
           {dataSummary && (
-            <span style={{ color: '#a89db8' }}>
+            <span style={{ color: 'var(--text2)' }}>
               {(dataSummary.activeSources || []).map(s => `${s} ✓`).join(' · ') || 'nessuna fonte'} — {dataSummary.activeCount || 0} integrazion{dataSummary.activeCount === 1 ? 'e' : 'i'}
             </span>
           )}
@@ -411,7 +409,7 @@ function Dot({ delay }) {
         width: 6,
         height: 6,
         borderRadius: '50%',
-        background: palette.accent,
+        background: 'var(--accent2)',
         display: 'inline-block',
         animation: 'pa-pulse 1.2s infinite',
         animationDelay: `${delay}ms`,

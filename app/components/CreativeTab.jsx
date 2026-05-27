@@ -54,17 +54,15 @@ function getCreativeName(row) {
 function Stat({ label, value, tone = '#fff' }) {
   return (
     <div
+      className="glass-card"
       style={{
-        background: '#0a1020',
-        border: '1px solid #1e2d47',
-        borderRadius: 14,
         padding: '14px 16px',
       }}
     >
       <div
         style={{
           fontSize: 10,
-          color: '#8b8aa0',
+          color: 'var(--text3)',
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
           marginBottom: 8,
@@ -95,18 +93,18 @@ function CreativeCard({ row, index }) {
 
   return (
     <div
+      className="glass-card"
       style={{
-        background: '#14111d',
-        border: '1px solid #2c2638',
         borderRadius: 22,
         overflow: 'hidden',
+        padding: 0,
       }}
     >
       <div
         style={{
           aspectRatio: '1 / 1',
-          background: '#0a1020',
-          borderBottom: '1px solid #2c2638',
+          background: 'var(--glass)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -125,7 +123,7 @@ function CreativeCard({ row, index }) {
             }}
           />
         ) : (
-          <div style={{ color: '#8b8aa0', fontSize: 13 }}>Nessuna immagine</div>
+          <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna immagine</div>
         )}
       </div>
 
@@ -159,7 +157,7 @@ function CreativeCard({ row, index }) {
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                color: '#fff',
+                color: 'var(--text)',
                 fontWeight: 900,
                 fontSize: 14,
                 lineHeight: 1.35,
@@ -169,7 +167,7 @@ function CreativeCard({ row, index }) {
               {name}
             </div>
 
-            <div style={{ color: '#8b8aa0', fontSize: 11 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 11 }}>
               {row.campaign_name || 'Campagna non disponibile'}
             </div>
           </div>
@@ -200,15 +198,15 @@ function Mini({ label, value }) {
   return (
     <div
       style={{
-        background: '#0d0a16',
-        border: '1px solid #252033',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '10px 12px',
       }}
     >
       <div
         style={{
-          color: '#8b8aa0',
+          color: 'var(--text3)',
           fontSize: 9,
           textTransform: 'uppercase',
           letterSpacing: '0.1em',
@@ -218,7 +216,7 @@ function Mini({ label, value }) {
       >
         {label}
       </div>
-      <div style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>
+      <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 800 }}>
         {value}
       </div>
     </div>
@@ -319,7 +317,7 @@ export default function CreativeTab() {
           <h1
             style={{
               margin: 0,
-              color: '#fff',
+              color: 'var(--text)',
               fontSize: 32,
               fontWeight: 900,
               letterSpacing: '-0.04em',
@@ -331,7 +329,7 @@ export default function CreativeTab() {
           <p
             style={{
               margin: '8px 0 0',
-              color: '#8b8aa0',
+              color: 'var(--text2)',
               fontSize: 14,
             }}
           >
@@ -346,9 +344,9 @@ export default function CreativeTab() {
           value={preset}
           onChange={(e) => setPreset(e.target.value)}
           style={{
-            background: '#1a1425',
-            color: '#fff',
-            border: '1px solid #3a2d4b',
+            background: 'var(--glass)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
             borderRadius: 12,
             padding: '12px 16px',
             fontSize: 14,
@@ -364,6 +362,7 @@ export default function CreativeTab() {
       </div>
 
       <div
+        className="stagger-zoom"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
@@ -379,11 +378,10 @@ export default function CreativeTab() {
       </div>
 
       <div
+        className="reveal-zoom glass-section"
         style={{
-          background: '#14111d',
-          border: '1px solid #2c2638',
-          borderRadius: 22,
-          padding: 24,
+          padding: 28,
+          marginBottom: 24,
         }}
       >
         <div
@@ -398,7 +396,7 @@ export default function CreativeTab() {
             <h2
               style={{
                 margin: 0,
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 20,
                 fontWeight: 900,
               }}
@@ -409,7 +407,7 @@ export default function CreativeTab() {
             <p
               style={{
                 margin: '6px 0 0',
-                color: '#8b8aa0',
+                color: 'var(--text2)',
                 fontSize: 13,
               }}
             >
@@ -417,13 +415,14 @@ export default function CreativeTab() {
             </p>
           </div>
 
-          <div style={{ color: '#8b8aa0', fontSize: 13 }}>
+          <div style={{ color: 'var(--text2)', fontSize: 13 }}>
             {loading ? 'Caricamento…' : `${rows.length} creative`}
           </div>
         </div>
 
         {sortedRows.length > 0 ? (
           <div
+            className="stagger-zoom"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -441,11 +440,11 @@ export default function CreativeTab() {
         ) : (
           <div
             style={{
-              border: '1px dashed #3a2d4b',
+              border: '1px dashed var(--border)',
               borderRadius: 18,
               padding: 40,
               textAlign: 'center',
-              color: '#8b8aa0',
+              color: 'var(--text2)',
             }}
           >
             {loading

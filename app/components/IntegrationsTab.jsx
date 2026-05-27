@@ -32,7 +32,7 @@ function BrandLogo({ domain, size = 40 }) {
     return (
       <div style={{
         width: size, height: size, borderRadius: 12,
-        background: entry.dark ? '#1a1525' : '#fff',
+        background: entry.dark ? 'var(--glass)' : '#fff',
         display: 'grid', placeItems: 'center', flexShrink: 0,
         padding: Math.round(size * 0.18),
       }}>
@@ -64,8 +64,8 @@ function BrandLogo({ domain, size = 40 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 12,
-      background: '#1a1525', display: 'grid', placeItems: 'center',
-      fontSize: size * 0.4, color: '#776a86', fontWeight: 900, flexShrink: 0,
+      background: 'var(--glass)', display: 'grid', placeItems: 'center',
+      fontSize: size * 0.4, color: 'var(--text3)', fontWeight: 900, flexShrink: 0,
     }}>
       {(domain || '?').charAt(0).toUpperCase()}
     </div>
@@ -92,7 +92,7 @@ function CategoryBadge({ category }) {
     Analytics: '#f59e0b',
     AI: '#ec4899',
   }
-  const color = colors[category] || '#9b90aa'
+  const color = colors[category] || 'var(--text2)'
   return (
     <span style={{
       fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
@@ -107,10 +107,8 @@ function CategoryBadge({ category }) {
 function ConnectedCard({ integration }) {
   const { name, description, domain, category, scope } = integration
   return (
-    <div style={{
-      background: '#110d1a',
-      border: '1px solid #22c55e33',
-      borderRadius: 16,
+    <div className="glass-card" style={{
+      borderColor: '#22c55e33',
       padding: '20px 22px',
       display: 'flex',
       flexDirection: 'column',
@@ -119,8 +117,8 @@ function ConnectedCard({ integration }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <BrandLogo domain={domain} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#f7f2ff' }}>{name}</div>
-          <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>{description}</div>
         </div>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
@@ -135,7 +133,7 @@ function ConnectedCard({ integration }) {
         <ScopeBadge scope={scope} />
         <CategoryBadge category={category} />
         <span style={{
-          fontSize: 10, fontWeight: 800, color: '#22c55e',
+          fontSize: 10, fontWeight: 800, color: 'var(--green)',
           display: 'inline-flex', alignItems: 'center', gap: 4,
           marginLeft: 'auto',
         }}>
@@ -150,10 +148,7 @@ function ConnectedCard({ integration }) {
 function AvailableCard({ integration, onConnect }) {
   const { name, description, domain, category, scope } = integration
   return (
-    <div style={{
-      background: '#110d1a',
-      border: '1px solid #292134',
-      borderRadius: 16,
+    <div className="glass-card" style={{
       padding: '20px 22px',
       display: 'flex',
       flexDirection: 'column',
@@ -162,14 +157,14 @@ function AvailableCard({ integration, onConnect }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <BrandLogo domain={domain} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#f7f2ff' }}>{name}</div>
-          <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>{description}</div>
         </div>
         <button
           onClick={() => onConnect(integration)}
           style={{
             background: 'none', border: 'none',
-            color: '#9b90aa', fontSize: 18, cursor: 'pointer',
+            color: 'var(--text2)', fontSize: 18, cursor: 'pointer',
             padding: '4px 8px',
           }}
         >
@@ -211,10 +206,8 @@ function ConnectModal({ integration, onClose }) {
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="glass-section"
         style={{
-          background: '#14111d',
-          border: '1px solid #292134',
-          borderRadius: 20,
           padding: '28px 32px',
           maxWidth: 480,
           width: '90%',
@@ -224,14 +217,14 @@ function ConnectModal({ integration, onClose }) {
           <BrandLogo domain={domain} size={48} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 20, fontWeight: 950, color: '#fff' }}>{name}</div>
-            <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>{description}</div>
           </div>
           <button
             onClick={onClose}
             style={{
               width: 32, height: 32, borderRadius: 10,
-              background: '#1a1525', border: '1px solid #292134',
-              color: '#776a86', fontSize: 16, cursor: 'pointer',
+              background: 'var(--glass)', border: '1px solid var(--border)',
+              color: 'var(--text3)', fontSize: 16, cursor: 'pointer',
               display: 'grid', placeItems: 'center',
             }}
           >
@@ -275,9 +268,9 @@ function ConnectModal({ integration, onClose }) {
 
         {envVars?.length > 0 && (
           <div style={{
-            background: '#1a1525', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+            background: 'var(--glass)', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#776a86', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
               Environment variables (Vercel)
             </div>
             {envVars.map(v => (
@@ -291,10 +284,10 @@ function ConnectModal({ integration, onClose }) {
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: '#776a86', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <circle cx="6" cy="6" r="5" stroke="#776a86" strokeWidth="1"/>
-            <path d="M6 4v2.5M6 8h.005" stroke="#776a86" strokeWidth="1" strokeLinecap="round"/>
+            <circle cx="6" cy="6" r="5" stroke="var(--text3)" strokeWidth="1"/>
+            <path d="M6 4v2.5M6 8h.005" stroke="var(--text3)" strokeWidth="1" strokeLinecap="round"/>
           </svg>
           Ensure popups are enabled in your browser for authentication
         </div>
@@ -317,7 +310,7 @@ export default function IntegrationsTab() {
   }, [])
 
   if (loading) {
-    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>Loading integrations...</div>
+    return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>Loading integrations...</div>
   }
 
   if (!data) {
@@ -349,7 +342,7 @@ export default function IntegrationsTab() {
       {active.length > 0 && (
         <div style={{ marginBottom: 36 }}>
           {sectionHeader('Connected', active.length, '#22c55e')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+          <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {active.map(i => (
               <ConnectedCard key={i.id} integration={i} />
             ))}
@@ -360,7 +353,7 @@ export default function IntegrationsTab() {
       {available.length > 0 && (
         <div style={{ marginBottom: 36 }}>
           {sectionHeader('Available', available.length, '#8b5cf6')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+          <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {available.map(i => (
               <AvailableCard key={i.id} integration={i} onConnect={setSelected} />
             ))}
@@ -369,13 +362,10 @@ export default function IntegrationsTab() {
       )}
 
       <div style={{ marginBottom: 36 }}>
-        {sectionHeader('Coming soon', COMING_SOON.length, '#776a86')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+        {sectionHeader('Coming soon', COMING_SOON.length, 'var(--text3)')}
+        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
           {COMING_SOON.map(cs => (
-            <div key={cs.name} style={{
-              background: '#110d1a',
-              border: '1px solid #1e1829',
-              borderRadius: 16,
+            <div key={cs.name} className="glass-card" style={{
               padding: '18px 22px',
               display: 'flex',
               alignItems: 'center',
@@ -384,12 +374,12 @@ export default function IntegrationsTab() {
             }}>
               <BrandLogo domain={cs.domain} size={38} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{cs.name}</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{cs.description}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{cs.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{cs.description}</div>
               </div>
               <span style={{
-                fontSize: 10, fontWeight: 800, color: '#776a86',
-                padding: '3px 10px', borderRadius: 6, background: '#1a1525',
+                fontSize: 10, fontWeight: 800, color: 'var(--text3)',
+                padding: '3px 10px', borderRadius: 6, background: 'var(--glass)',
               }}>
                 Soon
               </span>

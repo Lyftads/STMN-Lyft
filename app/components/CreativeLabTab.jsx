@@ -44,7 +44,7 @@ function Pagination({ page, totalPages, onPageChange }) {
         disabled={page <= 1}
         style={{
           padding: '8px 14px', borderRadius: 8, border: '1px solid #332a41',
-          background: '#1a1425', color: page <= 1 ? '#4a4060' : '#c8c0d6',
+          background: 'var(--glass)', color: page <= 1 ? 'var(--text3)' : 'var(--text2)',
           fontSize: 13, fontWeight: 700, cursor: page <= 1 ? 'default' : 'pointer',
         }}
       >
@@ -52,16 +52,16 @@ function Pagination({ page, totalPages, onPageChange }) {
       </button>
       {pages.map((p, i) =>
         p === '...' ? (
-          <span key={`e${i}`} style={{ padding: '8px 6px', color: '#6b6580' }}>…</span>
+          <span key={`e${i}`} style={{ padding: '8px 6px', color: 'var(--text3)' }}>…</span>
         ) : (
           <button
             key={p}
             onClick={() => onPageChange(p)}
             style={{
               padding: '8px 14px', borderRadius: 8,
-              border: `1px solid ${p === page ? '#8b5cf6' : '#332a41'}`,
-              background: p === page ? '#8b5cf620' : '#1a1425',
-              color: p === page ? '#c4b5fd' : '#8b8aa0',
+              border: `1px solid ${p === page ? '#8b5cf6' : 'var(--border)'}`,
+              background: p === page ? '#8b5cf620' : 'var(--glass)',
+              color: p === page ? '#c4b5fd' : 'var(--text2)',
               fontSize: 13, fontWeight: 800, cursor: 'pointer',
             }}
           >
@@ -74,7 +74,7 @@ function Pagination({ page, totalPages, onPageChange }) {
         disabled={page >= totalPages}
         style={{
           padding: '8px 14px', borderRadius: 8, border: '1px solid #332a41',
-          background: '#1a1425', color: page >= totalPages ? '#4a4060' : '#c8c0d6',
+          background: 'var(--glass)', color: page >= totalPages ? 'var(--text3)' : 'var(--text2)',
           fontSize: 13, fontWeight: 700, cursor: page >= totalPages ? 'default' : 'pointer',
         }}
       >
@@ -88,8 +88,8 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
   return (
     <div
       style={{
-        background: '#14111d',
-        border: `2px solid ${accepted ? '#22c55e' : '#2c2638'}`,
+        background: 'var(--glass)',
+        border: `2px solid ${accepted ? '#22c55e' : 'var(--border)'}`,
         borderRadius: 22,
         overflow: 'hidden',
         position: 'relative',
@@ -115,7 +115,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
         style={{
           aspectRatio: format === 'story' ? '9/16' : '1/1',
           maxHeight: format === 'story' ? 500 : 350,
-          background: '#0a0818',
+          background: 'var(--glass)',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -134,12 +134,12 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
               Generazione immagine fallita
             </div>
-            <div style={{ color: '#6b6580', fontSize: 11, lineHeight: 1.5 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 11, lineHeight: 1.5 }}>
               {creative.imageError}
             </div>
           </div>
         ) : (
-          <div style={{ color: '#4a4060', fontSize: 12 }}>Generazione in corso…</div>
+          <div style={{ color: 'var(--text3)', fontSize: 12 }}>Generazione in corso…</div>
         )}
 
         {creative.imageModel && creative.generatedImage && (
@@ -196,7 +196,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
         </div>
 
         {creative.productTitle && (
-          <div style={{ color: '#6b6580', fontSize: 10, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ color: 'var(--text3)', fontSize: 10, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {creative.productTitle}
           </div>
         )}
@@ -205,12 +205,12 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
           {creative.headline}
         </div>
 
-        <div style={{ color: '#c8c0d6', fontSize: 13, lineHeight: 1.55, marginBottom: 12 }}>
+        <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.55, marginBottom: 12 }}>
           {creative.primaryText}
         </div>
 
         {creative.description && (
-          <div style={{ color: '#8b8aa0', fontSize: 12, lineHeight: 1.4, marginBottom: 12, fontStyle: 'italic' }}>
+          <div style={{ color: 'var(--text2)', fontSize: 12, lineHeight: 1.4, marginBottom: 12, fontStyle: 'italic' }}>
             {creative.description}
           </div>
         )}
@@ -228,13 +228,13 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
           <div
             style={{
               padding: 12, borderRadius: 10,
-              background: '#0d0a16', border: '1px solid #252033', marginTop: 12,
+              background: 'var(--glass)', border: '1px solid #252033', marginTop: 12,
             }}
           >
-            <div style={{ color: '#6b6580', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
               Perché funziona
             </div>
-            <div style={{ color: '#8b8aa0', fontSize: 11, lineHeight: 1.5 }}>
+            <div style={{ color: 'var(--text2)', fontSize: 11, lineHeight: 1.5 }}>
               {creative.reasoning}
             </div>
           </div>
@@ -257,7 +257,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
               disabled={rejecting}
               style={{
                 flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #332a41',
-                background: '#1a1425', color: rejecting ? '#4a4060' : '#c8c0d6',
+                background: 'var(--glass)', color: rejecting ? 'var(--text3)' : 'var(--text2)',
                 fontSize: 13, fontWeight: 800, cursor: rejecting ? 'wait' : 'pointer',
               }}
             >
@@ -273,8 +273,8 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             rel="noopener noreferrer"
             style={{
               display: 'inline-block', marginTop: 12, padding: '8px 16px',
-              borderRadius: 8, background: '#1a1425', border: '1px solid #332a41',
-              color: '#c8c0d6', fontSize: 12, fontWeight: 700, textDecoration: 'none',
+              borderRadius: 8, background: 'var(--glass)', border: '1px solid #332a41',
+              color: 'var(--text2)', fontSize: 12, fontWeight: 700, textDecoration: 'none',
             }}
           >
             Scarica immagine ↓
@@ -461,13 +461,13 @@ export default function CreativeLabTab() {
         <h1 style={{ margin: 0, color: '#fff', fontSize: 32, fontWeight: 950, letterSpacing: '-0.04em' }}>
           Creative Lab
         </h1>
-        <p style={{ margin: '8px 0 0', color: '#8b8aa0', fontSize: 14 }}>
+        <p style={{ margin: '8px 0 0', color: 'var(--text2)', fontSize: 14 }}>
           Genera ad creative basate su best seller, performance ads e analisi competitor
         </p>
       </div>
 
       {loading && !data && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b6580' }}>
+        <div style={{ textAlign: 'center', padding: 80, color: 'var(--text3)' }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Carico dati prodotti e performance…</div>
         </div>
       )}
@@ -477,18 +477,18 @@ export default function CreativeLabTab() {
           {/* Best Ads */}
           {bestAds.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 10 }}>
                 Top ads per ROAS (ultimi 28g)
               </div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
                 {bestAds.slice(0, 6).map((ad, i) => (
-                  <div key={i} style={{ background: '#0d0a16', border: '1px solid #252033', borderRadius: 12, padding: 14, minWidth: 200 }}>
+                  <div key={i} style={{ background: 'var(--glass)', border: '1px solid #252033', borderRadius: 12, padding: 14, minWidth: 200 }}>
                     <div style={{ color: '#fff', fontSize: 12, fontWeight: 800, marginBottom: 6, lineHeight: 1.3, maxHeight: 30, overflow: 'hidden' }}>
                       {ad.name || 'Ad'}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11 }}>
-                      <div><span style={{ color: '#6b6580' }}>ROAS </span><span style={{ color: '#22c55e', fontWeight: 900 }}>{(ad.roas || 0).toFixed(2)}</span></div>
-                      <div><span style={{ color: '#6b6580' }}>Rev </span><span style={{ color: '#22c55e', fontWeight: 800 }}>{money(ad.revenue)}</span></div>
+                      <div><span style={{ color: 'var(--text3)' }}>ROAS </span><span style={{ color: '#22c55e', fontWeight: 900 }}>{(ad.roas || 0).toFixed(2)}</span></div>
+                      <div><span style={{ color: 'var(--text3)' }}>Rev </span><span style={{ color: '#22c55e', fontWeight: 800 }}>{money(ad.revenue)}</span></div>
                     </div>
                   </div>
                 ))}
@@ -497,15 +497,15 @@ export default function CreativeLabTab() {
           )}
 
           {/* Product Selection */}
-          <div style={{ background: '#14111d', border: '1px solid #2c2638', borderRadius: 22, padding: 24, marginBottom: 24 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid #2c2638', borderRadius: 22, padding: 24, marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
                 <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>Seleziona prodotti</h2>
-                <p style={{ margin: '6px 0 0', color: '#6b6580', fontSize: 12 }}>
+                <p style={{ margin: '6px 0 0', color: 'var(--text3)', fontSize: 12 }}>
                   {data.totalProducts} prodotti totali · Ordinati per vendite · Pagina {data.page}/{data.totalPages}
                 </p>
               </div>
-              <span style={{ color: '#8b8aa0', fontSize: 13, fontWeight: 800 }}>
+              <span style={{ color: 'var(--text2)', fontSize: 13, fontWeight: 800 }}>
                 {selected.length}/4 selezionati
               </span>
             </div>
@@ -524,7 +524,7 @@ export default function CreativeLabTab() {
                 padding: '12px 18px',
                 borderRadius: 12,
                 border: '1px solid #332a41',
-                background: '#0d0a16',
+                background: 'var(--glass)',
                 color: '#fff',
                 fontSize: 14,
                 fontWeight: 600,
@@ -542,16 +542,16 @@ export default function CreativeLabTab() {
                     key={p.handle} type="button"
                     onClick={() => toggleProduct(p.handle)}
                     style={{
-                      background: isSel ? '#6d28d915' : '#0d0a16',
-                      border: `2px solid ${isSel ? '#8b5cf6' : '#252033'}`,
+                      background: isSel ? '#6d28d915' : 'var(--glass)',
+                      border: `2px solid ${isSel ? '#8b5cf6' : 'var(--border)'}`,
                       borderRadius: 14, padding: 0, cursor: 'pointer', textAlign: 'left', overflow: 'hidden',
                     }}
                   >
-                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#0a0818', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: 'var(--glass)', overflow: 'hidden', position: 'relative' }}>
                       {p.image ? (
                         <img src={p.image} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4060', fontSize: 11 }}>No img</div>
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 11 }}>No img</div>
                       )}
                       {isSel && (
                         <div style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 999, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</div>
@@ -578,17 +578,17 @@ export default function CreativeLabTab() {
           {selected.length > 0 && (
             <div
               style={{
-                background: '#14111d',
+                background: 'var(--glass)',
                 border: '1px solid #2c2638',
                 borderRadius: 18,
                 padding: 20,
                 marginBottom: 20,
               }}
             >
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
                 Foto reference prodotto (opzionale)
               </div>
-              <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 16 }}>
                 Carica fino a 3 foto per prodotto — l&apos;AI analizzerà colori, materiali e dettagli per generare immagini più fedeli
               </div>
 
@@ -609,7 +609,7 @@ export default function CreativeLabTab() {
                     }}
                   >
                     {/* Product thumb */}
-                    <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0a0818' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'var(--glass)' }}>
                       {product.image && <img src={product.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
 
@@ -643,9 +643,9 @@ export default function CreativeLabTab() {
                           <label
                             style={{
                               width: 40, height: 40, borderRadius: 8,
-                              border: '1px dashed #332a41', background: '#0d0a16',
+                              border: '1px dashed #332a41', background: 'var(--glass)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: 'pointer', color: '#6b6580', fontSize: 18,
+                              cursor: 'pointer', color: 'var(--text3)', fontSize: 18,
                             }}
                           >
                             +
@@ -659,7 +659,7 @@ export default function CreativeLabTab() {
                           </label>
                         )}
 
-                        <span style={{ color: '#4a4060', fontSize: 10, marginLeft: 4 }}>
+                        <span style={{ color: 'var(--text3)', fontSize: 10, marginLeft: 4 }}>
                           {refs.length}/3
                         </span>
                       </div>
@@ -674,23 +674,23 @@ export default function CreativeLabTab() {
           {selected.length > 0 && (
             <div
               style={{
-                background: '#14111d',
+                background: 'var(--glass)',
                 border: '1px solid #2c2638',
                 borderRadius: 18,
                 padding: 20,
                 marginBottom: 20,
               }}
             >
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
                 Brief manuale (opzionale)
               </div>
-              <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 16 }}>
                 Aggiungi dettagli che l&apos;AI deve considerare nella generazione
               </div>
 
               <div style={{ display: 'grid', gap: 14 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>
                     Contesto / Ambientazione
                   </label>
                   <textarea
@@ -700,7 +700,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid #332a41', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -708,7 +708,7 @@ export default function CreativeLabTab() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>
                     Buyer Persona target
                   </label>
                   <textarea
@@ -718,7 +718,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid #332a41', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -726,7 +726,7 @@ export default function CreativeLabTab() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>
                     Caratteristiche prodotto da evidenziare
                   </label>
                   <textarea
@@ -736,7 +736,7 @@ export default function CreativeLabTab() {
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: '1px solid #332a41', background: '#0d0a16',
+                      border: '1px solid #332a41', background: 'var(--glass)',
                       color: '#fff', fontSize: 13, fontWeight: 600, outline: 'none',
                       resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -749,14 +749,14 @@ export default function CreativeLabTab() {
           {/* Funnel Stage Selector */}
           <div
             style={{
-              background: '#14111d',
+              background: 'var(--glass)',
               border: '1px solid #2c2638',
               borderRadius: 18,
               padding: 20,
               marginBottom: 20,
             }}
           >
-            <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 12 }}>
               Fase del Funnel — Andromeda Variance
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -768,17 +768,17 @@ export default function CreativeLabTab() {
                     padding: '14px 16px',
                     borderRadius: 14,
                     border: `2px solid ${funnelStage === f.id ? f.color : '#292134'}`,
-                    background: funnelStage === f.id ? `${f.color}15` : '#0d0a16',
+                    background: funnelStage === f.id ? `${f.color}15` : 'var(--glass)',
                     cursor: 'pointer',
                     textAlign: 'left',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 999, background: f.color }} />
-                    <span style={{ color: funnelStage === f.id ? '#fff' : '#8b8aa0', fontSize: 14, fontWeight: 900 }}>{f.label}</span>
-                    <span style={{ color: '#6b6580', fontSize: 10, fontWeight: 700 }}>{f.fullLabel}</span>
+                    <span style={{ color: funnelStage === f.id ? '#fff' : 'var(--text2)', fontSize: 14, fontWeight: 900 }}>{f.label}</span>
+                    <span style={{ color: 'var(--text3)', fontSize: 10, fontWeight: 700 }}>{f.fullLabel}</span>
                   </div>
-                  <div style={{ color: funnelStage === f.id ? '#c8c0d6' : '#4a4060', fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
+                  <div style={{ color: funnelStage === f.id ? 'var(--text2)' : 'var(--text3)', fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
                     {f.desc}
                   </div>
                 </button>
@@ -790,15 +790,15 @@ export default function CreativeLabTab() {
           <div style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap', marginBottom: 28 }}>
             {/* Style */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Stile</div>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Stile</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {STYLES.map((s) => (
                   <button key={s.id} onClick={() => setStyle(s.id)} title={s.desc}
                     style={{
                       padding: '9px 16px', borderRadius: 10,
-                      border: `1px solid ${style === s.id ? '#8b5cf6' : '#332a41'}`,
-                      background: style === s.id ? '#8b5cf620' : '#1a1425',
-                      color: style === s.id ? '#c4b5fd' : '#8b8aa0',
+                      border: `1px solid ${style === s.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: style === s.id ? '#8b5cf620' : 'var(--glass)',
+                      color: style === s.id ? '#c4b5fd' : 'var(--text2)',
                       fontSize: 12, fontWeight: 800, cursor: 'pointer',
                     }}
                   >{s.label}</button>
@@ -808,15 +808,15 @@ export default function CreativeLabTab() {
 
             {/* Format */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Formato</div>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Formato</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {FORMATS.map((f) => (
                   <button key={f.id} onClick={() => setFormat(f.id)}
                     style={{
                       padding: '9px 14px', borderRadius: 10,
-                      border: `1px solid ${format === f.id ? '#8b5cf6' : '#332a41'}`,
-                      background: format === f.id ? '#8b5cf620' : '#1a1425',
-                      color: format === f.id ? '#c4b5fd' : '#8b8aa0',
+                      border: `1px solid ${format === f.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: format === f.id ? '#8b5cf620' : 'var(--glass)',
+                      color: format === f.id ? '#c4b5fd' : 'var(--text2)',
                       fontSize: 12, fontWeight: 800, cursor: 'pointer',
                     }}
                   >{f.label}</button>
@@ -826,7 +826,7 @@ export default function CreativeLabTab() {
 
             {/* Image Model */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Modello immagine</div>
+              <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Modello immagine</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(models.length > 0 ? models : [
                   { id: 'gpt-image-1', name: 'GPT Image', ready: true },
@@ -836,9 +836,9 @@ export default function CreativeLabTab() {
                   <button key={m.id} onClick={() => m.ready && setImageModel(m.id)}
                     style={{
                       padding: '9px 14px', borderRadius: 10,
-                      border: `1px solid ${imageModel === m.id ? '#8b5cf6' : '#332a41'}`,
-                      background: imageModel === m.id ? '#8b5cf620' : '#1a1425',
-                      color: !m.ready ? '#4a4060' : imageModel === m.id ? '#c4b5fd' : '#8b8aa0',
+                      border: `1px solid ${imageModel === m.id ? '#8b5cf6' : 'var(--border)'}`,
+                      background: imageModel === m.id ? '#8b5cf620' : 'var(--glass)',
+                      color: !m.ready ? 'var(--text3)' : imageModel === m.id ? '#c4b5fd' : 'var(--text2)',
                       fontSize: 12, fontWeight: 800,
                       cursor: m.ready ? 'pointer' : 'not-allowed',
                       opacity: m.ready ? 1 : 0.6,
@@ -857,8 +857,8 @@ export default function CreativeLabTab() {
               disabled={!selected.length || generating}
               style={{
                 padding: '12px 28px', borderRadius: 12, border: 'none', marginLeft: 'auto',
-                background: selected.length && !generating ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : '#1a1425',
-                color: selected.length && !generating ? '#fff' : '#6b6580',
+                background: selected.length && !generating ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'var(--glass)',
+                color: selected.length && !generating ? '#fff' : 'var(--text3)',
                 fontSize: 14, fontWeight: 900, cursor: selected.length && !generating ? 'pointer' : 'not-allowed',
                 boxShadow: selected.length && !generating ? '0 4px 20px rgba(139,92,246,.3)' : 'none',
                 whiteSpace: 'nowrap',
@@ -870,12 +870,12 @@ export default function CreativeLabTab() {
 
           {/* Generating */}
           {generating && (
-            <div style={{ textAlign: 'center', padding: 50, color: '#8b8aa0' }}>
+            <div style={{ textAlign: 'center', padding: 50, color: 'var(--text2)' }}>
               <div style={{ fontSize: 18, marginBottom: 10 }}>✧</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd' }}>
                 L&apos;AI sta generando copy e immagini…
               </div>
-              <div style={{ fontSize: 12, marginTop: 6, color: '#6b6580' }}>
+              <div style={{ fontSize: 12, marginTop: 6, color: 'var(--text3)' }}>
                 GPT-4o per il copy + {imageModel === 'gpt-image-1' ? 'GPT Image' : imageModel === 'gemini' ? 'Gemini' : 'DALL-E 3'} per le immagini · 20-40 secondi
               </div>
             </div>
@@ -893,7 +893,7 @@ export default function CreativeLabTab() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <div>
                   <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 950 }}>Preview Creative</h2>
-                  <p style={{ margin: '6px 0 0', color: '#6b6580', fontSize: 12 }}>
+                  <p style={{ margin: '6px 0 0', color: 'var(--text3)', fontSize: 12 }}>
                     {creatives.length} varianti · Accetta quelle che ti piacciono, rigenera le altre
                   </p>
                 </div>

@@ -72,7 +72,7 @@ const saveW = w => { try { localStorage.setItem('stmn_w', JSON.stringify(w)) } c
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
+    <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
       <p style={{color:'#888',marginBottom:4}}>{label}</p>
       {payload.map((p,i) => (
         <p key={i} style={{color:p.color}}>
@@ -111,8 +111,8 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
         value={raw}
         onChange={handleChange}
         style={{
-          background:'#0a1020',
-          border:'1px solid #111827',
+          background:'var(--glass)',
+          border:'1px solid var(--border)',
           borderRadius:4,
           padding:'4px 8px',
           width:110,
@@ -181,7 +181,7 @@ function RatioWidget({ ratio, mer }) {
       </div>
       <div style={{borderLeft:'1px solid #1a1a1a',paddingLeft:24}}>
         <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>MER</div>
-        <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'Barlow',letterSpacing:'-0.03em'}}>
+        <div style={{fontSize:36,fontWeight:700,color:'var(--text)',fontFamily:'Barlow',letterSpacing:'-0.03em'}}>
           {mer!=null ? `${fr(mer)}x` : '—'}
         </div>
         <div style={{fontSize:11,color:'#444',marginTop:6}}>Fatturato ÷ Spesa Ads</div>
@@ -195,7 +195,7 @@ function Settings({ cfg, onSave, onClose }) {
   const [f, setF] = useState({...cfg})
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(3,5,15,0.92)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:10,padding:28,width:340}}>
+      <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:28,width:340}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
           <span style={{fontWeight:600,fontSize:15}}>Parametri LTV</span>
           <button onClick={onClose} style={{color:'#555',background:'none',border:'none',fontSize:18,cursor:'pointer'}}>✕</button>
@@ -210,13 +210,13 @@ function Settings({ cfg, onSave, onClose }) {
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <input type="number" step={s} value={f[k]}
                 onChange={e=>setF(x=>({...x,[k]:parseFloat(e.target.value)||0}))}
-                style={{flex:1,background:'transparent',border:'1px solid #1e2d47',borderRadius:4,padding:'6px 10px',color:'#e8e8e8',fontSize:14,fontFamily:'Barlow',fontWeight:700,textAlign:'right',outline:'none'}} />
+                style={{flex:1,background:'transparent',border:'1px solid var(--border)',borderRadius:4,padding:'6px 10px',color:'var(--text)',fontSize:14,fontFamily:'Barlow',fontWeight:700,textAlign:'right',outline:'none'}} />
               <span style={{fontSize:12,color:'#444',width:48}}>{u}</span>
             </div>
           </div>
         ))}
         <div style={{display:'flex',gap:10,marginTop:24}}>
-          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid #1e2d47',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>Annulla</button>
+          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid var(--border)',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>Annulla</button>
           <button onClick={()=>{saveC(f);onSave(f);onClose()}} style={{flex:1,padding:'8px',border:'none',borderRadius:6,background:'#22c55e',color:'#000',fontWeight:700,cursor:'pointer',fontSize:13}}>Salva</button>
         </div>
       </div>
@@ -271,7 +271,7 @@ function Simulator({ cfg }) {
   return (
     <>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:32}}>
-      <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:8,padding:24}}>
+      <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:24}}>
         <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Simulatore LTV:CAC</p>
         {[
           {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
@@ -283,7 +283,7 @@ function Simulator({ cfg }) {
           <div key={k} style={{marginBottom:16}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
               <span style={{fontSize:11,color:'#555'}}>{l}</span>
-              <span style={{fontSize:12,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(s[k])}</span>
+              <span style={{fontSize:12,fontFamily:'Barlow',fontWeight:700,color:'var(--text)'}}>{fmt(s[k])}</span>
             </div>
             <input type="range" min={min} max={max} step={step} value={s[k]}
               onChange={e=>set(k,parseFloat(e.target.value))} style={{width:'100%'}} />
@@ -293,15 +293,15 @@ function Simulator({ cfg }) {
 
       <div style={{display:'flex',flexDirection:'column',gap:16}}>
         <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
-        <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:8,padding:20}}>
+        <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:20}}>
           <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Per raggiungere 3:1</p>
           {[
             {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
             {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
           ].map(({l,v,sub}) => (
-            <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #111827'}}>
+            <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
               <div>
-                <div style={{fontSize:13,color:'#e8e8e8'}}>{l}</div>
+                <div style={{fontSize:13,color:'var(--text)'}}>{l}</div>
                 <div style={{fontSize:11,color:'#444',marginTop:2}}>{sub}</div>
               </div>
               <div style={{fontSize:18,fontWeight:700,fontFamily:'Barlow',color:'#22c55e'}}>{v}</div>
@@ -312,7 +312,7 @@ function Simulator({ cfg }) {
     </div>
 
     {/* ── Scenario Advertising Simulator ── */}
-    <div style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:28,marginBottom:24}}>
+    <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:28,marginBottom:24}}>
       <p style={{fontSize:13,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:6,fontWeight:700,fontFamily:'Barlow Condensed'}}>Scenari Advertising</p>
       <p style={{fontSize:11,color:'#555',marginBottom:24}}>Confronta 3 scenari · IVA 22% scorporata · COGS in % (prodotti + spedizione + packaging)</p>
 
@@ -320,7 +320,7 @@ function Simulator({ cfg }) {
         {scenarios.map((sc,i) => {
           const color = scenarioColors[i]
           return (
-            <div key={i} style={{background:'#0d1628',border:`1px solid ${color}33`,borderRadius:12,padding:20}}>
+            <div key={i} style={{background:'var(--glass)',border:`1px solid ${color}33`,borderRadius:12,padding:20}}>
               <input value={sc.name} onChange={e=>setSc(i,'name',e.target.value)}
                 style={{width:'100%',background:'transparent',border:'none',color:color,fontSize:16,fontWeight:900,marginBottom:16,outline:'none',fontFamily:'Barlow'}}
                 placeholder={`Scenario ${i+1}`} />
@@ -331,7 +331,7 @@ function Simulator({ cfg }) {
                 </div>
                 <input type="number" value={sc.spend} min={0} step={100}
                   onChange={e=>setSc(i,'spend',Math.max(0,parseFloat(e.target.value)||0))}
-                  style={{width:'100%',background:'#0a1020',border:'1px solid #1e2d47',borderRadius:8,padding:'10px 14px',color:'#e8e8e8',fontSize:14,fontWeight:700,fontFamily:'Barlow',outline:'none',textAlign:'right'}}
+                  style={{width:'100%',background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:14,fontWeight:700,fontFamily:'Barlow',outline:'none',textAlign:'right'}}
                   placeholder="€" />
               </div>
 
@@ -343,7 +343,7 @@ function Simulator({ cfg }) {
                 <div key={k} style={{marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
                     <span style={{fontSize:10,color:'#555'}}>{l}</span>
-                    <span style={{fontSize:11,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(sc[k])}</span>
+                    <span style={{fontSize:11,fontFamily:'Barlow',fontWeight:700,color:'var(--text)'}}>{fmt(sc[k])}</span>
                   </div>
                   <input type="range" min={min} max={max} step={step} value={sc[k]}
                     onChange={e=>setSc(i,k,parseFloat(e.target.value))} style={{width:'100%',accentColor:color}} />
@@ -358,9 +358,9 @@ function Simulator({ cfg }) {
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr>
-              <th style={{padding:'12px 14px',textAlign:'left',color:'#94a3b8',fontWeight:700,fontSize:11,textTransform:'uppercase',fontFamily:'Barlow Condensed',borderBottom:'1px solid #1e2d47'}}>Metrica</th>
+              <th style={{padding:'12px 14px',textAlign:'left',color:'var(--text2)',fontWeight:700,fontSize:11,textTransform:'uppercase',fontFamily:'Barlow Condensed',borderBottom:'1px solid var(--border)'}}>Metrica</th>
               {scenarios.map((sc,i)=>(
-                <th key={i} style={{padding:'12px 14px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:12,borderBottom:'1px solid #1e2d47',fontFamily:'Barlow'}}>{sc.name||`Scenario ${i+1}`}</th>
+                <th key={i} style={{padding:'12px 14px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:12,borderBottom:'1px solid var(--border)',fontFamily:'Barlow'}}>{sc.name||`Scenario ${i+1}`}</th>
               ))}
             </tr>
           </thead>
@@ -385,13 +385,13 @@ function Simulator({ cfg }) {
               {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
               {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, color:'#f59e0b'},
             ].map((row,ri) => {
-              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:8,borderBottom:'1px solid #1e2d47'}} /></tr>
+              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:8,borderBottom:'1px solid var(--border)'}} /></tr>
               return (
-              <tr key={ri} style={{background:ri%2===0?'transparent':'#080f1e'}}>
-                <td style={{padding:'10px 14px',color:'#94a3b8',fontWeight:row.bold?800:500,fontSize:row.bold?13:12,fontFamily:'Barlow'}}>{row.l}</td>
+              <tr key={ri} style={{background:ri%2===0?'transparent':'var(--glass)'}}>
+                <td style={{padding:'10px 14px',color:'var(--text2)',fontWeight:row.bold?800:500,fontSize:row.bold?13:12,fontFamily:'Barlow'}}>{row.l}</td>
                 {scenarios.map((sc,i) => {
                   const calc = calcScenario(sc)
-                  const cellColor = typeof row.color === 'function' ? row.color(calc) : row.color || '#f8fafc'
+                  const cellColor = typeof row.color === 'function' ? row.color(calc) : row.color || 'var(--text)'
                   return <td key={i} style={{padding:'10px 14px',textAlign:'right',fontFamily:'Barlow',fontWeight:row.bold?900:700,fontSize:row.bold?15:13,color:cellColor}}>{row.f(calc,sc)}</td>
                 })}
               </tr>
@@ -401,13 +401,13 @@ function Simulator({ cfg }) {
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginTop:24}}>
-        <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
+        <div style={{background:'var(--glass)',borderRadius:10,padding:20}}>
           <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Profitto Netto</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,lordo:c.revenueIvaInclusa,netto:c.revenue,profitto:c.profittoNetto}})} margin={{left:0,right:0}}>
-              <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
-              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{fill:'var(--text2)',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
               <Bar dataKey="netto" name="Fatt. netto" fill="#3b82f6" radius={[4,4,0,0]} />
@@ -415,13 +415,13 @@ function Simulator({ cfg }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div style={{background:'#0d1628',borderRadius:10,padding:20}}>
+        <div style={{background:'var(--glass)',borderRadius:10,padding:20}}>
           <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Breakdown Costi</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{left:0,right:0}}>
-              <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
-              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{fill:'var(--text2)',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
               <Bar dataKey="iva" name="IVA 22%" fill="#f59e0b" stackId="c" radius={[4,4,0,0]} />
@@ -454,19 +454,19 @@ function Simulator({ cfg }) {
         const losing = cashFlowAnalysis.filter(r => r.profittoNetto < 0)
 
         return (
-          <div style={{marginTop:20,background:'#0d1628',borderRadius:10,padding:28}}>
+          <div style={{marginTop:20,background:'var(--glass)',borderRadius:10,padding:28}}>
             <p style={{fontSize:13,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:20,fontWeight:900,fontFamily:'Barlow Condensed'}}>Analisi strategica CMO + CFO</p>
 
             {/* P&L Summary */}
             <div style={{marginBottom:20}}>
               <p style={{fontSize:11,color:'#f59e0b',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>P&L mensile per scenario</p>
               {cashFlowAnalysis.map((r,i) => (
-                <div key={i} style={{background:'#0a1020',borderRadius:8,padding:'14px 18px',marginBottom:8,borderLeft:`3px solid ${scenarioColors[i]}`}}>
+                <div key={i} style={{background:'var(--glass)',borderRadius:8,padding:'14px 18px',marginBottom:8,borderLeft:`3px solid ${scenarioColors[i]}`}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                     <span style={{color:scenarioColors[i],fontWeight:900,fontSize:14}}>{r.name}</span>
                     <span style={{color:r.profittoNetto>=0?'#22c55e':'#ef4444',fontWeight:950,fontSize:18,fontFamily:'Barlow'}}>{sm0(r.profittoNetto)}/mese</span>
                   </div>
-                  <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:11,color:'#94a3b8'}}>
+                  <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:11,color:'var(--text2)'}}>
                     <span>Fatt. lordo: {sm0(r.revenueIvaInclusa)}</span>
                     <span>IVA: -{sm0(r.iva)}</span>
                     <span>Fatt. netto: {sm0(r.revenue)}</span>
@@ -481,14 +481,14 @@ function Simulator({ cfg }) {
             {/* Cash Flow */}
             <div style={{marginBottom:20}}>
               <p style={{fontSize:11,color:'#06b6d4',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Flusso di cassa e sostenibilità</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.7,fontWeight:600}}>
                 {cashFlowAnalysis.map((r,i) => {
                   const isSafe = r.profittoNetto > 0 && r.netMarginPct >= 10
                   const isOk = r.profittoNetto > 0 && r.netMarginPct >= 5
                   const isTight = r.profittoNetto > 0 && r.netMarginPct < 5
                   const isLosing = r.profittoNetto < 0
                   return (
-                    <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #1e2d47'}}>
+                    <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid var(--border)'}}>
                       <span style={{color:scenarioColors[i],fontWeight:900}}>{r.name}:</span>{' '}
                       {isLosing && <span style={{color:'#ef4444'}}>In perdita di <strong>{sm0(Math.abs(r.profittoNetto))}/mese</strong>. Servono {sm0(r.runway)} di cassa extra ogni mese per sostenerlo. Non scalabile — stai finanziando la crescita di tasca tua. </span>}
                       {isTight && <span style={{color:'#f59e0b'}}>Margine netto solo al <strong>{sp1(r.netMarginPct)}</strong> — tecnicamente in profitto ma senza cuscinetto. Un calo del ROAS del 10% ti manda in perdita. Troppo rischioso per scalare. </span>}
@@ -504,7 +504,7 @@ function Simulator({ cfg }) {
             {/* Strategia di scaling */}
             <div style={{marginBottom:20}}>
               <p style={{fontSize:11,color:'#22c55e',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Strategia di scaling raccomandata</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.7,fontWeight:600}}>
                 {scalable.length > 0 ? (
                   <>
                     <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#22c55e'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
@@ -524,17 +524,17 @@ function Simulator({ cfg }) {
               <p style={{fontSize:11,color:'#ec4899',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Proiezione 12 mesi</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
-                  <div key={i} style={{background:'#0a1020',borderRadius:8,padding:'14px 18px',borderTop:`2px solid ${scenarioColors[i]}`}}>
+                  <div key={i} style={{background:'var(--glass)',borderRadius:8,padding:'14px 18px',borderTop:`2px solid ${scenarioColors[i]}`}}>
                     <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12,marginBottom:8}}>{r.name} — 12 mesi</div>
-                    <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.8}}>
-                      <div>Fatturato annuo: <strong style={{color:'#f8fafc'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
-                      <div>Spesa ADV annua: <strong style={{color:'#f8fafc'}}>{sm0(r.spend * 12)}</strong></div>
-                      <div>COGS annuo: <strong style={{color:'#f8fafc'}}>{sm0(r.cogsAmount * 12)}</strong></div>
-                      <div>IVA annua: <strong style={{color:'#f8fafc'}}>{sm0(r.iva * 12)}</strong></div>
-                      <div style={{borderTop:'1px solid #1e2d47',marginTop:6,paddingTop:6}}>
+                    <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.8}}>
+                      <div>Fatturato annuo: <strong style={{color:'var(--text)'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
+                      <div>Spesa ADV annua: <strong style={{color:'var(--text)'}}>{sm0(r.spend * 12)}</strong></div>
+                      <div>COGS annuo: <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
+                      <div>IVA annua: <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
+                      <div style={{borderTop:'1px solid var(--border)',marginTop:6,paddingTop:6}}>
                         Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#22c55e':'#ef4444',fontSize:14}}>{sm0(r.annualProfit)}</strong>
                       </div>
-                      <div>Ordini annui: <strong style={{color:'#f8fafc'}}>{si0(r.orders * 12)}</strong></div>
+                      <div>Ordini annui: <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
                     </div>
                   </div>
                 ))}
@@ -542,9 +542,9 @@ function Simulator({ cfg }) {
             </div>
 
             {/* Bottom line */}
-            <div style={{background:'#0a1020',borderRadius:8,padding:'16px 20px',borderLeft:'3px solid #8b5cf6'}}>
+            <div style={{background:'var(--glass)',borderRadius:8,padding:'16px 20px',borderLeft:'3px solid #8b5cf6'}}>
               <p style={{fontSize:11,color:'#8b5cf6',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Bottom line</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6,fontWeight:600}}>
                 Break-even ROAS: {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
                 <br/>Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.
                 {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'#f59e0b'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
@@ -560,7 +560,7 @@ function Simulator({ cfg }) {
 // ── Delta + celle KPI riutilizzabili ───────────────────────────
 function DeltaMini({ current, previous, kind = 'number' }) {
   const RED = '#ef4444'
-  const WHITE = '#f8fafc'
+  const WHITE = 'var(--text)'
 
   const c = Number(current)
   const p = Number(previous)
@@ -624,7 +624,7 @@ function DeltaMini({ current, previous, kind = 'number' }) {
 }
 
 function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
-  const WHITE = '#f8fafc'
+  const WHITE = 'var(--text)'
 
   const money0 = n =>
     n != null && Number(n) > 0
@@ -708,7 +708,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
 // ── WeeklyTab ─────────────────────────────────────────────────
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S }) {
-  const WHITE = '#f8fafc'
+  const WHITE = 'var(--text)'
   const RED = '#ef4444'
 
   const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT')}` : '—'
@@ -937,8 +937,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
     position: 'sticky',
     top: 0,
     zIndex: 20,
-    background: '#081226',
-    boxShadow: '0 1px 0 #1e2d47',
+    background: 'var(--glass)',
+    boxShadow: '0 1px 0 var(--border)',
     fontSize: 12,
     padding: '12px 14px',
   }
@@ -1048,7 +1048,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 const p = i > 0 ? allWeeks[i - 1] : null
 
                 return (
-                  <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
+                  <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--glass)' }}>
                     <td style={{
                       ...TD,
                       color: WHITE,
@@ -1098,10 +1098,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                 )
               })}
 
-              <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
+              <tr style={{ background: 'var(--glass)', borderTop: '1px solid var(--border)' }}>
                 <td style={{
                   ...TD,
-                  color: '#94a3b8',
+                  color: 'var(--text2)',
                   fontWeight: 900,
                   fontSize: 10,
                   textTransform: 'uppercase',
@@ -1172,7 +1172,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   const p = i > 0 ? filled[i - 1] : null
 
                   return (
-                    <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : '#080f1e' }}>
+                    <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--glass)' }}>
                       <td style={{
                         ...TD,
                         color: WHITE,
@@ -1202,10 +1202,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
                   )
                 })}
 
-                <tr style={{ background: '#0a1020', borderTop: '1px solid #1e2d47' }}>
+                <tr style={{ background: 'var(--glass)', borderTop: '1px solid var(--border)' }}>
                   <td style={{
                     ...TD,
-                    color: '#94a3b8',
+                    color: 'var(--text2)',
                     fontWeight: 900,
                     fontSize: 10,
                     textTransform: 'uppercase',
@@ -1260,15 +1260,15 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--text2)', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTip />} />
                   <Legend />
                   <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                   <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                  <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="right" dataKey="mer" name="MER" stroke="var(--text)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1288,9 +1288,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--text2)', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTip />} />
                   <Legend />
                   <Line dataKey="nc" name="Nuovi clienti" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -1321,10 +1321,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--text2)', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
                   <Tooltip content={<ChartTip />} />
                   <Legend />
                   <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -1348,13 +1348,13 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S })
 
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fill: 'var(--text2)', fontSize: 9, fontFamily: 'Barlow', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--text2)', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: '3:1', fill: '#22c55e', fontSize: 10 }} />
                   <Tooltip content={<ChartTip />} />
                   <Legend />
-                  <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line dataKey="ratio" name="Ratio" stroke="var(--text)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1808,9 +1808,9 @@ export default function App() {
       {/* MENSILE TAB */}
       {tab==='monthly' && (() => {
         const filled = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
-        const mTH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'#081226', boxShadow:'0 1px 0 #1e2d47', fontSize:12, padding:'12px 14px' }
+        const mTH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'var(--glass)', boxShadow:'0 1px 0 var(--border)', fontSize:12, padding:'12px 14px' }
         const mTD = { ...S.td, fontSize:15, padding:'10px 14px', verticalAlign:'top' }
-        const mVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'#f8fafc' }
+        const mVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
 
         const mDelta = (curr, prev, kind='euro0') => {
           if (curr == null || prev == null) return null
@@ -1820,7 +1820,7 @@ export default function App() {
           if (Math.abs(diff) < 0.001) return null
           const pctV = p !== 0 ? diff / p * 100 : null
           const sign = diff > 0 ? '+' : '−'
-          const color = diff < 0 ? '#ef4444' : '#f8fafc'
+          const color = diff < 0 ? '#ef4444' : 'var(--text)'
           const abs = Math.abs(diff)
           let fmtAbs = '—'
           if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT')}`
@@ -1957,12 +1957,12 @@ export default function App() {
 
         const kpiCards = [
           { label: 'Fatturato', val: tf.fat, prev: tfP.fat, fmt: f0, color: '#22c55e', key: 'fatturato' },
-          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: '#f8fafc', key: 'ordini' },
+          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: 'var(--text)', key: 'ordini' },
           { label: 'AOV', val: tf.aov, prev: tfP.aov, fmt: f2, color: '#f59e0b', key: 'aov' },
           { label: 'Nuovi Clienti', val: tf.nc, prev: tfP.nc, fmt: fn, color: '#06b6d4', key: 'nc' },
           { label: 'Clienti Ritorno', val: tf.rc, prev: tfP.rc, fmt: fn, color: '#a78bfa', key: 'rc' },
           { label: 'MER', val: tf.mer, prev: tfP.mer, fmt: v => v != null ? `${fr(v)}×` : '—', color: tf.mer != null ? (tf.mer >= 3 ? '#22c55e' : tf.mer >= 2 ? '#f59e0b' : '#ef4444') : '#555', key: 'mer' },
-          { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: '#f8fafc', key: 'cac', lower: true },
+          { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: 'var(--text)', key: 'cac', lower: true },
           { label: 'Ratio LTV:CAC', val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio' },
           { label: 'Meta Spend', val: tf.meta, prev: tfP.meta, fmt: f0, color: '#3b82f6', key: 'metaSpend' },
           { label: 'Google Spend', val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: '#eab308', key: 'googleSpend' },
@@ -1979,29 +1979,29 @@ export default function App() {
             ].map(b => (
               <button key={b.id} onClick={() => setMonthlyTF(b.id)} style={{
                 fontSize:12, padding:'6px 14px', borderRadius:6, cursor:'pointer',
-                border: monthlyTF === b.id ? '1px solid #22c55e' : '1px solid #1e2d47',
+                border: monthlyTF === b.id ? '1px solid #22c55e' : '1px solid var(--border)',
                 background: monthlyTF === b.id ? '#22c55e20' : 'transparent',
-                color: monthlyTF === b.id ? '#22c55e' : '#94a3b8',
+                color: monthlyTF === b.id ? '#22c55e' : 'var(--text2)',
                 fontWeight: monthlyTF === b.id ? 700 : 500,
               }}>{b.l}</button>
             ))}
             {monthlyTF === 'custom' && (
               <>
                 <input type="month" value={monthlyCustom.since} onChange={e => setMonthlyCustom(p => ({...p, since: e.target.value}))}
-                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+                  style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--text)',fontSize:12}} />
                 <span style={{color:'#555'}}>→</span>
                 <input type="month" value={monthlyCustom.until} onChange={e => setMonthlyCustom(p => ({...p, until: e.target.value}))}
-                  style={{background:'#0a1020',border:'1px solid #1e2d47',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}} />
+                  style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--text)',fontSize:12}} />
               </>
             )}
-            <span style={{marginLeft:'auto',fontSize:11,color:'#64748b'}}>{tfLabel}</span>
+            <span style={{marginLeft:'auto',fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
           </div>
 
           {/* Summary KPI Cards with sparkline + delta */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12,marginBottom:20}}>
             {kpiCards.map(kpi => (
-              <div key={kpi.label} style={{background:'#0a1020',border:'1px solid #111827',borderRadius:10,padding:'16px 18px'}}>
-                <div style={{fontSize:10,color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
+              <div key={kpi.label} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+                <div style={{fontSize:10,color:'var(--text2)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                   <div style={{fontSize:24,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>
                     {kpi.fmt(kpi.val)}
@@ -2037,8 +2037,8 @@ export default function App() {
                   {tfMonths.map((m,i)=>{
                     const p = i > 0 ? tfMonths[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
                     return (
-                    <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                      <td style={{...mTD,color:'#f8fafc',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
+                    <tr key={m.month} style={{background:i%2===0?'transparent':'var(--glass)'}}>
+                      <td style={{...mTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
                       <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
                       <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
                       <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
@@ -2054,8 +2054,8 @@ export default function App() {
                     </tr>
                   )})}
                   {tfMonths.length > 1 && (
-                  <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                    <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Totale</td>
+                  <tr style={{background:'var(--glass)',borderTop:'1px solid var(--border)'}}>
+                    <td style={{...mTD,color:'var(--text2)',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Totale</td>
                     <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
                     <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
                     <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
@@ -2092,8 +2092,8 @@ export default function App() {
                   {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).map((m,i,arr)=>{
                     const p = i > 0 ? arr[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
                     return (
-                    <tr key={m.month} style={{background:i%2===0?'transparent':'#080f1e'}}>
-                      <td style={{...mTD,color:'#f8fafc',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>
+                    <tr key={m.month} style={{background:i%2===0?'transparent':'var(--glass)'}}>
+                      <td style={{...mTD,color:'var(--text)',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>
                       <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
                       <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
                       <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
@@ -2112,8 +2112,8 @@ export default function App() {
                     </tr>
                   )})}
                   {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 1 && (
-                  <tr style={{background:'#0a1020',borderTop:'1px solid #1e2d47'}}>
-                    <td style={{...mTD,color:'#94a3b8',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Media / Totale</td>
+                  <tr style={{background:'var(--glass)',borderTop:'1px solid var(--border)'}}>
+                    <td style={{...mTD,color:'var(--text2)',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Media / Totale</td>
                     <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
                     <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
                     <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
@@ -2147,15 +2147,15 @@ export default function App() {
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{fill:'var(--text2)',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTip />} />
                     <Legend />
                     <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
                     <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
-                    <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
+                    <Line yAxisId="right" dataKey="mer" name="MER" stroke="var(--text)" strokeWidth={2} dot={{r:3}} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -2166,9 +2166,9 @@ export default function App() {
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{fill:'var(--text2)',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTip />} />
                     <Legend />
                     <Bar dataKey="nc" name="Nuovi clienti" fill="#06b6d4" radius={[4,4,0,0]} />
@@ -2185,10 +2185,10 @@ export default function App() {
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{fill:'var(--text2)',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
                     <Tooltip content={<ChartTip />} />
                     <Legend />
                     <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{r:3}} connectNulls />
@@ -2203,13 +2203,13 @@ export default function App() {
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="#111827" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{fill:'var(--text2)',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'var(--text2)',fontSize:9}} axisLine={false} tickLine={false} />
                     <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
                     <Tooltip content={<ChartTip />} />
                     <Legend />
-                    <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
+                    <Line dataKey="ratio" name="Ratio" stroke="var(--text)" strokeWidth={2} dot={{r:3}} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

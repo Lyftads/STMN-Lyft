@@ -122,13 +122,17 @@ export default function VendroShell({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
       position: 'relative',
     }}>
-      {/* Background — clean black, gradients only behind card areas */}
+      {/* Background — futuristic depth: white/blue gradient nebula on black */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
         background: `
-          radial-gradient(ellipse 50% 40% at 50% 45%, rgba(20,60,160,0.10), transparent 60%),
-          radial-gradient(ellipse 40% 35% at 75% 65%, rgba(41,100,255,0.06), transparent 50%),
-          radial-gradient(ellipse 35% 30% at 25% 70%, rgba(99,102,241,0.05), transparent 45%)
+          radial-gradient(ellipse 80% 50% at 50% 40%, rgba(15,40,120,0.18), transparent 65%),
+          radial-gradient(ellipse 50% 45% at 20% 30%, rgba(41,151,255,0.09), transparent 55%),
+          radial-gradient(ellipse 45% 40% at 80% 60%, rgba(100,130,255,0.07), transparent 50%),
+          radial-gradient(ellipse 60% 30% at 50% 85%, rgba(60,80,180,0.08), transparent 50%),
+          radial-gradient(ellipse 35% 35% at 70% 15%, rgba(200,210,255,0.04), transparent 45%),
+          radial-gradient(ellipse 30% 25% at 30% 75%, rgba(180,200,255,0.03), transparent 40%),
+          linear-gradient(180deg, rgba(8,12,30,0.5) 0%, transparent 30%, transparent 70%, rgba(5,8,20,0.4) 100%)
         `,
       }} />
 

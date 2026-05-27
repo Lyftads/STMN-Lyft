@@ -23,7 +23,7 @@ function money(v, currency = 'EUR') {
 function ProductCard({ product }) {
   return (
     <div style={{
-      background: '#0d0a16',
+      background: 'var(--glass)',
       border: '1px solid #252033',
       borderRadius: 14,
       overflow: 'hidden',
@@ -32,7 +32,7 @@ function ProductCard({ product }) {
     }}>
       <div style={{
         aspectRatio: '1/1',
-        background: '#08060f',
+        background: 'var(--glass)',
         overflow: 'hidden',
         borderBottom: '1px solid #252033',
       }}>
@@ -44,12 +44,12 @@ function ProductCard({ product }) {
             onError={e => { e.target.style.display = 'none' }}
           />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#3a2d4b', fontSize: 11 }}>No image</div>
+          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--border)', fontSize: 11 }}>No image</div>
         )}
       </div>
       <div style={{ padding: '10px 12px' }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, color: '#e2dcf0', lineHeight: 1.3,
+          fontSize: 11, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3,
           maxHeight: 28, overflow: 'hidden',
           WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', display: '-webkit-box',
         }}>
@@ -63,7 +63,7 @@ function ProductCard({ product }) {
             {money(product.price, product.currency)}
           </span>
           {product.onSale && product.compareAtPrice > 0 && (
-            <span style={{ fontSize: 10, color: '#6b6580', textDecoration: 'line-through' }}>
+            <span style={{ fontSize: 10, color: 'var(--text3)', textDecoration: 'line-through' }}>
               {money(product.compareAtPrice, product.currency)}
             </span>
           )}
@@ -84,13 +84,13 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
   const deltaPct = isOwn || !sameUnit ? null : (ownAvg != null && brandData.avg > 0 ? ((ownAvg - brandData.avg) / brandData.avg) * 100 : null)
 
   const deltaColor = deltaEuro != null
-    ? (deltaEuro < 0 ? '#22c55e' : deltaEuro > 0 ? '#ef4444' : '#8b8aa0')
-    : '#8b8aa0'
+    ? (deltaEuro < 0 ? '#22c55e' : deltaEuro > 0 ? '#ef4444' : 'var(--text2)')
+    : 'var(--text2)'
 
   return (
     <div style={{
-      background: isOwn ? '#22c55e06' : '#0d0a16',
-      border: `1px solid ${isOwn ? '#22c55e25' : '#252033'}`,
+      background: isOwn ? '#22c55e06' : 'var(--glass)',
+      border: `1px solid ${isOwn ? '#22c55e25' : 'var(--border)'}`,
       borderRadius: 16,
       overflow: 'hidden',
       marginBottom: 10,
@@ -108,11 +108,11 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {products.length > 0 && (
-            <span style={{ color: '#6b6580', fontSize: 12, width: 14 }}>{expanded ? '▾' : '▸'}</span>
+            <span style={{ color: 'var(--text3)', fontSize: 12, width: 14 }}>{expanded ? '▾' : '▸'}</span>
           )}
           <span style={{
             fontSize: 14, fontWeight: 900,
-            color: isOwn ? '#22c55e' : '#e2dcf0',
+            color: isOwn ? '#22c55e' : 'var(--text)',
           }}>
             {brandName}
           </span>
@@ -120,16 +120,16 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
             <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#22c55e20', color: '#22c55e' }}>NOI</span>
           )}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#8b8aa0', textAlign: 'right' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textAlign: 'right' }}>
           {brandData.count}
         </div>
         <div style={{ fontSize: 16, fontWeight: 900, color: isOwn ? '#22c55e' : '#fff', textAlign: 'right', fontFamily: 'Barlow' }}>
           {money(brandData.avg, cur)}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textAlign: 'right' }}>
           {money(brandData.min, cur)}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textAlign: 'right' }}>
           {money(brandData.max, cur)}
         </div>
         <div style={{ fontSize: 14, fontWeight: 900, color: deltaColor, textAlign: 'right', fontFamily: 'Barlow' }}>
@@ -140,7 +140,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
             <span style={{
               fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
               background: deltaPct < 0 ? '#22c55e18' : deltaPct > 0 ? '#ef444418' : '#8b8aa018',
-              color: deltaPct < 0 ? '#22c55e' : deltaPct > 0 ? '#ef4444' : '#8b8aa0',
+              color: deltaPct < 0 ? '#22c55e' : deltaPct > 0 ? '#ef4444' : 'var(--text2)',
             }}>
               {deltaPct > 0 ? '+' : ''}{deltaPct.toFixed(1)}%
             </span>
@@ -179,18 +179,18 @@ export default function PriceComparisonTab() {
   }, [])
 
   if (loading) {
-    return <div style={{ color: '#8b8aa0', padding: 40, fontSize: 15, fontWeight: 700 }}>Carico comparazione prezzi...</div>
+    return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>Carico comparazione prezzi...</div>
   }
 
   const comparison = data?.priceComparison || []
   if (!comparison.length) {
-    return <div style={{ color: '#6b6580', padding: 40, fontSize: 14 }}>Nessun dato disponibile per la comparazione prezzi.</div>
+    return <div style={{ color: 'var(--text3)', padding: 40, fontSize: 14 }}>Nessun dato disponibile per la comparazione prezzi.</div>
   }
 
   const ownName = data?.ownStoreName || 'STMN Fitness'
 
   const headerStyle = {
-    fontSize: 10, fontWeight: 800, color: '#6b6580',
+    fontSize: 10, fontWeight: 800, color: 'var(--text3)',
     textTransform: 'uppercase', letterSpacing: '.1em',
     textAlign: 'right', padding: '8px 0',
   }
@@ -203,14 +203,13 @@ export default function PriceComparisonTab() {
         if (cat.own.count === 0 && compEntries.every(([, v]) => v.count === 0)) return null
 
         return (
-          <div key={cat.id} style={{
-            background: '#14111d', border: '1px solid #2c2638', borderRadius: 20,
+          <div key={cat.id} className="reveal-zoom glass-section" style={{
             overflow: 'hidden', marginBottom: 24,
           }}>
             {/* Category header */}
             <div style={{
               padding: '18px 24px',
-              borderBottom: '1px solid #2c2638',
+              borderBottom: '1px solid var(--border)',
               background: 'linear-gradient(135deg, #8b5cf612, transparent)',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
@@ -219,7 +218,7 @@ export default function PriceComparisonTab() {
                 <div style={{ fontSize: 20, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>
                   {catMeta.label}
                 </div>
-                <div style={{ fontSize: 11, color: '#6b6580', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
                   {cat.own.count} nostri · {compEntries.reduce((s, [, v]) => s + v.count, 0)} competitor
                 </div>
               </div>

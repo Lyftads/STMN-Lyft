@@ -19,35 +19,18 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, preset, kpiR
     return y > 0 ? x / y : null
   }
 
-  const current = dataYear?.length ? dataYear : data || []
-
-  const totals = current.reduce(
-    (acc, row) => {
-      acc.revenue += asNum(row.fatturato)
-      acc.orders += asNum(row.ordini)
-      acc.newCustomers += asNum(row.nc)
-      acc.returningCustomers += asNum(row.rc)
-      acc.sessions += asNum(row.sessioni)
-      acc.metaSpend += asNum(row.metaSpend)
-      acc.googleSpend += asNum(row.googleSpend)
-      acc.totalSpend += asNum(row.totalSpend)
-      acc.impressions += asNum(row.impressions)
-      acc.clicks += asNum(row.linkClicks)
-      return acc
-    },
-    {
-      revenue: 0,
-      orders: 0,
-      newCustomers: 0,
-      returningCustomers: 0,
-      sessions: 0,
-      metaSpend: 0,
-      googleSpend: 0,
-      totalSpend: 0,
-      impressions: 0,
-      clicks: 0,
-    }
-  )
+  const totals = {
+    revenue: asNum(periodTotals.revenue),
+    orders: asNum(periodTotals.orders),
+    newCustomers: asNum(periodTotals.nc),
+    returningCustomers: asNum(periodTotals.rc),
+    sessions: asNum(periodTotals.sessions),
+    metaSpend: asNum(periodTotals.metaSpend),
+    googleSpend: 0,
+    totalSpend: asNum(periodTotals.metaSpend),
+    impressions: asNum(periodTotals.impressions),
+    clicks: asNum(periodTotals.clicks),
+  }
 
   const aov = safeDiv(totals.revenue, totals.orders)
   const roas = safeDiv(totals.revenue, totals.metaSpend)
@@ -170,7 +153,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, preset, kpiR
 const productBreakdown = topProducts
 
 const sourceBreakdown = Array.isArray(activeLive?.shopifyMarketingSources)
-  ? live.shopifyMarketingSources.map(row => ({
+  ? activeLive.shopifyMarketingSources.map(row => ({
       label: row.source || 'Marketing',
       value: asNum(row.revenue),
       orders: asNum(row.orders),

@@ -76,21 +76,36 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     return <span style={{fontSize:11,fontWeight:800,padding:'3px 8px',borderRadius:6,background:good?'#22c55e20':'#ef444420',color:good?'#22c55e':'#ef4444'}}>{up?'+':''}{d.toFixed(1)}%</span>
   }
 
+  // Sparkline data from full data array (all months for trend)
+  const sparkData = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
+  const sparkFor = key => sparkData.map(m => {
+    if (key === 'aov') return m.ordini > 0 ? m.fatturato / m.ordini : 0
+    if (key === 'repeatRate') return m.nc + m.rc > 0 ? (m.rc / (m.nc + m.rc)) * 100 : 0
+    if (key === 'ltv') { const aov = m.ordini > 0 ? m.fatturato / m.ordini : 0; return aov > 0 ? (aov * cfg.freq * cfg.life * cfg.margin) / 100 : 0 }
+    if (key === 'roas') return m.metaSpend > 0 ? m.fatturato / m.metaSpend : 0
+    if (key === 'mer') return m.totalSpend > 0 ? m.fatturato / m.totalSpend : 0
+    if (key === 'ctr') return m.impressions > 0 ? (m.linkClicks / m.impressions) * 100 : 0
+    if (key === 'cpc') return m.linkClicks > 0 ? m.metaSpend / m.linkClicks : 0
+    if (key === 'cpm') return m.impressions > 0 ? (m.metaSpend / m.impressions) * 1000 : 0
+    return m[key] || 0
+  })
+
   const metrics = [
-    { group:'Shopify', title:'Revenue', value:shortMoney(c.fat), color:'#22c55e', sparkKey:'fatturato', curr:c.fat, prev:p.fat },
-    { group:'Shopify', title:'Total Orders', value:int0(c.ord), color:'#22c55e', sparkKey:'ordini', curr:c.ord, prev:p.ord },
-    { group:'Shopify', title:'AOV', value:money2(c.aov), color:'#3b82f6', curr:c.aov, prev:p.aov },
-    { group:'Shopify', title:'New Customers', value:int0(c.nc), color:'#06b6d4', sparkKey:'nc', curr:c.nc, prev:p.nc },
-    { group:'Shopify', title:'Repeat Rate', value:pct(c.repeatRate), color:'#0ea5e9', curr:c.repeatRate, prev:p.repeatRate },
-    { group:'Shopify', title:'LTV', value:money2(c.ltv), color:'#0ea5e9' },
-    { group:'Meta Ads', title:'Spend', value:shortMoney(c.meta), color:'#3b82f6', curr:c.meta, prev:p.meta },
-    { group:'Meta Ads', title:'ROAS', value:ratio(c.roas), color:'#22c55e', curr:c.roas, prev:p.roas },
-    { group:'Meta Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', curr:c.mer, prev:p.mer },
-    { group:'Meta Ads', title:'CTR', value:pct(c.ctr), color:'#3b82f6', curr:c.ctr, prev:p.ctr },
-    { group:'Meta Ads', title:'CPC', value:money2(c.cpc), color:'#3b82f6', curr:c.cpc, prev:p.cpc, lower:true },
-    { group:'Meta Ads', title:'CPM', value:money2(c.cpm), color:'#3b82f6', curr:c.cpm, prev:p.cpm, lower:true },
-    { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', curr:c.impr, prev:p.impr },
-    { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', curr:c.clicks, prev:p.clicks },
+    { group:'Shopify', title:'Fatturato', value:shortMoney(c.fat), color:'#22c55e', sparkKey:'fatturato', curr:c.fat, prev:p.fat },
+    { group:'Shopify', title:'Ordini', value:int0(c.ord), color:'#22c55e', sparkKey:'ordini', curr:c.ord, prev:p.ord },
+    { group:'Shopify', title:'AOV', value:money2(c.aov), color:'#f59e0b', sparkKey:'aov', curr:c.aov, prev:p.aov },
+    { group:'Shopify', title:'Nuovi Clienti', value:int0(c.nc), color:'#06b6d4', sparkKey:'nc', curr:c.nc, prev:p.nc },
+    { group:'Shopify', title:'Clienti Ritorno', value:int0(c.rc), color:'#a78bfa', sparkKey:'rc', curr:c.rc, prev:p.rc },
+    { group:'Shopify', title:'Repeat Rate', value:pct(c.repeatRate), color:'#0ea5e9', sparkKey:'repeatRate', curr:c.repeatRate, prev:p.repeatRate },
+    { group:'Shopify', title:'LTV', value:money2(c.ltv), color:'#0ea5e9', sparkKey:'ltv' },
+    { group:'Meta Ads', title:'Spend', value:shortMoney(c.meta), color:'#3b82f6', sparkKey:'metaSpend', curr:c.meta, prev:p.meta },
+    { group:'Meta Ads', title:'ROAS', value:ratio(c.roas), color:'#22c55e', sparkKey:'roas', curr:c.roas, prev:p.roas },
+    { group:'Meta Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', sparkKey:'mer', curr:c.mer, prev:p.mer },
+    { group:'Meta Ads', title:'CTR', value:pct(c.ctr), color:'#3b82f6', sparkKey:'ctr', curr:c.ctr, prev:p.ctr },
+    { group:'Meta Ads', title:'CPC', value:money2(c.cpc), color:'#ef4444', sparkKey:'cpc', curr:c.cpc, prev:p.cpc, lower:true },
+    { group:'Meta Ads', title:'CPM', value:money2(c.cpm), color:'#f59e0b', sparkKey:'cpm', curr:c.cpm, prev:p.cpm, lower:true },
+    { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', sparkKey:'impressions', curr:c.impr, prev:p.impr },
+    { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', sparkKey:'linkClicks', curr:c.clicks, prev:p.clicks },
   ]
 
   // ── Top products: match images from store products.json ──
@@ -175,7 +190,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       <div style={{color:'#a5a0b3',fontSize:13,marginBottom:10}}>{item.title}</div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
         <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
-        {item.sparkKey && <Sparkline data={currentMonths.map(m=>m[item.sparkKey]||0)} color={item.color} width={72} height={28} />}
+        {item.sparkKey && <Sparkline data={sparkFor(item.sparkKey)} color={item.color} width={80} height={32} />}
       </div>
       <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8}}>
         <DeltaBadge curr={item.curr} prev={item.prev} isLower={item.lower} />

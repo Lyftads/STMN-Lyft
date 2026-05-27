@@ -154,6 +154,50 @@ async function fetchInstagramProfile(username) {
   }
 }
 
+async function extractCreativeMedia(snapshotUrl) {
+  if (!snapshotUrl) return { imageUrl: null, videoUrl: null, isVideo: false }
+  try {
+    const res = await fetch(snapshotUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36' },
+      signal: AbortSignal.timeout(8000),
+      redirect: 'follow',
+    })
+    if (!res.ok) return { imageUrl: null, videoUrl: null, isVideo: false }
+    const html = await res.text()
+
+    let videoUrl = null
+    let isVideo = false
+    const videoMatch = html.match(/<video[^>]*src="([^"]+)"/) ||
+                       html.match(/"video_sd_url":"([^"]+)"/) ||
+                       html.match(/"video_hd_url":"([^"]+)"/) ||
+                       html.match(/"playable_url":"([^"]+)"/)
+    if (videoMatch) {
+      videoUrl = videoMatch[1].replace(/\\u0025/g, '%').replace(/\\\//g, '/')
+      isVideo = true
+    }
+
+    let imageUrl = null
+    const ogMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/)
+    if (ogMatch) {
+      imageUrl = ogMatch[1].replace(/&amp;/g, '&')
+    } else {
+      const imgMatch = html.match(/<img[^>]*class="[^"]*_9-jz[^"]*"[^>]*src="([^"]+)"/) ||
+                       html.match(/<img[^>]*src="(https:\/\/scontent[^"]+)"/) ||
+                       html.match(/<img[^>]*src="(https:\/\/external[^"]+)"/)
+      if (imgMatch) imageUrl = imgMatch[1].replace(/&amp;/g, '&')
+    }
+
+    if (!imageUrl && !videoUrl) {
+      const anyImg = html.match(/<img[^>]*src="(https?:\/\/[^"]+)"[^>]*style="[^"]*max-width/)
+      if (anyImg) imageUrl = anyImg[1].replace(/&amp;/g, '&')
+    }
+
+    return { imageUrl, videoUrl, isVideo }
+  } catch {
+    return { imageUrl: null, videoUrl: null, isVideo: false }
+  }
+}
+
 async function fetchAdLibrary(pageId, countries) {
   if (!ACCESS_TOKEN) {
     return { error: 'META_ACCESS_TOKEN non configurato', ads: [], count: 0 }
@@ -195,7 +239,7 @@ async function fetchAdLibrary(pageId, countries) {
       }
     }
 
-    const ads = (json.data || []).map((ad) => ({
+    const rawAds = (json.data || []).map((ad) => ({
       id: ad.id,
       bodies: (ad.ad_creative_bodies || []).map(sanitize),
       captions: (ad.ad_creative_link_captions || []).map(sanitize),
@@ -207,6 +251,25 @@ async function fetchAdLibrary(pageId, countries) {
       platforms: ad.publisher_platforms || [],
     }))
 
+    // Extract creative media for the first 12 ads (batched 4 at a time)
+    const adsToEnrich = rawAds.slice(0, 12)
+    const enriched = []
+    for (let i = 0; i < adsToEnrich.length; i += 4) {
+      const batch = adsToEnrich.slice(i, i + 4)
+      const mediaResults = await Promise.all(
+        batch.map(ad => extractCreativeMedia(ad.snapshotUrl))
+      )
+      batch.forEach((ad, j) => {
+        enriched.push({ ...ad, ...mediaResults[j] })
+      })
+    }
+
+    // Remaining ads (beyond 12) without media extraction
+    const remaining = rawAds.slice(12).map(ad => ({
+      ...ad, imageUrl: null, videoUrl: null, isVideo: false,
+    }))
+
+    const ads = [...enriched, ...remaining]
     return { ads, count: ads.length, error: null }
   } catch (e) {
     return { error: e.message, ads: [], count: 0 }

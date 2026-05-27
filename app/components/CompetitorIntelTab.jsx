@@ -116,103 +116,129 @@ function AdCard({ ad, index }) {
       })
     : null
 
+  const hasMedia = ad.imageUrl || ad.videoUrl
+
   return (
     <div
       style={{
         background: '#14111d',
         border: '1px solid #2c2638',
         borderRadius: 16,
-        padding: 18,
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 999,
-            background: '#5b2cff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 900,
-            flexShrink: 0,
-          }}
-        >
-          {index + 1}
+      {/* Creative preview */}
+      {hasMedia && (
+        <div style={{
+          position: 'relative',
+          aspectRatio: '1 / 1',
+          background: '#0a0818',
+          borderBottom: '1px solid #2c2638',
+          overflow: 'hidden',
+        }}>
+          {ad.videoUrl ? (
+            <video
+              src={ad.videoUrl}
+              poster={ad.imageUrl || undefined}
+              controls
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <img
+              src={ad.imageUrl}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={e => { e.target.style.display = 'none' }}
+            />
+          )}
+          {ad.isVideo && !ad.videoUrl && (
+            <div style={{
+              position: 'absolute', top: 10, left: 10,
+              background: '#000a', padding: '3px 8px', borderRadius: 6,
+              fontSize: 10, fontWeight: 800, color: '#fff',
+            }}>
+              VIDEO
+            </div>
+          )}
+          {startDate && (
+            <div style={{
+              position: 'absolute', top: 10, right: 10,
+              background: '#000a', padding: '4px 10px', borderRadius: 8,
+              fontSize: 10, fontWeight: 700, color: '#e8e8e8',
+              backdropFilter: 'blur(4px)',
+            }}>
+              {startDate}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(ad.platforms || []).map((p) => (
+              <PlatformBadge key={p} platform={p} />
+            ))}
+          </div>
+          {!hasMedia && startDate && (
+            <span style={{ fontSize: 10, color: '#6b6580', fontWeight: 600 }}>{startDate}</span>
+          )}
         </div>
 
-        {startDate && (
-          <span style={{ fontSize: 11, color: '#6b6580', fontWeight: 600 }}>{startDate}</span>
+        {/* Title */}
+        {title && (
+          <div style={{
+            color: '#fff', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
+          }}>
+            {title}
+          </div>
+        )}
+
+        {/* Body / Copy */}
+        {body && (
+          <div style={{
+            color: '#c8c0d6', fontSize: 12, lineHeight: 1.55,
+            maxHeight: hasMedia ? 80 : 120, overflow: 'hidden',
+            WebkitLineClamp: hasMedia ? 4 : 5,
+            WebkitBoxOrient: 'vertical', display: '-webkit-box',
+          }}>
+            {body}
+          </div>
+        )}
+
+        {description && !body && (
+          <div style={{ color: '#a89db8', fontSize: 12, lineHeight: 1.45 }}>{description}</div>
+        )}
+
+        {caption && (
+          <div style={{ color: '#6b6580', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
+        )}
+
+        {/* Link to snapshot */}
+        {ad.snapshotUrl && (
+          <a
+            href={ad.snapshotUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              marginTop: 'auto', paddingTop: 8,
+              fontSize: 11, color: '#8b5cf6', fontWeight: 700, textDecoration: 'none',
+            }}
+          >
+            Vedi su Ad Library
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M4 2h6v6M10 2L2 10" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
         )}
       </div>
-
-      {title && (
-        <div
-          style={{
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 900,
-            lineHeight: 1.35,
-          }}
-        >
-          {title}
-        </div>
-      )}
-
-      {body && (
-        <div
-          style={{
-            color: '#c8c0d6',
-            fontSize: 13,
-            lineHeight: 1.5,
-            maxHeight: 120,
-            overflow: 'hidden',
-            WebkitLineClamp: 5,
-            WebkitBoxOrient: 'vertical',
-            display: '-webkit-box',
-          }}
-        >
-          {body}
-        </div>
-      )}
-
-      {description && !body && (
-        <div style={{ color: '#a89db8', fontSize: 12, lineHeight: 1.45 }}>{description}</div>
-      )}
-
-      {caption && (
-        <div style={{ color: '#6b6580', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
-      )}
-
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto' }}>
-        {(ad.platforms || []).map((p) => (
-          <PlatformBadge key={p} platform={p} />
-        ))}
-      </div>
-
-      {ad.snapshotUrl && (
-        <a
-          href={ad.snapshotUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            fontSize: 11,
-            color: '#8b5cf6',
-            fontWeight: 700,
-            textDecoration: 'none',
-            marginTop: 4,
-          }}
-        >
-          Vedi anteprima →
-        </a>
-      )}
     </div>
   )
 }

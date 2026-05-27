@@ -2,70 +2,56 @@
 
 import { useEffect, useState } from 'react'
 
-const BRAND_COLORS = {
-  'shopify.com': '#95BF47',
-  'meta.com': '#0081FB',
-  'klaviyo.com': '#29B473',
-  'ads.google.com': '#4285F4',
-  'analytics.google.com': '#E37400',
-  'tiktok.com': '#000000',
-  'pinterest.com': '#E60023',
-  'snapchat.com': '#FFFC00',
-  'openai.com': '#000000',
-  'gmail.com': '#EA4335',
-  'calendar.google.com': '#4285F4',
-  'drive.google.com': '#0F9D58',
-  'quickbooks.intuit.com': '#2CA01C',
-  'stripe.com': '#635BFF',
-  'hotjar.com': '#FD3A5C',
-  'slack.com': '#4A154B',
-  'notion.so': '#000000',
-  'zapier.com': '#FF4A00',
-}
-
-const BRAND_ICONS = {
-  'shopify.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M15.34 3.04c-.03 0-.06.02-.08.04-.02.02-.34.44-.74 1-.38-.64-.96-1.19-1.7-1.27-.02 0-.04 0-.06.01l-.23.04C12.24 2.3 11.82 2 11.26 2c-1.36.04-2.72 1.71-3.52 3.64-.92.29-1.56.49-1.58.5-.47.15-.48.16-.54.6C5.56 7.14 4 19 4 19l9.02 1.6L20 19.2s-4.58-15.82-4.6-15.9c-.02-.08-.03-.14-.06-.26zM12.36 5.3l-1.84.57c.36-1.08.96-2.12 1.6-2.68.24.38.36.93.24 2.11zm-1.1-2.96c.1 0 .2.04.3.1-.76.56-1.54 1.84-1.9 3.14l-1.46.45c.44-1.56 1.54-3.65 3.06-3.69zm.28 8.84c-.06-.28-.96-.34-1.44-.14-.86.36-1.4 1.24-1.24 2.1.22 1.24 1.7 1.34 2.2.48.32-.56.54-1.62.48-2.44zM12.7 4.2c-.02-.9-.14-1.5-.34-1.9.34.04.62.4.84.86-.16.32-.34.66-.5 1.04z" fill="#95BF47"/><path d="M15.26 3.08c-.02-.04-.04-.04-.06-.04-.02 0-.06.02-.08.04 0 0-.34.44-.74 1l-.44 1.68 1.74-.54c-.1-.36-.22-.72-.36-1.1-.02-.08-.03-.14-.06-1.04z" fill="#5E8E3E"/></svg>,
-  'meta.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" fill="#0081FB"/></svg>,
-  'klaviyo.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M2 4l10 8L22 4H2zm0 2.5V20h20V6.5L12 14.5 2 6.5z" fill="#29B473"/></svg>,
-  'ads.google.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#FBBC05"/><path d="M12 7L17 17H7L12 7z" fill="#4285F4"/><rect x="4" y="14" width="6" height="6" rx="1" fill="#34A853"/><rect x="14" y="14" width="6" height="6" rx="1" fill="#EA4335"/></svg>,
-  'analytics.google.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="14" width="4" height="7" rx="1" fill="#E37400"/><rect x="10" y="8" width="4" height="13" rx="1" fill="#E37400" opacity=".7"/><rect x="17" y="3" width="4" height="18" rx="1" fill="#E37400" opacity=".4"/></svg>,
-  'tiktok.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .56.04.82.12V9.01a6.34 6.34 0 00-.82-.05A6.34 6.34 0 003.15 15.3a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.96a8.27 8.27 0 004.83 1.56V7.07a4.84 4.84 0 01-1.07-.38z" fill="#fff"/></svg>,
-  'pinterest.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.237 2.636 7.855 6.356 9.312-.088-.791-.167-2.005.035-2.868.181-.78 1.172-4.97 1.172-4.97s-.299-.598-.299-1.482c0-1.388.805-2.424 1.808-2.424.852 0 1.264.64 1.264 1.408 0 .858-.546 2.14-.828 3.33-.236.995.499 1.806 1.48 1.806 1.778 0 3.144-1.874 3.144-4.58 0-2.394-1.72-4.068-4.177-4.068-2.845 0-4.515 2.134-4.515 4.34 0 .859.331 1.781.745 2.282a.3.3 0 01.069.288l-.278 1.133c-.044.183-.145.222-.335.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.472 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.965-.527-2.291-1.148l-.623 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#E60023"/></svg>,
-  'snapchat.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2C9.2 2 7.3 3.4 6.5 5.8c-.2.5-.3 1.2-.3 2.1v1.6c-.7-.1-1.4.1-1.7.5-.2.3-.1.6.2.8.7.5 1.5.7 1.5.7 0 .4-.3 1.2-.9 2-.5.7-1.2 1.1-1.5 1.3-.4.2-.5.6-.3.9.2.4.7.6 1.5.7.2 0 .3.3.3.5 0 .3-.1.6-.1.7 0 .3.2.5.5.6.5.1 1.1.2 1.6.5.4.3.8.8 1.7.9.9.2 1.6.3 2.5.3s1.6-.1 2.5-.3c.9-.1 1.3-.7 1.7-.9.5-.3 1.1-.4 1.6-.5.3-.1.5-.3.5-.6 0-.1-.1-.4-.1-.7 0-.2.1-.4.3-.5.8-.1 1.3-.3 1.5-.7.2-.3.1-.7-.3-.9-.3-.2-1-.6-1.5-1.3-.6-.8-.9-1.6-.9-2 0 0 .8-.2 1.5-.7.3-.2.4-.5.2-.8-.3-.4-1-.6-1.7-.5V7.9c0-.9-.1-1.6-.3-2.1C16.7 3.4 14.8 2 12 2z" fill="#FFFC00"/></svg>,
-  'openai.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M22.28 9.37a5.85 5.85 0 00-.5-4.79 5.89 5.89 0 00-6.35-2.83A5.85 5.85 0 0011.1.22a5.89 5.89 0 00-5.62 4.1 5.85 5.85 0 00-3.9 2.83 5.89 5.89 0 00.72 6.9 5.85 5.85 0 00.5 4.78 5.89 5.89 0 006.35 2.84 5.85 5.85 0 004.33 1.53 5.89 5.89 0 005.62-4.1 5.85 5.85 0 003.9-2.84 5.89 5.89 0 00-.72-6.89z" fill="#fff"/></svg>,
-  'stripe.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.918 3.757 7.11c0 4.46 2.726 5.685 5.766 6.957 2.09.867 2.974 1.59 2.974 2.586 0 1.027-.862 1.634-2.384 1.634-2.048 0-5.268-1.042-7.3-2.414L2 21.544C3.917 22.769 7.075 24 10.57 24c2.626 0 4.787-.66 6.312-1.878 1.63-1.298 2.363-3.147 2.363-5.476 0-4.583-2.79-5.905-5.269-6.996z" fill="#635BFF"/></svg>,
-  'gmail.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M2 6l10 7 10-7v12H2V6z" fill="#EA4335"/><path d="M22 6l-10 7L2 6h20z" fill="#FBBC05"/></svg>,
-  'slack.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M5.04 15.16a2.5 2.5 0 11-2.5-2.5h2.5v2.5zm1.26 0a2.5 2.5 0 115 0v6.26a2.5 2.5 0 11-5 0v-6.26z" fill="#E01E5A"/><path d="M8.8 5.04a2.5 2.5 0 112.5-2.5v2.5H8.8zm0 1.3a2.5 2.5 0 110 5H2.54a2.5 2.5 0 110-5H8.8z" fill="#36C5F0"/><path d="M18.96 8.84a2.5 2.5 0 112.5 2.5h-2.5V8.84zm-1.26 0a2.5 2.5 0 11-5 0V2.54a2.5 2.5 0 115 0v6.3z" fill="#2EB67D"/><path d="M15.2 18.96a2.5 2.5 0 11-2.5 2.5v-2.5h2.5zm0-1.26a2.5 2.5 0 110-5h6.26a2.5 2.5 0 110 5H15.2z" fill="#ECB22E"/></svg>,
-  'notion.so': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 4.5A1.5 1.5 0 015.5 3h9.586a1.5 1.5 0 011.06.44l3.415 3.414A1.5 1.5 0 0120 7.914V19.5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19.5v-15z" stroke="#fff" strokeWidth="1.5"/><path d="M8 12h8M8 16h5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>,
-  'zapier.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M15.54 8.46l-2.83-2.83a1 1 0 00-1.42 0L8.46 8.46a1 1 0 000 1.41L11.29 12l-2.83 2.83a1 1 0 000 1.41l2.83 2.83a1 1 0 001.42 0l2.83-2.83a1 1 0 000-1.41L12.71 12l2.83-2.83a1 1 0 000-1.41z" fill="#FF4A00"/></svg>,
-  'hotjar.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M16 2c0 4-2 6-4 8s-4 4-4 8h4c0-4 2-6 4-8s4-4 4-8h-4zM8 6c0 4-2 6-4 8h4c0-2 1-3 2-4s2-2 2-4H8z" fill="#FD3A5C"/></svg>,
-  'drive.google.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M8 2l-6 10.5h4.5L12 2H8z" fill="#0F9D58"/><path d="M12 2l5.5 10.5H22L16 2h-4z" fill="#FBBC05"/><path d="M2 12.5L4.5 17h15L17 12.5H2z" fill="#4285F4"/></svg>,
-  'calendar.google.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="#4285F4" strokeWidth="2"/><path d="M3 9h18" stroke="#4285F4" strokeWidth="2"/><path d="M8 2v4M16 2v4" stroke="#4285F4" strokeWidth="2" strokeLinecap="round"/><rect x="7" y="12" width="3" height="3" rx=".5" fill="#4285F4"/><rect x="14" y="12" width="3" height="3" rx=".5" fill="#4285F4"/></svg>,
-  'quickbooks.intuit.com': (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2CA01C"/><path d="M8 8v8l4-4-4-4zm4 0l4 4-4 4V8z" fill="#fff"/></svg>,
+const LOGO_MAP = {
+  'shopify.com':          { slug: 'shopify',          color: '95BF47' },
+  'meta.com':             { slug: 'meta',             color: '0081FB' },
+  'klaviyo.com':          { slug: 'klaviyo',          color: '29B473' },
+  'ads.google.com':       { slug: 'googleads',        color: '4285F4' },
+  'analytics.google.com': { slug: 'googleanalytics',  color: 'E37400' },
+  'tiktok.com':           { slug: 'tiktok',           color: '000000', dark: true },
+  'pinterest.com':        { slug: 'pinterest',        color: 'E60023' },
+  'snapchat.com':         { slug: 'snapchat',         color: 'FFFC00', dark: true },
+  'openai.com':           { slug: 'openai',           color: '412991', dark: true },
+  'gmail.com':            { slug: 'gmail',            color: 'EA4335' },
+  'calendar.google.com':  { slug: 'googlecalendar',   color: '4285F4' },
+  'drive.google.com':     { slug: 'googledrive',      color: '4285F4' },
+  'quickbooks.intuit.com':{ slug: 'quickbooks',       color: '2CA01C' },
+  'stripe.com':           { slug: 'stripe',           color: '635BFF' },
+  'hotjar.com':           { slug: 'hotjar',           color: 'FD3A5C' },
+  'slack.com':            { slug: 'slack',            color: '4A154B' },
+  'notion.so':            { slug: 'notion',           color: '000000', dark: true },
+  'zapier.com':           { slug: 'zapier',           color: 'FF4A00' },
 }
 
 function BrandLogo({ domain, size = 40 }) {
   const [err, setErr] = useState(false)
-  const iconFn = BRAND_ICONS[domain]
-  const bgColor = BRAND_COLORS[domain] || '#1a1525'
+  const entry = LOGO_MAP[domain]
 
-  if (iconFn) {
+  if (entry && !err) {
+    const iconUrl = `https://cdn.simpleicons.org/${entry.slug}/${entry.color}`
     return (
       <div style={{
         width: size, height: size, borderRadius: 12,
-        background: domain === 'tiktok.com' || domain === 'openai.com' || domain === 'notion.so' || domain === 'slack.com' ? '#000' : '#fff',
+        background: entry.dark ? '#1a1525' : '#fff',
         display: 'grid', placeItems: 'center', flexShrink: 0,
+        padding: Math.round(size * 0.18),
       }}>
-        {iconFn(Math.round(size * 0.6))}
+        <img
+          src={iconUrl}
+          alt=""
+          width={Math.round(size * 0.64)}
+          height={Math.round(size * 0.64)}
+          style={{ objectFit: 'contain' }}
+          onError={() => setErr(true)}
+        />
       </div>
     )
   }
 
-  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
   if (!err && domain) {
     return (
       <img
-        src={faviconUrl}
+        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
         alt=""
         width={size}
         height={size}
@@ -78,8 +64,8 @@ function BrandLogo({ domain, size = 40 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 12,
-      background: bgColor + '33', display: 'grid', placeItems: 'center',
-      fontSize: size * 0.4, color: bgColor, fontWeight: 900, flexShrink: 0,
+      background: '#1a1525', display: 'grid', placeItems: 'center',
+      fontSize: size * 0.4, color: '#776a86', fontWeight: 900, flexShrink: 0,
     }}>
       {(domain || '?').charAt(0).toUpperCase()}
     </div>

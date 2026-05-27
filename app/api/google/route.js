@@ -90,8 +90,10 @@ export async function GET() {
     })
   } catch (err) {
     const msg = err?.message || String(err)
+    const stack = (err?.stack || '').split('\n').slice(0, 6).join('\n')
     return NextResponse.json({
       error: msg,
+      stack,
       hint: msg.includes('DEVELOPER_TOKEN')
         ? 'Il Developer Token potrebbe essere in stato "Test". Per accedere ad account reali serve Basic Access.'
         : msg.includes('PERMISSION_DENIED')

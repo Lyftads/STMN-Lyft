@@ -131,22 +131,17 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 }
 
 // ── Stat box ──────────────────────────────────────────────────
-function Stat({ label, value, sub, color='#e8e8e8', mono, dim, sparkData, sparkColor, current, previous }) {
+function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous }) {
   return (
-    <div style={{
-      background:'var(--glass)',
-      border:'1px solid var(--border)',
-      borderRadius:8,
-      padding:'14px 16px',
-    }}>
-      <div style={{fontSize:11,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8,fontFamily:'Barlow Condensed',fontWeight:700}}>{label}</div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-        <div style={{fontSize:dim?22:30,fontWeight:800,color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>{value}</div>
-        {sparkData && <Sparkline data={sparkData} color={sparkColor || color} width={72} height={28} />}
+    <div className="glass-card" style={{padding:'20px 22px'}}>
+      <div className="label" style={{marginBottom:12}}>{label}</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+        <div className={dim?'metric-value-sm':'metric-value'}>{value}</div>
+        {sparkData && <Sparkline data={sparkData} color={sparkColor || 'var(--accent)'} width={80} height={32} />}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
         <DeltaBadge current={current} previous={previous} />
-        {sub && <div style={{fontSize:12,color:'var(--text3)'}}>{sub}</div>}
+        {sub && <span style={{fontSize:12,color:'var(--text3)'}}>{sub}</span>}
       </div>
     </div>
   )
@@ -1867,57 +1862,56 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
-          <div style={{marginBottom:20}}>
+          <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <Stat label="Fatturato" value={f0(periodTotals.revenue || totFat)} color="#22c55e"
-              sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="#22c55e"
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+            <Stat label="Fatturato" value={f0(periodTotals.revenue || totFat)}
+              sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={periodTotals.revenue} previous={prevTotals.revenue} />
             <Stat label="Ordini" value={fn(periodTotals.orders || totOrd)}
-              sparkData={swCurrent.map(w=>w.ordini)} sparkColor="#3b82f6"
+              sparkData={swCurrent.map(w=>w.ordini)} sparkColor="var(--accent)"
               current={periodTotals.orders} previous={prevTotals.orders} />
-            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} color="#3b82f6"
+            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'}
               sparkData={swCurrent.map(w=> w.ordini > 0 ? w.fatturato/w.ordini : 0)}
               current={avgAOV} previous={prevTotals.orders > 0 ? prevTotals.revenue/prevTotals.orders : null} />
-            <Stat label="Nuovi clienti" value={fn(periodTotals.nc || totNC)} color="#06b6d4"
-              sparkData={swCurrent.map(w=>w.nc)} sparkColor="#06b6d4"
+            <Stat label="Nuovi clienti" value={fn(periodTotals.nc || totNC)}
+              sparkData={swCurrent.map(w=>w.nc)} sparkColor="var(--cyan)"
               current={periodTotals.nc} previous={prevTotals.nc} />
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} color="#22c55e" />
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} NC`} />
-            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} color="#3b82f6"
-              sparkData={mwCurrent.map(w=>w.spend)} sparkColor="#3b82f6"
+            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'}
+              sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
             <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sub="Meta + Google" />
           </div>
 
           {totResi > 0 && (
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
-              <Stat label="Resi totali" value={f0(totResi)} color="#ef4444" />
-              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} color="#ef4444" dim />
-              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} color="#ef4444" dim />
+            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
+              <Stat label="Resi totali" value={f0(totResi)} />
+              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} dim />
+              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} dim />
             </div>
           )}
 
-          {/* Ratio LTV:CAC storico — usa `data` (tutti i mesi, non filtrato anno corrente) */}
-          <div style={S.card}>
-            <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
+          <div className="reveal-zoom glass-section" style={{padding:28}}>
+            <p className="label" style={{marginBottom:18}}>
               Ratio LTV:CAC mensile
             </p>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data} margin={{top:4,right:16,left:0,bottom:4}}>
                 <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-                <XAxis dataKey="month" tick={{fill:'#94a3b8',fontSize:10,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fill:'#94a3b8',fontSize:10}} axisLine={false} tickLine={false} />
-                <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
+                <XAxis dataKey="month" tick={{fill:'var(--text3)',fontSize:11}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fill:'var(--text3)',fontSize:11}} axisLine={false} tickLine={false} />
+                <ReferenceLine y={3} stroke="var(--green)" strokeDasharray="4 4" strokeOpacity={0.4} label={{value:'3:1',fill:'var(--green)',fontSize:10}} />
                 <Tooltip content={<ChartTip />} />
                 <Legend />
-                <Line dataKey="ratio" name="Ratio" stroke="#22c55e" strokeWidth={2} dot={{r:4}} strokeDasharray="6 4" connectNulls />
-                <Line dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:4}} connectNulls />
+                <Line dataKey="ratio" name="Ratio" stroke="var(--green)" strokeWidth={2} dot={{r:3,fill:'var(--green)'}} strokeDasharray="6 4" connectNulls />
+                <Line dataKey="mer" name="MER" stroke="var(--text)" strokeWidth={2} dot={{r:3,fill:'var(--text)'}} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -307,7 +307,7 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
-              {setPreset && (
+              {setPreset && tab === 'dashboard' && (
                 <select
                   value={preset}
                   onChange={e => setPreset(e.target.value)}

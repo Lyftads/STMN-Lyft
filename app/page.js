@@ -1779,21 +1779,27 @@ export default function App() {
   const rangeEnd = kpiRange?.until?.slice(0, 7) || `${currentYear}-12`
   const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
-  // ── Totali periodo selezionato (da dati settimanali filtrati per range esatto) ──
-  const totFat   = periodTotals.revenue
-  const totFatNC = swCurrent.reduce((s,w)=>s + Number(w.fatturNC || 0), 0)
-  const totFatRC = swCurrent.reduce((s,w)=>s + Number(w.fatturRC || 0), 0)
+  // ── Totali periodo selezionato ──
+  // Strategia: per preset con granularità mese (last_28d+, current_month, last_month, ytd, last_90d)
+  // uso dataYear (mesi interi, dati Shopify Admin = stessi del tab Mensile).
+  // Per sub-month (today/yesterday/7d/14d) uso periodTotals (settimanali).
+  const subMonthPresets = ['today','yesterday','last_7d','last_14d']
+  const useWeekly = subMonthPresets.includes(preset)
 
-  const totResi   = periodTotals.resi
-  const totResiNC = swCurrent.reduce((s,w)=>s + Number(w.resiNC || 0), 0)
-  const totResiRC = swCurrent.reduce((s,w)=>s + Number(w.resiRC || 0), 0)
+  const totFat   = useWeekly ? periodTotals.revenue : dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0)
+  const totFatNC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.fatturNC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.fatturNC || 0), 0)
+  const totFatRC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.fatturRC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.fatturRC || 0), 0)
 
-  const totOrd   = periodTotals.orders
-  const totNC    = periodTotals.nc
-  const totRC    = periodTotals.rc
-  const totSes   = periodTotals.sessions
+  const totResi   = useWeekly ? periodTotals.resi : dataYear.reduce((s,m)=>s + Number(m.resi || 0), 0)
+  const totResiNC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.resiNC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.resiNC || 0), 0)
+  const totResiRC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.resiRC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.resiRC || 0), 0)
 
-  const totMeta  = periodTotals.metaSpend
+  const totOrd   = useWeekly ? periodTotals.orders : dataYear.reduce((s,m)=>s + Number(m.ordini || 0), 0)
+  const totNC    = useWeekly ? periodTotals.nc     : dataYear.reduce((s,m)=>s + Number(m.nc || 0), 0)
+  const totRC    = useWeekly ? periodTotals.rc     : dataYear.reduce((s,m)=>s + Number(m.rc || 0), 0)
+  const totSes   = useWeekly ? periodTotals.sessions : dataYear.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
+
+  const totMeta  = useWeekly ? periodTotals.metaSpend : dataYear.reduce((s,m)=>s + Number(m.metaSpend || 0), 0)
   const totGoog  = dataYear.reduce((s,m)=>s + Number(m.googleSpend || 0), 0)
   const totSpend = totMeta + totGoog
 

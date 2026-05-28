@@ -1779,23 +1779,23 @@ export default function App() {
   const rangeEnd = kpiRange?.until?.slice(0, 7) || `${currentYear}-12`
   const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
-  // ── Totali periodo selezionato ──
-  const totFat   = dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0)
-  const totFatNC = dataYear.reduce((s,m)=>s + Number(m.fatturNC  || 0), 0)
-  const totFatRC = dataYear.reduce((s,m)=>s + Number(m.fatturRC  || 0), 0)
+  // ── Totali periodo selezionato (da dati settimanali filtrati per range esatto) ──
+  const totFat   = periodTotals.revenue
+  const totFatNC = swCurrent.reduce((s,w)=>s + Number(w.fatturNC || 0), 0)
+  const totFatRC = swCurrent.reduce((s,w)=>s + Number(w.fatturRC || 0), 0)
 
-  const totResi   = dataYear.reduce((s,m)=>s + Number(m.resi   || 0), 0)
-  const totResiNC = dataYear.reduce((s,m)=>s + Number(m.resiNC || 0), 0)
-  const totResiRC = dataYear.reduce((s,m)=>s + Number(m.resiRC || 0), 0)
+  const totResi   = periodTotals.resi
+  const totResiNC = swCurrent.reduce((s,w)=>s + Number(w.resiNC || 0), 0)
+  const totResiRC = swCurrent.reduce((s,w)=>s + Number(w.resiRC || 0), 0)
 
-  const totOrd   = dataYear.reduce((s,m)=>s + Number(m.ordini   || 0), 0)
-  const totNC    = dataYear.reduce((s,m)=>s + Number(m.nc       || 0), 0)
-  const totRC    = dataYear.reduce((s,m)=>s + Number(m.rc       || 0), 0)
-  const totSes   = dataYear.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
+  const totOrd   = periodTotals.orders
+  const totNC    = periodTotals.nc
+  const totRC    = periodTotals.rc
+  const totSes   = periodTotals.sessions
 
-  const totMeta  = dataYear.reduce((s,m)=>s + Number(m.metaSpend   || 0), 0)
+  const totMeta  = periodTotals.metaSpend
   const totGoog  = dataYear.reduce((s,m)=>s + Number(m.googleSpend || 0), 0)
-  const totSpend = dataYear.reduce((s,m)=>s + Number(m.totalSpend  || 0), 0)
+  const totSpend = totMeta + totGoog
 
   const avgAOV   = totOrd > 0 ? totFat   / totOrd : 0
   const avgAOVNC = totNC  > 0 ? totFatNC / totNC  : 0
@@ -1867,18 +1867,18 @@ export default function App() {
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
-            <Stat label="Fatturato" value={f0(periodTotals.revenue || totFat)}
+            <Stat label="Fatturato" value={totFat>0?f0(totFat):'—'}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
-              current={periodTotals.revenue} previous={prevTotals.revenue} />
-            <Stat label="Ordini" value={fn(periodTotals.orders || totOrd)}
+              current={totFat} previous={prevTotals.revenue} />
+            <Stat label="Ordini" value={totOrd>0?fn(totOrd):'—'}
               sparkData={swCurrent.map(w=>w.ordini)} sparkColor="var(--accent)"
-              current={periodTotals.orders} previous={prevTotals.orders} />
+              current={totOrd} previous={prevTotals.orders} />
             <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'}
               sparkData={swCurrent.map(w=> w.ordini > 0 ? w.fatturato/w.ordini : 0)}
               current={avgAOV} previous={prevTotals.orders > 0 ? prevTotals.revenue/prevTotals.orders : null} />
-            <Stat label="Nuovi clienti" value={fn(periodTotals.nc || totNC)}
+            <Stat label="Nuovi clienti" value={totNC>0?fn(totNC):'—'}
               sparkData={swCurrent.map(w=>w.nc)} sparkColor="var(--cyan)"
-              current={periodTotals.nc} previous={prevTotals.nc} />
+              current={totNC} previous={prevTotals.nc} />
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>

@@ -1565,16 +1565,18 @@ export default function App() {
     clicks: sumField(mwCurrent, 'linkClicks'),
   }
 
+  const spr = live?.shopifyPrevRange
+  const mpr = live?.metaPrevRange
   const prevTotals = {
-    revenue: sumField(swPrev, 'fatturato'),
-    orders: sumField(swPrev, 'ordini'),
-    nc: sumField(swPrev, 'nc'),
-    rc: sumField(swPrev, 'rc'),
-    sessions: sumField(swPrev, 'uniqueSessions'),
-    resi: sumField(swPrev, 'resi'),
-    metaSpend: sumField(mwPrev, 'spend'),
-    impressions: sumField(mwPrev, 'impressions'),
-    clicks: sumField(mwPrev, 'linkClicks'),
+    revenue: spr ? spr.revenue  : sumField(swPrev, 'fatturato'),
+    orders:  spr ? spr.orders   : sumField(swPrev, 'ordini'),
+    nc:      spr ? spr.nc       : sumField(swPrev, 'nc'),
+    rc:      spr ? spr.rc       : sumField(swPrev, 'rc'),
+    sessions:spr ? spr.sessions : sumField(swPrev, 'uniqueSessions'),
+    resi:    spr ? spr.resi     : sumField(swPrev, 'resi'),
+    metaSpend:   mpr ? mpr.spend       : sumField(mwPrev, 'spend'),
+    impressions: mpr ? mpr.impressions : sumField(mwPrev, 'impressions'),
+    clicks:      mpr ? mpr.clicks      : sumField(mwPrev, 'linkClicks'),
   }
 
   const updateWeek = (week, key, value) => {
@@ -1780,26 +1782,25 @@ export default function App() {
   const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
   // ── Totali periodo selezionato ──
-  // Strategia: per preset con granularità mese (last_28d+, current_month, last_month, ytd, last_90d)
-  // uso dataYear (mesi interi, dati Shopify Admin = stessi del tab Mensile).
-  // Per sub-month (today/yesterday/7d/14d) uso periodTotals (settimanali).
-  const subMonthPresets = ['today','yesterday','last_7d','last_14d']
-  const useWeekly = subMonthPresets.includes(preset)
+  // Usa shopifyRange (Shopify Admin API live, per qualsiasi range esatto) e metaRange (Meta Graph API live).
+  // Fallback: aggregazione mensile/settimanale dai dati cached se l'endpoint live non risponde.
+  const sr = live?.shopifyRange
+  const mr = live?.metaRange
 
-  const totFat   = useWeekly ? periodTotals.revenue : dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0)
-  const totFatNC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.fatturNC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.fatturNC || 0), 0)
-  const totFatRC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.fatturRC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.fatturRC || 0), 0)
+  const totFat   = sr ? sr.revenue   : (periodTotals.revenue || dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0))
+  const totFatNC = sr ? sr.fatturNC  : dataYear.reduce((s,m)=>s + Number(m.fatturNC || 0), 0)
+  const totFatRC = sr ? sr.fatturRC  : dataYear.reduce((s,m)=>s + Number(m.fatturRC || 0), 0)
 
-  const totResi   = useWeekly ? periodTotals.resi : dataYear.reduce((s,m)=>s + Number(m.resi || 0), 0)
-  const totResiNC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.resiNC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.resiNC || 0), 0)
-  const totResiRC = useWeekly ? swCurrent.reduce((s,w)=>s + Number(w.resiRC || 0), 0) : dataYear.reduce((s,m)=>s + Number(m.resiRC || 0), 0)
+  const totResi   = sr ? sr.resi   : dataYear.reduce((s,m)=>s + Number(m.resi || 0), 0)
+  const totResiNC = sr ? sr.resiNC : dataYear.reduce((s,m)=>s + Number(m.resiNC || 0), 0)
+  const totResiRC = sr ? sr.resiRC : dataYear.reduce((s,m)=>s + Number(m.resiRC || 0), 0)
 
-  const totOrd   = useWeekly ? periodTotals.orders : dataYear.reduce((s,m)=>s + Number(m.ordini || 0), 0)
-  const totNC    = useWeekly ? periodTotals.nc     : dataYear.reduce((s,m)=>s + Number(m.nc || 0), 0)
-  const totRC    = useWeekly ? periodTotals.rc     : dataYear.reduce((s,m)=>s + Number(m.rc || 0), 0)
-  const totSes   = useWeekly ? periodTotals.sessions : dataYear.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
+  const totOrd   = sr ? sr.orders : (periodTotals.orders || dataYear.reduce((s,m)=>s + Number(m.ordini || 0), 0))
+  const totNC    = sr ? sr.nc     : (periodTotals.nc     || dataYear.reduce((s,m)=>s + Number(m.nc || 0), 0))
+  const totRC    = sr ? sr.rc     : (periodTotals.rc     || dataYear.reduce((s,m)=>s + Number(m.rc || 0), 0))
+  const totSes   = sr ? sr.sessions : dataYear.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
 
-  const totMeta  = useWeekly ? periodTotals.metaSpend : dataYear.reduce((s,m)=>s + Number(m.metaSpend || 0), 0)
+  const totMeta  = mr ? mr.spend : (periodTotals.metaSpend || dataYear.reduce((s,m)=>s + Number(m.metaSpend || 0), 0))
   const totGoog  = dataYear.reduce((s,m)=>s + Number(m.googleSpend || 0), 0)
   const totSpend = totMeta + totGoog
 

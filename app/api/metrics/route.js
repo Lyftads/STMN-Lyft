@@ -1035,6 +1035,68 @@ async function fetchMeta() {
   }
 }
 
+async function safeShopifyRange(range) {
+  try {
+    if (!range?.since || !range?.until) return null
+    const [sales, sessions] = await Promise.all([
+      fetchShopifySalesRange(range.since, range.until),
+      fetchShopifyVisitorsRange(range.since, range.until),
+    ])
+    return {
+      since: range.since,
+      until: range.until,
+      revenue: sales.fatturato || 0,
+      fatturNC: sales.fatturNC || 0,
+      fatturRC: sales.fatturRC || 0,
+      resi: sales.resi || 0,
+      resiNC: sales.resiNC || 0,
+      resiRC: sales.resiRC || 0,
+      orders: sales.ordini || 0,
+      nc: sales.nc || 0,
+      rc: sales.rc || 0,
+      sessions: sessions || 0,
+    }
+  } catch (e) {
+    console.log('shopifyRange error:', e.message)
+    return null
+  }
+}
+
+async function safeMetaRange(range) {
+  try {
+    if (!META_TOKEN || !META_ACCOUNT) return null
+    if (!range?.since || !range?.until) return null
+    const accounts = META_ACCOUNT.split(',').map(s => s.trim()).filter(Boolean)
+    const fields = 'spend,impressions,reach,frequency,cpm,ctr,outbound_clicks,cost_per_outbound_click'
+    let spend = 0, impressions = 0, reach = 0, clicks = 0
+    for (const id of accounts) {
+      const url = `https://graph.facebook.com/v19.0/${id}/insights?fields=${fields}&time_range={"since":"${range.since}","until":"${range.until}"}&access_token=${META_TOKEN}`
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.error) continue
+      for (const d of (data.data || [])) {
+        spend += parseFloat(d.spend || 0)
+        impressions += parseInt(d.impressions || 0)
+        reach += parseInt(d.reach || 0)
+        clicks += Array.isArray(d.outbound_clicks)
+          ? parseInt(d.outbound_clicks.find(x => x.action_type === 'outbound_click')?.value || 0)
+          : 0
+      }
+    }
+    return {
+      since: range.since,
+      until: range.until,
+      spend: Math.round(spend * 100) / 100,
+      impressions,
+      reach,
+      clicks,
+    }
+  } catch (e) {
+    console.log('metaRange error:', e.message)
+    return null
+  }
+}
+
 async function safeShopifyTopProducts(range) {
   try {
     return await fetchShopifyTopProducts(range?.since || START_DATE, range?.until || null)
@@ -1083,6 +1145,10 @@ export async function GET(req) {
       previousShopifyTopProducts,
       previousShopifyMarketingSources,
       previousShopifyDayBreakdown,
+      shopifyRange,
+      shopifyPrevRange,
+      metaRange,
+      metaPrevRange,
     ] = await Promise.all([
       fetchAOV(),
       fetchShopifyWeekly(),
@@ -1095,6 +1161,10 @@ export async function GET(req) {
       safeShopifyTopProducts(previousRange),
       safeShopifyMarketingSources(previousRange),
       safeShopifyDayBreakdown(previousRange),
+      safeShopifyRange(range),
+      safeShopifyRange(previousRange),
+      safeMetaRange(range),
+      safeMetaRange(previousRange),
     ])
 
     const metaTotal = metaMonthly.reduce(
@@ -1112,6 +1182,11 @@ export async function GET(req) {
       shopifyTopProducts,
       shopifyMarketingSources,
       shopifyDayBreakdown,
+
+      shopifyRange,
+      shopifyPrevRange,
+      metaRange,
+      metaPrevRange,
 
       kpiBrain: {
         preset,

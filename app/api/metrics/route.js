@@ -407,9 +407,8 @@ async function fetchShopifySalesRange(start, end) {
 
     if (isNew) {
       const rowNC =
-        cleanCount(row.new_customers) ||
         cleanCount(row.orders_first_time) ||
-        cleanCount(row.customers) ||
+        cleanCount(row.new_customers) ||
         rowOrders
 
       const rowFatNC =
@@ -423,9 +422,8 @@ async function fetchShopifySalesRange(start, end) {
 
     if (isReturning) {
       const rowRC =
-        cleanCount(row.returning_customers) ||
         cleanCount(row.orders_returning) ||
-        cleanCount(row.customers) ||
+        cleanCount(row.returning_customers) ||
         rowOrders
 
       const rowFatRC =

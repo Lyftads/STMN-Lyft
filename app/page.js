@@ -347,22 +347,36 @@ function Simulator({ cfg }) {
     height: 6,
   }
 
-  // Futuristic card wrapper inline (stesso pattern dei FxChartCard ma più compatto)
-  const fxBlock = (children, { glow = '#22c55e', padding = 24 } = {}) => (
+  // Palette blu notte coerente con le altre tab
+  const NIGHT_BLUE = '#1e3a8a'   // navy profondo (sliders fill base)
+  const NIGHT_BLUE_LIGHT = '#3b82f6' // hue intermedio
+  const ACCENT_GLOW = '#2997ff'  // accent Apple per glow/highlight
+
+  // Glass card 3D — replica del .glass-panel da globals.css con effetto
+  // tridimensionale: border-top lighter, border-bottom scuro, shadow
+  // stratificate, backdrop blur reale
+  const fxBlock = (children, { glow = ACCENT_GLOW, padding = 24 } = {}) => (
     <div style={{
       position: 'relative',
-      background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(255,255,255,0.04)',
+      backdropFilter: 'blur(40px) saturate(2.2)',
+      WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
       borderRadius: 22,
       overflow: 'hidden',
-      boxShadow: '0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+      border: '1.5px solid rgba(255,255,255,0.06)',
+      borderTopColor: 'rgba(255,255,255,0.12)',
+      borderBottomColor: 'rgba(0,0,0,0.55)',
+      boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
     }}>
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
+        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+        background: `linear-gradient(90deg, transparent, ${glow}88, transparent)`,
+        filter: 'blur(0.3px)',
+        opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
+        zIndex: 1,
       }} />
-      <div style={{ padding }}>{children}</div>
+      <div style={{ padding, position: 'relative', zIndex: 2 }}>{children}</div>
     </div>
   )
 
@@ -423,28 +437,26 @@ function Simulator({ cfg }) {
               {k:'margin',l:'Margine %',            min:5,  max:80,  step:1,    fmt:v=>`${v}%`},
               {k:'cac',   l:'CAC',                  min:5,  max:300, step:1,    fmt:v=>`€${v}`},
             ].map(({k,l,min,max,step,fmt}) => {
-              // Un solo accent per tutti gli slider — più minimale/futuristico
-              const accent = '#2997ff'
               const pct = ((s[k] - min) / (max - min)) * 100
               return (
                 <div key={k} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{l}</span>
-                    <span style={{ fontSize: 14, fontFamily: 'Barlow', fontWeight: 900, color: accent }}>{fmt(s[k])}</span>
+                    <span style={{ fontSize: 14, fontFamily: 'Barlow', fontWeight: 900, color: '#fff' }}>{fmt(s[k])}</span>
                   </div>
-                  <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{ position: 'relative', height: 6, background: 'rgba(0,0,0,0.4)', borderRadius: 999, overflow: 'hidden', marginBottom: 4, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6)' }}>
                     <div style={{
                       position: 'absolute', top: 0, left: 0, bottom: 0,
                       width: `${pct}%`,
-                      background: `linear-gradient(90deg, ${accent}88, ${accent})`,
+                      background: `linear-gradient(90deg, ${NIGHT_BLUE} 0%, ${NIGHT_BLUE_LIGHT} 100%)`,
                       borderRadius: 999,
-                      boxShadow: `0 0 12px ${accent}66`,
+                      boxShadow: `0 0 8px ${ACCENT_GLOW}40`,
                       transition: 'width 0.12s',
                     }} />
                   </div>
                   <input type="range" min={min} max={max} step={step} value={s[k]}
                     onChange={e=>set(k,parseFloat(e.target.value))}
-                    style={{ ...sliderStyle, accentColor: accent, marginTop: -10, position: 'relative', zIndex: 1, opacity: 0.7 }} />
+                    style={{ ...sliderStyle, accentColor: NIGHT_BLUE_LIGHT, marginTop: -10, position: 'relative', zIndex: 1, opacity: 0.6 }} />
                 </div>
               )
             })}
@@ -472,16 +484,19 @@ function Simulator({ cfg }) {
                 <div key={l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '14px 16px',
-                  background: 'rgba(255,255,255,0.025)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderTopColor: 'rgba(255,255,255,0.10)',
+                  borderBottomColor: 'rgba(0,0,0,0.4)',
                   borderRadius: 12,
                   marginBottom: 10,
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
                 }}>
                   <div>
                     <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>{l}</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{sub}</div>
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Barlow', color: '#2997ff' }}>{v}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Barlow', color: ACCENT_GLOW }}>{v}</div>
                 </div>
               ))}
             </>
@@ -507,18 +522,24 @@ function Simulator({ cfg }) {
           return (
             <div key={i} style={{
               position: 'relative',
-              background: `linear-gradient(155deg, ${color}18 0%, rgba(8,8,18,0.85) 100%)`,
-              border: `1px solid ${color}40`,
+              background: 'rgba(255,255,255,0.035)',
+              backdropFilter: 'blur(40px) saturate(2.2)',
+              WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+              border: '1.5px solid rgba(255,255,255,0.06)',
+              borderTopColor: 'rgba(255,255,255,0.12)',
+              borderBottomColor: 'rgba(0,0,0,0.5)',
               borderRadius: 18,
-              padding: 20,
-              boxShadow: `0 4px 16px ${color}1a, inset 0 1px 0 rgba(255,255,255,0.04)`,
+              padding: 22,
               overflow: 'hidden',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.2)',
             }}>
               <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+                position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+                background: `linear-gradient(90deg, transparent, ${color}aa, transparent)`,
+                filter: 'blur(0.3px)',
                 animation: 'cr-shine 3.5s ease-in-out infinite',
                 animationDelay: `${i * 0.3}s`,
+                zIndex: 1,
               }} />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -573,18 +594,24 @@ function Simulator({ cfg }) {
                       <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{l}</span>
                       <span style={{ fontSize: 13, fontFamily: 'Barlow', fontWeight: 900, color: '#fff' }}>{fmt(sc[k])}</span>
                     </div>
-                    <div style={{ position: 'relative', height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 999, marginBottom: 4 }}>
+                    <div style={{
+                      position: 'relative', height: 5,
+                      background: 'rgba(0,0,0,0.45)',
+                      borderRadius: 999,
+                      marginBottom: 4,
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6)',
+                    }}>
                       <div style={{
                         position: 'absolute', top: 0, left: 0, bottom: 0,
                         width: `${pct}%`,
-                        background: `linear-gradient(90deg, ${color}66, ${color})`,
+                        background: `linear-gradient(90deg, ${NIGHT_BLUE}, ${color})`,
                         borderRadius: 999,
-                        boxShadow: `0 0 8px ${color}66`,
+                        boxShadow: `0 0 6px ${color}55`,
                       }} />
                     </div>
                     <input type="range" min={min} max={max} step={step} value={sc[k]}
                       onChange={e=>setSc(i,k,parseFloat(e.target.value))}
-                      style={{ width: '100%', accentColor: color, marginTop: -8, opacity: 0.5, height: 5 }} />
+                      style={{ width: '100%', accentColor: color, marginTop: -8, opacity: 0.4, height: 5 }} />
                   </div>
                 )
               })}
@@ -594,10 +621,15 @@ function Simulator({ cfg }) {
       </div>
 
       <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 14,
+        background: 'rgba(255,255,255,0.03)',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.10)',
+        borderBottomColor: 'rgba(0,0,0,0.45)',
+        borderRadius: 16,
         overflowX: 'auto',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
+        backdropFilter: 'blur(20px) saturate(1.8)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
       }}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
@@ -652,10 +684,15 @@ function Simulator({ cfg }) {
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
         <div style={{
-          background: 'rgba(255,255,255,0.025)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1.5px solid rgba(255,255,255,0.06)',
+          borderTopColor: 'rgba(255,255,255,0.10)',
+          borderBottomColor: 'rgba(0,0,0,0.45)',
           borderRadius: 14,
-          padding: 20,
+          padding: 22,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(20px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
         }}>
           <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Fatturato vs Profitto netto</p>
           <ResponsiveContainer width="100%" height={200}>
@@ -671,10 +708,15 @@ function Simulator({ cfg }) {
           </ResponsiveContainer>
         </div>
         <div style={{
-          background: 'rgba(255,255,255,0.025)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1.5px solid rgba(255,255,255,0.06)',
+          borderTopColor: 'rgba(255,255,255,0.10)',
+          borderBottomColor: 'rgba(0,0,0,0.45)',
           borderRadius: 14,
-          padding: 20,
+          padding: 22,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(20px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
         }}>
           <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Breakdown costi</p>
           <ResponsiveContainer width="100%" height={200}>
@@ -716,17 +758,24 @@ function Simulator({ cfg }) {
         return (
           <div style={{
             marginTop: 22,
-            background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 18,
-            padding: 26,
+            background: 'rgba(255,255,255,0.035)',
+            backdropFilter: 'blur(40px) saturate(2.2)',
+            WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+            border: '1.5px solid rgba(255,255,255,0.06)',
+            borderTopColor: 'rgba(255,255,255,0.12)',
+            borderBottomColor: 'rgba(0,0,0,0.55)',
+            borderRadius: 22,
+            padding: 28,
             position: 'relative',
             overflow: 'hidden',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.75), 0 12px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.35), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
           }}>
             <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-              background: 'linear-gradient(90deg, transparent, #2997ff, transparent)',
+              position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+              background: `linear-gradient(90deg, transparent, ${ACCENT_GLOW}88, transparent)`,
+              filter: 'blur(0.3px)',
               animation: 'cr-shine 4s ease-in-out infinite',
+              zIndex: 1,
             }} />
 
             <div style={{ marginBottom: 22 }}>
@@ -745,12 +794,16 @@ function Simulator({ cfg }) {
               </p>
               {cashFlowAnalysis.map((r,i) => (
                 <div key={i} style={{
-                  background: 'rgba(255,255,255,0.025)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1.5px solid rgba(255,255,255,0.06)',
+                  borderTopColor: 'rgba(255,255,255,0.10)',
+                  borderBottomColor: 'rgba(0,0,0,0.4)',
+                  borderLeftColor: scenarioColors[i],
+                  borderLeftWidth: 3,
                   borderRadius: 12,
                   padding: '16px 18px',
                   marginBottom: 10,
-                  borderLeft: `3px solid ${scenarioColors[i]}`,
+                  boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
                 }}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                     <span style={{color:scenarioColors[i],fontWeight:900,fontSize:14.5}}>{r.name}</span>
@@ -779,10 +832,13 @@ function Simulator({ cfg }) {
                 color: 'var(--text)',
                 lineHeight: 1.7,
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.025)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1.5px solid rgba(255,255,255,0.06)',
+                borderTopColor: 'rgba(255,255,255,0.10)',
+                borderBottomColor: 'rgba(0,0,0,0.4)',
                 borderRadius: 12,
                 padding: '16px 18px',
+                boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
               }}>
                 {cashFlowAnalysis.map((r,i) => {
                   const isSafe = r.profittoNetto > 0 && r.netMarginPct >= 10
@@ -811,10 +867,13 @@ function Simulator({ cfg }) {
                 color: 'var(--text)',
                 lineHeight: 1.7,
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.025)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1.5px solid rgba(255,255,255,0.06)',
+                borderTopColor: 'rgba(255,255,255,0.10)',
+                borderBottomColor: 'rgba(0,0,0,0.4)',
                 borderRadius: 12,
                 padding: '16px 18px',
+                boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
               }}>
                 {scalable.length > 0 ? (
                   <>
@@ -836,11 +895,14 @@ function Simulator({ cfg }) {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
                   <div key={i} style={{
-                    background: 'rgba(255,255,255,0.025)',
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1.5px solid rgba(255,255,255,0.06)',
+                    borderTopColor: scenarioColors[i],
+                    borderTopWidth: 2,
+                    borderBottomColor: 'rgba(0,0,0,0.4)',
                     borderRadius: 12,
                     padding: '16px 18px',
-                    borderTop: `2px solid ${scenarioColors[i]}`,
+                    boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
                   }}>
                     <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12.5,marginBottom:10}}>{r.name} — 12 mesi</div>
                     <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.8}}>
@@ -860,11 +922,15 @@ function Simulator({ cfg }) {
 
             {/* Bottom line */}
             <div style={{
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(255,255,255,0.05)',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1.5px solid rgba(255,255,255,0.06)',
+              borderTopColor: 'rgba(255,255,255,0.10)',
+              borderBottomColor: 'rgba(0,0,0,0.4)',
+              borderLeftColor: ACCENT_GLOW,
+              borderLeftWidth: 3,
               borderRadius: 12,
               padding: '18px 22px',
-              borderLeft: '3px solid #2997ff',
+              boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
             }}>
               <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>Bottom line</p>
               <div style={{fontSize:13,color:'var(--text)',lineHeight:1.65,fontWeight:500}}>

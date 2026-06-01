@@ -35,10 +35,10 @@ function getLabel(value) {
   return value
 }
 
-export default function TimeframeSelector({ value, onChange, disabled }) {
+export default function TimeframeSelector({ value, onChange, disabled, hideDateRange = false, monthsCount = 12 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
-  const months = getMonths(12)
+  const months = getMonths(monthsCount)
 
   useEffect(() => {
     if (!open) return
@@ -103,12 +103,15 @@ export default function TimeframeSelector({ value, onChange, disabled }) {
             padding: '14px 0 16px',
           }}
         >
-          <SectionLabel>Date range</SectionLabel>
-          {DATE_RANGE.map(opt => (
-            <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
-          ))}
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '14px 18px' }} />
+          {!hideDateRange && (
+            <>
+              <SectionLabel>Date range</SectionLabel>
+              {DATE_RANGE.map(opt => (
+                <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
+              ))}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '14px 18px' }} />
+            </>
+          )}
 
           <SectionLabel>By month</SectionLabel>
           {months.map(opt => (

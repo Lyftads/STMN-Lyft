@@ -1997,27 +1997,27 @@ export default function App() {
           return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind)}</div>)
         }
 
-        // ── Timeframe: usa il preset globale (TimeframeSelector) ──
-        const rangeSince = kpiRange?.since
-        const rangeUntil = kpiRange?.until
-        const prevSince = kpiPrevRange?.since
-        const prevUntil = kpiPrevRange?.until
+        // ── Timeframe Mensile: SEMPRE mese selezionato vs mese precedente ──
+        const fmtM2 = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+        const monthMinus = (m, n) => {
+          const [y, mm] = m.split('-').map(Number)
+          const d = new Date(y, mm - 1, 1)
+          d.setMonth(d.getMonth() - n)
+          return fmtM2(d)
+        }
 
-        const sinceM = rangeSince?.slice(0, 7)
-        const untilM = rangeUntil?.slice(0, 7)
-        const prevSinceM = prevSince?.slice(0, 7)
-        const prevUntilM = prevUntil?.slice(0, 7)
+        // Mese base: dal preset month_X se valido, altrimenti mese corrente
+        const baseMonth = (typeof preset === 'string' && preset.startsWith('month_'))
+          ? preset.slice(6)
+          : fmtM2(new Date())
 
-        const tfMonths = (sinceM && untilM)
-          ? data.filter(m => m.month >= sinceM && m.month <= untilM)
-          : []
-        const tfPrevMonths = (prevSinceM && prevUntilM)
-          ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
-          : []
+        const m0 = baseMonth                  // mese selezionato (corrente)
+        const m1 = monthMinus(baseMonth, 1)   // mese precedente
 
-        const tfLabel = rangeSince && rangeUntil
-          ? `${rangeSince} → ${rangeUntil}${prevSince ? ` vs ${prevSince} → ${prevUntil}` : ''}`
-          : '—'
+        const tfMonths = data.filter(m => m.month === m0)
+        const tfPrevMonths = data.filter(m => m.month === m1)
+
+        const tfLabel = `${m0} vs ${m1}`
 
         const sumField = (arr, key) => arr.reduce((s,m) => s + Number(m[key] || 0), 0)
         const divSafe = (a, b) => b > 0 ? a / b : null
@@ -2110,7 +2110,13 @@ export default function App() {
         <>
           {/* Timeframe selector */}
           <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-            <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+            <TimeframeSelector
+              value={preset?.startsWith('month_') ? preset : `month_${baseMonth}`}
+              onChange={setPreset}
+              disabled={loading}
+              hideDateRange
+              monthsCount={18}
+            />
             <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
               marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
               cursor:loading?'wait':'pointer', opacity:loading?0.5:1,

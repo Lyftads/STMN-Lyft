@@ -1097,37 +1097,43 @@ async function fetchShopifyOrdersAdmin(start, end, maxPages = 20) {
 async function safeShopifyRange(range) {
   if (!range?.since || !range?.until) return null
 
-  // Admin Orders API is the PRIMARY source (accurate, matches Shopify dashboard).
-  // ShopifyQL only used as fallback if Admin fails or hits pagination cap.
-  const [admin, sessions] = await Promise.all([
-    fetchShopifyOrdersAdmin(range.since, range.until).catch(e => { console.log('admin err:', e?.message); return null }),
+  // ShopifyQL is PRIMARY — uses Shopify's native NC/RC classification
+  // based on order time (not current customer state), and standardized
+  // total_sales field that matches the Admin dashboard.
+  const [salesQL, sessions] = await Promise.all([
+    fetchShopifySalesRange(range.since, range.until).catch(e => { console.log('salesQL err:', e?.message); return null }),
     fetchShopifyVisitorsRange(range.since, range.until).catch(e => { console.log('visitors err:', e?.message); return 0 }),
   ])
 
-  let sales = admin
+  let sales = salesQL
 
-  // If admin failed OR hit pagination cap (likely truncated data), fall back to ShopifyQL
-  if (!admin || admin.truncated) {
-    const salesQL = await fetchShopifySalesRange(range.since, range.until).catch(() => null)
-    if (salesQL && (salesQL.fatturato > 0 || salesQL.ordini > 0)) {
-      sales = salesQL
-    } else if (!sales) {
-      sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }
+  // Admin Orders API used only as fallback for sub-day ranges where
+  // ShopifyQL has aggregation latency (today/yesterday)
+  const sameDay = range.since === range.until
+  const shopifyQlEmpty = !salesQL || (!salesQL.fatturato && !salesQL.ordini)
+  if (sameDay && shopifyQlEmpty) {
+    const admin = await fetchShopifyOrdersAdmin(range.since, range.until, 4)
+    if (admin && admin.ordini > 0) {
+      sales = admin
     }
+  }
+
+  if (!sales) {
+    sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }
   }
 
   return {
     since: range.since,
     until: range.until,
-    revenue: sales?.fatturato || 0,
-    fatturNC: sales?.fatturNC || 0,
-    fatturRC: sales?.fatturRC || 0,
-    resi: sales?.resi || 0,
-    resiNC: sales?.resiNC || 0,
-    resiRC: sales?.resiRC || 0,
-    orders: sales?.ordini || 0,
-    nc: sales?.nc || 0,
-    rc: sales?.rc || 0,
+    revenue: sales.fatturato || 0,
+    fatturNC: sales.fatturNC || 0,
+    fatturRC: sales.fatturRC || 0,
+    resi: sales.resi || 0,
+    resiNC: sales.resiNC || 0,
+    resiRC: sales.resiRC || 0,
+    orders: sales.ordini || 0,
+    nc: sales.nc || 0,
+    rc: sales.rc || 0,
     sessions: sessions || 0,
   }
 }

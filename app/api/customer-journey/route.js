@@ -2,54 +2,51 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
+import { BigQuery } from '@google-cloud/bigquery'
 
-// Customer Journey API: replica GA4 Path Exploration con i dati che la
-// GA4 Data API ci permette di ottenere senza BigQuery.
-//
-// Limiti tecnici (importanti):
-// - landingPage e' session-scoped: ottimo per definire "da dove parte"
-// - pagePath e' event-scoped + sessions e' session-scoped: il count e'
-//   "sessioni che includono questa pagina"
-// - Senza BigQuery, NON possiamo ordinare gli step in vero ordine
-//   sequenziale. Approssimiamo filtrando per landingPage del path[0]
-//   e mostrando le pagine visitate in quelle sessioni.
-//
-// Risultato: il primo livello e' un vero entry point GA4, i livelli
-// successivi sono "altre pagine viste in quelle sessioni", che e'
-// quello che serve a Marino per capire il flusso di navigazione.
+// Customer Journey via BigQuery export GA4.
+// Vero sankey sequenziale: ricostruisce l'ordine reale delle pagine
+// visitate dentro ogni sessione (event_timestamp) e raggruppa per
+// (level, path-prefix) per ottenere conteggi accurati di transizione.
 
-async function getAccessToken() {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  return data.access_token || null
+let bqClient = null
+
+function getBQ() {
+  if (bqClient) return bqClient
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+  const projectId = process.env.BIGQUERY_PROJECT_ID
+  if (!raw || !projectId) return null
+  let credentials
+  try { credentials = JSON.parse(raw) } catch { return null }
+  bqClient = new BigQuery({ projectId, credentials })
+  return bqClient
 }
 
-async function runReport(token, propertyId, body) {
-  const res = await fetch(
-    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+function resolveDateRange(preset) {
+  const today = new Date()
+  const fmt = d => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+  switch (preset) {
+    case 'last_month': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const end = new Date(today.getFullYear(), today.getMonth(), 0)
+      return { start: fmt(start), end: fmt(end), label: 'Mese scorso' }
     }
-  )
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`GA4 ${res.status}: ${text.slice(0, 200)}`)
+    case 'last_90d': {
+      const start = new Date(today)
+      start.setDate(start.getDate() - 90)
+      return { start: fmt(start), end: fmt(today), label: '90 giorni' }
+    }
+    case 'last_180d': {
+      const start = new Date(today)
+      start.setDate(start.getDate() - 180)
+      return { start: fmt(start), end: fmt(today), label: '180 giorni' }
+    }
+    case 'current_month':
+    default: {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      return { start: fmt(start), end: fmt(today), label: 'Questo mese' }
+    }
   }
-  return res.json()
 }
 
 const PRETTY_TITLES = {
@@ -61,7 +58,6 @@ const PRETTY_TITLES = {
 function prettifyPath(p) {
   if (!p) return '(unknown)'
   if (PRETTY_TITLES[p]) return PRETTY_TITLES[p]
-  // Path tipo /products/paracalli-zero-slim → "Paracalli Zero Slim"
   const last = p.replace(/\/$/, '').split('/').pop() || p
   return last
     .replace(/[-_]/g, ' ')
@@ -69,11 +65,33 @@ function prettifyPath(p) {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-export async function GET(request) {
-  const propertyId = process.env.GA4_PROPERTY_ID
-  const hasConfig = propertyId && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN
+// Costruisce la WHERE per il path-prefix. path = ['/'] → solo livello 0
+// fissato. Ogni elemento path[i] vincola path_array[OFFSET(i)] = path[i].
+function buildPrefixWhere(path) {
+  if (!path.length) return ''
+  const clauses = path.map((_, i) => `path_array[OFFSET(${i})] = @p${i}`)
+  return `AND ${clauses.join(' AND ')}`
+}
 
-  if (!hasConfig) {
+function pathParams(path) {
+  const params = {}
+  const types = {}
+  path.forEach((p, i) => {
+    params[`p${i}`] = p
+    types[`p${i}`] = 'STRING'
+  })
+  return { params, types }
+}
+
+export async function GET(request) {
+  const bq = getBQ()
+  if (!bq) {
+    return NextResponse.json({ configured: false }, { status: 200 })
+  }
+
+  const dataset = process.env.BIGQUERY_DATASET
+  const projectId = process.env.BIGQUERY_PROJECT_ID
+  if (!dataset || !projectId) {
     return NextResponse.json({ configured: false }, { status: 200 })
   }
 
@@ -82,140 +100,140 @@ export async function GET(request) {
   const pathParam = searchParams.get('path') || ''
   const limit = Math.min(parseInt(searchParams.get('limit') || '12', 10), 25)
   const path = pathParam ? pathParam.split('|').filter(Boolean) : []
+  const level = path.length
 
-  // Risolve il preset in startDate/endDate GA4 (formato ISO o keyword)
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const today = new Date()
-  let startDate, endDate
-  switch (preset) {
-    case 'last_month': {
-      const firstPrev = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const lastPrev = new Date(today.getFullYear(), today.getMonth(), 0)
-      startDate = fmt(firstPrev)
-      endDate = fmt(lastPrev)
-      break
-    }
-    case 'last_90d':
-      startDate = '90daysAgo'
-      endDate = 'today'
-      break
-    case 'last_180d':
-      startDate = '180daysAgo'
-      endDate = 'today'
-      break
-    case 'current_month':
-    default: {
-      const firstThis = new Date(today.getFullYear(), today.getMonth(), 1)
-      startDate = fmt(firstThis)
-      endDate = 'today'
-      break
-    }
+  const { start, end } = resolveDateRange(preset)
+
+  // SQL: ricostruzione path sequenziale.
+  // 1) page_views: estrae page_path, session_id, event_timestamp da
+  //    tutte le tabelle events_* e events_intraday_* nel range
+  // 2) ordered: aggiunge LAG per dedupe consecutive duplicates
+  //    (refresh della stessa pagina non e' un "passaggio")
+  // 3) deduped: tiene solo le pagine effettivamente diverse dalla precedente
+  // 4) session_paths: aggrega per sessione in array ordinato
+  // 5) la SELECT finale legge path_array[OFFSET(level)] applicando il prefix
+  // events_* wildcard matcha SIA events_YYYYMMDD (suffix = '20260102')
+  // SIA events_intraday_YYYYMMDD (suffix = 'intraday_20260102'). Cosi'
+  // catturiamo anche il dato di oggi in real-time, senza dover gestire
+  // due wildcard separate (e potenziali errori se intraday non esiste).
+  const tableUnion = `
+    SELECT * FROM \`${projectId}.${dataset}.events_*\`
+    WHERE _TABLE_SUFFIX BETWEEN @start_date AND @end_date
+       OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', @start_date) AND CONCAT('intraday_', @end_date)
+  `
+
+  const prefixWhere = buildPrefixWhere(path)
+  const { params: prefixParams, types: prefixTypes } = pathParams(path)
+
+  // Unica query: top N pagine al livello richiesto + totale matchanti
+  // via window function. Salva uno scan completo di BigQuery rispetto
+  // a due query separate.
+  const query = `
+    WITH events_all AS (${tableUnion}),
+    page_views AS (
+      SELECT
+        user_pseudo_id,
+        (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS session_id,
+        event_timestamp,
+        COALESCE(
+          NULLIF(
+            REGEXP_EXTRACT(
+              (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'),
+              r'^https?://[^/]+([^?#]*)'
+            ),
+            ''
+          ),
+          '/'
+        ) AS page_path
+      FROM events_all
+      WHERE event_name = 'page_view'
+    ),
+    ordered AS (
+      SELECT
+        user_pseudo_id, session_id, page_path, event_timestamp,
+        LAG(page_path) OVER (PARTITION BY user_pseudo_id, session_id ORDER BY event_timestamp) AS prev_path
+      FROM page_views
+      WHERE session_id IS NOT NULL
+    ),
+    deduped AS (
+      SELECT user_pseudo_id, session_id, page_path, event_timestamp
+      FROM ordered
+      WHERE prev_path IS NULL OR prev_path != page_path
+    ),
+    session_paths AS (
+      SELECT
+        user_pseudo_id, session_id,
+        ARRAY_AGG(page_path ORDER BY event_timestamp) AS path_array
+      FROM deduped
+      GROUP BY user_pseudo_id, session_id
+    ),
+    grouped AS (
+      SELECT
+        path_array[OFFSET(@level)] AS page,
+        COUNT(*) AS sessions
+      FROM session_paths
+      WHERE ARRAY_LENGTH(path_array) > @level
+      ${prefixWhere}
+      GROUP BY page
+    )
+    SELECT
+      page,
+      sessions,
+      SUM(sessions) OVER () AS total_sessions
+    FROM grouped
+    ORDER BY sessions DESC
+    LIMIT @limit
+  `
+
+  const sharedParams = {
+    start_date: start,
+    end_date: end,
+    level,
+    limit,
+    ...prefixParams,
+  }
+  const sharedTypes = {
+    start_date: 'STRING',
+    end_date: 'STRING',
+    level: 'INT64',
+    limit: 'INT64',
+    ...prefixTypes,
   }
 
   try {
-    const token = await getAccessToken()
-    if (!token) throw new Error('Google OAuth failed')
+    const [rows] = await bq.query({
+      query,
+      params: sharedParams,
+      types: sharedTypes,
+      location: 'us-west2',
+    })
 
-    const dateRange = { startDate, endDate }
-
-    // Livello 0 (path vuoto) → entry pages
-    if (path.length === 0) {
-      const [landingRep, totalRep] = await Promise.all([
-        runReport(token, propertyId, {
-          dateRanges: [dateRange],
-          dimensions: [{ name: 'landingPage' }],
-          metrics: [{ name: 'sessions' }],
-          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-          limit,
-        }),
-        runReport(token, propertyId, {
-          dateRanges: [dateRange],
-          metrics: [{ name: 'sessions' }],
-        }),
-      ])
-
-      const totalSessions = parseFloat(totalRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
-      const nodes = (landingRep?.rows || []).map(r => ({
-        path: r.dimensionValues?.[0]?.value || '(unknown)',
-        title: prettifyPath(r.dimensionValues?.[0]?.value || ''),
-        sessions: parseFloat(r.metricValues?.[0]?.value || '0'),
-      })).filter(n => n.sessions > 0)
-
-      return NextResponse.json({
-        configured: true,
-        level: 0,
-        path: [],
-        rootSessions: totalSessions,
-        parentSessions: totalSessions,
-        nodes,
-        preset,
-        dateRange: { startDate, endDate },
-        updatedAt: new Date().toISOString(),
-      })
-    }
-
-    // Livello 1+ → pagine viste in sessioni che hanno path[0] come landing
-    // (approssimazione: ignoriamo gli step intermedi nel filter perche'
-    // GA4 Data API senza BigQuery non supporta filtri session-scoped
-    // su pagePath. Il path serve solo a costruire il breadcrumb.)
-    const landingFilter = {
-      filter: {
-        fieldName: 'landingPage',
-        stringFilter: { value: path[0], matchType: 'EXACT' },
-      },
-    }
-
-    // Esclude le pagine gia' nel breadcrumb dal next-step
-    const excludeFilters = path.map(p => ({
-      notExpression: {
-        filter: {
-          fieldName: 'pagePath',
-          stringFilter: { value: p, matchType: 'EXACT' },
-        },
-      },
-    }))
-
-    const dimensionFilter = excludeFilters.length
-      ? { andGroup: { expressions: [landingFilter, ...excludeFilters] } }
-      : landingFilter
-
-    const [pagesRep, parentRep] = await Promise.all([
-      runReport(token, propertyId, {
-        dateRanges: [dateRange],
-        dimensions: [{ name: 'pagePath' }],
-        metrics: [{ name: 'sessions' }],
-        dimensionFilter,
-        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-        limit,
-      }),
-      // Sessioni totali con quella landing page → per calcolare la %
-      runReport(token, propertyId, {
-        dateRanges: [dateRange],
-        metrics: [{ name: 'sessions' }],
-        dimensionFilter: landingFilter,
-      }),
-    ])
-
-    const parentSessions = parseFloat(parentRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
-    const nodes = (pagesRep?.rows || []).map(r => ({
-      path: r.dimensionValues?.[0]?.value || '(unknown)',
-      title: prettifyPath(r.dimensionValues?.[0]?.value || ''),
-      sessions: parseFloat(r.metricValues?.[0]?.value || '0'),
-    })).filter(n => n.sessions > 0)
+    const parentSessions = Number(rows?.[0]?.total_sessions || 0)
+    const nodes = (rows || [])
+      .filter(r => r.page != null)
+      .map(r => ({
+        path: r.page,
+        title: prettifyPath(r.page),
+        sessions: Number(r.sessions || 0),
+      }))
 
     return NextResponse.json({
       configured: true,
-      level: path.length,
+      provider: 'bigquery',
+      level,
       path,
       parentSessions,
+      rootSessions: level === 0 ? parentSessions : null,
       nodes,
       preset,
-      dateRange: { startDate, endDate },
-      // Hint UI: avvisa che oltre il livello 1 e' un'approssimazione
-      approximated: path.length > 1,
+      dateRange: { start, end },
+      approximated: false,
       updatedAt: new Date().toISOString(),
     })
   } catch (e) {
-    return NextResponse.json({ configured: false, error: e.message }, { status: 500 })
+    return NextResponse.json({
+      configured: false,
+      error: e?.message?.slice(0, 500) || 'BigQuery error',
+    }, { status: 500 })
   }
 }

@@ -25,6 +25,20 @@ function getMonths(count = 12) {
   return out
 }
 
+function getQuarters(count = 8) {
+  const out = []
+  const now = new Date()
+  const currentQ = Math.floor(now.getMonth() / 3) + 1
+  let y = now.getFullYear()
+  let q = currentQ
+  for (let i = 0; i < count; i++) {
+    out.push({ value: `quarter_${y}-Q${q}`, label: `Q${q} ${y}` })
+    q -= 1
+    if (q < 1) { q = 4; y -= 1 }
+  }
+  return out
+}
+
 function getLabel(value) {
   const inDateRange = DATE_RANGE.find(p => p.value === value)
   if (inDateRange) return inDateRange.label
@@ -32,13 +46,20 @@ function getLabel(value) {
     const [y, m] = value.slice(6).split('-').map(Number)
     if (y && m) return `${MONTH_NAMES[m - 1]} ${y}`
   }
+  if (typeof value === 'string' && value.startsWith('quarter_')) {
+    const k = value.slice(8)
+    const match = k.match(/^(\d{4})-Q([1-4])$/)
+    if (match) return `Q${match[2]} ${match[1]}`
+  }
   return value
 }
 
-export default function TimeframeSelector({ value, onChange, disabled, hideDateRange = false, monthsCount = 12 }) {
+export default function TimeframeSelector({ value, onChange, disabled, hideDateRange = false, monthsCount = 12, mode = 'default' }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const months = getMonths(monthsCount)
+  const quarters = getQuarters(8)
+  const isQuarterMode = mode === 'quarter'
 
   useEffect(() => {
     if (!open) return
@@ -103,7 +124,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             padding: '14px 0 16px',
           }}
         >
-          {!hideDateRange && (
+          {!hideDateRange && !isQuarterMode && (
             <>
               <SectionLabel>Date range</SectionLabel>
               {DATE_RANGE.map(opt => (
@@ -113,10 +134,21 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             </>
           )}
 
-          <SectionLabel>By month</SectionLabel>
-          {months.map(opt => (
-            <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
-          ))}
+          {isQuarterMode ? (
+            <>
+              <SectionLabel>By quarter</SectionLabel>
+              {quarters.map(opt => (
+                <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
+              ))}
+            </>
+          ) : (
+            <>
+              <SectionLabel>By month</SectionLabel>
+              {months.map(opt => (
+                <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

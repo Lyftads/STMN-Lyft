@@ -2445,6 +2445,246 @@ export default function App() {
         />
       )}
 
+      {/* QUARTER TAB */}
+      {tab==='quarter' && (() => {
+        const QUARTER_NAMES = ['Q1','Q2','Q3','Q4']
+        const monthsInQuarter = (year, q) => {
+          const start = (q-1)*3 + 1
+          return [start, start+1, start+2].map(m => `${year}-${String(m).padStart(2,'0')}`)
+        }
+        const quarterLabel = (key) => {
+          const [y, q] = key.split('-Q')
+          return `${QUARTER_NAMES[Number(q)-1]} ${y}`
+        }
+        const quarterMinus = (key, n) => {
+          const [y, qn] = key.split('-Q').map(Number)
+          let nq = qn - n
+          let ny = y
+          while (nq < 1) { nq += 4; ny -= 1 }
+          return `${ny}-Q${nq}`
+        }
+
+        // Current quarter from preset or today
+        const now = new Date()
+        const currentQ = `${now.getFullYear()}-Q${Math.floor(now.getMonth()/3) + 1}`
+        const baseQ = (typeof preset === 'string' && preset.startsWith('quarter_'))
+          ? preset.slice(8)
+          : currentQ
+
+        const q0 = baseQ
+        const q1 = quarterMinus(baseQ, 1)
+
+        // Aggregate months data into a quarter row
+        const aggregateQuarter = (key) => {
+          const [y, q] = key.split('-Q').map(Number)
+          const monthKeys = monthsInQuarter(y, q)
+          const rows = data.filter(m => monthKeys.includes(m.month))
+          if (!rows.length) {
+            return { key, label: quarterLabel(key), fatturato:0, fatturNC:0, fatturRC:0, resi:0, resiNC:0, resiRC:0, ordini:0, nc:0, rc:0, sessioni:0, metaSpend:0, googleSpend:0, totalSpend:0, aov:null, aovNC:null, aovRC:null, mer:null, aMer:null, cac:null, cpo:null, retention:null, cro:null, ltv:null, ratio:null }
+          }
+          const sum = (k) => rows.reduce((s,m)=>s + Number(m[k]||0), 0)
+          const fatturato = sum('fatturato'), fatturNC = sum('fatturNC'), fatturRC = sum('fatturRC')
+          const resi = sum('resi'), resiNC = sum('resiNC'), resiRC = sum('resiRC')
+          const ordini = sum('ordini'), nc = sum('nc'), rc = sum('rc'), sessioni = sum('sessioni')
+          const metaSpend = sum('metaSpend'), googleSpend = sum('googleSpend'), totalSpend = metaSpend + googleSpend
+          const aov = ordini > 0 ? fatturato/ordini : null
+          const aovNC = nc > 0 ? fatturNC/nc : null
+          const aovRC = rc > 0 ? fatturRC/rc : null
+          const mer = totalSpend > 0 ? fatturato/totalSpend : null
+          const aMer = totalSpend > 0 ? fatturNC/totalSpend : null
+          const cac = nc > 0 ? totalSpend/nc : null
+          const cpo = ordini > 0 ? totalSpend/ordini : null
+          const retention = nc+rc > 0 ? rc/(nc+rc)*100 : null
+          const cro = sessioni > 0 && ordini > 0 ? ordini/sessioni*100 : null
+          const ltv = aov != null ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+          const ratio = ltv && cac ? ltv/cac : null
+          return { key, label: quarterLabel(key), fatturato, fatturNC, fatturRC, resi, resiNC, resiRC, ordini, nc, rc, sessioni, metaSpend, googleSpend, totalSpend, aov, aovNC, aovRC, mer, aMer, cac, cpo, retention, cro, ltv, ratio }
+        }
+
+        const tableQuarters = [aggregateQuarter(q0), aggregateQuarter(q1)]
+        const cur = tableQuarters[0]
+        const prev = tableQuarters[1]
+
+        const qVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
+        const qTH = {
+          position:'sticky', top:0, zIndex:20,
+          padding:'18px 20px', fontSize:11, fontWeight:800,
+          textTransform:'uppercase', letterSpacing:'0.10em',
+          textAlign:'left', whiteSpace:'nowrap', color:'var(--text2)',
+          background:'rgba(255,255,255,0.025)', backdropFilter:'blur(20px)',
+          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+        }
+        const qTD = {
+          padding:'14px 20px', fontSize:15, fontWeight:500,
+          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)', color:'var(--text)',
+        }
+
+        const qDelta = (curr, prev, kind='euro0', inverse=false) => {
+          if (curr == null || prev == null) return null
+          const c = Number(curr), p = Number(prev)
+          if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+          const diff = c - p
+          if (Math.abs(diff) < 0.001) return null
+          const pctV = p !== 0 ? diff/p*100 : null
+          const isDown = diff < 0
+          const isGood = inverse ? isDown : !isDown
+          const color = isGood ? 'var(--green)' : 'var(--red)'
+          const sign = diff > 0 ? '+' : '−'
+          const abs = Math.abs(diff)
+          let fmtAbs = '—'
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT')}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT')
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          return (
+            <div style={{marginTop:8,color,fontSize:12,lineHeight:1.2,fontWeight:900,whiteSpace:'nowrap'}}>
+              <div>{sign}{fmtAbs}</div>
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+            </div>
+          )
+        }
+        const QV = ({value, prev, kind='euro0', suffix='', inverse=false}) => {
+          let shown = '—'
+          if (kind==='euro0') shown = f0(value)
+          else if (kind==='euro2') shown = f2(value)
+          else if (kind==='int') shown = fn(value)
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          return (<div><div style={qVal}>{shown}</div>{qDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
+        }
+
+        const kpiCards = [
+          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', sources:['shopify'] },
+          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', sources:['shopify'] },
+          { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', sources:['shopify'] },
+          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', sources:['shopify'] },
+          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', sources:['shopify'] },
+          { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', sources:['shopify','meta'] },
+          { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', lower:true, sources:['shopify','meta','google'] },
+          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), sources:['shopify','meta'] },
+          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', sources:['meta'] },
+          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', sources:['google'] },
+        ]
+
+        return (
+          <>
+            {/* Timeframe selector */}
+            <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+              <TimeframeSelector
+                value={preset?.startsWith('quarter_') ? preset : `quarter_${q0}`}
+                onChange={setPreset}
+                disabled={loading}
+                mode="quarter"
+              />
+              <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+                marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
+                cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
+              }}>
+                <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
+                {loading?'Aggiorno…':'Aggiorna'}
+              </button>
+              <span style={{fontSize:11,color:'var(--text3)'}}>{quarterLabel(q0)} vs {quarterLabel(q1)}</span>
+            </div>
+
+            {/* KPI summary cards */}
+            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+              {kpiCards.map(kpi => (
+                <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
+                    <div className="label">{kpi.label}</div>
+                    <PlatformBadges sources={kpi.sources} size={16} />
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                    <div className="metric-value">{kpi.fmt(kpi.val)}</div>
+                  </div>
+                  <div style={{marginTop:10}}><DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} /></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Dati trimestrali table */}
+            <FxChartCard title="Dati trimestrali" glowColor="#22c55e" subtitle="Aggregato da dati mensili">
+              <div style={{overflow:'auto',maxHeight:'72vh'}}>
+                <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr>
+                      {['Trimestre','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                        <th key={h} style={qTH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableQuarters.map((q,i) => {
+                      const p = tableQuarters[i+1]
+                      return (
+                        <tr key={q.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                          <td style={{...qTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{q.label}</td>
+                          <td style={qTD}><QV value={q.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.resi||null} prev={p?.resi||null} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.ordini} prev={p?.ordini} kind="int" /></td>
+                          <td style={qTD}><QV value={q.nc} prev={p?.nc} kind="int" /></td>
+                          <td style={qTD}><QV value={q.rc} prev={p?.rc} kind="int" /></td>
+                          <td style={qTD}><QV value={q.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </FxChartCard>
+
+            {/* KPI calcolati table */}
+            <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
+              <div style={{overflow:'auto',maxHeight:'72vh'}}>
+                <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr>
+                      {['Trimestre','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                        <th key={h} style={qTH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableQuarters.map((q,i) => {
+                      const p = tableQuarters[i+1]
+                      return (
+                        <tr key={q.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                          <td style={{...qTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{q.label}</td>
+                          <td style={qTD}><QV value={q.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
+                          <td style={qTD}><QV value={q.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
+                          <td style={qTD}><QV value={q.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
+                          <td style={qTD}><QV value={q.cac} prev={p?.cac} kind="euro2" inverse /></td>
+                          <td style={qTD}><QV value={q.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
+                          <td style={qTD}><QV value={q.aov} prev={p?.aov} kind="euro2" /></td>
+                          <td style={qTD}><QV value={q.aovNC} prev={p?.aovNC} kind="euro2" /></td>
+                          <td style={qTD}><QV value={q.aovRC} prev={p?.aovRC} kind="euro2" /></td>
+                          <td style={qTD}><QV value={q.retention} prev={p?.retention} kind="percent1" /></td>
+                          <td style={qTD}><QV value={q.cro} prev={p?.cro} kind="percent2" /></td>
+                          <td style={qTD}><QV value={q.ltv} prev={p?.ltv} kind="euro2" /></td>
+                          <td style={qTD}><QV value={q.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </FxChartCard>
+
+            {/* AI Insights & To-do */}
+            <DashboardInsights preset={preset} />
+          </>
+        )
+      })()}
+
       {/* SIMULATORE TAB */}
       {tab==='simulator' && <Simulator cfg={cfg} />}
 {tab === 'creative' && (

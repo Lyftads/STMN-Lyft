@@ -9,6 +9,7 @@ function getPageTitle(tab) {
     kpiBrain: 'KPI Brain',
     monthly: 'Monthly',
     weekly: 'Weekly',
+    quarter: 'Quarter',
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
     creative: 'Creative',
@@ -81,6 +82,7 @@ export default function VendroShell({
       items: [
         { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
+        { id: 'quarter', label: 'Quarter', icon: '◧' },
       ],
     },
     {

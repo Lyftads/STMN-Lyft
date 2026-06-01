@@ -145,6 +145,23 @@ function getPresetRange(preset = 'last_90d') {
     return { since: `${until.slice(0, 4)}-01-01`, until, label: 'Anno corrente' }
   }
 
+  // quarter_YYYY-Qn → full calendar quarter
+  if (typeof preset === 'string' && preset.startsWith('quarter_')) {
+    const qKey = preset.slice(8) // YYYY-Qn
+    const match = qKey.match(/^(\d{4})-Q([1-4])$/)
+    if (match) {
+      const y = Number(match[1])
+      const q = Number(match[2])
+      const startMonth = (q - 1) * 3 + 1
+      const endMonth = startMonth + 2
+      const startRaw = `${y}-${String(startMonth).padStart(2, '0')}-01`
+      const lastDay = new Date(y, endMonth, 0).getDate()
+      const endRaw = `${y}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      const end = endRaw > until ? until : endRaw
+      return { since: startRaw, until: end, label: `Q${q} ${y}` }
+    }
+  }
+
   // month_YYYY-MM → full calendar month
   if (typeof preset === 'string' && preset.startsWith('month_')) {
     const m = preset.slice(6) // YYYY-MM

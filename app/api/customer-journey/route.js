@@ -116,6 +116,8 @@ export async function GET(request) {
     projectId: envTrim('BIGQUERY_PROJECT_ID') || null,
     dataset: envTrim('BIGQUERY_DATASET') || null,
     jsonLength: envTrim('GOOGLE_SERVICE_ACCOUNT_JSON').length || 0,
+    ga4PropertyId: envTrim('GA4_PROPERTY_ID') || null,
+    hasGa4OAuth: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_REFRESH_TOKEN,
   }
 
   const { searchParams } = new URL(request.url)
@@ -314,36 +316,46 @@ async function ga4RunReport(token, propertyId, body) {
       body: JSON.stringify(body),
     }
   )
-  if (!res.ok) return null
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    const err = new Error(`GA4 ${res.status}: ${text.slice(0, 300)}`)
+    err.status = res.status
+    throw err
+  }
   return res.json()
 }
 
 async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
   const propertyId = envTrim('GA4_PROPERTY_ID')
   if (!propertyId || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) {
-    return null
+    return { configured: false, reason: 'GA4 Data API env vars mancanti (GA4_PROPERTY_ID, GOOGLE_CLIENT_ID, GOOGLE_REFRESH_TOKEN)' }
   }
   const token = await getGA4AccessToken()
-  if (!token) return null
+  if (!token) return { configured: false, reason: 'OAuth refresh_token GA4 scaduto/revocato — rinnova GOOGLE_REFRESH_TOKEN su Vercel' }
 
   // GA4 Data API accetta YYYY-MM-DD, non YYYYMMDD. Converti.
   const toIso = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
   const dateRange = { startDate: toIso(start), endDate: toIso(end) }
 
   if (level === 0) {
-    const [landingRep, totalRep] = await Promise.all([
-      ga4RunReport(token, propertyId, {
-        dateRanges: [dateRange],
-        dimensions: [{ name: 'landingPage' }],
-        metrics: [{ name: 'sessions' }],
-        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-        limit,
-      }),
-      ga4RunReport(token, propertyId, {
-        dateRanges: [dateRange],
-        metrics: [{ name: 'sessions' }],
-      }),
-    ])
+    let landingRep, totalRep
+    try {
+      [landingRep, totalRep] = await Promise.all([
+        ga4RunReport(token, propertyId, {
+          dateRanges: [dateRange],
+          dimensions: [{ name: 'landingPage' }],
+          metrics: [{ name: 'sessions' }],
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+          limit,
+        }),
+        ga4RunReport(token, propertyId, {
+          dateRanges: [dateRange],
+          metrics: [{ name: 'sessions' }],
+        }),
+      ])
+    } catch (e) {
+      return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId}` }
+    }
     const totalSessions = parseFloat(totalRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
     const nodes = (landingRep?.rows || []).map(r => ({
       path: r.dimensionValues?.[0]?.value || '(unknown)',
@@ -360,6 +372,7 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
       nodes,
       preset,
       dateRange: { start, end },
+      ga4PropertyIdUsed: propertyId,
       approximated: false,
       updatedAt: new Date().toISOString(),
     }
@@ -385,21 +398,26 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
     ? { andGroup: { expressions: [landingFilter, ...excludeFilters] } }
     : landingFilter
 
-  const [pagesRep, parentRep] = await Promise.all([
-    ga4RunReport(token, propertyId, {
-      dateRanges: [dateRange],
-      dimensions: [{ name: 'pagePath' }],
-      metrics: [{ name: 'sessions' }],
-      dimensionFilter,
-      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-      limit,
-    }),
-    ga4RunReport(token, propertyId, {
-      dateRanges: [dateRange],
-      metrics: [{ name: 'sessions' }],
-      dimensionFilter: landingFilter,
-    }),
-  ])
+  let pagesRep, parentRep
+  try {
+    [pagesRep, parentRep] = await Promise.all([
+      ga4RunReport(token, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: 'pagePath' }],
+        metrics: [{ name: 'sessions' }],
+        dimensionFilter,
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit,
+      }),
+      ga4RunReport(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: 'sessions' }],
+        dimensionFilter: landingFilter,
+      }),
+    ])
+  } catch (e) {
+    return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId}` }
+  }
 
   const parentSessions = parseFloat(parentRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
   const nodes = (pagesRep?.rows || []).map(r => ({
@@ -418,6 +436,7 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
     nodes,
     preset,
     dateRange: { start, end },
+    ga4PropertyIdUsed: propertyId,
     approximated: level > 1,
     updatedAt: new Date().toISOString(),
   }

@@ -333,6 +333,7 @@ export default function CustomerJourneyTab() {
         rootSessions: json.rootSessions ?? null,
         approximated: !!json.approximated,
         provider: json.provider || null,
+        ga4PropertyIdUsed: json.ga4PropertyIdUsed || null,
         fromPath,
       }
     } catch (e) {
@@ -447,6 +448,7 @@ export default function CustomerJourneyTab() {
 
   const isApproximated = columns.some(c => c?.approximated)
   const provider = columns.find(c => c?.provider)?.provider || null
+  const ga4PropertyIdUsed = columns.find(c => c?.ga4PropertyIdUsed)?.ga4PropertyIdUsed || null
   const rootSessions = columns[0]?.rootSessions ?? columns[0]?.parentSessions ?? null
 
   return (
@@ -467,6 +469,13 @@ export default function CustomerJourneyTab() {
                   color: provider === 'bigquery' ? '#86efac' : '#fcd34d',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                 }}>via {provider}</span>
+              )}
+              {ga4PropertyIdUsed && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700,
+                  color: 'var(--text3)',
+                  fontFamily: 'ui-monospace, monospace',
+                }}>property {ga4PropertyIdUsed}</span>
               )}
             </div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>

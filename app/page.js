@@ -2473,6 +2473,9 @@ export default function App() {
             </div>
           </>
           )}
+
+          {/* AI Insights & To-do */}
+          <DashboardInsights preset={preset} />
         </>
       )})()}
 

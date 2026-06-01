@@ -353,8 +353,15 @@ export default function CreativeTab() {
   }, [rows])
 
   const totalRoas = totals.spend > 0 ? totals.revenue / totals.spend : 0
-  const totalCpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0
-  const totalCtr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
+  // Usa cpc_link/ctr_link dalla API summary (calcolati con fallback chain
+  // più solido che il calcolo client-side da totals.clicks).
+  const apiSummary = data?.summary || null
+  const totalCpc =
+    asNum(apiSummary?.cpc_link) ||
+    (totals.clicks > 0 ? totals.spend / totals.clicks : 0)
+  const totalCtr =
+    asNum(apiSummary?.ctr_link) ||
+    (totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0)
 
   const prevSummary = data?.prevSummary || null
   const daily = Array.isArray(data?.dailySeries) ? data.dailySeries : []

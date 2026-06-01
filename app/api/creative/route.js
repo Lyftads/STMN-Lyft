@@ -245,15 +245,19 @@ function normalizeInsight(row, account) {
   const impressions = toNum(row.impressions)
   const reach = toNum(row.reach)
 
-  // Meta espone link_clicks come campo diretto (inline_link_clicks) e
-  // come azione (link_click). Il campo diretto è sempre presente,
-  // l'azione a volte manca → fallback chain per non perdere il CPC.
+  // Catena di fallback per link clicks (Meta a volte non popola
+  // tutti i campi insieme — dipende dal tipo di campagna):
+  // 1) inline_link_clicks (campo diretto, prioritario)
+  // 2) azione 'link_click' (a volte solo questa è presente)
+  // 3) clicks (TUTTI i click — fallback per non perdere il CPC quando
+  //    Meta non separa i link click, p.es. campagne CPM)
   const linkClicks =
     toNum(row.inline_link_clicks) ||
     getActionValue(row.actions, [
       'link_click',
       'onsite_conversion.post_save',
-    ])
+    ]) ||
+    toNum(row.clicks)
 
   const purchases = getActionValue(row.actions, [
     'purchase',
@@ -480,7 +484,7 @@ async function fetchAccountSummary(accounts, range) {
   for (const account of accounts) {
     const rows = await metaGetAll(`${account}/insights`, {
       level: 'account',
-      fields: 'spend,impressions,inline_link_clicks,actions,action_values',
+      fields: 'spend,impressions,clicks,inline_link_clicks,actions,action_values',
       time_range: range,
       action_breakdowns: 'action_type',
     }, 100)
@@ -488,7 +492,8 @@ async function fetchAccountSummary(accounts, range) {
       spend += toNum(r.spend)
       impressions += toNum(r.impressions)
       linkClicks += toNum(r.inline_link_clicks) ||
-        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save'])
+        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save']) ||
+        toNum(r.clicks)
       orders += getActionValue(r.actions, [
         'purchase', 'offsite_conversion.fb_pixel_purchase',
         'onsite_conversion.purchase', 'omni_purchase',
@@ -517,7 +522,7 @@ async function fetchDailySeries(accounts, range) {
   for (const account of accounts) {
     const rows = await metaGetAll(`${account}/insights`, {
       level: 'account',
-      fields: 'spend,impressions,inline_link_clicks,actions,action_values',
+      fields: 'spend,impressions,clicks,inline_link_clicks,actions,action_values',
       time_range: range,
       time_increment: 1,
       action_breakdowns: 'action_type',
@@ -532,7 +537,8 @@ async function fetchDailySeries(accounts, range) {
       prev.spend += toNum(r.spend)
       prev.impressions += toNum(r.impressions)
       const lc = toNum(r.inline_link_clicks) ||
-        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save'])
+        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save']) ||
+        toNum(r.clicks)
       prev.link_clicks += lc
       prev.orders += getActionValue(r.actions, [
         'purchase', 'offsite_conversion.fb_pixel_purchase',
@@ -589,7 +595,9 @@ export async function GET(req) {
       'impressions',
       'reach',
       'spend',
+      'clicks',
       'inline_link_clicks',
+      'cpc',
       'actions',
       'action_values',
     ].join(',')

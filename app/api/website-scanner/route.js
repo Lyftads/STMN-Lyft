@@ -294,12 +294,12 @@ export async function POST(req) {
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
-  // Recupero anche il CDN URL così il client carica l'immagine cached.
-  let dataUrl, previewUrl
+  let dataUrl, previewUrl, provider
   try {
     const shot = await fetchScreenshotAsDataUrl(normalized)
     dataUrl = shot.dataUrl
     previewUrl = shot.publicUrl
+    provider = shot.provider
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
@@ -362,6 +362,10 @@ export async function POST(req) {
     return NextResponse.json({
       url: normalized,
       screenshotUrl: previewUrl,
+      // Lo stesso screenshot usato per l'analisi (data URL base64) →
+      // il client lo mostra al posto del preview Microlink US-based
+      screenshotDataUrl: dataUrl,
+      provider,
       analysis,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),

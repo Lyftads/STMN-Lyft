@@ -233,7 +233,12 @@ export default function WebsiteScannerTab() {
   }
 
   const analysis = data?.analysis
-  const finalScreenshotUrl = data?.screenshotUrl || previewUrl
+  // Preferenza:
+  // 1) screenshotDataUrl = il vero screenshot usato per l'analisi
+  //    (Chromium fra1 IT version)
+  // 2) screenshotUrl = CDN URL del servizio (Microlink/ScreenshotOne)
+  // 3) previewUrl = preview immediato Microlink (US-based, mentre l'API processa)
+  const finalScreenshotUrl = data?.screenshotDataUrl || data?.screenshotUrl || previewUrl
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

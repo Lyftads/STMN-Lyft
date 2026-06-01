@@ -7,7 +7,7 @@ function getPageTitle(tab) {
   const map = {
     dashboard: 'Dashboard',
     kpiBrain: 'KPI Brain',
-    monthly: 'Mensile',
+    monthly: 'Monthly',
     weekly: 'Weekly',
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
@@ -70,11 +70,17 @@ export default function VendroShell({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
-        { id: 'monthly', label: 'Mensile', icon: '▦' },
-        { id: 'weekly', label: 'Weekly', icon: '⟳' },
         { id: 'creative', label: 'Creative', icon: '▧' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
+      ],
+    },
+    {
+      title: 'Reports',
+      color: '#30d158',
+      items: [
+        { id: 'monthly', label: 'Monthly', icon: '▦' },
+        { id: 'weekly', label: 'Weekly', icon: '⟳' },
       ],
     },
     {

@@ -1212,29 +1212,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
       </div>
 
       {/* Data entry table */}
-      <div style={{ ...S.card, marginBottom: 20 }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16,
-        }}>
-          <span style={{
-            fontSize: 13,
-            color: '#fff',
-            fontWeight: 700,
-            fontFamily: 'Barlow Condensed',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}>
-            Dati settimanali
-          </span>
-
-          <span style={{ fontSize: 10, color: '#22c55e' }}>
-            Shopify + Meta automatici · Google manuale
-          </span>
-        </div>
-
+      <FxChartCard title="Dati settimanali" glowColor="#22c55e" subtitle="Shopify + Meta automatici · Google manuale">
         <div style={tableWrap}>
           <table style={{ width: '100%', minWidth: 1450, borderCollapse: 'collapse' }}>
             <thead>
@@ -1331,22 +1309,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
             </tbody>
           </table>
         </div>
-      </div>
+      </FxChartCard>
 
       {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 0 && (
-        <div style={{ ...S.card, marginBottom: 20 }}>
-          <p style={{
-            fontSize: 11,
-            color: '#fff',
-            fontWeight: 700,
-            fontFamily: 'Barlow Condensed',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            marginBottom: 16,
-          }}>
-            KPI calcolati
-          </p>
-
+        <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
           <div style={tableWrap}>
             <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse' }}>
               <thead>
@@ -1432,7 +1398,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
               </tbody>
             </table>
           </div>
-        </div>
+        </FxChartCard>
       )}
 
       {filled.length > 0 && (

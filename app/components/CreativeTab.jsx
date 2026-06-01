@@ -269,7 +269,13 @@ export default function CreativeTab() {
     }
   }, [preset])
 
-  const rows = Array.isArray(data?.rows) ? data.rows : []
+  const rawRows = Array.isArray(data?.rows) ? data.rows : []
+
+  // Solo creative ATTIVE nel timeframe selezionato (con spesa > 0 nel periodo)
+  const rows = useMemo(
+    () => rawRows.filter(r => asNum(r.spend) > 0),
+    [rawRows]
+  )
 
   const sortedRows = useMemo(() => {
     return [...rows]
@@ -382,7 +388,7 @@ export default function CreativeTab() {
       </div>
 
       <div
-        className="glass-section reveal-zoom"
+        className="glass-section"
         style={{
           background: 'var(--glass)',
           border: '1px solid var(--border)',
@@ -428,7 +434,6 @@ export default function CreativeTab() {
 
         {sortedRows.length > 0 ? (
           <div
-            className="stagger-zoom"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',

@@ -338,7 +338,18 @@ async function shopifyQL(query) {
 
 // ── Shopify sales per range arbitrario ─────────────────────────
 async function fetchShopifySalesRange(start, end) {
-  const query = `
+  // 1) Query non filtrata per il totale ACCURATO (include guest checkouts
+  //    e ordini senza classificazione NC/RC che la WHERE escludeva).
+  const totalsQuery = `
+    FROM sales
+      SHOW orders, total_sales, returns
+      SINCE ${start}
+      UNTIL ${end}
+      WITH TOTALS, CURRENCY 'EUR'
+  `
+
+  // 2) Query filtrata solo per la suddivisione NC/RC
+  const breakdownQuery = `
     FROM sales
       SHOW customers,
         new_customers,
@@ -359,17 +370,23 @@ async function fetchShopifySalesRange(start, end) {
       LIMIT 2
   `
 
-  const rows = await shopifyQL(query)
+  const [totalsRows, rows] = await Promise.all([
+    shopifyQL(totalsQuery),
+    shopifyQL(breakdownQuery),
+  ])
 
-  let fatturato = 0
-  let fatturNC = 0
-  let fatturRC = 0
-  let resi = 0
-  let resiNC = 0
-  let resiRC = 0
-  let ordini = 0
-  let nc = 0
-  let rc = 0
+  // Totali reali dalla query non filtrata
+  let fatturato = 0, ordini = 0, resi = 0
+  for (const row of (totalsRows || [])) {
+    fatturato += cleanMoney(row.total_sales)
+    ordini += cleanCount(row.orders)
+    resi += Math.abs(cleanMoney(row.returns))
+  }
+
+  // Suddivisione NC/RC dalla query filtrata
+  let fatturNC = 0, fatturRC = 0
+  let resiNC = 0, resiRC = 0
+  let nc = 0, rc = 0
 
   for (const row of rows) {
     const segment = String(row.new_or_returning_customer || '').toLowerCase()
@@ -377,10 +394,6 @@ async function fetchShopifySalesRange(start, end) {
     const rowTotalSales = cleanMoney(row.total_sales)
     const rowOrders = cleanCount(row.orders)
     const rowReturns = Math.abs(cleanMoney(row.returns))
-
-    fatturato += rowTotalSales
-    resi += rowReturns
-    ordini += rowOrders
 
     const isNew =
       segment.includes('new') ||

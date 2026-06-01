@@ -18,6 +18,7 @@ import DashboardInsights from './components/DashboardInsights'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
+import QuarterAgent from './components/QuarterAgent'
 import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -2557,16 +2558,16 @@ export default function App() {
         const cur = tableQuarters[0]
         const prev = tableQuarters[1]
 
-        // Chart data: ultimi 6 quarter (più vecchio a sinistra), solo quelli con dati
+        // Aggregati ultimi 6 quarter (più vecchio a sinistra), solo quelli con dati
         const chartQuarterKeys = []
         for (let i = 5; i >= 0; i--) chartQuarterKeys.push(quarterMinus(q0, i))
-        const quarterChartData = chartQuarterKeys
+        const aggregatedQuarters = chartQuarterKeys
           .map(k => aggregateQuarter(k))
           .filter(q => q.fatturato > 0 || q.ordini > 0 || q.totalSpend > 0)
-          .map(q => ({
-            label: q.label, fatturato: q.fatturato, spesa: q.totalSpend,
-            nc: q.nc, rc: q.rc, mer: q.mer, aov: q.aov, cro: q.cro, ratio: q.ratio,
-          }))
+        const quarterChartData = aggregatedQuarters.map(q => ({
+          label: q.label, fatturato: q.fatturato, spesa: q.totalSpend,
+          nc: q.nc, rc: q.rc, mer: q.mer, aov: q.aov, cro: q.cro, ratio: q.ratio,
+        }))
 
         const qVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
         const qTH = {
@@ -2852,6 +2853,9 @@ export default function App() {
 
             {/* AI Insights & To-do */}
             <DashboardInsights preset={preset} />
+
+            {/* Floating Quarter Agent (vertical chat) */}
+            <QuarterAgent quarters={aggregatedQuarters} selectedQuarter={q0} previousQuarter={q1} preset={preset} />
           </>
         )
       })()}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Sparkline from './Sparkline'
+import { PlatformBadges } from './PlatformIcon'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
 
@@ -185,9 +186,20 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   const panel = { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:18, padding:22 }
   const sevColor = s => ({positive:'#22c55e',warning:'#f59e0b',neutral:'#8b5cf6'}[s]||'#8b8aa0')
 
+  const groupSources = (g) => {
+    if (g === 'Shopify') return ['shopify']
+    if (g === 'Meta Ads') return ['meta']
+    if (g === 'Google Ads') return ['google']
+    if (g === 'Klaviyo') return ['klaviyo']
+    return []
+  }
+
   const MetricCard = ({ item }) => (
     <div className="glass-card" style={card}>
-      <div style={{color:'var(--text2)',fontSize:13,marginBottom:10}}>{item.title}</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:10}}>
+        <div style={{color:'var(--text2)',fontSize:13}}>{item.title}</div>
+        <PlatformBadges sources={groupSources(item.group)} size={12} />
+      </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
         <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
         {item.sparkKey && <Sparkline data={sparkFor(item.sparkKey)} color={item.color} width={80} height={32} />}

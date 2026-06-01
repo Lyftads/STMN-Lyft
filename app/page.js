@@ -15,6 +15,7 @@ import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
+import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -132,10 +133,13 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 }
 
 // ── Stat box ──────────────────────────────────────────────────
-function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous }) {
+function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous, sources }) {
   return (
     <div className="glass-card" style={{padding:'20px 22px'}}>
-      <div className="label" style={{marginBottom:12}}>{label}</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
+        <div className="label">{label}</div>
+        {sources && <PlatformBadges sources={sources} size={12} />}
+      </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
         <div className={dim?'metric-value-sm':'metric-value'}>{value}</div>
         {sparkData && <Sparkline data={sparkData} color={sparkColor || 'var(--accent)'} width={80} height={32} />}
@@ -1876,35 +1880,35 @@ export default function App() {
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
-            <Stat label="Fatturato" value={totFat>0?f0(totFat):'—'}
+            <Stat label="Fatturato" value={totFat>0?f0(totFat):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={totFat} previous={prevTotals.revenue} />
-            <Stat label="Ordini" value={totOrd>0?fn(totOrd):'—'}
+            <Stat label="Ordini" value={totOrd>0?fn(totOrd):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.ordini)} sparkColor="var(--accent)"
               current={totOrd} previous={prevTotals.orders} />
-            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'}
+            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} sources={['shopify']}
               sparkData={swCurrent.map(w=> w.ordini > 0 ? w.fatturato/w.ordini : 0)}
               current={avgAOV} previous={prevTotals.orders > 0 ? prevTotals.revenue/prevTotals.orders : null} />
-            <Stat label="Nuovi clienti" value={totNC>0?fn(totNC):'—'}
+            <Stat label="Nuovi clienti" value={totNC>0?fn(totNC):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.nc)} sparkColor="var(--cyan)"
               current={totNC} previous={prevTotals.nc} />
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
-            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sub={`${cfg.freq}× · ${cfg.life}a`} />
-            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
-            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} NC`} />
-            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'}
+            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a`} />
+            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
+            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`} />
+            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
-            <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sub="Meta + Google" />
+            <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sources={['meta','google']} sub="Meta + Google" />
           </div>
 
           {totResi > 0 && (
             <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
-              <Stat label="Resi totali" value={f0(totResi)} />
-              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} dim />
-              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} dim />
+              <Stat label="Resi totali" value={f0(totResi)} sources={['shopify']} />
+              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} sources={['shopify']} dim />
+              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} sources={['shopify']} dim />
             </div>
           )}
 

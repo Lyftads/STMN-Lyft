@@ -2474,19 +2474,71 @@ export default function App() {
         const q0 = baseQ
         const q1 = quarterMinus(baseQ, 1)
 
-        // Aggregate months data into a quarter row
+        // Live single-range payloads from /api/metrics?preset=quarter_YYYY-Qn
+        // → shopifyRange = q0, shopifyPrevRange = q1.
+        // Single-range queries usano la classificazione Shopify NC/RC del periodo
+        // (deduplicata a livello cliente), che è quella che Marino vede in Shopify.
+        // La somma mensile invece riclassifica ogni mese e gonfia NC.
+        const selectedQ = (typeof preset === 'string' && preset.startsWith('quarter_'))
+          ? preset.slice(8)
+          : currentQ
+        const sr = live?.shopifyRange
+        const spr = live?.shopifyPrevRange
+        const mr = live?.metaRange
+        const mpr = live?.metaPrevRange
+
+        // Aggregate months data into a quarter row, with live overlay for q0/q1.
         const aggregateQuarter = (key) => {
           const [y, q] = key.split('-Q').map(Number)
           const monthKeys = monthsInQuarter(y, q)
           const rows = data.filter(m => monthKeys.includes(m.month))
-          if (!rows.length) {
-            return { key, label: quarterLabel(key), fatturato:0, fatturNC:0, fatturRC:0, resi:0, resiNC:0, resiRC:0, ordini:0, nc:0, rc:0, sessioni:0, metaSpend:0, googleSpend:0, totalSpend:0, aov:null, aovNC:null, aovRC:null, mer:null, aMer:null, cac:null, cpo:null, retention:null, cro:null, ltv:null, ratio:null }
-          }
+
           const sum = (k) => rows.reduce((s,m)=>s + Number(m[k]||0), 0)
-          const fatturato = sum('fatturato'), fatturNC = sum('fatturNC'), fatturRC = sum('fatturRC')
-          const resi = sum('resi'), resiNC = sum('resiNC'), resiRC = sum('resiRC')
-          const ordini = sum('ordini'), nc = sum('nc'), rc = sum('rc'), sessioni = sum('sessioni')
-          const metaSpend = sum('metaSpend'), googleSpend = sum('googleSpend'), totalSpend = metaSpend + googleSpend
+
+          // Live overlay: se il quarter combacia con il preset selezionato,
+          // usa shopifyRange/shopifyPrevRange (single-range query, allineato
+          // a Shopify Analytics).
+          const useLiveCurrent = key === selectedQ && sr
+          const useLivePrev = key === quarterMinus(selectedQ, 1) && spr
+          const useLiveMetaCurrent = key === selectedQ && mr
+          const useLiveMetaPrev = key === quarterMinus(selectedQ, 1) && mpr
+
+          const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
+                          : useLivePrev    ? Number(spr.revenue) || 0
+                          : sum('fatturato')
+          const fatturNC  = useLiveCurrent ? Number(sr.fatturNC) || 0
+                          : useLivePrev    ? Number(spr.fatturNC) || 0
+                          : sum('fatturNC')
+          const fatturRC  = useLiveCurrent ? Number(sr.fatturRC) || 0
+                          : useLivePrev    ? Number(spr.fatturRC) || 0
+                          : sum('fatturRC')
+          const resi      = useLiveCurrent ? Number(sr.resi) || 0
+                          : useLivePrev    ? Number(spr.resi) || 0
+                          : sum('resi')
+          const resiNC    = useLiveCurrent ? Number(sr.resiNC) || 0
+                          : useLivePrev    ? Number(spr.resiNC) || 0
+                          : sum('resiNC')
+          const resiRC    = useLiveCurrent ? Number(sr.resiRC) || 0
+                          : useLivePrev    ? Number(spr.resiRC) || 0
+                          : sum('resiRC')
+          const ordini    = useLiveCurrent ? Number(sr.orders) || 0
+                          : useLivePrev    ? Number(spr.orders) || 0
+                          : sum('ordini')
+          const nc        = useLiveCurrent ? Number(sr.nc) || 0
+                          : useLivePrev    ? Number(spr.nc) || 0
+                          : sum('nc')
+          const rc        = useLiveCurrent ? Number(sr.rc) || 0
+                          : useLivePrev    ? Number(spr.rc) || 0
+                          : sum('rc')
+          const sessioni  = useLiveCurrent ? Number(sr.sessions) || 0
+                          : useLivePrev    ? Number(spr.sessions) || 0
+                          : sum('sessioni')
+          const metaSpend = useLiveMetaCurrent ? Number(mr.spend) || 0
+                          : useLiveMetaPrev    ? Number(mpr.spend) || 0
+                          : sum('metaSpend')
+          const googleSpend = sum('googleSpend')
+          const totalSpend = metaSpend + googleSpend
+
           const aov = ordini > 0 ? fatturato/ordini : null
           const aovNC = nc > 0 ? fatturNC/nc : null
           const aovRC = rc > 0 ? fatturRC/rc : null

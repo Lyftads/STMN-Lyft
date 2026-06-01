@@ -20,6 +20,7 @@ function getPageTitle(tab) {
     priceComparison: 'Prezzi vs Competitor',
     integrations: 'Integrazioni',
     cro: 'CRO',
+    customerJourney: 'Customer Journey',
     webScanner: 'AI Website Scanner',
     creativeLab: 'Creative Lab',
   }
@@ -37,6 +38,7 @@ function getPageSubtitle(tab) {
     priceComparison: 'Confronto prezzi per categoria',
     integrations: 'Collega e gestisci tutte le piattaforme',
     cro: 'Funnel · Top Pages · Flusso Traffico',
+    customerJourney: 'Percorso utenti · Flusso navigazione · Path exploration',
     webScanner: 'Scanner CRO con AI Vision · Heuristic evaluation · Quick wins',
     creativeLab: 'Genera ad creative con AI',
     simulator: 'LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO',
@@ -77,6 +79,7 @@ export default function VendroShell({
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
+        { id: 'customerJourney', label: 'Customer Journey', icon: '⇆' },
         { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },
       ],
     },

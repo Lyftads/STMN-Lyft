@@ -84,11 +84,22 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
 // → bypassa il geo-IP redirect di Shopify. Stessa esperienza di un
 // utente italiano in browser desktop.
 async function fetchScreenshotWithChromium(target) {
-  // Lazy import: i package sono grossi (~50MB), li carichiamo solo se serve
+  // chromium-min e' la versione "lite" — scarica binary + libs di sistema
+  // a runtime dal tarball ufficiale @sparticuz, evitando il 50MB limit
+  // di Vercel e includendo libnss3 e altre dipendenze mancanti.
   const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
-    import('@sparticuz/chromium'),
+    import('@sparticuz/chromium-min'),
     import('puppeteer-core'),
   ])
+
+  // Disabilita WebGL/GPU che richiedono librerie extra non necessarie per
+  // screenshot di pagine standard
+  chromium.setHeadlessMode = true
+  chromium.setGraphicsMode = false
+
+  // URL del tarball ufficiale matchato alla versione del package
+  const CHROMIUM_TARBALL =
+    'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
 
   let browser
   try {
@@ -99,7 +110,7 @@ async function fetchScreenshotWithChromium(target) {
         '--disable-blink-features=AutomationControlled',
       ],
       defaultViewport: { width: 1440, height: 1800, deviceScaleFactor: 1 },
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(CHROMIUM_TARBALL),
       headless: chromium.headless,
     })
 

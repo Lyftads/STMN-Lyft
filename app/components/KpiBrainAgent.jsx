@@ -84,7 +84,7 @@ export default function KpiBrainAgent({ tf, preset }) {
 
   return (
     <>
-      {/* Floating circular icon button — bottom right */}
+      {/* Floating sticky avatar icon — visible from page load, middle-right */}
       {!open && (
         <button
           type="button"
@@ -93,29 +93,38 @@ export default function KpiBrainAgent({ tf, preset }) {
           title="KPI Brain Agent"
           style={{
             position: 'fixed',
-            bottom: 32,
-            right: 32,
-            width: 58,
-            height: 58,
+            top: '40%',
+            right: 24,
+            width: 64,
+            height: 64,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-            color: '#fff',
-            border: '1.5px solid rgba(255,255,255,0.18)',
+            background: 'linear-gradient(135deg, #2997ff 0%, #6366f1 50%, #bf5af2 100%)',
+            border: '2px solid rgba(255,255,255,0.22)',
             cursor: 'pointer',
             zIndex: 50,
+            padding: 0,
             display: 'grid',
             placeItems: 'center',
-            fontSize: 22,
-            fontWeight: 700,
+            overflow: 'hidden',
             boxShadow:
-              '0 12px 32px rgba(41,151,255,0.4), 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              '0 16px 40px rgba(41,151,255,0.45), 0 6px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+            transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease',
             animation: 'card-pulse 3s ease-in-out infinite',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          ✦
+          <AvatarSvg />
+          <span style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: '#30d158',
+            border: '2.5px solid #0a0a14',
+          }} />
         </button>
       )}
 
@@ -343,5 +352,33 @@ function Dot({ delay }) {
       animation: 'pa-pulse 1.2s infinite',
       animationDelay: `${delay}ms`,
     }} />
+  )
+}
+
+function AvatarSvg() {
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      <defs>
+        <linearGradient id="avBg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.10" />
+        </linearGradient>
+        <linearGradient id="avHair" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1f2937" />
+          <stop offset="100%" stopColor="#374151" />
+        </linearGradient>
+        <linearGradient id="avSkin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fde7d3" />
+          <stop offset="100%" stopColor="#f0c19f" />
+        </linearGradient>
+      </defs>
+      <circle cx="22" cy="22" r="22" fill="url(#avBg)" />
+      <path d="M22 39c-4.6 0-8.8-1.7-12-4.5C11.2 30.1 16.2 27 22 27s10.8 3.1 12 7.5C30.8 37.3 26.6 39 22 39z" fill="#e0e7ff" />
+      <ellipse cx="22" cy="18.5" rx="7" ry="8" fill="url(#avSkin)" />
+      <path d="M15.5 14.3c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6c0 1-.2 1.9-.6 2.7-.4-.6-1.3-1.7-2.6-2.2-.6.7-1.8 1.6-3.3 1.6s-2.7-.9-3.3-1.6c-1.3.5-2.2 1.6-2.6 2.2-.4-.8-.6-1.7-.6-2.7z" fill="url(#avHair)" />
+      <circle cx="19.5" cy="19" r="1" fill="#1f2937" />
+      <circle cx="24.5" cy="19" r="1" fill="#1f2937" />
+      <path d="M20.5 22.2c.5.5 1 .8 1.5.8s1-.3 1.5-.8" stroke="#a16f57" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+    </svg>
   )
 }

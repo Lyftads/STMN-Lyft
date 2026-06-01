@@ -49,9 +49,15 @@ function buildScreenshotOneUrl(target) {
     cache: 'true',
     cache_ttl: '14400',
   })
-  // ScreenshotOne accetta headers come param ripetuto (uno per header).
-  // Formato: "Header-Name: value"
+  // Header Accept-Language + cookies Shopify per provare a forzare la
+  // versione italiana. NOTA: Shopify Markets fa redirect basato su IP
+  // a livello CDN — se il geo-IP redirect e' attivo nelle settings di
+  // STMN, IP vince su tutto e questi override non bastano.
   params.append('headers', 'Accept-Language: it-IT,it;q=0.9,en;q=0.6')
+  // Cookie hint per Shopify
+  params.append('cookies', 'localization=IT')
+  params.append('cookies', 'cart_currency=EUR')
+  params.append('cookies', 'country=IT')
   return `https://api.screenshotone.com/take?${params.toString()}`
 }
 

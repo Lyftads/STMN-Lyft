@@ -306,6 +306,7 @@ export default function CustomerJourneyTab() {
   const [selectedAt, setSelectedAt] = useState({})
   const containerRef = useRef(null)
   const [configured, setConfigured] = useState(true)
+  const [configReason, setConfigReason] = useState(null)
   const [globalError, setGlobalError] = useState(null)
 
   const loadColumn = useCallback(async (pathArray, columnIndex, fromPath) => {
@@ -318,6 +319,7 @@ export default function CustomerJourneyTab() {
       const json = await r.json()
       if (!json?.configured) {
         setConfigured(false)
+        setConfigReason(json?.reason || null)
         return null
       }
       if (json?.error) {
@@ -398,12 +400,25 @@ export default function CustomerJourneyTab() {
   }, [loadColumn, selectedAt])
 
   if (!configured) {
+    const codeBg = { background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }
     return (
       <GlassCard padding={32} style={{ animation: 'none' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>GA4 non configurato</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start' }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>BigQuery non configurato</div>
+          {configReason && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#fca5a5',
+              fontSize: 12.5,
+              fontFamily: 'ui-monospace, monospace',
+              lineHeight: 1.5,
+            }}>{configReason}</div>
+          )}
           <div style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.6 }}>
-            Customer Journey richiede l'integrazione GA4. Imposta su Vercel: <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }}>GA4_PROPERTY_ID</code>, <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }}>GOOGLE_CLIENT_ID</code>, <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }}>GOOGLE_CLIENT_SECRET</code>, <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4 }}>GOOGLE_REFRESH_TOKEN</code>.
+            Customer Journey usa BigQuery export GA4. Servono su Vercel: <code style={codeBg}>BIGQUERY_PROJECT_ID</code>, <code style={codeBg}>BIGQUERY_DATASET</code>, <code style={codeBg}>GOOGLE_SERVICE_ACCOUNT_JSON</code> (il contenuto INTERO del JSON key del Service Account). Dopo le env vars serve un Redeploy da Vercel → Deployments.
           </div>
         </div>
       </GlassCard>

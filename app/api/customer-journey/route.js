@@ -12,14 +12,28 @@ import { BigQuery } from '@google-cloud/bigquery'
 let bqClient = null
 
 function getBQ() {
-  if (bqClient) return bqClient
+  if (bqClient) return { client: bqClient }
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
   const projectId = process.env.BIGQUERY_PROJECT_ID
-  if (!raw || !projectId) return null
+  const dataset = process.env.BIGQUERY_DATASET
+  const missing = []
+  if (!projectId) missing.push('BIGQUERY_PROJECT_ID')
+  if (!dataset) missing.push('BIGQUERY_DATASET')
+  if (!raw) missing.push('GOOGLE_SERVICE_ACCOUNT_JSON')
+  if (missing.length) return { client: null, reason: `Env vars mancanti: ${missing.join(', ')}` }
   let credentials
-  try { credentials = JSON.parse(raw) } catch { return null }
-  bqClient = new BigQuery({ projectId, credentials })
-  return bqClient
+  try { credentials = JSON.parse(raw) } catch (e) {
+    return { client: null, reason: `GOOGLE_SERVICE_ACCOUNT_JSON non e' JSON valido: ${e?.message?.slice(0, 100)}` }
+  }
+  if (!credentials.client_email || !credentials.private_key) {
+    return { client: null, reason: 'JSON mancante client_email o private_key (chiave service account incompleta?)' }
+  }
+  try {
+    bqClient = new BigQuery({ projectId, credentials })
+  } catch (e) {
+    return { client: null, reason: `BigQuery init: ${e?.message?.slice(0, 120)}` }
+  }
+  return { client: bqClient }
 }
 
 function resolveDateRange(preset) {
@@ -84,16 +98,13 @@ function pathParams(path) {
 }
 
 export async function GET(request) {
-  const bq = getBQ()
+  const { client: bq, reason } = getBQ()
   if (!bq) {
-    return NextResponse.json({ configured: false }, { status: 200 })
+    return NextResponse.json({ configured: false, reason }, { status: 200 })
   }
 
   const dataset = process.env.BIGQUERY_DATASET
   const projectId = process.env.BIGQUERY_PROJECT_ID
-  if (!dataset || !projectId) {
-    return NextResponse.json({ configured: false }, { status: 200 })
-  }
 
   const { searchParams } = new URL(request.url)
   const preset = searchParams.get('preset') || 'current_month'

@@ -14,6 +14,7 @@ import CROTab from './components/CROTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
+import DashboardInsights from './components/DashboardInsights'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -1924,6 +1925,8 @@ export default function App() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          <DashboardInsights preset={preset} />
         </>
       )}
 {/* KPI BRAIN TAB */}

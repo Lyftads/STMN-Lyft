@@ -1570,18 +1570,18 @@ export default function App() {
     clicks: sumField(mwCurrent, 'linkClicks'),
   }
 
-  const spr = live?.shopifyPrevRange
-  const mpr = live?.metaPrevRange
+  const spr = live?.shopifyPrevRange || {}
+  const mpr = live?.metaPrevRange || {}
   const prevTotals = {
-    revenue: spr ? spr.revenue  : sumField(swPrev, 'fatturato'),
-    orders:  spr ? spr.orders   : sumField(swPrev, 'ordini'),
-    nc:      spr ? spr.nc       : sumField(swPrev, 'nc'),
-    rc:      spr ? spr.rc       : sumField(swPrev, 'rc'),
-    sessions:spr ? spr.sessions : sumField(swPrev, 'uniqueSessions'),
-    resi:    spr ? spr.resi     : sumField(swPrev, 'resi'),
-    metaSpend:   mpr ? mpr.spend       : sumField(mwPrev, 'spend'),
-    impressions: mpr ? mpr.impressions : sumField(mwPrev, 'impressions'),
-    clicks:      mpr ? mpr.clicks      : sumField(mwPrev, 'linkClicks'),
+    revenue: Number(spr.revenue)  || sumField(swPrev, 'fatturato'),
+    orders:  Number(spr.orders)   || sumField(swPrev, 'ordini'),
+    nc:      Number(spr.nc)       || sumField(swPrev, 'nc'),
+    rc:      Number(spr.rc)       || sumField(swPrev, 'rc'),
+    sessions:Number(spr.sessions) || sumField(swPrev, 'uniqueSessions'),
+    resi:    Number(spr.resi)     || sumField(swPrev, 'resi'),
+    metaSpend:   Number(mpr.spend)       || sumField(mwPrev, 'spend'),
+    impressions: Number(mpr.impressions) || sumField(mwPrev, 'impressions'),
+    clicks:      Number(mpr.clicks)      || sumField(mwPrev, 'linkClicks'),
   }
 
   const updateWeek = (week, key, value) => {
@@ -1787,26 +1787,30 @@ export default function App() {
   const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
   // ── Totali periodo selezionato ──
-  // Usa shopifyRange (Shopify Admin API live, per qualsiasi range esatto) e metaRange (Meta Graph API live).
-  // Fallback: aggregazione mensile/settimanale dai dati cached se l'endpoint live non risponde.
-  const sr = live?.shopifyRange
-  const mr = live?.metaRange
+  // Strategia: prendi il primo valore non-zero in cascata:
+  //   1. shopifyRange/metaRange (live API per range esatto)
+  //   2. periodTotals (aggregazione settimanale filtrata)
+  //   3. dataYear (aggregazione mensile filtrata, stessa fonte del tab Mensile)
+  const sr = live?.shopifyRange || {}
+  const mr = live?.metaRange || {}
 
-  const totFat   = sr ? sr.revenue   : (periodTotals.revenue || dataYear.reduce((s,m)=>s + Number(m.fatturato || 0), 0))
-  const totFatNC = sr ? sr.fatturNC  : dataYear.reduce((s,m)=>s + Number(m.fatturNC || 0), 0)
-  const totFatRC = sr ? sr.fatturRC  : dataYear.reduce((s,m)=>s + Number(m.fatturRC || 0), 0)
+  const sumMonthly = (k) => dataYear.reduce((s,m)=>s + Number(m[k] || 0), 0)
 
-  const totResi   = sr ? sr.resi   : dataYear.reduce((s,m)=>s + Number(m.resi || 0), 0)
-  const totResiNC = sr ? sr.resiNC : dataYear.reduce((s,m)=>s + Number(m.resiNC || 0), 0)
-  const totResiRC = sr ? sr.resiRC : dataYear.reduce((s,m)=>s + Number(m.resiRC || 0), 0)
+  const totFat   = Number(sr.revenue)   || periodTotals.revenue || sumMonthly('fatturato')
+  const totFatNC = Number(sr.fatturNC)  || sumMonthly('fatturNC')
+  const totFatRC = Number(sr.fatturRC)  || sumMonthly('fatturRC')
 
-  const totOrd   = sr ? sr.orders : (periodTotals.orders || dataYear.reduce((s,m)=>s + Number(m.ordini || 0), 0))
-  const totNC    = sr ? sr.nc     : (periodTotals.nc     || dataYear.reduce((s,m)=>s + Number(m.nc || 0), 0))
-  const totRC    = sr ? sr.rc     : (periodTotals.rc     || dataYear.reduce((s,m)=>s + Number(m.rc || 0), 0))
-  const totSes   = sr ? sr.sessions : dataYear.reduce((s,m)=>s + Number(m.sessioni || 0), 0)
+  const totResi   = Number(sr.resi)   || sumMonthly('resi')
+  const totResiNC = Number(sr.resiNC) || sumMonthly('resiNC')
+  const totResiRC = Number(sr.resiRC) || sumMonthly('resiRC')
 
-  const totMeta  = mr ? mr.spend : (periodTotals.metaSpend || dataYear.reduce((s,m)=>s + Number(m.metaSpend || 0), 0))
-  const totGoog  = dataYear.reduce((s,m)=>s + Number(m.googleSpend || 0), 0)
+  const totOrd = Number(sr.orders)   || periodTotals.orders || sumMonthly('ordini')
+  const totNC  = Number(sr.nc)       || periodTotals.nc     || sumMonthly('nc')
+  const totRC  = Number(sr.rc)       || periodTotals.rc     || sumMonthly('rc')
+  const totSes = Number(sr.sessions) || sumMonthly('sessioni')
+
+  const totMeta  = Number(mr.spend) || periodTotals.metaSpend || sumMonthly('metaSpend')
+  const totGoog  = sumMonthly('googleSpend')
   const totSpend = totMeta + totGoog
 
   const avgAOV   = totOrd > 0 ? totFat   / totOrd : 0

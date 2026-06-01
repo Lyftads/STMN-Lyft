@@ -20,6 +20,7 @@ function getPageTitle(tab) {
     priceComparison: 'Prezzi vs Competitor',
     integrations: 'Integrazioni',
     cro: 'CRO',
+    webScanner: 'AI Website Scanner',
     creativeLab: 'Creative Lab',
   }
   return map[tab] || 'Dashboard'
@@ -36,6 +37,7 @@ function getPageSubtitle(tab) {
     priceComparison: 'Confronto prezzi per categoria',
     integrations: 'Collega e gestisci tutte le piattaforme',
     cro: 'Funnel · Top Pages · Flusso Traffico',
+    webScanner: 'Scanner CRO con AI Vision · Heuristic evaluation · Quick wins',
     creativeLab: 'Genera ad creative con AI',
     simulator: 'LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO',
     dashboard: 'Panoramica completa del business',
@@ -75,6 +77,7 @@ export default function VendroShell({
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
+        { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },
       ],
     },
     {
@@ -316,7 +319,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','cro','kpiBrain'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','cro','kpiBrain','webScanner'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

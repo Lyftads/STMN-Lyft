@@ -420,11 +420,12 @@ export async function POST(req) {
 
   const openaiBody = {
     model: MODEL,
-    temperature: 0.8,
-    presence_penalty: 0.3,
-    frequency_penalty: 0.3,
+    temperature: 0.3,
+    presence_penalty: 0.2,
+    frequency_penalty: 0.2,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Particolare attenzione: STMN vende paracalli/corde/accessori CrossFit, NON supplementi. Nessun nome prodotto deve essere inventato.' },
       {
         role: 'system',
         content: `DATI LIVE (periodo: ${preset}):\n${safeJson(context)}`,

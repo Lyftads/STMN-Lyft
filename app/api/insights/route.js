@@ -97,10 +97,12 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.6,
+        temperature: 0.1,
+        top_p: 0.2,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".' },
           { role: 'user', content: `Periodo: ${preset}\n\nDATI:\n${safeJson(context)}` },
         ],
       }),

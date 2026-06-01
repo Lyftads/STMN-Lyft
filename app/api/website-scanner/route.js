@@ -133,11 +133,15 @@ async function fetchScreenshotWithChromium(target) {
 // 2) ScreenshotOne (US server con Accept-Language IT)
 // 3) Microlink (US server, no override)
 async function fetchScreenshotAsDataUrl(target) {
+  const errors = []
   // Provo subito Chromium (EU IP) — soluzione vera al geo-redirect
   try {
-    return await fetchScreenshotWithChromium(target)
+    const result = await fetchScreenshotWithChromium(target)
+    return result
   } catch (chromiumErr) {
-    console.log('Chromium failed, fallback:', chromiumErr?.message)
+    const msg = chromiumErr?.message || String(chromiumErr)
+    console.log('Chromium failed, fallback:', msg)
+    errors.push({ provider: 'chromium-fra1', error: msg.slice(0, 300) })
   }
 
   const controller = new AbortController()
@@ -161,6 +165,7 @@ async function fetchScreenshotAsDataUrl(target) {
         publicUrl: screenshotOneUrl,
         bytes: buf.length,
         provider: 'screenshotone',
+        fallbackErrors: errors,
       }
     }
 
@@ -186,9 +191,11 @@ async function fetchScreenshotAsDataUrl(target) {
       publicUrl: cdnUrl,
       bytes: buf.length,
       provider: 'microlink',
+      fallbackErrors: errors,
     }
   } catch (e) {
     clearTimeout(timer)
+    e.fallbackErrors = errors
     throw e
   }
 }
@@ -296,15 +303,17 @@ export async function POST(req) {
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
-  let dataUrl, previewUrl, provider
+  let dataUrl, previewUrl, provider, fallbackErrors
   try {
     const shot = await fetchScreenshotAsDataUrl(normalized)
     dataUrl = shot.dataUrl
     previewUrl = shot.publicUrl
     provider = shot.provider
+    fallbackErrors = shot.fallbackErrors
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
+      fallbackErrors: err?.fallbackErrors,
     }, { status: 502 })
   }
 
@@ -367,6 +376,7 @@ export async function POST(req) {
       // il client lo mostra al posto del preview Microlink US-based
       screenshotDataUrl: dataUrl,
       provider,
+      fallbackErrors,
       analysis,
       rawText: analysis ? undefined : raw,
       error: analysis ? undefined : 'Analisi non parseable come JSON',

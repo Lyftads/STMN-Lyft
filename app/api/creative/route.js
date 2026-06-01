@@ -245,19 +245,16 @@ function normalizeInsight(row, account) {
   const impressions = toNum(row.impressions)
   const reach = toNum(row.reach)
 
-  // Catena di fallback per link clicks (Meta a volte non popola
-  // tutti i campi insieme — dipende dal tipo di campagna):
-  // 1) inline_link_clicks (campo diretto, prioritario)
-  // 2) azione 'link_click' (a volte solo questa è presente)
-  // 3) clicks (TUTTI i click — fallback per non perdere il CPC quando
-  //    Meta non separa i link click, p.es. campagne CPM)
+  // Catena di fallback per link clicks
   const linkClicks =
     toNum(row.inline_link_clicks) ||
+    toNum(row.unique_inline_link_clicks) ||
     getActionValue(row.actions, [
       'link_click',
       'onsite_conversion.post_save',
     ]) ||
-    toNum(row.clicks)
+    toNum(row.clicks) ||
+    toNum(row.unique_clicks)
 
   const purchases = getActionValue(row.actions, [
     'purchase',
@@ -273,9 +270,19 @@ function normalizeInsight(row, account) {
     'omni_purchase',
   ])
 
-  const ctrLink = impressions ? (linkClicks / impressions) * 100 : toNum(row.ctr)
+  // CPC: Meta espone valori pre-calcolati piu affidabili del nostro
+  // spend/click, usali in priorita prima del calcolo manuale
+  const cpcLink =
+    toNum(row.cost_per_inline_link_click) ||
+    toNum(row.cpc) ||
+    (linkClicks ? spend / linkClicks : 0)
+
+  const ctrLink =
+    toNum(row.inline_link_click_ctr) ||
+    toNum(row.ctr) ||
+    (impressions ? (linkClicks / impressions) * 100 : 0)
+
   const roas = spend ? purchaseValue / spend : 0
-  const cpcLink = linkClicks ? spend / linkClicks : 0
 
   return {
     id: row.ad_id || row.id,
@@ -369,6 +376,35 @@ function pickPreviewImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
   )
 }
 
+function getProductSetId(creative, fullCreative) {
+  return (
+    fullCreative?.product_set_id ||
+    creative?.product_set_id ||
+    fullCreative?.object_story_spec?.template_data?.product_set_id ||
+    creative?.object_story_spec?.template_data?.product_set_id ||
+    null
+  )
+}
+
+async function fetchProductSetSample(productSetId, max = 6) {
+  if (!productSetId) return []
+  try {
+    const data = await metaGet(`${productSetId}/products`, {
+      fields: 'id,name,retailer_id,image_url,price',
+      limit: max,
+    })
+    const products = Array.isArray(data?.data) ? data.data : []
+    return products.slice(0, max).map(p => ({
+      id: p.id,
+      name: p.name || p.retailer_id || '',
+      image_url: p.image_url || '',
+      price: p.price || '',
+    }))
+  } catch {
+    return []
+  }
+}
+
 async function hydrateCreatives(rows) {
   const limited = rows.slice(0, 200)
 
@@ -382,7 +418,7 @@ async function hydrateCreatives(rows) {
             'id',
             'name',
             'effective_status',
-            'creative{id,name,thumbnail_url,image_url,object_story_spec,asset_feed_spec}',
+            'creative{id,name,thumbnail_url,image_url,product_set_id,object_story_spec,asset_feed_spec}',
           ].join(','),
           thumbnail_width: CREATIVE_IMAGE_SIZE,
           thumbnail_height: CREATIVE_IMAGE_SIZE,
@@ -400,6 +436,7 @@ async function hydrateCreatives(rows) {
                 'name',
                 'thumbnail_url',
                 'image_url',
+                'product_set_id',
                 'object_story_spec',
                 'asset_feed_spec',
               ].join(','),
@@ -423,6 +460,13 @@ async function hydrateCreatives(rows) {
           row,
         })
 
+        // Catalog ads: estrai un sample di prodotti dal product set
+        // così la card mostra l'anteprima carosello come fa Meta
+        const productSetId = getProductSetId(creative, fullCreative)
+        const products = productSetId
+          ? await fetchProductSetSample(productSetId, 6)
+          : []
+
         return {
           ...row,
           status: ad.effective_status || row.status,
@@ -435,6 +479,9 @@ async function hydrateCreatives(rows) {
           preview_image_url: previewImageUrl,
 
           display_image_url: fullImageUrl || previewImageUrl,
+
+          product_set_id: productSetId,
+          products,
         }
       } catch {
         return row
@@ -454,14 +501,20 @@ function buildSummary(rows) {
   const linkClicks = rows.reduce((s, r) => s + toNum(r.link_clicks), 0)
   const impressions = rows.reduce((s, r) => s + toNum(r.impressions), 0)
   const orders = rows.reduce((s, r) => s + toNum(r.orders), 0)
+  // Fallback pesato su Meta-precomputed cpc/ctr quando link clicks = 0
+  const cpcWeighted = rows.reduce((s, r) => s + toNum(r.cpc_link) * toNum(r.spend), 0)
+  const ctrWeighted = rows.reduce((s, r) => s + toNum(r.ctr_link) * toNum(r.spend), 0)
+
+  const cpcComputed = div(spend, linkClicks)
+  const ctrComputed = impressions ? (linkClicks / impressions) * 100 : 0
 
   return {
     creatives: rows.length,
     spend: round(spend, 2),
     revenue: round(purchaseValue, 2),
     roas: round(div(purchaseValue, spend), 2),
-    ctr_link: round(impressions ? (linkClicks / impressions) * 100 : 0, 2),
-    cpc_link: round(div(spend, linkClicks), 2),
+    ctr_link: round(ctrComputed || div(ctrWeighted, spend), 2),
+    cpc_link: round(cpcComputed || div(cpcWeighted, spend), 2),
     link_clicks: round(linkClicks, 0),
     impressions: round(impressions, 0),
     orders: round(orders, 0),
@@ -481,19 +534,27 @@ function getPrevRange(range) {
 
 async function fetchAccountSummary(accounts, range) {
   let spend = 0, purchaseValue = 0, linkClicks = 0, impressions = 0, orders = 0
+  // Anche valori CPC/CTR pesati come fallback se i click non arrivano
+  let cpcLinkWeighted = 0, ctrLinkWeighted = 0
   for (const account of accounts) {
     const rows = await metaGetAll(`${account}/insights`, {
       level: 'account',
-      fields: 'spend,impressions,clicks,inline_link_clicks,actions,action_values',
+      fields: 'spend,impressions,clicks,unique_clicks,inline_link_clicks,unique_inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values',
       time_range: range,
       action_breakdowns: 'action_type',
     }, 100)
     for (const r of rows) {
-      spend += toNum(r.spend)
+      const rSpend = toNum(r.spend)
+      spend += rSpend
       impressions += toNum(r.impressions)
-      linkClicks += toNum(r.inline_link_clicks) ||
+      linkClicks +=
+        toNum(r.inline_link_clicks) ||
+        toNum(r.unique_inline_link_clicks) ||
         getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save']) ||
-        toNum(r.clicks)
+        toNum(r.clicks) ||
+        toNum(r.unique_clicks)
+      cpcLinkWeighted += (toNum(r.cost_per_inline_link_click) || toNum(r.cpc)) * rSpend
+      ctrLinkWeighted += (toNum(r.inline_link_click_ctr) || toNum(r.ctr)) * rSpend
       orders += getActionValue(r.actions, [
         'purchase', 'offsite_conversion.fb_pixel_purchase',
         'onsite_conversion.purchase', 'omni_purchase',
@@ -504,12 +565,15 @@ async function fetchAccountSummary(accounts, range) {
       ])
     }
   }
+  // Fallback finale: media pesata dei CPC/CTR di Meta se link clicks è 0
+  const cpcComputed = div(spend, linkClicks)
+  const ctrComputed = impressions ? (linkClicks / impressions) * 100 : 0
   return {
     spend: round(spend, 2),
     revenue: round(purchaseValue, 2),
     roas: round(div(purchaseValue, spend), 2),
-    ctr_link: round(impressions ? (linkClicks / impressions) * 100 : 0, 2),
-    cpc_link: round(div(spend, linkClicks), 2),
+    ctr_link: round(ctrComputed || div(ctrLinkWeighted, spend), 2),
+    cpc_link: round(cpcComputed || div(cpcLinkWeighted, spend), 2),
     link_clicks: round(linkClicks, 0),
     impressions: round(impressions, 0),
     orders: round(orders, 0),
@@ -596,8 +660,13 @@ export async function GET(req) {
       'reach',
       'spend',
       'clicks',
+      'unique_clicks',
       'inline_link_clicks',
+      'unique_inline_link_clicks',
       'cpc',
+      'cost_per_inline_link_click',
+      'ctr',
+      'inline_link_click_ctr',
       'actions',
       'action_values',
     ].join(',')

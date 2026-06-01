@@ -128,6 +128,8 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
 function CreativeCard({ row, index }) {
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
+  const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
+  const isCatalog = products.length > 0
 
   const spend = asNum(row.spend)
   const purchases = asNum(row.purchases || row.orders)
@@ -147,6 +149,63 @@ function CreativeCard({ row, index }) {
         overflow: 'hidden',
       }}
     >
+      {isCatalog ? (
+        <div
+          style={{
+            aspectRatio: '1 / 1',
+            background: 'var(--glass)',
+            borderBottom: '1px solid var(--border)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 10, left: 10, zIndex: 2,
+            padding: '4px 9px', borderRadius: 999,
+            background: 'rgba(91,44,255,0.85)', color: '#fff',
+            fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
+            Catalogo · {products.length}
+          </div>
+          <div style={{
+            display: 'flex', gap: 8, height: '100%',
+            overflowX: 'auto', scrollSnapType: 'x mandatory',
+            padding: 12, scrollbarWidth: 'thin',
+          }}>
+            {products.map(p => (
+              <div key={p.id} style={{
+                flex: '0 0 70%', aspectRatio: '1 / 1',
+                background: '#0a0a14', borderRadius: 14,
+                border: '1px solid var(--border)',
+                overflow: 'hidden', scrollSnapAlign: 'start',
+                display: 'flex', flexDirection: 'column',
+              }}>
+                <div style={{ flex: 1, overflow: 'hidden', background: '#0a0a14' }}>
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+                <div style={{
+                  padding: '8px 10px',
+                  borderTop: '1px solid var(--border)',
+                  background: 'rgba(0,0,0,0.4)',
+                }}>
+                  <div style={{
+                    color: '#fff', fontSize: 11, fontWeight: 800,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{p.name || 'Prodotto'}</div>
+                  {p.price && (
+                    <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{p.price}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div
         style={{
           aspectRatio: '1 / 1',
@@ -173,6 +232,7 @@ function CreativeCard({ row, index }) {
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna immagine</div>
         )}
       </div>
+      )}
 
       <div style={{ padding: 18 }}>
         <div

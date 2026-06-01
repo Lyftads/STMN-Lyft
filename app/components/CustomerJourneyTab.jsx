@@ -333,7 +333,7 @@ export default function CustomerJourneyTab() {
     } catch (e) {
       return { error: e?.message || 'Errore di rete', nodes: [], fromPath }
     }
-  }, [days])
+  }, [preset])
 
   // Bootstrap: prima colonna (entry pages)
   useEffect(() => {

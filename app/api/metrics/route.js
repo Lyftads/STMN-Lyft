@@ -179,12 +179,43 @@ function getPresetRange(preset = 'last_90d') {
   return { since: toDateString(addDays(today, -89)), until, label: 'Ultimi 90 giorni' }
 }
 
-function getPreviousRange(range) {
+function getPreviousRange(range, preset) {
   if (!range?.since || !range?.until) {
     return {
       since: null,
       until: null,
       label: 'Periodo precedente',
+    }
+  }
+
+  // Per quarter_YYYY-Qn: previous = quarter calendario precedente intero
+  if (typeof preset === 'string' && preset.startsWith('quarter_')) {
+    const qKey = preset.slice(8)
+    const match = qKey.match(/^(\d{4})-Q([1-4])$/)
+    if (match) {
+      let y = Number(match[1])
+      let q = Number(match[2]) - 1
+      if (q < 1) { q = 4; y -= 1 }
+      const startMonth = (q - 1) * 3 + 1
+      const endMonth = startMonth + 2
+      const since = `${y}-${String(startMonth).padStart(2,'0')}-01`
+      const lastDay = new Date(y, endMonth, 0).getDate()
+      const until = `${y}-${String(endMonth).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+      return { since, until, label: `Q${q} ${y}` }
+    }
+  }
+
+  // Per month_YYYY-MM: previous = mese calendario precedente intero
+  if (typeof preset === 'string' && preset.startsWith('month_')) {
+    const m = preset.slice(6)
+    const [y, mm] = m.split('-').map(Number)
+    if (y && mm) {
+      let py = y, pm = mm - 1
+      if (pm < 1) { pm = 12; py -= 1 }
+      const since = `${py}-${String(pm).padStart(2,'0')}-01`
+      const lastDay = new Date(py, pm, 0).getDate()
+      const until = `${py}-${String(pm).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+      return { since, until, label: `${py}-${String(pm).padStart(2,'0')}` }
     }
   }
 
@@ -1222,7 +1253,7 @@ export async function GET(req) {
     const preset = searchParams.get('preset') || 'last_90d'
 
     const range = getPresetRange(preset)
-    const previousRange = getPreviousRange(range)
+    const previousRange = getPreviousRange(range, preset)
 
     const [
       aovData,

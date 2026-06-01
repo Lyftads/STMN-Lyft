@@ -2013,15 +2013,44 @@ export default function App() {
 
         const m0 = baseMonth                  // mese selezionato (corrente)
         const m1 = monthMinus(baseMonth, 1)   // mese precedente
+        const currentCalendarMonth = fmtM2(new Date())
+
+        // Se il mese selezionato è quello in corso, sovrapponi i dati live
+        // (live.shopifyRange contiene il parziale fino ad oggi)
+        const overlayLive = (m) => {
+          if (m.month !== m0 || m0 !== currentCalendarMonth) return m
+          const sr = live?.shopifyRange
+          if (!sr) return m
+          // Assicuro un row anche se data non aveva il mese
+          return {
+            ...m,
+            fatturato: Number(sr.revenue) || m.fatturato || 0,
+            fatturNC:  Number(sr.fatturNC) || m.fatturNC || 0,
+            fatturRC:  Number(sr.fatturRC) || m.fatturRC || 0,
+            resi:      Number(sr.resi) || m.resi || 0,
+            resiNC:    Number(sr.resiNC) || m.resiNC || 0,
+            resiRC:    Number(sr.resiRC) || m.resiRC || 0,
+            ordini:    Number(sr.orders) || m.ordini || 0,
+            nc:        Number(sr.nc) || m.nc || 0,
+            rc:        Number(sr.rc) || m.rc || 0,
+            sessioni:  Number(sr.sessions) || m.sessioni || 0,
+            metaSpend: Number(live?.metaRange?.spend) || m.metaSpend || 0,
+          }
+        }
+
+        // Se il mese non esiste in data (filtrato out perché vuoto), lo ricreo
+        const ensureMonthRow = (label) => {
+          const existing = data.find(m => m.month === label)
+          if (existing) return existing
+          return { month: label, fatturato:0, fatturNC:0, fatturRC:0, resi:0, resiNC:0, resiRC:0, ordini:0, nc:0, rc:0, sessioni:0, metaSpend:0, googleSpend:0, totalSpend:0 }
+        }
 
         // KPI cards summary: solo mese selezionato (delta vs precedente)
-        const tfMonths = data.filter(m => m.month === m0)
-        const tfPrevMonths = data.filter(m => m.month === m1)
+        const tfMonths = [overlayLive(ensureMonthRow(m0))]
+        const tfPrevMonths = [ensureMonthRow(m1)]
 
         // Righe tabella: entrambi i mesi (più recente in alto)
-        const tableMonths = data
-          .filter(m => m.month === m0 || m.month === m1)
-          .sort((a, b) => b.month.localeCompare(a.month))
+        const tableMonths = [overlayLive(ensureMonthRow(m0)), ensureMonthRow(m1)]
 
         const tfLabel = `${m0} vs ${m1}`
 

@@ -522,16 +522,16 @@ function Simulator({ cfg }) {
           return (
             <div key={i} style={{
               position: 'relative',
-              background: 'rgba(255,255,255,0.035)',
+              background: `linear-gradient(180deg, ${color}1f 0%, rgba(8,8,18,0.65) 38%, rgba(0,0,0,0.95) 100%)`,
               backdropFilter: 'blur(40px) saturate(2.2)',
               WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
               border: '1.5px solid rgba(255,255,255,0.06)',
-              borderTopColor: 'rgba(255,255,255,0.12)',
-              borderBottomColor: 'rgba(0,0,0,0.5)',
+              borderTopColor: `${color}55`,
+              borderBottomColor: 'rgba(0,0,0,0.65)',
               borderRadius: 18,
               padding: 22,
               overflow: 'hidden',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.2)',
+              boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 0 0 0 rgba(0,0,0,0), 0 0 40px ${color}14, inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)`,
             }}>
               <div style={{
                 position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
@@ -621,16 +621,27 @@ function Simulator({ cfg }) {
       </div>
 
       <div style={{
-        background: 'rgba(255,255,255,0.03)',
+        position: 'relative',
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        borderRadius: 22,
+        overflow: 'hidden',
         border: '1.5px solid rgba(255,255,255,0.06)',
-        borderTopColor: 'rgba(255,255,255,0.10)',
-        borderBottomColor: 'rgba(0,0,0,0.45)',
-        borderRadius: 16,
-        overflowX: 'auto',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
-        backdropFilter: 'blur(20px) saturate(1.8)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.55)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
+        {/* Top accent bar cr-shine */}
+        <div style={{
+          position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+          background: `linear-gradient(90deg, transparent, ${ACCENT_GLOW}88, transparent)`,
+          filter: 'blur(0.3px)',
+          opacity: 0.85,
+          animation: 'cr-shine 4s ease-in-out infinite',
+          zIndex: 1,
+        }} />
+        <div style={{ overflowX: 'auto', position: 'relative', zIndex: 2 }}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr>
@@ -680,6 +691,7 @@ function Simulator({ cfg }) {
             )})}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>

@@ -29,8 +29,19 @@ Marino lavora con te da tempo, vi conoscete. Tono umano, da consulente vero, non
 ## Competenze
 Unit economics (LTV lordo/netto, AOV, CAC, payback, LTV:CAC target 3:1), repeat rate, performance marketing (MER blended, aMER, ROAS, CTR, CPM, frequency fatigue), CRO, diagnosi pattern (MER cala+CTR stabile+CPM sale = saturazione, AOV scende+ordini salgono = sconto troppo, etc).
 
-## Dati
-Hai accesso a un JSON con i numeri del timeframe selezionato + periodo precedente. Usa SOLO numeri presenti lì, mai inventare. Se mancano dati per rispondere, dillo apertamente.
+## Dati — REGOLA CRITICA
+Riceverai un JSON \`DATI LIVE\` con i numeri reali del periodo selezionato.
+
+DIVIETO ASSOLUTO:
+- NON inventare MAI nomi di prodotti che non sono in shopify.topProducts
+- NON inventare MAI numeri (revenue, AOV, CAC, MER, etc.)
+- NON usare prodotti generici tipo "Power Protein Shake", "Whey Protein", "Pre-Workout" — sono nomi inventati che NON esistono nel catalogo STMN (STMN vende paracalli, corde, accessori CrossFit, NON supplementi)
+
+Se shopify.topProducts è array vuoto: rispondi "Non ho dati sui prodotti per questo periodo. Prova ad allargare il timeframe o controlla che Shopify sia connesso correttamente."
+
+Se l'utente chiede di un prodotto specifico ma non è nella lista: rispondi "Quel prodotto non risulta nei top venduti del periodo selezionato. I top sono: [elenco da shopify.topProducts]".
+
+Quando citi un prodotto, usa ESATTAMENTE il campo \`label\` o \`name\` dal JSON. Mai parafrasare.
 
 ## Per il PRIMO messaggio della conversazione
 Marino ti ha già salutato implicitamente aprendo la chat. NON ripetere "Buongiorno/buonasera Marino". Rispondi direttamente alla sua domanda.`
@@ -59,6 +70,14 @@ export async function POST(req) {
   const metrics = body?.metrics || null
   const tf = body?.tf || 'unknown'
 
+  const topProductsRaw = Array.isArray(metrics?.shopifyTopProducts) ? metrics.shopifyTopProducts.slice(0, 10) : []
+  const topProductsClean = topProductsRaw.map(p => ({
+    name: p.label || p.name || p.title || p.product_title || 'Sconosciuto',
+    revenue: p.value ?? p.revenue ?? p.total_sales ?? p.sales ?? 0,
+    orders: p.orders ?? 0,
+    quantity: p.quantity ?? 0,
+  }))
+
   const context = metrics ? {
     timeframe: tf,
     range: metrics?.kpiBrain?.range,
@@ -73,7 +92,8 @@ export async function POST(req) {
       prevRevenue: metrics?.shopifyPrevRange?.revenue,
       prevOrders: metrics?.shopifyPrevRange?.orders,
       prevNc: metrics?.shopifyPrevRange?.nc,
-      topProducts: (metrics?.shopifyTopProducts || []).slice(0, 10),
+      topProducts: topProductsClean,
+      topProductsCount: topProductsClean.length,
       marketingSources: metrics?.shopifyMarketingSources,
       dayBreakdown: metrics?.shopifyDayBreakdown,
     },
@@ -100,10 +120,10 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.6,
+        temperature: 0.2,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          ...(context ? [{ role: 'system', content: `DATI LIVE:\n${safeJson(context)}` }] : []),
+          ...(context ? [{ role: 'system', content: `DATI LIVE — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` }] : []),
           ...clean,
         ],
       }),

@@ -132,8 +132,10 @@ export default function DashboardInsights({ preset }) {
   const containerStyle = { marginTop: 32 }
 
   // Always render the container so the user sees something happening
+  // NOTE: no reveal-zoom class — TabContent IntersectionObserver only
+  // catches elements present at mount, but this component renders async.
   return (
-    <div className="reveal-zoom" style={containerStyle}>
+    <div style={containerStyle}>
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <h2 className="heading-md">Insight e To-do</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -178,7 +180,7 @@ export default function DashboardInsights({ preset }) {
       )}
 
       {data && (
-        <div className="stagger-zoom" style={{
+        <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
           gap: 14,

@@ -374,26 +374,46 @@ function TabContent({ children }) {
   useEffect(() => {
     if (!entered || !ref.current) return
 
-    const allAnimated = ref.current.querySelectorAll(
-      '.reveal, .reveal-scale, .reveal-zoom, .stagger, .stagger-zoom, [data-scroll]'
-    )
+    const ANIM_SELECTOR = '.reveal, .reveal-scale, .reveal-zoom, .stagger, .stagger-zoom, [data-scroll]'
 
-    if (!allAnimated.length) return
-
-    const observer = new IntersectionObserver(
+    const intersectionObs = new IntersectionObserver(
       entries => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible')
-            observer.unobserve(entry.target)
+            intersectionObs.unobserve(entry.target)
           }
         }
       },
       { threshold: 0.05, rootMargin: '0px 0px -20px 0px' }
     )
 
-    allAnimated.forEach(el => observer.observe(el))
-    return () => observer.disconnect()
+    const observed = new WeakSet()
+    const observeAll = (root) => {
+      root.querySelectorAll?.(ANIM_SELECTOR).forEach(el => {
+        if (!observed.has(el) && !el.classList.contains('visible')) {
+          observed.add(el)
+          intersectionObs.observe(el)
+        }
+      })
+    }
+
+    observeAll(ref.current)
+
+    // Watch for elements added asynchronously (e.g. fetched insights)
+    const mutationObs = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        m.addedNodes?.forEach(node => {
+          if (node.nodeType === 1) observeAll(node)
+        })
+      }
+    })
+    mutationObs.observe(ref.current, { childList: true, subtree: true })
+
+    return () => {
+      intersectionObs.disconnect()
+      mutationObs.disconnect()
+    }
   }, [entered])
 
 

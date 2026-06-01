@@ -154,6 +154,9 @@ function CreativeCard({ row, index }) {
   const name = getCreativeName(row)
   const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
   const isCatalog = products.length > 0
+  // DPA dove non abbiamo prodotti né immagine: lo riconosciamo dal
+  // product_set_id e mostriamo un placeholder dedicato invece di "Nessuna"
+  const isDpaWithoutImages = !img && !isCatalog && !!row.product_set_id
 
   const spend = asNum(row.spend)
   const purchases = asNum(row.purchases || row.orders)
@@ -252,6 +255,31 @@ function CreativeCard({ row, index }) {
               display: 'block',
             }}
           />
+        ) : isDpaWithoutImages ? (
+          <div style={{
+            width: '100%', height: '100%',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 14,
+            background: 'linear-gradient(135deg, rgba(91,44,255,0.18) 0%, rgba(0,0,0,0.4) 100%)',
+            padding: 20,
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'rgba(91,44,255,0.25)',
+              border: '1px solid rgba(91,44,255,0.5)',
+              display: 'grid', placeItems: 'center',
+              fontSize: 26,
+            }}>📦</div>
+            <div style={{
+              padding: '4px 10px', borderRadius: 999,
+              background: 'rgba(91,44,255,0.85)', color: '#fff',
+              fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}>Advantage+ Catalog</div>
+            <div style={{ color: 'var(--text3)', fontSize: 11, textAlign: 'center', lineHeight: 1.4 }}>
+              Carosello dinamico<br/>(prodotti gestiti da Meta)
+            </div>
+          </div>
         ) : (
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna immagine</div>
         )}

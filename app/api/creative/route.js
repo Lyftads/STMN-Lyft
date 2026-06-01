@@ -354,28 +354,64 @@ function mergeByAd(rows) {
   return Array.from(map.values())
 }
 
+// Meta restituisce questo hash come placeholder generico per le creative
+// DPA/Catalog quando non c'è un'immagine statica selezionata
+const META_GENERIC_PLACEHOLDER = '75341531_494485104475166'
+
+function isGenericPlaceholder(url) {
+  return typeof url === 'string' && url.includes(META_GENERIC_PLACEHOLDER)
+}
+
+function getAssetFeedImage(spec) {
+  if (!spec) return null
+  const images = Array.isArray(spec.images) ? spec.images : []
+  for (const im of images) {
+    if (im?.url) return im.url
+    if (im?.permalink_url) return im.permalink_url
+  }
+  return null
+}
+
 function pickBestImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
-  return (
-    fullCreative.image_url ||
-    creative.image_url ||
-    fullCreative.thumbnail_url ||
-    creative.thumbnail_url ||
-    row.image_url ||
-    row.thumbnail_url ||
-    null
-  )
+  const fromAssetFeed =
+    getAssetFeedImage(fullCreative.asset_feed_spec) ||
+    getAssetFeedImage(creative.asset_feed_spec)
+
+  const candidates = [
+    fullCreative.image_url,
+    creative.image_url,
+    fromAssetFeed,
+    fullCreative.thumbnail_url,
+    creative.thumbnail_url,
+    row.image_url,
+    row.thumbnail_url,
+  ]
+  // Scarta il placeholder generico Meta in priorità — torna null così la
+  // card può mostrare un fallback dedicato (badge catalog) o l'iframe
+  for (const c of candidates) {
+    if (c && !isGenericPlaceholder(c)) return c
+  }
+  return null
 }
 
 function pickPreviewImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
-  return (
-    fullCreative.thumbnail_url ||
-    creative.thumbnail_url ||
-    fullCreative.image_url ||
-    creative.image_url ||
-    row.thumbnail_url ||
-    row.image_url ||
-    null
-  )
+  const fromAssetFeed =
+    getAssetFeedImage(fullCreative.asset_feed_spec) ||
+    getAssetFeedImage(creative.asset_feed_spec)
+
+  const candidates = [
+    fullCreative.thumbnail_url,
+    creative.thumbnail_url,
+    fromAssetFeed,
+    fullCreative.image_url,
+    creative.image_url,
+    row.thumbnail_url,
+    row.image_url,
+  ]
+  for (const c of candidates) {
+    if (c && !isGenericPlaceholder(c)) return c
+  }
+  return null
 }
 
 function getProductSetId(creative, fullCreative) {
@@ -792,14 +828,18 @@ export async function GET(req) {
       }, 5).catch(e => ({ error: e?.message })) : Promise.resolve(null),
     ])
 
-    // Account-level summary è più affidabile (combacia con Meta Detail
-    // che funziona). Lo usiamo come summary primaria se disponibile,
-    // così CPC/CTR/spend riflettono direttamente la fonte Meta usata
-    // dal tab Meta Detail invece dell'aggregazione per-ad
+    // Account-level summary è più affidabile per alcuni campi, ma non
+    // deve sovrascrivere valori validi di adLevelSummary con 0. Merge
+    // selettivo: override solo i campi non-zero da accountSummary.
     const adLevelSummary = buildSummary(merged)
-    const summary = accountSummary
-      ? { ...adLevelSummary, ...accountSummary, creatives: merged.length }
-      : adLevelSummary
+    const summary = { ...adLevelSummary }
+    if (accountSummary) {
+      for (const key of Object.keys(accountSummary)) {
+        const v = accountSummary[key]
+        if (v != null && v !== 0) summary[key] = v
+      }
+    }
+    summary.creatives = merged.length
 
     return json({
       ok: true,

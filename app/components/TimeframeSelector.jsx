@@ -87,10 +87,10 @@ export default function TimeframeSelector({ value, onChange, disabled }) {
         <div
           style={{
             position: 'absolute',
-            top: 'calc(100% + 6px)',
+            top: 'calc(100% + 8px)',
             right: 0,
-            width: 240,
-            maxHeight: 460,
+            width: 260,
+            maxHeight: 520,
             overflowY: 'auto',
             background: 'rgba(8,8,15,0.95)',
             backdropFilter: 'blur(30px) saturate(1.8)',
@@ -100,7 +100,7 @@ export default function TimeframeSelector({ value, onChange, disabled }) {
             borderRadius: 14,
             boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.5)',
             zIndex: 100,
-            padding: '8px 0',
+            padding: '14px 0 16px',
           }}
         >
           <SectionLabel>Date range</SectionLabel>
@@ -108,7 +108,7 @@ export default function TimeframeSelector({ value, onChange, disabled }) {
             <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
           ))}
 
-          <div style={{ height: 1, background: 'var(--border)', margin: '8px 14px' }} />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '14px 18px' }} />
 
           <SectionLabel>By month</SectionLabel>
           {months.map(opt => (
@@ -123,11 +123,11 @@ export default function TimeframeSelector({ value, onChange, disabled }) {
 function SectionLabel({ children }) {
   return (
     <div style={{
-      padding: '8px 16px 4px',
-      fontSize: 10,
+      padding: '6px 22px 10px',
+      fontSize: 11,
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.12em',
+      letterSpacing: '0.14em',
       color: 'var(--text3)',
     }}>{children}</div>
   )
@@ -141,18 +141,19 @@ function Option({ label, selected, onClick }) {
       style={{
         width: '100%',
         textAlign: 'left',
-        padding: '9px 16px',
+        padding: '11px 22px',
         background: 'transparent',
         border: 0,
         color: 'var(--text)',
-        fontSize: 13.5,
+        fontSize: 14.5,
+        fontWeight: 500,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         transition: 'background 0.12s',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
       <span>{label}</span>

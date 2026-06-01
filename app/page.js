@@ -16,6 +16,7 @@ import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
 import TimeframeSelector from './components/TimeframeSelector'
+import MensileAgent from './components/MensileAgent'
 import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -2476,6 +2477,9 @@ export default function App() {
 
           {/* AI Insights & To-do */}
           <DashboardInsights preset={preset} />
+
+          {/* Floating Mensile Agent (vertical chat) */}
+          <MensileAgent data={data} selectedMonth={m0} previousMonth={m1} preset={preset} />
         </>
       )})()}
 

@@ -172,27 +172,46 @@ function CreativeCard({ row, index, onClick }) {
   const cpc = asNum(row.cpc_link || row.cpc)
   const impressions = asNum(row.impressions)
   const clicks = asNum(row.link_clicks || row.clicks)
+  const prev = row.prev || null // popolato solo se la creative era attiva nel periodo precedente
+
+  // Colore accento dinamico in base a performance (ROAS)
+  const accent =
+    roas >= 4 ? { glow: '#22c55e', alpha: 'rgba(34,197,94,0.45)' } :
+    roas >= 2.5 ? { glow: '#3b82f6', alpha: 'rgba(59,130,246,0.45)' } :
+    roas >= 1.5 ? { glow: '#f59e0b', alpha: 'rgba(245,158,11,0.4)' } :
+    { glow: '#ef4444', alpha: 'rgba(239,68,68,0.4)' }
 
   return (
     <div
       onClick={onClick}
       style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
+        position: 'relative',
+        background: 'linear-gradient(155deg, rgba(20,16,40,0.85) 0%, rgba(8,8,18,0.95) 100%)',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 22,
         overflow: 'hidden',
         cursor: 'pointer',
-        transition: 'transform 0.18s cubic-bezier(0.16,1,0.3,1), border-color 0.18s',
+        transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1), border-color 0.32s, box-shadow 0.32s',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-3px)'
-        e.currentTarget.style.borderColor = 'rgba(91,44,255,0.45)'
+        e.currentTarget.style.transform = 'translateY(-6px) scale(1.012)'
+        e.currentTarget.style.borderColor = accent.alpha
+        e.currentTarget.style.boxShadow = `0 24px 60px ${accent.alpha}, 0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.transform = 'translateY(0) scale(1)'
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)'
       }}
     >
+      {/* Barra superiore animata che fa da indicatore performance */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
+        animation: 'cr-shine 3.2s ease-in-out infinite',
+        zIndex: 3,
+      }} />
       {isCatalog ? (
         <div
           style={{
@@ -303,7 +322,7 @@ function CreativeCard({ row, index, onClick }) {
       </div>
       )}
 
-      <div style={{ padding: 18 }}>
+      <div style={{ padding: 18, position: 'relative', zIndex: 2 }}>
         <div
           style={{
             display: 'flex',
@@ -314,10 +333,10 @@ function CreativeCard({ row, index, onClick }) {
         >
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 999,
-              background: '#5b2cff',
+              width: 30,
+              height: 30,
+              borderRadius: 10,
+              background: `linear-gradient(135deg, ${accent.glow}, rgba(91,44,255,0.85))`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -325,12 +344,13 @@ function CreativeCard({ row, index, onClick }) {
               fontSize: 12,
               fontWeight: 900,
               flex: '0 0 auto',
+              boxShadow: `0 0 14px ${accent.alpha}`,
             }}
           >
             {index + 1}
           </div>
 
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
                 color: '#fff',
@@ -338,15 +358,42 @@ function CreativeCard({ row, index, onClick }) {
                 fontSize: 14,
                 lineHeight: 1.35,
                 marginBottom: 5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
               }}
             >
               {name}
             </div>
 
-            <div style={{ color: 'var(--text3)', fontSize: 11 }}>
+            <div style={{
+              color: 'var(--text3)',
+              fontSize: 11,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
               {row.campaign_name || 'Campagna non disponibile'}
             </div>
           </div>
+
+          {prev && (
+            <div style={{
+              padding: '3px 8px',
+              borderRadius: 999,
+              background: 'rgba(59,130,246,0.15)',
+              border: '1px solid rgba(59,130,246,0.35)',
+              color: '#7dd3fc',
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              flex: '0 0 auto',
+            }}>vs prec.</div>
+          )}
         </div>
 
         <div
@@ -356,28 +403,46 @@ function CreativeCard({ row, index, onClick }) {
             gap: 10,
           }}
         >
-          <Mini label="Spesa" value={money(spend)} />
-          <Mini label="Revenue" value={money(purchaseValue)} />
-          <Mini label="ROAS" value={ratio(roas)} />
-          <Mini label="Ordini" value={num(purchases)} />
-          <Mini label="CTR" value={pct(ctr)} />
-          <Mini label="CPC" value={money2(cpc)} />
-          <Mini label="Impression" value={num(impressions)} />
-          <Mini label="Click" value={num(clicks)} />
+          <Mini label="Spesa" value={money(spend)} curr={spend} prev={prev?.spend} />
+          <Mini label="Revenue" value={money(purchaseValue)} curr={purchaseValue} prev={prev?.revenue} />
+          <Mini label="ROAS" value={ratio(roas)} curr={roas} prev={prev?.roas} tone={accent.glow} highlight />
+          <Mini label="Ordini" value={num(purchases)} curr={purchases} prev={prev?.orders} />
+          <Mini label="CTR" value={pct(ctr)} curr={ctr} prev={prev?.ctr_link} kind="pct" />
+          <Mini label="CPC" value={money2(cpc)} curr={cpc} prev={prev?.cpc_link} isLowerBetter />
+          <Mini label="Impression" value={num(impressions)} curr={impressions} prev={prev?.impressions} />
+          <Mini label="Click" value={num(clicks)} curr={clicks} prev={prev?.link_clicks} />
         </div>
       </div>
     </div>
   )
 }
 
-function Mini({ label, value }) {
+function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight = false, kind }) {
+  // Mostra il delta solo quando prev è un numero valido (la creative
+  // era attiva nel periodo precedente). Se prev è null/undefined → niente delta.
+  let pctDelta = null
+  let good = null
+  if (typeof prev === 'number' && prev > 0 && typeof curr === 'number') {
+    const pct = ((curr - prev) / prev) * 100
+    if (Number.isFinite(pct) && Math.abs(pct) >= 0.1) {
+      pctDelta = pct
+      good = isLowerBetter ? pct < 0 : pct > 0
+    }
+  }
+
   return (
     <div
       style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
+        position: 'relative',
+        background: highlight && tone
+          ? `linear-gradient(135deg, ${tone}22 0%, rgba(255,255,255,0.025) 100%)`
+          : 'rgba(255,255,255,0.025)',
+        border: highlight && tone
+          ? `1px solid ${tone}55`
+          : '1px solid rgba(255,255,255,0.05)',
         borderRadius: 12,
         padding: '10px 12px',
+        overflow: 'hidden',
       }}
     >
       <div
@@ -392,8 +457,30 @@ function Mini({ label, value }) {
       >
         {label}
       </div>
-      <div style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>
-        {value}
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 6,
+        flexWrap: 'wrap',
+      }}>
+        <div style={{
+          color: highlight && tone ? tone : '#fff',
+          fontSize: 13,
+          fontWeight: 900,
+          letterSpacing: '-0.01em',
+        }}>
+          {value}
+        </div>
+        {pctDelta != null && (
+          <div style={{
+            fontSize: 10,
+            fontWeight: 800,
+            color: good ? '#22c55e' : '#ef4444',
+            whiteSpace: 'nowrap',
+          }}>
+            {pctDelta > 0 ? '▲' : '▼'} {Math.abs(pctDelta).toFixed(1)}%
+          </div>
+        )}
       </div>
     </div>
   )

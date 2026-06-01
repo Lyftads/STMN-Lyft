@@ -892,7 +892,45 @@ export async function GET(req) {
       .sort((a, b) => b.spend - a.spend)
 
     const prevRange = getPrevRange(range)
-    const [accountSummary, prevSummary, dailySeries, rawAccountRows] = await Promise.all([
+
+    // Insights ad-level del periodo PRECEDENTE per fare comparazione
+    // per-creative: ad_id → metrics. Restano usabili solo se l'ad era
+    // attivo nel periodo precedente (Meta non ritorna righe per ad
+    // senza spesa).
+    async function fetchPrevAdMap() {
+      const prevFields = [
+        'ad_id','spend','impressions','clicks','inline_link_clicks',
+        'cpc','cost_per_inline_link_click','ctr','inline_link_click_ctr',
+        'actions','action_values',
+      ].join(',')
+      const map = {}
+      for (const account of accounts) {
+        try {
+          const rows = await metaGetAll(`${account}/insights`, {
+            level: 'ad',
+            fields: prevFields,
+            time_range: prevRange,
+          }, 500)
+          for (const r of rows) {
+            if (!r.ad_id) continue
+            const normalized = normalizeInsight(r, account)
+            map[r.ad_id] = {
+              spend: normalized.spend,
+              revenue: normalized.purchase_value,
+              orders: normalized.orders,
+              roas: normalized.roas,
+              cpc_link: normalized.cpc_link,
+              ctr_link: normalized.ctr_link,
+              link_clicks: normalized.link_clicks,
+              impressions: normalized.impressions,
+            }
+          }
+        } catch {}
+      }
+      return map
+    }
+
+    const [accountSummary, prevSummary, dailySeries, rawAccountRows, prevAdMap] = await Promise.all([
       fetchAccountSummary(accounts, range).catch(() => null),
       fetchAccountSummary(accounts, prevRange).catch(() => null),
       fetchDailySeries(accounts, range).catch(() => []),
@@ -901,7 +939,15 @@ export async function GET(req) {
         fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values,cost_per_action_type',
         time_range: range,
       }, 5).catch(e => ({ error: e?.message })) : Promise.resolve(null),
+      fetchPrevAdMap(),
     ])
+
+    // Aggancia il previous a ogni row se esiste (l'ad era attivo nel
+    // periodo precedente). Se manca → niente confronto (richiesta utente).
+    merged = merged.map(r => {
+      const prev = prevAdMap[r.ad_id]
+      return prev && prev.spend > 0 ? { ...r, prev } : r
+    })
 
     // Account-level summary è più affidabile per alcuni campi, ma non
     // deve sovrascrivere valori validi di adLevelSummary con 0. Merge

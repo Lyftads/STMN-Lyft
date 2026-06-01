@@ -568,6 +568,59 @@ async function getAdsetRows(accounts, range, campaignId) {
   })
 }
 
+async function fetchDailySeries(accounts, range) {
+  const byDay = new Map()
+  for (const accountId of accounts) {
+    try {
+      const rows = await graphAll(`${accountId}/insights`, {
+        level: 'account',
+        fields: 'spend,impressions,reach,frequency,cpm,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,actions,action_values',
+        time_range: JSON.stringify(range),
+        time_increment: '1',
+        limit: '500',
+      })
+      for (const r of rows) {
+        const date = r.date_start
+        if (!date) continue
+        const prev = byDay.get(date) || {
+          date, spend: 0, revenue: 0, orders: 0,
+          link_clicks: 0, impressions: 0, frequency: 0,
+          frequencyWeight: 0, cpm: 0, cpmWeight: 0,
+        }
+        const sp = num(r.spend)
+        const imp = num(r.impressions)
+        prev.spend += sp
+        prev.impressions += imp
+        prev.link_clicks += num(r.inline_link_clicks) || actionValue(r.actions, ['link_click'])
+        prev.orders += actionValue(r.actions, ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'])
+        prev.revenue += moneyValue(r.action_values, ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'])
+        // freq/cpm pesate per impression
+        prev.frequencyWeight += imp
+        prev.frequency += num(r.frequency) * imp
+        prev.cpmWeight += imp
+        prev.cpm += num(r.cpm) * imp
+        byDay.set(date, prev)
+      }
+    } catch {}
+  }
+  return Array.from(byDay.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(d => ({
+      date: d.date,
+      spend: Math.round(d.spend * 100) / 100,
+      revenue: Math.round(d.revenue * 100) / 100,
+      orders: Math.round(d.orders),
+      link_clicks: Math.round(d.link_clicks),
+      impressions: Math.round(d.impressions),
+      roas: d.spend > 0 ? Math.round((d.revenue / d.spend) * 100) / 100 : 0,
+      cost_per_result: d.orders > 0 ? Math.round((d.spend / d.orders) * 100) / 100 : 0,
+      ctr_link: d.impressions > 0 ? Math.round((d.link_clicks / d.impressions) * 10000) / 100 : 0,
+      cpc_link: d.link_clicks > 0 ? Math.round((d.spend / d.link_clicks) * 100) / 100 : 0,
+      frequency: d.frequencyWeight > 0 ? Math.round((d.frequency / d.frequencyWeight) * 100) / 100 : 0,
+      cpm: d.cpmWeight > 0 ? Math.round((d.cpm / d.cpmWeight) * 100) / 100 : 0,
+    }))
+}
+
 async function getAdRows(accounts, range, adsetId) {
   const ads = await fetchActiveAds(adsetId)
   const ids = ads.map(x => x.id)
@@ -666,9 +719,15 @@ export async function GET(req) {
       ctr_link: 0,
     }
 
+    let dailySeries = []
+
     if (level === 'campaigns') {
-      const previousRows = await getCampaignRows(accounts, previousRange)
+      const [previousRows, daily] = await Promise.all([
+        getCampaignRows(accounts, previousRange),
+        fetchDailySeries(accounts, range).catch(() => []),
+      ])
       previousSummary = sumRows(previousRows)
+      dailySeries = daily
     }
 
     return NextResponse.json({
@@ -684,6 +743,7 @@ export async function GET(req) {
       insight: insightText(range, summary),
       todos: todos(summary),
       rows,
+      dailySeries,
       sources: { meta: true },
       updatedAt: new Date().toISOString(),
     })

@@ -89,7 +89,41 @@ function PerfDot({ roas }) {
   )
 }
 
-function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff' }) {
+function Sparkline({ data, dataKey, color = '#fff', width = 110, height = 32 }) {
+  const vals = (data || []).map(d => Number(d[dataKey] || 0))
+  if (vals.length < 2 || vals.every(v => v === 0)) return null
+  const max = Math.max(...vals), min = Math.min(...vals)
+  const range = max - min || 1
+  const points = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * width
+    const y = height - ((v - min) / range) * (height - 4) - 2
+    return `${x},${y}`
+  }).join(' ')
+  // Area fill path
+  const areaPoints = `0,${height} ${points} ${width},${height}`
+  const gid = `sl-${dataKey}-${color.replace('#', '')}`
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill={`url(#${gid})`} />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', daily, dataKey }) {
   const good = deltaGood(prevDelta, inverse)
   return (
     <div className="glass-card" style={{
@@ -105,13 +139,15 @@ function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff' }) 
         letterSpacing: '0.14em',
         marginBottom: 12,
       }}>{label}</div>
-      <div style={{
-        fontSize: 26,
-        fontWeight: 900,
-        color: accent,
-        letterSpacing: '-0.02em',
-        marginBottom: prevDelta != null ? 8 : 0,
-      }}>{value}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: prevDelta != null ? 8 : 0 }}>
+        <div style={{
+          fontSize: 26,
+          fontWeight: 900,
+          color: accent,
+          letterSpacing: '-0.02em',
+        }}>{value}</div>
+        {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}
+      </div>
       {prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 && (
         <div style={{
           display: 'inline-flex',
@@ -459,6 +495,7 @@ export default function MetaDetailTab() {
 
   const summary = data?.summary || {}
   const cmp = data?.comparison || {}
+  const daily = Array.isArray(data?.dailySeries) ? data.dailySeries : []
 
   return (
     <div>
@@ -618,12 +655,12 @@ export default function MetaDetailTab() {
         gap: 14,
         marginBottom: 18,
       }}>
-        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" />
-        <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" />
-        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" />
-        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" />
-        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" />
-        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" />
+        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" />
+        <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" />
+        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" />
+        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" />
+        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" />
+        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" />
       </div>
 
       {/* Comparazione + Insight */}

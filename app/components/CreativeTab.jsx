@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import CreativeAgent from './CreativeAgent'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -1099,6 +1100,13 @@ export default function CreativeTab() {
           onClose={() => setSelectedCreative(null)}
         />
       )}
+
+      <CreativeAgent
+        rows={rows}
+        summary={apiSummary}
+        prevSummary={prevSummary}
+        preset={preset}
+      />
     </div>
   )
 }

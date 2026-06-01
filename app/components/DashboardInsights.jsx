@@ -69,8 +69,16 @@ export default function DashboardInsights({ preset }) {
   const [error, setError] = useState(null)
   const [retryKey, setRetryKey] = useState(0)
   const abortRef = useRef(null)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
+    // Skip auto-load on mount — only fetch after user picks a timeframe
+    // or clicks Rigenera. Keeps initial page load fast.
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+
     let active = true
     if (abortRef.current) abortRef.current.abort()
     const ac = new AbortController()
@@ -174,8 +182,32 @@ export default function DashboardInsights({ preset }) {
       )}
 
       {!error && !data && !loading && (
-        <div className="glass-card" style={{ padding: 20, color: 'var(--text2)', fontSize: 13 }}>
-          Nessun insight disponibile. Clicca "Rigenera".
+        <div className="glass-card" style={{
+          padding: 22,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          alignItems: 'flex-start',
+        }}>
+          <div style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55 }}>
+            Seleziona un timeframe in alto a destra e clicca <strong style={{ color: 'var(--text)' }}>Rigenera</strong> per ricevere insight e to-do basati su quel periodo. L'analisi richiede ~10s e usa OpenAI.
+          </div>
+          <button
+            type="button"
+            onClick={() => setRetryKey(k => k + 1)}
+            className="btn-glass"
+            style={{
+              fontSize: 13,
+              padding: '10px 18px',
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #2997ff, #6366f1)',
+              border: 'none',
+              color: '#fff',
+              fontWeight: 700,
+            }}
+          >
+            ↻ Genera insight ora
+          </button>
         </div>
       )}
 

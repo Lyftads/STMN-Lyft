@@ -3,6 +3,7 @@ export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
 import { BigQuery } from '@google-cloud/bigquery'
+import { JWT } from 'google-auth-library'
 
 // Customer Journey ibrido:
 // 1) BigQuery export GA4 quando esiste (vero sankey sequenziale)
@@ -292,7 +293,32 @@ export async function GET(request) {
 // Stesso flow del primo MVP: top landingPage al livello 0, top pagePath
 // filtrato per landingPage = path[0] sopra. Conteggi approssimati ai
 // livelli > 1 (GA4 Data API senza BigQuery non espone l'ordine).
-async function getGA4AccessToken() {
+// Token GA4 via Service Account (preferito) → stesso JSON gia' usato per
+// BigQuery, nessun OAuth flow separato. Richiede solo che la service
+// account email sia stata aggiunta come Viewer alla property GA4.
+async function getGA4TokenViaServiceAccount() {
+  const raw = envTrim('GOOGLE_SERVICE_ACCOUNT_JSON')
+  if (!raw) return null
+  let credentials
+  try { credentials = JSON.parse(raw) } catch { return null }
+  if (!credentials.client_email || !credentials.private_key) return null
+  try {
+    const jwt = new JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+    })
+    const tok = await jwt.authorize()
+    return tok?.access_token || null
+  } catch {
+    return null
+  }
+}
+
+// Fallback OAuth refresh_token (vecchio modo) — usato se il service
+// account non e' stato ancora aggiunto come utente sulla property GA4.
+async function getGA4TokenViaOAuth() {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) return null
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -305,6 +331,12 @@ async function getGA4AccessToken() {
   })
   const data = await res.json()
   return data.access_token || null
+}
+
+async function getGA4AccessToken() {
+  // Provo prima service account (scope analytics.readonly garantito),
+  // poi OAuth come ripiego.
+  return (await getGA4TokenViaServiceAccount()) || (await getGA4TokenViaOAuth())
 }
 
 async function ga4RunReport(token, propertyId, body) {
@@ -327,11 +359,11 @@ async function ga4RunReport(token, propertyId, body) {
 
 async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
   const propertyId = envTrim('GA4_PROPERTY_ID')
-  if (!propertyId || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) {
-    return { configured: false, reason: 'GA4 Data API env vars mancanti (GA4_PROPERTY_ID, GOOGLE_CLIENT_ID, GOOGLE_REFRESH_TOKEN)' }
+  if (!propertyId) {
+    return { configured: false, reason: 'GA4_PROPERTY_ID mancante su Vercel' }
   }
   const token = await getGA4AccessToken()
-  if (!token) return { configured: false, reason: 'OAuth refresh_token GA4 scaduto/revocato — rinnova GOOGLE_REFRESH_TOKEN su Vercel' }
+  if (!token) return { configured: false, reason: 'Auth GA4 fallito: service account non valido E nessun OAuth refresh_token disponibile' }
 
   // GA4 Data API accetta YYYY-MM-DD, non YYYYMMDD. Converti.
   const toIso = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`

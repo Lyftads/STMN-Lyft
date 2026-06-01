@@ -382,12 +382,16 @@ function TabContent({ children }) {
 
     const observed = new WeakSet()
     const observeAll = (root) => {
-      root.querySelectorAll?.(ANIM_SELECTOR).forEach(el => {
-        if (!observed.has(el) && !el.classList.contains('visible')) {
-          observed.add(el)
-          intersectionObs.observe(el)
-        }
-      })
+      const observe = (el) => {
+        if (!el || !el.classList || observed.has(el) || el.classList.contains('visible')) return
+        observed.add(el)
+        intersectionObs.observe(el)
+      }
+      // Root stesso può essere un nodo animato (es. .stagger-zoom aggiunto
+      // da React quando arrivano i dati) — querySelectorAll cerca solo
+      // i discendenti, quindi controlla anche il root.
+      if (root.matches?.(ANIM_SELECTOR)) observe(root)
+      root.querySelectorAll?.(ANIM_SELECTOR).forEach(observe)
     }
 
     observeAll(ref.current)

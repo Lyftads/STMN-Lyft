@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 
 const PRESETS = [
+  { id: 'today', label: 'Oggi' },
+  { id: 'yesterday', label: 'Ieri' },
   { id: 'last_7d', label: 'Ultimi 7 giorni' },
-  { id: 'last_14d', label: 'Ultimi 14 giorni' },
-  { id: 'last_28d', label: 'Ultimi 28 giorni' },
+  { id: 'current_month', label: 'Mese corrente' },
+  { id: 'last_month', label: 'Mese scorso' },
   { id: 'last_90d', label: 'Ultimi 90 giorni' },
 ]
 
@@ -227,7 +229,7 @@ function Mini({ label, value }) {
 }
 
 export default function CreativeTab() {
-  const [preset, setPreset] = useState('last_28d')
+  const [preset, setPreset] = useState('last_7d')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
 

@@ -415,3 +415,260 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .fade-up { animation: fadeUp .3s ease forwards; }
+
+/* ── Futuristic data grid ─────────────────────────────────── */
+
+.fx-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.fx-grid::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -16px; right: -16px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(41,151,255,0.5), rgba(191,90,242,0.4), transparent);
+  filter: blur(1px);
+}
+
+.fx-row {
+  display: grid;
+  align-items: center;
+  gap: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005));
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 14px 20px;
+  transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+  overflow: hidden;
+}
+
+.fx-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--fx-accent, transparent);
+  opacity: 0.5;
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+
+.fx-row:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+  border-color: rgba(255,255,255,0.12);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.5),
+    0 0 30px var(--fx-glow, rgba(41,151,255,0.1)),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  transform: translateX(3px);
+}
+
+.fx-row:hover::before {
+  opacity: 1;
+  box-shadow: 0 0 16px var(--fx-accent);
+}
+
+.fx-row-header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom-color: rgba(255,255,255,0.12);
+  padding: 18px 20px 16px;
+  border-radius: 14px 14px 10px 10px;
+  margin-bottom: 4px;
+}
+
+.fx-row-header::before { display: none; }
+.fx-row-header:hover { transform: none; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); }
+
+.fx-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px 6px;
+  margin-top: 6px;
+}
+
+.fx-section-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 900;
+  background: var(--fx-section-bg);
+  color: var(--fx-section-color);
+  box-shadow: 0 0 16px var(--fx-section-glow);
+  border: 1px solid var(--fx-section-border);
+}
+
+.fx-section-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--fx-section-color, var(--text3)) 0%, transparent 100%);
+  opacity: 0.35;
+}
+
+.fx-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--fx-section-color, var(--text2));
+}
+
+.fx-cell-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-cell-month {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.fx-cell-value {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+@keyframes fx-glow-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Futuristic Chart Card ────────────────────────────────── */
+
+.fx-chart-card {
+  position: relative;
+  background: linear-gradient(155deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  border-top-color: rgba(255,255,255,0.14);
+  border-radius: 20px;
+  padding: 22px 22px 18px;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.7),
+    0 4px 12px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.fx-chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 5%; right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--fx-chart-glow), transparent);
+  opacity: 0.65;
+  filter: blur(0.5px);
+}
+
+.fx-chart-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, var(--fx-chart-glow), transparent 70%);
+  opacity: 0.05;
+  transition: opacity 0.4s;
+}
+
+.fx-chart-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.8),
+    0 8px 24px rgba(0,0,0,0.6),
+    0 0 50px var(--fx-chart-glow),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+.fx-chart-card:hover::after { opacity: 0.12; }
+
+.fx-chart-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.fx-chart-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  animation: fx-pulse-dot 2.2s ease-in-out infinite;
+}
+
+@keyframes fx-pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+
+.fx-chart-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+}
+
+.fx-chart-spark {
+  display: inline-flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 14px;
+}
+
+.fx-chart-spark span {
+  width: 2px;
+  border-radius: 1px;
+  background: var(--fx-chart-glow);
+  opacity: 0.6;
+  animation: fx-spark 1.4s ease-in-out infinite;
+}
+
+.fx-chart-spark span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.fx-chart-spark span:nth-child(2) { height: 10px; animation-delay: 0.2s; }
+.fx-chart-spark span:nth-child(3) { height: 14px; animation-delay: 0.4s; }
+
+@keyframes fx-spark {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.fx-chart-body {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle scan-line effect across the chart */
+.fx-chart-body::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: 0; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  width: 50%;
+  animation: fx-scan 6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes fx-scan {
+  0% { left: -50%; }
+  100% { left: 100%; }
+}

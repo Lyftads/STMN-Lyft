@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
 import KPIBrainTab from './components/KPIBrainTab'
 import CreativeTab from './components/CreativeTab'
@@ -75,14 +75,73 @@ const saveW = w => { try { localStorage.setItem('stmn_w', JSON.stringify(w)) } c
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 12px',fontSize:11,fontFamily:'Barlow',fontWeight:700}}>
-      <p style={{color:'#888',marginBottom:4}}>{label}</p>
+    <div style={{
+      background: 'rgba(8,8,15,0.92)',
+      backdropFilter: 'blur(24px) saturate(1.8)',
+      WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+      border: '1px solid rgba(255,255,255,0.12)',
+      borderTopColor: 'rgba(255,255,255,0.20)',
+      borderRadius: 12,
+      padding: '10px 14px',
+      fontSize: 12,
+      fontWeight: 600,
+      fontFamily: 'Inter, sans-serif',
+      boxShadow: '0 12px 36px rgba(0,0,0,0.7), 0 0 24px rgba(41,151,255,0.18)',
+      minWidth: 140,
+    }}>
+      <div style={{ color: 'var(--text3)', fontSize: 10, marginBottom: 8, letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 700 }}>{label}</div>
       {payload.map((p,i) => (
-        <p key={i} style={{color:p.color}}>
-          {p.name}: {typeof p.value==='number'&&p.value>100 ? f0(p.value) : p.value?.toFixed?.(2)??p.value}
-        </p>
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, marginBottom: 4, alignItems: 'baseline' }}>
+          <span style={{ color: p.color, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color, boxShadow: `0 0 10px ${p.color}, 0 0 4px ${p.color}` }} />
+            {p.name}
+          </span>
+          <span style={{ color: '#fff', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+            {typeof p.value==='number' && p.value>100 ? f0(p.value) : p.value?.toFixed?.(2) ?? p.value}
+          </span>
+        </div>
       ))}
     </div>
+  )
+}
+
+// Futuristic glowing dot with pulse
+const FxDot = ({ cx, cy, color = '#fff' }) => {
+  if (cx == null || cy == null) return null
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={6} fill={color} opacity={0.15}>
+        <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.15;0;0.15" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="#0a0a14" strokeWidth={1.5} style={{ filter: `drop-shadow(0 0 4px ${color})` }} />
+    </g>
+  )
+}
+
+function FxChartCard({ title, glowColor = '#2997ff', children }) {
+  return (
+    <div className="fx-chart-card" style={{ '--fx-chart-glow': glowColor }}>
+      <div className="fx-chart-header">
+        <span className="fx-chart-dot" style={{ background: glowColor, boxShadow: `0 0 12px ${glowColor}, 0 0 4px ${glowColor}` }} />
+        <span className="fx-chart-title">{title}</span>
+        <span className="fx-chart-spark">
+          <span /><span /><span />
+        </span>
+      </div>
+      <div className="fx-chart-body">{children}</div>
+    </div>
+  )
+}
+
+const FxActiveDot = ({ cx, cy, color = '#fff' }) => {
+  if (cx == null || cy == null) return null
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={12} fill={color} opacity={0.18} />
+      <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.35} />
+      <circle cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={1.5} style={{ filter: `drop-shadow(0 0 8px ${color})` }} />
+    </g>
   )
 }
 
@@ -2315,82 +2374,111 @@ export default function App() {
           </div>
           )}
 
-          {/* Charts */}
+          {/* Charts — futuristic */}
           {filled.length > 0 && (
           <>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-              <div style={S.card}>
-                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-                  Fatturato, Spesa e MER
-                </p>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
-                    <Tooltip content={<ChartTip />} />
-                    <Legend />
-                    <Line yAxisId="left" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
-                    <Line yAxisId="left" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2} dot={{r:3}} connectNulls />
-                    <Line yAxisId="right" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
-                  </LineChart>
+              <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+                <ResponsiveContainer width="100%" height={240}>
+                  <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                    <defs>
+                      <linearGradient id="fx-rev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5}/>
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="fx-spend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                      <filter id="fx-glow-g" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                    <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                    <Area yAxisId="left" type="monotone" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2.5} fill="url(#fx-rev)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationEasing="ease-out" connectNulls style={{filter:'url(#fx-glow-g)'}} />
+                    <Area yAxisId="left" type="monotone" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2.5} fill="url(#fx-spend)" dot={<FxDot color="#3b82f6" />} activeDot={<FxActiveDot color="#3b82f6" />} animationDuration={1500} animationEasing="ease-out" animationBegin={200} connectNulls />
+                    <Line yAxisId="right" type="monotone" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} strokeDasharray="6 4" dot={<FxDot color="#f8fafc" />} activeDot={<FxActiveDot color="#f8fafc" />} animationDuration={1500} animationBegin={400} connectNulls />
+                  </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </FxChartCard>
 
-              <div style={S.card}>
-                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-                  Nuovi clienti e clienti di ritorno
-                </p>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
-                    <Tooltip content={<ChartTip />} />
-                    <Legend />
-                    <Bar dataKey="nc" name="Nuovi clienti" fill="#06b6d4" radius={[4,4,0,0]} />
-                    <Bar dataKey="rc" name="Clienti ritorno" fill="#a78bfa" radius={[4,4,0,0]} />
+              <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
+                    <defs>
+                      <linearGradient id="fx-nc" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22d3ee" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="#0e7490" stopOpacity={0.85}/>
+                      </linearGradient>
+                      <linearGradient id="fx-rc" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c4b5fd" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.85}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTip />} cursor={{fill:'rgba(255,255,255,0.04)'}} />
+                    <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                    <Bar dataKey="nc" name="Nuovi clienti" fill="url(#fx-nc)" radius={[8,8,0,0]} animationDuration={1200} animationEasing="ease-out" />
+                    <Bar dataKey="rc" name="Clienti ritorno" fill="url(#fx-rc)" radius={[8,8,0,0]} animationDuration={1200} animationBegin={200} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
+              </FxChartCard>
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-              <div style={S.card}>
-                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-                  AOV e CRO
-                </p>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
-                    <Tooltip content={<ChartTip />} />
-                    <Legend />
-                    <Line yAxisId="left" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2} dot={{r:3}} connectNulls />
-                    <Line yAxisId="right" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2} dot={{r:3}} connectNulls />
-                  </LineChart>
+              <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
+                <ResponsiveContainer width="100%" height={240}>
+                  <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                    <defs>
+                      <linearGradient id="fx-aov" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.45}/>
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="fx-cro" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4}/>
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+                    <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                    <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                    <Area yAxisId="left" type="monotone" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2.5} fill="url(#fx-aov)" dot={<FxDot color="#f59e0b" />} activeDot={<FxActiveDot color="#f59e0b" />} animationDuration={1500} connectNulls />
+                    <Area yAxisId="right" type="monotone" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2.5} fill="url(#fx-cro)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationBegin={200} connectNulls />
+                  </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </FxChartCard>
 
-              <div style={S.card}>
-                <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>
-                  Ratio LTV:CAC
-                </p>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={chartData} margin={{top:4,right:16,left:0,bottom:4}}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-                    <XAxis dataKey="label" tick={{fill:'#94a3b8',fontSize:9,fontFamily:'Barlow',fontWeight:700}} axisLine={false} tickLine={false} />
-                    <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} />
-                    <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="4 4" strokeOpacity={0.5} label={{value:'3:1',fill:'#22c55e',fontSize:10}} />
-                    <Tooltip content={<ChartTip />} />
-                    <Legend />
-                    <Line dataKey="ratio" name="Ratio" stroke="#f8fafc" strokeWidth={2} dot={{r:3}} connectNulls />
-                  </LineChart>
+              <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                    <defs>
+                      <linearGradient id="fx-ratio" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.55}/>
+                        <stop offset="50%" stopColor="#6366f1" stopOpacity={0.20}/>
+                        <stop offset="100%" stopColor="#a78bfa" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                    <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="6 4" strokeOpacity={0.55} label={{value:'Target 3:1',fill:'#22c55e',fontSize:10,fontWeight:700, position:'right'}} />
+                    <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                    <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                    <Area type="monotone" dataKey="ratio" name="Ratio" stroke="#a78bfa" strokeWidth={2.5} fill="url(#fx-ratio)" dot={<FxDot color="#a78bfa" />} activeDot={<FxActiveDot color="#a78bfa" />} animationDuration={1800} animationEasing="ease-out" connectNulls />
+                  </AreaChart>
                 </ResponsiveContainer>
-              </div>
+              </FxChartCard>
             </div>
           </>
           )}

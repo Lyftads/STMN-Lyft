@@ -392,10 +392,56 @@ async function fetchActiveAdsets(campaignId) {
 async function fetchActiveAds(adsetId) {
   return graphAll(`${adsetId}/ads`, {
     fields:
-      'id,name,status,effective_status,campaign_id,adset_id,campaign{name},adset{name},creative{thumbnail_url,image_url,object_story_spec}',
+      'id,name,status,effective_status,campaign_id,adset_id,campaign{name},adset{name},creative{id,thumbnail_url,image_url,product_set_id,object_story_spec,asset_feed_spec}',
     effective_status: JSON.stringify(['ACTIVE']),
     limit: '100',
   })
+}
+
+// Meta espone questo hash come placeholder generico per le creative
+// dinamiche / DPA — lo trattiamo come "nessuna immagine reale"
+const META_GENERIC_PLACEHOLDER = '75341531_494485104475166'
+function isGenericPlaceholder(url) {
+  return typeof url === 'string' && url.includes(META_GENERIC_PLACEHOLDER)
+}
+
+function getCreativeProductSetId(creative) {
+  if (!creative) return null
+  return (
+    creative.product_set_id ||
+    creative.object_story_spec?.template_data?.product_set_id ||
+    creative.asset_feed_spec?.product_set_id ||
+    null
+  )
+}
+
+async function getAdsetProductSetId(adsetId) {
+  if (!adsetId) return null
+  try {
+    const data = await graph(adsetId, { fields: 'promoted_object' })
+    return data?.promoted_object?.product_set_id || null
+  } catch {
+    return null
+  }
+}
+
+async function fetchProductSetSample(productSetId, max = 6) {
+  if (!productSetId) return []
+  try {
+    const data = await graph(`${productSetId}/products`, {
+      fields: 'id,name,retailer_id,image_url,price',
+      limit: String(max),
+    })
+    const products = Array.isArray(data?.data) ? data.data : []
+    return products.slice(0, max).map(p => ({
+      id: p.id,
+      name: p.name || p.retailer_id || '',
+      image_url: p.image_url || '',
+      price: p.price || '',
+    })).filter(p => p.image_url)
+  } catch {
+    return []
+  }
 }
 
 async function fetchInsightsByIds(accountId, level, ids, range) {
@@ -537,12 +583,20 @@ async function getAdRows(accounts, range, adsetId) {
 
   const insightMap = new Map(allInsights.map(x => [x.ad_id, x]))
 
-  return ads.map(ad => {
+  // Estraggo il product_set_id condiviso a livello adset (DPA / Advantage+
+  // Catalog di solito lo tengono qui invece che sul creative)
+  const adsetProductSetId = await getAdsetProductSetId(adsetId)
+
+  return await Promise.all(ads.map(async ad => {
     const insight = insightMap.get(ad.id) || {}
-    const thumbnail =
-      ad.creative?.thumbnail_url ||
-      ad.creative?.image_url ||
-      null
+
+    // Thumbnail: scarta il placeholder generico Meta per le DPA
+    const rawThumb = ad.creative?.thumbnail_url || ad.creative?.image_url || null
+    const thumbnail = rawThumb && !isGenericPlaceholder(rawThumb) ? rawThumb : null
+
+    // Per catalog ads recupero un sample di prodotti reali del catalogo
+    const productSetId = getCreativeProductSetId(ad.creative) || adsetProductSetId
+    const products = productSetId ? await fetchProductSetSample(productSetId, 6) : []
 
     return calcRow(
       {
@@ -559,11 +613,13 @@ async function getAdRows(accounts, range, adsetId) {
         ad_name: ad.name,
         status: ad.effective_status || ad.status || null,
         thumbnail_url: thumbnail,
+        product_set_id: productSetId,
+        products,
         has_children: false,
       },
       insight
     )
-  })
+  }))
 }
 
 export async function GET(req) {

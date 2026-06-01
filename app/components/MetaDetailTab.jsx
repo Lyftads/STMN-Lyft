@@ -169,7 +169,67 @@ function FxCard({ title, glow = '#2997ff', subtitle, children, padding = 24 }) {
   )
 }
 
-function Thumb({ url }) {
+function Thumb({ url, products, isDpa }) {
+  const items = Array.isArray(products) ? products.filter(p => p?.image_url) : []
+
+  // Catalog ad con prodotti reali → stack di 3 thumb sovrapposti
+  if (items.length > 0) {
+    const visible = items.slice(0, 3)
+    return (
+      <div title={`Catalogo · ${items.length} prodotti`} style={{
+        display: 'flex', alignItems: 'center',
+        position: 'relative', height: 50, minWidth: 78,
+      }}>
+        {visible.map((p, i) => (
+          <img
+            key={p.id || i}
+            src={p.image_url}
+            alt={p.name || ''}
+            style={{
+              width: 50, height: 50,
+              objectFit: 'cover', borderRadius: 10,
+              border: '1.5px solid rgba(8,8,18,0.95)',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.45)',
+              position: 'absolute',
+              left: i * 16,
+              zIndex: visible.length - i,
+              background: '#0a0a14',
+            }}
+          />
+        ))}
+        {items.length > 3 && (
+          <div style={{
+            position: 'absolute',
+            left: 3 * 16 + 6,
+            top: 28,
+            fontSize: 9.5, fontWeight: 800,
+            color: '#c4b5fd',
+            background: 'rgba(91,44,255,0.22)',
+            border: '1px solid rgba(91,44,255,0.45)',
+            borderRadius: 999,
+            padding: '2px 7px',
+            whiteSpace: 'nowrap',
+            zIndex: 5,
+          }}>+{items.length - 3}</div>
+        )}
+      </div>
+    )
+  }
+
+  // DPA senza prodotti accessibili → badge "Catalog"
+  if (isDpa) {
+    return (
+      <div title="Advantage+ Catalog · prodotti dinamici Meta" style={{
+        width: 50, height: 50,
+        borderRadius: 10,
+        border: '1px solid rgba(91,44,255,0.4)',
+        background: 'linear-gradient(135deg, rgba(91,44,255,0.22), rgba(0,0,0,0.4))',
+        display: 'grid', placeItems: 'center',
+        fontSize: 18,
+      }}>📦</div>
+    )
+  }
+
   if (!url) {
     return (
       <div style={{
@@ -243,7 +303,9 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
       </td>
 
       <td style={{ padding: '14px 16px' }}>
-        {row.level === 'ad' ? <Thumb url={row.thumbnail_url} /> : <span style={cellMuted}>—</span>}
+        {row.level === 'ad'
+          ? <Thumb url={row.thumbnail_url} products={row.products} isDpa={!!row.product_set_id} />
+          : <span style={cellMuted}>—</span>}
       </td>
 
       <td style={cell}>{fmtInt(row.impressions)}</td>

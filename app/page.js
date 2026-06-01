@@ -2191,50 +2191,49 @@ export default function App() {
             </div>
 
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    {['Mese','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
-                      <th key={h} style={mTH}>{h}</th>
-                    ))}
+                    <th style={mTH}>KPI</th>
+                    {tableMonths.map(m => <th key={m.month} style={mTH}>{m.month}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {tableMonths.map((m,i)=>{
-                    // Delta riferito al mese ancora precedente (i+1 nella lista ordinata desc)
-                    const p = tableMonths[i+1]
-                    return (
-                    <tr key={m.month} style={{background:i%2===0?'transparent':'var(--surface)'}}>
-                      <td style={{...mTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
-                      <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.resi||null} prev={p?.resi||null} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.metaSpend||null} prev={p?.metaSpend||null} kind="euro0"/></td>
-                      <td style={mTD}>
-                        <NumInput value={m.googleSpend} onChange={v=>updateMonth(m.month,'googleSpend',v)} placeholder="0" color="#eab308" />
-                      </td>
-                      <td style={mTD}><MV value={m.ordini} prev={p?.ordini} kind="int"/></td>
-                      <td style={mTD}><MV value={m.nc} prev={p?.nc} kind="int"/></td>
-                      <td style={mTD}><MV value={m.rc} prev={p?.rc} kind="int"/></td>
-                      <td style={mTD}><MV value={m.sessioni||null} prev={p?.sessioni||null} kind="int"/></td>
+                  {[
+                    { label:'Fatturato €', key:'fatturato', kind:'euro0' },
+                    { label:'Fatt. NC €', key:'fatturNC', kind:'euro0' },
+                    { label:'Fatt. RC €', key:'fatturRC', kind:'euro0' },
+                    { label:'Resi €', key:'resi', kind:'euro0', allowZero:false },
+                    { label:'Meta ADS €', key:'metaSpend', kind:'euro0', allowZero:false },
+                    { label:'Google ADS €', key:'googleSpend', editable:true },
+                    { label:'Tot Ordini', key:'ordini', kind:'int' },
+                    { label:'NC #', key:'nc', kind:'int' },
+                    { label:'RC #', key:'rc', kind:'int' },
+                    { label:'Sessioni', key:'sessioni', kind:'int', allowZero:false },
+                  ].map((kpi, ki) => (
+                    <tr key={kpi.label} style={{background: ki%2===0?'transparent':'var(--surface)'}}>
+                      <td style={{...mTD,color:'var(--text2)',fontWeight:900,whiteSpace:'nowrap',fontSize:12,textTransform:'uppercase',letterSpacing:'0.06em'}}>{kpi.label}</td>
+                      {tableMonths.map((m, mi) => {
+                        const p = tableMonths[mi+1]
+                        const v = m[kpi.key]
+                        const pv = p?.[kpi.key]
+                        if (kpi.editable) {
+                          return (
+                            <td key={m.month} style={mTD}>
+                              <NumInput value={v} onChange={vn=>updateMonth(m.month,kpi.key,vn)} placeholder="0" color="#eab308" />
+                            </td>
+                          )
+                        }
+                        const useValue = kpi.allowZero === false ? (v || null) : v
+                        const usePrev  = kpi.allowZero === false ? (pv || null) : pv
+                        return (
+                          <td key={m.month} style={mTD}>
+                            <MV value={useValue} prev={usePrev} kind={kpi.kind} />
+                          </td>
+                        )
+                      })}
                     </tr>
-                  )})}
-                  {tfMonths.length > 1 && (
-                  <tr style={{background:'var(--glass)',borderTop:'1px solid var(--border)'}}>
-                    <td style={{...mTD,color:'var(--text2)',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Totale</td>
-                    <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
-                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
-                    <td style={{...mTD,...mVal}}>{sumField(tfMonths,'resi')>0?f0(sumField(tfMonths,'resi')):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.meta>0?f0(tf.meta):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.goog>0?f0(tf.goog):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{fn(tf.ord)}</td>
-                    <td style={{...mTD,...mVal}}>{fn(tf.nc)}</td>
-                    <td style={{...mTD,...mVal}}>{fn(tf.rc)}</td>
-                    <td style={{...mTD,...mVal}}>{tf.ses>0?fn(tf.ses):'—'}</td>
-                  </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -2247,57 +2246,43 @@ export default function App() {
               KPI calcolati
             </p>
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    {['Mese','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
-                      <th key={h} style={mTH}>{h}</th>
-                    ))}
+                    <th style={mTH}>KPI</th>
+                    {tableMonths.map(m => <th key={m.month} style={mTH}>{m.month}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {tableMonths.map((m,i,arr)=>{
-                    const p = arr[i+1]
-                    return (
-                    <tr key={m.month} style={{background:i%2===0?'transparent':'var(--surface)'}}>
-                      <td style={{...mTD,color:'var(--text)',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>
-                      <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.totalSpend} prev={p?.totalSpend} kind="euro0"/></td>
-                      <td style={mTD}><MV value={m.mer} prev={p?.mer} kind="ratio" suffix="×"/></td>
-                      <td style={mTD}><MV value={m.aMer} prev={p?.aMer} kind="ratio" suffix="×"/></td>
-                      <td style={mTD}><MV value={m.cac} prev={p?.cac} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.cpo} prev={p?.cpo} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.aov} prev={p?.aov} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.aovNC} prev={p?.aovNC} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.aovRC} prev={p?.aovRC} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.retention} prev={p?.retention} kind="percent1"/></td>
-                      <td style={mTD}><MV value={m.cro} prev={p?.cro} kind="percent2"/></td>
-                      <td style={mTD}><MV value={m.ltv} prev={p?.ltv} kind="euro2"/></td>
-                      <td style={mTD}><MV value={m.ratio} prev={p?.ratio} kind="ratio" suffix=":1"/></td>
+                  {[
+                    { label:'Fatturato', key:'fatturato', kind:'euro0' },
+                    { label:'Fatt. NC', key:'fatturNC', kind:'euro0' },
+                    { label:'Fatt. RC', key:'fatturRC', kind:'euro0' },
+                    { label:'ADV', key:'totalSpend', kind:'euro0' },
+                    { label:'MER', key:'mer', kind:'ratio', suffix:'×' },
+                    { label:'aMER', key:'aMer', kind:'ratio', suffix:'×' },
+                    { label:'CAC', key:'cac', kind:'euro2' },
+                    { label:'CPO', key:'cpo', kind:'euro2' },
+                    { label:'AOV', key:'aov', kind:'euro2' },
+                    { label:'AOV NC', key:'aovNC', kind:'euro2' },
+                    { label:'AOV RC', key:'aovRC', kind:'euro2' },
+                    { label:'Ret%', key:'retention', kind:'percent1' },
+                    { label:'CRO%', key:'cro', kind:'percent2' },
+                    { label:'LTV', key:'ltv', kind:'euro2' },
+                    { label:'Ratio', key:'ratio', kind:'ratio', suffix:':1' },
+                  ].map((kpi, ki) => (
+                    <tr key={kpi.label} style={{background: ki%2===0?'transparent':'var(--surface)'}}>
+                      <td style={{...mTD,color:'var(--text2)',fontWeight:900,whiteSpace:'nowrap',fontSize:12,textTransform:'uppercase',letterSpacing:'0.06em'}}>{kpi.label}</td>
+                      {tableMonths.map((m, mi) => {
+                        const p = tableMonths[mi+1]
+                        return (
+                          <td key={m.month} style={mTD}>
+                            <MV value={m[kpi.key]} prev={p?.[kpi.key]} kind={kpi.kind} suffix={kpi.suffix} />
+                          </td>
+                        )
+                      })}
                     </tr>
-                  )})}
-                  {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 1 && (
-                  <tr style={{background:'var(--glass)',borderTop:'1px solid var(--border)'}}>
-                    <td style={{...mTD,color:'var(--text2)',fontWeight:900,fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',fontFamily:'Barlow Condensed'}}>Media / Totale</td>
-                    <td style={{...mTD,...mVal}}>{f0(tf.fat)}</td>
-                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturNC'))}</td>
-                    <td style={{...mTD,...mVal}}>{f0(sumField(tfMonths,'fatturRC'))}</td>
-                    <td style={{...mTD,...mVal}}>{f0(tf.spend)}</td>
-                    <td style={{...mTD,...mVal}}>{tf.mer!=null?`${fr(tf.mer)}×`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturNC'),tf.spend)!=null?`${fr(divSafe(sumField(tfMonths,'fatturNC'),tf.spend))}×`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.cac?f2(tf.cac):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{divSafe(tf.spend,tf.ord)?f2(divSafe(tf.spend,tf.ord)):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.aov>0?f2(tf.aov):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturNC'),tf.nc)>0?f2(divSafe(sumField(tfMonths,'fatturNC'),tf.nc)):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{divSafe(sumField(tfMonths,'fatturRC'),tf.rc)>0?f2(divSafe(sumField(tfMonths,'fatturRC'),tf.rc)):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.nc+tf.rc>0?`${(tf.rc/(tf.nc+tf.rc)*100).toFixed(1)}%`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.ses>0&&tf.ord>0?`${(tf.ord/tf.ses*100).toFixed(2)}%`:'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.aov>0?f2(tf.aov*cfg.freq*cfg.life*cfg.margin/100):'—'}</td>
-                    <td style={{...mTD,...mVal}}>{tf.ratio?`${fr(tf.ratio)}:1`:'—'}</td>
-                  </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>

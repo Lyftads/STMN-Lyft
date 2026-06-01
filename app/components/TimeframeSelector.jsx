@@ -6,9 +6,6 @@ const DATE_RANGE = [
   { value: 'today', label: 'Oggi' },
   { value: 'yesterday', label: 'Ieri' },
   { value: 'last_7d', label: 'Ultimi 7 giorni' },
-  { value: 'last_14d', label: 'Ultimi 14 giorni' },
-  { value: 'last_30d', label: 'Ultimi 30 giorni' },
-  { value: 'last_90d', label: 'Ultimi 90 giorni' },
 ]
 
 const MONTH_NAMES = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']

@@ -1787,29 +1787,30 @@ export default function App() {
   const dataYear = data.filter(m => m.month >= rangeStart && m.month <= rangeEnd)
 
   // ── Totali periodo selezionato ──
-  // Strategia: prendi il primo valore non-zero in cascata:
-  //   1. shopifyRange/metaRange (live API per range esatto)
-  //   2. periodTotals (aggregazione settimanale filtrata)
-  //   3. dataYear (aggregazione mensile filtrata, stessa fonte del tab Mensile)
-  const sr = live?.shopifyRange || {}
-  const mr = live?.metaRange || {}
+  // Se shopifyRange/metaRange è presente (live API ok), TRUST quei valori
+  // anche se 0 — sono i dati esatti del range. Solo se l'API è fallita
+  // (oggetto null) cascade su periodTotals settimanali → dataYear mensile.
+  const sr = live?.shopifyRange
+  const mr = live?.metaRange
+  const hasSr = sr != null
+  const hasMr = mr != null
 
   const sumMonthly = (k) => dataYear.reduce((s,m)=>s + Number(m[k] || 0), 0)
 
-  const totFat   = Number(sr.revenue)   || periodTotals.revenue || sumMonthly('fatturato')
-  const totFatNC = Number(sr.fatturNC)  || sumMonthly('fatturNC')
-  const totFatRC = Number(sr.fatturRC)  || sumMonthly('fatturRC')
+  const totFat   = hasSr ? Number(sr.revenue || 0)   : (periodTotals.revenue || sumMonthly('fatturato'))
+  const totFatNC = hasSr ? Number(sr.fatturNC || 0)  : sumMonthly('fatturNC')
+  const totFatRC = hasSr ? Number(sr.fatturRC || 0)  : sumMonthly('fatturRC')
 
-  const totResi   = Number(sr.resi)   || sumMonthly('resi')
-  const totResiNC = Number(sr.resiNC) || sumMonthly('resiNC')
-  const totResiRC = Number(sr.resiRC) || sumMonthly('resiRC')
+  const totResi   = hasSr ? Number(sr.resi || 0)   : sumMonthly('resi')
+  const totResiNC = hasSr ? Number(sr.resiNC || 0) : sumMonthly('resiNC')
+  const totResiRC = hasSr ? Number(sr.resiRC || 0) : sumMonthly('resiRC')
 
-  const totOrd = Number(sr.orders)   || periodTotals.orders || sumMonthly('ordini')
-  const totNC  = Number(sr.nc)       || periodTotals.nc     || sumMonthly('nc')
-  const totRC  = Number(sr.rc)       || periodTotals.rc     || sumMonthly('rc')
-  const totSes = Number(sr.sessions) || sumMonthly('sessioni')
+  const totOrd = hasSr ? Number(sr.orders || 0)   : (periodTotals.orders || sumMonthly('ordini'))
+  const totNC  = hasSr ? Number(sr.nc || 0)       : (periodTotals.nc     || sumMonthly('nc'))
+  const totRC  = hasSr ? Number(sr.rc || 0)       : (periodTotals.rc     || sumMonthly('rc'))
+  const totSes = hasSr ? Number(sr.sessions || 0) : sumMonthly('sessioni')
 
-  const totMeta  = Number(mr.spend) || periodTotals.metaSpend || sumMonthly('metaSpend')
+  const totMeta  = hasMr ? Number(mr.spend || 0) : (periodTotals.metaSpend || sumMonthly('metaSpend'))
   const totGoog  = sumMonthly('googleSpend')
   const totSpend = totMeta + totGoog
 

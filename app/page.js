@@ -1561,6 +1561,20 @@ export default function App() {
 
   useEffect(() => { fetchLive() }, [fetchLive])
 
+  // Auto-allinea il preset al tipo di tab quando l'utente entra nella tab Quarter/Year/Monthly
+  // (altrimenti shopifyRange continua a portare i dati del preset precedente, es. last_7d)
+  useEffect(() => {
+    const now = new Date()
+    if (tab === 'year' && !(typeof preset === 'string' && preset.startsWith('year_'))) {
+      setPreset(`year_${now.getFullYear()}`)
+    } else if (tab === 'quarter' && !(typeof preset === 'string' && preset.startsWith('quarter_'))) {
+      const q = Math.floor(now.getMonth() / 3) + 1
+      setPreset(`quarter_${now.getFullYear()}-Q${q}`)
+    } else if (tab === 'monthly' && !(typeof preset === 'string' && preset.startsWith('month_'))) {
+      setPreset(`month_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    }
+  }, [tab])  // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Range helpers for sparklines + deltas ──
   const kpiRange = live?.kpiBrain?.range || null
   const kpiPrevRange = live?.kpiBrain?.previousRange || null
@@ -2481,9 +2495,8 @@ export default function App() {
         // Single-range queries usano la classificazione Shopify NC/RC del periodo
         // (deduplicata a livello cliente), che è quella che Marino vede in Shopify.
         // La somma mensile invece riclassifica ogni mese e gonfia NC.
-        const selectedQ = (typeof preset === 'string' && preset.startsWith('quarter_'))
-          ? preset.slice(8)
-          : currentQ
+        const isQuarterPreset = typeof preset === 'string' && preset.startsWith('quarter_')
+        const presetQ = isQuarterPreset ? preset.slice(8) : null
         const sr = live?.shopifyRange
         const spr = live?.shopifyPrevRange
         const mr = live?.metaRange
@@ -2497,13 +2510,11 @@ export default function App() {
 
           const sum = (k) => rows.reduce((s,m)=>s + Number(m[k]||0), 0)
 
-          // Live overlay: se il quarter combacia con il preset selezionato,
-          // usa shopifyRange/shopifyPrevRange (single-range query, allineato
-          // a Shopify Analytics).
-          const useLiveCurrent = key === selectedQ && sr
-          const useLivePrev = key === quarterMinus(selectedQ, 1) && spr
-          const useLiveMetaCurrent = key === selectedQ && mr
-          const useLiveMetaPrev = key === quarterMinus(selectedQ, 1) && mpr
+          // Live overlay: solo se preset effettivamente quarter_ e combacia
+          const useLiveCurrent = isQuarterPreset && key === presetQ && sr
+          const useLivePrev = isQuarterPreset && key === quarterMinus(presetQ, 1) && spr
+          const useLiveMetaCurrent = isQuarterPreset && key === presetQ && mr
+          const useLiveMetaPrev = isQuarterPreset && key === quarterMinus(presetQ, 1) && mpr
 
           const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
                           : useLivePrev    ? Number(spr.revenue) || 0
@@ -2914,9 +2925,8 @@ export default function App() {
         const y0 = baseY
         const y1 = yearMinus(baseY, 1)
 
-        const selectedY = (typeof preset === 'string' && preset.startsWith('year_'))
-          ? preset.slice(5)
-          : currentY
+        const isYearPreset = typeof preset === 'string' && preset.startsWith('year_')
+        const presetY = isYearPreset ? preset.slice(5) : null
         const sr = live?.shopifyRange
         const spr = live?.shopifyPrevRange
         const mr = live?.metaRange
@@ -2928,10 +2938,12 @@ export default function App() {
 
           const sum = (k) => rows.reduce((s,m)=>s + Number(m[k]||0), 0)
 
-          const useLiveCurrent = key === selectedY && sr
-          const useLivePrev = key === yearMinus(selectedY, 1) && spr
-          const useLiveMetaCurrent = key === selectedY && mr
-          const useLiveMetaPrev = key === yearMinus(selectedY, 1) && mpr
+          // Live overlay: solo se il preset è effettivamente year_ e combacia
+          // (altrimenti shopifyRange porta dati di un altro periodo)
+          const useLiveCurrent = isYearPreset && key === presetY && sr
+          const useLivePrev = isYearPreset && key === yearMinus(presetY, 1) && spr
+          const useLiveMetaCurrent = isYearPreset && key === presetY && mr
+          const useLiveMetaPrev = isYearPreset && key === yearMinus(presetY, 1) && mpr
 
           const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
                           : useLivePrev    ? Number(spr.revenue) || 0

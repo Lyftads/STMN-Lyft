@@ -774,6 +774,7 @@ function CopyBlock({ index, text }) {
 
 export default function CreativeTab() {
   const [preset, setPreset] = useState('last_7d')
+  const [accountFilter, setAccountFilter] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -784,7 +785,9 @@ export default function CreativeTab() {
       try {
         setLoading(true)
 
-        const res = await fetch(`/api/creative?preset=${encodeURIComponent(preset)}`, {
+        const params = new URLSearchParams({ preset })
+        if (accountFilter) params.set('account_id', accountFilter)
+        const res = await fetch(`/api/creative?${params.toString()}`, {
           cache: 'no-store',
         })
 
@@ -811,7 +814,7 @@ export default function CreativeTab() {
     return () => {
       active = false
     }
-  }, [preset])
+  }, [preset, accountFilter])
 
   const rawRows = Array.isArray(data?.rows) ? data.rows : []
 
@@ -1106,15 +1109,46 @@ export default function CreativeTab() {
               ))}
             </select>
 
-            {(search || campaignFilter || quickFilter) && (
+            {(search || campaignFilter || quickFilter || accountFilter) && (
               <button
                 type="button"
-                onClick={() => { setSearch(''); setCampaignFilter(''); setQuickFilter('') }}
+                onClick={() => { setSearch(''); setCampaignFilter(''); setQuickFilter(''); setAccountFilter('') }}
                 style={{ ...chipStyle, borderColor: '#ef444477', color: '#fca5a5' }}
               >
                 Reset filtri
               </button>
             )}
+          </div>
+
+          {/* Filtro per ad account Meta */}
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
+              letterSpacing: '0.12em', fontWeight: 800, marginRight: 4,
+            }}>Account</span>
+            {[{ id: '', label: 'Tutti' }, ...((data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a })))].map(opt => {
+              const active = accountFilter === opt.id
+              return (
+                <button
+                  key={opt.id || 'all'}
+                  type="button"
+                  onClick={() => setAccountFilter(opt.id)}
+                  disabled={loading}
+                  style={{
+                    background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
+                    border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
+                    color: active ? '#fff' : 'var(--text2)',
+                    borderRadius: 10,
+                    padding: '8px 12px',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: loading ? 'wait' : 'pointer',
+                    boxShadow: active ? '0 0 14px rgba(8,102,255,0.25)' : 'none',
+                    fontFamily: opt.id ? 'monospace' : 'inherit',
+                  }}
+                >{opt.label}</button>
+              )
+            })}
           </div>
 
           <div style={{ marginTop: 14 }}>

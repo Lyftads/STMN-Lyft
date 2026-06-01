@@ -815,11 +815,15 @@ export async function GET(req) {
     const preset = searchParams.get('preset') || 'last_28d'
     const activeOnly = searchParams.get('active_only') !== 'false'
     const debug = searchParams.get('debug') === '1'
+    const accountFilter = searchParams.get('account_id') || null
 
     const range = getRange(preset)
-    const accounts = getAccountIds()
+    const allAccounts = getAccountIds()
+    const accounts = accountFilter
+      ? allAccounts.filter(a => a === accountFilter)
+      : allAccounts
 
-    if (!accounts.length) {
+    if (!allAccounts.length) {
       return json({
         ok: false,
         error:
@@ -827,6 +831,16 @@ export async function GET(req) {
         rows: [],
         summary: buildSummary([]),
         debug: debug ? getSafeEnvDebug() : undefined,
+      })
+    }
+
+    if (accountFilter && !accounts.length) {
+      return json({
+        ok: false,
+        error: `Account ${accountFilter} non configurato nelle env vars`,
+        rows: [],
+        summary: buildSummary([]),
+        allAccounts,
       })
     }
 
@@ -968,6 +982,8 @@ export async function GET(req) {
       range,
       prevRange,
       accounts,
+      allAccounts,
+      accountFilter,
       rows: merged,
       summary,
       prevSummary,

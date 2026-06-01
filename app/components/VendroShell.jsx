@@ -72,9 +72,16 @@ export default function VendroShell({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
-        { id: 'creative', label: 'Creative', icon: '▧' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
+      ],
+    },
+    {
+      title: 'Meta',
+      color: '#0866FF',
+      items: [
+        { id: 'creative', label: 'Creative', icon: '▧' },
+        { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
       ],
     },
     {
@@ -85,14 +92,7 @@ export default function VendroShell({
         { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'quarter', label: 'Quarter', icon: '◧' },
         { id: 'year', label: 'Year', icon: '◎' },
-      ],
-    },
-    {
-      title: 'Operations',
-      color: '#ffd60a',
-      items: [
         { id: 'simulator', label: 'Simulatore', icon: '⚡' },
-        { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
       ],
     },
     {

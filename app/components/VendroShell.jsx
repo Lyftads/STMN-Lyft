@@ -314,7 +314,10 @@ export default function VendroShell({
               {setPreset && tab === 'dashboard' && (
                 <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
               )}
-              {onRefresh && (
+              {/* Le tab Weekly/Monthly/Quarter/Year hanno il loro Aggiorna
+                  interno con il TimeframeSelector — qui nascosto per non
+                  duplicare il bottone */}
+              {onRefresh && !['weekly','monthly','quarter','year'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

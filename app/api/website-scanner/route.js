@@ -6,11 +6,29 @@ export const maxDuration = 60
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
+// Forza la versione italiana per i siti Shopify Markets.
+// I server Microlink free sono US → Shopify rileva geo-IP US e
+// ridireziona alla versione US/EN. Append _country=IT&_currency=EUR
+// (parametri standard Shopify Markets) bypassa la geo-detection.
+function forceItalianLocale(rawUrl) {
+  try {
+    const u = new URL(rawUrl)
+    // Solo se non c'è gia un override di country/locale
+    if (!u.searchParams.has('_country')) u.searchParams.set('_country', 'IT')
+    if (!u.searchParams.has('_currency')) u.searchParams.set('_currency', 'EUR')
+    if (!u.searchParams.has('locale')) u.searchParams.set('locale', 'it')
+    return u.toString()
+  } catch {
+    return rawUrl
+  }
+}
+
 // Microlink screenshot service free tier — minimo set di parametri.
 // I parametri "headers" e user-agent custom sono Pro-only.
 function buildMicrolinkUrl(target, { embed = false } = {}) {
   let url = target.trim()
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+  url = forceItalianLocale(url)
   const params = new URLSearchParams({
     url,
     screenshot: 'true',

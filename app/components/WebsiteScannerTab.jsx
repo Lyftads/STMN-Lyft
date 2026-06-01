@@ -181,8 +181,15 @@ export default function WebsiteScannerTab() {
   const buildPreviewUrl = (raw) => {
     let u = raw.trim()
     if (!/^https?:\/\//i.test(u)) u = 'https://' + u
-    // Microlink free: minimo set di parametri (header/UA sono Pro-only)
-    // embed=screenshot.url → ridirezione diretta all'immagine, usabile come <img src>
+    // Forza locale IT su Shopify Markets per bypassare il geo-redirect
+    // (server Microlink free sono US → siti italiani ridirezionano a US)
+    try {
+      const parsed = new URL(u)
+      if (!parsed.searchParams.has('_country')) parsed.searchParams.set('_country', 'IT')
+      if (!parsed.searchParams.has('_currency')) parsed.searchParams.set('_currency', 'EUR')
+      if (!parsed.searchParams.has('locale')) parsed.searchParams.set('locale', 'it')
+      u = parsed.toString()
+    } catch {}
     const p = new URLSearchParams({
       url: u,
       screenshot: 'true',

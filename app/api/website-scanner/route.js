@@ -26,6 +26,24 @@ function forceItalianLocale(rawUrl) {
   }
 }
 
+// Inietta il path-prefix /it/ se l'URL non ne ha gia uno.
+// Shopify Markets multilingua espone le lingue via prefix:
+//   /products/x         → lingua default del market (puo' essere EN)
+//   /it/products/x      → italiano forzato
+//   /en/products/x      → inglese forzato
+// Accept-Language NON basta: Shopify lo ignora una volta deciso il market.
+function injectLanguagePrefix(rawUrl, lang = 'it') {
+  try {
+    const u = new URL(rawUrl)
+    // Se ha gia un 2-letter lang prefix (/it/, /en/, /fr/, ecc.) → rispetta
+    if (/^\/[a-z]{2}(\/|$)/i.test(u.pathname)) return rawUrl
+    u.pathname = `/${lang}${u.pathname}`
+    return u.toString()
+  } catch {
+    return rawUrl
+  }
+}
+
 // ScreenshotOne (preferito quando SCREENSHOTONE_ACCESS_KEY è impostato):
 // Free tier 100 screenshot/mese. Supporta header custom (incluso
 // Accept-Language) e custom user_agent → bypassa geo-IP redirect Shopify.
@@ -109,8 +127,13 @@ async function fetchScreenshotWithBrowserless(target) {
 
     let url = target.trim()
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+    const urlWithLang = injectLanguagePrefix(url, 'it')
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 28000 })
+    // Provo prima con /it/, se 404/redirect non-IT fallback all'URL originale
+    let resp = await page.goto(urlWithLang, { waitUntil: 'networkidle2', timeout: 28000 })
+    if (resp && resp.status() >= 400 && urlWithLang !== url) {
+      resp = await page.goto(url, { waitUntil: 'networkidle2', timeout: 28000 })
+    }
     // Render finale (font, lazy images sopra fold)
     await new Promise(r => setTimeout(r, 1500))
 

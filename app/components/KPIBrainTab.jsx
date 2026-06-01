@@ -4,61 +4,50 @@ import { useState, useMemo, useEffect } from 'react'
 import Sparkline from './Sparkline'
 import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
+import TimeframeSelector from './TimeframeSelector'
 
-export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
-
-  const [tf, setTf] = useState('this_month')
-  const [customSince, setCustomSince] = useState('')
-  const [customUntil, setCustomUntil] = useState('')
+export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'last_7d', setPreset }) {
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const safeDiv = (a, b) => b > 0 ? a / b : null
 
   const { current: c, previous: p, label: tfLabel, currentMonths } = useMemo(() => {
-    const now = new Date()
-    const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-    const thisM = fmtM(now)
-    const prevM = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
-    const m2ago = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
-    const m3ago = fmtM(new Date(now.getFullYear(), now.getMonth()-3, 1))
+    // Compute from live API ranges (works for any preset: today/yesterday/7d/month_X)
+    const sr = live?.shopifyRange
+    const mr = live?.metaRange
+    const spr = live?.shopifyPrevRange
+    const mpr = live?.metaPrevRange
 
-    let cur = [], prev = [], label = ''
-    if (tf === 'this_month') {
-      cur = data.filter(m => m.month === thisM)
-      prev = data.filter(m => m.month === prevM)
-      label = `${thisM} vs ${prevM}`
-    } else if (tf === 'last_month') {
-      cur = data.filter(m => m.month === prevM)
-      prev = data.filter(m => m.month === m2ago)
-      label = `${prevM} vs ${m2ago}`
-    } else if (tf === 'custom' && customSince && customUntil) {
-      cur = data.filter(m => m.month >= customSince && m.month <= customUntil)
-      const span = cur.length || 1
-      const startD = new Date(customSince + '-01')
-      const prevEnd = new Date(startD); prevEnd.setMonth(prevEnd.getMonth() - 1)
-      const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
-      prev = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
-      label = `${customSince} → ${customUntil} vs periodo prec.`
-    } else {
-      cur = data.filter(m => m.month === thisM)
-      prev = data.filter(m => m.month === prevM)
-      label = `${thisM} vs ${prevM}`
-    }
-
-    const sum = (arr, k) => arr.reduce((s, m) => s + asNum(m[k]), 0)
-    const compute = arr => {
-      const fat = sum(arr,'fatturato'), ord = sum(arr,'ordini'), nc = sum(arr,'nc'), rc = sum(arr,'rc')
-      const ses = sum(arr,'sessioni'), meta = sum(arr,'metaSpend'), goog = sum(arr,'googleSpend')
-      const spend = meta + goog, impr = sum(arr,'impressions'), clicks = sum(arr,'linkClicks')
-      const aov = safeDiv(fat,ord), roas = safeDiv(fat,meta), mer = safeDiv(fat,spend)
-      const cac = safeDiv(spend,nc), ctr = impr>0?(clicks/impr)*100:null
-      const cpc = safeDiv(meta,clicks), cpm = impr>0?(meta/impr)*1000:null
-      const repeatRate = nc+rc>0?(rc/(nc+rc))*100:null
-      const ltv = aov?(aov*cfg.freq*cfg.life*cfg.margin)/100:null
+    const compute = (s, m) => {
+      const fat = asNum(s?.revenue), ord = asNum(s?.orders)
+      const nc = asNum(s?.nc), rc = asNum(s?.rc)
+      const ses = asNum(s?.sessions)
+      const meta = asNum(m?.spend), goog = 0
+      const spend = meta + goog
+      const impr = asNum(m?.impressions), clicks = asNum(m?.clicks)
+      const aov = safeDiv(fat, ord), roas = safeDiv(fat, meta), mer = safeDiv(fat, spend)
+      const cac = safeDiv(spend, nc), ctr = impr > 0 ? (clicks/impr)*100 : null
+      const cpc = safeDiv(meta, clicks), cpm = impr > 0 ? (meta/impr)*1000 : null
+      const repeatRate = nc + rc > 0 ? (rc/(nc+rc))*100 : null
+      const ltv = aov ? (aov*cfg.freq*cfg.life*cfg.margin)/100 : null
       return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv }
     }
-    return { current: compute(cur), previous: compute(prev), label, currentMonths: cur }
-  }, [data, tf, customSince, customUntil, cfg])
+
+    const range = live?.kpiBrain?.range
+    const prevRange = live?.kpiBrain?.previousRange
+    const label = range?.since && range?.until
+      ? `${range.since} → ${range.until}${prevRange?.since ? ` vs ${prevRange.since} → ${prevRange.until}` : ''}`
+      : '—'
+
+    // For month_YYYY-MM, also collect matching monthly rows (used for sparkline trend)
+    const sinceM = range?.since?.slice(0, 7)
+    const untilM = range?.until?.slice(0, 7)
+    const cur = (sinceM && untilM)
+      ? data.filter(m => m.month >= sinceM && m.month <= untilM)
+      : []
+
+    return { current: compute(sr, mr), previous: compute(spr, mpr), label, currentMonths: cur }
+  }, [data, live, cfg])
 
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
 
@@ -229,36 +218,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   return (
     <div>
       {/* Timeframe */}
-      <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-        {[{id:'this_month',l:'Questo mese'},{id:'last_month',l:'Mese precedente'},{id:'custom',l:'Custom'}].map(b => (
-          <button key={b.id} onClick={()=>setTf(b.id)} style={{
-            fontSize:12,padding:'6px 14px',borderRadius:6,cursor:'pointer',
-            border:tf===b.id?'1px solid #22c55e':'1px solid var(--border)',
-            background:tf===b.id?'#22c55e20':'transparent',
-            color:tf===b.id?'#22c55e':'#94a3b8',fontWeight:tf===b.id?700:500,
-          }}>{b.l}</button>
-        ))}
-        {tf==='custom' && (
-          <>
-            <span style={{fontSize:11,color:'var(--text3)'}}>Da:</span>
-            <select value={customSince} onChange={e=>setCustomSince(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-              <option value="">Seleziona</option>
-              {availableMonths.map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
-            </select>
-            <span style={{color:'#555'}}>→</span>
-            <span style={{fontSize:11,color:'var(--text3)'}}>A:</span>
-            <select value={customUntil} onChange={e=>setCustomUntil(e.target.value)} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-              <option value="">Seleziona</option>
-              {availableMonths.filter(m=>!customSince||m.month>=customSince).map(m=><option key={m.month} value={m.month}>{m.month}</option>)}
-            </select>
-          </>
-        )}
+      <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+        {setPreset && <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />}
         {onRefresh && (
-          <button onClick={onRefresh} disabled={loading} style={{
-            marginLeft:'auto',fontSize:12,padding:'6px 14px',borderRadius:6,
-            border:'1px solid var(--border)',background:loading?'var(--glass)':'transparent',
-            color:loading?'#555':'#94a3b8',fontWeight:700,cursor:loading?'wait':'pointer',
-            display:'flex',alignItems:'center',gap:6,
+          <button onClick={onRefresh} disabled={loading} className="btn-glass" style={{
+            marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
+            cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
         )}
         <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
@@ -389,7 +354,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
       </div>
 
-      <KpiBrainAgent tf={tf} preset={tf === 'this_month' ? 'current_month' : tf === 'last_month' ? 'last_month' : 'last_28d'} />
+      <KpiBrainAgent tf={preset} preset={preset} />
     </div>
   )
 }

@@ -1950,6 +1950,8 @@ export default function App() {
     metaWeeklyAll={metaWeeklyAll}
     onRefresh={fetchLive}
     loading={loading}
+    preset={preset}
+    setPreset={setPreset}
   />
 )}
       {/* MENSILE TAB */}

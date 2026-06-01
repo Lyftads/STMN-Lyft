@@ -1077,18 +1077,17 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 
   let tfWeeks = [], tfPrevWeeks = [], tfLabel = ''
   if (weeklyTF === 'this_week') {
-    // Show this week + last week, compare vs 2 weeks before
-    tfWeeks = allWeeks.filter(w => w.key === thisMonday || w.key === lastMonday)
-    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday || w.key === week3ago)
-    tfLabel = `Ultime 2 settimane vs 2 precedenti`
+    // Solo settimana corrente, delta vs settimana precedente
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfLabel = `Settimana corrente vs precedente`
   } else if (weeklyTF === 'last_week') {
-    // Show last week + week before, compare vs 2 weeks before those
-    tfWeeks = allWeeks.filter(w => w.key === lastMonday || w.key === prevPrevMonday)
-    const w4ago = (() => { const d = new Date(week3ago); d.setUTCDate(d.getUTCDate() - 7); return d.toISOString().slice(0,10) })()
-    tfPrevWeeks = allWeeks.filter(w => w.key === week3ago || w.key === w4ago)
-    tfLabel = `2 settimane precedenti vs 2 prima`
+    // Solo settimana precedente, delta vs quella prima
+    tfWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday)
+    tfLabel = `Settimana precedente vs quella prima`
   } else if (weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until) {
-    // Custom: since/until are already Monday dates (from week selector)
+    // Custom: solo la settimana selezionata (range), delta vs periodo precedente
     tfWeeks = allWeeks.filter(w => w.key >= weeklyCustom.since && w.key <= weeklyCustom.until)
     const span = tfWeeks.length || 1
     const firstKey = tfWeeks[0]?.key || weeklyCustom.since
@@ -1097,9 +1096,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
     tfPrevWeeks = allWeeks.filter(w => w.key >= prevStart && w.key <= prevEnd)
     tfLabel = `${weeklyCustom.since} → ${weeklyCustom.until} vs periodo prec.`
   } else {
-    tfWeeks = allWeeks.filter(w => w.key === thisMonday || w.key === lastMonday)
-    tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday || w.key === week3ago)
-    tfLabel = `Ultime 2 settimane`
+    tfWeeks = allWeeks.filter(w => w.key === thisMonday)
+    tfPrevWeeks = allWeeks.filter(w => w.key === lastMonday)
+    tfLabel = `Settimana corrente vs precedente`
   }
 
   // Available weeks for custom selector (all Monday dates with data)

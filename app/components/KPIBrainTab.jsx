@@ -198,7 +198,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     <div className="glass-card" style={card}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:10}}>
         <div style={{color:'var(--text2)',fontSize:13}}>{item.title}</div>
-        <PlatformBadges sources={groupSources(item.group)} size={12} />
+        <PlatformBadges sources={groupSources(item.group)} size={16} />
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
         <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>

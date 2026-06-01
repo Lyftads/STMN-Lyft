@@ -138,7 +138,7 @@ function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sp
     <div className="glass-card" style={{padding:'20px 22px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
         <div className="label">{label}</div>
-        {sources && <PlatformBadges sources={sources} size={12} />}
+        {sources && <PlatformBadges sources={sources} size={16} />}
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
         <div className={dim?'metric-value-sm':'metric-value'}>{value}</div>

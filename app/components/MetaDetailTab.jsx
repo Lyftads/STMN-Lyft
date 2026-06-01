@@ -13,15 +13,6 @@ const PRESETS = [
   { id: 'custom', label: 'Custom' },
 ]
 
-const GREEN = '#22c55e'
-const RED = '#ef4444'
-const BLUE = '#3b82f6'
-const TEXT = 'var(--text)'
-const MUTED = 'var(--text2)'
-const CARD = 'var(--glass)'
-const BORDER = 'var(--border)'
-const BG = 'var(--surface)'
-
 function n(v) {
   const x = Number(v)
   return Number.isFinite(x) ? x : 0
@@ -33,7 +24,7 @@ function fmtInt(v) {
 }
 
 function fmtMoney(v, decimals = 0) {
-  if (!v) return decimals === 0 ? '—' : '—'
+  if (!v) return '—'
   return `€${Number(v).toLocaleString('it-IT', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -41,7 +32,7 @@ function fmtMoney(v, decimals = 0) {
 }
 
 function fmtPct(v, decimals = 2) {
-  if (!v) return '0,00%'
+  if (v == null || v === 0) return '0,00%'
   return `${Number(v).toLocaleString('it-IT', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -49,11 +40,11 @@ function fmtPct(v, decimals = 2) {
 }
 
 function fmtRatio(v) {
-  if (!v) return '0,00x'
+  if (!v) return '0,00×'
   return `${Number(v).toLocaleString('it-IT', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}x`
+  })}×`
 }
 
 function delta(v) {
@@ -63,130 +54,228 @@ function delta(v) {
   return `${sign}${x.toFixed(1)}%`
 }
 
-function deltaColor(v, inverse = false) {
-  if (v === null || v === undefined) return MUTED
-  const good = inverse ? v < 0 : v > 0
-  return good ? GREEN : RED
+function deltaGood(v, inverse = false) {
+  if (v === null || v === undefined) return null
+  return inverse ? v < 0 : v > 0
 }
 
 function indent(level) {
-  if (level === 'adset') return 24
-  if (level === 'ad') return 48
+  if (level === 'adset') return 22
+  if (level === 'ad') return 44
   return 0
 }
 
-function levelLabel(row) {
-  if (row.level === 'campaign') return 'Campagna'
-  if (row.level === 'adset') return 'Ad set'
-  return 'Ad'
+function levelBadge(level) {
+  if (level === 'campaign') return { label: 'Campagna', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' }
+  if (level === 'adset') return { label: 'Ad set', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
+  return { label: 'Ad', color: '#bf5af2', bg: 'rgba(191,90,242,0.15)' }
 }
 
-function MetricCard({ label, value }) {
+// Sparkline simbolico per "performance" (usa ROAS)
+function PerfDot({ roas }) {
+  const v = n(roas)
+  const color =
+    v >= 4 ? '#22c55e' :
+    v >= 2.5 ? '#3b82f6' :
+    v >= 1.5 ? '#f59e0b' :
+    '#ef4444'
   return (
-    <div style={styles.metricCard}>
-      <div style={styles.metricLabel}>{label}</div>
-      <div style={styles.metricValue}>{value}</div>
+    <span style={{
+      width: 8, height: 8, borderRadius: 999,
+      background: color,
+      boxShadow: `0 0 10px ${color}`,
+      display: 'inline-block', flexShrink: 0,
+    }} />
+  )
+}
+
+function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff' }) {
+  const good = deltaGood(prevDelta, inverse)
+  return (
+    <div className="glass-card" style={{
+      padding: '20px 22px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 800,
+        color: 'var(--text3)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.14em',
+        marginBottom: 12,
+      }}>{label}</div>
+      <div style={{
+        fontSize: 26,
+        fontWeight: 900,
+        color: accent,
+        letterSpacing: '-0.02em',
+        marginBottom: prevDelta != null ? 8 : 0,
+      }}>{value}</div>
+      {prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 && (
+        <div style={{
+          display: 'inline-flex',
+          padding: '3px 9px',
+          borderRadius: 6,
+          background: good ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)',
+          color: good ? '#22c55e' : '#ef4444',
+          fontSize: 11,
+          fontWeight: 800,
+        }}>
+          {prevDelta > 0 ? '▲' : '▼'} {Math.abs(prevDelta).toFixed(2)}%
+        </div>
+      )}
     </div>
   )
 }
 
-function PresetButton({ active, children, onClick }) {
+function FxCard({ title, glow = '#2997ff', subtitle, children, padding = 24 }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.preset,
-        borderColor: active ? GREEN : BORDER,
-        color: active ? GREEN : MUTED,
-        background: active ? '#052e16' : 'var(--surface)',
-      }}
-    >
-      {children}
-    </button>
+    <div style={{
+      background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 22,
+      overflow: 'hidden',
+      position: 'relative',
+      boxShadow: '0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
+        animation: 'cr-shine 4s ease-in-out infinite',
+      }} />
+      <div style={{ padding }}>
+        {title && (
+          <div style={{ marginBottom: subtitle ? 4 : 18 }}>
+            <h2 style={{
+              margin: 0,
+              color: '#fff',
+              fontSize: 17,
+              fontWeight: 900,
+              letterSpacing: '-0.01em',
+            }}>{title}</h2>
+            {subtitle && (
+              <p style={{
+                margin: '4px 0 18px',
+                color: 'var(--text3)',
+                fontSize: 12.5,
+              }}>{subtitle}</p>
+            )}
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
   )
 }
 
 function Thumb({ url }) {
   if (!url) {
     return (
-      <div style={styles.thumbEmpty}>
-        —
-      </div>
+      <div style={{
+        width: 50, height: 50,
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.03)',
+        display: 'grid', placeItems: 'center',
+        color: 'var(--text3)', fontSize: 13,
+      }}>—</div>
     )
   }
-
   return (
-    <img
-      src={url}
-      alt=""
-      style={styles.thumb}
-    />
+    <img src={url} alt="" style={{
+      width: 50, height: 50,
+      objectFit: 'cover', borderRadius: 10,
+      border: '1px solid rgba(255,255,255,0.08)',
+      display: 'block',
+    }} />
   )
 }
 
-function Row({
-  row,
-  isOpen,
-  isLoading,
-  onToggle,
-}) {
+function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
   const canOpen = row.level !== 'ad'
+  const badge = levelBadge(row.level)
 
   return (
-    <tr style={styles.tr}>
-      <td style={styles.tdLevel}>
+    <tr style={{
+      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      background: row.level === 'campaign' ? 'rgba(34,197,94,0.04)' : 'transparent',
+    }}>
+      <td style={{ padding: '14px 16px', minWidth: 360 }}>
         <div
           onClick={canOpen ? onToggle : undefined}
           style={{
-            ...styles.levelCell,
+            display: 'flex', alignItems: 'flex-start', gap: 10,
             paddingLeft: indent(row.level),
             cursor: canOpen ? 'pointer' : 'default',
           }}
         >
-          {canOpen && (
-            <span style={styles.arrow}>
-              {isLoading ? '…' : isOpen ? '▼' : '▶'}
-            </span>
-          )}
+          {canOpen ? (
+            <span style={{
+              color: 'var(--accent)',
+              fontSize: 10,
+              marginTop: 6,
+              width: 14, flexShrink: 0,
+              transition: 'transform 0.18s',
+              transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+            }}>{isLoading ? '…' : '▼'}</span>
+          ) : <span style={{ width: 14, flexShrink: 0 }} />}
 
-          {!canOpen && <span style={styles.arrowSpacer} />}
-
-          <div>
-            <div style={{ color: row.level === 'campaign' ? GREEN : TEXT, fontWeight: 900 }}>
-              {levelLabel(row)} · {row.name || 'Senza nome'}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{
+                padding: '2px 8px', borderRadius: 6,
+                background: badge.bg, color: badge.color,
+                fontSize: 9, fontWeight: 900, letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}>{badge.label}</span>
+              <PerfDot roas={row.roas} />
             </div>
-
-            <div style={styles.idText}>
-              {row.status ? `${row.status} · ` : ''}
-              {row.id}
+            <div style={{
+              color: '#fff', fontWeight: 800, fontSize: 13.5,
+              lineHeight: 1.35, marginBottom: 3,
+            }}>{row.name || 'Senza nome'}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
+              {row.status ? `${row.status} · ` : ''}{row.id}
             </div>
           </div>
         </div>
       </td>
 
-      <td style={styles.tdCenter}>
-        {row.level === 'ad' ? <Thumb url={row.thumbnail_url} /> : '—'}
+      <td style={{ padding: '14px 16px' }}>
+        {row.level === 'ad' ? <Thumb url={row.thumbnail_url} /> : <span style={cellMuted}>—</span>}
       </td>
 
-      <td style={styles.td}>{fmtInt(row.impressions)}</td>
-      <td style={styles.td}>{fmtInt(row.reach)}</td>
-      <td style={styles.td}>{n(row.frequency).toFixed(2)}</td>
-      <td style={styles.td}>{fmtMoney(row.cpm, 2)}</td>
-      <td style={styles.td}>{fmtPct(row.ctr_link, 2)}</td>
-      <td style={styles.td}>{fmtMoney(row.cpc_link, 2)}</td>
-      <td style={styles.td}>{fmtInt(row.link_clicks)}</td>
-      <td style={styles.td}>{fmtMoney(row.spend, 0)}</td>
-      <td style={styles.td}>{fmtMoney(row.cost_per_result, 2)}</td>
-      <td style={styles.td}>{fmtRatio(row.roas)}</td>
-      <td style={styles.td}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
-      <td style={styles.td}>{fmtPct(row.conversione_acquisti, 2)}</td>
-      <td style={styles.td}>{fmtPct(row.cro_campagna, 2)}</td>
-      <td style={styles.td}>{fmtMoney(row.aov_campagna, 2)}</td>
+      <td style={cell}>{fmtInt(row.impressions)}</td>
+      <td style={cell}>{fmtInt(row.reach)}</td>
+      <td style={cell}>{n(row.frequency).toFixed(2)}</td>
+      <td style={cell}>{fmtMoney(row.cpm, 2)}</td>
+      <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
+      <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
+      <td style={cell}>{fmtInt(row.link_clicks)}</td>
+      <td style={{ ...cell, color: '#fff', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
+      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>
+        {fmtRatio(row.roas)}
+      </td>
+      <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
+      <td style={cell}>{fmtPct(row.conversione_acquisti, 2)}</td>
+      <td style={cell}>{fmtPct(row.cro_campagna, 2)}</td>
+      <td style={cell}>{fmtMoney(row.aov_campagna, 2)}</td>
     </tr>
   )
 }
 
-export default function MetaPage() {
+const cell = {
+  padding: '14px 16px',
+  color: 'var(--text)',
+  fontSize: 13.5,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+}
+const cellMuted = { color: 'var(--text3)' }
+
+export default function MetaDetailTab() {
   const [preset, setPreset] = useState('last_28d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -203,16 +292,13 @@ export default function MetaPage() {
     extra => {
       const params = new URLSearchParams()
       params.set('preset', preset)
-
       if (preset === 'custom') {
         if (customSince) params.set('since', customSince)
         if (customUntil) params.set('until', customUntil)
       }
-
       Object.entries(extra || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null) params.set(key, value)
       })
-
       return params.toString()
     },
     [preset, customSince, customUntil]
@@ -224,18 +310,10 @@ export default function MetaPage() {
     setOpenCampaigns({})
     setOpenAdsets({})
     setChildren({})
-
     try {
-      const res = await fetch(`/api/meta-detail?${qs({ level: 'campaigns' })}`, {
-        cache: 'no-store',
-      })
-
+      const res = await fetch(`/api/meta-detail?${qs({ level: 'campaigns' })}`, { cache: 'no-store' })
       const json = await res.json()
-
-      if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento Meta')
-      }
-
+      if (!json.ok) throw new Error(json.error || 'Errore caricamento Meta')
       setData(json)
     } catch (e) {
       setError(e.message)
@@ -245,41 +323,24 @@ export default function MetaPage() {
     }
   }, [qs])
 
-  useEffect(() => {
-    fetchMain()
-  }, [fetchMain])
+  useEffect(() => { fetchMain() }, [fetchMain])
 
   async function toggleCampaign(campaign) {
     const key = `campaign:${campaign.id}`
-
     if (openCampaigns[campaign.id]) {
       setOpenCampaigns(prev => ({ ...prev, [campaign.id]: false }))
       return
     }
-
     if (children[key]) {
       setOpenCampaigns(prev => ({ ...prev, [campaign.id]: true }))
       return
     }
-
     setLoadingNode(prev => ({ ...prev, [key]: true }))
     setError('')
-
     try {
-      const res = await fetch(
-        `/api/meta-detail?${qs({
-          level: 'adsets',
-          campaign_id: campaign.id,
-        })}`,
-        { cache: 'no-store' }
-      )
-
+      const res = await fetch(`/api/meta-detail?${qs({ level: 'adsets', campaign_id: campaign.id })}`, { cache: 'no-store' })
       const json = await res.json()
-
-      if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento ad set')
-      }
-
+      if (!json.ok) throw new Error(json.error || 'Errore caricamento ad set')
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
       setOpenCampaigns(prev => ({ ...prev, [campaign.id]: true }))
     } catch (e) {
@@ -291,35 +352,20 @@ export default function MetaPage() {
 
   async function toggleAdset(adset) {
     const key = `adset:${adset.id}`
-
     if (openAdsets[adset.id]) {
       setOpenAdsets(prev => ({ ...prev, [adset.id]: false }))
       return
     }
-
     if (children[key]) {
       setOpenAdsets(prev => ({ ...prev, [adset.id]: true }))
       return
     }
-
     setLoadingNode(prev => ({ ...prev, [key]: true }))
     setError('')
-
     try {
-      const res = await fetch(
-        `/api/meta-detail?${qs({
-          level: 'ads',
-          adset_id: adset.id,
-        })}`,
-        { cache: 'no-store' }
-      )
-
+      const res = await fetch(`/api/meta-detail?${qs({ level: 'ads', adset_id: adset.id })}`, { cache: 'no-store' })
       const json = await res.json()
-
-      if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento ads')
-      }
-
+      if (!json.ok) throw new Error(json.error || 'Errore caricamento ads')
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
       setOpenAdsets(prev => ({ ...prev, [adset.id]: true }))
     } catch (e) {
@@ -331,18 +377,13 @@ export default function MetaPage() {
 
   const visibleRows = useMemo(() => {
     const rows = []
-
     for (const campaign of data?.rows || []) {
       rows.push(campaign)
-
       const campaignKey = `campaign:${campaign.id}`
-
       if (openCampaigns[campaign.id]) {
         for (const adset of children[campaignKey] || []) {
           rows.push(adset)
-
           const adsetKey = `adset:${adset.id}`
-
           if (openAdsets[adset.id]) {
             for (const ad of children[adsetKey] || []) {
               rows.push(ad)
@@ -351,516 +392,330 @@ export default function MetaPage() {
         }
       }
     }
-
     return rows
   }, [data, children, openCampaigns, openAdsets])
 
   const summary = data?.summary || {}
+  const cmp = data?.comparison || {}
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <header style={styles.header}>
-          <div>
-            <h1 style={styles.h1}>Meta Detail</h1>
-            <p style={styles.subtitle}>Analisi gerarchica campagne · ad set · ads</p>
-          </div>
+    <div>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 16,
+        marginBottom: 24,
+      }}>
+        <div>
+          <h1 style={{
+            margin: 0,
+            color: '#fff',
+            fontSize: 32,
+            fontWeight: 900,
+            letterSpacing: '-0.04em',
+          }}>Meta Detail</h1>
+          <p style={{
+            margin: '8px 0 0',
+            color: 'var(--text3)',
+            fontSize: 14,
+          }}>
+            Gerarchia campagne · ad set · ads
+            {data?.range?.since && data?.range?.until
+              ? ` · ${data.range.since} → ${data.range.until}`
+              : ''}
+          </p>
+        </div>
 
-          <div style={styles.status}>
-            {loading ? 'Caricamento…' : data?.sources?.meta ? 'Dati caricati' : 'Meta non caricato'}
-          </div>
-        </header>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 14px',
+          borderRadius: 999,
+          background: 'rgba(48,209,88,0.12)',
+          border: '1px solid rgba(48,209,88,0.3)',
+          color: '#86efac',
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: 999,
+            background: '#30d158',
+            boxShadow: '0 0 10px #30d158',
+            animation: 'card-pulse 2s ease-in-out infinite',
+          }} />
+          {loading ? 'Sync…' : data?.sources?.meta ? 'Live · Meta' : 'Offline'}
+        </div>
+      </div>
 
-        <section style={styles.presetsBox}>
-          <div style={styles.presets}>
-            {PRESETS.map(p => (
-              <PresetButton
+      {/* Preset bar */}
+      <div style={{
+        background: 'rgba(255,255,255,0.025)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 18,
+        padding: 16,
+        marginBottom: 18,
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          {PRESETS.map(p => {
+            const active = preset === p.id
+            return (
+              <button
                 key={p.id}
-                active={preset === p.id}
                 onClick={() => setPreset(p.id)}
-              >
-                {p.label}
-              </PresetButton>
-            ))}
+                disabled={loading}
+                style={{
+                  background: active ? 'linear-gradient(135deg, rgba(91,44,255,0.25), rgba(41,151,255,0.18))' : 'rgba(255,255,255,0.04)',
+                  border: active ? '1px solid rgba(91,44,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
+                  color: active ? '#fff' : 'var(--text2)',
+                  borderRadius: 11,
+                  padding: '9px 14px',
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  cursor: loading ? 'wait' : 'pointer',
+                  transition: 'all .15s',
+                  boxShadow: active ? '0 0 14px rgba(91,44,255,0.25)' : 'none',
+                }}
+              >{p.label}</button>
+            )
+          })}
 
-            <button
-              onClick={fetchMain}
-              style={styles.refresh}
-              disabled={loading}
-            >
-              ↻ Aggiorna
-            </button>
-          </div>
+          <button
+            onClick={fetchMain}
+            disabled={loading}
+            className="btn-glass"
+            style={{
+              marginLeft: 'auto',
+              display: 'flex', alignItems: 'center', gap: 6,
+              cursor: loading ? 'wait' : 'pointer',
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+            {loading ? 'Aggiorno…' : 'Aggiorna'}
+          </button>
+        </div>
 
-          {preset === 'custom' && (
-            <div style={styles.customBox}>
-              <input
-                type="date"
-                value={customSince}
-                onChange={e => setCustomSince(e.target.value)}
-                style={styles.input}
-              />
-              <input
-                type="date"
-                value={customUntil}
-                onChange={e => setCustomUntil(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-          )}
-        </section>
-
-        {error && (
-          <div style={styles.error}>
-            {error}
+        {preset === 'custom' && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <input
+              type="date"
+              value={customSince}
+              onChange={e => setCustomSince(e.target.value)}
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#fff',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+            <input
+              type="date"
+              value={customUntil}
+              onChange={e => setCustomUntil(e.target.value)}
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#fff',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
           </div>
         )}
+      </div>
 
-        <section style={styles.metrics}>
-          <MetricCard label="Importo speso" value={fmtMoney(summary.spend, 0)} />
-          <MetricCard label="ROAS" value={fmtRatio(summary.roas)} />
-          <MetricCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} />
-          <MetricCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} />
-          <MetricCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} />
-          <MetricCard label="Frequenza" value={n(summary.frequency).toFixed(2)} />
-        </section>
+      {error && (
+        <div style={{
+          padding: 16,
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.4)',
+          borderRadius: 14,
+          color: '#fca5a5',
+          fontSize: 13,
+          fontWeight: 600,
+          marginBottom: 18,
+        }}>
+          {error}
+        </div>
+      )}
 
-        <section style={styles.twoCols}>
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Confronto · periodo vs precedente</h2>
-            <p style={styles.small}>
-              Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
-            </p>
+      {/* KPI cards */}
+      <div className="stagger-zoom" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        gap: 14,
+        marginBottom: 18,
+      }}>
+        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" />
+        <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" />
+        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" />
+        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" />
+        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" />
+        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" />
+      </div>
 
-            <div style={styles.compareGrid}>
-              <div style={styles.compareItem}>
-                <span style={styles.compareLabel}>Spesa</span>
-                <strong style={{ color: deltaColor(data?.comparison?.spend, false) }}>
-                  {delta(data?.comparison?.spend)}
-                </strong>
-              </div>
-
-              <div style={styles.compareItem}>
-                <span style={styles.compareLabel}>ROAS</span>
-                <strong style={{ color: deltaColor(data?.comparison?.roas, false) }}>
-                  {delta(data?.comparison?.roas)}
-                </strong>
-              </div>
-
-              <div style={styles.compareItem}>
-                <span style={styles.compareLabel}>CPA</span>
-                <strong style={{ color: deltaColor(data?.comparison?.cpa, true) }}>
-                  {delta(data?.comparison?.cpa)}
-                </strong>
-              </div>
-
-              <div style={styles.compareItem}>
-                <span style={styles.compareLabel}>CTR</span>
-                <strong style={{ color: deltaColor(data?.comparison?.ctr, false) }}>
-                  {delta(data?.comparison?.ctr)}
-                </strong>
-              </div>
-            </div>
+      {/* Comparazione + Insight */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 16,
+        marginBottom: 18,
+      }}>
+        <FxCard
+          title="Confronto vs periodo precedente"
+          subtitle={`${data?.previousRange?.since || '—'} → ${data?.previousRange?.until || '—'}`}
+          glow="#22c55e"
+        >
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: 10,
+          }}>
+            {[
+              { label: 'Spesa', value: cmp.spend, inverse: false },
+              { label: 'ROAS', value: cmp.roas, inverse: false },
+              { label: 'CPA', value: cmp.cpa, inverse: true },
+              { label: 'CTR', value: cmp.ctr, inverse: false },
+            ].map(it => {
+              const good = deltaGood(it.value, it.inverse)
+              return (
+                <div key={it.label} style={{
+                  padding: '12px 14px',
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 12,
+                }}>
+                  <div style={{
+                    fontSize: 9, color: 'var(--text3)',
+                    textTransform: 'uppercase', letterSpacing: '0.12em',
+                    fontWeight: 800, marginBottom: 8,
+                  }}>{it.label}</div>
+                  <div style={{
+                    fontSize: 18,
+                    fontWeight: 900,
+                    color: good == null ? 'var(--text3)' : good ? '#22c55e' : '#ef4444',
+                  }}>{delta(it.value)}</div>
+                </div>
+              )
+            })}
           </div>
+        </FxCard>
 
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Insight automatico</h2>
-            <p style={styles.paragraph}>{data?.insight || '—'}</p>
-          </div>
-        </section>
+        <FxCard title="Insight automatico" glow="#a78bfa">
+          <p style={{
+            color: 'var(--text)',
+            fontSize: 14,
+            lineHeight: 1.6,
+            margin: 0,
+            whiteSpace: 'pre-wrap',
+          }}>{data?.insight || '—'}</p>
+        </FxCard>
+      </div>
 
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>To-do consigliate</h2>
-
-          <div style={styles.todoList}>
+      {/* To-do */}
+      <div style={{ marginBottom: 18 }}>
+        <FxCard title="To-do consigliate" subtitle="Azioni prioritarie suggerite dall'analisi" glow="#f59e0b">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(data?.todos || []).map((todo, i) => (
-              <div key={i} style={styles.todo}>
-                <strong style={{ color: GREEN }}>#{i + 1}</strong> {todo}
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                padding: '14px 18px',
+                background: 'rgba(255,255,255,0.025)',
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: 12,
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: 'linear-gradient(135deg, #f59e0b, #f97316)',
+                  color: '#fff',
+                  display: 'grid', placeItems: 'center',
+                  fontSize: 12, fontWeight: 900,
+                  flexShrink: 0,
+                  boxShadow: '0 0 14px rgba(245,158,11,0.35)',
+                }}>{i + 1}</div>
+                <div style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.55 }}>{todo}</div>
               </div>
             ))}
+            {(!data?.todos || data.todos.length === 0) && (
+              <div style={{ color: 'var(--text3)', fontSize: 13, padding: 14 }}>Nessuna to-do per ora.</div>
+            )}
           </div>
-        </section>
-
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Gerarchia Meta · campagne / ad set / ads</h2>
-          <p style={styles.small}>
-            Mostra solo campagne attive. Clicca su una campagna per aprire gli ad set attivi.
-            Clicca su un ad set per aprire le ads attive.
-          </p>
-
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.thLevel}>Livello</th>
-                  <th style={styles.th}>Anteprima</th>
-                  <th style={styles.th}>Impression</th>
-                  <th style={styles.th}>Copertura</th>
-                  <th style={styles.th}>Freq.</th>
-                  <th style={styles.th}>CPM</th>
-                  <th style={styles.th}>CTR link</th>
-                  <th style={styles.th}>CPC link</th>
-                  <th style={styles.th}>Click link</th>
-                  <th style={styles.th}>Speso</th>
-                  <th style={styles.th}>Costo risultato</th>
-                  <th style={styles.th}>ROAS</th>
-                  <th style={styles.th}>Acquisti</th>
-                  <th style={styles.th}>Conv. acquisti</th>
-                  <th style={styles.th}>CRO campagna</th>
-                  <th style={styles.th}>AOV campagna</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleRows.length > 0 ? (
-                  visibleRows.map(row => {
-                    const key =
-                      row.level === 'campaign'
-                        ? `campaign:${row.id}`
-                        : row.level === 'adset'
-                          ? `adset:${row.id}`
-                          : `ad:${row.id}`
-
-                    return (
-                      <Row
-                        key={key}
-                        row={row}
-                        isOpen={
-                          row.level === 'campaign'
-                            ? !!openCampaigns[row.id]
-                            : row.level === 'adset'
-                              ? !!openAdsets[row.id]
-                              : false
-                        }
-                        isLoading={!!loadingNode[key]}
-                        onToggle={() => {
-                          if (row.level === 'campaign') toggleCampaign(row)
-                          if (row.level === 'adset') toggleAdset(row)
-                        }}
-                      />
-                    )
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="16" style={styles.empty}>
-                      {loading ? 'Caricamento dati Meta…' : 'Nessuna campagna attiva disponibile nel periodo selezionato.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        </FxCard>
       </div>
+
+      {/* Tabella gerarchica */}
+      <FxCard
+        title="Gerarchia Meta"
+        subtitle="Solo campagne attive. Click sulla campagna → ad set attivi. Click su ad set → ads attive."
+        glow="#06b6d4"
+        padding={0}
+      >
+        <div style={{ overflowX: 'auto', maxHeight: '72vh', padding: '0 24px 24px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
+            <thead>
+              <tr>
+                {['Livello', 'Anteprima', 'Impression', 'Copertura', 'Freq.', 'CPM', 'CTR link', 'CPC link', 'Click link', 'Speso', 'Costo risultato', 'ROAS', 'Acquisti', 'Conv. acq.', 'CRO', 'AOV'].map(h => (
+                  <th key={h} style={{
+                    position: 'sticky', top: 0, zIndex: 20,
+                    padding: '14px 16px',
+                    fontSize: 10.5, fontWeight: 800,
+                    textTransform: 'uppercase', letterSpacing: '0.12em',
+                    textAlign: 'left', whiteSpace: 'nowrap',
+                    color: 'var(--text2)',
+                    background: 'rgba(8,8,18,0.92)',
+                    backdropFilter: 'blur(20px)',
+                    borderBottom: '1.5px solid rgba(255,255,255,0.08)',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.length > 0 ? (
+                visibleRows.map(row => {
+                  const key = row.level === 'campaign' ? `campaign:${row.id}`
+                    : row.level === 'adset' ? `adset:${row.id}`
+                    : `ad:${row.id}`
+                  return (
+                    <HierarchyRow
+                      key={key}
+                      row={row}
+                      isOpen={row.level === 'campaign' ? !!openCampaigns[row.id]
+                        : row.level === 'adset' ? !!openAdsets[row.id]
+                        : false}
+                      isLoading={!!loadingNode[key]}
+                      onToggle={() => {
+                        if (row.level === 'campaign') toggleCampaign(row)
+                        if (row.level === 'adset') toggleAdset(row)
+                      }}
+                    />
+                  )
+                })
+              ) : (
+                <tr>
+                  <td colSpan="16" style={{
+                    padding: 40,
+                    color: 'var(--text3)',
+                    fontSize: 14,
+                    textAlign: 'center',
+                  }}>
+                    {loading ? 'Sto caricando le campagne…' : 'Nessuna campagna attiva nel periodo selezionato.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </FxCard>
     </div>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: BG,
-    color: TEXT,
-    fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-    padding: '34px 22px',
-  },
-
-  container: {
-    maxWidth: 1680,
-    margin: '0 auto',
-  },
-
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 28,
-  },
-
-  h1: {
-    fontSize: 26,
-    margin: 0,
-    letterSpacing: '-0.04em',
-  },
-
-  subtitle: {
-    margin: '10px 0 0',
-    color: MUTED,
-    fontSize: 13,
-  },
-
-  status: {
-    color: GREEN,
-    fontSize: 13,
-    fontWeight: 800,
-  },
-
-  presetsBox: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
-    padding: 18,
-    marginBottom: 18,
-  },
-
-  presets: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 10,
-    alignItems: 'center',
-  },
-
-  preset: {
-    border: '1px solid',
-    borderRadius: 999,
-    padding: '10px 16px',
-    fontSize: 13,
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-
-  refresh: {
-    marginLeft: 'auto',
-    background: GREEN,
-    color: '#00140a',
-    border: 'none',
-    borderRadius: 999,
-    padding: '11px 22px',
-    fontSize: 14,
-    fontWeight: 900,
-    cursor: 'pointer',
-  },
-
-  customBox: {
-    display: 'flex',
-    gap: 10,
-    marginTop: 14,
-  },
-
-  input: {
-    background: 'var(--surface)',
-    border: `1px solid ${BORDER}`,
-    color: TEXT,
-    borderRadius: 8,
-    padding: '10px 12px',
-  },
-
-  error: {
-    border: `1px solid ${RED}`,
-    background: '#2b0b12',
-    color: '#ff6b6b',
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 18,
-    fontWeight: 800,
-  },
-
-  metrics: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-    gap: 12,
-    marginBottom: 18,
-  },
-
-  metricCard: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
-    padding: 20,
-    minHeight: 90,
-  },
-
-  metricLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: '0.16em',
-    fontSize: 11,
-    color: MUTED,
-    fontWeight: 900,
-    marginBottom: 16,
-  },
-
-  metricValue: {
-    fontSize: 27,
-    fontWeight: 900,
-    fontFamily: 'Georgia, serif',
-  },
-
-  twoCols: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 18,
-    marginBottom: 18,
-  },
-
-  card: {
-    background: CARD,
-    border: `1px solid ${BORDER}`,
-    borderRadius: 10,
-    padding: 22,
-    marginBottom: 18,
-  },
-
-  sectionTitle: {
-    margin: 0,
-    marginBottom: 16,
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: '0.22em',
-    fontWeight: 1000,
-  },
-
-  small: {
-    color: MUTED,
-    fontSize: 13,
-    margin: '0 0 16px',
-  },
-
-  paragraph: {
-    color: 'var(--text)',
-    fontSize: 15,
-    lineHeight: 1.6,
-    margin: 0,
-  },
-
-  compareGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-    gap: 10,
-  },
-
-  compareItem: {
-    border: `1px solid ${BORDER}`,
-    borderRadius: 8,
-    padding: 14,
-    background: 'var(--surface)',
-  },
-
-  compareLabel: {
-    display: 'block',
-    color: MUTED,
-    textTransform: 'uppercase',
-    letterSpacing: '0.15em',
-    fontSize: 11,
-    fontWeight: 900,
-    marginBottom: 14,
-  },
-
-  todoList: {
-    display: 'grid',
-    gap: 10,
-  },
-
-  todo: {
-    border: `1px solid ${BORDER}`,
-    borderRadius: 8,
-    padding: 14,
-    color: 'var(--text)',
-    background: 'var(--surface)',
-    lineHeight: 1.5,
-  },
-
-  tableWrap: {
-    overflowX: 'auto',
-  },
-
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    minWidth: 1700,
-  },
-
-  thLevel: {
-    textAlign: 'left',
-    padding: '14px 14px',
-    borderBottom: `1px solid ${BORDER}`,
-    color: '#fff',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: '0.18em',
-    minWidth: 360,
-  },
-
-  th: {
-    textAlign: 'left',
-    padding: '14px 14px',
-    borderBottom: `1px solid ${BORDER}`,
-    color: '#fff',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: '0.18em',
-    whiteSpace: 'nowrap',
-  },
-
-  tr: {
-    borderBottom: '1px solid var(--border)',
-  },
-
-  tdLevel: {
-    padding: '13px 14px',
-    minWidth: 360,
-  },
-
-  levelCell: {
-    display: 'flex',
-    gap: 10,
-    alignItems: 'flex-start',
-  },
-
-  arrow: {
-    color: GREEN,
-    fontSize: 10,
-    marginTop: 4,
-    width: 14,
-  },
-
-  arrowSpacer: {
-    width: 14,
-  },
-
-  idText: {
-    marginTop: 5,
-    color: MUTED,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-
-  td: {
-    padding: '13px 14px',
-    color: 'var(--text)',
-    fontSize: 14,
-    whiteSpace: 'nowrap',
-  },
-
-  tdCenter: {
-    padding: '13px 14px',
-    color: 'var(--text)',
-    fontSize: 14,
-    whiteSpace: 'nowrap',
-    textAlign: 'left',
-  },
-
-  thumb: {
-    width: 54,
-    height: 54,
-    objectFit: 'cover',
-    borderRadius: 8,
-    border: `1px solid ${BORDER}`,
-  },
-
-  thumbEmpty: {
-    width: 54,
-    height: 54,
-    borderRadius: 8,
-    border: `1px solid ${BORDER}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: MUTED,
-  },
-
-  empty: {
-    padding: 20,
-    color: TEXT,
-    fontSize: 15,
-  },
 }

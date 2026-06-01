@@ -56,7 +56,7 @@ export default function VendroShell({
   setTab,
   live,
   updated,
-  preset = 'last_90d',
+  preset = 'last_7d',
   setPreset,
   loading,
   onRefresh,

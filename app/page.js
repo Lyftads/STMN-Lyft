@@ -1503,7 +1503,7 @@ export default function App() {
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
   const [updated, setUpdated] = useState(null)
-  const [preset, setPreset] = useState('last_90d')
+  const [preset, setPreset] = useState('last_7d')
   const [monthlyTF, setMonthlyTF] = useState('this_month')
   const [monthlyCustom, setMonthlyCustom] = useState({ since: '', until: '' })
   const [weeklyTF, setWeeklyTF] = useState('this_week')

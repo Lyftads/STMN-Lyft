@@ -717,16 +717,56 @@ function Simulator({ cfg }) {
             zIndex: 1,
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Fatturato vs Profitto netto</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,lordo:c.revenueIvaInclusa,netto:c.revenue,profitto:c.profittoNetto}})} margin={{left:0,right:0}}>
-              <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
-              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
-              <Tooltip content={<ChartTip />} />
-              <Legend />
-              <Bar dataKey="netto" name="Fatt. netto" fill="#2997ff" radius={[4,4,0,0]} />
-              <Bar dataKey="profitto" name="Profitto netto" fill="#30d158" radius={[4,4,0,0]} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>Fatturato vs Profitto netto</p>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:10, color:'var(--text3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em' }}>
+              <span style={{ width:6, height:6, borderRadius:999, background:'#30d158', boxShadow:'0 0 10px #30d158', animation:'card-pulse 2s ease-in-out infinite' }} />
+              Live
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,netto:c.revenue,profitto:c.profittoNetto}})} margin={{top:12,right:8,left:0,bottom:4}} barGap={6}>
+              <defs>
+                <linearGradient id="sim-bar-netto" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#1e3a8a" stopOpacity={0.7} />
+                </linearGradient>
+                <linearGradient id="sim-bar-profitto" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#30d158" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#15803d" stopOpacity={0.7} />
+                </linearGradient>
+                <filter id="sim-bar-glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="name" tick={{fill:'var(--text3)',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'var(--text3)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} iconType="circle" />
+              <Bar
+                dataKey="netto"
+                name="Fatt. netto"
+                fill="url(#sim-bar-netto)"
+                radius={[10,10,0,0]}
+                animationDuration={1400}
+                animationEasing="ease-out"
+                style={{ filter: 'url(#sim-bar-glow)' }}
+              />
+              <Bar
+                dataKey="profitto"
+                name="Profitto netto"
+                fill="url(#sim-bar-profitto)"
+                radius={[10,10,0,0]}
+                animationDuration={1400}
+                animationBegin={180}
+                animationEasing="ease-out"
+                style={{ filter: 'url(#sim-bar-glow)' }}
+              />
             </BarChart>
           </ResponsiveContainer>
           </div>
@@ -753,17 +793,70 @@ function Simulator({ cfg }) {
             zIndex: 1,
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Breakdown costi</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{left:0,right:0}}>
-              <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{fill:'#94a3b8',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
-              <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
-              <Tooltip content={<ChartTip />} />
-              <Legend />
-              <Bar dataKey="iva" name="IVA 22%" fill="rgba(255,255,255,0.18)" stackId="c" radius={[4,4,0,0]} />
-              <Bar dataKey="cogs" name="COGS" fill="rgba(255,255,255,0.32)" stackId="c" />
-              <Bar dataKey="adv" name="Spesa ADV" fill="#2997ff" stackId="c" radius={[0,0,4,4]} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>Breakdown costi</p>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:10, color:'var(--text3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em' }}>
+              <span style={{ width:6, height:6, borderRadius:999, background:'#2997ff', boxShadow:'0 0 10px #2997ff', animation:'card-pulse 2s ease-in-out infinite' }} />
+              Live
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{top:12,right:8,left:0,bottom:4}} barGap={6}>
+              <defs>
+                <linearGradient id="sim-bar-iva" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.32)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.08)" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="sim-bar-cogs" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.52)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.18)" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="sim-bar-adv" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#1e3a8a" stopOpacity={0.8} />
+                </linearGradient>
+                <filter id="sim-bar-glow-2" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="name" tick={{fill:'var(--text3)',fontSize:10,fontWeight:700}} axisLine={false} tickLine={false} />
+              <YAxis tick={{fill:'var(--text3)',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
+              <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} iconType="circle" />
+              <Bar
+                dataKey="iva"
+                name="IVA 22%"
+                fill="url(#sim-bar-iva)"
+                stackId="c"
+                radius={[10,10,0,0]}
+                animationDuration={1400}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="cogs"
+                name="COGS"
+                fill="url(#sim-bar-cogs)"
+                stackId="c"
+                animationDuration={1400}
+                animationBegin={180}
+                animationEasing="ease-out"
+              />
+              <Bar
+                dataKey="adv"
+                name="Spesa ADV"
+                fill="url(#sim-bar-adv)"
+                stackId="c"
+                radius={[0,0,10,10]}
+                animationDuration={1400}
+                animationBegin={360}
+                animationEasing="ease-out"
+                style={{ filter: 'url(#sim-bar-glow-2)' }}
+              />
             </BarChart>
           </ResponsiveContainer>
           </div>

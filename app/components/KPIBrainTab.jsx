@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Sparkline from './Sparkline'
 import { PlatformBadges } from './PlatformIcon'
+import KpiBrainAgent from './KpiBrainAgent'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading }) {
 
@@ -387,6 +388,8 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           )}
         </div>
       </div>
+
+      <KpiBrainAgent tf={tf} preset={tf === 'this_month' ? 'current_month' : tf === 'last_month' ? 'last_month' : 'last_28d'} />
     </div>
   )
 }

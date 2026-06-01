@@ -149,7 +149,7 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
   )
 }
 
-function CreativeCard({ row, index }) {
+function CreativeCard({ row, index, onClick }) {
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
   const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
@@ -169,11 +169,22 @@ function CreativeCard({ row, index }) {
 
   return (
     <div
+      onClick={onClick}
       style={{
         background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'transform 0.18s cubic-bezier(0.16,1,0.3,1), border-color 0.18s',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-3px)'
+        e.currentTarget.style.borderColor = 'rgba(91,44,255,0.45)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.borderColor = 'var(--border)'
       }}
     >
       {isCatalog ? (
@@ -382,6 +393,284 @@ function Mini({ label, value }) {
   )
 }
 
+function formatCta(cta) {
+  if (!cta) return ''
+  // Meta usa enum tipo "SHOP_NOW" → trasforma in "Shop Now"
+  return cta
+    .toLowerCase()
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+function CreativeDetailModal({ row, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
+
+  const img = getCreativeImage(row)
+  const name = getCreativeName(row)
+  const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
+  const variants = row.variants || {}
+
+  const copies = variants.copies?.length ? variants.copies : (row.copy ? [row.copy] : [])
+  const headlines = variants.headlines?.length ? variants.headlines : (row.headline ? [row.headline] : [])
+  const descriptions = variants.descriptions?.length ? variants.descriptions : (row.description ? [row.description] : [])
+  const ctas = variants.ctas?.length ? variants.ctas : (row.cta ? [row.cta] : [])
+  const links = variants.links?.length ? variants.links : (row.link ? [row.link] : [])
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'rgba(8,8,15,0.95)',
+          backdropFilter: 'blur(40px) saturate(1.8)',
+          border: '1.5px solid rgba(255,255,255,0.08)',
+          borderRadius: 22,
+          width: 'min(960px, 100%)',
+          maxHeight: '90vh',
+          overflow: 'hidden',
+          display: 'grid',
+          gridTemplateColumns: '420px 1fr',
+        }}
+      >
+        {/* Colonna immagine */}
+        <div style={{
+          background: 'var(--glass)',
+          borderRight: '1px solid var(--border)',
+          padding: 24,
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+        }}>
+          {products.length > 0 ? (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 10,
+              width: '100%',
+            }}>
+              {products.slice(0, 6).map(p => (
+                <div key={p.id} style={{
+                  background: '#0a0a14',
+                  borderRadius: 12,
+                  border: '1px solid var(--border)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ aspectRatio: '1/1', overflow: 'hidden' }}>
+                    <img src={p.image_url} alt={p.name} style={{
+                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                    }} />
+                  </div>
+                  <div style={{ padding: '8px 10px' }}>
+                    <div style={{ color: '#fff', fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                    {p.price && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{p.price}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : img ? (
+            <img src={img} alt={name} style={{ width: '100%', borderRadius: 14, display: 'block' }} />
+          ) : (
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 40 }}>Nessuna anteprima</div>
+          )}
+        </div>
+
+        {/* Colonna contenuto */}
+        <div style={{ overflowY: 'auto', maxHeight: '90vh' }}>
+          <div style={{
+            position: 'sticky', top: 0,
+            background: 'rgba(8,8,15,0.92)',
+            backdropFilter: 'blur(20px)',
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            zIndex: 2,
+          }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginBottom: 4 }}>{name}</div>
+              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{row.campaign_name || 'Senza campagna'}</div>
+              {row.adset_name && (
+                <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{row.adset_name}</div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text2)',
+                borderRadius: 10,
+                width: 34, height: 34,
+                display: 'grid', placeItems: 'center',
+                cursor: 'pointer', fontSize: 18,
+              }}
+            >×</button>
+          </div>
+
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Performance bar */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 10,
+              padding: 14,
+              background: 'rgba(255,255,255,0.025)',
+              borderRadius: 14,
+              border: '1px solid var(--border)',
+            }}>
+              <MiniStat label="Spesa" value={money(row.spend)} />
+              <MiniStat label="ROAS" value={ratio(row.roas)} />
+              <MiniStat label="CPC" value={money(row.cpc_link)} />
+              <MiniStat label="CTR" value={pct(row.ctr_link)} />
+            </div>
+
+            {copies.length > 0 && (
+              <Section label={`Copy${copies.length > 1 ? ` · ${copies.length} varianti` : ''}`}>
+                {copies.map((c, i) => (
+                  <CopyBlock key={i} index={copies.length > 1 ? i + 1 : null} text={c} />
+                ))}
+              </Section>
+            )}
+
+            {headlines.length > 0 && (
+              <Section label={`Headline${headlines.length > 1 ? ` · ${headlines.length} varianti` : ''}`}>
+                {headlines.map((h, i) => (
+                  <div key={i} style={lineStyle}>
+                    {headlines.length > 1 && <span style={badgeIdx}>{i + 1}</span>}
+                    {h}
+                  </div>
+                ))}
+              </Section>
+            )}
+
+            {descriptions.length > 0 && (
+              <Section label={`Descrizione${descriptions.length > 1 ? ` · ${descriptions.length} varianti` : ''}`}>
+                {descriptions.map((d, i) => (
+                  <div key={i} style={lineStyle}>
+                    {descriptions.length > 1 && <span style={badgeIdx}>{i + 1}</span>}
+                    {d}
+                  </div>
+                ))}
+              </Section>
+            )}
+
+            {(ctas.length > 0 || links.length > 0) && (
+              <Section label="CTA e Link">
+                {ctas.map((c, i) => (
+                  <div key={`cta-${i}`} style={lineStyle}>
+                    <span style={{ ...badgeIdx, background: 'rgba(34,197,94,0.18)', color: '#86efac' }}>CTA</span>
+                    {formatCta(c)}
+                  </div>
+                ))}
+                {links.map((l, i) => (
+                  <div key={`link-${i}`} style={{ ...lineStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                    <span style={{ ...badgeIdx, background: 'rgba(59,130,246,0.18)', color: '#93c5fd' }}>Link</span>
+                    <a href={l} target="_blank" rel="noreferrer" style={{
+                      color: '#7dd3fc', fontSize: 13, wordBreak: 'break-all', textDecoration: 'underline',
+                    }}>{l}</a>
+                  </div>
+                ))}
+              </Section>
+            )}
+
+            <Section label="Identificativi">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11, color: 'var(--text3)' }}>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Ad ID</span><br/>{row.ad_id}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Creative ID</span><br/>{row.creative_id || '—'}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Campaign ID</span><br/>{row.campaign_id || '—'}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Adset ID</span><br/>{row.adset_id || '—'}</div>
+              </div>
+            </Section>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const lineStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 10,
+  padding: '10px 14px',
+  background: 'rgba(255,255,255,0.025)',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  color: 'var(--text)',
+  fontSize: 13.5,
+  lineHeight: 1.5,
+}
+
+const badgeIdx = {
+  display: 'inline-block',
+  padding: '2px 8px',
+  borderRadius: 6,
+  fontSize: 10,
+  fontWeight: 800,
+  background: 'rgba(91,44,255,0.18)',
+  color: '#c4b5fd',
+  flexShrink: 0,
+}
+
+function Section({ label, children }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: 10, color: 'var(--text3)',
+        textTransform: 'uppercase', letterSpacing: '0.12em',
+        fontWeight: 800, marginBottom: 10,
+      }}>{label}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
+    </div>
+  )
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>{value}</div>
+    </div>
+  )
+}
+
+function CopyBlock({ index, text }) {
+  return (
+    <div style={{
+      padding: '12px 14px',
+      background: 'rgba(255,255,255,0.025)',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      color: 'var(--text)',
+      fontSize: 13.5,
+      lineHeight: 1.6,
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+    }}>
+      {index != null && <span style={{ ...badgeIdx, marginRight: 8 }}>{index}</span>}
+      {text}
+    </div>
+  )
+}
+
 export default function CreativeTab() {
   const [preset, setPreset] = useState('last_7d')
   const [data, setData] = useState(null)
@@ -431,6 +720,7 @@ export default function CreativeTab() {
   const [sortDir, setSortDir] = useState('desc')
   const [campaignFilter, setCampaignFilter] = useState('')
   const [quickFilter, setQuickFilter] = useState('')
+  const [selectedCreative, setSelectedCreative] = useState(null)
 
   // Solo creative ATTIVE nel timeframe selezionato (con spesa > 0 nel periodo)
   const rows = useMemo(
@@ -769,6 +1059,7 @@ export default function CreativeTab() {
                 key={`${row.id || row.ad_id || index}-${index}`}
                 row={row}
                 index={index}
+                onClick={() => setSelectedCreative(row)}
               />
             ))}
           </div>
@@ -788,6 +1079,13 @@ export default function CreativeTab() {
           </div>
         )}
       </div>
+
+      {selectedCreative && (
+        <CreativeDetailModal
+          row={selectedCreative}
+          onClose={() => setSelectedCreative(null)}
+        />
+      )}
     </div>
   )
 }

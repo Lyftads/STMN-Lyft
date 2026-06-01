@@ -414,6 +414,79 @@ function pickPreviewImageUrl({ creative = {}, fullCreative = {}, row = {} }) {
   return null
 }
 
+// Estrae copy/headline/description/CTA/link dal creative.
+// Coperti tre formati Meta:
+// 1) link_data (inserzione image/video singola con link)
+// 2) template_data (catalog DPA / template-based)
+// 3) asset_feed_spec (Advantage+ / dynamic creative — più valori)
+function extractAdContent(creative, fullCreative) {
+  const oss = fullCreative?.object_story_spec || creative?.object_story_spec || {}
+  const afs = fullCreative?.asset_feed_spec || creative?.asset_feed_spec || {}
+
+  const linkData = oss.link_data || oss.template_data || {}
+  const videoData = oss.video_data || {}
+
+  // Copy / primary text
+  const copyCandidates = [
+    linkData.message,
+    videoData.message,
+    afs.bodies?.[0]?.text,
+  ].filter(Boolean)
+
+  // Headline
+  const headlineCandidates = [
+    linkData.name,
+    videoData.title,
+    afs.titles?.[0]?.text,
+  ].filter(Boolean)
+
+  // Description
+  const descriptionCandidates = [
+    linkData.description,
+    videoData.link_description,
+    afs.descriptions?.[0]?.text,
+  ].filter(Boolean)
+
+  // CTA type
+  const ctaCandidates = [
+    linkData.call_to_action?.type,
+    videoData.call_to_action?.type,
+    afs.call_to_action_types?.[0],
+  ].filter(Boolean)
+
+  // Destination link
+  const linkCandidates = [
+    linkData.link,
+    linkData.call_to_action?.value?.link,
+    videoData.call_to_action?.value?.link,
+    afs.link_urls?.[0]?.website_url,
+    afs.link_urls?.[0]?.display_url,
+  ].filter(Boolean)
+
+  // Altre varianti se asset_feed_spec ha più bodies/titles
+  const allCopies = (afs.bodies || []).map(b => b?.text).filter(Boolean)
+  const allHeadlines = (afs.titles || []).map(t => t?.text).filter(Boolean)
+  const allDescriptions = (afs.descriptions || []).map(d => d?.text).filter(Boolean)
+  const allCtas = (afs.call_to_action_types || [])
+  const allLinks = (afs.link_urls || []).map(l => l?.website_url || l?.display_url).filter(Boolean)
+
+  return {
+    copy: copyCandidates[0] || '',
+    headline: headlineCandidates[0] || '',
+    description: descriptionCandidates[0] || '',
+    cta: ctaCandidates[0] || '',
+    link: linkCandidates[0] || '',
+    // Per DCO/Advantage+: tutte le varianti, così la modal può mostrarle
+    variants: {
+      copies: allCopies,
+      headlines: allHeadlines,
+      descriptions: allDescriptions,
+      ctas: allCtas,
+      links: allLinks,
+    },
+  }
+}
+
 function getProductSetId(creative, fullCreative) {
   return (
     fullCreative?.product_set_id ||
@@ -586,6 +659,8 @@ async function hydrateCreatives(rows) {
 
           product_set_id: productSetId,
           products,
+
+          ...extractAdContent(creative, fullCreative),
         }
       } catch {
         return row

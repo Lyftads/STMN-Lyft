@@ -406,32 +406,19 @@ async function fetchShopifySalesRange(start, end) {
       segment.includes('recurr')
 
     if (isNew) {
-      const rowNC =
-        cleanCount(row.orders_first_time) ||
-        cleanCount(row.new_customers) ||
-        rowOrders
-
-      const rowFatNC =
-        cleanMoney(row.total_sales_first_time) ||
-        rowTotalSales
-
-      nc += rowNC
-      fatturNC += rowFatNC
+      // "ordini da nuovi clienti" = tutti gli ordini fatti da clienti new
+      // nel segmento (incluso repeat purchases nello stesso periodo).
+      // row.orders nel gruppo new_or_returning_customer='new' è già quello.
+      nc += rowOrders
+      fatturNC += rowTotalSales
       resiNC += rowReturns
     }
 
     if (isReturning) {
-      const rowRC =
-        cleanCount(row.orders_returning) ||
-        cleanCount(row.returning_customers) ||
-        rowOrders
-
-      const rowFatRC =
-        cleanMoney(row.total_sales_returning) ||
-        rowTotalSales
-
-      rc += rowRC
-      fatturRC += rowFatRC
+      // "ordini da clienti di ritorno" = tutti gli ordini fatti da clienti
+      // returning nel segmento. row.orders nel gruppo è già quello.
+      rc += rowOrders
+      fatturRC += rowTotalSales
       resiRC += rowReturns
     }
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import TimeframeSelector from './TimeframeSelector'
 
 function getPageTitle(tab) {
   const map = {
@@ -308,26 +309,7 @@ export default function VendroShell({
               flexShrink: 0,
             }}>
               {setPreset && tab === 'dashboard' && (
-                <select
-                  value={preset}
-                  onChange={e => setPreset(e.target.value)}
-                  disabled={loading}
-                  className="btn-glass"
-                  style={{
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    paddingRight: 32,
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 12px center',
-                    cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.5 : 1,
-                  }}
-                >
-                  {PRESETS.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
+                <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
               )}
               {onRefresh && (
                 <button

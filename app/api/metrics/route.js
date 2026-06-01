@@ -145,6 +145,20 @@ function getPresetRange(preset = 'last_90d') {
     return { since: `${until.slice(0, 4)}-01-01`, until, label: 'Anno corrente' }
   }
 
+  // month_YYYY-MM → full calendar month
+  if (typeof preset === 'string' && preset.startsWith('month_')) {
+    const m = preset.slice(6) // YYYY-MM
+    const [y, mm] = m.split('-').map(Number)
+    if (y && mm) {
+      const start = `${m}-01`
+      const lastDay = new Date(y, mm, 0).getDate()
+      const endRaw = `${m}-${String(lastDay).padStart(2, '0')}`
+      const end = endRaw > until ? until : endRaw
+      const monthNames = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
+      return { since: start, until: end, label: `${monthNames[mm-1]} ${y}` }
+    }
+  }
+
   return { since: toDateString(addDays(today, -89)), until, label: 'Ultimi 90 giorni' }
 }
 

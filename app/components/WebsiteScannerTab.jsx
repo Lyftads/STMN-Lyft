@@ -345,8 +345,8 @@ export default function WebsiteScannerTab() {
                   <span style={{
                     fontSize: 9, fontWeight: 800,
                     padding: '2px 8px', borderRadius: 999,
-                    background: data.provider === 'chromium-fra1' ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)',
-                    color: data.provider === 'chromium-fra1' ? '#86efac' : '#fcd34d',
+                    background: data.provider === 'browserless-eu' ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)',
+                    color: data.provider === 'browserless-eu' ? '#86efac' : '#fcd34d',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>via {data.provider}</span>
                 )}

@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // @sparticuz/chromium e puppeteer-core devono essere trattati come
-  // external (non bundlati da Next) altrimenti il binary Chromium si
-  // perde durante il file tracing di Vercel.
+  // puppeteer-core va trattato come external (non bundlato da Next).
+  // Lo usiamo solo come client WebSocket verso Browserless.io.
   experimental: {
-    serverComponentsExternalPackages: ['@sparticuz/chromium-min', 'puppeteer-core'],
+    serverComponentsExternalPackages: ['puppeteer-core'],
   },
 }
 module.exports = nextConfig

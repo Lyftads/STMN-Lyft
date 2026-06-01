@@ -80,38 +80,25 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
   return `https://api.microlink.io/?${params.toString()}`
 }
 
-// PRIMARY: Headless Chromium su Vercel fra1 (Frankfurt) → IP europeo
-// → bypassa il geo-IP redirect di Shopify. Stessa esperienza di un
-// utente italiano in browser desktop.
-async function fetchScreenshotWithChromium(target) {
-  // chromium-min e' la versione "lite" — scarica binary + libs di sistema
-  // a runtime dal tarball ufficiale @sparticuz, evitando il 50MB limit
-  // di Vercel e includendo libnss3 e altre dipendenze mancanti.
-  const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
-    import('@sparticuz/chromium-min'),
-    import('puppeteer-core'),
-  ])
+// PRIMARY: Browserless.io endpoint EU (Londra/Amsterdam) → IP europeo
+// → bypassa il geo-IP redirect di Shopify. Nessun binary da gestire,
+// connect via WebSocket a Chrome managed. Free tier 1k req/mese.
+async function fetchScreenshotWithBrowserless(target) {
+  const token = process.env.BROWSERLESS_TOKEN
+  if (!token) throw new Error('BROWSERLESS_TOKEN non configurato')
 
-  // Disabilita WebGL/GPU che richiedono librerie extra non necessarie per
-  // screenshot di pagine standard
-  chromium.setHeadlessMode = true
-  chromium.setGraphicsMode = false
+  const { default: puppeteer } = await import('puppeteer-core')
 
-  // URL del tarball ufficiale matchato alla versione del package
-  const CHROMIUM_TARBALL =
-    'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+  // Endpoint EU: production-lon (Londra) ha IP UK→EU per Shopify geo.
+  // Override con BROWSERLESS_ENDPOINT se serve cambiare region.
+  const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
+  const wsUrl = `wss://${endpoint}/?token=${encodeURIComponent(token)}`
 
   let browser
   try {
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--lang=it-IT,it',
-        '--disable-blink-features=AutomationControlled',
-      ],
+    browser = await puppeteer.connect({
+      browserWSEndpoint: wsUrl,
       defaultViewport: { width: 1440, height: 1800, deviceScaleFactor: 1 },
-      executablePath: await chromium.executablePath(CHROMIUM_TARBALL),
-      headless: chromium.headless,
     })
 
     const page = await browser.newPage()
@@ -124,7 +111,7 @@ async function fetchScreenshotWithChromium(target) {
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
 
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 28000 })
-    // Aspetto un attimo extra per render finale (font, lazy images sopra fold)
+    // Render finale (font, lazy images sopra fold)
     await new Promise(r => setTimeout(r, 1500))
 
     const buf = await page.screenshot({ type: 'png', fullPage: false })
@@ -132,27 +119,28 @@ async function fetchScreenshotWithChromium(target) {
       dataUrl: `data:image/png;base64,${Buffer.from(buf).toString('base64')}`,
       publicUrl: null,
       bytes: buf.length,
-      provider: 'chromium-fra1',
+      provider: 'browserless-eu',
     }
   } finally {
-    if (browser) await browser.close()
+    // disconnect (non close: il browser Chrome non e' nostro)
+    if (browser) await browser.disconnect().catch(() => {})
   }
 }
 
 // Scarica lo screenshot. Cascade di fallback:
-// 1) Chromium headless su Vercel fra1 (Frankfurt) → IP EU, bypass geo-IP
+// 1) Browserless.io endpoint EU → IP UK/EU, bypass geo-IP
 // 2) ScreenshotOne (US server con Accept-Language IT)
 // 3) Microlink (US server, no override)
 async function fetchScreenshotAsDataUrl(target) {
   const errors = []
-  // Provo subito Chromium (EU IP) — soluzione vera al geo-redirect
+  // Provo subito Browserless (EU IP) — soluzione vera al geo-redirect
   try {
-    const result = await fetchScreenshotWithChromium(target)
+    const result = await fetchScreenshotWithBrowserless(target)
     return result
-  } catch (chromiumErr) {
-    const msg = chromiumErr?.message || String(chromiumErr)
-    console.log('Chromium failed, fallback:', msg)
-    errors.push({ provider: 'chromium-fra1', error: msg.slice(0, 300) })
+  } catch (blErr) {
+    const msg = blErr?.message || String(blErr)
+    console.log('Browserless failed, fallback:', msg)
+    errors.push({ provider: 'browserless-eu', error: msg.slice(0, 300) })
   }
 
   const controller = new AbortController()

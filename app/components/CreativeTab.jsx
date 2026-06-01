@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -404,6 +405,10 @@ function formatCta(cta) {
 }
 
 function CreativeDetailModal({ row, onClose }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -413,6 +418,8 @@ function CreativeDetailModal({ row, onClose }) {
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  if (!mounted) return null
 
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
@@ -425,7 +432,7 @@ function CreativeDetailModal({ row, onClose }) {
   const ctas = variants.ctas?.length ? variants.ctas : (row.cta ? [row.cta] : [])
   const links = variants.links?.length ? variants.links : (row.link ? [row.link] : [])
 
-  return (
+  const modal = (
     <div
       onClick={onClose}
       style={{
@@ -604,6 +611,8 @@ function CreativeDetailModal({ row, onClose }) {
       </div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }
 
 const lineStyle = {

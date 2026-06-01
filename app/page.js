@@ -2557,6 +2557,17 @@ export default function App() {
         const cur = tableQuarters[0]
         const prev = tableQuarters[1]
 
+        // Chart data: ultimi 6 quarter (più vecchio a sinistra), solo quelli con dati
+        const chartQuarterKeys = []
+        for (let i = 5; i >= 0; i--) chartQuarterKeys.push(quarterMinus(q0, i))
+        const quarterChartData = chartQuarterKeys
+          .map(k => aggregateQuarter(k))
+          .filter(q => q.fatturato > 0 || q.ordini > 0 || q.totalSpend > 0)
+          .map(q => ({
+            label: q.label, fatturato: q.fatturato, spesa: q.totalSpend,
+            nc: q.nc, rc: q.rc, mer: q.mer, aov: q.aov, cro: q.cro, ratio: q.ratio,
+          }))
+
         const qVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
         const qTH = {
           position:'sticky', top:0, zIndex:20,
@@ -2730,6 +2741,114 @@ export default function App() {
                 </table>
               </div>
             </FxChartCard>
+
+            {quarterChartData.length > 0 && (
+              <>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                  <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <ComposedChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="qfx-rev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5}/>
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="qfx-spend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                          <filter id="qfx-glow-g" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area yAxisId="left" type="monotone" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2.5} fill="url(#qfx-rev)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationEasing="ease-out" connectNulls style={{filter:'url(#qfx-glow-g)'}} />
+                        <Area yAxisId="left" type="monotone" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2.5} fill="url(#qfx-spend)" dot={<FxDot color="#3b82f6" />} activeDot={<FxActiveDot color="#3b82f6" />} animationDuration={1500} animationEasing="ease-out" animationBegin={200} connectNulls />
+                        <Line yAxisId="right" type="monotone" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} strokeDasharray="6 4" dot={<FxDot color="#f8fafc" />} activeDot={<FxActiveDot color="#f8fafc" />} animationDuration={1500} animationBegin={400} connectNulls />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+
+                  <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
+                        <defs>
+                          <linearGradient id="qfx-nc" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22d3ee" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#0e7490" stopOpacity={0.85}/>
+                          </linearGradient>
+                          <linearGradient id="qfx-rc" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#c4b5fd" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.85}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTip />} cursor={{fill:'rgba(255,255,255,0.04)'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Bar dataKey="nc" name="Nuovi clienti" fill="url(#qfx-nc)" radius={[8,8,0,0]} animationDuration={1200} animationEasing="ease-out" />
+                        <Bar dataKey="rc" name="Clienti ritorno" fill="url(#qfx-rc)" radius={[8,8,0,0]} animationDuration={1200} animationBegin={200} animationEasing="ease-out" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                  <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <ComposedChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="qfx-aov" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.45}/>
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="qfx-cro" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area yAxisId="left" type="monotone" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2.5} fill="url(#qfx-aov)" dot={<FxDot color="#f59e0b" />} activeDot={<FxActiveDot color="#f59e0b" />} animationDuration={1500} connectNulls />
+                        <Area yAxisId="right" type="monotone" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2.5} fill="url(#qfx-cro)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationBegin={200} connectNulls />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+
+                  <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <AreaChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="qfx-ratio" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.55}/>
+                            <stop offset="50%" stopColor="#6366f1" stopOpacity={0.20}/>
+                            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="6 4" strokeOpacity={0.55} label={{value:'Target 3:1',fill:'#22c55e',fontSize:10,fontWeight:700, position:'right'}} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area type="monotone" dataKey="ratio" name="Ratio" stroke="#a78bfa" strokeWidth={2.5} fill="url(#qfx-ratio)" dot={<FxDot color="#a78bfa" />} activeDot={<FxActiveDot color="#a78bfa" />} animationDuration={1800} animationEasing="ease-out" connectNulls />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+                </div>
+              </>
+            )}
 
             {/* AI Insights & To-do */}
             <DashboardInsights preset={preset} />

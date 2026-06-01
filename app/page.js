@@ -1808,6 +1808,7 @@ export default function App() {
   const avgAOVNC = totNC  > 0 ? totFatNC / totNC  : 0
   const avgAOVRC = totRC  > 0 ? totFatRC / totRC  : 0
 
+  const avgLTVGross = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life : null
   const avgLTV   = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
   const avgCAC   = totSpend > 0 && totNC  > 0 ? totSpend / totNC  : null
   const avgCPO   = totSpend > 0 && totOrd > 0 ? totSpend / totOrd : null
@@ -1888,7 +1889,8 @@ export default function App() {
               current={totNC} previous={prevTotals.nc} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sub={`${cfg.freq}× · ${cfg.life}a`} />
             <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sub={`${fn(totNC)} NC`} />
             <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'}

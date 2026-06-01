@@ -15,6 +15,7 @@ import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
+import TimeframeSelector from './components/TimeframeSelector'
 import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -1996,46 +1997,27 @@ export default function App() {
           return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind)}</div>)
         }
 
-        // ── Timeframe mensile: calcola periodo corrente e precedente ──
-        const now = new Date()
-        const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-        const thisMonth = fmtM(now)
-        const prevMonth = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
+        // ── Timeframe: usa il preset globale (TimeframeSelector) ──
+        const rangeSince = kpiRange?.since
+        const rangeUntil = kpiRange?.until
+        const prevSince = kpiPrevRange?.since
+        const prevUntil = kpiPrevRange?.until
 
-        const month2ago = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
-        const month3ago = fmtM(new Date(now.getFullYear(), now.getMonth()-3, 1))
+        const sinceM = rangeSince?.slice(0, 7)
+        const untilM = rangeUntil?.slice(0, 7)
+        const prevSinceM = prevSince?.slice(0, 7)
+        const prevUntilM = prevUntil?.slice(0, 7)
 
-        let tfMonths = []
-        let tfPrevMonths = []
-        let tfLabel = ''
+        const tfMonths = (sinceM && untilM)
+          ? data.filter(m => m.month >= sinceM && m.month <= untilM)
+          : []
+        const tfPrevMonths = (prevSinceM && prevUntilM)
+          ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
+          : []
 
-        if (monthlyTF === 'this_month') {
-          // Show this month + last month, compare vs 2 months before
-          tfMonths = data.filter(m => m.month === thisMonth || m.month === prevMonth)
-          tfPrevMonths = data.filter(m => m.month === month2ago || m.month === month3ago)
-          tfLabel = `Ultimi 2 mesi vs 2 precedenti`
-        } else if (monthlyTF === 'last_month') {
-          // Show last month + month before, compare vs 2 months before those
-          const month4ago = fmtM(new Date(now.getFullYear(), now.getMonth()-4, 1))
-          tfMonths = data.filter(m => m.month === prevMonth || m.month === month2ago)
-          tfPrevMonths = data.filter(m => m.month === month3ago || m.month === month4ago)
-          tfLabel = `2 mesi precedenti vs 2 prima`
-        } else if (monthlyTF === 'custom' && monthlyCustom.since && monthlyCustom.until) {
-          tfMonths = data.filter(m => m.month >= monthlyCustom.since && m.month <= monthlyCustom.until)
-          const span = tfMonths.length || 1
-          const startDate = new Date(monthlyCustom.since + '-01')
-          const prevEnd = new Date(startDate); prevEnd.setMonth(prevEnd.getMonth() - 1)
-          const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
-          tfPrevMonths = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
-          tfLabel = `${monthlyCustom.since} → ${monthlyCustom.until} vs periodo prec.`
-        } else {
-          tfMonths = data.filter(m => m.month === thisMonth || m.month === prevMonth)
-          tfPrevMonths = data.filter(m => m.month === month2ago || m.month === month3ago)
-          tfLabel = `Ultimi 2 mesi`
-        }
-
-        // Available months for custom selector
-        const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
+        const tfLabel = rangeSince && rangeUntil
+          ? `${rangeSince} → ${rangeUntil}${prevSince ? ` vs ${prevSince} → ${prevUntil}` : ''}`
+          : '—'
 
         const sumField = (arr, key) => arr.reduce((s,m) => s + Number(m[key] || 0), 0)
         const divSafe = (a, b) => b > 0 ? a / b : null
@@ -2127,42 +2109,11 @@ export default function App() {
         return (
         <>
           {/* Timeframe selector */}
-          <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-            {[
-              { id: 'this_month', l: 'Questo mese' },
-              { id: 'last_month', l: 'Mese precedente' },
-              { id: 'custom', l: 'Custom' },
-            ].map(b => (
-              <button key={b.id} onClick={() => setMonthlyTF(b.id)} style={{
-                fontSize:12, padding:'6px 14px', borderRadius:6, cursor:'pointer',
-                border: monthlyTF === b.id ? '1px solid #22c55e' : '1px solid var(--border)',
-                background: monthlyTF === b.id ? '#22c55e20' : 'transparent',
-                color: monthlyTF === b.id ? '#22c55e' : '#94a3b8',
-                fontWeight: monthlyTF === b.id ? 700 : 500,
-              }}>{b.l}</button>
-            ))}
-            {monthlyTF === 'custom' && (
-              <>
-                <span style={{fontSize:11,color:'var(--text3)'}}>Da:</span>
-                <select value={monthlyCustom.since} onChange={e => setMonthlyCustom(p => ({...p, since: e.target.value}))}
-                  style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-                  <option value="">Seleziona mese</option>
-                  {availableMonths.map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
-                </select>
-                <span style={{color:'#555'}}>→</span>
-                <span style={{fontSize:11,color:'var(--text3)'}}>A:</span>
-                <select value={monthlyCustom.until} onChange={e => setMonthlyCustom(p => ({...p, until: e.target.value}))}
-                  style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-                  <option value="">Seleziona mese</option>
-                  {availableMonths.filter(m => !monthlyCustom.since || m.month >= monthlyCustom.since).map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
-                </select>
-              </>
-            )}
-            <button onClick={fetchLive} disabled={loading} style={{
-              marginLeft:'auto', fontSize:12, padding:'6px 14px', borderRadius:6,
-              border:'1px solid var(--border)', background:loading?'var(--glass)':'transparent',
-              color:loading?'#555':'#94a3b8', fontWeight:700, cursor:loading?'wait':'pointer',
-              display:'flex', alignItems:'center', gap:6,
+          <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+            <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+            <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+              marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
+              cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
             }}>
               <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
               {loading?'Aggiorno…':'Aggiorna'}

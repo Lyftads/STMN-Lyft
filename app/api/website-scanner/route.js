@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
+// Frankfurt: server EU → IP europeo → bypassa il geo-redirect US di Shopify
+export const preferredRegion = 'fra1'
+export const runtime = 'nodejs'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -77,10 +80,66 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
   return `https://api.microlink.io/?${params.toString()}`
 }
 
-// Scarica lo screenshot. Usa ScreenshotOne se la API key è configurata
-// (supporta accept_language e bypassa geo-redirect), altrimenti
-// Microlink come fallback gratuito.
+// PRIMARY: Headless Chromium su Vercel fra1 (Frankfurt) → IP europeo
+// → bypassa il geo-IP redirect di Shopify. Stessa esperienza di un
+// utente italiano in browser desktop.
+async function fetchScreenshotWithChromium(target) {
+  // Lazy import: i package sono grossi (~50MB), li carichiamo solo se serve
+  const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    import('@sparticuz/chromium'),
+    import('puppeteer-core'),
+  ])
+
+  let browser
+  try {
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--lang=it-IT,it',
+        '--disable-blink-features=AutomationControlled',
+      ],
+      defaultViewport: { width: 1440, height: 1800, deviceScaleFactor: 1 },
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    })
+
+    const page = await browser.newPage()
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'it-IT,it;q=0.9,en;q=0.6',
+    })
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+    let url = target.trim()
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 28000 })
+    // Aspetto un attimo extra per render finale (font, lazy images sopra fold)
+    await new Promise(r => setTimeout(r, 1500))
+
+    const buf = await page.screenshot({ type: 'png', fullPage: false })
+    return {
+      dataUrl: `data:image/png;base64,${Buffer.from(buf).toString('base64')}`,
+      publicUrl: null,
+      bytes: buf.length,
+      provider: 'chromium-fra1',
+    }
+  } finally {
+    if (browser) await browser.close()
+  }
+}
+
+// Scarica lo screenshot. Cascade di fallback:
+// 1) Chromium headless su Vercel fra1 (Frankfurt) → IP EU, bypass geo-IP
+// 2) ScreenshotOne (US server con Accept-Language IT)
+// 3) Microlink (US server, no override)
 async function fetchScreenshotAsDataUrl(target) {
+  // Provo subito Chromium (EU IP) — soluzione vera al geo-redirect
+  try {
+    return await fetchScreenshotWithChromium(target)
+  } catch (chromiumErr) {
+    console.log('Chromium failed, fallback:', chromiumErr?.message)
+  }
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 45000)
   try {

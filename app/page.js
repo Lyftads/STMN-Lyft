@@ -2232,49 +2232,35 @@ export default function App() {
           {/* Data Entry Table */}
           <FxChartCard title="Dati mensili" glowColor="#22c55e" subtitle="Shopify + Meta automatici · Google manuale">
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    <th style={mTH}>KPI</th>
-                    {tableMonths.map(m => <th key={m.month} style={mTHmonth}>{monthName(m.month)}</th>)}
+                    {['Mese','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                      <th key={h} style={mTH}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { label:'Fatturato €', key:'fatturato', kind:'euro0' },
-                    { label:'Fatt. NC €', key:'fatturNC', kind:'euro0' },
-                    { label:'Fatt. RC €', key:'fatturRC', kind:'euro0' },
-                    { label:'Resi €', key:'resi', kind:'euro0', allowZero:false },
-                    { label:'Meta ADS €', key:'metaSpend', kind:'euro0', allowZero:false },
-                    { label:'Google ADS €', key:'googleSpend', editable:true },
-                    { label:'Tot Ordini', key:'ordini', kind:'int' },
-                    { label:'NC #', key:'nc', kind:'int' },
-                    { label:'RC #', key:'rc', kind:'int' },
-                    { label:'Sessioni', key:'sessioni', kind:'int', allowZero:false },
-                  ].map((kpi, ki) => (
-                    <tr key={kpi.label} style={{background: ki%2===0?'transparent':'var(--surface)'}}>
-                      <td style={{...mTD,color:'var(--text2)',fontWeight:900,whiteSpace:'nowrap',fontSize:12,textTransform:'uppercase',letterSpacing:'0.06em'}}>{kpi.label}</td>
-                      {tableMonths.map((m, mi) => {
-                        const p = tableMonths[mi+1]
-                        const v = m[kpi.key]
-                        const pv = p?.[kpi.key]
-                        if (kpi.editable) {
-                          return (
-                            <td key={m.month} style={mTD}>
-                              <NumInput value={v} onChange={vn=>updateMonth(m.month,kpi.key,vn)} placeholder="0" color="#eab308" />
-                            </td>
-                          )
-                        }
-                        const useValue = kpi.allowZero === false ? (v || null) : v
-                        const usePrev  = kpi.allowZero === false ? (pv || null) : pv
-                        return (
-                          <td key={m.month} style={mTD}>
-                            <MV value={useValue} prev={usePrev} kind={kpi.kind} />
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
+                  {tableMonths.map((m,i) => {
+                    const p = tableMonths[i+1]
+                    return (
+                      <tr key={m.month} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                        <td style={{...mTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{monthName(m.month)}</td>
+                        <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.resi||null} prev={p?.resi||null} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
+                        <td style={mTD}>
+                          <NumInput value={m.googleSpend} onChange={vn=>updateMonth(m.month,'googleSpend',vn)} placeholder="0" color="#eab308" />
+                        </td>
+                        <td style={mTD}><MV value={m.ordini} prev={p?.ordini} kind="int" /></td>
+                        <td style={mTD}><MV value={m.nc} prev={p?.nc} kind="int" /></td>
+                        <td style={mTD}><MV value={m.rc} prev={p?.rc} kind="int" /></td>
+                        <td style={mTD}><MV value={m.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2284,43 +2270,38 @@ export default function App() {
           {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 0 && (
           <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    <th style={mTH}>KPI</th>
-                    {tableMonths.map(m => <th key={m.month} style={mTHmonth}>{monthName(m.month)}</th>)}
+                    {['Mese','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                      <th key={h} style={mTH}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { label:'Fatturato', key:'fatturato', kind:'euro0' },
-                    { label:'Fatt. NC', key:'fatturNC', kind:'euro0' },
-                    { label:'Fatt. RC', key:'fatturRC', kind:'euro0' },
-                    { label:'ADV', key:'totalSpend', kind:'euro0' },
-                    { label:'MER', key:'mer', kind:'ratio', suffix:'×' },
-                    { label:'aMER', key:'aMer', kind:'ratio', suffix:'×' },
-                    { label:'CAC', key:'cac', kind:'euro2', inverse:true },
-                    { label:'CPO', key:'cpo', kind:'euro2', inverse:true },
-                    { label:'AOV', key:'aov', kind:'euro2' },
-                    { label:'AOV NC', key:'aovNC', kind:'euro2' },
-                    { label:'AOV RC', key:'aovRC', kind:'euro2' },
-                    { label:'Ret%', key:'retention', kind:'percent1' },
-                    { label:'CRO%', key:'cro', kind:'percent2' },
-                    { label:'LTV', key:'ltv', kind:'euro2' },
-                    { label:'Ratio', key:'ratio', kind:'ratio', suffix:':1' },
-                  ].map((kpi, ki) => (
-                    <tr key={kpi.label} style={{background: ki%2===0?'transparent':'var(--surface)'}}>
-                      <td style={{...mTD,color:'var(--text2)',fontWeight:900,whiteSpace:'nowrap',fontSize:12,textTransform:'uppercase',letterSpacing:'0.06em'}}>{kpi.label}</td>
-                      {tableMonths.map((m, mi) => {
-                        const p = tableMonths[mi+1]
-                        return (
-                          <td key={m.month} style={mTD}>
-                            <MV value={m[kpi.key]} prev={p?.[kpi.key]} kind={kpi.kind} suffix={kpi.suffix} inverse={kpi.inverse} />
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
+                  {tableMonths.map((m,i) => {
+                    const p = tableMonths[i+1]
+                    return (
+                      <tr key={m.month} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                        <td style={{...mTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{monthName(m.month)}</td>
+                        <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
+                        <td style={mTD}><MV value={m.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
+                        <td style={mTD}><MV value={m.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
+                        <td style={mTD}><MV value={m.cac} prev={p?.cac} kind="euro2" inverse /></td>
+                        <td style={mTD}><MV value={m.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
+                        <td style={mTD}><MV value={m.aov} prev={p?.aov} kind="euro2" /></td>
+                        <td style={mTD}><MV value={m.aovNC} prev={p?.aovNC} kind="euro2" /></td>
+                        <td style={mTD}><MV value={m.aovRC} prev={p?.aovRC} kind="euro2" /></td>
+                        <td style={mTD}><MV value={m.retention} prev={p?.retention} kind="percent1" /></td>
+                        <td style={mTD}><MV value={m.cro} prev={p?.cro} kind="percent2" /></td>
+                        <td style={mTD}><MV value={m.ltv} prev={p?.ltv} kind="euro2" /></td>
+                        <td style={mTD}><MV value={m.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

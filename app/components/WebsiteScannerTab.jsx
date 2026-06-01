@@ -220,6 +220,9 @@ export default function WebsiteScannerTab() {
         body: JSON.stringify({ url }),
       })
       const json = await r.json()
+      // Set data anche se c'è un parse-error → cosi' mostra comunque
+      // lo screenshot reale (Chromium fra1 IT) al posto del preview US
+      if (json?.screenshotDataUrl || json?.screenshotUrl) setData(json)
       if (!r.ok || json.error) {
         setError(json?.error || `Errore ${r.status}`)
       } else {

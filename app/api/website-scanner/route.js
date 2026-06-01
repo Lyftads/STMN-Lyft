@@ -271,7 +271,9 @@ Analizzi lo SCREENSHOT di una landing page o pagina prodotto fornito da Marino, 
 - Se vedi placeholder/lorem ipsum/immagini stock generiche, evidenziali
 - Considera il target STMN: atleti CrossFit, functional fitness, home gym intermedio/avanzato. NIENTE supplementi
 - Italiano professionale, asciutto, da consulente senior
-- Output SOLO JSON valido, niente markdown wrapping, niente preamboli`
+
+## OUTPUT FORMAT — CRITICO
+RITORNA SOLO JSON RAW. Niente \`\`\`json. Niente \`\`\`. Niente testo prima o dopo. Inizia direttamente con { e termina con }. Esempio del primo carattere: \`{\` non \`\\\`\` ne \` \` ne nulla.`
 
 export async function POST(req) {
   if (!process.env.OPENAI_API_KEY) {
@@ -347,17 +349,16 @@ export async function POST(req) {
     }
 
     const json = await r.json()
-    const raw = json?.choices?.[0]?.message?.content || ''
+    let raw = json?.choices?.[0]?.message?.content || ''
+    // OpenAI a volte wrappa il JSON in markdown ```json ... ```
+    // anche con response_format json_object. Stripping difensivo.
+    raw = raw.trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim()
+
     let analysis = null
-    try { analysis = JSON.parse(raw) } catch {
-      return NextResponse.json({
-        screenshotUrl: previewUrl,
-        url: normalized,
-        analysis: null,
-        rawText: raw,
-        error: 'Analisi non parseable come JSON',
-      }, { status: 200 })
-    }
+    try { analysis = JSON.parse(raw) } catch {}
 
     return NextResponse.json({
       url: normalized,
@@ -367,6 +368,8 @@ export async function POST(req) {
       screenshotDataUrl: dataUrl,
       provider,
       analysis,
+      rawText: analysis ? undefined : raw,
+      error: analysis ? undefined : 'Analisi non parseable come JSON',
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
     })
@@ -374,6 +377,8 @@ export async function POST(req) {
     return NextResponse.json({
       error: err?.message || 'Errore scansione',
       screenshotUrl: previewUrl,
+      screenshotDataUrl: dataUrl,
+      provider,
     }, { status: 500 })
   }
 }

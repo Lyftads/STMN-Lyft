@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import MetaAdsAgent from './MetaAdsAgent'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -815,6 +816,8 @@ export default function MetaDetailTab() {
           </table>
         </div>
       </FxCard>
+
+      <MetaAdsAgent data={data} preset={preset} />
     </div>
   )
 }

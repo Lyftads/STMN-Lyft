@@ -6,8 +6,8 @@ export const maxDuration = 60
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-// Microlink screenshot service: rispetta query string (variant=…), gestisce
-// redirect, supporta header Accept-Language. Free tier ~50 req/giorno.
+// Microlink screenshot service free tier — minimo set di parametri.
+// I parametri "headers" e user-agent custom sono Pro-only.
 function buildMicrolinkUrl(target, { embed = false } = {}) {
   let url = target.trim()
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url
@@ -17,38 +17,43 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
     meta: 'false',
     'viewport.width': '1440',
     'viewport.height': '1800',
-    'viewport.deviceScaleFactor': '1',
-    waitUntil: 'networkidle0',
-    headers: JSON.stringify({
-      'Accept-Language': 'it-IT,it;q=0.9,en;q=0.6',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    }),
   })
   if (embed) params.set('embed', 'screenshot.url')
   return `https://api.microlink.io/?${params.toString()}`
 }
 
 // Scarica lo screenshot e lo converte in data URL base64 così OpenAI
-// non deve fetchare nulla (evita timeout)
+// non deve fetchare nulla (evita timeout). Prima ricava il CDN URL via
+// JSON response, poi scarica quello — è già cached da Microlink quindi
+// download veloce.
 async function fetchScreenshotAsDataUrl(target) {
-  const url = buildMicrolinkUrl(target, { embed: true })
+  const apiUrl = buildMicrolinkUrl(target, { embed: false })
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 35000)
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'follow',
-    })
-    clearTimeout(timer)
-    if (!res.ok) {
-      throw new Error(`Microlink ${res.status}: ${res.statusText}`)
+    // 1) chiama Microlink API → ritorna JSON con cdnUrl
+    const apiRes = await fetch(apiUrl, { signal: controller.signal })
+    if (!apiRes.ok) {
+      const body = await apiRes.text().catch(() => '')
+      throw new Error(`Microlink ${apiRes.status}: ${body.slice(0, 200)}`)
     }
-    const contentType = res.headers.get('content-type') || 'image/png'
-    const buf = Buffer.from(await res.arrayBuffer())
+    const json = await apiRes.json()
+    const cdnUrl = json?.data?.screenshot?.url
+    if (!cdnUrl) {
+      throw new Error(json?.message || 'Nessuno screenshot generato')
+    }
+    // 2) scarica l'immagine dal CDN Microlink (veloce)
+    const imgRes = await fetch(cdnUrl, { signal: controller.signal })
+    clearTimeout(timer)
+    if (!imgRes.ok) {
+      throw new Error(`CDN ${imgRes.status}`)
+    }
+    const contentType = imgRes.headers.get('content-type') || 'image/png'
+    const buf = Buffer.from(await imgRes.arrayBuffer())
     if (buf.length === 0) throw new Error('Screenshot vuoto')
     return {
       dataUrl: `data:${contentType};base64,${buf.toString('base64')}`,
-      publicUrl: url, // per il preview client
+      publicUrl: cdnUrl,
       bytes: buf.length,
     }
   } catch (e) {
@@ -157,18 +162,16 @@ export async function POST(req) {
     return NextResponse.json({ error: 'URL non valido.' }, { status: 400 })
   }
 
-  // URL per il preview client (il browser fetcha direttamente)
-  const previewUrl = buildMicrolinkUrl(normalized, { embed: true })
-
-  // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout
-  let dataUrl
+  // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
+  // Recupero anche il CDN URL così il client carica l'immagine cached.
+  let dataUrl, previewUrl
   try {
     const shot = await fetchScreenshotAsDataUrl(normalized)
     dataUrl = shot.dataUrl
+    previewUrl = shot.publicUrl
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
-      screenshotUrl: previewUrl,
     }, { status: 502 })
   }
 

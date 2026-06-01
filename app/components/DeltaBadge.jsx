@@ -1,6 +1,6 @@
 'use client'
 
-export default function DeltaBadge({ current, previous }) {
+export default function DeltaBadge({ current, previous, inverse = false }) {
   if (current == null || previous == null || previous === 0) return null
 
   const c = Number(current)
@@ -11,6 +11,8 @@ export default function DeltaBadge({ current, previous }) {
   if (!Number.isFinite(pct)) return null
 
   const isDown = pct < 0
+  // For metrics like CAC/CPC/CPM/CPO lower is better → flip color logic.
+  const isGood = inverse ? isDown : !isDown
   const sign = pct >= 0 ? '+' : ''
   const display = Math.abs(pct) >= 100
     ? `${sign}${Math.round(pct)}%`
@@ -18,7 +20,7 @@ export default function DeltaBadge({ current, previous }) {
 
   return (
     <span
-      className={isDown ? 'delta-down' : 'delta-up'}
+      className={isGood ? 'delta-up' : 'delta-down'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

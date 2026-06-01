@@ -134,7 +134,7 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
 }
 
 // ── Stat box ──────────────────────────────────────────────────
-function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous, sources }) {
+function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sparkColor, current, previous, sources, inverse }) {
   return (
     <div className="glass-card" style={{padding:'20px 22px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
@@ -146,7 +146,7 @@ function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sp
         {sparkData && <Sparkline data={sparkData} color={sparkColor || 'var(--accent)'} width={80} height={32} />}
       </div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
-        <DeltaBadge current={current} previous={previous} />
+        <DeltaBadge current={current} previous={previous} inverse={inverse} />
         {sub && <span style={{fontSize:12,color:'var(--text3)'}}>{sub}</span>}
       </div>
     </div>
@@ -1903,7 +1903,8 @@ export default function App() {
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
             <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a`} />
             <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
-            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`} />
+            <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}
+              current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
             <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
@@ -1958,19 +1959,44 @@ export default function App() {
       {/* MENSILE TAB */}
       {tab==='monthly' && (() => {
         const filled = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
-        const mTH = { ...S.th, position:'sticky', top:0, zIndex:20, background:'var(--surface)', boxShadow:'0 1px 0 var(--border)', fontSize:12, padding:'12px 14px' }
-        const mTD = { ...S.td, fontSize:15, padding:'10px 14px', verticalAlign:'top' }
-        const mVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
+        const MONTH_NAMES_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre']
+        const monthName = (s) => {
+          if (!s) return ''
+          const [y, m] = s.split('-').map(Number)
+          return `${MONTH_NAMES_IT[m-1]} ${y}`
+        }
+        const mTH = {
+          position:'sticky', top:0, zIndex:20,
+          padding:'18px 20px', fontSize:11, fontWeight:800,
+          textTransform:'uppercase', letterSpacing:'0.10em',
+          textAlign:'left', whiteSpace:'nowrap',
+          color:'var(--text2)',
+          background:'rgba(255,255,255,0.025)',
+          backdropFilter:'blur(20px)',
+          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+        }
+        const mTHmonth = {
+          ...mTH, color:'var(--text)', fontSize:13, letterSpacing:'-0.01em', textTransform:'none', fontWeight:700,
+        }
+        const mTD = {
+          padding:'14px 20px', fontSize:15, fontWeight:500,
+          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)',
+          color:'var(--text)',
+        }
+        const mVal = { fontWeight:800, fontSize:18, lineHeight:1.15, color:'var(--text)', letterSpacing:'-0.01em', fontVariantNumeric:'tabular-nums' }
 
-        const mDelta = (curr, prev, kind='euro0') => {
+        const mDelta = (curr, prev, kind='euro0', inverse=false) => {
           if (curr == null || prev == null) return null
           const c = Number(curr), p = Number(prev)
           if (!Number.isFinite(c) || !Number.isFinite(p)) return null
           const diff = c - p
           if (Math.abs(diff) < 0.001) return null
           const pctV = p !== 0 ? diff / p * 100 : null
+          const isDown = diff < 0
+          // Inverse = lower is better (CAC/CPO/CPC/CPM)
+          const isGood = inverse ? isDown : !isDown
+          const color = isGood ? 'var(--green)' : 'var(--red)'
           const sign = diff > 0 ? '+' : '−'
-          const color = diff < 0 ? '#ef4444' : '#f8fafc'
           const abs = Math.abs(diff)
           let fmtAbs = '—'
           if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT')}`
@@ -1986,7 +2012,7 @@ export default function App() {
           )
         }
 
-        const MV = ({value, prev, kind='euro0', suffix=''}) => {
+        const MV = ({value, prev, kind='euro0', suffix='', inverse=false}) => {
           let shown = '—'
           if (kind==='euro0') shown = f0(value)
           else if (kind==='euro2') shown = f2(value)
@@ -1994,7 +2020,7 @@ export default function App() {
           else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
           else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
           else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
-          return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind)}</div>)
+          return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
         }
 
         // ── Timeframe Mensile: SEMPRE mese selezionato vs mese precedente ──
@@ -2195,7 +2221,7 @@ export default function App() {
                 <thead>
                   <tr>
                     <th style={mTH}>KPI</th>
-                    {tableMonths.map(m => <th key={m.month} style={mTH}>{m.month}</th>)}
+                    {tableMonths.map(m => <th key={m.month} style={mTHmonth}>{monthName(m.month)}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -2250,7 +2276,7 @@ export default function App() {
                 <thead>
                   <tr>
                     <th style={mTH}>KPI</th>
-                    {tableMonths.map(m => <th key={m.month} style={mTH}>{m.month}</th>)}
+                    {tableMonths.map(m => <th key={m.month} style={mTHmonth}>{monthName(m.month)}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -2261,8 +2287,8 @@ export default function App() {
                     { label:'ADV', key:'totalSpend', kind:'euro0' },
                     { label:'MER', key:'mer', kind:'ratio', suffix:'×' },
                     { label:'aMER', key:'aMer', kind:'ratio', suffix:'×' },
-                    { label:'CAC', key:'cac', kind:'euro2' },
-                    { label:'CPO', key:'cpo', kind:'euro2' },
+                    { label:'CAC', key:'cac', kind:'euro2', inverse:true },
+                    { label:'CPO', key:'cpo', kind:'euro2', inverse:true },
                     { label:'AOV', key:'aov', kind:'euro2' },
                     { label:'AOV NC', key:'aovNC', kind:'euro2' },
                     { label:'AOV RC', key:'aovRC', kind:'euro2' },
@@ -2277,7 +2303,7 @@ export default function App() {
                         const p = tableMonths[mi+1]
                         return (
                           <td key={m.month} style={mTD}>
-                            <MV value={m[kpi.key]} prev={p?.[kpi.key]} kind={kpi.kind} suffix={kpi.suffix} />
+                            <MV value={m[kpi.key]} prev={p?.[kpi.key]} kind={kpi.kind} suffix={kpi.suffix} inverse={kpi.inverse} />
                           </td>
                         )
                       })}

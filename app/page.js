@@ -338,99 +338,269 @@ function Simulator({ cfg }) {
   const sp1 = n => `${Number(n).toFixed(1)}%`
   const si0 = n => n>0 ? Math.round(n).toLocaleString('it-IT') : '0'
 
-  return (
-    <>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:32}}>
-      <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:24}}>
-        <p style={{fontSize:12,color:'#ccc',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:20,fontWeight:700}}>Simulatore LTV:CAC</p>
-        {[
-          {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
-          {k:'freq',  l:'Frequenza / anno',      min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
-          {k:'life',  l:'Vita media (anni)',      min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`},
-          {k:'margin',l:'Margine %',              min:5,  max:80,  step:1,    fmt:v=>`${v}%`},
-          {k:'cac',   l:'CAC',                   min:5,  max:300, step:1,    fmt:v=>`€${v}`},
-        ].map(({k,l,min,max,step,fmt}) => (
-          <div key={k} style={{marginBottom:16}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontSize:11,color:'#555'}}>{l}</span>
-              <span style={{fontSize:12,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(s[k])}</span>
-            </div>
-            <input type="range" min={min} max={max} step={step} value={s[k]}
-              onChange={e=>set(k,parseFloat(e.target.value))} style={{width:'100%'}} />
-          </div>
-        ))}
-      </div>
+  // Stile slider futuristico riutilizzabile
+  const sliderStyle = {
+    width: '100%',
+    accentColor: '#22c55e',
+    height: 6,
+  }
 
-      <div style={{display:'flex',flexDirection:'column',gap:16}}>
-        <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
-        <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:20}}>
-          <p style={{fontSize:12,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Per raggiungere 3:1</p>
-          {[
-            {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
-            {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
-          ].map(({l,v,sub}) => (
-            <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
-              <div>
-                <div style={{fontSize:13,color:'#e8e8e8'}}>{l}</div>
-                <div style={{fontSize:11,color:'#444',marginTop:2}}>{sub}</div>
-              </div>
-              <div style={{fontSize:18,fontWeight:700,fontFamily:'Barlow',color:'#22c55e'}}>{v}</div>
-            </div>
-          ))}
+  // Futuristic card wrapper inline (stesso pattern dei FxChartCard ma più compatto)
+  const fxBlock = (children, { glow = '#22c55e', padding = 24 } = {}) => (
+    <div style={{
+      position: 'relative',
+      background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 22,
+      overflow: 'hidden',
+      boxShadow: '0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
+        animation: 'cr-shine 4s ease-in-out infinite',
+      }} />
+      <div style={{ padding }}>{children}</div>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 16,
+        marginBottom: 28,
+      }}>
+        <div>
+          <h1 style={{ margin: 0, color: '#fff', fontSize: 32, fontWeight: 900, letterSpacing: '-0.04em' }}>
+            Simulatore
+          </h1>
+          <p style={{ margin: '8px 0 0', color: 'var(--text3)', fontSize: 14 }}>
+            LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO
+          </p>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 14px', borderRadius: 999,
+          background: 'rgba(48,209,88,0.12)',
+          border: '1px solid rgba(48,209,88,0.3)',
+          color: '#86efac',
+          fontSize: 11, fontWeight: 800,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: 999,
+            background: '#30d158',
+            boxShadow: '0 0 10px #30d158',
+            animation: 'card-pulse 2s ease-in-out infinite',
+          }} />
+          Calcolato live
         </div>
       </div>
-    </div>
 
-    {/* ── Scenario Advertising Simulator ── */}
-    <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:28,marginBottom:24}}>
-      <p style={{fontSize:13,color:'#fff',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:6,fontWeight:700,fontFamily:'Barlow Condensed'}}>Scenari Advertising</p>
-      <p style={{fontSize:11,color:'#555',marginBottom:24}}>Confronta 3 scenari · IVA 22% scorporata · COGS in % (prodotti + spedizione + packaging)</p>
+      {/* LTV:CAC + Target 3:1 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+        {fxBlock((
+          <>
+            <div style={{ marginBottom: 18 }}>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+                Simulatore LTV:CAC
+              </h2>
+              <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
+                Trascina gli slider per simulare lo scenario unit economics
+              </p>
+            </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20,marginBottom:28}}>
+            {[
+              {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`,           accent:'#3b82f6'},
+              {k:'freq',  l:'Frequenza / anno',     min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`, accent:'#a78bfa'},
+              {k:'life',  l:'Vita media (anni)',    min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`,  accent:'#06b6d4'},
+              {k:'margin',l:'Margine %',            min:5,  max:80,  step:1,    fmt:v=>`${v}%`,            accent:'#22c55e'},
+              {k:'cac',   l:'CAC',                  min:5,  max:300, step:1,    fmt:v=>`€${v}`,            accent:'#f97316'},
+            ].map(({k,l,min,max,step,fmt,accent}) => {
+              const pct = ((s[k] - min) / (max - min)) * 100
+              return (
+                <div key={k} style={{ marginBottom: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{l}</span>
+                    <span style={{ fontSize: 14, fontFamily: 'Barlow', fontWeight: 900, color: accent }}>{fmt(s[k])}</span>
+                  </div>
+                  <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 999, overflow: 'hidden', marginBottom: 4 }}>
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, bottom: 0,
+                      width: `${pct}%`,
+                      background: `linear-gradient(90deg, ${accent}88, ${accent})`,
+                      borderRadius: 999,
+                      boxShadow: `0 0 12px ${accent}66`,
+                      transition: 'width 0.12s',
+                    }} />
+                  </div>
+                  <input type="range" min={min} max={max} step={step} value={s[k]}
+                    onChange={e=>set(k,parseFloat(e.target.value))}
+                    style={{ ...sliderStyle, accentColor: accent, marginTop: -10, position: 'relative', zIndex: 1, opacity: 0.7 }} />
+                </div>
+              )
+            })}
+          </>
+        ), { glow: '#22c55e' })}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
+
+          {fxBlock((
+            <>
+              <div style={{ marginBottom: 18 }}>
+                <h2 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 900 }}>
+                  Per raggiungere 3:1
+                </h2>
+                <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12 }}>
+                  Cosa devi cambiare per arrivare al ratio target
+                </p>
+              </div>
+
+              {[
+                {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
+                {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
+              ].map(({l,v,sub}) => (
+                <div key={l} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '14px 16px',
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 12,
+                  marginBottom: 10,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>{l}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{sub}</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Barlow', color: '#22c55e' }}>{v}</div>
+                </div>
+              ))}
+            </>
+          ), { glow: '#22c55e', padding: 22 })}
+        </div>
+      </div>
+
+    {/* ── Scenari Advertising Simulator ── */}
+    {fxBlock((
+      <>
+      <div style={{ marginBottom: 22 }}>
+        <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>
+          Scenari Advertising
+        </h2>
+        <p style={{ margin: '6px 0 0', color: 'var(--text3)', fontSize: 13 }}>
+          Confronta 3 scenari · IVA 22% scorporata · COGS in % (prodotti + spedizione + packaging)
+        </p>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:24}}>
         {scenarios.map((sc,i) => {
           const color = scenarioColors[i]
           return (
-            <div key={i} style={{background:'var(--surface)',border:`1px solid ${color}33`,borderRadius:12,padding:20}}>
-              <input value={sc.name} onChange={e=>setSc(i,'name',e.target.value)}
-                style={{width:'100%',background:'transparent',border:'none',color:color,fontSize:16,fontWeight:900,marginBottom:16,outline:'none',fontFamily:'Barlow'}}
-                placeholder={`Scenario ${i+1}`} />
+            <div key={i} style={{
+              position: 'relative',
+              background: `linear-gradient(155deg, ${color}18 0%, rgba(8,8,18,0.85) 100%)`,
+              border: `1px solid ${color}40`,
+              borderRadius: 18,
+              padding: 20,
+              boxShadow: `0 4px 16px ${color}1a, inset 0 1px 0 rgba(255,255,255,0.04)`,
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+                animation: 'cr-shine 3.5s ease-in-out infinite',
+                animationDelay: `${i * 0.3}s`,
+              }} />
 
-              <div style={{marginBottom:14}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                  <span style={{fontSize:10,color:'#555'}}>Spesa ADV mensile</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 8,
+                  background: `linear-gradient(135deg, ${color}, ${color}99)`,
+                  color: '#fff', fontSize: 11, fontWeight: 900,
+                  display: 'grid', placeItems: 'center',
+                  boxShadow: `0 0 12px ${color}66`,
+                }}>{i+1}</div>
+                <input value={sc.name} onChange={e=>setSc(i,'name',e.target.value)}
+                  style={{
+                    flex: 1, background: 'transparent', border: 'none',
+                    color, fontSize: 15, fontWeight: 900,
+                    outline: 'none', fontFamily: 'Inter',
+                    letterSpacing: '-0.01em',
+                  }}
+                  placeholder={`Scenario ${i+1}`} />
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 6 }}>
+                  Spesa ADV mensile
                 </div>
                 <input type="number" value={sc.spend} min={0} step={100}
                   onChange={e=>setSc(i,'spend',Math.max(0,parseFloat(e.target.value)||0))}
-                  style={{width:'100%',background:'var(--glass)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'#e8e8e8',fontSize:14,fontWeight:700,fontFamily:'Barlow',outline:'none',textAlign:'right'}}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.35)',
+                    border: `1px solid ${color}33`,
+                    borderRadius: 10,
+                    padding: '11px 14px',
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 900,
+                    fontFamily: 'Barlow',
+                    outline: 'none',
+                    textAlign: 'right',
+                  }}
                   placeholder="€" />
               </div>
 
               {[
                 {k:'roas',l:'ROAS target',min:0.5,max:10,step:0.1,fmt:v=>`${v.toFixed(1)}×`},
                 {k:'aov',l:'AOV medio (IVA inclusa)',min:20,max:300,step:1,fmt:v=>`€${v}`},
-                {k:'cogs',l:'COGS % (prodotto+spedizione+packaging)',min:5,max:80,step:1,fmt:v=>`${v}%`},
-              ].map(({k,l,min,max,step,fmt})=>(
-                <div key={k} style={{marginBottom:12}}>
-                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                    <span style={{fontSize:10,color:'#555'}}>{l}</span>
-                    <span style={{fontSize:11,fontFamily:'Barlow',fontWeight:700,color:'#e8e8e8'}}>{fmt(sc[k])}</span>
+                {k:'cogs',l:'COGS %',min:5,max:80,step:1,fmt:v=>`${v}%`},
+              ].map(({k,l,min,max,step,fmt})=>{
+                const pct = ((sc[k] - min) / (max - min)) * 100
+                return (
+                  <div key={k} style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{l}</span>
+                      <span style={{ fontSize: 13, fontFamily: 'Barlow', fontWeight: 900, color: '#fff' }}>{fmt(sc[k])}</span>
+                    </div>
+                    <div style={{ position: 'relative', height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 999, marginBottom: 4 }}>
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0,
+                        width: `${pct}%`,
+                        background: `linear-gradient(90deg, ${color}66, ${color})`,
+                        borderRadius: 999,
+                        boxShadow: `0 0 8px ${color}66`,
+                      }} />
+                    </div>
+                    <input type="range" min={min} max={max} step={step} value={sc[k]}
+                      onChange={e=>setSc(i,k,parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: color, marginTop: -8, opacity: 0.5, height: 5 }} />
                   </div>
-                  <input type="range" min={min} max={max} step={step} value={sc[k]}
-                    onChange={e=>setSc(i,k,parseFloat(e.target.value))} style={{width:'100%',accentColor:color}} />
-                </div>
-              ))}
+                )
+              })}
             </div>
           )
         })}
       </div>
 
-      <div style={{overflowX:'auto'}}>
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: 14,
+        overflowX: 'auto',
+      }}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr>
-              <th style={{padding:'12px 14px',textAlign:'left',color:'var(--text2)',fontWeight:700,fontSize:11,textTransform:'uppercase',fontFamily:'Barlow Condensed',borderBottom:'1px solid var(--border)'}}>Metrica</th>
+              <th style={{padding:'14px 18px',textAlign:'left',color:'var(--text3)',fontWeight:800,fontSize:10.5,textTransform:'uppercase',letterSpacing:'0.12em',borderBottom:'1.5px solid rgba(255,255,255,0.08)'}}>Metrica</th>
               {scenarios.map((sc,i)=>(
-                <th key={i} style={{padding:'12px 14px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:12,borderBottom:'1px solid var(--border)',fontFamily:'Barlow'}}>{sc.name||`Scenario ${i+1}`}</th>
+                <th key={i} style={{padding:'14px 18px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:13,borderBottom:'1.5px solid rgba(255,255,255,0.08)',fontFamily:'Inter',letterSpacing:'-0.01em'}}>{sc.name||`Scenario ${i+1}`}</th>
               ))}
             </tr>
           </thead>
@@ -455,14 +625,14 @@ function Simulator({ cfg }) {
               {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
               {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, color:'#f59e0b'},
             ].map((row,ri) => {
-              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:8,borderBottom:'1px solid var(--border)'}} /></tr>
+              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:12,borderBottom:'1px solid rgba(255,255,255,0.04)'}} /></tr>
               return (
-              <tr key={ri} style={{background:ri%2===0?'transparent':'var(--surface)'}}>
-                <td style={{padding:'10px 14px',color:'var(--text2)',fontWeight:row.bold?800:500,fontSize:row.bold?13:12,fontFamily:'Barlow'}}>{row.l}</td>
+              <tr key={ri} style={{background:ri%2===0?'transparent':'rgba(255,255,255,0.015)',transition:'background 0.15s'}}>
+                <td style={{padding:'11px 18px',color:'var(--text2)',fontWeight:row.bold?800:500,fontSize:row.bold?13:12.5,fontFamily:'Inter'}}>{row.l}</td>
                 {scenarios.map((sc,i) => {
                   const calc = calcScenario(sc)
                   const cellColor = typeof row.color === 'function' ? row.color(calc) : row.color || '#f8fafc'
-                  return <td key={i} style={{padding:'10px 14px',textAlign:'right',fontFamily:'Barlow',fontWeight:row.bold?900:700,fontSize:row.bold?15:13,color:cellColor}}>{row.f(calc,sc)}</td>
+                  return <td key={i} style={{padding:'11px 18px',textAlign:'right',fontFamily:'Barlow',fontWeight:row.bold?900:700,fontSize:row.bold?16:13.5,color:cellColor}}>{row.f(calc,sc)}</td>
                 })}
               </tr>
             )})}
@@ -470,9 +640,14 @@ function Simulator({ cfg }) {
         </table>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginTop:24}}>
-        <div style={{background:'var(--surface)',borderRadius:10,padding:20}}>
-          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Fatturato vs Profitto Netto</p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
+        <div style={{
+          background: 'rgba(255,255,255,0.025)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: 14,
+          padding: 20,
+        }}>
+          <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Fatturato vs Profitto netto</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,lordo:c.revenueIvaInclusa,netto:c.revenue,profitto:c.profittoNetto}})} margin={{left:0,right:0}}>
               <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
@@ -485,8 +660,13 @@ function Simulator({ cfg }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div style={{background:'var(--surface)',borderRadius:10,padding:20}}>
-          <p style={{fontSize:11,color:'#fff',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14,fontWeight:700,fontFamily:'Barlow Condensed'}}>Breakdown Costi</p>
+        <div style={{
+          background: 'rgba(255,255,255,0.025)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: 14,
+          padding: 20,
+        }}>
+          <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Breakdown costi</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{left:0,right:0}}>
               <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
@@ -524,24 +704,57 @@ function Simulator({ cfg }) {
         const losing = cashFlowAnalysis.filter(r => r.profittoNetto < 0)
 
         return (
-          <div style={{marginTop:20,background:'var(--surface)',borderRadius:10,padding:28}}>
-            <p style={{fontSize:13,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:20,fontWeight:900,fontFamily:'Barlow Condensed'}}>Analisi strategica CMO + CFO</p>
+          <div style={{
+            marginTop: 22,
+            background: 'linear-gradient(155deg, rgba(139,92,246,0.08) 0%, rgba(8,8,18,0.6) 100%)',
+            border: '1px solid rgba(139,92,246,0.2)',
+            borderRadius: 18,
+            padding: 26,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+              background: 'linear-gradient(90deg, transparent, #8b5cf6, transparent)',
+              animation: 'cr-shine 4s ease-in-out infinite',
+            }} />
+
+            <div style={{ marginBottom: 22 }}>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em' }}>
+                Analisi strategica <span style={{ color: '#a78bfa' }}>CMO + CFO</span>
+              </h2>
+              <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
+                Lettura combinata marketing + finanza per ogni scenario
+              </p>
+            </div>
 
             {/* P&L Summary */}
-            <div style={{marginBottom:20}}>
-              <p style={{fontSize:11,color:'#f59e0b',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>P&L mensile per scenario</p>
+            <div style={{ marginBottom: 22 }}>
+              <p style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 12 }}>
+                P&L mensile per scenario
+              </p>
               {cashFlowAnalysis.map((r,i) => (
-                <div key={i} style={{background:'var(--glass)',borderRadius:8,padding:'14px 18px',marginBottom:8,borderLeft:`3px solid ${scenarioColors[i]}`}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                    <span style={{color:scenarioColors[i],fontWeight:900,fontSize:14}}>{r.name}</span>
-                    <span style={{color:r.profittoNetto>=0?'#22c55e':'#ef4444',fontWeight:950,fontSize:18,fontFamily:'Barlow'}}>{sm0(r.profittoNetto)}/mese</span>
+                <div key={i} style={{
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 12,
+                  padding: '16px 18px',
+                  marginBottom: 10,
+                  borderLeft: `3px solid ${scenarioColors[i]}`,
+                }}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                    <span style={{color:scenarioColors[i],fontWeight:900,fontSize:14.5}}>{r.name}</span>
+                    <span style={{
+                      color:r.profittoNetto>=0?'#22c55e':'#ef4444',
+                      fontWeight:900, fontSize:19, fontFamily:'Barlow',
+                    }}>{sm0(r.profittoNetto)}<span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginLeft: 4 }}>/mese</span></span>
                   </div>
-                  <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:11,color:'var(--text2)'}}>
-                    <span>Fatt. lordo: {sm0(r.revenueIvaInclusa)}</span>
-                    <span>IVA: -{sm0(r.iva)}</span>
-                    <span>Fatt. netto: {sm0(r.revenue)}</span>
-                    <span>COGS ({r.cogs}%): -{sm0(r.cogsAmount)}</span>
-                    <span>ADV: -{sm0(r.spend)}</span>
+                  <div style={{display:'flex',gap:14,flexWrap:'wrap',fontSize:11.5,color:'var(--text3)',fontWeight:600}}>
+                    <span>Fatt. lordo: <span style={{ color: 'var(--text2)' }}>{sm0(r.revenueIvaInclusa)}</span></span>
+                    <span>IVA: <span style={{ color: 'var(--text2)' }}>-{sm0(r.iva)}</span></span>
+                    <span>Fatt. netto: <span style={{ color: 'var(--text2)' }}>{sm0(r.revenue)}</span></span>
+                    <span>COGS ({r.cogs}%): <span style={{ color: 'var(--text2)' }}>-{sm0(r.cogsAmount)}</span></span>
+                    <span>ADV: <span style={{ color: 'var(--text2)' }}>-{sm0(r.spend)}</span></span>
                     <span style={{color:'#f59e0b'}}>ADV/Revenue: {sp1(r.advAsRevenueShare)}</span>
                   </div>
                 </div>
@@ -549,9 +762,18 @@ function Simulator({ cfg }) {
             </div>
 
             {/* Cash Flow */}
-            <div style={{marginBottom:20}}>
-              <p style={{fontSize:11,color:'#06b6d4',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Flusso di cassa e sostenibilità</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+            <div style={{marginBottom:22}}>
+              <p style={{fontSize:10,color:'#06b6d4',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Flusso di cassa e sostenibilità</p>
+              <div style={{
+                fontSize: 13,
+                color: 'var(--text)',
+                lineHeight: 1.7,
+                fontWeight: 500,
+                background: 'rgba(255,255,255,0.025)',
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: 12,
+                padding: '16px 18px',
+              }}>
                 {cashFlowAnalysis.map((r,i) => {
                   const isSafe = r.profittoNetto > 0 && r.netMarginPct >= 10
                   const isOk = r.profittoNetto > 0 && r.netMarginPct >= 5
@@ -572,9 +794,18 @@ function Simulator({ cfg }) {
             </div>
 
             {/* Strategia di scaling */}
-            <div style={{marginBottom:20}}>
-              <p style={{fontSize:11,color:'#22c55e',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Strategia di scaling raccomandata</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.7,fontWeight:600}}>
+            <div style={{marginBottom:22}}>
+              <p style={{fontSize:10,color:'#22c55e',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Strategia di scaling raccomandata</p>
+              <div style={{
+                fontSize: 13,
+                color: 'var(--text)',
+                lineHeight: 1.7,
+                fontWeight: 500,
+                background: 'rgba(34,197,94,0.04)',
+                border: '1px solid rgba(34,197,94,0.18)',
+                borderRadius: 12,
+                padding: '16px 18px',
+              }}>
                 {scalable.length > 0 ? (
                   <>
                     <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#22c55e'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
@@ -590,19 +821,25 @@ function Simulator({ cfg }) {
             </div>
 
             {/* Visione a 12 mesi */}
-            <div style={{marginBottom:16}}>
-              <p style={{fontSize:11,color:'#ec4899',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Proiezione 12 mesi</p>
+            <div style={{marginBottom:18}}>
+              <p style={{fontSize:10,color:'#ec4899',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Proiezione 12 mesi</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
-                  <div key={i} style={{background:'var(--glass)',borderRadius:8,padding:'14px 18px',borderTop:`2px solid ${scenarioColors[i]}`}}>
-                    <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12,marginBottom:8}}>{r.name} — 12 mesi</div>
-                    <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.8}}>
+                  <div key={i} style={{
+                    background: `linear-gradient(155deg, ${scenarioColors[i]}10 0%, rgba(8,8,18,0.6) 100%)`,
+                    border: `1px solid ${scenarioColors[i]}30`,
+                    borderRadius: 12,
+                    padding: '16px 18px',
+                    borderTop: `2px solid ${scenarioColors[i]}`,
+                  }}>
+                    <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12.5,marginBottom:10}}>{r.name} — 12 mesi</div>
+                    <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.8}}>
                       <div>Fatturato annuo: <strong style={{color:'var(--text)'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
                       <div>Spesa ADV annua: <strong style={{color:'var(--text)'}}>{sm0(r.spend * 12)}</strong></div>
                       <div>COGS annuo: <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
                       <div>IVA annua: <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
-                      <div style={{borderTop:'1px solid var(--border)',marginTop:6,paddingTop:6}}>
-                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#22c55e':'#ef4444',fontSize:14}}>{sm0(r.annualProfit)}</strong>
+                      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:8,paddingTop:8}}>
+                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#22c55e':'#ef4444',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
                       </div>
                       <div>Ordini annui: <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
                     </div>
@@ -612,9 +849,15 @@ function Simulator({ cfg }) {
             </div>
 
             {/* Bottom line */}
-            <div style={{background:'var(--glass)',borderRadius:8,padding:'16px 20px',borderLeft:'3px solid #8b5cf6'}}>
-              <p style={{fontSize:11,color:'#8b5cf6',fontWeight:800,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Bottom line</p>
-              <div style={{fontSize:13,color:'#e8e8e8',lineHeight:1.6,fontWeight:600}}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 100%)',
+              border: '1px solid rgba(139,92,246,0.3)',
+              borderRadius: 12,
+              padding: '18px 22px',
+              borderLeft: '3px solid #8b5cf6',
+            }}>
+              <p style={{fontSize:10,color:'#a78bfa',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>Bottom line</p>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.65,fontWeight:500}}>
                 Break-even ROAS: {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
                 <br/>Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.
                 {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'#f59e0b'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
@@ -623,8 +866,9 @@ function Simulator({ cfg }) {
           </div>
         )
       })()}
+      </>
+    ), { glow: '#8b5cf6', padding: 28 })}
     </div>
-    </>
   )
 }
 // ── Delta + celle KPI riutilizzabili ───────────────────────────

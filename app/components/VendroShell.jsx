@@ -92,7 +92,7 @@ export default function VendroShell({
         { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'quarter', label: 'Quarter', icon: '◧' },
         { id: 'year', label: 'Year', icon: '◎' },
-        { id: 'simulator', label: 'Simulatore', icon: '⚡' },
+        { id: 'simulator', label: 'Simulatore', icon: '⊞' },
       ],
     },
     {

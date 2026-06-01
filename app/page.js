@@ -2014,8 +2014,14 @@ export default function App() {
         const m0 = baseMonth                  // mese selezionato (corrente)
         const m1 = monthMinus(baseMonth, 1)   // mese precedente
 
+        // KPI cards summary: solo mese selezionato (delta vs precedente)
         const tfMonths = data.filter(m => m.month === m0)
         const tfPrevMonths = data.filter(m => m.month === m1)
+
+        // Righe tabella: entrambi i mesi (più recente in alto)
+        const tableMonths = data
+          .filter(m => m.month === m0 || m.month === m1)
+          .sort((a, b) => b.month.localeCompare(a.month))
 
         const tfLabel = `${m0} vs ${m1}`
 
@@ -2165,8 +2171,9 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tfMonths.map((m,i)=>{
-                    const p = i > 0 ? tfMonths[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
+                  {tableMonths.map((m,i)=>{
+                    // Delta riferito al mese ancora precedente (i+1 nella lista ordinata desc)
+                    const p = tableMonths[i+1]
                     return (
                     <tr key={m.month} style={{background:i%2===0?'transparent':'var(--surface)'}}>
                       <td style={{...mTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:16}}>{m.month}</td>
@@ -2220,8 +2227,8 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).map((m,i,arr)=>{
-                    const p = i > 0 ? arr[i-1] : (tfPrevMonths.length > 0 ? tfPrevMonths[tfPrevMonths.length-1] : null)
+                  {tableMonths.map((m,i,arr)=>{
+                    const p = arr[i+1]
                     return (
                     <tr key={m.month} style={{background:i%2===0?'transparent':'var(--surface)'}}>
                       <td style={{...mTD,color:'var(--text)',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>{m.month}</td>

@@ -424,10 +424,10 @@ async function fetchShopifySalesRange(start, end) {
       LIMIT 2
   `
 
-  const [totalsRows, rows] = await Promise.all([
-    shopifyQL(totalsQuery),
-    shopifyQL(breakdownQuery),
-  ])
+  // Sequenziale (non Promise.all) per evitare rate-limit GraphQL su range
+  // lunghi (year_YYYY) dove totals o breakdown spariscono random
+  const totalsRows = await shopifyQL(totalsQuery)
+  const rows = await shopifyQL(breakdownQuery)
 
   // Totali reali dalla query non filtrata
   let fatturato = 0, ordini = 0, resi = 0
@@ -479,6 +479,39 @@ async function fetchShopifySalesRange(start, end) {
 
   if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
     fatturRC = Math.max(fatturato - fatturNC, 0)
+  }
+
+  // Cross-fallback per range lunghi (es. year_) dove una delle due query
+  // può fallire silenziosamente per rate limit / cost ShopifyQL.
+  // Se totals=0 ma breakdown ha dati → ricostruisce totals da NC+RC
+  // (escludendo guest checkouts ma meglio di "—").
+  if (fatturato <= 0 && (fatturNC > 0 || fatturRC > 0)) {
+    fatturato = fatturNC + fatturRC
+  }
+  if (ordini <= 0 && (nc > 0 || rc > 0)) {
+    ordini = nc + rc
+  }
+  if (resi <= 0 && (resiNC > 0 || resiRC > 0)) {
+    resi = resiNC + resiRC
+  }
+
+  // Retry del breakdown quando totals esiste ma NC/RC sono 0
+  // (succede sui range lunghi quando solo la query GROUP BY fallisce)
+  if ((nc === 0 && rc === 0) && fatturato > 0) {
+    const retryRows = await shopifyQL(breakdownQuery)
+    for (const row of retryRows) {
+      const segment = String(row.new_or_returning_customer || '').toLowerCase()
+      const rowTotalSales = cleanMoney(row.total_sales)
+      const rowOrders = cleanCount(row.orders)
+      const rowReturns = Math.abs(cleanMoney(row.returns))
+      const isNew = segment.includes('new') || segment.includes('first') || segment.includes('nuov')
+      const isReturning = segment.includes('return') || segment.includes('ritorn') || segment.includes('recurr')
+      if (isNew) { nc += rowOrders; fatturNC += rowTotalSales; resiNC += rowReturns }
+      if (isReturning) { rc += rowOrders; fatturRC += rowTotalSales; resiRC += rowReturns }
+    }
+    if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
+      fatturRC = Math.max(fatturato - fatturNC, 0)
+    }
   }
 
   return {

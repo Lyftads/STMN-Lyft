@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import ScannerAgent from './ScannerAgent'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -732,6 +733,8 @@ export default function WebsiteScannerTab() {
           </div>
         </GlassCard>
       )}
+
+      <ScannerAgent scan={data} />
     </div>
   )
 }

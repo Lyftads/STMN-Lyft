@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import CROAgent from './CROAgent'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -448,6 +449,14 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
           </div>
         </GlassCard>
       )}
+
+      <CROAgent
+        current={c}
+        previous={p}
+        funnel={funnel}
+        insights={insights}
+        tfLabel={tfLabel}
+      />
     </div>
   )
 }

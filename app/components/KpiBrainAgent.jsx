@@ -84,36 +84,38 @@ export default function KpiBrainAgent({ tf, preset }) {
 
   return (
     <>
-      {/* Toggle button — fixed right edge */}
+      {/* Floating circular icon button — bottom right */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
+          aria-label="Apri KPI Brain Agent"
+          title="KPI Brain Agent"
           style={{
             position: 'fixed',
-            top: '50%',
-            right: 0,
-            transform: 'translateY(-50%)',
+            bottom: 32,
+            right: 32,
+            width: 58,
+            height: 58,
+            borderRadius: '50%',
             background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
             color: '#fff',
-            border: 'none',
-            borderRadius: '14px 0 0 14px',
-            padding: '20px 12px',
-            fontSize: 13,
-            fontWeight: 700,
+            border: '1.5px solid rgba(255,255,255,0.18)',
             cursor: 'pointer',
             zIndex: 50,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: '-4px 0 24px rgba(0,0,0,0.5), inset 1px 0 0 rgba(255,255,255,0.1)',
-            writingMode: 'vertical-rl',
-            letterSpacing: '0.04em',
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: 22,
+            fontWeight: 700,
+            boxShadow:
+              '0 12px 32px rgba(41,151,255,0.4), 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            animation: 'card-pulse 3s ease-in-out infinite',
           }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          <span style={{ fontSize: 16, writingMode: 'horizontal-tb' }}>✦</span>
-          KPI Brain Agent
+          ✦
         </button>
       )}
 
@@ -168,9 +170,9 @@ export default function KpiBrainAgent({ tf, preset }) {
               display: 'grid', placeItems: 'center',
               fontSize: 16, fontWeight: 900, color: '#fff',
             }}>✦</div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>KPI Brain Agent</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Unit economics · MER · CAC · LTV
               </div>
             </div>

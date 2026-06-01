@@ -345,28 +345,15 @@ export default function WebsiteScannerTab() {
                 ))}
               </div>
             )}
-            {data?.debug && (
-              <div style={{
-                padding: '8px 16px',
-                background: 'rgba(99,102,241,0.06)',
-                borderBottom: '1px solid rgba(99,102,241,0.2)',
-                fontSize: 10,
-                color: '#a5b4fc',
-                fontFamily: 'ui-monospace, monospace',
-                lineHeight: 1.5,
-              }}>
-                <div>html.lang: <b>{data.debug.htmlLang ?? 'n/a'}</b></div>
-                <div>navigator.language: <b>{data.debug.navigatorLang}</b></div>
-                <div>weglot: <b>{String(data.debug.hasWeglot)}</b></div>
-                <div style={{ wordBreak: 'break-all' }}>final URL: {data.debug.finalUrl}</div>
-              </div>
-            )}
             <div style={{
               position: 'relative',
               minHeight: 400,
               maxHeight: 800,
-              overflow: 'hidden',
+              overflowY: 'auto',
+              overflowX: 'hidden',
               background: 'rgba(0,0,0,0.4)',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255,255,255,0.18) transparent',
             }}>
               {!screenshotLoaded && (
                 <div style={{

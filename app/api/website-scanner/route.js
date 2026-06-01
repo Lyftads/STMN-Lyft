@@ -153,21 +153,15 @@ async function fetchScreenshotWithBrowserless(target) {
     // Render finale (font, lazy images sopra fold, traduzioni Weglot)
     await new Promise(r => setTimeout(r, 1500))
 
-    // Debug: catturo URL finale + lang attributo per capire cosa Weglot ha deciso
-    const debug = await page.evaluate(() => ({
-      finalUrl: location.href,
-      htmlLang: document.documentElement.lang || null,
-      navigatorLang: navigator.language,
-      hasWeglot: !!(window.Weglot || document.querySelector('[data-wg-]')),
-    })).catch(() => null)
-
-    const buf = await page.screenshot({ type: 'png', fullPage: false })
+    // fullPage: cattura tutta l'altezza scrollabile della landing,
+    // non solo il viewport. UX richiesta da Marino — l'utente vuole
+    // scrollare nella preview per vedere sotto-fold.
+    const buf = await page.screenshot({ type: 'png', fullPage: true })
     return {
       dataUrl: `data:image/png;base64,${Buffer.from(buf).toString('base64')}`,
       publicUrl: null,
       bytes: buf.length,
       provider: 'browserless-eu',
-      debug,
     }
   } finally {
     // disconnect (non close: il browser Chrome non e' nostro)
@@ -350,14 +344,13 @@ export async function POST(req) {
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
-  let dataUrl, previewUrl, provider, fallbackErrors, debug
+  let dataUrl, previewUrl, provider, fallbackErrors
   try {
     const shot = await fetchScreenshotAsDataUrl(normalized)
     dataUrl = shot.dataUrl
     previewUrl = shot.publicUrl
     provider = shot.provider
     fallbackErrors = shot.fallbackErrors
-    debug = shot.debug
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
@@ -425,7 +418,6 @@ export async function POST(req) {
       screenshotDataUrl: dataUrl,
       provider,
       fallbackErrors,
-      debug,
       analysis,
       rawText: analysis ? undefined : raw,
       error: analysis ? undefined : 'Analisi non parseable come JSON',

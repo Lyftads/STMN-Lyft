@@ -296,9 +296,9 @@ export default function WebsiteScannerTab() {
         }}>{error}</div>
       )}
 
-      {/* Preview screenshot + Results */}
+      {/* Preview screenshot + Results — stack verticale full-width */}
       {(scanning || data) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr)', gap: 18, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Screenshot */}
           <GlassCard padding={0} delay={0}>
             <div style={{

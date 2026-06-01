@@ -245,10 +245,15 @@ function normalizeInsight(row, account) {
   const impressions = toNum(row.impressions)
   const reach = toNum(row.reach)
 
-  const linkClicks = getActionValue(row.actions, [
-    'link_click',
-    'onsite_conversion.post_save',
-  ])
+  // Meta espone link_clicks come campo diretto (inline_link_clicks) e
+  // come azione (link_click). Il campo diretto è sempre presente,
+  // l'azione a volte manca → fallback chain per non perdere il CPC.
+  const linkClicks =
+    toNum(row.inline_link_clicks) ||
+    getActionValue(row.actions, [
+      'link_click',
+      'onsite_conversion.post_save',
+    ])
 
   const purchases = getActionValue(row.actions, [
     'purchase',
@@ -449,12 +454,107 @@ function buildSummary(rows) {
   return {
     creatives: rows.length,
     spend: round(spend, 2),
+    revenue: round(purchaseValue, 2),
     roas: round(div(purchaseValue, spend), 2),
     ctr_link: round(impressions ? (linkClicks / impressions) * 100 : 0, 2),
+    cpc_link: round(div(spend, linkClicks), 2),
+    link_clicks: round(linkClicks, 0),
+    impressions: round(impressions, 0),
     orders: round(orders, 0),
     purchases: round(orders, 0),
     purchase_value: round(purchaseValue, 2),
   }
+}
+
+function getPrevRange(range) {
+  const since = new Date(`${range.since}T00:00:00Z`)
+  const until = new Date(`${range.until}T00:00:00Z`)
+  const days = Math.max(1, Math.round((until - since) / 86400000) + 1)
+  const prevUntil = addDays(since, -1)
+  const prevSince = addDays(prevUntil, -(days - 1))
+  return { since: ymd(prevSince), until: ymd(prevUntil) }
+}
+
+async function fetchAccountSummary(accounts, range) {
+  let spend = 0, purchaseValue = 0, linkClicks = 0, impressions = 0, orders = 0
+  for (const account of accounts) {
+    const rows = await metaGetAll(`${account}/insights`, {
+      level: 'account',
+      fields: 'spend,impressions,inline_link_clicks,actions,action_values',
+      time_range: range,
+      action_breakdowns: 'action_type',
+    }, 100)
+    for (const r of rows) {
+      spend += toNum(r.spend)
+      impressions += toNum(r.impressions)
+      linkClicks += toNum(r.inline_link_clicks) ||
+        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save'])
+      orders += getActionValue(r.actions, [
+        'purchase', 'offsite_conversion.fb_pixel_purchase',
+        'onsite_conversion.purchase', 'omni_purchase',
+      ])
+      purchaseValue += getActionValue(r.action_values, [
+        'purchase', 'offsite_conversion.fb_pixel_purchase',
+        'onsite_conversion.purchase', 'omni_purchase',
+      ])
+    }
+  }
+  return {
+    spend: round(spend, 2),
+    revenue: round(purchaseValue, 2),
+    roas: round(div(purchaseValue, spend), 2),
+    ctr_link: round(impressions ? (linkClicks / impressions) * 100 : 0, 2),
+    cpc_link: round(div(spend, linkClicks), 2),
+    link_clicks: round(linkClicks, 0),
+    impressions: round(impressions, 0),
+    orders: round(orders, 0),
+    purchase_value: round(purchaseValue, 2),
+  }
+}
+
+async function fetchDailySeries(accounts, range) {
+  const byDay = new Map()
+  for (const account of accounts) {
+    const rows = await metaGetAll(`${account}/insights`, {
+      level: 'account',
+      fields: 'spend,impressions,inline_link_clicks,actions,action_values',
+      time_range: range,
+      time_increment: 1,
+      action_breakdowns: 'action_type',
+    }, 500)
+    for (const r of rows) {
+      const date = r.date_start
+      if (!date) continue
+      const prev = byDay.get(date) || {
+        date, spend: 0, revenue: 0, orders: 0,
+        link_clicks: 0, impressions: 0,
+      }
+      prev.spend += toNum(r.spend)
+      prev.impressions += toNum(r.impressions)
+      const lc = toNum(r.inline_link_clicks) ||
+        getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save'])
+      prev.link_clicks += lc
+      prev.orders += getActionValue(r.actions, [
+        'purchase', 'offsite_conversion.fb_pixel_purchase',
+        'onsite_conversion.purchase', 'omni_purchase',
+      ])
+      prev.revenue += getActionValue(r.action_values, [
+        'purchase', 'offsite_conversion.fb_pixel_purchase',
+        'onsite_conversion.purchase', 'omni_purchase',
+      ])
+      byDay.set(date, prev)
+    }
+  }
+  return Array.from(byDay.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(d => ({
+      ...d,
+      spend: round(d.spend, 2),
+      revenue: round(d.revenue, 2),
+      roas: round(div(d.revenue, d.spend), 2),
+      ctr_link: round(d.impressions ? (d.link_clicks / d.impressions) * 100 : 0, 2),
+      cpc_link: round(div(d.spend, d.link_clicks), 2),
+    }))
 }
 
 export async function GET(req) {
@@ -489,6 +589,7 @@ export async function GET(req) {
       'impressions',
       'reach',
       'spend',
+      'inline_link_clicks',
       'actions',
       'action_values',
     ].join(',')
@@ -532,13 +633,22 @@ export async function GET(req) {
       }))
       .sort((a, b) => b.spend - a.spend)
 
+    const prevRange = getPrevRange(range)
+    const [prevSummary, dailySeries] = await Promise.all([
+      fetchAccountSummary(accounts, prevRange).catch(() => null),
+      fetchDailySeries(accounts, range).catch(() => []),
+    ])
+
     return json({
       ok: true,
       preset,
       range,
+      prevRange,
       accounts,
       rows: merged,
       summary: buildSummary(merged),
+      prevSummary,
+      dailySeries,
       debug: debug ? getSafeEnvDebug() : undefined,
     })
   } catch (e) {

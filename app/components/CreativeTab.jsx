@@ -53,7 +53,41 @@ function getCreativeName(row) {
   )
 }
 
-function Stat({ label, value, tone = '#fff' }) {
+function Sparkline({ data, dataKey, color = '#fff', width = 80, height = 26 }) {
+  const vals = (data || []).map(d => Number(d[dataKey] || 0))
+  if (vals.length < 2 || vals.every(v => v === 0)) return null
+  const max = Math.max(...vals), min = Math.min(...vals)
+  const range = max - min || 1
+  const points = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * width
+    const y = height - ((v - min) / range) * (height - 4) - 2
+    return `${x},${y}`
+  }).join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ opacity: 0.8 }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function DeltaBadge({ curr, prev, isLowerBetter = false }) {
+  if (prev == null || prev === 0 || curr == null) return null
+  const pct = ((curr - prev) / prev) * 100
+  if (!Number.isFinite(pct) || Math.abs(pct) < 0.1) return null
+  const up = pct > 0
+  const good = isLowerBetter ? !up : up
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6,
+      background: good ? '#22c55e20' : '#ef444420',
+      color: good ? '#22c55e' : '#ef4444',
+    }}>
+      {up ? '+' : ''}{pct.toFixed(2)}%
+    </span>
+  )
+}
+
+function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter = false, curr }) {
   return (
     <div
       className="glass-card"
@@ -76,9 +110,17 @@ function Stat({ label, value, tone = '#fff' }) {
       >
         {label}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: tone }}>
-        {value}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: tone }}>
+          {value}
+        </div>
+        {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={tone} />}
       </div>
+      {prev != null && curr != null && (
+        <div style={{ marginTop: 8 }}>
+          <DeltaBadge curr={curr} prev={prev} isLowerBetter={isLowerBetter} />
+        </div>
+      )}
     </div>
   )
 }
@@ -312,6 +354,10 @@ export default function CreativeTab() {
 
   const totalRoas = totals.spend > 0 ? totals.revenue / totals.spend : 0
   const totalCpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0
+  const totalCtr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
+
+  const prevSummary = data?.prevSummary || null
+  const daily = Array.isArray(data?.dailySeries) ? data.dailySeries : []
 
   return (
     <div>
@@ -375,16 +421,23 @@ export default function CreativeTab() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
           gap: 14,
           marginBottom: 24,
         }}
       >
-        <Stat label="Spesa" value={money(totals.spend)} tone="#3b82f6" />
-        <Stat label="Revenue" value={money(totals.revenue)} tone="#22c55e" />
-        <Stat label="ROAS" value={ratio(totalRoas)} tone="#22c55e" />
-        <Stat label="Ordini" value={num(totals.orders)} tone="#f97316" />
-        <Stat label="CPC" value={money(totalCpc)} tone="#ec4899" />
+        <Stat label="Spesa" value={money(totals.spend)} tone="#3b82f6"
+          curr={totals.spend} prev={prevSummary?.spend} daily={daily} dataKey="spend" />
+        <Stat label="Revenue" value={money(totals.revenue)} tone="#22c55e"
+          curr={totals.revenue} prev={prevSummary?.revenue} daily={daily} dataKey="revenue" />
+        <Stat label="ROAS" value={ratio(totalRoas)} tone="#22c55e"
+          curr={totalRoas} prev={prevSummary?.roas} daily={daily} dataKey="roas" />
+        <Stat label="Ordini" value={num(totals.orders)} tone="#f97316"
+          curr={totals.orders} prev={prevSummary?.orders} daily={daily} dataKey="orders" />
+        <Stat label="CPC" value={money(totalCpc)} tone="#ec4899"
+          curr={totalCpc} prev={prevSummary?.cpc_link} daily={daily} dataKey="cpc_link" isLowerBetter />
+        <Stat label="CTR Link" value={pct(totalCtr)} tone="#a78bfa"
+          curr={totalCtr} prev={prevSummary?.ctr_link} daily={daily} dataKey="ctr_link" />
       </div>
 
       <div

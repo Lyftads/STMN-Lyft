@@ -1049,22 +1049,24 @@ async function fetchMeta() {
   }
 }
 
-// Direct Admin REST API fallback — works for any range including today
-async function fetchShopifyOrdersAdmin(start, end) {
+// Direct Admin REST API — accurate, matches Shopify dashboard exactly
+async function fetchShopifyOrdersAdmin(start, end, maxPages = 20) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
   try {
     const sinceIso = `${start}T00:00:00Z`
     const untilIso = `${end}T23:59:59Z`
-    let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,customer,refunds`
+    let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,subtotal_price,customer,refunds,cancelled_at`
     let revenue = 0, orders = 0, resi = 0
     let fatturNC = 0, fatturRC = 0, nc = 0, rc = 0
     let resiNC = 0, resiRC = 0
     let page = 0
-    while (url && page < 8) {
+    let truncated = false
+    while (url && page < maxPages) {
       const res = await fetch(url, { headers: shopifyAuth() })
       if (!res.ok) break
       const data = await res.json()
       for (const o of (data.orders || [])) {
+        if (o.cancelled_at) continue
         const total = parseFloat(o.total_price || 0)
         const isNew = !o.customer?.orders_count || Number(o.customer.orders_count) <= 1
         revenue += total
@@ -1083,8 +1085,9 @@ async function fetchShopifyOrdersAdmin(start, end) {
       const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/)
       url = nextMatch ? nextMatch[1] : null
       page += 1
+      if (page >= maxPages && url) truncated = true
     }
-    return { fatturato: revenue, fatturNC, fatturRC, resi, resiNC, resiRC, ordini: orders, nc, rc }
+    return { fatturato: revenue, fatturNC, fatturRC, resi, resiNC, resiRC, ordini: orders, nc, rc, truncated }
   } catch (e) {
     console.log('Admin orders error:', e.message)
     return null
@@ -1094,21 +1097,20 @@ async function fetchShopifyOrdersAdmin(start, end) {
 async function safeShopifyRange(range) {
   if (!range?.since || !range?.until) return null
 
-  // Run sales + sessions independently — one failure doesn't kill the other
-  const [salesQL, sessions] = await Promise.all([
-    fetchShopifySalesRange(range.since, range.until).catch(e => { console.log('salesQL err:', e?.message); return null }),
+  // Admin Orders API is the PRIMARY source (accurate, matches Shopify dashboard).
+  // ShopifyQL only used as fallback if Admin fails or hits pagination cap.
+  const [admin, sessions] = await Promise.all([
+    fetchShopifyOrdersAdmin(range.since, range.until).catch(e => { console.log('admin err:', e?.message); return null }),
     fetchShopifyVisitorsRange(range.since, range.until).catch(e => { console.log('visitors err:', e?.message); return 0 }),
   ])
 
-  let sales = salesQL
+  let sales = admin
 
-  // If ShopifyQL returned empty/0 OR range is short (<= 7 days), try Admin API
-  const sameDay = range.since === range.until
-  const shortRange = sameDay || sessions === 0 || !salesQL || (!salesQL.fatturato && !salesQL.ordini)
-  if (shortRange) {
-    const admin = await fetchShopifyOrdersAdmin(range.since, range.until)
-    if (admin && admin.ordini > 0) {
-      sales = admin
+  // If admin failed OR hit pagination cap (likely truncated data), fall back to ShopifyQL
+  if (!admin || admin.truncated) {
+    const salesQL = await fetchShopifySalesRange(range.since, range.until).catch(() => null)
+    if (salesQL && (salesQL.fatturato > 0 || salesQL.ordini > 0)) {
+      sales = salesQL
     } else if (!sales) {
       sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }
     }

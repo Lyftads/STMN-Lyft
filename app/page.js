@@ -1101,6 +1101,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
     tfLabel = `Settimana corrente vs precedente`
   }
 
+  // Righe tabella: settimana selezionata + precedente (più recente in alto)
+  const tableWeeks = [...tfWeeks, ...tfPrevWeeks].sort((a, b) => b.key.localeCompare(a.key))
+
   // Available weeks for custom selector (all Monday dates with data)
   const availableWeeks = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
 
@@ -1235,8 +1238,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
             </thead>
 
             <tbody>
-              {tfWeeks.map((w, i) => {
-                const p = i > 0 ? tfWeeks[i - 1] : (tfPrevWeeks.length > 0 ? tfPrevWeeks[tfPrevWeeks.length - 1] : null)
+              {tableWeeks.map((w, i) => {
+                const p = tableWeeks[i + 1]
 
                 return (
                   <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--surface)' }}>
@@ -1341,8 +1344,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
               </thead>
 
               <tbody>
-                {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).map((w, i, arr) => {
-                  const p = i > 0 ? arr[i - 1] : (tfPrevWeeks.length > 0 ? tfPrevWeeks[tfPrevWeeks.length - 1] : null)
+                {tableWeeks.map((w, i, arr) => {
+                  const p = arr[i + 1]
 
                   return (
                     <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--surface)' }}>

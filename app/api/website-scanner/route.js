@@ -82,12 +82,25 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
   return `https://api.microlink.io/?${params.toString()}`
 }
 
+const DESKTOP_PROFILE = {
+  viewport: { width: 1440, height: 1800, deviceScaleFactor: 1 },
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+}
+
+const MOBILE_PROFILE = {
+  // iPhone 14: viewport reale per emulazione Safari mobile
+  viewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+}
+
 // PRIMARY: Browserless.io endpoint EU (Londra/Amsterdam) → IP europeo
 // → bypassa il geo-IP redirect di Shopify. Nessun binary da gestire,
 // connect via WebSocket a Chrome managed. Free tier 1k req/mese.
-async function fetchScreenshotWithBrowserless(target) {
+async function fetchScreenshotWithBrowserless(target, viewportName = 'desktop') {
   const token = process.env.BROWSERLESS_TOKEN
   if (!token) throw new Error('BROWSERLESS_TOKEN non configurato')
+
+  const profile = viewportName === 'mobile' ? MOBILE_PROFILE : DESKTOP_PROFILE
 
   const { default: puppeteer } = await import('puppeteer-core')
 
@@ -105,7 +118,7 @@ async function fetchScreenshotWithBrowserless(target) {
   try {
     browser = await puppeteer.connect({
       browserWSEndpoint: wsUrl,
-      defaultViewport: { width: 1440, height: 1800, deviceScaleFactor: 1 },
+      defaultViewport: profile.viewport,
     })
 
     const page = await browser.newPage()
@@ -120,7 +133,7 @@ async function fetchScreenshotWithBrowserless(target) {
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'it-IT,it',
     })
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    await page.setUserAgent(profile.userAgent)
 
     let url = target.trim()
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
@@ -162,6 +175,7 @@ async function fetchScreenshotWithBrowserless(target) {
       publicUrl: null,
       bytes: buf.length,
       provider: 'browserless-eu',
+      viewport: viewportName,
     }
   } finally {
     // disconnect (non close: il browser Chrome non e' nostro)
@@ -173,11 +187,11 @@ async function fetchScreenshotWithBrowserless(target) {
 // 1) Browserless.io endpoint EU → IP UK/EU, bypass geo-IP
 // 2) ScreenshotOne (US server con Accept-Language IT)
 // 3) Microlink (US server, no override)
-async function fetchScreenshotAsDataUrl(target) {
+async function fetchScreenshotAsDataUrl(target, viewportName = 'desktop') {
   const errors = []
   // Provo subito Browserless (EU IP) — soluzione vera al geo-redirect
   try {
-    const result = await fetchScreenshotWithBrowserless(target)
+    const result = await fetchScreenshotWithBrowserless(target, viewportName)
     return result
   } catch (blErr) {
     const msg = blErr?.message || String(blErr)
@@ -335,6 +349,7 @@ export async function POST(req) {
   if (!targetUrl) {
     return NextResponse.json({ error: 'URL mancante.' }, { status: 400 })
   }
+  const viewportName = body?.viewport === 'mobile' ? 'mobile' : 'desktop'
 
   // Validazione URL minimale
   let normalized = targetUrl
@@ -344,13 +359,14 @@ export async function POST(req) {
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
-  let dataUrl, previewUrl, provider, fallbackErrors
+  let dataUrl, previewUrl, provider, fallbackErrors, shotViewport
   try {
-    const shot = await fetchScreenshotAsDataUrl(normalized)
+    const shot = await fetchScreenshotAsDataUrl(normalized, viewportName)
     dataUrl = shot.dataUrl
     previewUrl = shot.publicUrl
     provider = shot.provider
     fallbackErrors = shot.fallbackErrors
+    shotViewport = shot.viewport || viewportName
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
@@ -378,7 +394,7 @@ export async function POST(req) {
             content: [
               {
                 type: 'text',
-                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: STMN Fitness — e-commerce accessori CrossFit (paracalli, polsiere, corde da salto, tape adesivo nero, ginocchiere). Target: atleti CrossFit intermedio/avanzato, home gym.\n\nLo screenshot in allegato è la versione desktop italiana della pagina. Fornisci analisi dettagliata in JSON secondo lo schema specificato.`,
+                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: STMN Fitness — e-commerce accessori CrossFit (paracalli, polsiere, corde da salto, tape adesivo nero, ginocchiere). Target: atleti CrossFit intermedio/avanzato, home gym.\n\nLo screenshot in allegato è la versione ${shotViewport === 'mobile' ? 'MOBILE (iPhone, 390px) italiana' : 'DESKTOP (1440px) italiana'} della pagina, fullPage (include sotto-fold). Considera attentamente i pattern UX specifici per ${shotViewport === 'mobile' ? 'mobile (thumb zone, sticky CTA, tap target size 44px+, viewport ridotto)' : 'desktop (above-the-fold value prop, eye-flow F-pattern)'}.\nFornisci analisi dettagliata in JSON secondo lo schema specificato.`,
               },
               {
                 type: 'image_url',
@@ -417,6 +433,7 @@ export async function POST(req) {
       // il client lo mostra al posto del preview Microlink US-based
       screenshotDataUrl: dataUrl,
       provider,
+      viewport: shotViewport,
       fallbackErrors,
       analysis,
       rawText: analysis ? undefined : raw,

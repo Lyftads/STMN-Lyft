@@ -174,6 +174,7 @@ export default function WebsiteScannerTab() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [screenshotLoaded, setScreenshotLoaded] = useState(false)
+  const [viewport, setViewport] = useState('desktop') // 'desktop' | 'mobile'
 
   const runScan = async () => {
     setError('')
@@ -189,7 +190,7 @@ export default function WebsiteScannerTab() {
       const r = await fetch('/api/website-scanner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, viewport }),
       })
       const json = await r.json()
       // Set data anche se c'è un parse-error → cosi' mostra comunque
@@ -277,6 +278,48 @@ export default function WebsiteScannerTab() {
                 )}
               </button>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
+                Viewport
+              </div>
+              <div style={{
+                display: 'inline-flex',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 999,
+                padding: 3,
+                gap: 2,
+              }}>
+                {[
+                  { id: 'desktop', label: '🖥 Desktop' },
+                  { id: 'mobile', label: '📱 Mobile' },
+                ].map(opt => {
+                  const active = viewport === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => !scanning && setViewport(opt.id)}
+                      disabled={scanning}
+                      style={{
+                        background: active ? `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)` : 'transparent',
+                        color: active ? '#fff' : 'var(--text3)',
+                        border: 'none',
+                        borderRadius: 999,
+                        padding: '6px 14px',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: scanning ? 'not-allowed' : 'pointer',
+                        letterSpacing: '0.04em',
+                        boxShadow: active ? `0 0 16px ${ACCENT_GLOW}44` : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 10, lineHeight: 1.5 }}>
               Inserisci l'URL di una landing, pagina prodotto, homepage o checkout. L'AI analizzerà lo screenshot secondo i principali framework CRO (Nielsen, ConversionXL, Baymard, Cialdini) e fornirà insight con esempi concreti.
             </div>
@@ -318,6 +361,15 @@ export default function WebsiteScannerTab() {
                     color: data.provider === 'browserless-eu' ? '#86efac' : '#fcd34d',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>via {data.provider}</span>
+                )}
+                {data?.viewport && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800,
+                    padding: '2px 8px', borderRadius: 999,
+                    background: 'rgba(99,102,241,0.18)',
+                    color: '#a5b4fc',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                  }}>{data.viewport === 'mobile' ? '📱 mobile' : '🖥 desktop'}</span>
                 )}
               </div>
               {finalScreenshotUrl && (
@@ -381,10 +433,14 @@ export default function WebsiteScannerTab() {
                   onLoad={() => setScreenshotLoaded(true)}
                   onError={() => setScreenshotLoaded(true)}
                   style={{
-                    width: '100%',
+                    width: data?.viewport === 'mobile' ? 390 : '100%',
+                    maxWidth: '100%',
+                    margin: data?.viewport === 'mobile' ? '0 auto' : 0,
                     display: 'block',
                     opacity: screenshotLoaded ? 1 : 0,
                     transition: 'opacity 0.4s ease',
+                    borderRadius: data?.viewport === 'mobile' ? 8 : 0,
+                    boxShadow: data?.viewport === 'mobile' ? '0 0 0 1px rgba(255,255,255,0.08), 0 20px 60px rgba(0,0,0,0.5)' : 'none',
                   }}
                 />
               )}

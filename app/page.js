@@ -622,15 +622,15 @@ function Simulator({ cfg }) {
 
       <div style={{
         position: 'relative',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
         backdropFilter: 'blur(40px) saturate(2.2)',
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
         border: '1.5px solid rgba(255,255,255,0.06)',
         borderTopColor: 'rgba(255,255,255,0.12)',
-        borderBottomColor: 'rgba(0,0,0,0.55)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
       }}>
         {/* Top accent bar cr-shine */}
         <div style={{
@@ -696,16 +696,27 @@ function Simulator({ cfg }) {
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
+          position: 'relative',
+          background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+          backdropFilter: 'blur(40px) saturate(2.2)',
+          WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
           border: '1.5px solid rgba(255,255,255,0.06)',
-          borderTopColor: 'rgba(255,255,255,0.10)',
-          borderBottomColor: 'rgba(0,0,0,0.45)',
-          borderRadius: 14,
+          borderTopColor: 'rgba(255,255,255,0.12)',
+          borderBottomColor: 'rgba(0,0,0,0.65)',
+          borderRadius: 22,
           padding: 22,
-          boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
-          backdropFilter: 'blur(20px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+          overflow: 'hidden',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
         }}>
+          <div style={{
+            position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+            background: `linear-gradient(90deg, transparent, #2997ff88, transparent)`,
+            filter: 'blur(0.3px)',
+            opacity: 0.85,
+            animation: 'cr-shine 4s ease-in-out infinite',
+            zIndex: 1,
+          }} />
+          <div style={{ position: 'relative', zIndex: 2 }}>
           <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Fatturato vs Profitto netto</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,lordo:c.revenueIvaInclusa,netto:c.revenue,profitto:c.profittoNetto}})} margin={{left:0,right:0}}>
@@ -718,18 +729,30 @@ function Simulator({ cfg }) {
               <Bar dataKey="profitto" name="Profitto netto" fill="#30d158" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
+          position: 'relative',
+          background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+          backdropFilter: 'blur(40px) saturate(2.2)',
+          WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
           border: '1.5px solid rgba(255,255,255,0.06)',
-          borderTopColor: 'rgba(255,255,255,0.10)',
-          borderBottomColor: 'rgba(0,0,0,0.45)',
-          borderRadius: 14,
+          borderTopColor: 'rgba(255,255,255,0.12)',
+          borderBottomColor: 'rgba(0,0,0,0.65)',
+          borderRadius: 22,
           padding: 22,
-          boxShadow: '0 20px 50px rgba(0,0,0,0.55), 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2)',
-          backdropFilter: 'blur(20px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+          overflow: 'hidden',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
         }}>
+          <div style={{
+            position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+            background: `linear-gradient(90deg, transparent, #2997ff88, transparent)`,
+            filter: 'blur(0.3px)',
+            opacity: 0.85,
+            animation: 'cr-shine 4s ease-in-out infinite',
+            zIndex: 1,
+          }} />
+          <div style={{ position: 'relative', zIndex: 2 }}>
           <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:14,fontWeight:800}}>Breakdown costi</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{left:0,right:0}}>
@@ -743,6 +766,7 @@ function Simulator({ cfg }) {
               <Bar dataKey="adv" name="Spesa ADV" fill="#2997ff" stackId="c" radius={[0,0,4,4]} />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -770,17 +794,17 @@ function Simulator({ cfg }) {
         return (
           <div style={{
             marginTop: 22,
-            background: 'rgba(255,255,255,0.035)',
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
             backdropFilter: 'blur(40px) saturate(2.2)',
             WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
             border: '1.5px solid rgba(255,255,255,0.06)',
             borderTopColor: 'rgba(255,255,255,0.12)',
-            borderBottomColor: 'rgba(0,0,0,0.55)',
+            borderBottomColor: 'rgba(0,0,0,0.65)',
             borderRadius: 22,
             padding: 28,
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.75), 0 12px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.35), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
           }}>
             <div style={{
               position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,

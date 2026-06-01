@@ -16,6 +16,30 @@ function asNum(v) {
   return Number.isFinite(n) ? n : 0
 }
 
+const chipStyle = {
+  background: 'var(--glass)',
+  border: '1px solid var(--border)',
+  color: 'var(--text2)',
+  borderRadius: 11,
+  padding: '10px 14px',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+  outline: 'none',
+}
+
+const selectStyle = {
+  background: 'var(--glass)',
+  border: '1px solid var(--border)',
+  color: '#fff',
+  borderRadius: 11,
+  padding: '10px 14px',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+  outline: 'none',
+}
+
 function money(v) {
   return `€${Math.round(asNum(v)).toLocaleString('it-IT')}`
 }
@@ -373,24 +397,81 @@ export default function CreativeTab() {
 
   const rawRows = Array.isArray(data?.rows) ? data.rows : []
 
+  // Filtri UI
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('roas')
+  const [sortDir, setSortDir] = useState('desc')
+  const [campaignFilter, setCampaignFilter] = useState('')
+  const [quickFilter, setQuickFilter] = useState('')
+
   // Solo creative ATTIVE nel timeframe selezionato (con spesa > 0 nel periodo)
   const rows = useMemo(
     () => rawRows.filter(r => asNum(r.spend) > 0),
     [rawRows]
   )
 
-  const sortedRows = useMemo(() => {
-    return [...rows]
-      .sort((a, b) => {
-        const aRevenue = asNum(a.purchase_value || a.revenue)
-        const bRevenue = asNum(b.purchase_value || b.revenue)
-
-        if (bRevenue !== aRevenue) return bRevenue - aRevenue
-
-        return asNum(b.spend) - asNum(a.spend)
-      })
-      .slice(0, 24)
+  const campaigns = useMemo(() => {
+    const set = new Map()
+    for (const r of rows) {
+      const id = r.campaign_id || ''
+      const name = r.campaign_name || 'Senza campagna'
+      if (id && !set.has(id)) set.set(id, name)
+    }
+    return Array.from(set, ([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [rows])
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    let out = rows
+    if (q) {
+      out = out.filter(r =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.campaign_name || '').toLowerCase().includes(q) ||
+        (r.adset_name || '').toLowerCase().includes(q)
+      )
+    }
+    if (campaignFilter) {
+      out = out.filter(r => r.campaign_id === campaignFilter)
+    }
+    if (quickFilter === 'top') {
+      out = out.filter(r => asNum(r.roas) >= 3)
+    } else if (quickFilter === 'winners') {
+      out = out.filter(r => asNum(r.roas) >= 4)
+    } else if (quickFilter === 'efficient') {
+      const cpcVals = out.map(r => asNum(r.cpc_link)).filter(v => v > 0).sort((a, b) => a - b)
+      const median = cpcVals[Math.floor(cpcVals.length / 2)] || 0
+      out = out.filter(r => asNum(r.cpc_link) > 0 && asNum(r.cpc_link) <= median && asNum(r.orders || r.purchases) > 0)
+    } else if (quickFilter === 'volume') {
+      const sorted = [...out].sort((a, b) => asNum(b.spend) - asNum(a.spend))
+      const topN = Math.max(1, Math.ceil(sorted.length * 0.2))
+      const cutoff = asNum(sorted[topN - 1]?.spend)
+      out = out.filter(r => asNum(r.spend) >= cutoff)
+    } else if (quickFilter === 'ctr') {
+      const sorted = [...out].sort((a, b) => asNum(b.ctr_link) - asNum(a.ctr_link))
+      const topN = Math.max(1, Math.ceil(sorted.length * 0.2))
+      const cutoff = asNum(sorted[topN - 1]?.ctr_link)
+      out = out.filter(r => asNum(r.ctr_link) >= cutoff && asNum(r.ctr_link) > 0)
+    }
+    return out
+  }, [rows, search, campaignFilter, quickFilter])
+
+  const sortedRows = useMemo(() => {
+    const getVal = (r) => {
+      switch (sortBy) {
+        case 'roas': return asNum(r.roas)
+        case 'spend': return asNum(r.spend)
+        case 'revenue': return asNum(r.purchase_value || r.revenue)
+        case 'orders': return asNum(r.purchases || r.orders)
+        case 'cpc': return asNum(r.cpc_link)
+        case 'ctr': return asNum(r.ctr_link)
+        case 'impressions': return asNum(r.impressions)
+        default: return asNum(r.purchase_value || r.revenue)
+      }
+    }
+    const mult = sortDir === 'asc' ? 1 : -1
+    return [...filteredRows].sort((a, b) => (getVal(a) - getVal(b)) * mult)
+  }, [filteredRows, sortBy, sortDir])
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -543,12 +624,107 @@ export default function CreativeTab() {
                 fontSize: 13,
               }}
             >
-              Ordinate per revenue attribuita
+              {sortedRows.length} di {rows.length} creative attive
             </p>
           </div>
 
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>
-            {loading ? 'Caricamento…' : `${rows.length} creative`}
+            {loading ? 'Caricamento…' : `${campaigns.length} campagne`}
+          </div>
+        </div>
+
+        {/* Search + filtri sopra la griglia */}
+        <div style={{ marginBottom: 18 }}>
+          <input
+            type="text"
+            placeholder="Cerca creative per nome, campagna o adset…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: '13px 16px',
+              color: '#fff',
+              fontSize: 14,
+              outline: 'none',
+              marginBottom: 12,
+            }}
+          />
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="roas">Sort: ROAS</option>
+              <option value="spend">Sort: Spesa</option>
+              <option value="revenue">Sort: Revenue</option>
+              <option value="orders">Sort: Ordini</option>
+              <option value="cpc">Sort: CPC</option>
+              <option value="ctr">Sort: CTR</option>
+              <option value="impressions">Sort: Impression</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+              style={chipStyle}
+            >
+              {sortDir === 'desc' ? 'High → Low' : 'Low → High'}
+            </button>
+
+            <select
+              value={campaignFilter}
+              onChange={e => setCampaignFilter(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">Tutte le campagne</option>
+              {campaigns.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+
+            {(search || campaignFilter || quickFilter) && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setCampaignFilter(''); setQuickFilter('') }}
+                style={{ ...chipStyle, borderColor: '#ef444477', color: '#fca5a5' }}
+              >
+                Reset filtri
+              </button>
+            )}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>
+              Quick Filters
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                { id: 'top', label: 'Top Performers' },
+                { id: 'efficient', label: 'Efficient Spenders' },
+                { id: 'volume', label: 'High Volume' },
+                { id: 'winners', label: 'Winners (4x+)' },
+                { id: 'ctr', label: 'Link CTR Champions' },
+              ].map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setQuickFilter(quickFilter === f.id ? '' : f.id)}
+                  style={{
+                    ...chipStyle,
+                    borderColor: quickFilter === f.id ? '#5b2cff' : 'var(--border)',
+                    background: quickFilter === f.id ? 'rgba(91,44,255,0.15)' : 'var(--glass)',
+                    color: quickFilter === f.id ? '#c4b5fd' : 'var(--text2)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -556,7 +732,7 @@ export default function CreativeTab() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               gap: 18,
             }}
           >

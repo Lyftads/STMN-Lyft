@@ -449,7 +449,9 @@ async function fetchPostAttachments(objectStoryId) {
 }
 
 async function hydrateCreatives(rows) {
-  const limited = rows.slice(0, 200)
+  // Hydrate fino a 500 inserzioni così la UI mostra tutte le creative
+  // attive (non solo le prime 200 per spesa)
+  const limited = rows.slice(0, 500)
 
   const hydrated = await Promise.all(
     limited.map(async row => {
@@ -779,10 +781,15 @@ export async function GET(req) {
       .sort((a, b) => b.spend - a.spend)
 
     const prevRange = getPrevRange(range)
-    const [accountSummary, prevSummary, dailySeries] = await Promise.all([
+    const [accountSummary, prevSummary, dailySeries, rawAccountRows] = await Promise.all([
       fetchAccountSummary(accounts, range).catch(() => null),
       fetchAccountSummary(accounts, prevRange).catch(() => null),
       fetchDailySeries(accounts, range).catch(() => []),
+      debug ? metaGetAll(`${accounts[0]}/insights`, {
+        level: 'account',
+        fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values,cost_per_action_type',
+        time_range: range,
+      }, 5).catch(e => ({ error: e?.message })) : Promise.resolve(null),
     ])
 
     // Account-level summary è più affidabile (combacia con Meta Detail
@@ -804,7 +811,12 @@ export async function GET(req) {
       summary,
       prevSummary,
       dailySeries,
-      debug: debug ? getSafeEnvDebug() : undefined,
+      debug: debug ? {
+        env: getSafeEnvDebug(),
+        rawAccountRows,
+        adLevelSummary,
+        accountSummary,
+      } : undefined,
     })
   } catch (e) {
     return json(

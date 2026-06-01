@@ -37,6 +37,7 @@ function getPageSubtitle(tab) {
     integrations: 'Collega e gestisci tutte le piattaforme',
     cro: 'Funnel · Top Pages · Flusso Traffico',
     creativeLab: 'Genera ad creative con AI',
+    simulator: 'LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO',
     dashboard: 'Panoramica completa del business',
   }
   return map[tab] || 'Panoramica completa del business'

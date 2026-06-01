@@ -20,6 +20,7 @@ import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
 import QuarterAgent from './components/QuarterAgent'
 import YearAgent from './components/YearAgent'
+import SimulatorAgent from './components/SimulatorAgent'
 import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -335,6 +336,47 @@ function Simulator({ cfg }) {
   // Palette minimale coerente con le altre tab:
   // slate (neutro), accent blu Apple, viola — niente verde/giallo accesi
   const scenarioColors = ['#64748b', '#2997ff', '#bf5af2']
+
+  // Dati esposti al SimulatorAgent (CMO+CFO)
+  const ltvInputs = { aov: s.aov, freq: s.freq, life: s.life, marginPct: s.margin, cac: s.cac }
+  const ltvOutputs = {
+    ltv: Math.round(ltv * 100) / 100,
+    ratioLtvCac: Math.round(ratio * 100) / 100,
+    cacForRatio3: Math.round(cacFor3),
+    aovForRatio3: Math.round(aovFor3),
+  }
+  const cashFlowAnalysisFull = scenarios.map(sc => {
+    const c = calcScenario(sc)
+    const name = sc.name || ''
+    const cashOut = sc.spend + c.cogsAmount
+    const cashIn = c.revenueIvaInclusa
+    const cashRatio = cashOut > 0 ? cashIn / cashOut : 0
+    const monthsToRecover = c.profittoNetto > 0 ? sc.spend / c.profittoNetto : null
+    const annualProfit = c.profittoNetto * 12
+    const advAsRevenueShare = c.revenueIvaInclusa > 0 ? (sc.spend / c.revenueIvaInclusa) * 100 : 0
+    return {
+      name,
+      input: { spend: sc.spend, roasTarget: sc.roas, aovIvaInclusa: sc.aov, cogsPct: sc.cogs },
+      revenueIvaInclusa: Math.round(c.revenueIvaInclusa),
+      iva: Math.round(c.iva),
+      revenueNetto: Math.round(c.revenue),
+      orders: Math.round(c.orders),
+      aovNetto: Math.round(c.aovNetto * 100) / 100,
+      cpo: Math.round(c.cpo * 100) / 100,
+      cogsAmount: Math.round(c.cogsAmount),
+      marginePerOrdine: Math.round(c.marginePerOrdine * 100) / 100,
+      marginePct: Math.round(c.marginePct * 100) / 100,
+      profittoLordo: Math.round(c.profittoLordo),
+      profittoNetto: Math.round(c.profittoNetto),
+      netMarginPct: Math.round(c.netMarginPct * 100) / 100,
+      breakEvenRoas: Math.round(c.breakEvenRoas * 100) / 100,
+      mer: Math.round(c.mer * 100) / 100,
+      cashRatio: Math.round(cashRatio * 100) / 100,
+      monthsToRecover: monthsToRecover != null ? Math.round(monthsToRecover * 10) / 10 : null,
+      annualProfit: Math.round(annualProfit),
+      advAsRevenueShare: Math.round(advAsRevenueShare * 10) / 10,
+    }
+  })
   const sm0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : n<0 ? `-€${Math.round(Math.abs(n)).toLocaleString('it-IT')}` : '€0'
   const sm2 = n => `€${Number(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
   const sp1 = n => `${Number(n).toFixed(1)}%`
@@ -416,40 +458,6 @@ function Simulator({ cfg }) {
   return (
     <div>
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: 16,
-        marginBottom: 28,
-      }}>
-        <div>
-          <h1 style={{ margin: 0, color: '#fff', fontSize: 32, fontWeight: 900, letterSpacing: '-0.04em' }}>
-            Simulatore
-          </h1>
-          <p style={{ margin: '8px 0 0', color: 'var(--text3)', fontSize: 14 }}>
-            LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO
-          </p>
-        </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 14px', borderRadius: 999,
-          background: 'rgba(48,209,88,0.12)',
-          border: '1px solid rgba(48,209,88,0.3)',
-          color: '#86efac',
-          fontSize: 11, fontWeight: 800,
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-        }}>
-          <span style={{
-            width: 8, height: 8, borderRadius: 999,
-            background: '#30d158',
-            boxShadow: '0 0 10px #30d158',
-            animation: 'card-pulse 2s ease-in-out infinite',
-          }} />
-          Calcolato live
-        </div>
-      </div>
-
       {/* LTV:CAC + Target 3:1 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
         {fxBlock((
@@ -1240,6 +1248,13 @@ function Simulator({ cfg }) {
       })()}
       </>
     ), { glow: '#2997ff', padding: 28, delay: 1.4 })}
+
+    <SimulatorAgent
+      ltvInputs={ltvInputs}
+      ltvOutputs={ltvOutputs}
+      scenarios={scenarios}
+      cashFlowAnalysis={cashFlowAnalysisFull}
+    />
     </div>
   )
 }

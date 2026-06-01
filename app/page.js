@@ -19,6 +19,7 @@ import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
 import QuarterAgent from './components/QuarterAgent'
+import YearAgent from './components/YearAgent'
 import { PlatformBadges } from './components/PlatformIcon'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -2619,17 +2620,51 @@ export default function App() {
           return (<div><div style={qVal}>{shown}</div>{qDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
         }
 
+        // Sparkline + delta badge per le KPI cards
+        const Sparkline = ({ dataArr, dataKey, color = '#22c55e', width = 80, height = 32 }) => {
+          const vals = dataArr.map(d => Number(d[dataKey] || 0))
+          if (vals.length < 2 || vals.every(v => v === 0)) return null
+          const max = Math.max(...vals), min = Math.min(...vals)
+          const range = max - min || 1
+          const points = vals.map((v, i) => {
+            const x = (i / (vals.length - 1)) * width
+            const y = height - ((v - min) / range) * (height - 4) - 2
+            return `${x},${y}`
+          }).join(' ')
+          return (
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{opacity:0.7}}>
+              <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )
+        }
+        const DeltaBadge = ({ curr, prev, isLowerBetter = false }) => {
+          if (prev == null || prev === 0 || curr == null) return null
+          const pct = ((curr - prev) / prev) * 100
+          if (Math.abs(pct) < 0.1) return null
+          const up = pct > 0
+          const good = isLowerBetter ? !up : up
+          return (
+            <span style={{
+              fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+              background: good ? '#22c55e20' : '#ef444420',
+              color: good ? '#22c55e' : '#ef4444',
+            }}>
+              {up ? '+' : ''}{pct.toFixed(2)}%
+            </span>
+          )
+        }
+
         const kpiCards = [
-          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', sources:['shopify'] },
-          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', sources:['shopify'] },
-          { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', sources:['shopify'] },
-          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', sources:['shopify'] },
-          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', sources:['shopify'] },
-          { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', sources:['shopify','meta'] },
-          { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', lower:true, sources:['shopify','meta','google'] },
-          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), sources:['shopify','meta'] },
-          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', sources:['meta'] },
-          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', sources:['google'] },
+          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
+          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
+          { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', key:'aov', sources:['shopify'] },
+          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
+          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
+          { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', key:'mer', sources:['shopify','meta'] },
+          { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', key:'cac', lower:true, sources:['shopify','meta','google'] },
+          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
+          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
+          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
         ]
 
         return (
@@ -2662,8 +2697,11 @@ export default function App() {
                   </div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
                     <div className="metric-value">{kpi.fmt(kpi.val)}</div>
+                    <Sparkline dataArr={aggregatedQuarters} dataKey={kpi.key} color={kpi.color} />
                   </div>
-                  <div style={{marginTop:10}}><DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} /></div>
+                  <div style={{marginTop:10}}>
+                    <DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -2856,6 +2894,433 @@ export default function App() {
 
             {/* Floating Quarter Agent (vertical chat) */}
             <QuarterAgent quarters={aggregatedQuarters} selectedQuarter={q0} previousQuarter={q1} preset={preset} />
+          </>
+        )
+      })()}
+
+      {/* YEAR TAB */}
+      {tab==='year' && (() => {
+        const monthsInYear = (year) =>
+          Array.from({length:12}, (_,i) => `${year}-${String(i+1).padStart(2,'0')}`)
+        const yearLabel = (key) => `${key}`
+        const yearMinus = (key, n) => `${Number(key) - n}`
+
+        const now = new Date()
+        const currentY = `${now.getFullYear()}`
+        const baseY = (typeof preset === 'string' && preset.startsWith('year_'))
+          ? preset.slice(5)
+          : currentY
+
+        const y0 = baseY
+        const y1 = yearMinus(baseY, 1)
+
+        const selectedY = (typeof preset === 'string' && preset.startsWith('year_'))
+          ? preset.slice(5)
+          : currentY
+        const sr = live?.shopifyRange
+        const spr = live?.shopifyPrevRange
+        const mr = live?.metaRange
+        const mpr = live?.metaPrevRange
+
+        const aggregateYear = (key) => {
+          const monthKeys = monthsInYear(key)
+          const rows = data.filter(m => monthKeys.includes(m.month))
+
+          const sum = (k) => rows.reduce((s,m)=>s + Number(m[k]||0), 0)
+
+          const useLiveCurrent = key === selectedY && sr
+          const useLivePrev = key === yearMinus(selectedY, 1) && spr
+          const useLiveMetaCurrent = key === selectedY && mr
+          const useLiveMetaPrev = key === yearMinus(selectedY, 1) && mpr
+
+          const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
+                          : useLivePrev    ? Number(spr.revenue) || 0
+                          : sum('fatturato')
+          const fatturNC  = useLiveCurrent ? Number(sr.fatturNC) || 0
+                          : useLivePrev    ? Number(spr.fatturNC) || 0
+                          : sum('fatturNC')
+          const fatturRC  = useLiveCurrent ? Number(sr.fatturRC) || 0
+                          : useLivePrev    ? Number(spr.fatturRC) || 0
+                          : sum('fatturRC')
+          const resi      = useLiveCurrent ? Number(sr.resi) || 0
+                          : useLivePrev    ? Number(spr.resi) || 0
+                          : sum('resi')
+          const resiNC    = useLiveCurrent ? Number(sr.resiNC) || 0
+                          : useLivePrev    ? Number(spr.resiNC) || 0
+                          : sum('resiNC')
+          const resiRC    = useLiveCurrent ? Number(sr.resiRC) || 0
+                          : useLivePrev    ? Number(spr.resiRC) || 0
+                          : sum('resiRC')
+          const ordini    = useLiveCurrent ? Number(sr.orders) || 0
+                          : useLivePrev    ? Number(spr.orders) || 0
+                          : sum('ordini')
+          const nc        = useLiveCurrent ? Number(sr.nc) || 0
+                          : useLivePrev    ? Number(spr.nc) || 0
+                          : sum('nc')
+          const rc        = useLiveCurrent ? Number(sr.rc) || 0
+                          : useLivePrev    ? Number(spr.rc) || 0
+                          : sum('rc')
+          const sessioni  = useLiveCurrent ? Number(sr.sessions) || 0
+                          : useLivePrev    ? Number(spr.sessions) || 0
+                          : sum('sessioni')
+          const metaSpend = useLiveMetaCurrent ? Number(mr.spend) || 0
+                          : useLiveMetaPrev    ? Number(mpr.spend) || 0
+                          : sum('metaSpend')
+          const googleSpend = sum('googleSpend')
+          const totalSpend = metaSpend + googleSpend
+
+          const aov = ordini > 0 ? fatturato/ordini : null
+          const aovNC = nc > 0 ? fatturNC/nc : null
+          const aovRC = rc > 0 ? fatturRC/rc : null
+          const mer = totalSpend > 0 ? fatturato/totalSpend : null
+          const aMer = totalSpend > 0 ? fatturNC/totalSpend : null
+          const cac = nc > 0 ? totalSpend/nc : null
+          const cpo = ordini > 0 ? totalSpend/ordini : null
+          const retention = nc+rc > 0 ? rc/(nc+rc)*100 : null
+          const cro = sessioni > 0 && ordini > 0 ? ordini/sessioni*100 : null
+          const ltv = aov != null ? aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+          const ratio = ltv && cac ? ltv/cac : null
+          return { key, label: yearLabel(key), fatturato, fatturNC, fatturRC, resi, resiNC, resiRC, ordini, nc, rc, sessioni, metaSpend, googleSpend, totalSpend, aov, aovNC, aovRC, mer, aMer, cac, cpo, retention, cro, ltv, ratio }
+        }
+
+        const tableYears = [aggregateYear(y0), aggregateYear(y1)]
+        const cur = tableYears[0]
+        const prev = tableYears[1]
+
+        // Ultimi 5 anni per i grafici (solo quelli con dati)
+        const chartYearKeys = []
+        for (let i = 4; i >= 0; i--) chartYearKeys.push(yearMinus(y0, i))
+        const aggregatedYears = chartYearKeys
+          .map(k => aggregateYear(k))
+          .filter(y => y.fatturato > 0 || y.ordini > 0 || y.totalSpend > 0)
+        const yearChartData = aggregatedYears.map(y => ({
+          label: y.label, fatturato: y.fatturato, spesa: y.totalSpend,
+          nc: y.nc, rc: y.rc, mer: y.mer, aov: y.aov, cro: y.cro, ratio: y.ratio,
+        }))
+
+        const qVal = { fontFamily:'Barlow', fontWeight:900, fontSize:16, lineHeight:1.15, color:'var(--text)' }
+        const qTH = {
+          position:'sticky', top:0, zIndex:20,
+          padding:'18px 20px', fontSize:11, fontWeight:800,
+          textTransform:'uppercase', letterSpacing:'0.10em',
+          textAlign:'left', whiteSpace:'nowrap', color:'var(--text2)',
+          background:'rgba(255,255,255,0.025)', backdropFilter:'blur(20px)',
+          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+        }
+        const qTD = {
+          padding:'14px 20px', fontSize:15, fontWeight:500,
+          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)', color:'var(--text)',
+        }
+
+        const qDelta = (curr, prev, kind='euro0', inverse=false) => {
+          if (curr == null || prev == null) return null
+          const c = Number(curr), p = Number(prev)
+          if (!Number.isFinite(c) || !Number.isFinite(p)) return null
+          const diff = c - p
+          if (Math.abs(diff) < 0.001) return null
+          const pctV = p !== 0 ? diff/p*100 : null
+          const isDown = diff < 0
+          const isGood = inverse ? isDown : !isDown
+          const color = isGood ? 'var(--green)' : 'var(--red)'
+          const sign = diff > 0 ? '+' : '−'
+          const abs = Math.abs(diff)
+          let fmtAbs = '—'
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT')}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT')
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          return (
+            <div style={{marginTop:8,color,fontSize:12,lineHeight:1.2,fontWeight:900,whiteSpace:'nowrap'}}>
+              <div>{sign}{fmtAbs}</div>
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+            </div>
+          )
+        }
+        const YV = ({value, prev, kind='euro0', suffix='', inverse=false}) => {
+          let shown = '—'
+          if (kind==='euro0') shown = f0(value)
+          else if (kind==='euro2') shown = f2(value)
+          else if (kind==='int') shown = fn(value)
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          return (<div><div style={qVal}>{shown}</div>{qDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
+        }
+
+        const Sparkline = ({ dataArr, dataKey, color = '#22c55e', width = 80, height = 32 }) => {
+          const vals = dataArr.map(d => Number(d[dataKey] || 0))
+          if (vals.length < 2 || vals.every(v => v === 0)) return null
+          const max = Math.max(...vals), min = Math.min(...vals)
+          const range = max - min || 1
+          const points = vals.map((v, i) => {
+            const x = (i / (vals.length - 1)) * width
+            const y = height - ((v - min) / range) * (height - 4) - 2
+            return `${x},${y}`
+          }).join(' ')
+          return (
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{opacity:0.7}}>
+              <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )
+        }
+        const DeltaBadge = ({ curr, prev, isLowerBetter = false }) => {
+          if (prev == null || prev === 0 || curr == null) return null
+          const pct = ((curr - prev) / prev) * 100
+          if (Math.abs(pct) < 0.1) return null
+          const up = pct > 0
+          const good = isLowerBetter ? !up : up
+          return (
+            <span style={{
+              fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+              background: good ? '#22c55e20' : '#ef444420',
+              color: good ? '#22c55e' : '#ef4444',
+            }}>
+              {up ? '+' : ''}{pct.toFixed(2)}%
+            </span>
+          )
+        }
+
+        const kpiCards = [
+          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
+          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
+          { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', key:'aov', sources:['shopify'] },
+          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
+          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
+          { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', key:'mer', sources:['shopify','meta'] },
+          { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', key:'cac', lower:true, sources:['shopify','meta','google'] },
+          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
+          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
+          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
+        ]
+
+        return (
+          <>
+            {/* Timeframe selector */}
+            <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+              <TimeframeSelector
+                value={preset?.startsWith('year_') ? preset : `year_${y0}`}
+                onChange={setPreset}
+                disabled={loading}
+                mode="year"
+              />
+              <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+                marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
+                cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
+              }}>
+                <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
+                {loading?'Aggiorno…':'Aggiorna'}
+              </button>
+              <span style={{fontSize:11,color:'var(--text3)'}}>{yearLabel(y0)} vs {yearLabel(y1)}</span>
+            </div>
+
+            {/* KPI summary cards */}
+            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+              {kpiCards.map(kpi => (
+                <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
+                    <div className="label">{kpi.label}</div>
+                    <PlatformBadges sources={kpi.sources} size={16} />
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                    <div className="metric-value">{kpi.fmt(kpi.val)}</div>
+                    <Sparkline dataArr={aggregatedYears} dataKey={kpi.key} color={kpi.color} />
+                  </div>
+                  <div style={{marginTop:10}}>
+                    <DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Dati annuali table */}
+            <FxChartCard title="Dati annuali" glowColor="#22c55e" subtitle="Aggregato da dati mensili">
+              <div style={{overflow:'auto',maxHeight:'72vh'}}>
+                <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr>
+                      {['Anno','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                        <th key={h} style={qTH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableYears.map((y,i) => {
+                      const p = tableYears[i+1]
+                      return (
+                        <tr key={y.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                          <td style={{...qTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{y.label}</td>
+                          <td style={qTD}><YV value={y.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.resi||null} prev={p?.resi||null} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.ordini} prev={p?.ordini} kind="int" /></td>
+                          <td style={qTD}><YV value={y.nc} prev={p?.nc} kind="int" /></td>
+                          <td style={qTD}><YV value={y.rc} prev={p?.rc} kind="int" /></td>
+                          <td style={qTD}><YV value={y.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </FxChartCard>
+
+            {/* KPI calcolati table */}
+            <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
+              <div style={{overflow:'auto',maxHeight:'72vh'}}>
+                <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr>
+                      {['Anno','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                        <th key={h} style={qTH}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableYears.map((y,i) => {
+                      const p = tableYears[i+1]
+                      return (
+                        <tr key={y.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
+                          <td style={{...qTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{y.label}</td>
+                          <td style={qTD}><YV value={y.fatturato} prev={p?.fatturato} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
+                          <td style={qTD}><YV value={y.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
+                          <td style={qTD}><YV value={y.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
+                          <td style={qTD}><YV value={y.cac} prev={p?.cac} kind="euro2" inverse /></td>
+                          <td style={qTD}><YV value={y.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
+                          <td style={qTD}><YV value={y.aov} prev={p?.aov} kind="euro2" /></td>
+                          <td style={qTD}><YV value={y.aovNC} prev={p?.aovNC} kind="euro2" /></td>
+                          <td style={qTD}><YV value={y.aovRC} prev={p?.aovRC} kind="euro2" /></td>
+                          <td style={qTD}><YV value={y.retention} prev={p?.retention} kind="percent1" /></td>
+                          <td style={qTD}><YV value={y.cro} prev={p?.cro} kind="percent2" /></td>
+                          <td style={qTD}><YV value={y.ltv} prev={p?.ltv} kind="euro2" /></td>
+                          <td style={qTD}><YV value={y.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </FxChartCard>
+
+            {yearChartData.length > 0 && (
+              <>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                  <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <ComposedChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="yfx-rev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5}/>
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="yfx-spend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                          <filter id="yfx-glow-g" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${Math.round(v/1000)}k`} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area yAxisId="left" type="monotone" dataKey="fatturato" name="Fatturato" stroke="#22c55e" strokeWidth={2.5} fill="url(#yfx-rev)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationEasing="ease-out" connectNulls style={{filter:'url(#yfx-glow-g)'}} />
+                        <Area yAxisId="left" type="monotone" dataKey="spesa" name="Spesa Ads" stroke="#3b82f6" strokeWidth={2.5} fill="url(#yfx-spend)" dot={<FxDot color="#3b82f6" />} activeDot={<FxActiveDot color="#3b82f6" />} animationDuration={1500} animationEasing="ease-out" animationBegin={200} connectNulls />
+                        <Line yAxisId="right" type="monotone" dataKey="mer" name="MER" stroke="#f8fafc" strokeWidth={2} strokeDasharray="6 4" dot={<FxDot color="#f8fafc" />} activeDot={<FxActiveDot color="#f8fafc" />} animationDuration={1500} animationBegin={400} connectNulls />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+
+                  <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
+                        <defs>
+                          <linearGradient id="yfx-nc" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22d3ee" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#0e7490" stopOpacity={0.85}/>
+                          </linearGradient>
+                          <linearGradient id="yfx-rc" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#c4b5fd" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.85}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTip />} cursor={{fill:'rgba(255,255,255,0.04)'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Bar dataKey="nc" name="Nuovi clienti" fill="url(#yfx-nc)" radius={[8,8,0,0]} animationDuration={1200} animationEasing="ease-out" />
+                        <Bar dataKey="rc" name="Clienti ritorno" fill="url(#yfx-rc)" radius={[8,8,0,0]} animationDuration={1200} animationBegin={200} animationEasing="ease-out" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                  <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <ComposedChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="yfx-aov" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.45}/>
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="yfx-cro" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`€${v}`} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area yAxisId="left" type="monotone" dataKey="aov" name="AOV" stroke="#f59e0b" strokeWidth={2.5} fill="url(#yfx-aov)" dot={<FxDot color="#f59e0b" />} activeDot={<FxActiveDot color="#f59e0b" />} animationDuration={1500} connectNulls />
+                        <Area yAxisId="right" type="monotone" dataKey="cro" name="CRO %" stroke="#22c55e" strokeWidth={2.5} fill="url(#yfx-cro)" dot={<FxDot color="#22c55e" />} activeDot={<FxActiveDot color="#22c55e" />} animationDuration={1500} animationBegin={200} connectNulls />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+
+                  <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <AreaChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
+                        <defs>
+                          <linearGradient id="yfx-ratio" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.55}/>
+                            <stop offset="50%" stopColor="#6366f1" stopOpacity={0.20}/>
+                            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                        <XAxis dataKey="label" tick={{fill:'var(--text3)',fontSize:10,fontWeight:600}} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fill:'var(--text3)',fontSize:10}} axisLine={false} tickLine={false} />
+                        <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="6 4" strokeOpacity={0.55} label={{value:'Target 3:1',fill:'#22c55e',fontSize:10,fontWeight:700, position:'right'}} />
+                        <Tooltip content={<ChartTip />} cursor={{stroke:'rgba(255,255,255,0.1)', strokeWidth:1, strokeDasharray:'3 3'}} />
+                        <Legend wrapperStyle={{fontSize:11,paddingTop:10}} iconType="circle" />
+                        <Area type="monotone" dataKey="ratio" name="Ratio" stroke="#a78bfa" strokeWidth={2.5} fill="url(#yfx-ratio)" dot={<FxDot color="#a78bfa" />} activeDot={<FxActiveDot color="#a78bfa" />} animationDuration={1800} animationEasing="ease-out" connectNulls />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </FxChartCard>
+                </div>
+              </>
+            )}
+
+            {/* AI Insights & To-do */}
+            <DashboardInsights preset={preset} />
+
+            {/* Floating Year Agent (vertical chat) */}
+            <YearAgent years={aggregatedYears} selectedYear={y0} previousYear={y1} preset={preset} />
           </>
         )
       })()}

@@ -39,6 +39,17 @@ function getQuarters(count = 8) {
   return out
 }
 
+function getYears(count = 5) {
+  const out = []
+  const now = new Date()
+  let y = now.getFullYear()
+  for (let i = 0; i < count; i++) {
+    out.push({ value: `year_${y}`, label: `${y}` })
+    y -= 1
+  }
+  return out
+}
+
 function getLabel(value) {
   const inDateRange = DATE_RANGE.find(p => p.value === value)
   if (inDateRange) return inDateRange.label
@@ -51,6 +62,9 @@ function getLabel(value) {
     const match = k.match(/^(\d{4})-Q([1-4])$/)
     if (match) return `Q${match[2]} ${match[1]}`
   }
+  if (typeof value === 'string' && value.startsWith('year_')) {
+    return value.slice(5)
+  }
   return value
 }
 
@@ -59,7 +73,9 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
   const ref = useRef(null)
   const months = getMonths(monthsCount)
   const quarters = getQuarters(8)
+  const years = getYears(5)
   const isQuarterMode = mode === 'quarter'
+  const isYearMode = mode === 'year'
 
   useEffect(() => {
     if (!open) return
@@ -124,7 +140,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             padding: '14px 0 16px',
           }}
         >
-          {!hideDateRange && !isQuarterMode && (
+          {!hideDateRange && !isQuarterMode && !isYearMode && (
             <>
               <SectionLabel>Date range</SectionLabel>
               {DATE_RANGE.map(opt => (
@@ -134,7 +150,14 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             </>
           )}
 
-          {isQuarterMode ? (
+          {isYearMode ? (
+            <>
+              <SectionLabel>By year</SectionLabel>
+              {years.map(opt => (
+                <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
+              ))}
+            </>
+          ) : isQuarterMode ? (
             <>
               <SectionLabel>By quarter</SectionLabel>
               {quarters.map(opt => (

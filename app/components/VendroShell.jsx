@@ -10,6 +10,7 @@ function getPageTitle(tab) {
     monthly: 'Monthly',
     weekly: 'Weekly',
     quarter: 'Quarter',
+    year: 'Year',
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
     creative: 'Creative',
@@ -80,9 +81,10 @@ export default function VendroShell({
       title: 'Reports',
       color: '#30d158',
       items: [
-        { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
+        { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'quarter', label: 'Quarter', icon: '◧' },
+        { id: 'year', label: 'Year', icon: '◎' },
       ],
     },
     {

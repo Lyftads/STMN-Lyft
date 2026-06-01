@@ -162,6 +162,19 @@ function getPresetRange(preset = 'last_90d') {
     }
   }
 
+  // year_YYYY → full calendar year (capped a oggi se in corso)
+  if (typeof preset === 'string' && preset.startsWith('year_')) {
+    const yKey = preset.slice(5)
+    const match = yKey.match(/^(\d{4})$/)
+    if (match) {
+      const y = Number(match[1])
+      const startRaw = `${y}-01-01`
+      const endRaw = `${y}-12-31`
+      const end = endRaw > until ? until : endRaw
+      return { since: startRaw, until: end, label: `${y}` }
+    }
+  }
+
   // month_YYYY-MM → full calendar month
   if (typeof preset === 'string' && preset.startsWith('month_')) {
     const m = preset.slice(6) // YYYY-MM
@@ -202,6 +215,16 @@ function getPreviousRange(range, preset) {
       const lastDay = new Date(y, endMonth, 0).getDate()
       const until = `${y}-${String(endMonth).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
       return { since, until, label: `Q${q} ${y}` }
+    }
+  }
+
+  // Per year_YYYY: previous = anno calendario precedente INTERO
+  if (typeof preset === 'string' && preset.startsWith('year_')) {
+    const yKey = preset.slice(5)
+    const match = yKey.match(/^(\d{4})$/)
+    if (match) {
+      const py = Number(match[1]) - 1
+      return { since: `${py}-01-01`, until: `${py}-12-31`, label: `${py}` }
     }
   }
 

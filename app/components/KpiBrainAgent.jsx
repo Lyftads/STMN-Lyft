@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
   'Cosa mi dicono i numeri di questo periodo?',
@@ -31,8 +32,11 @@ export default function KpiBrainAgent({ tf, preset }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [mounted, setMounted] = useState(false)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -82,7 +86,9 @@ export default function KpiBrainAgent({ tf, preset }) {
     }
   }
 
-  return (
+  if (!mounted) return null
+
+  const content = (
     <>
       {/* Floating sticky avatar icon — visible from page load, middle-right */}
       {!open && (
@@ -341,6 +347,8 @@ export default function KpiBrainAgent({ tf, preset }) {
       </aside>
     </>
   )
+
+  return createPortal(content, document.body)
 }
 
 function Dot({ delay }) {

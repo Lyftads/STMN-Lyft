@@ -387,6 +387,10 @@ export default function MetaDetailTab() {
   const [children, setChildren] = useState({})
   const [loadingNode, setLoadingNode] = useState({})
 
+  // Filtri client-side
+  const [accountFilter, setAccountFilter] = useState('')
+  const [search, setSearch] = useState('')
+
   const qs = useCallback(
     extra => {
       const params = new URLSearchParams()
@@ -395,12 +399,13 @@ export default function MetaDetailTab() {
         if (customSince) params.set('since', customSince)
         if (customUntil) params.set('until', customUntil)
       }
+      if (accountFilter) params.set('account_id', accountFilter)
       Object.entries(extra || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null) params.set(key, value)
       })
       return params.toString()
     },
-    [preset, customSince, customUntil]
+    [preset, customSince, customUntil, accountFilter]
   )
 
   const fetchMain = useCallback(async () => {
@@ -475,8 +480,14 @@ export default function MetaDetailTab() {
   }
 
   const visibleRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
     const rows = []
     for (const campaign of data?.rows || []) {
+      // Match: nome campagna o ID
+      const campaignMatch = !q ||
+        (campaign.name || '').toLowerCase().includes(q) ||
+        (campaign.id || '').toLowerCase().includes(q)
+      if (!campaignMatch) continue
       rows.push(campaign)
       const campaignKey = `campaign:${campaign.id}`
       if (openCampaigns[campaign.id]) {
@@ -492,7 +503,7 @@ export default function MetaDetailTab() {
       }
     }
     return rows
-  }, [data, children, openCampaigns, openAdsets])
+  }, [data, children, openCampaigns, openAdsets, search])
 
   const summary = data?.summary || {}
   const cmp = data?.comparison || {}
@@ -753,10 +764,88 @@ export default function MetaDetailTab() {
         </FxCard>
       </div>
 
+      {/* Filtri + ricerca tabella */}
+      <div style={{
+        background: 'rgba(255,255,255,0.025)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 18,
+        padding: 16,
+        marginBottom: 14,
+        display: 'flex',
+        gap: 12,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <input
+          type="text"
+          placeholder="Cerca campagna per nome o ID…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            flex: '1 1 280px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#fff',
+            borderRadius: 11,
+            padding: '11px 14px',
+            fontSize: 13.5,
+            outline: 'none',
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
+            letterSpacing: '0.12em', fontWeight: 800,
+          }}>Account</span>
+          {[{ id: '', label: 'Tutti' }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a }))].map(opt => {
+            const active = accountFilter === opt.id
+            return (
+              <button
+                key={opt.id || 'all'}
+                type="button"
+                onClick={() => setAccountFilter(opt.id)}
+                disabled={loading}
+                style={{
+                  background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
+                  border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
+                  color: active ? '#fff' : 'var(--text2)',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: loading ? 'wait' : 'pointer',
+                  boxShadow: active ? '0 0 14px rgba(8,102,255,0.25)' : 'none',
+                  fontFamily: opt.id ? 'monospace' : 'inherit',
+                }}
+              >{opt.label}</button>
+            )
+          })}
+        </div>
+
+        {(search || accountFilter) && (
+          <button
+            type="button"
+            onClick={() => { setSearch(''); setAccountFilter('') }}
+            style={{
+              marginLeft: 'auto',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.35)',
+              color: '#fca5a5',
+              borderRadius: 10,
+              padding: '8px 14px',
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >Reset filtri</button>
+        )}
+      </div>
+
       {/* Tabella gerarchica */}
       <FxCard
         title="Gerarchia Meta"
-        subtitle="Solo campagne attive. Click sulla campagna → ad set attivi. Click su ad set → ads attive."
+        subtitle={`${visibleRows.filter(r => r.level === 'campaign').length} campagne · Click campagna → ad set · Click ad set → ads`}
         glow="#06b6d4"
         padding={0}
       >

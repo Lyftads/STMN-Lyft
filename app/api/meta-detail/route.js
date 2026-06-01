@@ -686,11 +686,19 @@ export async function GET(req) {
     const level = searchParams.get('level') || 'campaigns'
     const campaignId = searchParams.get('campaign_id')
     const adsetId = searchParams.get('adset_id')
+    const accountFilter = searchParams.get('account_id') || null
 
-    const accounts = getAccounts()
+    const allAccounts = getAccounts()
+    const accounts = accountFilter
+      ? allAccounts.filter(a => a === accountFilter)
+      : allAccounts
 
     if (!accounts.length) {
       return jsonError('Nessun account Meta configurato in META_AD_ACCOUNT_ID', 500)
+    }
+
+    if (accountFilter && !accounts.length) {
+      return jsonError(`Account ${accountFilter} non configurato`, 400)
     }
 
     const range = getRange(preset, searchParams)
@@ -737,6 +745,8 @@ export async function GET(req) {
       range,
       previousRange,
       accounts,
+      allAccounts,
+      accountFilter,
       summary,
       previousSummary,
       comparison: comparison(summary, previousSummary),

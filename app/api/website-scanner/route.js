@@ -24,8 +24,8 @@ function forceItalianLocale(rawUrl) {
 }
 
 // ScreenshotOne (preferito quando SCREENSHOTONE_ACCESS_KEY è impostato):
-// Free tier 100 screenshot/mese, supporta accept_language + custom UA
-// senza piano Pro → bypassa geo-IP redirect di Shopify.
+// Free tier 100 screenshot/mese. Supporta header custom (incluso
+// Accept-Language) e custom user_agent → bypassa geo-IP redirect Shopify.
 function buildScreenshotOneUrl(target) {
   const key = process.env.SCREENSHOTONE_ACCESS_KEY
   if (!key) return null
@@ -45,12 +45,14 @@ function buildScreenshotOneUrl(target) {
     block_cookie_banners: 'true',
     block_trackers: 'true',
     block_chats: 'true',
-    accept_language: 'it-IT,it;q=0.9,en;q=0.6',
     user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    timezone: 'Europe/Rome',
+    time_zone: 'Europe/Rome',
     cache: 'true',
     cache_ttl: '14400',
   })
+  // ScreenshotOne accetta headers come param ripetuto (uno per header).
+  // Formato: "Header-Name: value"
+  params.append('headers', 'Accept-Language: it-IT,it;q=0.9,en;q=0.6')
   return `https://api.screenshotone.com/take?${params.toString()}`
 }
 

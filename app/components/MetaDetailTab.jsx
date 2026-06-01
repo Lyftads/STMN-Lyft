@@ -124,64 +124,146 @@ function Sparkline({ data, dataKey, color = '#fff', width = 110, height = 32 }) 
   )
 }
 
-function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', daily, dataKey }) {
+// Stessa palette/effetti del Simulatore
+const ACCENT_GLOW = '#2997ff'
+
+function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', daily, dataKey, delay = 0 }) {
   const good = deltaGood(prevDelta, inverse)
   return (
-    <div className="glass-card" style={{
-      padding: '20px 22px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        borderRadius: 22,
+        overflow: 'hidden',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        padding: '20px 22px',
+        animation: 'sim-pulse 6s ease-in-out infinite',
+        animationDelay: `${delay}s`,
+        transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.animationPlayState = 'paused'
+        e.currentTarget.style.transform = 'translateY(-8px) scale(1.012)'
+        e.currentTarget.style.boxShadow = `0 60px 120px rgba(0,0,0,0.85), 0 30px 60px rgba(0,0,0,0.6), 0 0 80px ${ACCENT_GLOW}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.animationPlayState = 'running'
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+      }}
+    >
       <div style={{
-        fontSize: 10,
-        fontWeight: 800,
-        color: 'var(--text3)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.14em',
-        marginBottom: 12,
-      }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: prevDelta != null ? 8 : 0 }}>
+        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+        background: `linear-gradient(90deg, transparent, ${ACCENT_GLOW}88, transparent)`,
+        filter: 'blur(0.3px)',
+        opacity: 0.85,
+        animation: 'cr-shine 4s ease-in-out infinite',
+        zIndex: 3,
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: '-50%',
+        width: '40%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        animation: 'sim-scan 9s ease-in-out infinite',
+        animationDelay: `${delay + 1}s`,
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
+      <div style={{ position: 'relative', zIndex: 2 }}>
         <div style={{
-          fontSize: 26,
-          fontWeight: 900,
-          color: accent,
-          letterSpacing: '-0.02em',
-        }}>{value}</div>
-        {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}
-      </div>
-      {prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 && (
-        <div style={{
-          display: 'inline-flex',
-          padding: '3px 9px',
-          borderRadius: 6,
-          background: good ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)',
-          color: good ? '#22c55e' : '#ef4444',
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 800,
-        }}>
-          {prevDelta > 0 ? '▲' : '▼'} {Math.abs(prevDelta).toFixed(2)}%
+          color: 'var(--text3)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.14em',
+          marginBottom: 12,
+        }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: prevDelta != null ? 8 : 0 }}>
+          <div style={{
+            fontSize: 26,
+            fontWeight: 900,
+            color: accent,
+            letterSpacing: '-0.02em',
+          }}>{value}</div>
+          {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}
         </div>
-      )}
+        {prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 && (
+          <div style={{
+            display: 'inline-flex',
+            padding: '3px 9px',
+            borderRadius: 6,
+            background: good ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)',
+            color: good ? '#22c55e' : '#ef4444',
+            fontSize: 11,
+            fontWeight: 800,
+          }}>
+            {prevDelta > 0 ? '▲' : '▼'} {Math.abs(prevDelta).toFixed(2)}%
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-function FxCard({ title, glow = '#2997ff', subtitle, children, padding = 24 }) {
+function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, delay = 0 }) {
   return (
-    <div style={{
-      background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: 22,
-      overflow: 'hidden',
-      position: 'relative',
-      boxShadow: '0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        borderRadius: 22,
+        overflow: 'hidden',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+        animation: 'sim-pulse 6s ease-in-out infinite',
+        animationDelay: `${delay}s`,
+        transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.animationPlayState = 'paused'
+        e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
+        e.currentTarget.style.boxShadow = `0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px ${glow}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.animationPlayState = 'running'
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+      }}
+    >
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: `linear-gradient(90deg, transparent, ${glow}, transparent)`,
+        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
+        filter: 'blur(0.3px)',
+        opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
+        zIndex: 3,
+        pointerEvents: 'none',
       }} />
-      <div style={{ padding }}>
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: '-50%',
+        width: '40%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        animation: 'sim-scan 9s ease-in-out infinite',
+        animationDelay: `${delay + 1}s`,
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
+      <div style={{ padding, position: 'relative', zIndex: 2 }}>
         {title && (
           <div style={{ marginBottom: subtitle ? 4 : 18 }}>
             <h2 style={{
@@ -565,11 +647,16 @@ export default function MetaDetailTab() {
 
       {/* Preset bar */}
       <div style={{
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 18,
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        borderRadius: 22,
         padding: 16,
         marginBottom: 18,
+        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {PRESETS.map(p => {
@@ -667,12 +754,12 @@ export default function MetaDetailTab() {
         gap: 14,
         marginBottom: 18,
       }}>
-        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" />
-        <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" />
-        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" />
-        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" />
-        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" />
-        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" />
+        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" delay={0} />
+        <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" delay={0.3} />
+        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" delay={0.6} />
+        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" delay={0.9} />
+        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" delay={1.2} />
+        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" delay={1.5} />
       </div>
 
       {/* Comparazione + Insight */}
@@ -685,7 +772,8 @@ export default function MetaDetailTab() {
         <FxCard
           title="Confronto vs periodo precedente"
           subtitle={`${data?.previousRange?.since || '—'} → ${data?.previousRange?.until || '—'}`}
-          glow="#22c55e"
+          glow={ACCENT_GLOW}
+          delay={0}
         >
           <div style={{
             display: 'grid',
@@ -702,9 +790,12 @@ export default function MetaDetailTab() {
               return (
                 <div key={it.label} style={{
                   padding: '12px 14px',
-                  background: 'rgba(255,255,255,0.025)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  background: 'rgba(0,0,0,0.45)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderTopColor: 'rgba(255,255,255,0.10)',
+                  borderBottomColor: 'rgba(0,0,0,0.55)',
                   borderRadius: 12,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
                 }}>
                   <div style={{
                     fontSize: 9, color: 'var(--text3)',
@@ -722,7 +813,7 @@ export default function MetaDetailTab() {
           </div>
         </FxCard>
 
-        <FxCard title="Insight automatico" glow="#a78bfa">
+        <FxCard title="Insight automatico" glow={ACCENT_GLOW} delay={0.4}>
           <p style={{
             color: 'var(--text)',
             fontSize: 14,
@@ -735,15 +826,18 @@ export default function MetaDetailTab() {
 
       {/* To-do */}
       <div style={{ marginBottom: 18 }}>
-        <FxCard title="To-do consigliate" subtitle="Azioni prioritarie suggerite dall'analisi" glow="#f59e0b">
+        <FxCard delay={0.8} title="To-do consigliate" subtitle="Azioni prioritarie suggerite dall'analisi" glow={ACCENT_GLOW}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(data?.todos || []).map((todo, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '14px 18px',
-                background: 'rgba(255,255,255,0.025)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderTopColor: 'rgba(255,255,255,0.10)',
+                borderBottomColor: 'rgba(0,0,0,0.55)',
                 borderRadius: 12,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
               }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
@@ -766,15 +860,20 @@ export default function MetaDetailTab() {
 
       {/* Filtri + ricerca tabella */}
       <div style={{
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 18,
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        borderRadius: 22,
         padding: 16,
         marginBottom: 14,
         display: 'flex',
         gap: 12,
         flexWrap: 'wrap',
         alignItems: 'center',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         <input
           type="text"
@@ -846,8 +945,9 @@ export default function MetaDetailTab() {
       <FxCard
         title="Gerarchia Meta"
         subtitle={`${visibleRows.filter(r => r.level === 'campaign').length} campagne · Click campagna → ad set · Click ad set → ads`}
-        glow="#06b6d4"
+        glow={ACCENT_GLOW}
         padding={0}
+        delay={1.6}
       >
         <div style={{ overflowX: 'auto', maxHeight: '72vh', padding: '0 24px 24px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>

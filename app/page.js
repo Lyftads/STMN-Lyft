@@ -119,12 +119,13 @@ const FxDot = ({ cx, cy, color = '#fff' }) => {
   )
 }
 
-function FxChartCard({ title, glowColor = '#2997ff', children }) {
+function FxChartCard({ title, glowColor = '#2997ff', subtitle, children }) {
   return (
-    <div className="fx-chart-card" style={{ '--fx-chart-glow': glowColor }}>
+    <div className="fx-chart-card" style={{ '--fx-chart-glow': glowColor, marginBottom: 20 }}>
       <div className="fx-chart-header">
         <span className="fx-chart-dot" style={{ background: glowColor, boxShadow: `0 0 12px ${glowColor}, 0 0 4px ${glowColor}` }} />
         <span className="fx-chart-title">{title}</span>
+        {subtitle && <span style={{ fontSize: 10, color: 'var(--text3)', marginLeft: 'auto', marginRight: 10 }}>{subtitle}</span>}
         <span className="fx-chart-spark">
           <span /><span /><span />
         </span>
@@ -2267,14 +2268,7 @@ export default function App() {
           </div>
 
           {/* Data Entry Table */}
-          <div style={{...S.card, marginBottom:20}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <span style={{fontSize:13,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.08em',textTransform:'uppercase'}}>
-                Dati mensili
-              </span>
-              <span style={{fontSize:10,color:'#22c55e'}}>Shopify + Meta automatici · Google manuale</span>
-            </div>
-
+          <FxChartCard title="Dati mensili" glowColor="#22c55e" subtitle="Shopify + Meta automatici · Google manuale">
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
@@ -2322,14 +2316,11 @@ export default function App() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </FxChartCard>
 
           {/* KPI Calcolati Table */}
           {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 0 && (
-          <div style={{...S.card, marginBottom:20}}>
-            <p style={{fontSize:11,color:'#fff',fontWeight:700,fontFamily:'Barlow Condensed',letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:16}}>
-              KPI calcolati
-            </p>
+          <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
@@ -2371,7 +2362,7 @@ export default function App() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </FxChartCard>
           )}
 
           {/* Charts — futuristic */}

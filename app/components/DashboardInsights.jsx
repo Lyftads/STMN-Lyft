@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const SECTION_ICONS = {
   overview: '◆',
@@ -18,15 +18,64 @@ const SECTION_COLORS = {
   products: '#ff9f0a',
 }
 
+const SECTION_TITLES = {
+  overview: 'Quadro generale',
+  shopify: 'Shopify',
+  meta: 'Meta Ads',
+  creative: 'Creative',
+  products: 'Prodotti più venduti',
+}
+
 const ORDER = ['overview', 'shopify', 'meta', 'creative', 'products']
+
+// Normalize whatever the model returns into our expected shape
+function normalizeSections(raw) {
+  if (!raw || typeof raw !== 'object') return null
+
+  // If the model wrapped sections under a parent key, unwrap
+  let src = raw
+  if (raw.sections && typeof raw.sections === 'object') src = raw.sections
+
+  const out = {}
+  for (const key of ORDER) {
+    let s = src[key]
+    // Try common aliases
+    if (!s) {
+      if (key === 'meta') s = src.meta_ads || src.metaAds
+      if (key === 'creative') s = src.creatives || src.creativi
+      if (key === 'products') s = src.top_products || src.topProducts || src.prodotti
+      if (key === 'overview') s = src.general || src.generale
+    }
+    if (!s || typeof s !== 'object') continue
+
+    const insights = Array.isArray(s.insights) ? s.insights.filter(x => typeof x === 'string' && x.length > 0) : []
+    const todos = Array.isArray(s.todos) ? s.todos.filter(x => typeof x === 'string' && x.length > 0) :
+                  Array.isArray(s.todo) ? s.todo.filter(x => typeof x === 'string' && x.length > 0) : []
+
+    if (insights.length === 0 && todos.length === 0) continue
+
+    out[key] = {
+      title: typeof s.title === 'string' ? s.title : SECTION_TITLES[key],
+      insights,
+      todos,
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null
+}
 
 export default function DashboardInsights({ preset }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [retryKey, setRetryKey] = useState(0)
+  const abortRef = useRef(null)
 
   useEffect(() => {
     let active = true
+    if (abortRef.current) abortRef.current.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+
     setLoading(true)
     setError(null)
 
@@ -34,75 +83,99 @@ export default function DashboardInsights({ preset }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ preset }),
+      signal: ac.signal,
     })
-      .then(r => r.json())
-      .then(json => {
+      .then(r => r.json().then(j => ({ ok: r.ok, json: j })))
+      .then(({ ok, json }) => {
         if (!active) return
-        if (json.error) setError(json.error)
-        else setData(json.sections)
+        if (!ok || json.error) {
+          setError(json?.error || `HTTP error`)
+          return
+        }
+        const normalized = normalizeSections(json.sections)
+        if (!normalized) {
+          setError('La risposta AI non contiene insight validi. Riprova.')
+          return
+        }
+        setData(normalized)
       })
-      .catch(e => active && setError(e.message))
-      .finally(() => active && setLoading(false))
+      .catch(e => {
+        if (!active || e.name === 'AbortError') return
+        setError(e.message || 'Errore di rete')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
 
-    return () => { active = false }
-  }, [preset])
+    return () => { active = false; ac.abort() }
+  }, [preset, retryKey])
 
-  if (loading && !data) {
-    return (
-      <div className="reveal-zoom glass-section" style={{ padding: 32, marginTop: 28 }}>
+  const containerStyle = { marginTop: 32 }
+
+  // Always render the container so the user sees something happening
+  return (
+    <div className="reveal-zoom" style={containerStyle}>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <h2 className="heading-md">Insight e To-do</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%',
-            border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-          <span style={{ color: 'var(--text2)', fontSize: 14 }}>
-            Genero insight per il periodo selezionato…
-          </span>
+          {loading && (
+            <span style={{ fontSize: 12, color: 'var(--text3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                width: 12, height: 12, borderRadius: '50%',
+                border: '1.5px solid var(--border)', borderTopColor: 'var(--accent)',
+                animation: 'spin 0.8s linear infinite', display: 'inline-block',
+              }} />
+              Genero…
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setRetryKey(k => k + 1)}
+            disabled={loading}
+            className="btn-glass"
+            style={{ fontSize: 12, padding: '6px 12px', cursor: loading ? 'wait' : 'pointer' }}
+          >
+            ↻ Rigenera
+          </button>
         </div>
       </div>
-    )
-  }
 
-  if (error) {
-    return (
-      <div className="reveal-zoom glass-section" style={{ padding: 32, marginTop: 28 }}>
-        <div style={{ color: 'var(--red)', fontSize: 14 }}>
+      {error && !data && (
+        <div className="glass-card" style={{ padding: 20, color: 'var(--red)', fontSize: 13 }}>
           ⚠️ {error}
         </div>
-      </div>
-    )
-  }
+      )}
 
-  if (!data) return null
+      {!error && !data && loading && (
+        <div className="glass-card" style={{ padding: 32, color: 'var(--text2)', fontSize: 14, textAlign: 'center' }}>
+          Sto analizzando i dati del periodo selezionato…
+        </div>
+      )}
 
-  const sections = ORDER.filter(k => data[k]).map(k => ({ key: k, ...data[k] }))
+      {!error && !data && !loading && (
+        <div className="glass-card" style={{ padding: 20, color: 'var(--text2)', fontSize: 13 }}>
+          Nessun insight disponibile. Clicca "Rigenera".
+        </div>
+      )}
 
-  return (
-    <div className="reveal-zoom" style={{ marginTop: 32 }}>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <h2 className="heading-md">Insight e To-do</h2>
-        <span style={{ fontSize: 12, color: 'var(--text3)' }}>
-          Aggiornati per il periodo selezionato {loading && '· aggiorno…'}
-        </span>
-      </div>
-
-      <div className="stagger-zoom" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-        gap: 14,
-      }}>
-        {sections.map(s => (
-          <SectionCard key={s.key} section={s} />
-        ))}
-      </div>
+      {data && (
+        <div className="stagger-zoom" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: 14,
+        }}>
+          {ORDER.filter(k => data[k]).map(k => (
+            <SectionCard key={k} sectionKey={k} section={data[k]} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function SectionCard({ section }) {
-  const color = SECTION_COLORS[section.key] || 'var(--accent)'
-  const icon = SECTION_ICONS[section.key] || '◆'
+function SectionCard({ sectionKey, section }) {
+  const color = SECTION_COLORS[sectionKey] || 'var(--accent)'
+  const icon = SECTION_ICONS[sectionKey] || '◆'
 
   return (
     <div className="glass-card" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>

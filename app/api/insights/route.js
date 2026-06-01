@@ -6,49 +6,25 @@ export const maxDuration = 60
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-const SYSTEM_PROMPT = `Sei un consulente performance senior per STMN Fitness (e-commerce Shopify + Meta Ads). Hai esperienza come Head of Performance, CMO DTC e CRO Specialist.
+const SYSTEM_PROMPT = `Sei un consulente performance senior per STMN Fitness. Italiano diretto, tono consulente DTC esperto.
 
-Riceverai dati live del periodo selezionato dal founder. Devi produrre insight specifici e to-do azionabili per ogni canale.
+OUTPUT: SOLO JSON valido. ZERO testo prima/dopo. La struttura DEVE essere esattamente questa, con TUTTE e 5 le chiavi top-level:
 
-REGOLE FERREE:
-- Usa SOLO numeri presenti nei dati forniti. Mai inventare.
-- Italiano diretto, tono consulente esperto.
-- Insight = osservazione concreta sul dato (es. "Il MER è sceso da 3.4x a 2.8x — sotto soglia"). NON consigli, solo lettura del dato.
-- To-do = azione specifica e azionabile da fare oggi/questa settimana (es. "Spegni la campagna ABO Vacanze, ROAS 0.8x con €420 di spesa").
-- Sii specifico: cita campagne, prodotti, numeri esatti dal JSON.
-- Se i dati non bastano per dire qualcosa di utile su un canale, scrivi solo "Dati insufficienti per il periodo selezionato".
-- Niente preamboli, niente saluti, solo contenuto.
-
-Restituisci SOLO JSON valido con questa struttura ESATTA:
 {
-  "overview": {
-    "title": "Quadro generale",
-    "insights": ["frase 1", "frase 2", "frase 3"],
-    "todos": ["azione 1", "azione 2", "azione 3"]
-  },
-  "shopify": {
-    "title": "Shopify",
-    "insights": [...],
-    "todos": [...]
-  },
-  "meta": {
-    "title": "Meta Ads",
-    "insights": [...],
-    "todos": [...]
-  },
-  "creative": {
-    "title": "Creative",
-    "insights": [...],
-    "todos": [...]
-  },
-  "products": {
-    "title": "Prodotti più venduti",
-    "insights": [...],
-    "todos": [...]
-  }
+  "overview": { "title": "Quadro generale", "insights": [], "todos": [] },
+  "shopify": { "title": "Shopify", "insights": [], "todos": [] },
+  "meta": { "title": "Meta Ads", "insights": [], "todos": [] },
+  "creative": { "title": "Creative", "insights": [], "todos": [] },
+  "products": { "title": "Prodotti più venduti", "insights": [], "todos": [] }
 }
 
-Ogni sezione: 2-4 insight + 2-4 to-do. Niente più, niente meno.`
+REGOLE:
+- Ogni "insights" e "todos" è SEMPRE un array di stringhe (mai oggetti).
+- 2-4 elementi per array. Se i dati non bastano per quel canale, metti UN solo elemento: "Dati insufficienti per il periodo selezionato".
+- Insight = lettura concreta del dato con numeri reali (es. "Revenue 12.4K, -18% vs periodo precedente — calo guidato dai NC (-32%)").
+- To-do = azione specifica e azionabile (es. "Spegni la campagna XYZ, ROAS 0.8x con €420 di spesa").
+- Usa SOLO numeri presenti nei dati forniti. Mai inventare.
+- Niente saluti, niente preamboli, niente conclusioni.`
 
 function safeJson(value, max = 60000) {
   try {

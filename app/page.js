@@ -2112,16 +2112,16 @@ export default function App() {
         }))
 
         const kpiCards = [
-          { label: 'Fatturato', val: tf.fat, prev: tfP.fat, fmt: f0, color: '#22c55e', key: 'fatturato' },
-          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: '#f8fafc', key: 'ordini' },
-          { label: 'AOV', val: tf.aov, prev: tfP.aov, fmt: f2, color: '#f59e0b', key: 'aov' },
-          { label: 'Nuovi Clienti', val: tf.nc, prev: tfP.nc, fmt: fn, color: '#06b6d4', key: 'nc' },
-          { label: 'Clienti Ritorno', val: tf.rc, prev: tfP.rc, fmt: fn, color: '#a78bfa', key: 'rc' },
-          { label: 'MER', val: tf.mer, prev: tfP.mer, fmt: v => v != null ? `${fr(v)}×` : '—', color: tf.mer != null ? (tf.mer >= 3 ? '#22c55e' : tf.mer >= 2 ? '#f59e0b' : '#ef4444') : '#555', key: 'mer' },
-          { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: '#f8fafc', key: 'cac', lower: true },
-          { label: 'Ratio LTV:CAC', val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio' },
-          { label: 'Meta Spend', val: tf.meta, prev: tfP.meta, fmt: f0, color: '#3b82f6', key: 'metaSpend' },
-          { label: 'Google Spend', val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: '#eab308', key: 'googleSpend' },
+          { label: 'Fatturato', val: tf.fat, prev: tfP.fat, fmt: f0, color: 'var(--green)', key: 'fatturato', sources: ['shopify'] },
+          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: 'var(--accent)', key: 'ordini', sources: ['shopify'] },
+          { label: 'AOV', val: tf.aov, prev: tfP.aov, fmt: f2, color: 'var(--orange)', key: 'aov', sources: ['shopify'] },
+          { label: 'Nuovi Clienti', val: tf.nc, prev: tfP.nc, fmt: fn, color: 'var(--cyan)', key: 'nc', sources: ['shopify'] },
+          { label: 'Clienti Ritorno', val: tf.rc, prev: tfP.rc, fmt: fn, color: 'var(--purple)', key: 'rc', sources: ['shopify'] },
+          { label: 'MER', val: tf.mer, prev: tfP.mer, fmt: v => v != null ? `${fr(v)}×` : '—', color: tf.mer != null ? (tf.mer >= 3 ? 'var(--green)' : tf.mer >= 2 ? 'var(--orange)' : 'var(--red)') : 'var(--text3)', key: 'mer', sources: ['shopify','meta'] },
+          { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: 'var(--text)', key: 'cac', lower: true, sources: ['shopify','meta','google'] },
+          { label: 'Ratio LTV:CAC', val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio', sources: ['shopify','meta'] },
+          { label: 'Meta Spend', val: tf.meta, prev: tfP.meta, fmt: f0, color: 'var(--accent)', key: 'metaSpend', sources: ['meta'] },
+          { label: 'Google Spend', val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: 'var(--yellow)', key: 'googleSpend', sources: ['google'] },
         ]
 
         return (
@@ -2171,17 +2171,18 @@ export default function App() {
           </div>
 
           {/* Summary KPI Cards with sparkline + delta */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
             {kpiCards.map(kpi => (
-              <div key={kpi.label} style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-                <div style={{fontSize:10,color:'var(--text2)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8,fontFamily:'Barlow Condensed'}}>{kpi.label}</div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                  <div style={{fontSize:24,fontWeight:950,color:kpi.color,fontFamily:'Barlow',letterSpacing:'-0.02em'}}>
-                    {kpi.fmt(kpi.val)}
-                  </div>
+              <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
+                  <div className="label">{kpi.label}</div>
+                  <PlatformBadges sources={kpi.sources} size={16} />
+                </div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                  <div className="metric-value">{kpi.fmt(kpi.val)}</div>
                   <Sparkline dataArr={filled} dataKey={kpi.key} color={kpi.color} />
                 </div>
-                <div style={{marginTop:8}}>
+                <div style={{marginTop:10}}>
                   <DeltaBadge curr={kpi.val} prev={kpi.prev} isLowerBetter={kpi.lower} />
                 </div>
               </div>

@@ -175,32 +175,6 @@ export default function WebsiteScannerTab() {
   const [error, setError] = useState('')
   const [screenshotLoaded, setScreenshotLoaded] = useState(false)
 
-  // L'URL del preview si genera immediatamente quando l'utente preme Scansiona
-  const [previewUrl, setPreviewUrl] = useState(null)
-
-  const buildPreviewUrl = (raw) => {
-    let u = raw.trim()
-    if (!/^https?:\/\//i.test(u)) u = 'https://' + u
-    // Forza locale IT su Shopify Markets per bypassare il geo-redirect
-    // (server Microlink free sono US → siti italiani ridirezionano a US)
-    try {
-      const parsed = new URL(u)
-      if (!parsed.searchParams.has('_country')) parsed.searchParams.set('_country', 'IT')
-      if (!parsed.searchParams.has('_currency')) parsed.searchParams.set('_currency', 'EUR')
-      if (!parsed.searchParams.has('locale')) parsed.searchParams.set('locale', 'it')
-      u = parsed.toString()
-    } catch {}
-    const p = new URLSearchParams({
-      url: u,
-      screenshot: 'true',
-      meta: 'false',
-      embed: 'screenshot.url',
-      'viewport.width': '1440',
-      'viewport.height': '1800',
-    })
-    return `https://api.microlink.io/?${p.toString()}`
-  }
-
   const runScan = async () => {
     setError('')
     if (!url.trim()) {
@@ -210,8 +184,6 @@ export default function WebsiteScannerTab() {
     setData(null)
     setScreenshotLoaded(false)
     setScanning(true)
-    // Mostra subito il preview screenshot mentre l'AI lavora
-    setPreviewUrl(buildPreviewUrl(url))
 
     try {
       const r = await fetch('/api/website-scanner', {
@@ -236,12 +208,9 @@ export default function WebsiteScannerTab() {
   }
 
   const analysis = data?.analysis
-  // Preferenza:
-  // 1) screenshotDataUrl = il vero screenshot usato per l'analisi
-  //    (Chromium fra1 IT version)
-  // 2) screenshotUrl = CDN URL del servizio (Microlink/ScreenshotOne)
-  // 3) previewUrl = preview immediato Microlink (US-based, mentre l'API processa)
-  const finalScreenshotUrl = data?.screenshotDataUrl || data?.screenshotUrl || previewUrl
+  // screenshotDataUrl = vero screenshot usato per l'analisi (Browserless EU)
+  // screenshotUrl = fallback CDN URL del servizio (ScreenshotOne/Microlink)
+  const finalScreenshotUrl = data?.screenshotDataUrl || data?.screenshotUrl
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -328,7 +297,7 @@ export default function WebsiteScannerTab() {
       )}
 
       {/* Preview screenshot + Results */}
-      {previewUrl && (
+      {(scanning || data) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.1fr)', gap: 18, alignItems: 'start' }}>
           {/* Screenshot */}
           <GlassCard padding={0} delay={0}>
@@ -402,18 +371,20 @@ export default function WebsiteScannerTab() {
                   </div>
                 </div>
               )}
-              <img
-                src={finalScreenshotUrl}
-                alt="Landing preview"
-                onLoad={() => setScreenshotLoaded(true)}
-                onError={() => setScreenshotLoaded(true)}
-                style={{
-                  width: '100%',
-                  display: 'block',
-                  opacity: screenshotLoaded ? 1 : 0,
-                  transition: 'opacity 0.4s ease',
-                }}
-              />
+              {finalScreenshotUrl && (
+                <img
+                  src={finalScreenshotUrl}
+                  alt="Landing preview"
+                  onLoad={() => setScreenshotLoaded(true)}
+                  onError={() => setScreenshotLoaded(true)}
+                  style={{
+                    width: '100%',
+                    display: 'block',
+                    opacity: screenshotLoaded ? 1 : 0,
+                    transition: 'opacity 0.4s ease',
+                  }}
+                />
+              )}
             </div>
           </GlassCard>
 
@@ -686,7 +657,7 @@ export default function WebsiteScannerTab() {
         </div>
       )}
 
-      {!previewUrl && !scanning && (
+      {!scanning && !data && (
         <GlassCard padding={48}>
           <div style={{ textAlign: 'center', maxWidth: 540, margin: '0 auto' }}>
             <div style={{

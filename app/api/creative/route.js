@@ -419,21 +419,32 @@ async function fetchProductSetSample(productSetId, max = 6) {
   }
 }
 
-// Estrae l'URL del preview iframe per un'inserzione.
-// Funziona per QUALSIASI ad type (incluso DPA / Advantage+ Catalog),
-// perché ritorna l'iframe Facebook che mostra il preview reale.
-async function fetchAdPreviewUrl(adId) {
-  if (!adId) return null
+// Per inserzioni che linkano a un post pubblicato (carousel, catalog DPA,
+// dynamic creative) possiamo recuperare le immagini direttamente dal post
+// via attachments. Funziona quando product_set_id non è accessibile.
+async function fetchPostAttachments(objectStoryId) {
+  if (!objectStoryId) return []
   try {
-    const data = await metaGet(`${adId}/previews`, {
-      ad_format: 'DESKTOP_FEED_STANDARD',
+    const data = await metaGet(`${objectStoryId}`, {
+      fields: 'attachments{media,subattachments{media,description,title}}',
     })
-    const body = data?.data?.[0]?.body || ''
-    // body è una stringa HTML tipo <iframe src="https://..." ...></iframe>
-    const match = body.match(/src=["']([^"']+)["']/i)
-    return match ? match[1].replace(/&amp;/g, '&') : null
+    const att = data?.attachments?.data?.[0]
+    if (!att) return []
+    // Carousel: subattachments contiene le card singole
+    const subs = att.subattachments?.data || []
+    if (subs.length) {
+      return subs.map((s, i) => ({
+        id: `att_${i}`,
+        name: s.title || s.description || '',
+        image_url: s.media?.image?.src || '',
+        price: '',
+      })).filter(p => p.image_url)
+    }
+    // Single attachment fallback
+    const url = att.media?.image?.src
+    return url ? [{ id: 'att_0', name: '', image_url: url, price: '' }] : []
   } catch {
-    return null
+    return []
   }
 }
 
@@ -450,7 +461,7 @@ async function hydrateCreatives(rows) {
             'id',
             'name',
             'effective_status',
-            'creative{id,name,thumbnail_url,image_url,product_set_id,object_story_spec,asset_feed_spec}',
+            'creative{id,name,thumbnail_url,image_url,product_set_id,effective_object_story_id,object_story_id,object_story_spec,asset_feed_spec}',
           ].join(','),
           thumbnail_width: CREATIVE_IMAGE_SIZE,
           thumbnail_height: CREATIVE_IMAGE_SIZE,
@@ -469,6 +480,8 @@ async function hydrateCreatives(rows) {
                 'thumbnail_url',
                 'image_url',
                 'product_set_id',
+                'effective_object_story_id',
+                'object_story_id',
                 'object_story_spec',
                 'asset_feed_spec',
               ].join(','),
@@ -501,17 +514,24 @@ async function hydrateCreatives(rows) {
         if (!productSetId) {
           productSetId = await getAdsetProductSetId(row.adset_id)
         }
-        const products = productSetId
+        let products = productSetId
           ? await fetchProductSetSample(productSetId, 6)
           : []
 
-        // Preview iframe Meta come fallback finale: funziona per tutti i
-        // formati (incluso catalog/DPA dove non riusciamo a estrarre i
-        // prodotti via product_set_id) e mostra il preview reale.
-        const needsIframe = !fullImageUrl && !previewImageUrl && products.length === 0
-        const previewIframeUrl = needsIframe
-          ? await fetchAdPreviewUrl(row.ad_id)
-          : null
+        // Fallback: se non riusciamo a leggere il product_set (permessi
+        // catalog_management non concessi), proviamo a tirare le card
+        // direttamente dal post Facebook associato al creative
+        if (products.length === 0) {
+          const storyId =
+            fullCreative?.effective_object_story_id ||
+            creative?.effective_object_story_id ||
+            fullCreative?.object_story_id ||
+            creative?.object_story_id ||
+            null
+          if (storyId) {
+            products = await fetchPostAttachments(storyId)
+          }
+        }
 
         return {
           ...row,
@@ -528,7 +548,6 @@ async function hydrateCreatives(rows) {
 
           product_set_id: productSetId,
           products,
-          preview_iframe_url: previewIframeUrl,
         }
       } catch {
         return row
@@ -760,10 +779,20 @@ export async function GET(req) {
       .sort((a, b) => b.spend - a.spend)
 
     const prevRange = getPrevRange(range)
-    const [prevSummary, dailySeries] = await Promise.all([
+    const [accountSummary, prevSummary, dailySeries] = await Promise.all([
+      fetchAccountSummary(accounts, range).catch(() => null),
       fetchAccountSummary(accounts, prevRange).catch(() => null),
       fetchDailySeries(accounts, range).catch(() => []),
     ])
+
+    // Account-level summary è più affidabile (combacia con Meta Detail
+    // che funziona). Lo usiamo come summary primaria se disponibile,
+    // così CPC/CTR/spend riflettono direttamente la fonte Meta usata
+    // dal tab Meta Detail invece dell'aggregazione per-ad
+    const adLevelSummary = buildSummary(merged)
+    const summary = accountSummary
+      ? { ...adLevelSummary, ...accountSummary, creatives: merged.length }
+      : adLevelSummary
 
     return json({
       ok: true,
@@ -772,7 +801,7 @@ export async function GET(req) {
       prevRange,
       accounts,
       rows: merged,
-      summary: buildSummary(merged),
+      summary,
       prevSummary,
       dailySeries,
       debug: debug ? getSafeEnvDebug() : undefined,

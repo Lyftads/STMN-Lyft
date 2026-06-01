@@ -130,6 +130,7 @@ function CreativeCard({ row, index }) {
   const name = getCreativeName(row)
   const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
   const isCatalog = products.length > 0
+  const previewIframeUrl = row.preview_iframe_url || null
 
   const spend = asNum(row.spend)
   const purchases = asNum(row.purchases || row.orders)
@@ -226,6 +227,20 @@ function CreativeCard({ row, index }) {
               height: '100%',
               objectFit: 'cover',
               display: 'block',
+            }}
+          />
+        ) : previewIframeUrl ? (
+          <iframe
+            src={previewIframeUrl}
+            title={name}
+            sandbox="allow-scripts allow-same-origin"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 0,
+              background: '#fff',
+              transform: 'scale(0.78)',
+              transformOrigin: 'center center',
             }}
           />
         ) : (

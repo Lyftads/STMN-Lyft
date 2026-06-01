@@ -419,6 +419,24 @@ async function fetchProductSetSample(productSetId, max = 6) {
   }
 }
 
+// Estrae l'URL del preview iframe per un'inserzione.
+// Funziona per QUALSIASI ad type (incluso DPA / Advantage+ Catalog),
+// perché ritorna l'iframe Facebook che mostra il preview reale.
+async function fetchAdPreviewUrl(adId) {
+  if (!adId) return null
+  try {
+    const data = await metaGet(`${adId}/previews`, {
+      ad_format: 'DESKTOP_FEED_STANDARD',
+    })
+    const body = data?.data?.[0]?.body || ''
+    // body è una stringa HTML tipo <iframe src="https://..." ...></iframe>
+    const match = body.match(/src=["']([^"']+)["']/i)
+    return match ? match[1].replace(/&amp;/g, '&') : null
+  } catch {
+    return null
+  }
+}
+
 async function hydrateCreatives(rows) {
   const limited = rows.slice(0, 200)
 
@@ -487,6 +505,14 @@ async function hydrateCreatives(rows) {
           ? await fetchProductSetSample(productSetId, 6)
           : []
 
+        // Preview iframe Meta come fallback finale: funziona per tutti i
+        // formati (incluso catalog/DPA dove non riusciamo a estrarre i
+        // prodotti via product_set_id) e mostra il preview reale.
+        const needsIframe = !fullImageUrl && !previewImageUrl && products.length === 0
+        const previewIframeUrl = needsIframe
+          ? await fetchAdPreviewUrl(row.ad_id)
+          : null
+
         return {
           ...row,
           status: ad.effective_status || row.status,
@@ -502,6 +528,7 @@ async function hydrateCreatives(rows) {
 
           product_set_id: productSetId,
           products,
+          preview_iframe_url: previewIframeUrl,
         }
       } catch {
         return row
@@ -561,7 +588,6 @@ async function fetchAccountSummary(accounts, range) {
       level: 'account',
       fields: 'spend,impressions,clicks,unique_clicks,inline_link_clicks,unique_inline_link_clicks,cpc,cost_per_inline_link_click,cost_per_action_type,ctr,inline_link_click_ctr,actions,action_values',
       time_range: range,
-      action_breakdowns: 'action_type',
     }, 100)
     for (const r of rows) {
       const rSpend = toNum(r.spend)
@@ -610,10 +636,9 @@ async function fetchDailySeries(accounts, range) {
   for (const account of accounts) {
     const rows = await metaGetAll(`${account}/insights`, {
       level: 'account',
-      fields: 'spend,impressions,clicks,inline_link_clicks,actions,action_values',
+      fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,actions,action_values',
       time_range: range,
       time_increment: 1,
-      action_breakdowns: 'action_type',
     }, 500)
     for (const r of rows) {
       const date = r.date_start
@@ -705,7 +730,6 @@ export async function GET(req) {
           level: 'ad',
           fields,
           time_range: range,
-          action_breakdowns: 'action_type',
         },
         500
       )

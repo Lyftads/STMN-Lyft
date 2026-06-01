@@ -332,7 +332,9 @@ function Simulator({ cfg }) {
     return { revenueIvaInclusa, iva, revenue, orders, aovNetto, cogsAmount, marginePerOrdine, marginePct, profittoLordo, profittoNetto, netMarginPct, mer, cpo, breakEvenRoas }
   }
 
-  const scenarioColors = ['#3b82f6', '#22c55e', '#f59e0b']
+  // Palette minimale coerente con le altre tab:
+  // slate (neutro), accent blu Apple, viola — niente verde/giallo accesi
+  const scenarioColors = ['#64748b', '#2997ff', '#bf5af2']
   const sm0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : n<0 ? `-€${Math.round(Math.abs(n)).toLocaleString('it-IT')}` : '€0'
   const sm2 = n => `€${Number(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
   const sp1 = n => `${Number(n).toFixed(1)}%`
@@ -415,12 +417,14 @@ function Simulator({ cfg }) {
             </div>
 
             {[
-              {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`,           accent:'#3b82f6'},
-              {k:'freq',  l:'Frequenza / anno',     min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`, accent:'#a78bfa'},
-              {k:'life',  l:'Vita media (anni)',    min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`,  accent:'#06b6d4'},
-              {k:'margin',l:'Margine %',            min:5,  max:80,  step:1,    fmt:v=>`${v}%`,            accent:'#22c55e'},
-              {k:'cac',   l:'CAC',                  min:5,  max:300, step:1,    fmt:v=>`€${v}`,            accent:'#f97316'},
-            ].map(({k,l,min,max,step,fmt,accent}) => {
+              {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
+              {k:'freq',  l:'Frequenza / anno',     min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
+              {k:'life',  l:'Vita media (anni)',    min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`},
+              {k:'margin',l:'Margine %',            min:5,  max:80,  step:1,    fmt:v=>`${v}%`},
+              {k:'cac',   l:'CAC',                  min:5,  max:300, step:1,    fmt:v=>`€${v}`},
+            ].map(({k,l,min,max,step,fmt}) => {
+              // Un solo accent per tutti gli slider — più minimale/futuristico
+              const accent = '#2997ff'
               const pct = ((s[k] - min) / (max - min)) * 100
               return (
                 <div key={k} style={{ marginBottom: 18 }}>
@@ -445,7 +449,7 @@ function Simulator({ cfg }) {
               )
             })}
           </>
-        ), { glow: '#22c55e' })}
+        ), { glow: '#2997ff' })}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
@@ -477,11 +481,11 @@ function Simulator({ cfg }) {
                     <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}>{l}</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{sub}</div>
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Barlow', color: '#22c55e' }}>{v}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'Barlow', color: '#2997ff' }}>{v}</div>
                 </div>
               ))}
             </>
-          ), { glow: '#22c55e', padding: 22 })}
+          ), { glow: '#2997ff', padding: 22 })}
         </div>
       </div>
 
@@ -607,23 +611,23 @@ function Simulator({ cfg }) {
           <tbody>
             {[
               {l:'Fatturato IVA inclusa', f:c=>sm0(c.revenueIvaInclusa), bold:true},
-              {l:'IVA 22% (da scorporare)', f:c=>`-${sm0(c.iva)}`, color:'#f59e0b'},
-              {l:'Fatturato netto (senza IVA)', f:c=>sm0(c.revenue), bold:true, color:'#3b82f6'},
-              {l:'Spesa ADV', f:(c,sc)=>sm0(sc.spend)},
+              {l:'IVA 22% (da scorporare)', f:c=>`-${sm0(c.iva)}`, muted:true},
+              {l:'Fatturato netto (senza IVA)', f:c=>sm0(c.revenue), bold:true},
+              {l:'Spesa ADV', f:(c,sc)=>sm0(sc.spend), muted:true},
               {l:'Ordini', f:c=>si0(c.orders)},
               {l:'AOV netto', f:c=>sm2(c.aovNetto)},
               {l:'ROAS', f:(c,sc)=>`${sc.roas.toFixed(1)}×`, bold:true},
               {l:'CPO', f:c=>sm2(c.cpo)},
               {l:'', sep:true},
-              {l:'COGS', f:(c,sc)=>`${sc.cogs}%`, color:'#ef4444'},
-              {l:'COGS totale', f:c=>sm0(c.cogsAmount), bold:true, color:'#ef4444'},
+              {l:'COGS', f:(c,sc)=>`${sc.cogs}%`, muted:true},
+              {l:'COGS totale', f:c=>sm0(c.cogsAmount), bold:true, muted:true},
               {l:'Margine per ordine', f:c=>sm2(c.marginePerOrdine)},
               {l:'Margine %', f:c=>sp1(c.marginePct)},
               {l:'', sep:true},
-              {l:'Profitto lordo (post COGS)', f:c=>sm0(c.profittoLordo), bold:true, color:'#3b82f6'},
-              {l:'Profitto netto (post ADV)', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#22c55e':'#ef4444'},
-              {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#22c55e':'#ef4444'},
-              {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, color:'#f59e0b'},
+              {l:'Profitto lordo (post COGS)', f:c=>sm0(c.profittoLordo), bold:true},
+              {l:'Profitto netto (post ADV)', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#30d158':'#ff453a'},
+              {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#30d158':'#ff453a'},
+              {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, muted:true},
             ].map((row,ri) => {
               if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:12,borderBottom:'1px solid rgba(255,255,255,0.04)'}} /></tr>
               return (
@@ -631,7 +635,13 @@ function Simulator({ cfg }) {
                 <td style={{padding:'11px 18px',color:'var(--text2)',fontWeight:row.bold?800:500,fontSize:row.bold?13:12.5,fontFamily:'Inter'}}>{row.l}</td>
                 {scenarios.map((sc,i) => {
                   const calc = calcScenario(sc)
-                  const cellColor = typeof row.color === 'function' ? row.color(calc) : row.color || '#f8fafc'
+                  const cellColor = typeof row.color === 'function'
+                    ? row.color(calc)
+                    : row.color
+                      ? row.color
+                      : row.muted
+                        ? 'var(--text3)'
+                        : '#f5f5f7'
                   return <td key={i} style={{padding:'11px 18px',textAlign:'right',fontFamily:'Barlow',fontWeight:row.bold?900:700,fontSize:row.bold?16:13.5,color:cellColor}}>{row.f(calc,sc)}</td>
                 })}
               </tr>
@@ -655,8 +665,8 @@ function Simulator({ cfg }) {
               <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
-              <Bar dataKey="netto" name="Fatt. netto" fill="#3b82f6" radius={[4,4,0,0]} />
-              <Bar dataKey="profitto" name="Profitto netto" fill="#22c55e" radius={[4,4,0,0]} />
+              <Bar dataKey="netto" name="Fatt. netto" fill="#2997ff" radius={[4,4,0,0]} />
+              <Bar dataKey="profitto" name="Profitto netto" fill="#30d158" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -674,9 +684,9 @@ function Simulator({ cfg }) {
               <YAxis tick={{fill:'#94a3b8',fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>`€${Math.round(v/1000)}k`} />
               <Tooltip content={<ChartTip />} />
               <Legend />
-              <Bar dataKey="iva" name="IVA 22%" fill="#f59e0b" stackId="c" radius={[4,4,0,0]} />
-              <Bar dataKey="cogs" name="COGS" fill="#ef4444" stackId="c" />
-              <Bar dataKey="adv" name="Spesa ADV" fill="#8b5cf6" stackId="c" radius={[0,0,4,4]} />
+              <Bar dataKey="iva" name="IVA 22%" fill="rgba(255,255,255,0.18)" stackId="c" radius={[4,4,0,0]} />
+              <Bar dataKey="cogs" name="COGS" fill="rgba(255,255,255,0.32)" stackId="c" />
+              <Bar dataKey="adv" name="Spesa ADV" fill="#2997ff" stackId="c" radius={[0,0,4,4]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -706,8 +716,8 @@ function Simulator({ cfg }) {
         return (
           <div style={{
             marginTop: 22,
-            background: 'linear-gradient(155deg, rgba(139,92,246,0.08) 0%, rgba(8,8,18,0.6) 100%)',
-            border: '1px solid rgba(139,92,246,0.2)',
+            background: 'linear-gradient(155deg, rgba(20,16,40,0.65) 0%, rgba(8,8,18,0.85) 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
             borderRadius: 18,
             padding: 26,
             position: 'relative',
@@ -715,13 +725,13 @@ function Simulator({ cfg }) {
           }}>
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-              background: 'linear-gradient(90deg, transparent, #8b5cf6, transparent)',
+              background: 'linear-gradient(90deg, transparent, #2997ff, transparent)',
               animation: 'cr-shine 4s ease-in-out infinite',
             }} />
 
             <div style={{ marginBottom: 22 }}>
               <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em' }}>
-                Analisi strategica <span style={{ color: '#a78bfa' }}>CMO + CFO</span>
+                Analisi strategica CMO + CFO
               </h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
                 Lettura combinata marketing + finanza per ogni scenario
@@ -730,7 +740,7 @@ function Simulator({ cfg }) {
 
             {/* P&L Summary */}
             <div style={{ marginBottom: 22 }}>
-              <p style={{ fontSize: 10, color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 12 }}>
+              <p style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 12 }}>
                 P&L mensile per scenario
               </p>
               {cashFlowAnalysis.map((r,i) => (
@@ -755,7 +765,7 @@ function Simulator({ cfg }) {
                     <span>Fatt. netto: <span style={{ color: 'var(--text2)' }}>{sm0(r.revenue)}</span></span>
                     <span>COGS ({r.cogs}%): <span style={{ color: 'var(--text2)' }}>-{sm0(r.cogsAmount)}</span></span>
                     <span>ADV: <span style={{ color: 'var(--text2)' }}>-{sm0(r.spend)}</span></span>
-                    <span style={{color:'#f59e0b'}}>ADV/Revenue: {sp1(r.advAsRevenueShare)}</span>
+                    <span>ADV/Revenue: <span style={{ color: 'var(--text2)' }}>{sp1(r.advAsRevenueShare)}</span></span>
                   </div>
                 </div>
               ))}
@@ -763,7 +773,7 @@ function Simulator({ cfg }) {
 
             {/* Cash Flow */}
             <div style={{marginBottom:22}}>
-              <p style={{fontSize:10,color:'#06b6d4',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Flusso di cassa e sostenibilità</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Flusso di cassa e sostenibilità</p>
               <div style={{
                 fontSize: 13,
                 color: 'var(--text)',
@@ -795,39 +805,39 @@ function Simulator({ cfg }) {
 
             {/* Strategia di scaling */}
             <div style={{marginBottom:22}}>
-              <p style={{fontSize:10,color:'#22c55e',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Strategia di scaling raccomandata</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Strategia di scaling raccomandata</p>
               <div style={{
                 fontSize: 13,
                 color: 'var(--text)',
                 lineHeight: 1.7,
                 fontWeight: 500,
-                background: 'rgba(34,197,94,0.04)',
-                border: '1px solid rgba(34,197,94,0.18)',
+                background: 'rgba(255,255,255,0.025)',
+                border: '1px solid rgba(255,255,255,0.05)',
                 borderRadius: 12,
                 padding: '16px 18px',
               }}>
                 {scalable.length > 0 ? (
                   <>
-                    <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#22c55e'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
+                    <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#fff'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
                     <p style={{marginBottom:8}}>Con COGS al {scalable[0].cogs}% e ADV che pesa il {sp1(scalable[0].advAsRevenueShare)} del fatturato lordo, la struttura dei costi è {scalable[0].advAsRevenueShare < 25 ? 'sana — c\'è margine per aumentare la spesa ADV se il ROAS tiene' : scalable[0].advAsRevenueShare < 35 ? 'nella media — monitora attentamente il ROAS, non c\'è molto margine di errore' : 'alta — l\'ADV pesa troppo sul fatturato, prima di scalare devi migliorare il ROAS o l\'AOV'}.</p>
                     {scalable[0].monthsToRecover && <p style={{marginBottom:8}}>Ogni mese di ADV si ripaga in <strong>{scalable[0].monthsToRecover < 1 ? 'meno di un mese' : `${scalable[0].monthsToRecover.toFixed(1)} mesi`}</strong> — {scalable[0].monthsToRecover < 1 ? 'ciclo di cassa velocissimo, ideale per scalare' : scalable[0].monthsToRecover < 3 ? 'ciclo ragionevole' : 'ciclo lungo, attenzione alla liquidità'}.</p>}
                   </>
                 ) : risky.length > 0 ? (
-                  <p style={{color:'#f59e0b'}}>Nessuno scenario ha margini sufficienti per scalare in sicurezza. <strong>"{risky[0].name}"</strong> è in profitto ma con margini troppo sottili ({sp1(risky[0].netMarginPct)}). Prima di scalare: lavora sull'AOV (bundle, upsell), riduci i COGS (negozia fornitori, packaging), o migliora il ROAS (creative testing, audience optimization).</p>
+                  <p style={{color:'var(--text2)'}}>Nessuno scenario ha margini sufficienti per scalare in sicurezza. <strong style={{color:'#fff'}}>"{risky[0].name}"</strong> è in profitto ma con margini troppo sottili ({sp1(risky[0].netMarginPct)}). Prima di scalare: lavora sull'AOV (bundle, upsell), riduci i COGS (negozia fornitori, packaging), o migliora il ROAS (creative testing, audience optimization).</p>
                 ) : (
-                  <p style={{color:'#ef4444'}}>Tutti gli scenari sono in perdita. Non scalare la spesa ADV finché non raggiungi almeno il break-even. Concentrati su: migliorare il ROAS (creative, targeting), alzare l'AOV (bundle, cross-sell), ridurre i COGS, o valutare se il canale paid è sostenibile per il tuo modello di business.</p>
+                  <p style={{color:'var(--text2)'}}>Tutti gli scenari sono in perdita. Non scalare la spesa ADV finché non raggiungi almeno il break-even. Concentrati su: migliorare il ROAS (creative, targeting), alzare l'AOV (bundle, cross-sell), ridurre i COGS, o valutare se il canale paid è sostenibile per il tuo modello di business.</p>
                 )}
               </div>
             </div>
 
             {/* Visione a 12 mesi */}
             <div style={{marginBottom:18}}>
-              <p style={{fontSize:10,color:'#ec4899',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Proiezione 12 mesi</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Proiezione 12 mesi</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
                   <div key={i} style={{
-                    background: `linear-gradient(155deg, ${scenarioColors[i]}10 0%, rgba(8,8,18,0.6) 100%)`,
-                    border: `1px solid ${scenarioColors[i]}30`,
+                    background: 'rgba(255,255,255,0.025)',
+                    border: '1px solid rgba(255,255,255,0.05)',
                     borderRadius: 12,
                     padding: '16px 18px',
                     borderTop: `2px solid ${scenarioColors[i]}`,
@@ -839,7 +849,7 @@ function Simulator({ cfg }) {
                       <div>COGS annuo: <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
                       <div>IVA annua: <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
                       <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:8,paddingTop:8}}>
-                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#22c55e':'#ef4444',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
+                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#30d158':'#ff453a',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
                       </div>
                       <div>Ordini annui: <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
                     </div>
@@ -850,24 +860,24 @@ function Simulator({ cfg }) {
 
             {/* Bottom line */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0.04) 100%)',
-              border: '1px solid rgba(139,92,246,0.3)',
+              background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(255,255,255,0.05)',
               borderRadius: 12,
               padding: '18px 22px',
-              borderLeft: '3px solid #8b5cf6',
+              borderLeft: '3px solid #2997ff',
             }}>
-              <p style={{fontSize:10,color:'#a78bfa',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>Bottom line</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>Bottom line</p>
               <div style={{fontSize:13,color:'var(--text)',lineHeight:1.65,fontWeight:500}}>
                 Break-even ROAS: {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
                 <br/>Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.
-                {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'#f59e0b'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
+                {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'var(--text2)'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
               </div>
             </div>
           </div>
         )
       })()}
       </>
-    ), { glow: '#8b5cf6', padding: 28 })}
+    ), { glow: '#2997ff', padding: 28 })}
     </div>
   )
 }

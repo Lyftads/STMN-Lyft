@@ -4,13 +4,18 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
-  'Cosa mi dicono i numeri di questo periodo?',
-  'Il mio LTV:CAC ratio è sano?',
-  'Repeat rate basso: cosa posso fare nelle prossime 2 settimane?',
-  'MER in calo: cosa controllo per primo?',
-  'Quale KPI dovrei migliorare per primo per impatto?',
-  'AOV vs LTV: dove ho margine?',
+  'Analizzami il prodotto più venduto',
+  'Come sta andando il MER?',
+  'Il mio LTV:CAC è sano?',
+  'Quale KPI dovrei migliorare per primo?',
 ]
+
+function timeGreeting() {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 12) return 'Buongiorno'
+  if (h >= 12 && h < 18) return 'Buon pomeriggio'
+  return 'Buonasera'
+}
 
 function formatMessage(text) {
   if (!text) return null
@@ -90,7 +95,7 @@ export default function KpiBrainAgent({ tf, preset }) {
 
   const content = (
     <>
-      {/* Floating sticky avatar icon — visible from page load, middle-right */}
+      {/* Floating sticky avatar — bottom right, always visible */}
       {!open && (
         <button
           type="button"
@@ -99,13 +104,13 @@ export default function KpiBrainAgent({ tf, preset }) {
           title="KPI Brain Agent"
           style={{
             position: 'fixed',
-            top: '40%',
-            right: 24,
+            bottom: 28,
+            right: 28,
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #2997ff 0%, #6366f1 50%, #bf5af2 100%)',
-            border: '2px solid rgba(255,255,255,0.22)',
+            background: 'linear-gradient(140deg, #1e3a8a 0%, #2997ff 100%)',
+            border: '2px solid rgba(255,255,255,0.18)',
             cursor: 'pointer',
             zIndex: 50,
             padding: 0,
@@ -113,20 +118,20 @@ export default function KpiBrainAgent({ tf, preset }) {
             placeItems: 'center',
             overflow: 'hidden',
             boxShadow:
-              '0 16px 40px rgba(41,151,255,0.45), 0 6px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+              '0 16px 40px rgba(41,151,255,0.4), 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18)',
             transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease',
-            animation: 'card-pulse 3s ease-in-out infinite',
+            animation: 'card-pulse 3.5s ease-in-out infinite',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
           <AvatarSvg />
           <span style={{
             position: 'absolute',
-            bottom: -2,
-            right: -2,
-            width: 18,
-            height: 18,
+            bottom: 2,
+            right: 2,
+            width: 14,
+            height: 14,
             borderRadius: '50%',
             background: '#30d158',
             border: '2.5px solid #0a0a14',
@@ -221,9 +226,18 @@ export default function KpiBrainAgent({ tf, preset }) {
           }}
         >
           {messages.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>
-                Sono specializzato sui KPI di STMN: unit economics, MER, CAC, LTV, repeat rate. Chiedimi tutto quello che vuoi sulla performance dei numeri che vedi qui sopra.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border)',
+                borderRadius: 14,
+                padding: '12px 16px',
+                color: 'var(--text)',
+                fontSize: 14,
+                lineHeight: 1.5,
+                maxWidth: '88%',
+              }}>
+                {timeGreeting()} Marino. Come posso aiutarti oggi?
               </div>
               <div style={{ display: 'grid', gap: 7 }}>
                 {SUGGESTIONS.map(s => (
@@ -364,29 +378,83 @@ function Dot({ delay }) {
 }
 
 function AvatarSvg() {
+  // Refined, semi-realistic consultant portrait — subtle features, depth, no cartoon eyes
   return (
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
       <defs>
-        <linearGradient id="avBg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.10" />
+        <radialGradient id="bgGlow" cx="0.5" cy="0.3" r="0.7">
+          <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.20" />
+          <stop offset="100%" stopColor="#1e293b" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="suit" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#0f172a" />
+          <stop offset="100%" stopColor="#020617" />
         </linearGradient>
-        <linearGradient id="avHair" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1f2937" />
-          <stop offset="100%" stopColor="#374151" />
+        <linearGradient id="shirt" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#f8fafc" />
+          <stop offset="100%" stopColor="#cbd5e1" />
         </linearGradient>
-        <linearGradient id="avSkin" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fde7d3" />
-          <stop offset="100%" stopColor="#f0c19f" />
+        <linearGradient id="skin" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#fbd9b8" />
+          <stop offset="100%" stopColor="#d4a373" />
+        </linearGradient>
+        <linearGradient id="skinShade" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.18" />
+        </linearGradient>
+        <linearGradient id="hair" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#3b2f24" />
+          <stop offset="50%" stopColor="#1f1813" />
+          <stop offset="100%" stopColor="#0d0a08" />
+        </linearGradient>
+        <linearGradient id="hairHi" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stopColor="#6b5a47" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#3b2f24" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <circle cx="22" cy="22" r="22" fill="url(#avBg)" />
-      <path d="M22 39c-4.6 0-8.8-1.7-12-4.5C11.2 30.1 16.2 27 22 27s10.8 3.1 12 7.5C30.8 37.3 26.6 39 22 39z" fill="#e0e7ff" />
-      <ellipse cx="22" cy="18.5" rx="7" ry="8" fill="url(#avSkin)" />
-      <path d="M15.5 14.3c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6c0 1-.2 1.9-.6 2.7-.4-.6-1.3-1.7-2.6-2.2-.6.7-1.8 1.6-3.3 1.6s-2.7-.9-3.3-1.6c-1.3.5-2.2 1.6-2.6 2.2-.4-.8-.6-1.7-.6-2.7z" fill="url(#avHair)" />
-      <circle cx="19.5" cy="19" r="1" fill="#1f2937" />
-      <circle cx="24.5" cy="19" r="1" fill="#1f2937" />
-      <path d="M20.5 22.2c.5.5 1 .8 1.5.8s1-.3 1.5-.8" stroke="#a16f57" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+
+      {/* background glow */}
+      <circle cx="30" cy="30" r="30" fill="url(#bgGlow)" />
+
+      {/* suit shoulders */}
+      <path d="M5 60c0-10 10-15 25-15s25 5 25 15v0H5z" fill="url(#suit)" />
+
+      {/* white shirt collar v */}
+      <path d="M22 45l8 8 8-8-3-3h-10z" fill="url(#shirt)" />
+
+      {/* dark collar tips */}
+      <path d="M22 45l-2 4 5-1 5 5 5-5 5 1-2-4-8 5z" fill="url(#suit)" />
+
+      {/* neck */}
+      <path d="M25 39h10v5l-2 3h-6l-2-3z" fill="url(#skin)" />
+      <rect x="25" y="44" width="10" height="3" fill="url(#skinShade)" />
+
+      {/* face — slightly elongated, realistic proportion */}
+      <ellipse cx="30" cy="29" rx="11" ry="13" fill="url(#skin)" />
+      {/* face shading on bottom (chin/jaw) */}
+      <ellipse cx="30" cy="34" rx="10" ry="6" fill="url(#skinShade)" opacity="0.6" />
+
+      {/* hair — short professional cut */}
+      <path d="M19 22c0-7 5-12 11-12s11 5 11 12c0 1-.1 2-.3 3-.6-1.5-2-3.5-4-4.5-1.5 1-3.7 1.8-6.7 1.8s-5.2-.8-6.7-1.8c-2 1-3.4 3-4 4.5-.2-1-.3-2-.3-3z" fill="url(#hair)" />
+      {/* hair highlight */}
+      <path d="M22 19c1.5-3 4.5-5 8-5s6.5 2 8 5c-2-1.5-4.5-2.5-8-2.5s-6 1-8 2.5z" fill="url(#hairHi)" />
+
+      {/* subtle eyebrows */}
+      <path d="M24.5 24.5q1.5-0.8 3 0" stroke="#1f1813" strokeWidth="0.7" strokeLinecap="round" fill="none" />
+      <path d="M32.5 24.5q1.5-0.8 3 0" stroke="#1f1813" strokeWidth="0.7" strokeLinecap="round" fill="none" />
+
+      {/* eyes — small almond, subtle, realistic */}
+      <ellipse cx="26.2" cy="27.5" rx="1.1" ry="0.7" fill="#1a1410" />
+      <ellipse cx="33.8" cy="27.5" rx="1.1" ry="0.7" fill="#1a1410" />
+      {/* tiny eye highlight */}
+      <circle cx="26.5" cy="27.3" r="0.25" fill="#fff" />
+      <circle cx="34.1" cy="27.3" r="0.25" fill="#fff" />
+
+      {/* nose — minimal shadow only */}
+      <path d="M30 28.5q-0.3 2 -0.8 3.2" stroke="#a37b50" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.7" />
+
+      {/* mouth — soft confident smile */}
+      <path d="M27.5 34.5q2.5 1.5 5 0" stroke="#7a4a30" strokeWidth="0.8" strokeLinecap="round" fill="none" />
     </svg>
   )
 }

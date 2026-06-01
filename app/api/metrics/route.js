@@ -1049,30 +1049,84 @@ async function fetchMeta() {
   }
 }
 
-async function safeShopifyRange(range) {
+// Direct Admin REST API fallback — works for any range including today
+async function fetchShopifyOrdersAdmin(start, end) {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
   try {
-    if (!range?.since || !range?.until) return null
-    const [sales, sessions] = await Promise.all([
-      fetchShopifySalesRange(range.since, range.until),
-      fetchShopifyVisitorsRange(range.since, range.until),
-    ])
-    return {
-      since: range.since,
-      until: range.until,
-      revenue: sales.fatturato || 0,
-      fatturNC: sales.fatturNC || 0,
-      fatturRC: sales.fatturRC || 0,
-      resi: sales.resi || 0,
-      resiNC: sales.resiNC || 0,
-      resiRC: sales.resiRC || 0,
-      orders: sales.ordini || 0,
-      nc: sales.nc || 0,
-      rc: sales.rc || 0,
-      sessions: sessions || 0,
+    const sinceIso = `${start}T00:00:00Z`
+    const untilIso = `${end}T23:59:59Z`
+    let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,customer,refunds`
+    let revenue = 0, orders = 0, resi = 0
+    let fatturNC = 0, fatturRC = 0, nc = 0, rc = 0
+    let resiNC = 0, resiRC = 0
+    let page = 0
+    while (url && page < 8) {
+      const res = await fetch(url, { headers: shopifyAuth() })
+      if (!res.ok) break
+      const data = await res.json()
+      for (const o of (data.orders || [])) {
+        const total = parseFloat(o.total_price || 0)
+        const isNew = !o.customer?.orders_count || Number(o.customer.orders_count) <= 1
+        revenue += total
+        orders += 1
+        if (isNew) { fatturNC += total; nc += 1 }
+        else { fatturRC += total; rc += 1 }
+        for (const refund of (o.refunds || [])) {
+          for (const t of (refund.transactions || [])) {
+            const amt = Math.abs(parseFloat(t.amount || 0))
+            resi += amt
+            if (isNew) resiNC += amt; else resiRC += amt
+          }
+        }
+      }
+      const linkHeader = res.headers.get('link') || ''
+      const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/)
+      url = nextMatch ? nextMatch[1] : null
+      page += 1
     }
+    return { fatturato: revenue, fatturNC, fatturRC, resi, resiNC, resiRC, ordini: orders, nc, rc }
   } catch (e) {
-    console.log('shopifyRange error:', e.message)
+    console.log('Admin orders error:', e.message)
     return null
+  }
+}
+
+async function safeShopifyRange(range) {
+  if (!range?.since || !range?.until) return null
+
+  // Run sales + sessions independently — one failure doesn't kill the other
+  const [salesQL, sessions] = await Promise.all([
+    fetchShopifySalesRange(range.since, range.until).catch(e => { console.log('salesQL err:', e?.message); return null }),
+    fetchShopifyVisitorsRange(range.since, range.until).catch(e => { console.log('visitors err:', e?.message); return 0 }),
+  ])
+
+  let sales = salesQL
+
+  // If ShopifyQL returned empty/0 OR range is short (<= 7 days), try Admin API
+  const sameDay = range.since === range.until
+  const shortRange = sameDay || sessions === 0 || !salesQL || (!salesQL.fatturato && !salesQL.ordini)
+  if (shortRange) {
+    const admin = await fetchShopifyOrdersAdmin(range.since, range.until)
+    if (admin && admin.ordini > 0) {
+      sales = admin
+    } else if (!sales) {
+      sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }
+    }
+  }
+
+  return {
+    since: range.since,
+    until: range.until,
+    revenue: sales?.fatturato || 0,
+    fatturNC: sales?.fatturNC || 0,
+    fatturRC: sales?.fatturRC || 0,
+    resi: sales?.resi || 0,
+    resiNC: sales?.resiNC || 0,
+    resiRC: sales?.resiRC || 0,
+    orders: sales?.ordini || 0,
+    nc: sales?.nc || 0,
+    rc: sales?.rc || 0,
+    sessions: sessions || 0,
   }
 }
 

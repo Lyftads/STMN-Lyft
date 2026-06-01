@@ -98,9 +98,20 @@ function pathParams(path) {
 }
 
 export async function GET(request) {
+  // Debug envelope sempre presente — utile a vedere se le env vars sono
+  // arrivate al runtime serverless dopo il redeploy.
+  const debug = {
+    hasProjectId: !!process.env.BIGQUERY_PROJECT_ID,
+    hasDataset: !!process.env.BIGQUERY_DATASET,
+    hasJson: !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
+    projectId: process.env.BIGQUERY_PROJECT_ID || null,
+    dataset: process.env.BIGQUERY_DATASET || null,
+    jsonLength: process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.length || 0,
+  }
+
   const { client: bq, reason } = getBQ()
   if (!bq) {
-    return NextResponse.json({ configured: false, reason }, { status: 200 })
+    return NextResponse.json({ configured: false, reason: reason || 'BQ client null senza reason', debug }, { status: 200 })
   }
 
   const dataset = process.env.BIGQUERY_DATASET
@@ -242,9 +253,13 @@ export async function GET(request) {
       updatedAt: new Date().toISOString(),
     })
   } catch (e) {
+    // Env vars ci sono ma la query e' fallita (permessi, dataset
+    // inesistente, SQL syntax, timeout). Inquadra come "non configurato"
+    // con reason esplicito cosi' il client mostra il riquadro rosso.
     return NextResponse.json({
       configured: false,
-      error: e?.message?.slice(0, 500) || 'BigQuery error',
-    }, { status: 500 })
+      reason: `Query BigQuery fallita: ${e?.message?.slice(0, 400) || 'unknown'}`,
+      debug,
+    }, { status: 200 })
   }
 }

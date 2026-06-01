@@ -307,6 +307,7 @@ export default function CustomerJourneyTab() {
   const containerRef = useRef(null)
   const [configured, setConfigured] = useState(true)
   const [configReason, setConfigReason] = useState(null)
+  const [configDebug, setConfigDebug] = useState(null)
   const [globalError, setGlobalError] = useState(null)
 
   const loadColumn = useCallback(async (pathArray, columnIndex, fromPath) => {
@@ -320,6 +321,7 @@ export default function CustomerJourneyTab() {
       if (!json?.configured) {
         setConfigured(false)
         setConfigReason(json?.reason || null)
+        setConfigDebug(json?.debug || null)
         return null
       }
       if (json?.error) {
@@ -415,7 +417,24 @@ export default function CustomerJourneyTab() {
               fontSize: 12.5,
               fontFamily: 'ui-monospace, monospace',
               lineHeight: 1.5,
+              wordBreak: 'break-word',
             }}>{configReason}</div>
+          )}
+          {configDebug && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              color: '#a5b4fc',
+              fontSize: 11,
+              fontFamily: 'ui-monospace, monospace',
+              lineHeight: 1.6,
+            }}>
+              <div>BIGQUERY_PROJECT_ID: <b>{configDebug.hasProjectId ? `"${configDebug.projectId}"` : '—'}</b></div>
+              <div>BIGQUERY_DATASET: <b>{configDebug.hasDataset ? `"${configDebug.dataset}"` : '—'}</b></div>
+              <div>GOOGLE_SERVICE_ACCOUNT_JSON: <b>{configDebug.hasJson ? `${configDebug.jsonLength} chars` : '—'}</b></div>
+            </div>
           )}
           <div style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.6 }}>
             Customer Journey usa BigQuery export GA4. Servono su Vercel: <code style={codeBg}>BIGQUERY_PROJECT_ID</code>, <code style={codeBg}>BIGQUERY_DATASET</code>, <code style={codeBg}>GOOGLE_SERVICE_ACCOUNT_JSON</code> (il contenuto INTERO del JSON key del Service Account). Dopo le env vars serve un Redeploy da Vercel → Deployments.

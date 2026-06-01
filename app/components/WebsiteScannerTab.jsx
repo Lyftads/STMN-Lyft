@@ -181,7 +181,23 @@ export default function WebsiteScannerTab() {
   const buildPreviewUrl = (raw) => {
     let u = raw.trim()
     if (!/^https?:\/\//i.test(u)) u = 'https://' + u
-    return `https://image.thum.io/get/width/1440/crop/2400/${u}`
+    // Microlink con embed=screenshot.url ridireziona direttamente all'immagine.
+    // Rispetta la query string completa (es. ?variant=...) e gestisce
+    // i redirect tipici di Shopify multi-store.
+    const p = new URLSearchParams({
+      url: u,
+      screenshot: 'true',
+      meta: 'false',
+      embed: 'screenshot.url',
+      'viewport.width': '1440',
+      'viewport.height': '1800',
+      waitUntil: 'networkidle0',
+      headers: JSON.stringify({
+        'Accept-Language': 'it-IT,it;q=0.9,en;q=0.6',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      }),
+    })
+    return `https://api.microlink.io/?${p.toString()}`
   }
 
   const runScan = async () => {

@@ -6,13 +6,55 @@ export const maxDuration = 60
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-// thum.io: screenshot gratuito senza API key. Restituisce direttamente
-// l'immagine; il browser e OpenAI vision possono usarla come URL diretto.
-function buildScreenshotUrl(target, { width = 1440 } = {}) {
+// Microlink screenshot service: rispetta query string (variant=…), gestisce
+// redirect, supporta header Accept-Language. Free tier ~50 req/giorno.
+function buildMicrolinkUrl(target, { embed = false } = {}) {
   let url = target.trim()
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url
-  // Crop fissa a 2400px così non scarichiamo pagine smisurate
-  return `https://image.thum.io/get/width/${width}/crop/2400/${url}`
+  const params = new URLSearchParams({
+    url,
+    screenshot: 'true',
+    meta: 'false',
+    'viewport.width': '1440',
+    'viewport.height': '1800',
+    'viewport.deviceScaleFactor': '1',
+    waitUntil: 'networkidle0',
+    headers: JSON.stringify({
+      'Accept-Language': 'it-IT,it;q=0.9,en;q=0.6',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }),
+  })
+  if (embed) params.set('embed', 'screenshot.url')
+  return `https://api.microlink.io/?${params.toString()}`
+}
+
+// Scarica lo screenshot e lo converte in data URL base64 così OpenAI
+// non deve fetchare nulla (evita timeout)
+async function fetchScreenshotAsDataUrl(target) {
+  const url = buildMicrolinkUrl(target, { embed: true })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 35000)
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+    })
+    clearTimeout(timer)
+    if (!res.ok) {
+      throw new Error(`Microlink ${res.status}: ${res.statusText}`)
+    }
+    const contentType = res.headers.get('content-type') || 'image/png'
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length === 0) throw new Error('Screenshot vuoto')
+    return {
+      dataUrl: `data:${contentType};base64,${buf.toString('base64')}`,
+      publicUrl: url, // per il preview client
+      bytes: buf.length,
+    }
+  } catch (e) {
+    clearTimeout(timer)
+    throw e
+  }
 }
 
 const SYSTEM_PROMPT = `Sei un Senior CRO Specialist con 10+ anni di esperienza in ottimizzazione conversione e-commerce e landing page. Hai lavorato per brand DTC con fatturati 7-8 figure. La tua analisi è basata su:
@@ -115,7 +157,20 @@ export async function POST(req) {
     return NextResponse.json({ error: 'URL non valido.' }, { status: 400 })
   }
 
-  const screenshotUrl = buildScreenshotUrl(normalized)
+  // URL per il preview client (il browser fetcha direttamente)
+  const previewUrl = buildMicrolinkUrl(normalized, { embed: true })
+
+  // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout
+  let dataUrl
+  try {
+    const shot = await fetchScreenshotAsDataUrl(normalized)
+    dataUrl = shot.dataUrl
+  } catch (err) {
+    return NextResponse.json({
+      error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
+      screenshotUrl: previewUrl,
+    }, { status: 502 })
+  }
 
   try {
     const r = await fetch(OPENAI_URL, {
@@ -137,11 +192,11 @@ export async function POST(req) {
             content: [
               {
                 type: 'text',
-                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: STMN Fitness — e-commerce accessori CrossFit (paracalli, polsiere, corde da salto, tape adesivo nero, ginocchiere). Target: atleti CrossFit intermedio/avanzato, home gym.\n\nFornisci analisi dettagliata in JSON secondo lo schema specificato.`,
+                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: STMN Fitness — e-commerce accessori CrossFit (paracalli, polsiere, corde da salto, tape adesivo nero, ginocchiere). Target: atleti CrossFit intermedio/avanzato, home gym.\n\nLo screenshot in allegato è la versione desktop italiana della pagina. Fornisci analisi dettagliata in JSON secondo lo schema specificato.`,
               },
               {
                 type: 'image_url',
-                image_url: { url: screenshotUrl, detail: 'high' },
+                image_url: { url: dataUrl, detail: 'high' },
               },
             ],
           },
@@ -153,7 +208,7 @@ export async function POST(req) {
       const text = await r.text()
       return NextResponse.json({
         error: `OpenAI ${r.status}: ${text.slice(0, 300)}`,
-        screenshotUrl,
+        screenshotUrl: previewUrl,
       }, { status: 502 })
     }
 
@@ -161,9 +216,8 @@ export async function POST(req) {
     const raw = json?.choices?.[0]?.message?.content || ''
     let analysis = null
     try { analysis = JSON.parse(raw) } catch {
-      // fallback: ritorna il testo grezzo se non parseable
       return NextResponse.json({
-        screenshotUrl,
+        screenshotUrl: previewUrl,
         url: normalized,
         analysis: null,
         rawText: raw,
@@ -173,7 +227,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       url: normalized,
-      screenshotUrl,
+      screenshotUrl: previewUrl,
       analysis,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
@@ -181,7 +235,7 @@ export async function POST(req) {
   } catch (err) {
     return NextResponse.json({
       error: err?.message || 'Errore scansione',
-      screenshotUrl,
+      screenshotUrl: previewUrl,
     }, { status: 500 })
   }
 }

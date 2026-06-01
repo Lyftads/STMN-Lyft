@@ -4,10 +4,15 @@ export const maxDuration = 30
 import { NextResponse } from 'next/server'
 import { BigQuery } from '@google-cloud/bigquery'
 
-// Customer Journey via BigQuery export GA4.
-// Vero sankey sequenziale: ricostruisce l'ordine reale delle pagine
-// visitate dentro ogni sessione (event_timestamp) e raggruppa per
-// (level, path-prefix) per ottenere conteggi accurati di transizione.
+// Customer Journey ibrido:
+// 1) BigQuery export GA4 quando esiste (vero sankey sequenziale)
+// 2) Fallback a GA4 Data API (approssimato sopra il livello 1) quando
+//    BigQuery dataset e' vuoto / non ancora popolato
+//
+// Lo switch e' automatico: BigQuery e' la PRIMARY, su errore "does not
+// match any table" (sandbox post-expiration, export non ancora arrivato,
+// dataset appena creato) cade su GA4 Data API. Provider indicato nel
+// payload cosi' il client mostra il badge corretto.
 
 let bqClient = null
 
@@ -113,14 +118,6 @@ export async function GET(request) {
     jsonLength: envTrim('GOOGLE_SERVICE_ACCOUNT_JSON').length || 0,
   }
 
-  const { client: bq, reason } = getBQ()
-  if (!bq) {
-    return NextResponse.json({ configured: false, reason: reason || 'BQ client null senza reason', debug }, { status: 200 })
-  }
-
-  const dataset = envTrim('BIGQUERY_DATASET')
-  const projectId = envTrim('BIGQUERY_PROJECT_ID')
-
   const { searchParams } = new URL(request.url)
   const preset = searchParams.get('preset') || 'current_month'
   const pathParam = searchParams.get('path') || ''
@@ -129,6 +126,19 @@ export async function GET(request) {
   const level = path.length
 
   const { start, end } = resolveDateRange(preset)
+
+  const { client: bq, reason } = getBQ()
+  // BigQuery non configurato → cade subito su GA4 Data API se disponibile
+  if (!bq) {
+    try {
+      const fallback = await fetchFromGA4DataAPI({ preset, path, level, limit, start, end })
+      if (fallback) return NextResponse.json({ ...fallback, debug })
+    } catch {}
+    return NextResponse.json({ configured: false, reason: reason || 'BQ client null senza reason', debug }, { status: 200 })
+  }
+
+  const dataset = envTrim('BIGQUERY_DATASET')
+  const projectId = envTrim('BIGQUERY_PROJECT_ID')
 
   // SQL: ricostruzione path sequenziale.
   // 1) page_views: estrae page_path, session_id, event_timestamp da
@@ -257,13 +267,158 @@ export async function GET(request) {
       updatedAt: new Date().toISOString(),
     })
   } catch (e) {
-    // Env vars ci sono ma la query e' fallita (permessi, dataset
-    // inesistente, SQL syntax, timeout). Inquadra come "non configurato"
-    // con reason esplicito cosi' il client mostra il riquadro rosso.
+    const msg = e?.message || ''
+    // BigQuery vuoto → fallback a GA4 Data API (approssimato sopra L1)
+    const isEmptyDataset = msg.includes('does not match any table') || msg.includes('Not found: Dataset')
+    if (isEmptyDataset) {
+      try {
+        const fallback = await fetchFromGA4DataAPI({ preset, path, level, limit, start, end })
+        if (fallback) return NextResponse.json({ ...fallback, debug })
+      } catch (fe) {
+        // fall through al messaggio sotto
+      }
+    }
     return NextResponse.json({
       configured: false,
-      reason: `Query BigQuery fallita: ${e?.message?.slice(0, 400) || 'unknown'}`,
+      reason: `Query BigQuery fallita: ${msg.slice(0, 400) || 'unknown'}`,
       debug,
     }, { status: 200 })
+  }
+}
+
+// ── Fallback GA4 Data API ─────────────────────────────────────────
+// Stesso flow del primo MVP: top landingPage al livello 0, top pagePath
+// filtrato per landingPage = path[0] sopra. Conteggi approssimati ai
+// livelli > 1 (GA4 Data API senza BigQuery non espone l'ordine).
+async function getGA4AccessToken() {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  })
+  const data = await res.json()
+  return data.access_token || null
+}
+
+async function ga4RunReport(token, propertyId, body) {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  )
+  if (!res.ok) return null
+  return res.json()
+}
+
+async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
+  const propertyId = envTrim('GA4_PROPERTY_ID')
+  if (!propertyId || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) {
+    return null
+  }
+  const token = await getGA4AccessToken()
+  if (!token) return null
+
+  // GA4 Data API accetta YYYY-MM-DD, non YYYYMMDD. Converti.
+  const toIso = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+  const dateRange = { startDate: toIso(start), endDate: toIso(end) }
+
+  if (level === 0) {
+    const [landingRep, totalRep] = await Promise.all([
+      ga4RunReport(token, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: 'landingPage' }],
+        metrics: [{ name: 'sessions' }],
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit,
+      }),
+      ga4RunReport(token, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: 'sessions' }],
+      }),
+    ])
+    const totalSessions = parseFloat(totalRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
+    const nodes = (landingRep?.rows || []).map(r => ({
+      path: r.dimensionValues?.[0]?.value || '(unknown)',
+      title: prettifyPath(r.dimensionValues?.[0]?.value || ''),
+      sessions: parseFloat(r.metricValues?.[0]?.value || '0'),
+    })).filter(n => n.sessions > 0)
+    return {
+      configured: true,
+      provider: 'ga4-data-api',
+      level: 0,
+      path: [],
+      rootSessions: totalSessions,
+      parentSessions: totalSessions,
+      nodes,
+      preset,
+      dateRange: { start, end },
+      approximated: false,
+      updatedAt: new Date().toISOString(),
+    }
+  }
+
+  // Livello 1+ approssimato: filter sessions by landingPage = path[0],
+  // mostra pagePath visitati con esclusione del breadcrumb.
+  const landingFilter = {
+    filter: {
+      fieldName: 'landingPage',
+      stringFilter: { value: path[0], matchType: 'EXACT' },
+    },
+  }
+  const excludeFilters = path.map(p => ({
+    notExpression: {
+      filter: {
+        fieldName: 'pagePath',
+        stringFilter: { value: p, matchType: 'EXACT' },
+      },
+    },
+  }))
+  const dimensionFilter = excludeFilters.length
+    ? { andGroup: { expressions: [landingFilter, ...excludeFilters] } }
+    : landingFilter
+
+  const [pagesRep, parentRep] = await Promise.all([
+    ga4RunReport(token, propertyId, {
+      dateRanges: [dateRange],
+      dimensions: [{ name: 'pagePath' }],
+      metrics: [{ name: 'sessions' }],
+      dimensionFilter,
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit,
+    }),
+    ga4RunReport(token, propertyId, {
+      dateRanges: [dateRange],
+      metrics: [{ name: 'sessions' }],
+      dimensionFilter: landingFilter,
+    }),
+  ])
+
+  const parentSessions = parseFloat(parentRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
+  const nodes = (pagesRep?.rows || []).map(r => ({
+    path: r.dimensionValues?.[0]?.value || '(unknown)',
+    title: prettifyPath(r.dimensionValues?.[0]?.value || ''),
+    sessions: parseFloat(r.metricValues?.[0]?.value || '0'),
+  })).filter(n => n.sessions > 0)
+
+  return {
+    configured: true,
+    provider: 'ga4-data-api',
+    level,
+    path,
+    parentSessions,
+    rootSessions: null,
+    nodes,
+    preset,
+    dateRange: { start, end },
+    approximated: level > 1,
+    updatedAt: new Date().toISOString(),
   }
 }

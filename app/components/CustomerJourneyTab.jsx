@@ -332,6 +332,7 @@ export default function CustomerJourneyTab() {
         parentSessions: json.parentSessions || 0,
         rootSessions: json.rootSessions ?? null,
         approximated: !!json.approximated,
+        provider: json.provider || null,
         fromPath,
       }
     } catch (e) {
@@ -445,6 +446,7 @@ export default function CustomerJourneyTab() {
   }
 
   const isApproximated = columns.some(c => c?.approximated)
+  const provider = columns.find(c => c?.provider)?.provider || null
   const rootSessions = columns[0]?.rootSessions ?? columns[0]?.parentSessions ?? null
 
   return (
@@ -453,8 +455,19 @@ export default function CustomerJourneyTab() {
       <GlassCard padding="18px 22px">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 9.5, color: ACCENT_GLOW, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-              Customer Journey
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 9.5, color: ACCENT_GLOW, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+                Customer Journey
+              </div>
+              {provider && (
+                <span style={{
+                  fontSize: 9, fontWeight: 800,
+                  padding: '2px 8px', borderRadius: 999,
+                  background: provider === 'bigquery' ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)',
+                  color: provider === 'bigquery' ? '#86efac' : '#fcd34d',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>via {provider}</span>
+              )}
             </div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
               Esplora il percorso di navigazione
@@ -508,7 +521,7 @@ export default function CustomerJourneyTab() {
             fontSize: 11.5,
             lineHeight: 1.5,
           }}>
-            ⓘ Oltre il primo passaggio i dati sono approssimati: GA4 Data API senza BigQuery non espone l'ordine sequenziale delle pagine. Il conteggio rappresenta "sessioni partite da {selectedAt[0]} che hanno visitato questa pagina".
+            ⓘ Fallback GA4 Data API attivo: BigQuery export non ancora popolato. Oltre il primo passaggio i dati sono approssimati ("sessioni partite da {selectedAt[0]} che hanno visitato questa pagina", non vera sequenza). Appena BigQuery riceve le tabelle events_*, il backend switcha automaticamente al vero sankey sequenziale.
           </div>
         )}
       </GlassCard>

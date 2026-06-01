@@ -45,6 +45,10 @@ function money(v) {
   return `€${Math.round(asNum(v)).toLocaleString('it-IT')}`
 }
 
+function money2(v) {
+  return `€${asNum(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 function num(v) {
   return Math.round(asNum(v)).toLocaleString('it-IT')
 }
@@ -356,7 +360,7 @@ function CreativeCard({ row, index, onClick }) {
           <Mini label="ROAS" value={ratio(roas)} />
           <Mini label="Ordini" value={num(purchases)} />
           <Mini label="CTR" value={pct(ctr)} />
-          <Mini label="CPC" value={money(cpc)} />
+          <Mini label="CPC" value={money2(cpc)} />
           <Mini label="Impression" value={num(impressions)} />
           <Mini label="Click" value={num(clicks)} />
         </div>
@@ -545,7 +549,7 @@ function CreativeDetailModal({ row, onClose }) {
             }}>
               <MiniStat label="Spesa" value={money(row.spend)} />
               <MiniStat label="ROAS" value={ratio(row.roas)} />
-              <MiniStat label="CPC" value={money(row.cpc_link)} />
+              <MiniStat label="CPC" value={money2(row.cpc_link)} />
               <MiniStat label="CTR" value={pct(row.ctr_link)} />
             </div>
 
@@ -909,7 +913,7 @@ export default function CreativeTab() {
           curr={totalRoas} prev={prevSummary?.roas} daily={daily} dataKey="roas" />
         <Stat label="Ordini" value={num(totals.orders)} tone="#f97316"
           curr={totals.orders} prev={prevSummary?.orders} daily={daily} dataKey="orders" />
-        <Stat label="CPC" value={money(totalCpc)} tone="#ec4899"
+        <Stat label="CPC" value={money2(totalCpc)} tone="#ec4899"
           curr={totalCpc} prev={prevSummary?.cpc_link} daily={daily} dataKey="cpc_link" isLowerBetter />
         <Stat label="CTR Link" value={pct(totalCtr)} tone="#a78bfa"
           curr={totalCtr} prev={prevSummary?.ctr_link} daily={daily} dataKey="ctr_link" />

@@ -934,39 +934,12 @@ export default function CreativeTab() {
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
           gap: 16,
-          marginBottom: 28,
+          marginBottom: 18,
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              color: '#fff',
-              fontSize: 32,
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            Creative
-          </h1>
-
-          <p
-            style={{
-              margin: '8px 0 0',
-              color: 'var(--text3)',
-              fontSize: 14,
-            }}
-          >
-            Analisi creative Meta Ads
-            {data?.range?.since && data?.range?.until
-              ? ` · ${data.range.since} – ${data.range.until}`
-              : ''}
-          </p>
-        </div>
-
         <select
           value={preset}
           onChange={(e) => setPreset(e.target.value)}

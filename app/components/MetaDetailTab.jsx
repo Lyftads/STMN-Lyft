@@ -593,34 +593,14 @@ export default function MetaDetailTab() {
 
   return (
     <div>
-      {/* Header */}
+      {/* Status pill (titolo gestito dalla shell) */}
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
         gap: 16,
-        marginBottom: 24,
+        marginBottom: 18,
       }}>
-        <div>
-          <h1 style={{
-            margin: 0,
-            color: '#fff',
-            fontSize: 32,
-            fontWeight: 900,
-            letterSpacing: '-0.04em',
-          }}>Meta Detail</h1>
-          <p style={{
-            margin: '8px 0 0',
-            color: 'var(--text3)',
-            fontSize: 14,
-          }}>
-            Gerarchia campagne · ad set · ads
-            {data?.range?.since && data?.range?.until
-              ? ` · ${data.range.since} → ${data.range.until}`
-              : ''}
-          </p>
-        </div>
-
         <div style={{
           display: 'flex',
           alignItems: 'center',

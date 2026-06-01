@@ -9,17 +9,19 @@ export const runtime = 'nodejs'
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-// Forza la versione italiana per i siti Shopify Markets.
-// I server Microlink free sono US → Shopify rileva geo-IP US e
-// ridireziona alla versione US/EN. Append _country=IT&_currency=EUR
-// (parametri standard Shopify Markets) bypassa la geo-detection.
+// Forza la versione italiana. STMN usa il plugin Weglot per le traduzioni
+// (NON Shopify Markets multi-language). Weglot auto-detecta Accept-Language
+// e fa redirect/translate alla lingua del browser. Per forzare IT:
+//   - ?wg-choose-language=it (Weglot URL param)
+//   - _country=IT&_currency=EUR (Shopify Markets per la valuta EUR)
 function forceItalianLocale(rawUrl) {
   try {
     const u = new URL(rawUrl)
-    // Solo se non c'è gia un override di country/locale
+    // Weglot URL param — sovrascrive l'auto-detection
+    if (!u.searchParams.has('wg-choose-language')) u.searchParams.set('wg-choose-language', 'it')
+    // Shopify Markets — per garantire EUR + market IT
     if (!u.searchParams.has('_country')) u.searchParams.set('_country', 'IT')
     if (!u.searchParams.has('_currency')) u.searchParams.set('_currency', 'EUR')
-    if (!u.searchParams.has('locale')) u.searchParams.set('locale', 'it')
     return u.toString()
   } catch {
     return rawUrl
@@ -102,17 +104,38 @@ async function fetchScreenshotWithBrowserless(target) {
     })
 
     const page = await browser.newPage()
+    // Solo italiano: Weglot pesca qualsiasi q>0 di en per fare auto-redirect
     await page.setExtraHTTPHeaders({
-      'Accept-Language': 'it-IT,it;q=0.9,en;q=0.6',
+      'Accept-Language': 'it-IT,it',
     })
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
     let url = target.trim()
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
-    // Applico query param Shopify Markets (_country/_currency/locale).
-    // Marino ha confermato che ?locale=it serve la versione italiana sul
-    // suo store anche da IP non-IT. Path prefix /it/ NON e' configurato.
     const navUrl = forceItalianLocale(url)
+
+    // Cookie injection prima della navigazione → simula "utente ha scelto IT".
+    // Weglot legge wglot/wg_locale cookie per rispettare scelta utente sopra
+    // l'auto-detection. Shopify legge localization/cart_currency per il market.
+    try {
+      const host = new URL(navUrl).hostname
+      const baseDomain = host.replace(/^www\./, '')
+      const cookieDomains = [host, '.' + baseDomain]
+      const cookieDefs = [
+        { name: 'wglot', value: 'it' },
+        { name: 'wg_locale', value: 'it' },
+        { name: 'language', value: 'it' },
+        { name: 'localization', value: 'IT' },
+        { name: 'cart_currency', value: 'EUR' },
+      ]
+      const cookies = []
+      for (const c of cookieDefs) {
+        for (const domain of cookieDomains) {
+          cookies.push({ name: c.name, value: c.value, domain, path: '/' })
+        }
+      }
+      await page.setCookie(...cookies)
+    } catch {}
 
     const resp = await page.goto(navUrl, { waitUntil: 'networkidle2', timeout: 28000 })
     // Render finale (font, lazy images sopra fold)

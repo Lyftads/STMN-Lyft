@@ -110,6 +110,20 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   100% { transform: translateX(100%); opacity: 0; }
 }
 
+/* Pulse più gentile per tab con elementi interattivi (sliders) */
+@keyframes sim-pulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-5px) scale(1.005); }
+}
+
+/* Scan-line orizzontale che sweepa lungo la card */
+@keyframes sim-scan {
+  0%   { left: -50%; opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
 /* Reveal classes — applied by IntersectionObserver */
 .reveal {
   opacity: 0;

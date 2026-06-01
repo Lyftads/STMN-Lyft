@@ -133,15 +133,7 @@ export default function VendroShell({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
       position: 'relative',
     }}>
-      {/* Background — subtle blue depth on pure black */}
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-        background: `
-          radial-gradient(ellipse 60% 40% at 50% 50%, rgba(10,25,80,0.12), transparent 65%),
-          radial-gradient(ellipse 40% 35% at 75% 65%, rgba(20,50,140,0.06), transparent 50%),
-          radial-gradient(ellipse 35% 30% at 25% 55%, rgba(15,35,100,0.05), transparent 45%)
-        `,
-      }} />
+      {/* Pure black background — no overlay gradient */}
 
       {/* Sidebar */}
       <aside style={{

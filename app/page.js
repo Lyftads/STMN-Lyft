@@ -352,28 +352,61 @@ function Simulator({ cfg }) {
   const NIGHT_BLUE_LIGHT = '#3b82f6' // hue intermedio
   const ACCENT_GLOW = '#2997ff'  // accent Apple per glow/highlight
 
-  // Glass card 3D — replica del .glass-panel da globals.css con effetto
-  // tridimensionale: border-top lighter, border-bottom scuro, shadow
-  // stratificate, backdrop blur reale
-  const fxBlock = (children, { glow = ACCENT_GLOW, padding = 24 } = {}) => (
-    <div style={{
-      position: 'relative',
-      background: 'rgba(255,255,255,0.04)',
-      backdropFilter: 'blur(40px) saturate(2.2)',
-      WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-      borderRadius: 22,
-      overflow: 'hidden',
-      border: '1.5px solid rgba(255,255,255,0.06)',
-      borderTopColor: 'rgba(255,255,255,0.12)',
-      borderBottomColor: 'rgba(0,0,0,0.55)',
-      boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
-    }}>
+  // Glass card 3D futuristica: backdrop blur reale + border 3D +
+  // sim-pulse (floating motion gentle) + sim-scan (horizontal sweep) +
+  // top accent bar cr-shine + hover lift. Replica del look delle
+  // glass-card di Monthly/Weekly/Quarter/Year.
+  const fxBlock = (children, { glow = ACCENT_GLOW, padding = 24, delay = 0, dark = false } = {}) => (
+    <div
+      style={{
+        position: 'relative',
+        background: dark
+          ? 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)'
+          : 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        borderRadius: 22,
+        overflow: 'hidden',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.55)',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        animation: `sim-pulse 6s ease-in-out infinite`,
+        animationDelay: `${delay}s`,
+        transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+        cursor: 'default',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.animationPlayState = 'paused'
+        e.currentTarget.style.transform = 'translateY(-8px) scale(1.012)'
+        e.currentTarget.style.boxShadow = `0 60px 120px rgba(0,0,0,0.85), 0 30px 60px rgba(0,0,0,0.6), 0 0 80px ${glow}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.animationPlayState = 'running'
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
+        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+      }}
+    >
+      {/* Top accent bar animata */}
       <div style={{
         position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${glow}88, transparent)`,
+        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
         filter: 'blur(0.3px)',
         opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
+        zIndex: 3,
+        pointerEvents: 'none',
+      }} />
+      {/* Scan-line orizzontale (gradient bianco) */}
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: '-50%',
+        width: '40%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        animation: `sim-scan 9s ease-in-out infinite`,
+        animationDelay: `${delay + 1}s`,
+        pointerEvents: 'none',
         zIndex: 1,
       }} />
       <div style={{ padding, position: 'relative', zIndex: 2 }}>{children}</div>
@@ -461,7 +494,7 @@ function Simulator({ cfg }) {
               )
             })}
           </>
-        ), { glow: '#2997ff' })}
+        ), { glow: '#2997ff', delay: 0 })}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
@@ -500,7 +533,7 @@ function Simulator({ cfg }) {
                 </div>
               ))}
             </>
-          ), { glow: '#2997ff', padding: 22 })}
+          ), { glow: '#2997ff', padding: 22, delay: 0.7 })}
         </div>
       </div>
 
@@ -520,25 +553,54 @@ function Simulator({ cfg }) {
         {scenarios.map((sc,i) => {
           const color = scenarioColors[i]
           return (
-            <div key={i} style={{
-              position: 'relative',
-              background: `linear-gradient(180deg, ${color}1f 0%, rgba(8,8,18,0.65) 38%, rgba(0,0,0,0.95) 100%)`,
-              backdropFilter: 'blur(40px) saturate(2.2)',
-              WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-              border: '1.5px solid rgba(255,255,255,0.06)',
-              borderTopColor: `${color}55`,
-              borderBottomColor: 'rgba(0,0,0,0.65)',
-              borderRadius: 18,
-              padding: 22,
-              overflow: 'hidden',
-              boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 0 0 0 rgba(0,0,0,0), 0 0 40px ${color}14, inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)`,
-            }}>
+            <div
+              key={i}
+              style={{
+                position: 'relative',
+                background: `linear-gradient(180deg, ${color}1f 0%, rgba(8,8,18,0.65) 38%, rgba(0,0,0,0.95) 100%)`,
+                backdropFilter: 'blur(40px) saturate(2.2)',
+                WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+                border: '1.5px solid rgba(255,255,255,0.06)',
+                borderTopColor: `${color}55`,
+                borderBottomColor: 'rgba(0,0,0,0.65)',
+                borderRadius: 18,
+                padding: 22,
+                overflow: 'hidden',
+                boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 0 40px ${color}14, inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)`,
+                animation: 'sim-pulse 6s ease-in-out infinite',
+                animationDelay: `${i * 0.6}s`,
+                transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.animationPlayState = 'paused'
+                e.currentTarget.style.transform = 'translateY(-10px) scale(1.018)'
+                e.currentTarget.style.boxShadow = `0 50px 100px rgba(0,0,0,0.8), 0 20px 40px rgba(0,0,0,0.55), 0 0 80px ${color}3a, inset 0 1.5px 0 rgba(255,255,255,0.1), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+                e.currentTarget.style.borderTopColor = `${color}99`
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.animationPlayState = 'running'
+                e.currentTarget.style.transform = ''
+                e.currentTarget.style.boxShadow = `0 24px 60px rgba(0,0,0,0.7), 0 8px 20px rgba(0,0,0,0.5), 0 0 40px ${color}14, inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)`
+                e.currentTarget.style.borderTopColor = `${color}55`
+              }}
+            >
               <div style={{
                 position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
                 background: `linear-gradient(90deg, transparent, ${color}aa, transparent)`,
                 filter: 'blur(0.3px)',
                 animation: 'cr-shine 3.5s ease-in-out infinite',
                 animationDelay: `${i * 0.3}s`,
+                zIndex: 3,
+                pointerEvents: 'none',
+              }} />
+              {/* Scan-line sweep */}
+              <div style={{
+                position: 'absolute', top: 0, bottom: 0, left: '-50%',
+                width: '40%',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
+                animation: 'sim-scan 9s ease-in-out infinite',
+                animationDelay: `${i * 0.8 + 1}s`,
+                pointerEvents: 'none',
                 zIndex: 1,
               }} />
 
@@ -620,18 +682,35 @@ function Simulator({ cfg }) {
         })}
       </div>
 
-      <div style={{
-        position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        borderRadius: 22,
-        overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
-        borderTopColor: 'rgba(255,255,255,0.12)',
-        borderBottomColor: 'rgba(0,0,0,0.65)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
-      }}>
+      <div
+        style={{
+          position: 'relative',
+          background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+          backdropFilter: 'blur(40px) saturate(2.2)',
+          WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+          borderRadius: 22,
+          overflow: 'hidden',
+          border: '1.5px solid rgba(255,255,255,0.06)',
+          borderTopColor: 'rgba(255,255,255,0.12)',
+          borderBottomColor: 'rgba(0,0,0,0.65)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+          animation: 'sim-pulse 6s ease-in-out infinite',
+          animationDelay: '2.1s',
+          transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.animationPlayState = 'paused'
+          e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
+          e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px rgba(41,151,255,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+          e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.animationPlayState = 'running'
+          e.currentTarget.style.transform = ''
+          e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+          e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+        }}
+      >
         {/* Top accent bar cr-shine */}
         <div style={{
           position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
@@ -639,6 +718,17 @@ function Simulator({ cfg }) {
           filter: 'blur(0.3px)',
           opacity: 0.85,
           animation: 'cr-shine 4s ease-in-out infinite',
+          zIndex: 3,
+          pointerEvents: 'none',
+        }} />
+        {/* Scan-line sweep */}
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, left: '-50%',
+          width: '40%',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+          animation: 'sim-scan 9s ease-in-out infinite',
+          animationDelay: '3s',
+          pointerEvents: 'none',
           zIndex: 1,
         }} />
         <div style={{ overflowX: 'auto', position: 'relative', zIndex: 2 }}>
@@ -695,25 +785,50 @@ function Simulator({ cfg }) {
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
-        <div style={{
-          position: 'relative',
-          background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-          backdropFilter: 'blur(40px) saturate(2.2)',
-          WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-          border: '1.5px solid rgba(255,255,255,0.06)',
-          borderTopColor: 'rgba(255,255,255,0.12)',
-          borderBottomColor: 'rgba(0,0,0,0.65)',
-          borderRadius: 22,
-          padding: 22,
-          overflow: 'hidden',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
-        }}>
+        <div
+          style={{
+            position: 'relative',
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+            backdropFilter: 'blur(40px) saturate(2.2)',
+            WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+            border: '1.5px solid rgba(255,255,255,0.06)',
+            borderTopColor: 'rgba(255,255,255,0.12)',
+            borderBottomColor: 'rgba(0,0,0,0.65)',
+            borderRadius: 22,
+            padding: 22,
+            overflow: 'hidden',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+            animation: 'sim-pulse 6s ease-in-out infinite',
+            transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.animationPlayState = 'paused'
+            e.currentTarget.style.transform = 'translateY(-8px) scale(1.012)'
+            e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 60px rgba(41,151,255,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+            e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.animationPlayState = 'running'
+            e.currentTarget.style.transform = ''
+            e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+            e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+          }}
+        >
           <div style={{
             position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
             background: `linear-gradient(90deg, transparent, #2997ff88, transparent)`,
             filter: 'blur(0.3px)',
             opacity: 0.85,
             animation: 'cr-shine 4s ease-in-out infinite',
+            zIndex: 3,
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0, left: '-50%',
+            width: '40%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+            animation: 'sim-scan 9s ease-in-out infinite',
+            pointerEvents: 'none',
             zIndex: 1,
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
@@ -771,25 +886,50 @@ function Simulator({ cfg }) {
           </ResponsiveContainer>
           </div>
         </div>
-        <div style={{
-          position: 'relative',
-          background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-          backdropFilter: 'blur(40px) saturate(2.2)',
-          WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-          border: '1.5px solid rgba(255,255,255,0.06)',
-          borderTopColor: 'rgba(255,255,255,0.12)',
-          borderBottomColor: 'rgba(0,0,0,0.65)',
-          borderRadius: 22,
-          padding: 22,
-          overflow: 'hidden',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
-        }}>
+        <div
+          style={{
+            position: 'relative',
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+            backdropFilter: 'blur(40px) saturate(2.2)',
+            WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+            border: '1.5px solid rgba(255,255,255,0.06)',
+            borderTopColor: 'rgba(255,255,255,0.12)',
+            borderBottomColor: 'rgba(0,0,0,0.65)',
+            borderRadius: 22,
+            padding: 22,
+            overflow: 'hidden',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+            animation: 'sim-pulse 6s ease-in-out infinite',
+            transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.animationPlayState = 'paused'
+            e.currentTarget.style.transform = 'translateY(-8px) scale(1.012)'
+            e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 60px rgba(41,151,255,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+            e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.animationPlayState = 'running'
+            e.currentTarget.style.transform = ''
+            e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+            e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+          }}
+        >
           <div style={{
             position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
             background: `linear-gradient(90deg, transparent, #2997ff88, transparent)`,
             filter: 'blur(0.3px)',
             opacity: 0.85,
             animation: 'cr-shine 4s ease-in-out infinite',
+            zIndex: 3,
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0, left: '-50%',
+            width: '40%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+            animation: 'sim-scan 9s ease-in-out infinite',
+            pointerEvents: 'none',
             zIndex: 1,
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
@@ -885,25 +1025,52 @@ function Simulator({ cfg }) {
         const losing = cashFlowAnalysis.filter(r => r.profittoNetto < 0)
 
         return (
-          <div style={{
-            marginTop: 22,
-            background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-            backdropFilter: 'blur(40px) saturate(2.2)',
-            WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-            border: '1.5px solid rgba(255,255,255,0.06)',
-            borderTopColor: 'rgba(255,255,255,0.12)',
-            borderBottomColor: 'rgba(0,0,0,0.65)',
-            borderRadius: 22,
-            padding: 28,
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
-          }}>
+          <div
+            style={{
+              marginTop: 22,
+              background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+              backdropFilter: 'blur(40px) saturate(2.2)',
+              WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+              border: '1.5px solid rgba(255,255,255,0.06)',
+              borderTopColor: 'rgba(255,255,255,0.12)',
+              borderBottomColor: 'rgba(0,0,0,0.65)',
+              borderRadius: 22,
+              padding: 28,
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+              animation: 'sim-pulse 6s ease-in-out infinite',
+              animationDelay: '2.8s',
+              transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.animationPlayState = 'paused'
+              e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
+              e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px rgba(41,151,255,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+              e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.animationPlayState = 'running'
+              e.currentTarget.style.transform = ''
+              e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+              e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+            }}
+          >
             <div style={{
               position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
               background: `linear-gradient(90deg, transparent, ${ACCENT_GLOW}88, transparent)`,
               filter: 'blur(0.3px)',
               animation: 'cr-shine 4s ease-in-out infinite',
+              zIndex: 3,
+              pointerEvents: 'none',
+            }} />
+            <div style={{
+              position: 'absolute', top: 0, bottom: 0, left: '-50%',
+              width: '40%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+              animation: 'sim-scan 9s ease-in-out infinite',
+              animationDelay: '4s',
+              pointerEvents: 'none',
               zIndex: 1,
             }} />
 
@@ -1072,7 +1239,7 @@ function Simulator({ cfg }) {
         )
       })()}
       </>
-    ), { glow: '#2997ff', padding: 28 })}
+    ), { glow: '#2997ff', padding: 28, delay: 1.4 })}
     </div>
   )
 }

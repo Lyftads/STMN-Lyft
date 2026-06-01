@@ -11,11 +11,15 @@ import { BigQuery } from '@google-cloud/bigquery'
 
 let bqClient = null
 
+// trim: i copy-paste in Vercel env spesso lasciano spazi/newline. BigQuery
+// rifiuta project ID con spazi → trimmiamo sempre.
+const envTrim = name => process.env[name]?.trim() || ''
+
 function getBQ() {
   if (bqClient) return { client: bqClient }
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  const projectId = process.env.BIGQUERY_PROJECT_ID
-  const dataset = process.env.BIGQUERY_DATASET
+  const raw = envTrim('GOOGLE_SERVICE_ACCOUNT_JSON')
+  const projectId = envTrim('BIGQUERY_PROJECT_ID')
+  const dataset = envTrim('BIGQUERY_DATASET')
   const missing = []
   if (!projectId) missing.push('BIGQUERY_PROJECT_ID')
   if (!dataset) missing.push('BIGQUERY_DATASET')
@@ -101,12 +105,12 @@ export async function GET(request) {
   // Debug envelope sempre presente — utile a vedere se le env vars sono
   // arrivate al runtime serverless dopo il redeploy.
   const debug = {
-    hasProjectId: !!process.env.BIGQUERY_PROJECT_ID,
-    hasDataset: !!process.env.BIGQUERY_DATASET,
-    hasJson: !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
-    projectId: process.env.BIGQUERY_PROJECT_ID || null,
-    dataset: process.env.BIGQUERY_DATASET || null,
-    jsonLength: process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.length || 0,
+    hasProjectId: !!envTrim('BIGQUERY_PROJECT_ID'),
+    hasDataset: !!envTrim('BIGQUERY_DATASET'),
+    hasJson: !!envTrim('GOOGLE_SERVICE_ACCOUNT_JSON'),
+    projectId: envTrim('BIGQUERY_PROJECT_ID') || null,
+    dataset: envTrim('BIGQUERY_DATASET') || null,
+    jsonLength: envTrim('GOOGLE_SERVICE_ACCOUNT_JSON').length || 0,
   }
 
   const { client: bq, reason } = getBQ()
@@ -114,8 +118,8 @@ export async function GET(request) {
     return NextResponse.json({ configured: false, reason: reason || 'BQ client null senza reason', debug }, { status: 200 })
   }
 
-  const dataset = process.env.BIGQUERY_DATASET
-  const projectId = process.env.BIGQUERY_PROJECT_ID
+  const dataset = envTrim('BIGQUERY_DATASET')
+  const projectId = envTrim('BIGQUERY_PROJECT_ID')
 
   const { searchParams } = new URL(request.url)
   const preset = searchParams.get('preset') || 'current_month'

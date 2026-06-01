@@ -94,7 +94,12 @@ async function fetchScreenshotWithBrowserless(target) {
   // Endpoint EU: production-lon (Londra) ha IP UK→EU per Shopify geo.
   // Override con BROWSERLESS_ENDPOINT se serve cambiare region.
   const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
-  const wsUrl = `wss://${endpoint}/?token=${encodeURIComponent(token)}`
+  // launch args al Chrome di Browserless: --lang setta navigator.language
+  // che Weglot legge per decidere la lingua di traduzione.
+  const launchArgs = JSON.stringify({
+    args: ['--lang=it-IT'],
+  })
+  const wsUrl = `wss://${endpoint}/?token=${encodeURIComponent(token)}&launch=${encodeURIComponent(launchArgs)}`
 
   let browser
   try {
@@ -104,6 +109,13 @@ async function fetchScreenshotWithBrowserless(target) {
     })
 
     const page = await browser.newPage()
+    // Override navigator.language/languages PRIMA che qualsiasi script
+    // della pagina runni. Weglot legge questi valori client-side per
+    // decidere se tradurre — se vede it-IT non traduce dall'italiano.
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'language', { get: () => 'it-IT' })
+      Object.defineProperty(navigator, 'languages', { get: () => ['it-IT', 'it'] })
+    })
     // Solo italiano: Weglot pesca qualsiasi q>0 di en per fare auto-redirect
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'it-IT,it',
@@ -138,8 +150,16 @@ async function fetchScreenshotWithBrowserless(target) {
     } catch {}
 
     const resp = await page.goto(navUrl, { waitUntil: 'networkidle2', timeout: 28000 })
-    // Render finale (font, lazy images sopra fold)
+    // Render finale (font, lazy images sopra fold, traduzioni Weglot)
     await new Promise(r => setTimeout(r, 1500))
+
+    // Debug: catturo URL finale + lang attributo per capire cosa Weglot ha deciso
+    const debug = await page.evaluate(() => ({
+      finalUrl: location.href,
+      htmlLang: document.documentElement.lang || null,
+      navigatorLang: navigator.language,
+      hasWeglot: !!(window.Weglot || document.querySelector('[data-wg-]')),
+    })).catch(() => null)
 
     const buf = await page.screenshot({ type: 'png', fullPage: false })
     return {
@@ -147,6 +167,7 @@ async function fetchScreenshotWithBrowserless(target) {
       publicUrl: null,
       bytes: buf.length,
       provider: 'browserless-eu',
+      debug,
     }
   } finally {
     // disconnect (non close: il browser Chrome non e' nostro)
@@ -329,13 +350,14 @@ export async function POST(req) {
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.
-  let dataUrl, previewUrl, provider, fallbackErrors
+  let dataUrl, previewUrl, provider, fallbackErrors, debug
   try {
     const shot = await fetchScreenshotAsDataUrl(normalized)
     dataUrl = shot.dataUrl
     previewUrl = shot.publicUrl
     provider = shot.provider
     fallbackErrors = shot.fallbackErrors
+    debug = shot.debug
   } catch (err) {
     return NextResponse.json({
       error: `Impossibile catturare lo screenshot: ${err?.message || 'errore'}. Verifica che l'URL sia accessibile pubblicamente.`,
@@ -403,6 +425,7 @@ export async function POST(req) {
       screenshotDataUrl: dataUrl,
       provider,
       fallbackErrors,
+      debug,
       analysis,
       rawText: analysis ? undefined : raw,
       error: analysis ? undefined : 'Analisi non parseable come JSON',

@@ -35,34 +35,27 @@ function safeJson(value, max = 60000) {
   }
 }
 
-async function fetchInternal(req, path) {
-  try {
-    const origin = new URL(req.url).origin
-    const r = await fetch(`${origin}${path}`, { cache: 'no-store' })
-    if (!r.ok) return null
-    return await r.json()
-  } catch {
-    return null
-  }
-}
-
 export async function POST(req) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
-      { error: 'OPENAI_API_KEY non configurata. Aggiungila in Vercel.' },
+      { error: 'OPENAI_API_KEY non configurata su Vercel.' },
       { status: 500 }
     )
   }
 
   let body
   try { body = await req.json() } catch { body = {} }
-  const preset = body?.preset || 'last_7d'
 
-  const [metrics, metaDetail, creative] = await Promise.all([
-    fetchInternal(req, `/api/metrics?preset=${encodeURIComponent(preset)}`),
-    fetchInternal(req, `/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
-    fetchInternal(req, `/api/creative`).catch(() => null),
-  ])
+  const preset = body?.preset || 'last_7d'
+  const metrics = body?.metrics || null
+  const metaDetail = body?.metaDetail || null
+
+  if (!metrics) {
+    return NextResponse.json(
+      { error: 'Dati metrics mancanti nel body.' },
+      { status: 400 }
+    )
+  }
 
   const context = {
     preset,
@@ -93,10 +86,6 @@ export async function POST(req) {
       summary: metaDetail?.summary,
       comparison: metaDetail?.comparison,
     },
-    creative: creative ? {
-      topCreatives: (creative?.topCreatives || creative?.creatives || []).slice(0, 10),
-      summary: creative?.summary,
-    } : null,
   }
 
   try {
@@ -127,8 +116,16 @@ export async function POST(req) {
 
     const json = await r.json()
     const content = json?.choices?.[0]?.message?.content || '{}'
+
     let parsed
-    try { parsed = JSON.parse(content) } catch { parsed = { error: 'Risposta non parsabile', raw: content.slice(0, 500) } }
+    try {
+      parsed = JSON.parse(content)
+    } catch {
+      return NextResponse.json(
+        { error: 'AI ha risposto con JSON malformato', raw: content.slice(0, 300) },
+        { status: 502 }
+      )
+    }
 
     return NextResponse.json({
       preset,
@@ -136,7 +133,6 @@ export async function POST(req) {
       sources: {
         shopify: Boolean(metrics?.shopifyRange),
         meta: Boolean(metrics?.metaRange),
-        creative: Boolean(creative),
       },
       updatedAt: new Date().toISOString(),
     })

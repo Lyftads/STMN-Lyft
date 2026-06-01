@@ -79,33 +79,52 @@ export default function DashboardInsights({ preset }) {
     setLoading(true)
     setError(null)
 
-    fetch('/api/insights', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preset }),
-      signal: ac.signal,
-    })
-      .then(r => r.json().then(j => ({ ok: r.ok, json: j })))
-      .then(({ ok, json }) => {
+    ;(async () => {
+      try {
+        // 1. Fetch live data client-side (avoids broken internal fetches on Vercel)
+        const [mRes, dRes] = await Promise.all([
+          fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: ac.signal }),
+          fetch(`/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, { cache: 'no-store', signal: ac.signal }).catch(() => null),
+        ])
+
+        const metrics = mRes.ok ? await mRes.json() : null
+        const metaDetail = dRes && dRes.ok ? await dRes.json() : null
+
         if (!active) return
-        if (!ok || json.error) {
-          setError(json?.error || `HTTP error`)
+        if (!metrics) {
+          setError('Impossibile recuperare i dati metrics')
           return
         }
+
+        // 2. Send to insights endpoint with full payload
+        const r = await fetch('/api/insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset, metrics, metaDetail }),
+          signal: ac.signal,
+        })
+
+        const json = await r.json()
+        if (!active) return
+
+        if (!r.ok || json.error) {
+          setError(json?.error || `HTTP ${r.status}`)
+          return
+        }
+
         const normalized = normalizeSections(json.sections)
         if (!normalized) {
           setError('La risposta AI non contiene insight validi. Riprova.')
           return
         }
         setData(normalized)
-      })
-      .catch(e => {
+      } catch (e) {
         if (!active || e.name === 'AbortError') return
-        setError(e.message || 'Errore di rete')
-      })
-      .finally(() => {
+        setError(e?.message || 'Errore di rete')
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    })()
 
     return () => { active = false; ac.abort() }
   }, [preset, retryKey])

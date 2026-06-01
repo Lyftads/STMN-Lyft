@@ -23,8 +23,38 @@ function forceItalianLocale(rawUrl) {
   }
 }
 
-// Microlink screenshot service free tier — minimo set di parametri.
-// I parametri "headers" e user-agent custom sono Pro-only.
+// ScreenshotOne (preferito quando SCREENSHOTONE_ACCESS_KEY è impostato):
+// Free tier 100 screenshot/mese, supporta accept_language + custom UA
+// senza piano Pro → bypassa geo-IP redirect di Shopify.
+function buildScreenshotOneUrl(target) {
+  const key = process.env.SCREENSHOTONE_ACCESS_KEY
+  if (!key) return null
+  let url = target.trim()
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+  url = forceItalianLocale(url)
+  const params = new URLSearchParams({
+    access_key: key,
+    url,
+    viewport_width: '1440',
+    viewport_height: '1800',
+    device_scale_factor: '1',
+    image_quality: '80',
+    format: 'png',
+    full_page: 'false',
+    block_ads: 'true',
+    block_cookie_banners: 'true',
+    block_trackers: 'true',
+    block_chats: 'true',
+    accept_language: 'it-IT,it;q=0.9,en;q=0.6',
+    user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    timezone: 'Europe/Rome',
+    cache: 'true',
+    cache_ttl: '14400',
+  })
+  return `https://api.screenshotone.com/take?${params.toString()}`
+}
+
+// Microlink fallback (free, no key richiesta ma redirected su geo-IP US)
 function buildMicrolinkUrl(target, { embed = false } = {}) {
   let url = target.trim()
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url
@@ -40,16 +70,36 @@ function buildMicrolinkUrl(target, { embed = false } = {}) {
   return `https://api.microlink.io/?${params.toString()}`
 }
 
-// Scarica lo screenshot e lo converte in data URL base64 così OpenAI
-// non deve fetchare nulla (evita timeout). Prima ricava il CDN URL via
-// JSON response, poi scarica quello — è già cached da Microlink quindi
-// download veloce.
+// Scarica lo screenshot. Usa ScreenshotOne se la API key è configurata
+// (supporta accept_language e bypassa geo-redirect), altrimenti
+// Microlink come fallback gratuito.
 async function fetchScreenshotAsDataUrl(target) {
-  const apiUrl = buildMicrolinkUrl(target, { embed: false })
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 35000)
+  const timer = setTimeout(() => controller.abort(), 45000)
   try {
-    // 1) chiama Microlink API → ritorna JSON con cdnUrl
+    const screenshotOneUrl = buildScreenshotOneUrl(target)
+
+    if (screenshotOneUrl) {
+      // ScreenshotOne ritorna DIRETTAMENTE l'immagine (no JSON wrapper)
+      const imgRes = await fetch(screenshotOneUrl, { signal: controller.signal })
+      clearTimeout(timer)
+      if (!imgRes.ok) {
+        const body = await imgRes.text().catch(() => '')
+        throw new Error(`ScreenshotOne ${imgRes.status}: ${body.slice(0, 200)}`)
+      }
+      const contentType = imgRes.headers.get('content-type') || 'image/png'
+      const buf = Buffer.from(await imgRes.arrayBuffer())
+      if (buf.length === 0) throw new Error('Screenshot vuoto')
+      return {
+        dataUrl: `data:${contentType};base64,${buf.toString('base64')}`,
+        publicUrl: screenshotOneUrl,
+        bytes: buf.length,
+        provider: 'screenshotone',
+      }
+    }
+
+    // Fallback Microlink
+    const apiUrl = buildMicrolinkUrl(target, { embed: false })
     const apiRes = await fetch(apiUrl, { signal: controller.signal })
     if (!apiRes.ok) {
       const body = await apiRes.text().catch(() => '')
@@ -57,15 +107,11 @@ async function fetchScreenshotAsDataUrl(target) {
     }
     const json = await apiRes.json()
     const cdnUrl = json?.data?.screenshot?.url
-    if (!cdnUrl) {
-      throw new Error(json?.message || 'Nessuno screenshot generato')
-    }
-    // 2) scarica l'immagine dal CDN Microlink (veloce)
+    if (!cdnUrl) throw new Error(json?.message || 'Nessuno screenshot generato')
+
     const imgRes = await fetch(cdnUrl, { signal: controller.signal })
     clearTimeout(timer)
-    if (!imgRes.ok) {
-      throw new Error(`CDN ${imgRes.status}`)
-    }
+    if (!imgRes.ok) throw new Error(`CDN ${imgRes.status}`)
     const contentType = imgRes.headers.get('content-type') || 'image/png'
     const buf = Buffer.from(await imgRes.arrayBuffer())
     if (buf.length === 0) throw new Error('Screenshot vuoto')
@@ -73,6 +119,7 @@ async function fetchScreenshotAsDataUrl(target) {
       dataUrl: `data:${contentType};base64,${buf.toString('base64')}`,
       publicUrl: cdnUrl,
       bytes: buf.length,
+      provider: 'microlink',
     }
   } catch (e) {
     clearTimeout(timer)

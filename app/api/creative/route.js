@@ -271,9 +271,11 @@ function normalizeInsight(row, account) {
   ])
 
   // CPC: Meta espone valori pre-calcolati piu affidabili del nostro
-  // spend/click, usali in priorita prima del calcolo manuale
+  // spend/click, usali in priorita prima del calcolo manuale.
+  // cost_per_action_type include anche link_click come dimensione.
   const cpcLink =
     toNum(row.cost_per_inline_link_click) ||
+    getActionValue(row.cost_per_action_type, ['link_click']) ||
     toNum(row.cpc) ||
     (linkClicks ? spend / linkClicks : 0)
 
@@ -382,8 +384,20 @@ function getProductSetId(creative, fullCreative) {
     creative?.product_set_id ||
     fullCreative?.object_story_spec?.template_data?.product_set_id ||
     creative?.object_story_spec?.template_data?.product_set_id ||
+    fullCreative?.asset_feed_spec?.product_set_id ||
+    creative?.asset_feed_spec?.product_set_id ||
     null
   )
+}
+
+async function getAdsetProductSetId(adsetId) {
+  if (!adsetId) return null
+  try {
+    const data = await metaGet(adsetId, { fields: 'promoted_object' })
+    return data?.promoted_object?.product_set_id || null
+  } catch {
+    return null
+  }
 }
 
 async function fetchProductSetSample(productSetId, max = 6) {
@@ -461,8 +475,14 @@ async function hydrateCreatives(rows) {
         })
 
         // Catalog ads: estrai un sample di prodotti dal product set
-        // così la card mostra l'anteprima carosello come fa Meta
-        const productSetId = getProductSetId(creative, fullCreative)
+        // così la card mostra l'anteprima carosello come fa Meta.
+        // 1) prova sul creative (DPA classico)
+        // 2) fallback sull'adset (Advantage+ Catalog Ads tengono il
+        //    product_set su adset.promoted_object, non sul creative)
+        let productSetId = getProductSetId(creative, fullCreative)
+        if (!productSetId) {
+          productSetId = await getAdsetProductSetId(row.adset_id)
+        }
         const products = productSetId
           ? await fetchProductSetSample(productSetId, 6)
           : []
@@ -539,7 +559,7 @@ async function fetchAccountSummary(accounts, range) {
   for (const account of accounts) {
     const rows = await metaGetAll(`${account}/insights`, {
       level: 'account',
-      fields: 'spend,impressions,clicks,unique_clicks,inline_link_clicks,unique_inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values',
+      fields: 'spend,impressions,clicks,unique_clicks,inline_link_clicks,unique_inline_link_clicks,cpc,cost_per_inline_link_click,cost_per_action_type,ctr,inline_link_click_ctr,actions,action_values',
       time_range: range,
       action_breakdowns: 'action_type',
     }, 100)
@@ -553,7 +573,11 @@ async function fetchAccountSummary(accounts, range) {
         getActionValue(r.actions, ['link_click', 'onsite_conversion.post_save']) ||
         toNum(r.clicks) ||
         toNum(r.unique_clicks)
-      cpcLinkWeighted += (toNum(r.cost_per_inline_link_click) || toNum(r.cpc)) * rSpend
+      const rCpc =
+        toNum(r.cost_per_inline_link_click) ||
+        getActionValue(r.cost_per_action_type, ['link_click']) ||
+        toNum(r.cpc)
+      cpcLinkWeighted += rCpc * rSpend
       ctrLinkWeighted += (toNum(r.inline_link_click_ctr) || toNum(r.ctr)) * rSpend
       orders += getActionValue(r.actions, [
         'purchase', 'offsite_conversion.fb_pixel_purchase',
@@ -665,6 +689,7 @@ export async function GET(req) {
       'unique_inline_link_clicks',
       'cpc',
       'cost_per_inline_link_click',
+      'cost_per_action_type',
       'ctr',
       'inline_link_click_ctr',
       'actions',

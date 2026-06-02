@@ -3650,12 +3650,21 @@ export default function App() {
           const ordini    = useLiveCurrent ? Math.max(Number(sr.orders) || 0, ordiniMonthly)
                           : useLivePrev    ? Math.max(Number(spr.orders) || 0, ordiniMonthly)
                           : ordiniMonthly
-          const nc        = useLiveCurrent ? Math.max(Number(sr.nc) || 0, ncMonthly)
-                          : useLivePrev    ? Math.max(Number(spr.nc) || 0, ncMonthly)
-                          : ncMonthly
-          const rc        = useLiveCurrent ? Math.max(Number(sr.rc) || 0, rcMonthly)
-                          : useLivePrev    ? Math.max(Number(spr.rc) || 0, rcMonthly)
-                          : rcMonthly
+          // NC/RC: usiamo SEMPRE la somma dei mesi (monthly e' SoT post-fix
+          // REST fallback). Il live overlay year-range e' inaffidabile perche'
+          // ShopifyQL su range di 12 mesi puo' ritornare numeri parzialmente
+          // classificati (es. il mese corrente ancora non classificato fa
+          // perdere NC al totale year). Cade su live solo se ncMonthly = 0.
+          const nc        = ncMonthly > 0
+                          ? ncMonthly
+                          : (useLiveCurrent ? Number(sr.nc) || 0
+                          :  useLivePrev    ? Number(spr.nc) || 0
+                          :  0)
+          const rc        = rcMonthly > 0
+                          ? rcMonthly
+                          : (useLiveCurrent ? Number(sr.rc) || 0
+                          :  useLivePrev    ? Number(spr.rc) || 0
+                          :  0)
           const sessioni  = useLiveCurrent ? Math.max(Number(sr.sessions) || 0, sessioniMonthly)
                           : useLivePrev    ? Math.max(Number(spr.sessions) || 0, sessioniMonthly)
                           : sessioniMonthly

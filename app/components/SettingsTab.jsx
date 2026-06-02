@@ -386,15 +386,91 @@ function StatusCard({ currentPlanId }) {
   )
 }
 
-// Accepted payment methods + colori per chip
-const PAYMENT_BRANDS = [
-  { id: 'visa',       label: 'Visa',       color: '#1A1F71', textColor: '#fff' },
-  { id: 'mastercard', label: 'Mastercard', color: '#EB001B', textColor: '#fff' },
-  { id: 'amex',       label: 'AmEx',       color: '#016FD0', textColor: '#fff' },
-  { id: 'paypal',     label: 'PayPal',     color: '#003087', textColor: '#FFC439' },
-  { id: 'bancomat',   label: 'Bancomat',   color: '#005EAA', textColor: '#fff' },
-  { id: 'creditcard', label: 'Credit Card', color: '#1f2937', textColor: '#fff' },
-  { id: 'revolut',    label: 'Revolut',    color: '#000000', textColor: '#fff' },
+// Accepted payment methods — SVG inline brand-correct, formato card
+// (52×32 con corner radius), pronti per essere usati ovunque nel UI.
+const PAYMENT_ICONS = [
+  {
+    id: 'visa',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Visa">
+        <rect width="52" height="32" rx="5" fill="#1A1F71"/>
+        <text x="26" y="22" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif" letterSpacing="0.5">VISA</text>
+      </svg>
+    ),
+  },
+  {
+    id: 'mastercard',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Mastercard">
+        <rect width="52" height="32" rx="5" fill="#1a1a1a"/>
+        <circle cx="22" cy="16" r="8.5" fill="#EB001B"/>
+        <circle cx="30" cy="16" r="8.5" fill="#F79E1B"/>
+        <path d="M26 9.5a8.5 8.5 0 010 13 8.5 8.5 0 010-13z" fill="#FF5F00"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'amex',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="American Express">
+        <rect width="52" height="32" rx="5" fill="#016FD0"/>
+        <text x="26" y="21" textAnchor="middle" fill="#fff" fontSize="10.5" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="0.8">AMEX</text>
+      </svg>
+    ),
+  },
+  {
+    id: 'paypal',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="PayPal">
+        <rect width="52" height="32" rx="5" fill="#fff"/>
+        <text x="14" y="22" textAnchor="middle" fill="#003087" fontSize="12" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">Pay</text>
+        <text x="36" y="22" textAnchor="middle" fill="#009cde" fontSize="12" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">Pal</text>
+      </svg>
+    ),
+  },
+  {
+    id: 'bancomat',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Bancomat">
+        <rect width="52" height="32" rx="5" fill="#fff"/>
+        <rect x="4" y="10" width="22" height="12" rx="1.5" fill="#E2001A"/>
+        <rect x="26" y="10" width="22" height="12" rx="1.5" fill="#005EAA"/>
+        <text x="15" y="19.5" textAnchor="middle" fill="#fff" fontSize="7.5" fontWeight="900" fontFamily="Arial, sans-serif">PAGO</text>
+        <text x="37" y="19.5" textAnchor="middle" fill="#fff" fontSize="7" fontWeight="900" fontFamily="Arial, sans-serif">BANCO</text>
+      </svg>
+    ),
+  },
+  {
+    id: 'creditcard',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Credit Card">
+        <defs>
+          <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#374151"/>
+            <stop offset="100%" stopColor="#111827"/>
+          </linearGradient>
+        </defs>
+        <rect width="52" height="32" rx="5" fill="url(#cardGrad)"/>
+        <rect x="6" y="11" width="8" height="6" rx="1.2" fill="#fbbf24"/>
+        <rect x="6" y="11" width="8" height="6" rx="1.2" fill="none" stroke="#92400e" strokeWidth="0.4"/>
+        <line x1="8" y1="13" x2="12" y2="13" stroke="#92400e" strokeWidth="0.4"/>
+        <line x1="8" y1="15" x2="12" y2="15" stroke="#92400e" strokeWidth="0.4"/>
+        <circle cx="36" cy="14" r="3.5" fill="#9ca3af" opacity="0.55"/>
+        <circle cx="40" cy="14" r="3.5" fill="#9ca3af" opacity="0.55"/>
+        <rect x="6" y="22" width="20" height="1.2" rx="0.6" fill="#9ca3af" opacity="0.5"/>
+        <rect x="29" y="22" width="14" height="1.2" rx="0.6" fill="#9ca3af" opacity="0.5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'revolut',
+    svg: (
+      <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Revolut">
+        <rect width="52" height="32" rx="5" fill="#000"/>
+        <text x="26" y="23" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="900" fontFamily="Helvetica, Arial, sans-serif" letterSpacing="-0.5">Revolut</text>
+      </svg>
+    ),
+  },
 ]
 
 function PaymentMethodCard() {
@@ -565,22 +641,42 @@ function PaymentMethodCard() {
       )}
 
       {/* Accepted brands */}
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: 22 }}>
         <div style={{
           fontSize: 9.5, color: 'var(--text3)', fontWeight: 800,
-          letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10,
+          letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12,
+          textAlign: 'center',
         }}>Metodi accettati</div>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {PAYMENT_BRANDS.map(b => (
-            <div key={b.id} style={{
-              padding: '6px 12px', borderRadius: 8,
-              background: b.color,
-              color: b.textColor,
-              fontSize: 11, fontWeight: 900,
-              letterSpacing: '0.04em',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 6px rgba(0,0,0,0.40)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}>{b.label}</div>
+        <div style={{
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          {PAYMENT_ICONS.map(b => (
+            <div
+              key={b.id}
+              style={{
+                display: 'inline-flex',
+                borderRadius: 6,
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                lineHeight: 0,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)'
+                e.currentTarget.style.boxShadow = '0 8px 18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = ''
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
+            >
+              {b.svg}
+            </div>
           ))}
         </div>
       </div>

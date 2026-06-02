@@ -11,6 +11,7 @@ import CompetitorIntelTab from './components/CompetitorIntelTab'
 import PriceComparisonTab from './components/PriceComparisonTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import SettingsTab from './components/SettingsTab'
+import BrandIdentityPanel from './components/BrandIdentityPanel'
 import CROTab from './components/CROTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
 import CreativeLabTab from './components/CreativeLabTab'
@@ -4030,6 +4031,11 @@ export default function App() {
 {/* INTEGRATIONS TAB */}
 {tab === 'integrations' && (
   <IntegrationsTab />
+)}
+
+{/* BRAND IDENTITY TAB */}
+{tab === 'brandIdentity' && (
+  <BrandIdentityPanel />
 )}
 
 {/* SETTINGS TAB */}

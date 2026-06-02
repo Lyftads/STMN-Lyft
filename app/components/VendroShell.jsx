@@ -20,6 +20,7 @@ function getPageTitle(tab) {
     competitorIntel: 'Competitor Intel',
     priceComparison: 'Prezzi vs Competitor',
     integrations: 'Integrazioni',
+    brandIdentity: 'Brand Identity',
     settings: 'Settings',
     cro: 'CRO',
     webScanner: 'AI Website Scanner',
@@ -38,6 +39,7 @@ function getPageSubtitle(tab) {
     competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
     priceComparison: 'Confronto prezzi per categoria',
     integrations: 'Collega e gestisci tutte le piattaforme',
+    brandIdentity: 'Identita\' del brand · Tone of voice · Visual · Competitor',
     settings: 'Subscription · Piani · Fatturazione',
     cro: 'Funnel · Top Pages · Flusso Traffico',
     webScanner: 'Scanner CRO con AI Vision · Heuristic evaluation · Quick wins',
@@ -123,6 +125,7 @@ export default function VendroShell({
       color: '#86868b',
       items: [
         { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
+        { id: 'brandIdentity', label: 'Brand Identity', icon: '◉' },
         { id: 'settings', label: 'Settings', icon: '✦' },
       ],
     },

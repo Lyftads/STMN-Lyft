@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 45
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 
 // ── Ricerca per keyword sulla Meta Ad Library (endpoint AGGIUNTIVO e isolato) ──
-// Cerca ads attive che contengono un termine, in un paese, su TUTTI gli
-// advertiser (non solo i competitor noti). Prima prova la Ad Library API
-// ufficiale (search_terms); se non disponibile, fa fallback su scraping HTML.
+// Fonti, in ordine: 1) Ad Library API ufficiale (search_terms) se il token e'
+// approvato → 2) Browserless headless (renderizza la pagina pubblica, bypassa
+// il 403 dello scraping statico) → 3) scrape statico → 4) link esterno.
 // Non tocca /api/competitor-intel.
 
 const ACCESS_TOKEN =
@@ -27,21 +27,56 @@ function sanitize(v) {
     .trim()
 }
 
+function libraryUrlFor(q, country) {
+  return (
+    `https://www.facebook.com/ads/library/?active_status=active&ad_type=all` +
+    `&country=${encodeURIComponent(country)}&q=${encodeURIComponent(q)}` +
+    `&search_type=keyword_unordered&media_type=all`
+  )
+}
+
+// Parser HTML condiviso (usato sia da Browserless sia dallo scrape statico)
+function parseAdsFromHtml(html) {
+  const snap = [...html.matchAll(/ad_snapshot_url["\s:]+["']?(https:\/\/www\.facebook\.com\/ads\/archive\/render_ad\/\?[^"'\s<]+)/g)]
+  const snapshotUrls = [...new Set(snap.map(m => m[1].replace(/\\u0025/g, '%').replace(/\\\//g, '/').replace(/&amp;/g, '&')))]
+  const imgs = [...html.matchAll(/(?:src|xlink:href)="(https:\/\/scontent[^"]+)"/g)]
+  const allImages = [...new Set(imgs.map(m => m[1].replace(/&amp;/g, '&')))]
+    .filter(u => !u.includes('emoji') && !u.includes('profile') && !u.includes('safe_image') && !u.includes('static.xx'))
+  const bodies = [...html.matchAll(/"ad_creative_bodies":\["([^"]+)"\]/g)]
+  const titles = [...html.matchAll(/"ad_creative_link_titles":\["([^"]+)"\]/g)]
+  const dates = [...html.matchAll(/"ad_delivery_start_time":"(\d{4}-\d{2}-\d{2})"/g)]
+  const pages = [...html.matchAll(/"page_name":"([^"]+)"/g)]
+
+  const ads = []
+  const maxAds = Math.max(snapshotUrls.length, allImages.length, bodies.length)
+  for (let i = 0; i < Math.min(maxAds, 24); i++) {
+    ads.push({
+      id: `kw_${i}`,
+      bodies: bodies[i] ? [sanitize(bodies[i][1])] : [],
+      titles: titles[i] ? [sanitize(titles[i][1])] : [],
+      captions: [], descriptions: [],
+      startDate: dates[i]?.[1] || null,
+      snapshotUrl: snapshotUrls[i] || null,
+      pageName: pages[i] ? sanitize(pages[i][1]) : '',
+      platforms: ['facebook', 'instagram'],
+      imageUrl: allImages[i] || null, videoUrl: null, isVideo: false,
+    })
+  }
+  return ads.filter(a => a.imageUrl || a.bodies.length > 0 || a.snapshotUrl)
+}
+
 async function extractCreativeMedia(snapshotUrl) {
   if (!snapshotUrl) return { imageUrl: null, videoUrl: null, isVideo: false }
   try {
     const res = await fetch(snapshotUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(8000),
-      redirect: 'follow',
+      signal: AbortSignal.timeout(8000), redirect: 'follow',
     })
     if (!res.ok) return { imageUrl: null, videoUrl: null, isVideo: false }
     const html = await res.text()
-
     let videoUrl = null, isVideo = false
     const v = html.match(/<video[^>]*src="([^"]+)"/) || html.match(/"video_(?:sd|hd)_url":"([^"]+)"/) || html.match(/"playable_url":"([^"]+)"/)
     if (v) { videoUrl = v[1].replace(/\\u0025/g, '%').replace(/\\\//g, '/'); isVideo = true }
-
     let imageUrl = null
     const og = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/)
     if (og) imageUrl = og[1].replace(/&amp;/g, '&')
@@ -88,66 +123,66 @@ async function searchViaApi(q, country) {
       platforms: ad.publisher_platforms || ['facebook', 'instagram'],
       imageUrl: null, videoUrl: null, isVideo: false,
     }))
-
     const toEnrich = raw.slice(0, 9)
     for (let i = 0; i < toEnrich.length; i += 3) {
       const batch = toEnrich.slice(i, i + 3)
       const media = await Promise.all(batch.map(a => extractCreativeMedia(a.snapshotUrl)))
       batch.forEach((a, j) => { a.imageUrl = media[j].imageUrl; a.videoUrl = media[j].videoUrl; a.isVideo = media[j].isVideo })
     }
-    return { ads: raw, count: raw.length, source: 'api' }
+    return { ads: raw, source: 'api' }
   } catch {
     return null
   }
 }
 
-// ── 2) Fallback: scraping della pagina pubblica di ricerca keyword ──
-async function searchViaScrape(q, country) {
-  const libraryUrl =
-    `https://www.facebook.com/ads/library/?active_status=active&ad_type=all` +
-    `&country=${encodeURIComponent(country)}&q=${encodeURIComponent(q)}` +
-    `&search_type=keyword_unordered&media_type=all`
+// ── 2) Browserless headless: renderizza la pagina pubblica (bypassa 403) ──
+async function searchViaBrowserless(q, country) {
+  const token = process.env.BROWSERLESS_TOKEN
+  if (!token) return null
+
+  let browser
   try {
-    const res = await fetch(libraryUrl, {
+    const { default: puppeteer } = await import('puppeteer-core')
+    const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
+    const wsUrl = `wss://${endpoint}/?token=${encodeURIComponent(token)}`
+    browser = await puppeteer.connect({ browserWSEndpoint: wsUrl })
+
+    const page = await browser.newPage()
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
+    await page.setExtraHTTPHeaders({ 'Accept-Language': `${country.toLowerCase()},en;q=0.8` })
+
+    await page.goto(libraryUrlFor(q, country), { waitUntil: 'networkidle2', timeout: 45000 })
+    // Lascia caricare le card e scrolla per innescare il lazy-load
+    await new Promise(r => setTimeout(r, 2500))
+    await page.evaluate(() => window.scrollBy(0, 1600)).catch(() => {})
+    await new Promise(r => setTimeout(r, 2000))
+
+    const html = await page.content()
+    const ads = parseAdsFromHtml(html)
+    return { ads, source: 'browserless' }
+  } catch (e) {
+    return { ads: [], source: 'browserless', httpError: e.message }
+  } finally {
+    if (browser) await browser.disconnect().catch(() => {})
+  }
+}
+
+// ── 3) Fallback: scrape statico (spesso 403 lato server) ──
+async function searchViaScrape(q, country) {
+  try {
+    const res = await fetch(libraryUrlFor(q, country), {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Language': 'it-IT,it;q=0.9,en;q=0.7',
       },
-      signal: AbortSignal.timeout(15000),
-      redirect: 'follow',
+      signal: AbortSignal.timeout(15000), redirect: 'follow',
     })
-    if (!res.ok) return { ads: [], count: 0, source: 'scrape', httpError: `HTTP ${res.status}` }
+    if (!res.ok) return { ads: [], source: 'scrape', httpError: `HTTP ${res.status}` }
     const html = await res.text()
-
-    const snap = [...html.matchAll(/ad_snapshot_url["\s:]+["']?(https:\/\/www\.facebook\.com\/ads\/archive\/render_ad\/\?[^"'\s<]+)/g)]
-    const snapshotUrls = [...new Set(snap.map(m => m[1].replace(/\\u0025/g, '%').replace(/\\\//g, '/').replace(/&amp;/g, '&')))]
-    const imgs = [...html.matchAll(/src="(https:\/\/scontent[^"]+)"/g)]
-    const allImages = [...new Set(imgs.map(m => m[1].replace(/&amp;/g, '&')))].filter(u => !u.includes('emoji') && !u.includes('profile') && !u.includes('safe_image'))
-    const bodies = [...html.matchAll(/"ad_creative_bodies":\["([^"]+)"\]/g)]
-    const titles = [...html.matchAll(/"ad_creative_link_titles":\["([^"]+)"\]/g)]
-    const dates = [...html.matchAll(/"ad_delivery_start_time":"(\d{4}-\d{2}-\d{2})"/g)]
-    const pages = [...html.matchAll(/"page_name":"([^"]+)"/g)]
-
-    const ads = []
-    const maxAds = Math.max(snapshotUrls.length, allImages.length, bodies.length)
-    for (let i = 0; i < Math.min(maxAds, 24); i++) {
-      ads.push({
-        id: `kw_${i}`,
-        bodies: bodies[i] ? [sanitize(bodies[i][1])] : [],
-        titles: titles[i] ? [sanitize(titles[i][1])] : [],
-        captions: [], descriptions: [],
-        startDate: dates[i]?.[1] || null,
-        snapshotUrl: snapshotUrls[i] || null,
-        pageName: pages[i] ? sanitize(pages[i][1]) : '',
-        platforms: ['facebook', 'instagram'],
-        imageUrl: allImages[i] || null, videoUrl: null, isVideo: false,
-      })
-    }
-    const filtered = ads.filter(a => a.imageUrl || a.bodies.length > 0 || a.snapshotUrl)
-    return { ads: filtered, count: filtered.length, source: 'scrape' }
+    return { ads: parseAdsFromHtml(html), source: 'scrape' }
   } catch (e) {
-    return { ads: [], count: 0, source: 'scrape', httpError: e.message }
+    return { ads: [], source: 'scrape', httpError: e.message }
   }
 }
 
@@ -160,18 +195,20 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Parametro q (keyword) obbligatorio', ads: [], count: 0 }, { status: 400 })
   }
 
-  const libraryUrl =
-    `https://www.facebook.com/ads/library/?active_status=active&ad_type=all` +
-    `&country=${encodeURIComponent(country)}&q=${encodeURIComponent(q)}` +
-    `&search_type=keyword_unordered&media_type=all`
-
-  // 1) API ufficiale → 2) scrape fallback
   let result = await searchViaApi(q, country)
   let source = 'api'
+  let lastErr = null
+
   if (!result || !result.ads?.length) {
-    const scraped = await searchViaScrape(q, country)
-    result = scraped
-    source = scraped.source
+    const bl = await searchViaBrowserless(q, country)
+    if (bl?.ads?.length) { result = bl; source = 'browserless' }
+    else { lastErr = bl?.httpError || lastErr; result = bl || result }
+  }
+
+  if (!result || !result.ads?.length) {
+    const sc = await searchViaScrape(q, country)
+    if (sc?.ads?.length) { result = sc; source = 'scrape' }
+    else { lastErr = sc?.httpError || lastErr }
   }
 
   const ads = result?.ads || []
@@ -180,9 +217,9 @@ export async function GET(request) {
     country,
     ads,
     count: ads.length,
-    source,
-    error: ads.length === 0 ? (result?.httpError || 'no_results') : null,
-    libraryUrl,
+    source: ads.length ? source : null,
+    error: ads.length === 0 ? (lastErr || 'no_results') : null,
+    libraryUrl: libraryUrlFor(q, country),
     fetchedAt: new Date().toISOString(),
   })
 }

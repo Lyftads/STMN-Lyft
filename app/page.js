@@ -3577,49 +3577,56 @@ export default function App() {
           const useLiveMetaCurrent = isYearPreset && key === presetY && mr
           const useLiveMetaPrev = isYearPreset && key === yearMinus(presetY, 1) && mpr
 
-          // YEAR-ONLY: pre-calcolo somma mensile NC/RC. Le useremo come
-          // floor sotto al live overlay (ShopifyQL su range year_ a volte
-          // ritorna nc/rc=0 per rate-limit → cadiamo su monthly).
-          const ncMonthly = sum('nc')
-          const rcMonthly = sum('rc')
+          // YEAR-ONLY: pre-calcolo somma mensile per TUTTI i campi che usano
+          // live overlay. Usati come floor sotto al live (ShopifyQL su range
+          // year_ a volte ritorna 0 per rate-limit / breakdown fail random
+          // su 6+ mesi). Cosi' card e tabelle leggono sempre dallo stesso
+          // valore robusto: MAX(live, monthly).
+          const fatturatoMonthly = sum('fatturato')
+          const fatturNcMonthly  = sum('fatturNC')
+          const fatturRcMonthly  = sum('fatturRC')
+          const resiMonthly      = sum('resi')
+          const resiNcMonthly    = sum('resiNC')
+          const resiRcMonthly    = sum('resiRC')
+          const ordiniMonthly    = sum('ordini')
+          const ncMonthly        = sum('nc')
+          const rcMonthly        = sum('rc')
+          const sessioniMonthly  = sum('sessioni')
 
-          const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
-                          : useLivePrev    ? Number(spr.revenue) || 0
-                          : sum('fatturato')
-          const fatturNC  = useLiveCurrent ? Number(sr.fatturNC) || 0
-                          : useLivePrev    ? Number(spr.fatturNC) || 0
-                          : sum('fatturNC')
-          const fatturRC  = useLiveCurrent ? Number(sr.fatturRC) || 0
-                          : useLivePrev    ? Number(spr.fatturRC) || 0
-                          : sum('fatturRC')
-          const resi      = useLiveCurrent ? Number(sr.resi) || 0
-                          : useLivePrev    ? Number(spr.resi) || 0
-                          : sum('resi')
-          const resiNC    = useLiveCurrent ? Number(sr.resiNC) || 0
-                          : useLivePrev    ? Number(spr.resiNC) || 0
-                          : sum('resiNC')
-          const resiRC    = useLiveCurrent ? Number(sr.resiRC) || 0
-                          : useLivePrev    ? Number(spr.resiRC) || 0
-                          : sum('resiRC')
-          const ordini    = useLiveCurrent ? Number(sr.orders) || 0
-                          : useLivePrev    ? Number(spr.orders) || 0
-                          : sum('ordini')
-          // YEAR-ONLY: NC/RC = MAX(live overlay, somma mensile)
-          // Su range year_ ShopifyQL nel live API a volte ritorna nc/rc=0
-          // per rate-limit / breakdown query random fail. Monthly e' piu'
-          // affidabile perche' usa lo stesso fetch ma per singoli mesi.
-          //  - se live ha dati piu' freschi (oggi/ieri inclusi), li usa
-          //  - se live ritorna 0 ma monthly ha valori, usa monthly
-          //  - per anni storici (no live overlay), monthly sempre
+          // YEAR-ONLY: tutti i campi shopify usano MAX(live overlay, monthly).
+          // Se ShopifyQL nel live ritorna 0 (rate-limit su range year_),
+          // cade su monthly (per-mese piu' affidabile). Per anni storici
+          // senza live overlay, monthly sempre.
+          const fatturato = useLiveCurrent ? Math.max(Number(sr.revenue) || 0, fatturatoMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.revenue) || 0, fatturatoMonthly)
+                          : fatturatoMonthly
+          const fatturNC  = useLiveCurrent ? Math.max(Number(sr.fatturNC) || 0, fatturNcMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.fatturNC) || 0, fatturNcMonthly)
+                          : fatturNcMonthly
+          const fatturRC  = useLiveCurrent ? Math.max(Number(sr.fatturRC) || 0, fatturRcMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.fatturRC) || 0, fatturRcMonthly)
+                          : fatturRcMonthly
+          const resi      = useLiveCurrent ? Math.max(Number(sr.resi) || 0, resiMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.resi) || 0, resiMonthly)
+                          : resiMonthly
+          const resiNC    = useLiveCurrent ? Math.max(Number(sr.resiNC) || 0, resiNcMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.resiNC) || 0, resiNcMonthly)
+                          : resiNcMonthly
+          const resiRC    = useLiveCurrent ? Math.max(Number(sr.resiRC) || 0, resiRcMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.resiRC) || 0, resiRcMonthly)
+                          : resiRcMonthly
+          const ordini    = useLiveCurrent ? Math.max(Number(sr.orders) || 0, ordiniMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.orders) || 0, ordiniMonthly)
+                          : ordiniMonthly
           const nc        = useLiveCurrent ? Math.max(Number(sr.nc) || 0, ncMonthly)
                           : useLivePrev    ? Math.max(Number(spr.nc) || 0, ncMonthly)
                           : ncMonthly
           const rc        = useLiveCurrent ? Math.max(Number(sr.rc) || 0, rcMonthly)
                           : useLivePrev    ? Math.max(Number(spr.rc) || 0, rcMonthly)
                           : rcMonthly
-          const sessioni  = useLiveCurrent ? Number(sr.sessions) || 0
-                          : useLivePrev    ? Number(spr.sessions) || 0
-                          : sum('sessioni')
+          const sessioni  = useLiveCurrent ? Math.max(Number(sr.sessions) || 0, sessioniMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.sessions) || 0, sessioniMonthly)
+                          : sessioniMonthly
           const metaSpend = useLiveMetaCurrent ? Number(mr.spend) || 0
                           : useLiveMetaPrev    ? Number(mpr.spend) || 0
                           : sum('metaSpend')

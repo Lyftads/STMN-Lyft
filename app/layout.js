@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'STMN Fitness — LTV:CAC Dashboard',
-  description: 'Dashboard automatica LTV, CAC e retention',
+  title: 'LyftAI — Dashboard',
+  description: 'LyftAI — analytics LTV, CAC, retention e creative intel per brand Shopify.',
 }
 
 export default function RootLayout({ children }) {

@@ -177,26 +177,8 @@ export default function VendroShell({
             </span>
           </div>
 
-          {/* Workspace pill */}
-          <div style={{
-            background: 'var(--glass)',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}>
-            <span style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-              display: 'inline-block', flexShrink: 0,
-            }} />
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#fff' }}>STMN Fitness</span>
-              <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
-            </span>
-          </div>
+          {/* Workspace pill — dinamica da user.company_name */}
+          <WorkspacePill />
         </div>
 
         {/* Nav */}
@@ -410,6 +392,49 @@ function TabContent({ children }) {
       }}
     >
       {children}
+    </div>
+  )
+}
+
+// ── WorkspacePill: pillola in alto sidebar con nome azienda dinamico ──
+// Mostra il company_name dell'utente loggato (dai metadata Supabase) invece
+// di un valore hardcoded. Fallback su "LyftAI" se l'utente non ha ancora un
+// nome azienda configurato.
+function WorkspacePill() {
+  const [companyName, setCompanyName] = useState('LyftAI')
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase()
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const meta = user?.user_metadata || {}
+      const name = meta.company_name || meta.companyName
+      if (name) setCompanyName(name)
+    })
+  }, [])
+
+  return (
+    <div style={{
+      background: 'var(--glass)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      padding: '10px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <span style={{
+        width: 28, height: 28, borderRadius: 7,
+        background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
+        display: 'inline-block', flexShrink: 0,
+      }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          display: 'block', fontSize: 13, fontWeight: 700, color: '#fff',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{companyName}</span>
+        <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
+      </span>
     </div>
   )
 }

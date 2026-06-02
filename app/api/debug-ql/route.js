@@ -16,11 +16,10 @@ export async function GET() {
   const query = `FROM sales SHOW orders, total_sales SINCE ${since} UNTIL ${until} TIMESERIES day WITH CURRENCY 'EUR' ORDER BY day ASC LIMIT 50`
 
   const gql = `
-    query($q: String!) {
+    query ShopifyQLReport($q: String!) {
       shopifyqlQuery(query: $q) {
-        __typename
-        ... on TableResponse { tableData { columns { name } rows } }
-        ... on AnalyticsQueryErrorResponse { errors { code message } }
+        tableData { columns { name } rows }
+        parseErrors
       }
     }
   `
@@ -44,9 +43,8 @@ export async function GET() {
   return NextResponse.json({
     today: until,
     queriedSince: since,
-    typename: payload?.__typename,
     gqlErrors: json?.errors || null,
-    qlErrors: payload?.errors || null,
+    parseErrors: payload?.parseErrors || null,
     columns: cols,
     daily,
   })

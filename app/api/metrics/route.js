@@ -398,23 +398,45 @@ async function shopifyQL(query) {
 }
 
 // ── Fallback NC/RC via REST Orders ─────────────────────────────
-// Usato quando ShopifyQL breakdown ritorna 0 ordini classificati
-// (tipico per range cortissimi recenti come oggi/ieri/last_7d).
-// classifyOrder() robusto: gestisce orders_count null per ordini
-// freschissimi (counter aggiornato asincronamente da Shopify).
+// Usato quando ShopifyQL breakdown ritorna 0 ordini classificati.
+// IMPORTANTE: customer.orders_count e' il counter ATTUALE del cliente,
+// non quello AL MOMENTO dell'ordine. Per ordini storici questo causa
+// over-counting di RC (es: ordine di gennaio fatto da cliente che oggi
+// ha 4 ordini totali → orders_count=4>1 → classificato RC anche se a
+// gennaio era NC).
+//
+// Soluzione: signal PRIMARIO = confronto created_at customer vs order.
+// Se entro 1h dalla creazione customer → NC (primo ordine).
+// orders_count = 1 e' usato come signal di backup (se created_at non
+// disponibile e cnt=1 e' sicuramente NC).
 function classifyOrderRest(o) {
   const c = o?.customer
   if (!c || !c.id) return null // guest checkout
-  const cnt = c.orders_count
-  if (typeof cnt === 'number' && cnt > 0) return cnt === 1 ? 'NC' : 'RC'
-  // Fallback heuristic quando orders_count e' null:
-  // customer.created_at vicino a order.created_at → cliente nuovo
+
   const orderTs = Date.parse(o.created_at || '')
   const custTs = Date.parse(c.created_at || '')
+
+  // SIGNAL PRIMARIO: gap creazione customer → primo ordine
   if (Number.isFinite(orderTs) && Number.isFinite(custTs)) {
-    return Math.abs(orderTs - custTs) / 1000 < 300 ? 'NC' : 'RC'
+    const gapSec = (orderTs - custTs) / 1000
+    // Se l'ordine e' stato fatto entro 1 ora dalla creazione del customer
+    // record, e' il primo ordine → NC. Threshold ampio (1h) perche'
+    // Shopify a volte ha latenza tra register e checkout.
+    if (gapSec >= 0 && gapSec <= 3600) return 'NC'
+    // Se ordine e' SUCCESSIVO alla creazione customer di > 1h → RC.
+    if (gapSec > 3600) return 'RC'
+    // Edge: ordine PRIMA del customer record (shouldn't happen, guest
+    // promosso a customer dopo) → trattalo come NC.
+    if (gapSec < 0) return 'NC'
   }
-  return 'NC' // conservativo: customer esiste ma niente date utili
+
+  // FALLBACK: nessuna data utile, usa orders_count (con caveat).
+  // - cnt=1 e' affidabile (sicuramente unico ordine → NC)
+  // - cnt>1 ambiguo (potrebbe essere ordine vecchio di RC oggi)
+  const cnt = c.orders_count
+  if (typeof cnt === 'number' && cnt > 0) return cnt === 1 ? 'NC' : 'RC'
+
+  return 'NC' // conservativo
 }
 
 async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {

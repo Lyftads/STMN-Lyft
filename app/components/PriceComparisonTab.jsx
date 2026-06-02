@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import AnimatedNumber from './ui/AnimatedNumber'
+import CompetitorAgent from './CompetitorAgent'
 
 const CATEGORIES = [
   { id: 'grips', label: 'Paracalli', icon: '🧤' },
@@ -22,10 +24,7 @@ function money(v, currency = 'EUR') {
 
 function ProductCard({ product }) {
   return (
-    <div style={{
-      background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14,
-      overflow: 'hidden', width: 170, flexShrink: 0,
-    }}>
+    <div className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', width: 170, flexShrink: 0 }}>
       <div style={{
         aspectRatio: '1/1', background: 'var(--surface)', overflow: 'hidden',
         borderBottom: '1px solid var(--border)',
@@ -35,21 +34,21 @@ function ProductCard({ product }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={e => { e.target.style.display = 'none' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--border)', fontSize: 11 }}>No image</div>
+          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--text3)', fontSize: 11 }}>No image</div>
         )}
       </div>
       <div style={{ padding: '8px 10px' }}>
         <div style={{
-          fontSize: 10, fontWeight: 700, color: '#e2dcf0', lineHeight: 1.3,
+          fontSize: 10, fontWeight: 700, color: 'var(--text2)', lineHeight: 1.3,
           maxHeight: 26, overflow: 'hidden',
           WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', display: '-webkit-box',
         }}>{product.title}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 5 }}>
-          <span style={{ fontSize: 14, fontWeight: 900, fontFamily: 'Barlow', color: product.onSale ? '#e63946' : '#22c55e' }}>
+          <span style={{ fontSize: 14, fontWeight: 900, fontFamily: 'Barlow', color: product.onSale ? 'var(--red)' : 'var(--text)' }}>
             {money(product.price, product.currency)}
           </span>
           {product.onSale && product.compareAtPrice > 0 && (
-            <span style={{ fontSize: 9, color: '#6b6580', textDecoration: 'line-through' }}>
+            <span style={{ fontSize: 9, color: 'var(--text3)', textDecoration: 'line-through' }}>
               {money(product.compareAtPrice, product.currency)}
             </span>
           )}
@@ -67,43 +66,46 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
 
   const deltaEuro = isOwn || !sameUnit ? null : (ownAvg != null && brandData.avg != null ? ownAvg - brandData.avg : null)
   const deltaPct = isOwn || !sameUnit ? null : (ownAvg != null && brandData.avg > 0 ? ((ownAvg - brandData.avg) / brandData.avg) * 100 : null)
-  const deltaColor = deltaEuro != null ? (deltaEuro < 0 ? '#22c55e' : deltaEuro > 0 ? '#ef4444' : '#8b8aa0') : '#8b8aa0'
+  const dColor = deltaEuro != null ? (deltaEuro < 0 ? 'var(--green)' : deltaEuro > 0 ? 'var(--red)' : 'var(--text2)') : 'var(--text2)'
 
   return (
-    <div style={{
-      background: isOwn ? '#22c55e06' : 'var(--glass)',
-      border: `1px solid ${isOwn ? '#22c55e25' : 'var(--border)'}`,
-      borderRadius: 14, overflow: 'hidden', marginBottom: 8,
-    }}>
+    <div
+      className="glass-card-static"
+      style={{
+        borderRadius: 14, overflow: 'hidden', marginBottom: 8,
+        ...(isOwn ? { borderColor: 'rgba(41,151,255,0.25)', background: 'rgba(41,151,255,0.05)' } : {}),
+      }}
+    >
       <div onClick={() => products.length > 0 && setExpanded(!expanded)} style={{
         display: 'grid', gridTemplateColumns: '1fr 55px 95px 75px 75px 85px 75px',
         alignItems: 'center', padding: '12px 16px',
         cursor: products.length > 0 ? 'pointer' : 'default', gap: 6,
+        position: 'relative', zIndex: 2,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {products.length > 0 && <span style={{ color: '#6b6580', fontSize: 11, width: 12 }}>{expanded ? '▾' : '▸'}</span>}
-          <span style={{ fontSize: 13, fontWeight: 900, color: isOwn ? '#22c55e' : '#e2dcf0' }}>{brandName}</span>
-          {isOwn && <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: '#22c55e20', color: '#22c55e' }}>NOI</span>}
+          {products.length > 0 && <span style={{ color: 'var(--text3)', fontSize: 11, width: 12 }}>{expanded ? '▾' : '▸'}</span>}
+          <span style={{ fontSize: 13, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)' }}>{brandName}</span>
+          {isOwn && <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: 'rgba(41,151,255,0.14)', color: 'var(--accent)' }}>NOI</span>}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#8b8aa0', textAlign: 'right' }}>{brandData.count}</div>
-        <div style={{ fontSize: 15, fontWeight: 900, color: isOwn ? '#22c55e' : '#fff', textAlign: 'right', fontFamily: 'Barlow' }}>{money(brandData.avg, cur)}</div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>{money(brandData.min, cur)}</div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b6580', textAlign: 'right' }}>{money(brandData.max, cur)}</div>
-        <div style={{ fontSize: 13, fontWeight: 900, color: deltaColor, textAlign: 'right', fontFamily: 'Barlow' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textAlign: 'right' }}>{brandData.count}</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)', textAlign: 'right', fontFamily: 'Barlow' }}>{money(brandData.avg, cur)}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textAlign: 'right' }}>{money(brandData.min, cur)}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textAlign: 'right' }}>{money(brandData.max, cur)}</div>
+        <div style={{ fontSize: 13, fontWeight: 900, color: dColor, textAlign: 'right', fontFamily: 'Barlow' }}>
           {deltaEuro != null ? `${deltaEuro > 0 ? '+' : ''}€${Math.abs(deltaEuro).toFixed(2)}` : (sameUnit ? '—' : cur)}
         </div>
         <div style={{ textAlign: 'right' }}>
           {deltaPct != null ? (
             <span style={{
               fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 5,
-              background: deltaPct < 0 ? '#22c55e18' : deltaPct > 0 ? '#ef444418' : '#8b8aa018',
-              color: deltaPct < 0 ? '#22c55e' : deltaPct > 0 ? '#ef4444' : '#8b8aa0',
+              background: deltaPct < 0 ? 'rgba(48,209,88,0.12)' : deltaPct > 0 ? 'rgba(255,69,58,0.12)' : 'var(--glass2)',
+              color: deltaPct < 0 ? 'var(--green)' : deltaPct > 0 ? 'var(--red)' : 'var(--text2)',
             }}>{deltaPct > 0 ? '+' : ''}{deltaPct.toFixed(1)}%</span>
           ) : '—'}
         </div>
       </div>
       {expanded && products.length > 0 && (
-        <div style={{ padding: '10px 16px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, overflowX: 'auto' }}>
+        <div style={{ padding: '10px 16px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, overflowX: 'auto', position: 'relative', zIndex: 2 }}>
           {products.map((p, i) => <ProductCard key={i} product={p} />)}
         </div>
       )}
@@ -233,18 +235,19 @@ export default function PriceComparisonTab() {
   }, [comparison])
 
   if (loading) {
-    return <div style={{ color: '#8b8aa0', padding: 40, fontSize: 15, fontWeight: 700 }}>Carico comparazione prezzi...</div>
+    return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>Carico comparazione prezzi…</div>
   }
 
   if (!comparison.length) {
-    return <div style={{ color: '#6b6580', padding: 40, fontSize: 14 }}>Nessun dato disponibile.</div>
+    return <div style={{ color: 'var(--text3)', padding: 40, fontSize: 14 }}>Nessun dato disponibile.</div>
   }
 
-  const sevColor = s => ({ positive: '#22c55e', warning: '#f59e0b', neutral: '#8b5cf6' }[s] || '#8b8aa0')
+  const sevColor = s => ({ positive: 'var(--green)', warning: 'var(--red)', neutral: 'var(--accent)' }[s] || 'var(--text2)')
+  const sevBg = s => ({ positive: 'rgba(48,209,88,0.13)', warning: 'rgba(255,69,58,0.13)', neutral: 'rgba(41,151,255,0.13)' }[s] || 'var(--glass2)')
   const sevLabel = s => ({ positive: 'VANTAGGIO', warning: 'ATTENZIONE', neutral: 'INSIGHT' }[s] || 'INFO')
 
   const colHeader = {
-    fontSize: 9, fontWeight: 800, color: '#6b6580',
+    fontSize: 9, fontWeight: 800, color: 'var(--text3)',
     textTransform: 'uppercase', letterSpacing: '.1em',
     textAlign: 'right', padding: '6px 0',
   }
@@ -253,52 +256,51 @@ export default function PriceComparisonTab() {
     <div>
       {/* ── SUMMARY CARDS ── */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Nostri prodotti</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: '#22c55e', fontFamily: 'Barlow' }}>{summary.countOwn}</div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>in {summary.catCount} categorie</div>
+        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
+          <div className="glass-card" style={{ padding: '18px 20px' }}>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Nostri prodotti</div>
+            <div className="metric-value" style={{ color: 'var(--accent)' }}><AnimatedNumber value={summary.countOwn} /></div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>in {summary.catCount} categorie</div>
           </div>
 
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Prezzo medio nostro</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: '#fff', fontFamily: 'Barlow' }}>€{summary.avgOwn.toFixed(2)}</div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>vs competitor €{summary.avgComp.toFixed(2)}</div>
+          <div className="glass-card" style={{ padding: '18px 20px' }}>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Prezzo medio nostro</div>
+            <div className="metric-value"><AnimatedNumber value={summary.avgOwn} format={n => `€${n.toFixed(2)}`} /></div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>vs competitor €{summary.avgComp.toFixed(2)}</div>
           </div>
 
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Più economici</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: '#22c55e', fontFamily: 'Barlow' }}>{summary.cheaperCount}</div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>su {summary.totalComparisons} confronti</div>
+          <div className="glass-card" style={{ padding: '18px 20px' }}>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Più economici</div>
+            <div className="metric-value" style={{ color: 'var(--green)' }}><AnimatedNumber value={summary.cheaperCount} /></div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>su {summary.totalComparisons} confronti</div>
           </div>
 
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Più cari</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: summary.moreExpensiveCount > 0 ? '#ef4444' : '#8b8aa0', fontFamily: 'Barlow' }}>{summary.moreExpensiveCount}</div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>su {summary.totalComparisons} confronti</div>
+          <div className="glass-card" style={{ padding: '18px 20px' }}>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Più cari</div>
+            <div className="metric-value" style={{ color: summary.moreExpensiveCount > 0 ? 'var(--red)' : 'var(--text2)' }}><AnimatedNumber value={summary.moreExpensiveCount} /></div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>su {summary.totalComparisons} confronti</div>
           </div>
 
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 9, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>Posizionamento prezzo</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: summary.positionPct >= 50 ? '#22c55e' : '#f59e0b', fontFamily: 'Barlow' }}>{summary.positionPct}%</div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 4 }}>categorie più economici</div>
+          <div className="glass-card" style={{ padding: '18px 20px' }}>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Posizionamento prezzo</div>
+            <div className="metric-value" style={{ color: summary.positionPct >= 50 ? 'var(--green)' : 'var(--accent)' }}><AnimatedNumber value={summary.positionPct} format={n => `${Math.round(n)}%`} /></div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>categorie più economici</div>
           </div>
         </div>
       )}
 
       {/* ── Last update info ── */}
       {data?.fetchedAt && (
-        <div style={{
+        <div className="glass-card-static" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginBottom: 20, padding: '10px 16px',
-          background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10,
+          marginBottom: 20, padding: '10px 16px', borderRadius: 12,
         }}>
-          <div style={{ fontSize: 11, color: '#6b6580' }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)' }}>
             Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
-            {data.cached && <span style={{ marginLeft: 8, color: '#8b8aa0' }}>(cache)</span>}
+            {data.cached && <span style={{ marginLeft: 8, color: 'var(--text2)' }}>(cache)</span>}
           </div>
-          <div style={{ fontSize: 10, color: '#4a4060' }}>
-            Aggiornamento automatico ogni lunedì
+          <div style={{ fontSize: 10, color: 'var(--text3)' }}>
+            Aggiornamento automatico ogni 2 giorni
           </div>
         </div>
       )}
@@ -310,25 +312,26 @@ export default function PriceComparisonTab() {
         if (cat.own.count === 0 && compEntries.every(([, v]) => v.count === 0)) return null
 
         return (
-          <div key={cat.id} style={{
+          <div key={cat.id} className="glass-section reveal-zoom" style={{
             background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18,
             overflow: 'hidden', marginBottom: 20,
           }}>
             <div style={{
               padding: '16px 22px', borderBottom: '1px solid var(--border)',
-              background: 'linear-gradient(135deg, #8b5cf610, transparent)',
+              background: 'linear-gradient(135deg, rgba(41,151,255,0.08), transparent)',
               display: 'flex', alignItems: 'center', gap: 10,
+              position: 'relative', zIndex: 2,
             }}>
               <span style={{ fontSize: 22 }}>{catMeta.icon}</span>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>{catMeta.label}</div>
-                <div style={{ fontSize: 10, color: '#6b6580', marginTop: 2 }}>
+                <div className="heading-sm" style={{ fontSize: 18 }}>{catMeta.label}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
                   {cat.own.count} nostri · {compEntries.reduce((s, [, v]) => s + v.count, 0)} competitor
                 </div>
               </div>
             </div>
 
-            <div style={{ padding: '14px 22px 18px' }}>
+            <div style={{ padding: '14px 22px 18px', position: 'relative', zIndex: 2 }}>
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 55px 95px 75px 75px 85px 75px',
                 padding: '0 16px 6px', gap: 6,
@@ -353,43 +356,44 @@ export default function PriceComparisonTab() {
 
       {/* ── REPORTS ── */}
       {reports.length > 0 && (
-        <div style={{
+        <div className="glass-section reveal-zoom" style={{
           background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18,
           overflow: 'hidden', marginTop: 8,
         }}>
           <div style={{
             padding: '16px 22px', borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(135deg, #06b6d410, transparent)',
+            background: 'linear-gradient(135deg, rgba(191,90,242,0.08), transparent)',
+            position: 'relative', zIndex: 2,
           }}>
-            <div style={{ fontSize: 18, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>
-              Report analisi prezzi
-            </div>
-            <div style={{ fontSize: 11, color: '#6b6580', marginTop: 3 }}>
+            <div className="heading-sm" style={{ fontSize: 18 }}>Report analisi prezzi</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               {reports.length} osservazioni basate sulla comparazione corrente
             </div>
           </div>
 
-          <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="stagger" style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', zIndex: 2 }}>
             {reports.map((r, i) => (
-              <div key={i} style={{
+              <div key={i} className="glass-card-static" style={{
                 padding: '14px 16px', borderRadius: 12,
-                background: 'var(--glass)', borderLeft: `3px solid ${sevColor(r.severity)}`,
+                borderLeft: `3px solid ${sevColor(r.severity)}`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{
                     fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4,
-                    background: `${sevColor(r.severity)}20`, color: sevColor(r.severity),
+                    background: sevBg(r.severity), color: sevColor(r.severity),
                     letterSpacing: '.08em',
                   }}>{sevLabel(r.severity)}</span>
-                  <span style={{ fontSize: 10, color: '#6b6580', fontWeight: 700 }}>{r.category}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>{r.category}</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#e2dcf0', marginBottom: 6 }}>{r.title}</div>
-                <div style={{ fontSize: 12, color: '#9b90aa', lineHeight: 1.6 }}>{r.body}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>{r.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>{r.body}</div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      <CompetitorAgent data={data} country="IT" />
     </div>
   )
 }

@@ -107,9 +107,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     }).catch(() => {})
   }, [])
 
-  // ── Paesi di fatturazione (aggiornato col timeframe) ──
+  // ── Paesi di fatturazione (con delta vs periodo precedente) ──
   const kpiRange = live?.kpiBrain?.range
+  const kpiPrevRange = live?.kpiBrain?.previousRange
   const [countries, setCountries] = useState([])
+  const [countriesPrev, setCountriesPrev] = useState([])
   const [countriesLoading, setCountriesLoading] = useState(false)
   const [countriesError, setCountriesError] = useState(null)
   useEffect(() => {
@@ -119,17 +121,60 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     let cancelled = false
     setCountriesLoading(true)
     setCountriesError(null)
-    fetch(`/api/shopify-countries?since=${since}&until=${until}`)
-      .then(r => r.json())
-      .then(j => {
+
+    // Fetch current period (sempre) + previous period (solo se range esiste)
+    const fetchCurrent = fetch(`/api/shopify-countries?since=${since}&until=${until}`).then(r => r.json())
+    const fetchPrev = kpiPrevRange?.since && kpiPrevRange?.until
+      ? fetch(`/api/shopify-countries?since=${kpiPrevRange.since}&until=${kpiPrevRange.until}`).then(r => r.json())
+      : Promise.resolve({ countries: [] })
+
+    Promise.all([fetchCurrent, fetchPrev])
+      .then(([curr, prev]) => {
         if (cancelled) return
-        if (j?.error) { setCountriesError(j.error); setCountries([]); return }
-        setCountries(Array.isArray(j?.countries) ? j.countries : [])
+        if (curr?.error) { setCountriesError(curr.error); setCountries([]); setCountriesPrev([]); return }
+        setCountries(Array.isArray(curr?.countries) ? curr.countries : [])
+        setCountriesPrev(Array.isArray(prev?.countries) ? prev.countries : [])
       })
       .catch(e => { if (!cancelled) setCountriesError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled) setCountriesLoading(false) })
     return () => { cancelled = true }
-  }, [kpiRange?.since, kpiRange?.until])
+  }, [kpiRange?.since, kpiRange?.until, kpiPrevRange?.since, kpiPrevRange?.until])
+
+  // Indice del periodo precedente per delta lookup
+  const prevByKey = useMemo(() => {
+    const m = new Map()
+    for (const r of countriesPrev) {
+      const key = r.country_code || r.country
+      m.set(key, {
+        revenue: r.revenue || 0,
+        orders: r.orders || 0,
+        ncOrders: r.ncOrders || 0,
+        rcOrders: r.rcOrders || 0,
+        ncRevenue: r.ncRevenue || 0,
+        rcRevenue: r.rcRevenue || 0,
+      })
+    }
+    return m
+  }, [countriesPrev])
+
+  // Format helpers per i delta NC/RC
+  const fmtDeltaPct = (curr, prev) => {
+    if (prev === 0) return curr > 0 ? 'NEW' : null
+    const d = ((curr - prev) / prev) * 100
+    return `${d >= 0 ? '+' : ''}${d.toFixed(1)}%`
+  }
+  const fmtDeltaEur = (curr, prev) => {
+    const d = curr - prev
+    if (d === 0) return '€0'
+    const sign = d > 0 ? '+' : '-'
+    return `${sign}€${Math.round(Math.abs(d)).toLocaleString('it-IT')}`
+  }
+  const deltaColor = (curr, prev) => {
+    if (prev === 0 && curr > 0) return '#a5b4fc' // NEW
+    if (curr > prev) return '#86efac'
+    if (curr < prev) return '#fca5a5'
+    return 'var(--text3)'
+  }
 
   const countryFlag = code => {
     if (!code || code.length !== 2) return '🌐'
@@ -438,13 +483,21 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             <div style={{display:'grid',gap:8}}>
               {countries.map((row, i) => {
                 const pct = countriesTotal > 0 ? (row.revenue / countriesTotal) * 100 : 0
+                const prev = prevByKey.get(row.country_code || row.country) || { revenue: 0, orders: 0 }
+                const deltaRev = row.revenue - prev.revenue
+                const deltaPct = prev.revenue > 0 ? (deltaRev / prev.revenue) * 100 : null
+                const isNew = prev.revenue === 0 && row.revenue > 0
+                const up = deltaRev > 0
+                const deltaColor = isNew ? '#a5b4fc' : up ? '#86efac' : deltaRev < 0 ? '#fca5a5' : 'var(--text3)'
+                const deltaBg = isNew ? 'rgba(99,102,241,0.12)' : up ? 'rgba(34,197,94,0.10)' : deltaRev < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.03)'
+                const deltaBorder = isNew ? 'rgba(99,102,241,0.30)' : up ? 'rgba(34,197,94,0.25)' : deltaRev < 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'
                 return (
                   <div
                     key={`${row.country_code || row.country}-${i}`}
                     style={{
                       position:'relative',
                       display:'grid',
-                      gridTemplateColumns:'auto 1fr auto auto',
+                      gridTemplateColumns:'auto 1fr auto auto auto',
                       alignItems:'center',
                       gap:14,
                       padding:'12px 14px',
@@ -474,10 +527,93 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.04)',overflow:'hidden'}}>
                         <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
                       </div>
+                      {/* Sub-chip NC / RC con delta % e € */}
+                      {(row.ncOrders > 0 || row.rcOrders > 0 || prev.ncOrders > 0 || prev.rcOrders > 0) && (
+                        <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
+                          {/* NC chip */}
+                          <div style={{
+                            display:'inline-flex',alignItems:'center',gap:6,
+                            padding:'4px 8px',borderRadius:7,
+                            background:'rgba(6,182,212,0.10)',
+                            border:'1px solid rgba(6,182,212,0.25)',
+                            fontSize:10.5,fontWeight:800,color:'#67e8f9',
+                            letterSpacing:'0.02em',
+                          }}>
+                            <span style={{textTransform:'uppercase',letterSpacing:'0.08em',fontSize:9,opacity:0.85}}>Nuovi</span>
+                            <span style={{color:'#fff'}}>{int0(row.ncOrders)} ord</span>
+                            <span style={{opacity:0.85}}>·</span>
+                            <span style={{color:'#fff'}}>{money(row.ncRevenue)}</span>
+                            <span style={{
+                              color: deltaColor(row.ncRevenue, prev.ncRevenue),
+                              opacity: 0.95,
+                            }}>
+                              {fmtDeltaPct(row.ncRevenue, prev.ncRevenue) || '—'}
+                            </span>
+                            {prev.ncRevenue > 0 && (
+                              <span style={{
+                                color: deltaColor(row.ncRevenue, prev.ncRevenue),
+                                opacity: 0.7, fontSize: 9.5,
+                              }}>
+                                ({fmtDeltaEur(row.ncRevenue, prev.ncRevenue)})
+                              </span>
+                            )}
+                          </div>
+                          {/* RC chip */}
+                          <div style={{
+                            display:'inline-flex',alignItems:'center',gap:6,
+                            padding:'4px 8px',borderRadius:7,
+                            background:'rgba(168,85,247,0.10)',
+                            border:'1px solid rgba(168,85,247,0.25)',
+                            fontSize:10.5,fontWeight:800,color:'#d8b4fe',
+                            letterSpacing:'0.02em',
+                          }}>
+                            <span style={{textTransform:'uppercase',letterSpacing:'0.08em',fontSize:9,opacity:0.85}}>Ritorno</span>
+                            <span style={{color:'#fff'}}>{int0(row.rcOrders)} ord</span>
+                            <span style={{opacity:0.85}}>·</span>
+                            <span style={{color:'#fff'}}>{money(row.rcRevenue)}</span>
+                            <span style={{
+                              color: deltaColor(row.rcRevenue, prev.rcRevenue),
+                              opacity: 0.95,
+                            }}>
+                              {fmtDeltaPct(row.rcRevenue, prev.rcRevenue) || '—'}
+                            </span>
+                            {prev.rcRevenue > 0 && (
+                              <span style={{
+                                color: deltaColor(row.rcRevenue, prev.rcRevenue),
+                                opacity: 0.7, fontSize: 9.5,
+                              }}>
+                                ({fmtDeltaEur(row.rcRevenue, prev.rcRevenue)})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div style={{textAlign:'right'}}>
                       <div style={{fontSize:14,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
                       <div style={{fontSize:10.5,color:'#0ea5e9',fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}>{pct.toFixed(1)}%</div>
+                    </div>
+                    <div style={{
+                      textAlign:'right',
+                      minWidth:96,
+                      padding:'6px 10px',
+                      borderRadius:9,
+                      background:deltaBg,
+                      border:`1px solid ${deltaBorder}`,
+                      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)',
+                    }}>
+                      <div style={{fontSize:12,fontWeight:900,color:deltaColor,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end',lineHeight:1.1}}>
+                        {isNew ? 'NEW' : (
+                          <>
+                            <span style={{fontSize:10,opacity:0.85}}>{up ? '▲' : deltaRev < 0 ? '▼' : '–'}</span>
+                            {deltaPct != null ? `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—'}
+                          </>
+                        )}
+                      </div>
+                      <div style={{fontSize:10,fontWeight:800,color:deltaColor,opacity:0.85,marginTop:2,letterSpacing:'-0.005em'}}>
+                        {isNew ? money(row.revenue) : (deltaRev !== 0 ? `${deltaRev > 0 ? '+' : ''}€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT')}`.replace('+€', '+€').replace(/^€/, deltaRev < 0 ? '-€' : '€') : '€0')}
+                      </div>
+                      <div style={{fontSize:8.5,color:deltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
                     </div>
                     <div style={{
                       textAlign:'right',

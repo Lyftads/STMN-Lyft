@@ -24,7 +24,7 @@ async function fetchOrdersInRange(since, until) {
   const untilIso = untilDate.toISOString()
 
   let orders = []
-  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,billing_address`
+  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,billing_address,customer`
 
   let safety = 0
   while (url && safety < 200) {
@@ -70,6 +70,14 @@ export async function GET(request) {
       const code = addr?.country_code || null
       const name = addr?.country || (code ? code : 'Sconosciuto')
       const revenue = parseFloat(o.total_price || 0)
+      // Classifica NC/RC via customer.orders_count (lifetime, disponibile
+      // subito, non dipende da job di segmentazione asincrono):
+      //   1 → ordine di un cliente al primo acquisto (NC)
+      //   >1 → cliente di ritorno (RC)
+      //   null/0 → guest checkout, non classificabile
+      const ordersCount = o.customer?.orders_count
+      const isNC = ordersCount === 1
+      const isRC = typeof ordersCount === 'number' && ordersCount > 1
 
       if (!code && !addr?.country) {
         unknownCount++
@@ -78,14 +86,26 @@ export async function GET(request) {
       }
 
       const key = code || name
-      const prev = byCountry.get(key) || { country: name, country_code: code, revenue: 0, orders: 0 }
+      const prev = byCountry.get(key) || {
+        country: name, country_code: code,
+        revenue: 0, orders: 0,
+        ncOrders: 0, rcOrders: 0,
+        ncRevenue: 0, rcRevenue: 0,
+      }
       prev.revenue += revenue
       prev.orders += 1
+      if (isNC) { prev.ncOrders += 1; prev.ncRevenue += revenue }
+      if (isRC) { prev.rcOrders += 1; prev.rcRevenue += revenue }
       byCountry.set(key, prev)
     }
 
     const rows = [...byCountry.values()]
-      .map(r => ({ ...r, revenue: Math.round(r.revenue * 100) / 100 }))
+      .map(r => ({
+        ...r,
+        revenue: Math.round(r.revenue * 100) / 100,
+        ncRevenue: Math.round(r.ncRevenue * 100) / 100,
+        rcRevenue: Math.round(r.rcRevenue * 100) / 100,
+      }))
       .sort((a, b) => b.revenue - a.revenue)
 
     if (unknownCount > 0) {
@@ -94,6 +114,7 @@ export async function GET(request) {
         country_code: null,
         revenue: Math.round(unknownRevenue * 100) / 100,
         orders: unknownCount,
+        ncOrders: 0, rcOrders: 0, ncRevenue: 0, rcRevenue: 0,
       })
     }
 

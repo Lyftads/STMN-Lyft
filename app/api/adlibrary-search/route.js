@@ -2,19 +2,17 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
 // ── Ricerca per keyword sulla Meta Ad Library (endpoint AGGIUNTIVO e isolato) ──
 // Fonti, in ordine: 1) Ad Library API ufficiale (search_terms) se il token e'
 // approvato → 2) Browserless headless (renderizza la pagina pubblica, bypassa
 // il 403 dello scraping statico) → 3) scrape statico → 4) link esterno.
 // Non tocca /api/competitor-intel.
+// Token Meta risolto per-tenant via context (env fallback per STMN beta).
 
-const ACCESS_TOKEN =
-  process.env.META_ACCESS_TOKEN ||
-  process.env.FACEBOOK_ACCESS_TOKEN ||
-  process.env.FB_ACCESS_TOKEN ||
-  ''
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
+const accessToken  = () => getMeta().accessToken || ''
+const graphVersion = () => getMeta().graphVersion || 'v21.0'
 
 function sanitize(v) {
   if (!v) return ''
@@ -92,9 +90,9 @@ async function extractCreativeMedia(snapshotUrl) {
 
 // ── 1) Ad Library API ufficiale (richiede token approvato) ──
 async function searchViaApi(q, country) {
-  if (!ACCESS_TOKEN) return null
+  if (!accessToken()) return null
   try {
-    const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
+    const url = new URL(`https://graph.facebook.com/${graphVersion()}/ads_archive`)
     url.searchParams.set('search_terms', q)
     url.searchParams.set('ad_reached_countries', JSON.stringify([country]))
     url.searchParams.set('ad_active_status', 'ACTIVE')
@@ -105,7 +103,7 @@ async function searchViaApi(q, country) {
       'page_name', 'publisher_platforms',
     ].join(','))
     url.searchParams.set('limit', '30')
-    url.searchParams.set('access_token', ACCESS_TOKEN)
+    url.searchParams.set('access_token', accessToken())
 
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
     const json = await res.json()
@@ -278,6 +276,7 @@ async function searchViaScrape(q, country) {
 }
 
 export async function GET(request) {
+  return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
   const q = (searchParams.get('q') || '').trim()
   const country = (searchParams.get('country') || 'IT').toUpperCase()
@@ -312,5 +311,6 @@ export async function GET(request) {
     error: ads.length === 0 ? (lastErr || 'no_results') : null,
     libraryUrl: libraryUrlFor(q, country),
     fetchedAt: new Date().toISOString(),
+  })
   })
 }

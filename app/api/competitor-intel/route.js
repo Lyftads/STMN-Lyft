@@ -1,21 +1,26 @@
 import { NextResponse } from 'next/server'
+import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const maxDuration = 60
 
-const ACCESS_TOKEN =
-  process.env.META_ACCESS_TOKEN ||
-  process.env.FACEBOOK_ACCESS_TOKEN ||
-  process.env.FB_ACCESS_TOKEN ||
-  ''
+// Creds risolte per-request dal contesto AsyncLocalStorage (withTenantContext).
+// Per il tenant beta STMN i getter cadono su env var.
+const accessToken   = () => getMeta().accessToken || ''
+const graphVersion  = () => getMeta().graphVersion || 'v21.0'
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
-
-const OWN_STORE = {
-  id: 'stmn',
-  name: 'STMN Fitness',
-  origin: `https://${process.env.SHOPIFY_STORE_URL || 'stamina-fitness3.myshopify.com'}`,
+// Store dell'azienda corrente per scrape competitor comparison.
+// 'self' come id stabile (era 'stmn' hardcoded — solo label interna, non
+// referenziata dal frontend).
+function ownStore() {
+  const { storeUrl } = getShopify()
+  const { companyName } = getTenantInfo()
+  return {
+    id: 'self',
+    name: companyName || 'STMN Fitness',
+    origin: `https://${storeUrl || 'stamina-fitness3.myshopify.com'}`,
+  }
 }
 
 const COMPETITORS = [
@@ -243,9 +248,9 @@ function sanitize(v) {
 }
 
 async function fetchFacebookPage(pageId) {
-  if (!ACCESS_TOKEN) return null
+  if (!accessToken()) return null
   try {
-    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${pageId}?fields=name,fan_count,followers_count,about,category,link,posts.limit(5){message,created_time,shares,likes.summary(true),comments.summary(true)}&access_token=${ACCESS_TOKEN}`
+    const url = `https://graph.facebook.com/${graphVersion()}/${pageId}?fields=name,fan_count,followers_count,about,category,link,posts.limit(5){message,created_time,shares,likes.summary(true),comments.summary(true)}&access_token=${accessToken()}`
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return null
     const data = await res.json()
@@ -504,8 +509,8 @@ async function scrapeAdLibraryPage(pageId, pageName) {
 
 async function fetchAdLibrary(pageId, countries, pageName) {
   // Try API first
-  if (ACCESS_TOKEN) {
-    const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
+  if (accessToken()) {
+    const url = new URL(`https://graph.facebook.com/${graphVersion()}/ads_archive`)
     url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
     url.searchParams.set('ad_reached_countries', JSON.stringify(countries))
     url.searchParams.set('ad_active_status', 'ACTIVE')
@@ -524,7 +529,7 @@ async function fetchAdLibrary(pageId, countries, pageName) {
       ].join(',')
     )
     url.searchParams.set('limit', '50')
-    url.searchParams.set('access_token', ACCESS_TOKEN)
+    url.searchParams.set('access_token', accessToken())
 
     try {
       const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
@@ -809,6 +814,7 @@ async function fetchAllCompetitors(countries) {
 }
 
 export async function GET(request) {
+  return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
   const competitorId = searchParams.get('competitor')
   const country = searchParams.get('country') || 'IT'
@@ -853,7 +859,7 @@ export async function GET(request) {
   // Scrape own products for price comparison
   let priceComparison = null
   try {
-    const ownData = await scrapeProducts(OWN_STORE.origin, OWN_STORE.origin, 'IT')
+    const ownData = await scrapeProducts(ownStore().origin, ownStore().origin, 'IT')
     const ownProducts = ownData.products || []
     const competitorProductsMap = {}
     for (const comp of results) {
@@ -873,7 +879,7 @@ export async function GET(request) {
     {
       competitors: results,
       priceComparison,
-      ownStoreName: OWN_STORE.name,
+      ownStoreName: ownStore().name,
       countries,
       fetchedAt: cachedAt
         ? new Date(cachedAt).toISOString()
@@ -889,4 +895,5 @@ export async function GET(request) {
       },
     }
   )
+  })
 }

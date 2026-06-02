@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
+import CompetitorAgent from './CompetitorAgent'
 
 const COMPETITOR_META = {
   velites: {
@@ -1102,6 +1103,8 @@ export default function CompetitorIntelTab() {
           <CompetitorSection key={comp.id} competitor={comp} meta={meta} />
         )
       })}
+
+      <CompetitorAgent data={data} country={country} />
     </div>
   )
 }

@@ -18,6 +18,7 @@ import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
 import AlertsPanel from './components/AlertsPanel'
+import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -4004,7 +4005,10 @@ export default function App() {
 
 {/* META DETAIL TAB */}
 {tab === 'metaDetail' && (
-  <MetaDetailTab />
+  <>
+    <CreativeFatiguePanel />
+    <MetaDetailTab />
+  </>
 )}
 
 {/* PERFORMANCE AGENT TAB */}

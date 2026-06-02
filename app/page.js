@@ -17,6 +17,7 @@ import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
+import AlertsPanel from './components/AlertsPanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -2552,6 +2553,8 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
+          <AlertsPanel live={live} />
+
           <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>

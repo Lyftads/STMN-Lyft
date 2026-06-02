@@ -211,11 +211,23 @@ async function viaBrowserless(pageId, country) {
   }
 }
 
+// Cache in-memory (per-istanza): evita di rilanciare Browserless ad ogni
+// apertura della tab. TTL 6h, coerente col modulo competitor.
+const PAGE_CACHE = new Map()
+const PAGE_TTL_MS = 6 * 60 * 60 * 1000
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const pageId = (searchParams.get('pageId') || '').trim()
   const country = (searchParams.get('country') || 'IT').toUpperCase()
+  const force = searchParams.get('refresh') === '1'
   if (!pageId) return NextResponse.json({ error: 'pageId obbligatorio', ads: [], count: 0 }, { status: 400 })
+
+  const cacheKey = `${pageId}-${country}`
+  const cached = PAGE_CACHE.get(cacheKey)
+  if (!force && cached && Date.now() - cached.ts < PAGE_TTL_MS && cached.payload?.ads?.length) {
+    return NextResponse.json({ ...cached.payload, cached: true })
+  }
 
   let result = await viaApi(pageId, country)
   let source = 'api'
@@ -228,11 +240,14 @@ export async function GET(request) {
   // total reale solo se davvero maggiore del caricato; altrimenti null
   const total = (result?.total != null && result.total > ads.length) ? result.total : null
   const capped = ads.length >= 60
-  return NextResponse.json({
+  const payload = {
     pageId, country, ads, count: ads.length, total, capped,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (result?.httpError || 'no_results') : null,
     libraryUrl: pageUrlFor(pageId, country),
     fetchedAt: new Date().toISOString(),
-  })
+  }
+  // Cache solo risposte utili (con ads)
+  if (ads.length) PAGE_CACHE.set(cacheKey, { ts: Date.now(), payload })
+  return NextResponse.json({ ...payload, cached: false })
 }

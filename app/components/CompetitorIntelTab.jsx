@@ -395,12 +395,35 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   useEffect(() => {
     if (apiAds.length > 0 || !pageId) return
     let cancelled = false
+    const ckey = `aladpg:${pageId}`
+
+    // Cache client (sessionStorage): riaprire la tab non ri-renderizza nulla
+    try {
+      const raw = sessionStorage.getItem(ckey)
+      if (raw) {
+        const c = JSON.parse(raw)
+        if (c && Date.now() - c.ts < 6 * 3600 * 1000 && Array.isArray(c.ads) && c.ads.length) {
+          setPageAds(c.ads); setPageTotal(c.total ?? null); setPageCapped(!!c.capped)
+          return
+        }
+      }
+    } catch {}
+
     setPageAdsLoading(true)
     // country=ALL: le creative di un advertiser sono globali (come fa il modulo
     // competitor). Filtrare per IT escluderebbe i brand esteri (es. Velites/ES).
     fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=ALL`)
       .then(r => r.json())
-      .then(j => { if (!cancelled) { setPageAds(Array.isArray(j?.ads) ? j.ads : []); setPageTotal(Number.isFinite(j?.total) ? j.total : null); setPageCapped(!!j?.capped) } })
+      .then(j => {
+        if (cancelled) return
+        const list = Array.isArray(j?.ads) ? j.ads : []
+        setPageAds(list)
+        setPageTotal(Number.isFinite(j?.total) ? j.total : null)
+        setPageCapped(!!j?.capped)
+        if (list.length) {
+          try { sessionStorage.setItem(ckey, JSON.stringify({ ts: Date.now(), ads: list, total: j.total ?? null, capped: !!j.capped })) } catch {}
+        }
+      })
       .catch(() => { if (!cancelled) setPageAds([]) })
       .finally(() => { if (!cancelled) setPageAdsLoading(false) })
     return () => { cancelled = true }

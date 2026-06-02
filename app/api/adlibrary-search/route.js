@@ -303,14 +303,25 @@ async function searchViaScrape(q, country) {
   }
 }
 
+// Cache in-memory (per-istanza): TTL 3h sulle ricerche keyword.
+const SEARCH_CACHE = new Map()
+const SEARCH_TTL_MS = 3 * 60 * 60 * 1000
+
 export async function GET(request) {
   return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
   const q = (searchParams.get('q') || '').trim()
   const country = (searchParams.get('country') || 'IT').toUpperCase()
+  const force = searchParams.get('refresh') === '1'
 
   if (!q) {
     return NextResponse.json({ error: 'Parametro q (keyword) obbligatorio', ads: [], count: 0 }, { status: 400 })
+  }
+
+  const cacheKey = `${q.toLowerCase()}-${country}`
+  const cached = SEARCH_CACHE.get(cacheKey)
+  if (!force && cached && Date.now() - cached.ts < SEARCH_TTL_MS && cached.payload?.ads?.length) {
+    return NextResponse.json({ ...cached.payload, cached: true })
   }
 
   let result = await searchViaApi(q, country)
@@ -332,7 +343,7 @@ export async function GET(request) {
   const ads = result?.ads || []
   const total = (result?.total != null && result.total > ads.length) ? result.total : null
   const capped = ads.length >= 60
-  return NextResponse.json({
+  const payload = {
     query: q,
     country,
     ads,
@@ -343,6 +354,8 @@ export async function GET(request) {
     error: ads.length === 0 ? (lastErr || 'no_results') : null,
     libraryUrl: libraryUrlFor(q, country),
     fetchedAt: new Date().toISOString(),
-  })
+  }
+  if (ads.length) SEARCH_CACHE.set(cacheKey, { ts: Date.now(), payload })
+  return NextResponse.json({ ...payload, cached: false })
   })
 }

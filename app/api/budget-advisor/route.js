@@ -3,27 +3,28 @@ export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
 import { getRange, prevRange } from '../../../lib/metaRange'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
-// ── Budget Advisor (additivo, isolato, CONSULENZIALE — non esecutivo) ─────────
+// ── Budget Advisor (additivo, isolato, CONSULENZIALE, tenant-aware) ─────────
 // Legge gli insights Meta a livello CAMPAGNA e suggerisce riallocazioni di
 // budget: scala le campagne efficienti, riduci/taglia quelle sotto soglia.
 // Forecast incrementale sullo spostamento di budget a parità di spesa totale.
 
-const META_TOKEN = process.env.META_ACCESS_TOKEN
-const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
+const metaToken = () => getMeta().accessToken
+const metaAccount = () => getMeta().adAccountId
 const GRAPH_VERSION = 'v19.0'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 
 function normAcc(s) { const x = String(s || '').trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}` }
-function allAccounts() { return String(META_ACCOUNT || '').split(',').map(normAcc).filter(Boolean) }
+function allAccounts() { return String(metaAccount() || '').split(',').map(normAcc).filter(Boolean) }
 function usedAccounts(param) { const n = normAcc(param); return n && allAccounts().includes(n) ? [n] : allAccounts() }
 
 async function accountNames(ids) {
   const out = []
   for (const id of ids) {
     try {
-      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(META_TOKEN)}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(metaToken())}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
       const j = await res.json()
       out.push({ id, name: j?.name || id })
     } catch { out.push({ id, name: id }) }
@@ -34,7 +35,7 @@ async function accountNames(ids) {
 // Set degli ID campagna ATTIVE (effective_status ACTIVE)
 async function activeCampaignIds(accountId) {
   const ids = new Set()
-  let url = `https://graph.facebook.com/${GRAPH_VERSION}/${accountId}/campaigns?fields=id&effective_status=${encodeURIComponent(JSON.stringify(['ACTIVE']))}&limit=500&access_token=${encodeURIComponent(META_TOKEN)}`
+  let url = `https://graph.facebook.com/${GRAPH_VERSION}/${accountId}/campaigns?fields=id&effective_status=${encodeURIComponent(JSON.stringify(['ACTIVE']))}&limit=500&access_token=${encodeURIComponent(metaToken())}`
   let guard = 0
   while (url && guard < 6) {
     guard++
@@ -60,7 +61,7 @@ async function fetchCampaignInsights(accountId, range) {
     + `?level=campaign&time_range=${encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))}`
     + `&fields=${encodeURIComponent('campaign_id,campaign_name,spend,purchase_roas,action_values,actions,impressions')}`
     + `&filtering=${encodeURIComponent(JSON.stringify([{ field: 'spend', operator: 'GREATER_THAN', value: 1 }]))}`
-    + `&limit=200&access_token=${encodeURIComponent(META_TOKEN)}`
+    + `&limit=200&access_token=${encodeURIComponent(metaToken())}`
   let guard = 0
   while (url && guard < 10) {
     guard++
@@ -74,7 +75,8 @@ async function fetchCampaignInsights(accountId, range) {
 }
 
 export async function GET(req) {
-  if (!META_TOKEN || !META_ACCOUNT) return NextResponse.json({ error: 'Meta non configurato', campaigns: [] }, { status: 200 })
+  return withTenantContext(req, async () => {
+  if (!metaToken() || !metaAccount()) return NextResponse.json({ error: 'Meta non configurato', campaigns: [] }, { status: 200 })
   const { searchParams } = new URL(req.url)
   const preset = searchParams.get('preset') || 'last_28d'
   const range = getRange(preset)
@@ -181,4 +183,5 @@ export async function GET(req) {
   } catch (err) {
     return NextResponse.json({ error: err?.message || 'Errore Meta', campaigns: [] }, { status: 200 })
   }
+  })
 }

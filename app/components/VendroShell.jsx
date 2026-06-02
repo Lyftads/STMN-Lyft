@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import TimeframeSelector from './TimeframeSelector'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
+import AlertsBell from './AlertsBell'
 
 function getPageTitle(tab) {
   const map = {
@@ -295,6 +296,7 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              <AlertsBell />
               {setPreset && tab === 'dashboard' && (
                 <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
               )}

@@ -18,6 +18,7 @@ import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
+import RecommendationsFeed from './components/RecommendationsFeed'
 import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
@@ -2575,6 +2576,7 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
+          <RecommendationsFeed metrics={live} preset={preset} />
           <AlertsPanel live={live} />
 
           <div className="reveal-zoom" style={{marginBottom:24}}>

@@ -3,26 +3,27 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { getRange, prevRange } from '../../../lib/metaRange'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
-// ── Creative Fatigue Tracker (additivo, isolato) ──────────────────
-// Legge gli insights Meta a livello AD (tutto l'account) e calcola un fatigue
-// score per creativa: frequency↑, CTR↓ (vs media account), CPA↑. Flagga le
-// creative "da rinfrescare". Non tocca /api/meta-detail.
+// ── Creative Fatigue Tracker (additivo, isolato, tenant-aware) ────
+// Legge gli insights Meta a livello AD e calcola un fatigue score per
+// creativa: frequency↑, CTR↓ (vs media account), CPA↑. Flagga le creative
+// "da rinfrescare". Non tocca /api/meta-detail.
 
-const META_TOKEN = process.env.META_ACCESS_TOKEN
-const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
+const metaToken = () => getMeta().accessToken
+const metaAccount = () => getMeta().adAccountId
 const GRAPH_VERSION = 'v19.0'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 
 function normAcc(s) { const x = String(s || '').trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}` }
-function allAccounts() { return String(META_ACCOUNT || '').split(',').map(normAcc).filter(Boolean) }
+function allAccounts() { return String(metaAccount() || '').split(',').map(normAcc).filter(Boolean) }
 function usedAccounts(param) { const n = normAcc(param); return n && allAccounts().includes(n) ? [n] : allAccounts() }
 async function accountNames(ids) {
   const out = []
   for (const id of ids) {
     try {
-      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(META_TOKEN)}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(metaToken())}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
       const j = await res.json(); out.push({ id, name: j?.name || id })
     } catch { out.push({ id, name: id }) }
   }
@@ -33,7 +34,7 @@ async function accountNames(ids) {
 async function accountAgg(used, since, until) {
   let spend = 0, impressions = 0, clicks = 0, purchases = 0
   for (const id of used) {
-    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${id}/insights?time_range=${encodeURIComponent(JSON.stringify({ since, until }))}&fields=${encodeURIComponent('spend,impressions,inline_link_clicks,actions')}&access_token=${encodeURIComponent(META_TOKEN)}`
+    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${id}/insights?time_range=${encodeURIComponent(JSON.stringify({ since, until }))}&fields=${encodeURIComponent('spend,impressions,inline_link_clicks,actions')}&access_token=${encodeURIComponent(metaToken())}`
     try {
       const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
       const j = await res.json()
@@ -55,7 +56,7 @@ async function fetchAdInsights(accountId, range) {
     + `?level=ad&time_range=${encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))}`
     + `&fields=${encodeURIComponent('ad_id,ad_name,campaign_name,adset_name,spend,impressions,reach,frequency,inline_link_click_ctr,actions')}`
     + `&filtering=${encodeURIComponent(JSON.stringify([{ field: 'impressions', operator: 'GREATER_THAN', value: 200 }]))}`
-    + `&limit=300&access_token=${encodeURIComponent(META_TOKEN)}`
+    + `&limit=300&access_token=${encodeURIComponent(metaToken())}`
   let guard = 0
   while (url && guard < 12) {
     guard++
@@ -75,7 +76,7 @@ const okUrl = (u) => u && !u.includes(GENERIC_PLACEHOLDER)
 async function graph(path, params = {}) {
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/${path}`)
   for (const [k, v] of Object.entries(params)) if (v != null && v !== '') url.searchParams.set(k, v)
-  url.searchParams.set('access_token', META_TOKEN)
+  url.searchParams.set('access_token', metaToken())
   try {
     const res = await fetch(url.toString(), { cache: 'no-store', signal: AbortSignal.timeout(12000) })
     const data = await res.json()
@@ -144,7 +145,8 @@ async function fetchThumbnails(adIds) {
 }
 
 export async function GET(req) {
-  if (!META_TOKEN || !META_ACCOUNT) {
+  return withTenantContext(req, async () => {
+  if (!metaToken() || !metaAccount()) {
     return NextResponse.json({ error: 'Meta non configurato', ads: [] }, { status: 200 })
   }
   const { searchParams } = new URL(req.url)
@@ -231,4 +233,5 @@ export async function GET(req) {
   } catch (err) {
     return NextResponse.json({ error: err?.message || 'Errore Meta', ads: [] }, { status: 200 })
   }
+  })
 }

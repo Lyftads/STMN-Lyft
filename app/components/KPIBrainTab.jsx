@@ -364,8 +364,143 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
       )}
 
+      {/* ── Paesi di fatturazione (black glass 3D futuristic) ──────── */}
+      <div
+        style={{
+          position:'relative',
+          background:'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+          backdropFilter:'blur(40px) saturate(2.2)',
+          WebkitBackdropFilter:'blur(40px) saturate(2.2)',
+          borderRadius:22,
+          overflow:'hidden',
+          border:'1.5px solid rgba(255,255,255,0.06)',
+          borderTopColor:'rgba(255,255,255,0.12)',
+          borderBottomColor:'rgba(0,0,0,0.65)',
+          boxShadow:'0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+          animation:'sim-pulse 6s ease-in-out infinite',
+          transition:'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.animationPlayState = 'paused'
+          e.currentTarget.style.transform = 'translateY(-6px) scale(1.005)'
+          e.currentTarget.style.boxShadow = '0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px rgba(14,165,233,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+          e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.animationPlayState = 'running'
+          e.currentTarget.style.transform = ''
+          e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
+          e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
+        }}
+      >
+        {/* shine top edge */}
+        <div style={{position:'absolute',top:0,left:'8%',right:'8%',height:1.5,background:'linear-gradient(90deg, transparent, #0ea5e9aa, transparent)',filter:'blur(0.3px)',opacity:0.85,animation:'cr-shine 4s ease-in-out infinite',zIndex:3,pointerEvents:'none'}} />
+        {/* scan sweep */}
+        <div style={{position:'absolute',top:0,bottom:0,left:'-50%',width:'40%',background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',animation:'sim-scan 9s ease-in-out infinite',pointerEvents:'none',zIndex:1}} />
+
+        <div style={{padding:24,position:'relative',zIndex:2}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,marginBottom:18,flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              <div style={{
+                width:42,height:42,borderRadius:11,
+                background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',
+                display:'grid',placeItems:'center',
+                fontSize:20,color:'#fff',
+                boxShadow:'0 0 24px rgba(14,165,233,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+              }}>🌍</div>
+              <div>
+                <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>Paesi di fatturazione</div>
+                <div style={{color:'var(--text3)',fontSize:12,marginTop:2}}>
+                  {countriesLoading
+                    ? 'Caricamento ordini Shopify…'
+                    : countriesError
+                      ? <span style={{color:'#fca5a5'}}>{countriesError}</span>
+                      : `${countries.length} ${countries.length === 1 ? 'paese' : 'paesi'} nel periodo · ${tfLabel}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {countriesLoading && (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 20px',gap:12,color:'var(--text3)'}}>
+              <div style={{width:24,height:24,border:'3px solid rgba(255,255,255,0.1)',borderTopColor:'#0ea5e9',borderRadius:999,animation:'spin 1s linear infinite'}} />
+              <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}}>Caricamento…</div>
+            </div>
+          )}
+
+          {(!countriesLoading && !countriesError && countries.length === 0) && (
+            <div style={{padding:18,border:'1px solid #f59e0b44',background:'#f59e0b10',borderRadius:12,color:'#fcd34d',fontWeight:700,fontSize:13}}>
+              Nessun ordine nel periodo selezionato.
+            </div>
+          )}
+
+          {!countriesLoading && countries.length > 0 && (
+            <div style={{display:'grid',gap:8}}>
+              {countries.map((row, i) => {
+                const pct = countriesTotal > 0 ? (row.revenue / countriesTotal) * 100 : 0
+                return (
+                  <div
+                    key={`${row.country_code || row.country}-${i}`}
+                    style={{
+                      position:'relative',
+                      display:'grid',
+                      gridTemplateColumns:'auto 1fr auto auto',
+                      alignItems:'center',
+                      gap:14,
+                      padding:'12px 14px',
+                      borderRadius:12,
+                      background:'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.18))',
+                      border:'1px solid rgba(255,255,255,0.05)',
+                      borderTopColor:'rgba(255,255,255,0.10)',
+                      borderBottomColor:'rgba(0,0,0,0.4)',
+                      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
+                      animation:`fadeUp 0.4s ease ${i*0.04}s both`,
+                      transition:'transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s ease, box-shadow 0.25s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateX(3px)'
+                      e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 16px rgba(0,0,0,0.35), 0 0 24px rgba(14,165,233,0.12)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = ''
+                      e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.10)'
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)'
+                    }}
+                  >
+                    <div style={{fontSize:26,lineHeight:1,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'}}>{countryFlag(row.country_code)}</div>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:13.5,fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
+                      <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.04)',overflow:'hidden'}}>
+                        <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
+                      </div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:14,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
+                      <div style={{fontSize:10.5,color:'#0ea5e9',fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}>{pct.toFixed(1)}%</div>
+                    </div>
+                    <div style={{
+                      textAlign:'right',
+                      minWidth:68,
+                      padding:'6px 12px',
+                      borderRadius:9,
+                      background:'rgba(34,197,94,0.12)',
+                      border:'1px solid rgba(34,197,94,0.28)',
+                      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
+                    }}>
+                      <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
+                      <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.75,marginTop:1}}>ordini</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Insights */}
-      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24}}>
+      <div className="glass-section reveal-zoom" style={{marginTop:18,background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
           <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:16}}>✦</div>
           <div>
@@ -384,72 +519,6 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             </div>
           )}
         </div>
-      </div>
-
-      {/* ── Paesi di fatturazione ────────────────────────────────── */}
-      <div style={{marginTop:18,padding:20,borderRadius:16,background:'var(--glass)',border:'1px solid var(--border)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,marginBottom:18,flexWrap:'wrap'}}>
-          <div style={{display:'flex',alignItems:'center',gap:14}}>
-            <div style={{width:42,height:42,borderRadius:11,background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',display:'grid',placeItems:'center',fontSize:20,color:'#fff'}}>🌍</div>
-            <div>
-              <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>Paesi di fatturazione</div>
-              <div style={{color:'var(--text2)',fontSize:12}}>
-                {countriesLoading
-                  ? 'Caricamento ordini Shopify…'
-                  : countriesError
-                    ? <span style={{color:'#fca5a5'}}>{countriesError}</span>
-                    : `${countries.length} ${countries.length === 1 ? 'paese' : 'paesi'} nel periodo · ${tfLabel}`}
-              </div>
-            </div>
-          </div>
-        </div>
-        {(!countriesLoading && !countriesError && countries.length === 0) && (
-          <div style={{padding:18,border:'1px solid #f59e0b44',background:'#f59e0b10',borderRadius:12,color:'#fcd34d',fontWeight:700,fontSize:13}}>
-            Nessun ordine nel periodo selezionato.
-          </div>
-        )}
-        {countries.length > 0 && (
-          <div style={{display:'grid',gap:8}}>
-            {countries.map((row, i) => {
-              const pct = countriesTotal > 0 ? (row.revenue / countriesTotal) * 100 : 0
-              return (
-                <div key={`${row.country_code || row.country}-${i}`} style={{
-                  display:'grid',
-                  gridTemplateColumns:'auto 1fr auto auto',
-                  alignItems:'center',
-                  gap:14,
-                  padding:'12px 14px',
-                  borderRadius:11,
-                  background:'rgba(255,255,255,0.025)',
-                  border:'1px solid var(--border)',
-                }}>
-                  <div style={{fontSize:24,lineHeight:1}}>{countryFlag(row.country_code)}</div>
-                  <div style={{minWidth:0}}>
-                    <div style={{fontSize:13.5,fontWeight:800,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
-                    <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.05)',overflow:'hidden'}}>
-                      <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 10px rgba(14,165,233,0.4)',transition:'width 0.5s ease'}} />
-                    </div>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{money(row.revenue)}</div>
-                    <div style={{fontSize:10.5,color:'var(--text3)',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}>{pct.toFixed(1)}%</div>
-                  </div>
-                  <div style={{
-                    textAlign:'right',
-                    minWidth:64,
-                    padding:'6px 12px',
-                    borderRadius:8,
-                    background:'rgba(34,197,94,0.10)',
-                    border:'1px solid rgba(34,197,94,0.25)',
-                  }}>
-                    <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
-                    <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',opacity:0.7}}>ordini</div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
       </div>
 
       <KpiBrainAgent tf={preset} preset={preset} />

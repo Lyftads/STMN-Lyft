@@ -141,6 +141,7 @@ export async function POST(req) {
   const { userId, contextBlock } = await buildAgentContext({
     agentId: AGENT_ID,
     query: lastUserMsg,
+    conversationLength: clean.length,
   })
 
   try {

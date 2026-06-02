@@ -422,7 +422,7 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...cleanMessages].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: cleanMessages.length })
 
   const openaiBody = {
     model: MODEL,

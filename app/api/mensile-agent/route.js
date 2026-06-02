@@ -112,7 +112,7 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
 
   try {
     const r = await fetch(OPENAI_URL, {

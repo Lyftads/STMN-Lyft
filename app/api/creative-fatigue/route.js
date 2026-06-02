@@ -67,27 +67,75 @@ async function fetchAdInsights(accountId, range) {
 
 // Meta usa questo hash come placeholder generico per DPA → niente immagine reale
 const GENERIC_PLACEHOLDER = '75341531_494485104475166'
+const okUrl = (u) => u && !u.includes(GENERIC_PLACEHOLDER)
+
+async function graph(path, params = {}) {
+  const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/${path}`)
+  for (const [k, v] of Object.entries(params)) if (v != null && v !== '') url.searchParams.set(k, v)
+  url.searchParams.set('access_token', META_TOKEN)
+  try {
+    const res = await fetch(url.toString(), { cache: 'no-store', signal: AbortSignal.timeout(12000) })
+    const data = await res.json()
+    if (!res.ok || data.error) return null
+    return data
+  } catch { return null }
+}
+
+function creativeProductSetId(c) {
+  if (!c) return null
+  return c.product_set_id
+    || c.object_story_spec?.template_data?.product_set_id
+    || c.asset_feed_spec?.product_set_id
+    || null
+}
+async function adsetProductSetId(adsetId) {
+  if (!adsetId) return null
+  const d = await graph(adsetId, { fields: 'promoted_object' })
+  return d?.promoted_object?.product_set_id || null
+}
+// Immagine reale del prodotto dal catalogo (per inserzioni DPA / Advantage+)
+async function productSetImage(psId) {
+  if (!psId) return null
+  const d = await graph(`${psId}/products`, { fields: 'image_url,images{url}', limit: '1' })
+  const p = (d?.data || [])[0]
+  return p?.image_url || p?.images?.data?.[0]?.url || null
+}
 
 async function fetchThumbnails(adIds) {
   const out = {}
+  const meta = {} // adId -> { creative, adsetId }
+
+  // 1) batch read creative + adset_id
   for (let i = 0; i < adIds.length; i += 50) {
     const chunk = adIds.slice(i, i + 50)
-    const url = `https://graph.facebook.com/${GRAPH_VERSION}/`
-      + `?ids=${encodeURIComponent(chunk.join(','))}`
-      + `&fields=${encodeURIComponent('creative{thumbnail_url,image_url}')}`
-      + `&access_token=${encodeURIComponent(META_TOKEN)}`
-    try {
-      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
-      const data = await res.json()
-      if (!res.ok || data.error) continue
-      for (const id of chunk) {
-        const c = data[id]?.creative || {}
-        const thumb = c.thumbnail_url || null
-        const image = c.image_url || null
-        const ok = (u) => u && !u.includes(GENERIC_PLACEHOLDER)
-        out[id] = { thumbnail: ok(thumb) ? thumb : (ok(image) ? image : null), image: ok(image) ? image : null }
+    const data = await graph('', {
+      ids: chunk.join(','),
+      fields: 'creative{thumbnail_url,image_url,product_set_id,object_story_spec,asset_feed_spec},adset_id',
+    })
+    if (!data) continue
+    for (const id of chunk) if (data[id]) meta[id] = { creative: data[id].creative || {}, adsetId: data[id].adset_id || null }
+  }
+
+  // 2) risolvi thumbnail; per le catalogo usa l'immagine del product set
+  const psImgCache = new Map()      // productSetId -> imageUrl
+  const adsetPsCache = new Map()    // adsetId -> productSetId
+  for (const id of adIds) {
+    const c = meta[id]?.creative || {}
+    const adsetId = meta[id]?.adsetId
+    let thumb = okUrl(c.thumbnail_url) ? c.thumbnail_url : (okUrl(c.image_url) ? c.image_url : null)
+
+    if (!thumb) {
+      let psId = creativeProductSetId(c)
+      if (!psId && adsetId) {
+        if (!adsetPsCache.has(adsetId)) adsetPsCache.set(adsetId, await adsetProductSetId(adsetId))
+        psId = adsetPsCache.get(adsetId)
       }
-    } catch { /* chunk best-effort */ }
+      if (psId) {
+        if (!psImgCache.has(psId)) psImgCache.set(psId, await productSetImage(psId))
+        thumb = psImgCache.get(psId) || null
+      }
+    }
+    out[id] = { thumbnail: thumb, image: okUrl(c.image_url) ? c.image_url : thumb }
   }
   return out
 }

@@ -6,21 +6,21 @@ import AnimatedNumber from './ui/AnimatedNumber'
 const COMPETITOR_META = {
   velites: {
     name: 'Velites',
-    color: '#e63946',
+    color: '#2997ff',
     adLibraryUrl:
       'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=234280280078173',
     websiteUrl: 'https://eu.velitessport.com/it',
   },
   picsil: {
     name: 'Picsil',
-    color: '#457b9d',
+    color: '#bf5af2',
     adLibraryUrl:
       'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=842231462504799',
     websiteUrl: 'https://it.picsilsport.com',
   },
   froggrips: {
     name: 'Frog Grips',
-    color: '#2a9d8f',
+    color: '#64d2ff',
     adLibraryUrl:
       'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=114720846967132',
     websiteUrl: 'https://froggrips.com.au',
@@ -52,13 +52,6 @@ function StatMini({ label, value, tone = 'var(--text)' }) {
 }
 
 function PlatformBadge({ platform }) {
-  const colors = {
-    facebook: '#1877f2',
-    instagram: '#e4405f',
-    messenger: '#0084ff',
-    audience_network: '#f7931e',
-  }
-
   const labels = {
     facebook: 'FB',
     instagram: 'IG',
@@ -72,8 +65,9 @@ function PlatformBadge({ platform }) {
         display: 'inline-block',
         padding: '3px 8px',
         borderRadius: 6,
-        background: `${colors[platform] || '#555'}25`,
-        color: colors[platform] || '#888',
+        background: 'var(--glass2)',
+        border: '1px solid var(--border2)',
+        color: 'var(--text2)',
         fontSize: 10,
         fontWeight: 800,
         letterSpacing: '0.05em',
@@ -140,7 +134,7 @@ function AdCard({ ad, index }) {
             <div style={{
               position: 'absolute', top: 10, left: 10,
               background: '#000a', padding: '3px 8px', borderRadius: 6,
-              fontSize: 10, fontWeight: 800, color: '#fff',
+              fontSize: 10, fontWeight: 800, color: 'var(--text)',
             }}>
               VIDEO
             </div>
@@ -149,7 +143,7 @@ function AdCard({ ad, index }) {
             <div style={{
               position: 'absolute', top: 10, right: 10,
               background: '#000a', padding: '4px 10px', borderRadius: 8,
-              fontSize: 10, fontWeight: 700, color: '#e8e8e8',
+              fontSize: 10, fontWeight: 700, color: 'var(--text)',
               backdropFilter: 'blur(4px)',
             }}>
               {startDate}
@@ -167,14 +161,14 @@ function AdCard({ ad, index }) {
             ))}
           </div>
           {!hasMedia && startDate && (
-            <span style={{ fontSize: 10, color: '#6b6580', fontWeight: 600 }}>{startDate}</span>
+            <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>{startDate}</span>
           )}
         </div>
 
         {/* Title */}
         {title && (
           <div style={{
-            color: '#fff', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
+            color: 'var(--text)', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
           }}>
             {title}
           </div>
@@ -183,7 +177,7 @@ function AdCard({ ad, index }) {
         {/* Body / Copy */}
         {body && (
           <div style={{
-            color: '#c8c0d6', fontSize: 12, lineHeight: 1.55,
+            color: 'var(--text2)', fontSize: 12, lineHeight: 1.55,
             maxHeight: hasMedia ? 80 : 120, overflow: 'hidden',
             WebkitLineClamp: hasMedia ? 4 : 5,
             WebkitBoxOrient: 'vertical', display: '-webkit-box',
@@ -193,11 +187,11 @@ function AdCard({ ad, index }) {
         )}
 
         {description && !body && (
-          <div style={{ color: '#a89db8', fontSize: 12, lineHeight: 1.45 }}>{description}</div>
+          <div style={{ color: 'var(--text2)', fontSize: 12, lineHeight: 1.45 }}>{description}</div>
         )}
 
         {caption && (
-          <div style={{ color: '#6b6580', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
+          <div style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic' }}>{caption}</div>
         )}
 
         {/* Link to snapshot */}
@@ -209,12 +203,12 @@ function AdCard({ ad, index }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               marginTop: 'auto', paddingTop: 8,
-              fontSize: 11, color: '#8b5cf6', fontWeight: 700, textDecoration: 'none',
+              fontSize: 11, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none',
             }}
           >
             Vedi su Ad Library
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M4 2h6v6M10 2L2 10" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 2h6v6M10 2L2 10" stroke="#2997ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </a>
         )}
@@ -239,7 +233,7 @@ function ProductCard({ product }) {
             position: 'absolute',
             top: 10,
             right: 10,
-            background: '#e63946',
+            background: 'var(--red)',
             color: '#fff',
             padding: '4px 10px',
             borderRadius: 8,
@@ -259,13 +253,13 @@ function ProductCard({ product }) {
             top: 10,
             left: 10,
             background: 'var(--glass)',
-            color: '#ef4444',
+            color: 'var(--red)',
             padding: '4px 10px',
             borderRadius: 8,
             fontSize: 10,
             fontWeight: 800,
             zIndex: 2,
-            border: '1px solid #ef444440',
+            border: '1px solid rgba(255,69,58,0.30)',
           }}
         >
           ESAURITO
@@ -295,14 +289,14 @@ function ProductCard({ product }) {
             }}
           />
         ) : (
-          <div style={{ color: '#4a4060', fontSize: 12 }}>No image</div>
+          <div style={{ color: 'var(--text3)', fontSize: 12 }}>No image</div>
         )}
       </div>
 
       <div style={{ padding: 14 }}>
         <div
           style={{
-            color: '#fff',
+            color: 'var(--text)',
             fontSize: 13,
             fontWeight: 800,
             lineHeight: 1.3,
@@ -318,7 +312,7 @@ function ProductCard({ product }) {
           <div
             style={{
               fontSize: 10,
-              color: '#6b6580',
+              color: 'var(--text3)',
               marginBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
@@ -334,7 +328,7 @@ function ProductCard({ product }) {
             style={{
               fontSize: 16,
               fontWeight: 900,
-              color: product.onSale ? '#e63946' : '#22c55e',
+              color: product.onSale ? 'var(--red)' : 'var(--text)',
               fontFamily: 'Barlow',
             }}
           >
@@ -345,7 +339,7 @@ function ProductCard({ product }) {
             <span
               style={{
                 fontSize: 12,
-                color: '#6b6580',
+                color: 'var(--text3)',
                 textDecoration: 'line-through',
                 fontWeight: 600,
               }}
@@ -360,25 +354,15 @@ function ProductCard({ product }) {
 }
 
 function PromoTag({ promo }) {
-  const colors = {
-    discount: { bg: '#e6394620', border: '#e6394640', text: '#e63946' },
-    shipping: { bg: '#22c55e20', border: '#22c55e40', text: '#22c55e' },
-    code: { bg: '#8b5cf620', border: '#8b5cf640', text: '#8b5cf6' },
-    sale: { bg: '#f59e0b20', border: '#f59e0b40', text: '#f59e0b' },
-    bundle: { bg: '#06b6d420', border: '#06b6d440', text: '#06b6d4' },
-  }
-
-  const c = colors[promo.type] || colors.sale
-
   return (
     <span
       style={{
         display: 'inline-block',
         padding: '6px 12px',
         borderRadius: 10,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        color: c.text,
+        background: 'rgba(41,151,255,0.10)',
+        border: '1px solid rgba(41,151,255,0.25)',
+        color: 'var(--accent)',
         fontSize: 12,
         fontWeight: 800,
       }}
@@ -461,7 +445,7 @@ function CompetitorSection({ competitor, meta }) {
               style={{
                 fontSize: 22,
                 fontWeight: 950,
-                color: '#fff',
+                color: 'var(--text)',
                 letterSpacing: '-0.03em',
               }}
             >
@@ -471,7 +455,7 @@ function CompetitorSection({ competitor, meta }) {
               href={meta.websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 12, color: '#8b8aa0', textDecoration: 'none' }}
+              style={{ fontSize: 12, color: 'var(--text2)', textDecoration: 'none' }}
             >
               {meta.websiteUrl} ↗
             </a>
@@ -485,7 +469,7 @@ function CompetitorSection({ competitor, meta }) {
               borderRadius: 10,
               background: 'var(--glass)',
               border: '1px solid var(--border)',
-              color: '#c8c0d6',
+              color: 'var(--text2)',
               fontSize: 12,
               fontWeight: 800,
             }}
@@ -498,7 +482,7 @@ function CompetitorSection({ competitor, meta }) {
               borderRadius: 10,
               background: 'var(--glass)',
               border: '1px solid var(--border)',
-              color: '#c8c0d6',
+              color: 'var(--text2)',
               fontSize: 12,
               fontWeight: 800,
             }}
@@ -510,9 +494,9 @@ function CompetitorSection({ competitor, meta }) {
               style={{
                 padding: '6px 14px',
                 borderRadius: 10,
-                background: '#95bf4720',
-                border: '1px solid #95bf4740',
-                color: '#95bf47',
+                background: 'var(--glass2)',
+                border: '1px solid var(--border2)',
+                color: 'var(--text2)',
                 fontSize: 11,
                 fontWeight: 800,
               }}
@@ -546,7 +530,7 @@ function CompetitorSection({ competitor, meta }) {
               border: 'none',
               borderBottom: section === t.id ? `2px solid ${meta.color}` : '2px solid transparent',
               background: section === t.id ? `${meta.color}08` : 'transparent',
-              color: section === t.id ? '#fff' : '#6b6580',
+              color: section === t.id ? 'var(--text)' : 'var(--text3)',
               fontSize: 13,
               fontWeight: 800,
               cursor: 'pointer',
@@ -572,15 +556,15 @@ function CompetitorSection({ competitor, meta }) {
                   marginBottom: 20,
                 }}
               >
-                <span style={{ fontSize: 13, color: '#8b8aa0' }}>
+                <span style={{ fontSize: 13, color: 'var(--text2)' }}>
                   {ads.length} creative attive
                   {adLibrary?.source === 'scrape' && (
-                    <span style={{ marginLeft: 8, fontSize: 10, color: '#f59e0b', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f59e0b18' }}>
+                    <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
                       via Ad Library scrape
                     </span>
                   )}
                   {adLibrary?.source === 'api' && (
-                    <span style={{ marginLeft: 8, fontSize: 10, color: '#22c55e', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#22c55e18' }}>
+                    <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
                       via Meta API
                     </span>
                   )}
@@ -591,7 +575,7 @@ function CompetitorSection({ competitor, meta }) {
                   rel="noopener noreferrer"
                   style={{
                     fontSize: 12,
-                    color: '#60a5fa',
+                    color: '#2997ff',
                     fontWeight: 700,
                     textDecoration: 'none',
                   }}
@@ -627,8 +611,8 @@ function CompetitorSection({ competitor, meta }) {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 16,
                     textDecoration: 'none',
-                    background: 'linear-gradient(135deg, #1877f218, #1877f208)',
-                    border: '1px solid #1877f230',
+                    background: 'linear-gradient(135deg, rgba(41,151,255,0.10), rgba(41,151,255,0.04))',
+                    border: '1px solid rgba(41,151,255,0.25)',
                     borderRadius: 18,
                     padding: '28px 24px',
                     transition: 'border-color .2s',
@@ -636,23 +620,23 @@ function CompetitorSection({ competitor, meta }) {
                 >
                   <div style={{
                     width: 52, height: 52, borderRadius: 14,
-                    background: '#1877f220',
+                    background: 'rgba(41,151,255,0.12)',
                     display: 'grid', placeItems: 'center', flexShrink: 0,
                   }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" fill="#1877f2"/>
+                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" fill="#2997ff"/>
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
+                    <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
                       Apri Ad Library di {meta.name}
                     </div>
-                    <div style={{ color: '#8b8aa0', fontSize: 12, lineHeight: 1.5 }}>
+                    <div style={{ color: 'var(--text2)', fontSize: 12, lineHeight: 1.5 }}>
                       Visualizza tutte le inserzioni attive con immagini, video e copy
                     </div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-                    <path d="M7 3h10v10M17 3L3 17" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 3h10v10M17 3L3 17" stroke="#2997ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </a>
 
@@ -660,17 +644,17 @@ function CompetitorSection({ competitor, meta }) {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 18px', borderRadius: 12,
-                  background: '#f59e0b08', border: '1px solid #f59e0b18',
+                  background: 'rgba(41,151,255,0.06)', border: '1px solid rgba(41,151,255,0.10)',
                 }}>
                   <div style={{
                     width: 8, height: 8, borderRadius: '50%',
-                    background: '#f59e0b', flexShrink: 0,
+                    background: 'var(--accent)', flexShrink: 0,
                     animation: 'pulse 2s ease-in-out infinite',
                   }} />
-                  <div style={{ fontSize: 12, color: '#c8c0d6', lineHeight: 1.5 }}>
-                    <strong style={{ color: '#f59e0b', fontWeight: 800 }}>In attesa di approvazione</strong>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>In attesa di approvazione</strong>
                     {' — '}
-                    La richiesta di accesso <span style={{ color: '#e2dcf0', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
+                    La richiesta di accesso <span style={{ color: 'var(--text)', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
                     Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.
                   </div>
                 </div>
@@ -754,7 +738,7 @@ function CompetitorSection({ competitor, meta }) {
                 <StatMini
                   label="Prezzo medio"
                   value={money(stats.avgPrice)}
-                  tone="#22c55e"
+                  tone="var(--accent)"
                 />
                 <StatMini
                   label="Min"
@@ -764,17 +748,17 @@ function CompetitorSection({ competitor, meta }) {
                 <StatMini
                   label="Max"
                   value={money(stats.maxPrice)}
-                  tone="#f59e0b"
+                  tone="var(--text2)"
                 />
                 <StatMini
                   label="In saldo"
                   value={`${stats.onSaleCount} (${stats.onSalePct}%)`}
-                  tone="#e63946"
+                  tone="var(--red)"
                 />
                 <StatMini
                   label="Sconto medio"
                   value={stats.avgDiscount > 0 ? `−${stats.avgDiscount}%` : '—'}
-                  tone="#e63946"
+                  tone="var(--red)"
                 />
               </div>
             )}
@@ -785,7 +769,7 @@ function CompetitorSection({ competitor, meta }) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#8b8aa0',
+                    color: 'var(--text2)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.12em',
                     fontWeight: 800,
@@ -803,13 +787,13 @@ function CompetitorSection({ competitor, meta }) {
                         borderRadius: 8,
                         background: 'var(--glass)',
                         border: '1px solid var(--border)',
-                        color: '#c8c0d6',
+                        color: 'var(--text2)',
                         fontSize: 11,
                         fontWeight: 700,
                       }}
                     >
                       {cat}{' '}
-                      <span style={{ color: '#6b6580' }}>({count})</span>
+                      <span style={{ color: 'var(--text3)' }}>({count})</span>
                     </span>
                   ))}
                 </div>
@@ -822,7 +806,7 @@ function CompetitorSection({ competitor, meta }) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#8b8aa0',
+                    color: 'var(--text2)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.12em',
                     fontWeight: 800,
@@ -901,7 +885,7 @@ function CompetitorSection({ competitor, meta }) {
                   borderRadius: 16,
                   padding: 40,
                   textAlign: 'center',
-                  color: '#6b6580',
+                  color: 'var(--text3)',
                 }}
               >
                 {query
@@ -1009,7 +993,7 @@ export default function CompetitorIntelTab() {
           style={{
             textAlign: 'center',
             padding: 80,
-            color: '#6b6580',
+            color: 'var(--text3)',
           }}
         >
           <div
@@ -1024,7 +1008,7 @@ export default function CompetitorIntelTab() {
           <div style={{ fontSize: 14, fontWeight: 700 }}>
             Analizzo i competitor…
           </div>
-          <div style={{ fontSize: 12, marginTop: 8, color: '#4a4060' }}>
+          <div style={{ fontSize: 12, marginTop: 8, color: 'var(--text3)' }}>
             Scraping siti web e interrogazione Meta Ad Library
           </div>
         </div>
@@ -1090,7 +1074,7 @@ export default function CompetitorIntelTab() {
                   </div>
                   <div>
                     <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Prezzo medio</div>
-                    <div className="metric-value-sm" style={{ color: 'var(--green)' }}>{money(s.avgPrice)}</div>
+                    <div className="metric-value-sm" style={{ color: 'var(--accent)' }}>{money(s.avgPrice)}</div>
                   </div>
                   <div>
                     <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>In saldo</div>
@@ -1109,7 +1093,7 @@ export default function CompetitorIntelTab() {
       {competitors.map((comp) => {
         const meta = COMPETITOR_META[comp.id] || {
           name: comp.name,
-          color: '#8b5cf6',
+          color: '#2997ff',
           adLibraryUrl: '#',
           websiteUrl: comp.websiteUrl,
         }

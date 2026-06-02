@@ -139,7 +139,32 @@ function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
   )
 }
 
+// Helper: avvia Stripe Checkout session e fa redirect
+async function startStripeCheckout({ planId, mode, setError, setLoading }) {
+  try {
+    setLoading?.(true)
+    setError?.(null)
+    const r = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId, mode: mode || 'subscription' }),
+    })
+    const j = await r.json()
+    if (!r.ok || !j?.url) {
+      setError?.(j?.error || `Errore ${r.status}`)
+      setLoading?.(false)
+      return
+    }
+    window.location.href = j.url
+  } catch (e) {
+    setError?.(e?.message || 'Errore di rete')
+    setLoading?.(false)
+  }
+}
+
 function PlanCard({ plan, isCurrent }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   return (
     <div
       style={{
@@ -215,13 +240,14 @@ function PlanCard({ plan, isCurrent }) {
 
       <button
         type="button"
-        disabled={isCurrent}
+        disabled={isCurrent || loading}
+        onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading })}
         style={{
           width: '100%',
           padding: '13px 16px',
           borderRadius: 12,
           border: 'none',
-          cursor: isCurrent ? 'default' : 'pointer',
+          cursor: isCurrent ? 'default' : loading ? 'wait' : 'pointer',
           background: isCurrent
             ? 'rgba(255,255,255,0.05)'
             : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
@@ -231,12 +257,30 @@ function PlanCard({ plan, isCurrent }) {
           boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
           textTransform: 'uppercase',
           transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
-        onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
+        onMouseEnter={e => { if (!isCurrent && !loading) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
         onMouseLeave={e => { e.currentTarget.style.transform = '' }}
       >
-        {isCurrent ? '✓ Piano attuale' : '↑ Passa a ' + plan.name}
+        {loading ? (
+          <>
+            <span style={{
+              display: 'inline-block', width: 14, height: 14,
+              border: '2px solid rgba(255,255,255,0.4)',
+              borderTopColor: '#fff', borderRadius: 999,
+              animation: 'spin 1s linear infinite',
+            }} />
+            Redirect a Stripe…
+          </>
+        ) : isCurrent ? '✓ Piano attuale' : '↑ Passa a ' + plan.name}
       </button>
+      {error && (
+        <div style={{
+          marginTop: -6, padding: '8px 12px', borderRadius: 8,
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.30)',
+          color: '#fca5a5', fontSize: 11, lineHeight: 1.4,
+        }}>{error}</div>
+      )}
     </div>
   )
 }
@@ -474,19 +518,9 @@ const PAYMENT_ICONS = [
 ]
 
 function PaymentMethodCard() {
-  const [savedCard, setSavedCard] = useState(null) // mock: nessuna carta salvata
-  const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ number: '', name: '', exp: '', cvc: '' })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const last4 = form.number.replace(/\s+/g, '').slice(-4) || '••••'
-    const brand = /^4/.test(form.number.trim()) ? 'Visa' : /^5/.test(form.number.trim()) ? 'Mastercard' : /^3[47]/.test(form.number.trim()) ? 'AmEx' : 'Card'
-    // Mock save — sostituibile con Stripe.setupIntent + paymentMethods.attach
-    setSavedCard({ brand, last4, name: form.name || 'Marino Catasta', exp: form.exp || '••/••' })
-    setAdding(false)
-    setForm({ number: '', name: '', exp: '', cvc: '' })
-  }
+  const [savedCard, setSavedCard] = useState(null) // TODO: leggi da /api/stripe/payment-methods
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   return (
     <GlassCard padding={26} glow="#f59e0b">
@@ -507,7 +541,7 @@ function PaymentMethodCard() {
         </div>
       </div>
 
-      {!savedCard && !adding && (
+      {!savedCard && (
         <div style={{
           padding: '28px 24px',
           borderRadius: 14,
@@ -525,22 +559,45 @@ function PaymentMethodCard() {
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Nessun metodo di pagamento</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, maxWidth: 420, lineHeight: 1.5 }}>
-              Aggiungi una carta per abilitare la fatturazione automatica. I dati vengono tokenizzati e gestiti via Stripe (PCI-DSS).
+              Aggiungi una carta per abilitare la fatturazione automatica. Gestione sicura via Stripe (PCI-DSS).
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            disabled={loading}
+            onClick={() => startStripeCheckout({ mode: 'setup', setError, setLoading })}
             style={{
               padding: '11px 22px', borderRadius: 11,
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
               border: 'none', color: '#fff',
               fontSize: 13.5, fontWeight: 800,
-              cursor: 'pointer',
+              cursor: loading ? 'wait' : 'pointer',
               boxShadow: '0 8px 24px rgba(245,158,11,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
               letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', gap: 8,
             }}
-          >+ Aggiungi metodo di pagamento</button>
+          >
+            {loading ? (
+              <>
+                <span style={{
+                  display: 'inline-block', width: 14, height: 14,
+                  border: '2px solid rgba(255,255,255,0.4)',
+                  borderTopColor: '#fff', borderRadius: 999,
+                  animation: 'spin 1s linear infinite',
+                }} />
+                Redirect a Stripe…
+              </>
+            ) : (
+              <>+ Aggiungi metodo di pagamento</>
+            )}
+          </button>
+          {error && (
+            <div style={{
+              padding: '8px 12px', borderRadius: 8,
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.30)',
+              color: '#fca5a5', fontSize: 11, lineHeight: 1.4, maxWidth: 460,
+            }}>{error}</div>
+          )}
         </div>
       )}
 
@@ -585,61 +642,6 @@ function PaymentMethodCard() {
         </div>
       )}
 
-      {adding && (
-        <form onSubmit={handleSubmit} style={{
-          padding: 18, borderRadius: 12,
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
-            Mock form — sara' sostituito da Stripe Elements
-          </div>
-          <input
-            type="text" placeholder="Numero carta (4242 4242 4242 4242)"
-            value={form.number}
-            onChange={e => setForm({...form, number: e.target.value})}
-            style={inputStyle}
-          />
-          <input
-            type="text" placeholder="Nome sulla carta"
-            value={form.name}
-            onChange={e => setForm({...form, name: e.target.value})}
-            style={inputStyle}
-          />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <input
-              type="text" placeholder="MM / AA"
-              value={form.exp}
-              onChange={e => setForm({...form, exp: e.target.value})}
-              style={inputStyle}
-            />
-            <input
-              type="text" placeholder="CVC"
-              value={form.cvc}
-              onChange={e => setForm({...form, cvc: e.target.value})}
-              style={inputStyle}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="submit" style={{
-              flex: 1, padding: '11px 16px', borderRadius: 10,
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 800,
-              cursor: 'pointer', letterSpacing: '0.04em',
-              boxShadow: '0 6px 18px rgba(245,158,11,0.35)',
-            }}>Salva carta</button>
-            <button type="button" onClick={() => setAdding(false)} style={{
-              padding: '11px 16px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: 'var(--text2)', fontSize: 12.5, fontWeight: 700,
-              cursor: 'pointer',
-            }}>Annulla</button>
-          </div>
-        </form>
-      )}
-
       {/* Accepted brands */}
       <div style={{ marginTop: 22 }}>
         <div style={{
@@ -682,18 +684,6 @@ function PaymentMethodCard() {
       </div>
     </GlassCard>
   )
-}
-
-const inputStyle = {
-  width: '100%',
-  padding: '11px 14px',
-  borderRadius: 10,
-  background: 'rgba(0,0,0,0.40)',
-  border: '1px solid rgba(255,255,255,0.10)',
-  color: '#fff',
-  fontSize: 13,
-  outline: 'none',
-  fontFamily: 'ui-monospace, monospace',
 }
 
 function InvoiceHistory() {

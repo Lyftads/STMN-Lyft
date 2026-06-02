@@ -390,6 +390,43 @@ async function shopifyQL(query) {
   }
 }
 
+// ── Fallback NC/RC via REST Orders ─────────────────────────────
+// Usato quando ShopifyQL breakdown ritorna 0 ordini classificati
+// (tipico per range cortissimi recenti come oggi/ieri/last_7d).
+// Classifica via customer.orders_count: 1 = NC, >1 = RC, 0/null = guest skip.
+async function fetchNcRcFromOrdersRest(start, end) {
+  const sinceIso = `${start}T00:00:00Z`
+  const endDate = new Date(`${end}T00:00:00Z`)
+  endDate.setUTCDate(endDate.getUTCDate() + 1)
+  const untilIso = endDate.toISOString()
+
+  let orders = []
+  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,customer`
+  let safety = 0
+  while (url && safety < 50) {
+    safety++
+    const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN }, cache: 'no-store' })
+    if (!res.ok) break
+    const data = await res.json()
+    orders = orders.concat(data.orders || [])
+    const link = res.headers.get('Link')
+    if (link && link.includes('rel="next"')) {
+      const m = link.match(/<([^>]+)>;\s*rel="next"/)
+      url = m ? m[1] : null
+    } else url = null
+  }
+
+  let nc = 0, rc = 0, fatturNC = 0, fatturRC = 0
+  for (const o of orders) {
+    const cnt = o.customer?.orders_count
+    const rev = parseFloat(o.total_price || 0)
+    if (cnt === 1) { nc++; fatturNC += rev }
+    else if (cnt > 1) { rc++; fatturRC += rev }
+    // cnt null/0 → guest checkout, salta
+  }
+  return { nc, rc, fatturNC: roundMoney(fatturNC), fatturRC: roundMoney(fatturRC) }
+}
+
 // ── Shopify sales per range arbitrario ─────────────────────────
 async function fetchShopifySalesRange(start, end) {
   // 1) Query non filtrata per il totale ACCURATO (include guest checkouts
@@ -511,6 +548,25 @@ async function fetchShopifySalesRange(start, end) {
     }
     if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
       fatturRC = Math.max(fatturato - fatturNC, 0)
+    }
+  }
+
+  // Fallback REST API: ShopifyQL classifica NC/RC con un job notturno → per
+  // i range cortissimi recenti (last_7d, today, yesterday) gli ordini di
+  // oggi/ieri spesso non hanno new_or_returning_customer settato e
+  // vengono esclusi dal breakdown. Fallback: leggo Orders REST direttamente
+  // e classifico via customer.orders_count (1 = NC, >1 = RC).
+  if ((nc === 0 && rc === 0) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+    try {
+      const restCounts = await fetchNcRcFromOrdersRest(start, end)
+      if (restCounts && (restCounts.nc > 0 || restCounts.rc > 0)) {
+        nc = restCounts.nc
+        rc = restCounts.rc
+        fatturNC = restCounts.fatturNC
+        fatturRC = restCounts.fatturRC
+      }
+    } catch {
+      // Ignora: meglio NC=0/RC=0 che far crashare la response
     }
   }
 

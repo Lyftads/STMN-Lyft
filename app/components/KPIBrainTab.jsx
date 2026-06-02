@@ -6,7 +6,7 @@ import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
 import TimeframeSelector from './TimeframeSelector'
 
-export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'last_7d', setPreset }) {
+export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const safeDiv = (a, b) => b > 0 ? a / b : null

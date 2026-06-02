@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import FxCard from './ui/FxCard'
 
 const SEV = {
   high: { color: 'var(--red)', bg: 'rgba(255,69,58,0.14)', label: 'DA RINFRESCARE' },
@@ -45,15 +46,8 @@ export default function CreativeFatiguePanel() {
   )
 
   return (
-    <div className="glass-section reveal-zoom" style={{ padding: 24, marginTop: 24 }}>
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{ marginBottom: 4 }}>
-          <div className="heading-sm" style={{ fontSize: 18 }}>Creative Fatigue</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-            Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media
-          </div>
-        </div>
-
+    <div style={{ marginTop: 24 }}>
+      <FxCard title="Creative Fatigue" subtitle="Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media" delay={1.8}>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le creative attive…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna creativa con dati sufficienti nel periodo.</div>}
@@ -114,7 +108,7 @@ export default function CreativeFatiguePanel() {
             )}
           </>
         )}
-      </div>
+      </FxCard>
     </div>
   )
 }

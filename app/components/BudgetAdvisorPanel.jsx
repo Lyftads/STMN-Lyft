@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import FxCard from './ui/FxCard'
 
 const ACT = {
   scala: { color: 'var(--green)', bg: 'rgba(48,209,88,0.14)', label: 'SCALA' },
@@ -39,15 +40,8 @@ export default function BudgetAdvisorPanel() {
   )
 
   return (
-    <div className="glass-section reveal-zoom" style={{ padding: 24, marginTop: 24 }}>
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{ marginBottom: 4 }}>
-          <div className="heading-sm" style={{ fontSize: 18 }}>Budget Advisor</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-            Ultimi 28 giorni · riallocazione consigliata a parità di spesa · consulenziale (non esecutivo)
-          </div>
-        </div>
-
+    <div style={{ marginTop: 24 }}>
+      <FxCard title="Budget Advisor" subtitle="Ultimi 28 giorni · riallocazione consigliata a parità di spesa · consulenziale (non esecutivo)" delay={2.2}>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le campagne…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && camps.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna campagna con spesa nel periodo.</div>}
@@ -109,7 +103,7 @@ export default function BudgetAdvisorPanel() {
             )}
           </>
         )}
-      </div>
+      </FxCard>
     </div>
   )
 }

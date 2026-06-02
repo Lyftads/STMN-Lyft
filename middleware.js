@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   '/reset-password/confirm',
   '/auth/callback',
   '/onboarding',
+  '/welcome',
 ]
 
 export async function middleware(request) {
@@ -62,16 +63,23 @@ export async function middleware(request) {
     return r
   }
 
-  // Se non autenticato e route protetta → redirect a /login
+  // Se non autenticato e route protetta → redirect.
+  // Per la home '/' mandiamo a /welcome (landing pubblica).
+  // Per tutte le altre route protette mandiamo a /login con next.
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    redirectUrl.searchParams.set('next', pathname + (request.nextUrl.search || ''))
+    if (pathname === '/') {
+      redirectUrl.pathname = '/welcome'
+      redirectUrl.search = ''
+    } else {
+      redirectUrl.pathname = '/login'
+      redirectUrl.searchParams.set('next', pathname + (request.nextUrl.search || ''))
+    }
     return redirectWithCookies(redirectUrl)
   }
 
-  // Se gia' autenticato e cerca /login o /register → redirect alla dashboard
-  if (user && (pathname === '/login' || pathname === '/register')) {
+  // Se gia' autenticato e cerca /login, /register o /welcome → vai a dashboard
+  if (user && (pathname === '/login' || pathname === '/register' || pathname === '/welcome')) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/'
     redirectUrl.search = ''

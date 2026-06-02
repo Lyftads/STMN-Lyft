@@ -368,19 +368,28 @@ export async function GET(req) {
     let m = null
     try { m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(35000) }).then(r => r.json()) } catch {}
     const sr = m?.shopifyRange || {}, spr = m?.shopifyPrevRange || {}, mr = m?.metaRange || {}, mpr = m?.metaPrevRange || {}
-    const sc = { revenue: num(sr.revenue), orders: num(sr.orders), ncOrders: num(sr.nc), rcOrders: num(sr.rc) }
-    const sp = { revenue: num(spr.revenue), orders: num(spr.orders), ncOrders: num(spr.nc), rcOrders: num(spr.rc) }
+    const sc = { revenue: num(sr.revenue), orders: num(sr.orders), ncOrders: num(sr.nc), rcOrders: num(sr.rc), fatturNC: num(sr.fatturNC), fatturRC: num(sr.fatturRC), resi: num(sr.resi), sessions: num(sr.sessions) }
+    const sp = { revenue: num(spr.revenue), orders: num(spr.orders), ncOrders: num(spr.nc), rcOrders: num(spr.rc), fatturNC: num(spr.fatturNC), fatturRC: num(spr.fatturRC), resi: num(spr.resi), sessions: num(spr.sessions) }
     const mSpend = num(mr.spend), mSpendP = num(mpr.spend)
     daily = (m?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until).map(w => ({ date: w.date, revenue: num(w.fatturato) }))
     const aov = sc.orders > 0 ? sc.revenue / sc.orders : 0, aovP = sp.orders > 0 ? sp.revenue / sp.orders : 0
     const mer = mSpend > 0 ? sc.revenue / mSpend : 0, merP = mSpendP > 0 ? sp.revenue / mSpendP : 0
+    const cvr = sc.sessions > 0 ? (sc.orders / sc.sessions) * 100 : 0, cvrP = sp.sessions > 0 ? (sp.orders / sp.sessions) * 100 : 0
+    const rep = (sc.ncOrders + sc.rcOrders) > 0 ? (sc.rcOrders / (sc.ncOrders + sc.rcOrders)) * 100 : 0
+    const repP = (sp.ncOrders + sp.rcOrders) > 0 ? (sp.rcOrders / (sp.ncOrders + sp.rcOrders)) * 100 : 0
     kpis = [
       { label: 'Fatturato', value: money(sc.revenue), prevValue: money(sp.revenue), cur: sc.revenue, prev: sp.revenue },
       { label: 'Ordini', value: intf(sc.orders), prevValue: intf(sp.orders), cur: sc.orders, prev: sp.orders },
       { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
+      { label: 'Sessioni', value: intf(sc.sessions), prevValue: intf(sp.sessions), cur: sc.sessions, prev: sp.sessions },
+      { label: 'Conversion rate', value: `${cvr.toFixed(2)}%`, prevValue: `${cvrP.toFixed(2)}%`, cur: cvr, prev: cvrP },
       { label: 'Nuovi clienti', value: intf(sc.ncOrders), prevValue: intf(sp.ncOrders), cur: sc.ncOrders, prev: sp.ncOrders },
       { label: 'Clienti ritorno', value: intf(sc.rcOrders), prevValue: intf(sp.rcOrders), cur: sc.rcOrders, prev: sp.rcOrders },
-      { label: 'Spesa Meta', value: money(mSpend), prevValue: money(mSpendP), cur: mSpend, prev: mSpendP, lowerBetter: false },
+      { label: 'Repeat rate', value: `${rep.toFixed(1)}%`, prevValue: `${repP.toFixed(1)}%`, cur: rep, prev: repP },
+      { label: 'Fatturato nuovi', value: money(sc.fatturNC), prevValue: money(sp.fatturNC), cur: sc.fatturNC, prev: sp.fatturNC },
+      { label: 'Fatturato ritorno', value: money(sc.fatturRC), prevValue: money(sp.fatturRC), cur: sc.fatturRC, prev: sp.fatturRC },
+      { label: 'Resi', value: money(sc.resi), prevValue: money(sp.resi), cur: sc.resi, prev: sp.resi, lowerBetter: true },
+      { label: 'Spesa Meta', value: money(mSpend), prevValue: money(mSpendP), cur: mSpend, prev: mSpendP },
       { label: 'MER (blended)', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
       { label: 'CTR Meta', value: `${(num(mr.impressions) > 0 ? (num(mr.clicks) / num(mr.impressions)) * 100 : 0).toFixed(2)}%`, prevValue: `${(num(mpr.impressions) > 0 ? (num(mpr.clicks) / num(mpr.impressions)) * 100 : 0).toFixed(2)}%`, cur: num(mr.impressions) > 0 ? num(mr.clicks) / num(mr.impressions) : 0, prev: num(mpr.impressions) > 0 ? num(mpr.clicks) / num(mpr.impressions) : 0 },
     ]

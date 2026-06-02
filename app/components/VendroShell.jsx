@@ -16,6 +16,8 @@ function getPageTitle(tab) {
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
     creative: 'Creative',
+    creativeFatigue: 'Creative Fatigue',
+    budgetAdvisor: 'Budget Advisor',
     performanceAgent: 'Performance Agent',
     klaviyo: 'Klaviyo',
     competitorIntel: 'Competitor Intel',
@@ -34,6 +36,8 @@ function getPageSubtitle(tab) {
   const map = {
     kpiBrain: 'Your business intelligence at a glance',
     creative: 'Analisi creative Meta Ads',
+    creativeFatigue: 'Creative da rinfrescare · frequency, CTR, CPA',
+    budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
     metaDetail: 'Dettaglio performance Meta',
     performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
     klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
@@ -92,6 +96,8 @@ export default function VendroShell({
       items: [
         { id: 'creative', label: 'Creative', icon: '▧' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
+        { id: 'creativeFatigue', label: 'Creative Fatigue', icon: '◍' },
+        { id: 'budgetAdvisor', label: 'Budget Advisor', icon: '⊞' },
       ],
     },
     {

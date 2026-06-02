@@ -17,16 +17,20 @@ export default function CreativeFatiguePanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
+  const [account, setAccount] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    fetch('/api/creative-fatigue?preset=last_28d')
+    setLoading(true); setError(null)
+    fetch(`/api/creative-fatigue?preset=last_28d${account ? `&account=${encodeURIComponent(account)}` : ''}`)
       .then(r => r.json())
       .then(j => { if (!cancelled) { if (j.error && !(j.ads?.length)) setError(j.error); setData(j) } })
       .catch(e => { if (!cancelled) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [account])
+
+  const accounts = data?.accounts || []
 
   const ads = data?.ads || []
   const maxScore = Math.max(...ads.map(a => a.score || 0), 1)
@@ -48,6 +52,14 @@ export default function CreativeFatiguePanel() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard title="Creative Fatigue" subtitle="Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media" delay={1.8}>
+        {accounts.length > 1 && (
+          <div style={{ marginBottom: 16 }}>
+            <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
+              <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
+              {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
+            </select>
+          </div>
+        )}
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le creative attive…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna creativa con dati sufficienti nel periodo.</div>}

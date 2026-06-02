@@ -20,6 +20,8 @@ import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
 import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
+import CreativeFatiguePanel from './components/CreativeFatiguePanel'
+import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -4012,6 +4014,14 @@ export default function App() {
 {/* META DETAIL TAB */}
 {tab === 'metaDetail' && (
   <MetaDetailTab />
+)}
+
+{tab === 'creativeFatigue' && (
+  <CreativeFatiguePanel />
+)}
+
+{tab === 'budgetAdvisor' && (
+  <BudgetAdvisorPanel />
 )}
 
 {/* PERFORMANCE AGENT TAB */}

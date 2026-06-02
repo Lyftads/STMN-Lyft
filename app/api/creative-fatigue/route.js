@@ -14,10 +14,18 @@ const GRAPH_VERSION = 'v19.0'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 
-function accounts() {
-  return String(META_ACCOUNT || '').split(',').map(s => {
-    const x = s.trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}`
-  }).filter(Boolean)
+function normAcc(s) { const x = String(s || '').trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}` }
+function allAccounts() { return String(META_ACCOUNT || '').split(',').map(normAcc).filter(Boolean) }
+function usedAccounts(param) { const n = normAcc(param); return n && allAccounts().includes(n) ? [n] : allAccounts() }
+async function accountNames(ids) {
+  const out = []
+  for (const id of ids) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(META_TOKEN)}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+      const j = await res.json(); out.push({ id, name: j?.name || id })
+    } catch { out.push({ id, name: id }) }
+  }
+  return out
 }
 
 function addDays(date, days) {
@@ -147,10 +155,11 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const preset = searchParams.get('preset') || 'last_28d'
   const range = getRange(preset)
+  const used = usedAccounts(searchParams.get('account'))
 
   try {
     const raw = []
-    for (const acc of accounts()) raw.push(...(await fetchAdInsights(acc, range)))
+    for (const acc of used) raw.push(...(await fetchAdInsights(acc, range)))
 
     const ads = raw.map(r => {
       const spend = num(r.spend)
@@ -203,8 +212,12 @@ export async function GET(req) {
       }
     } catch { /* thumbnail best-effort */ }
 
+    const accountsList = await accountNames(allAccounts())
+
     return NextResponse.json({
       preset, range,
+      accounts: accountsList,
+      account: used.length === 1 ? used[0] : '',
       avgCtr: Math.round(avgCtr * 100) / 100,
       avgCpa: Math.round(avgCpa * 100) / 100,
       total: ads.length,

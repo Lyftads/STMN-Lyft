@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import MetaAdsAgent from './MetaAdsAgent'
-import CreativeFatiguePanel from './CreativeFatiguePanel'
-import BudgetAdvisorPanel from './BudgetAdvisorPanel'
 import DownloadReportButton from './DownloadReportButton'
 
 const PRESETS = [
@@ -995,10 +993,6 @@ export default function MetaDetailTab() {
           </table>
         </div>
       </FxCard>
-
-      <CreativeFatiguePanel />
-
-      <BudgetAdvisorPanel />
 
       <MetaAdsAgent data={data} preset={preset} />
     </div>

@@ -2,19 +2,21 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getKlaviyo } from '../../../lib/tenant/credentials'
 
-const API_KEY = process.env.KLAVIYO_API_KEY
+// Tenant-aware getter (env-only mode di default)
+const klaviyoApiKey = () => getKlaviyo().apiKey
 const BASE = 'https://a.klaviyo.com/api'
-const HEADERS = {
-  Authorization: `Klaviyo-API-Key ${API_KEY}`,
+const buildHeaders = () => ({
+  Authorization: `Klaviyo-API-Key ${klaviyoApiKey() || ''}`,
   accept: 'application/json',
   revision: '2024-10-15',
-}
+})
 
 async function klaviyoGet(path, retries = 3) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`
   for (let i = 0; i < retries; i++) {
-    const res = await fetch(url, { headers: HEADERS, cache: 'no-store' })
+    const res = await fetch(url, { headers: buildHeaders(), cache: 'no-store' })
     if (res.status === 429) {
       await new Promise(r => setTimeout(r, (i + 1) * 2000))
       continue
@@ -29,7 +31,7 @@ async function klaviyoPost(path, body, retries = 3) {
   for (let i = 0; i < retries; i++) {
     const res = await fetch(`${BASE}${path}`, {
       method: 'POST',
-      headers: { ...HEADERS, 'content-type': 'application/json' },
+      headers: { ...buildHeaders(), 'content-type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
     })
@@ -261,7 +263,8 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
 }
 
 export async function GET(request) {
-  if (!API_KEY) {
+  return withTenantContext(request, async () => {
+  if (!klaviyoApiKey()) {
     return NextResponse.json({ error: 'KLAVIYO_API_KEY not configured' }, { status: 500 })
   }
 
@@ -296,4 +299,5 @@ export async function GET(request) {
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
+  })
 }

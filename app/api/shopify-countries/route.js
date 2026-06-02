@@ -2,16 +2,18 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 
-const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
-const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
+// Tenant-aware getter (env-only mode di default)
+const shopifyStoreUrl = () => getShopify().storeUrl
+const shopifyToken    = () => getShopify().adminToken
 
 // Aggrega ordini per paese di fatturazione (billing_address.country) in
 // un range di date. Ritorna [{country, country_code, revenue, orders}]
 // ordinato per revenue desc.
 
 function authHeader() {
-  return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
+  return { 'X-Shopify-Access-Token': shopifyToken() || '' }
 }
 
 // Classifica un ordine come NC / RC / null (guest).
@@ -30,7 +32,7 @@ function classifyOrder(o) {
 // stessa forma che il resto del route si aspetta dal vecchio REST:
 //   { created_at, total_price, billing_address:{country,country_code}, customer:{numberOfOrders} }
 async function fetchOrdersInRange(since, until) {
-  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
+  if (!shopifyStoreUrl() || !shopifyToken()) return null
 
   const gql = `
     query($q: String!, $cursor: String) {
@@ -58,7 +60,7 @@ async function fetchOrdersInRange(since, until) {
   while (safety < 200) {
     safety++
     const res = await fetch(
-      `https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`,
+      `https://${shopifyStoreUrl()}/admin/api/2024-01/graphql.json`,
       { method: 'POST', headers, cache: 'no-store', body: JSON.stringify({ query: gql, variables: { q, cursor } }) }
     )
     if (!res.ok) {
@@ -99,7 +101,8 @@ async function fetchOrdersInRange(since, until) {
 }
 
 export async function GET(request) {
-  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) {
+  return withTenantContext(request, async () => {
+  if (!shopifyStoreUrl() || !shopifyToken()) {
     return NextResponse.json({ error: 'Shopify non configurato (SHOPIFY_STORE_URL, SHOPIFY_ADMIN_TOKEN)' }, { status: 200 })
   }
 
@@ -218,4 +221,5 @@ export async function GET(request) {
   } catch (err) {
     return NextResponse.json({ error: err?.message?.slice(0, 300) || 'Errore Shopify' }, { status: 500 })
   }
+  })
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -19,13 +20,18 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
   return data.access_token
 }
 
-export async function GET() {
-  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
-  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
+export async function GET(req) {
+  return withTenantContext(req, async () => {
+  // Tenant-aware: client/secret/refresh_token via getGoogle().
+  // I 3 var Google Ads-specifici (developer token, customer id, MCC id)
+  // restano env-only finche' non aggiungiamo colonne dedicate al schema.
+  const g = getGoogle()
+  const CLIENT_ID = g.clientId
+  const CLIENT_SECRET = g.clientSecret
+  const REFRESH_TOKEN = g.refreshToken
   const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
   const CUSTOMER_ID = (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/-/g, '')
   const MCC_ID = (process.env.GOOGLE_ADS_MCC_ID || '').replace(/-/g, '')
-  const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN
 
   if (!DEVELOPER_TOKEN || !CUSTOMER_ID || !REFRESH_TOKEN || !CLIENT_ID || !CLIENT_SECRET) {
     return NextResponse.json({
@@ -132,4 +138,5 @@ export async function GET() {
       monthly: [],
     }, { status: 502 })
   }
+  })
 }

@@ -2,9 +2,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
-const META_TOKEN = process.env.META_ACCESS_TOKEN
-const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
+// Tenant-aware getter (env-only mode di default)
+const metaToken   = () => getMeta().accessToken
+const metaAccount = () => getMeta().adAccountId
 
 const GRAPH_VERSION = 'v19.0'
 
@@ -27,7 +29,7 @@ function cleanAccountId(id) {
 }
 
 function getAccounts() {
-  return String(META_ACCOUNT || '')
+  return String(metaAccount() || '')
     .split(',')
     .map(cleanAccountId)
     .filter(Boolean)
@@ -119,7 +121,7 @@ async function graph(path, params = {}) {
     }
   }
 
-  url.searchParams.set('access_token', META_TOKEN)
+  url.searchParams.set('access_token', metaToken())
 
   const res = await fetch(url.toString(), { cache: 'no-store' })
   const data = await res.json()
@@ -676,9 +678,10 @@ async function getAdRows(accounts, range, adsetId) {
 }
 
 export async function GET(req) {
+  return withTenantContext(req, async () => {
   try {
-    if (!META_TOKEN) return jsonError('META_ACCESS_TOKEN mancante', 500)
-    if (!META_ACCOUNT) return jsonError('META_AD_ACCOUNT_ID mancante', 500)
+    if (!metaToken()) return jsonError('META_ACCESS_TOKEN mancante', 500)
+    if (!metaAccount()) return jsonError('META_AD_ACCOUNT_ID mancante', 500)
 
     const { searchParams } = new URL(req.url)
 
@@ -760,4 +763,5 @@ export async function GET(req) {
   } catch (err) {
     return jsonError(err.message || 'Errore Meta Detail', 500)
   }
+  })
 }

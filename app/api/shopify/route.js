@@ -1,15 +1,17 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { subDays, formatISO } from 'date-fns'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 
-const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
-const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
+// Tenant-aware getter (env-only mode di default — vedi credentials.js)
+const shopifyStoreUrl = () => getShopify().storeUrl
+const shopifyToken    = () => getShopify().adminToken
 const LOOKBACK_DAYS  = 730
 const CHURN_WINDOW   = 365
 
 // Supporta sia token Admin classici (shpat_) che token di automazione (atkn_)
 function getAuthHeader() {
-  const token = SHOPIFY_TOKEN || ''
+  const token = shopifyToken() || ''
   if (token.startsWith('atkn_')) {
     return { 'X-Shopify-Access-Token': token }
   }
@@ -17,7 +19,7 @@ function getAuthHeader() {
 }
 
 async function shopifyFetch(path) {
-  const url = `https://${SHOPIFY_STORE}/admin/api/2024-01/${path}`
+  const url = `https://${shopifyStoreUrl()}/admin/api/2024-01/${path}`
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     next: { revalidate: 3600 }
@@ -31,7 +33,7 @@ async function shopifyFetch(path) {
 
 async function fetchAllOrders(sinceDate) {
   let orders = []
-  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceDate}&limit=250&fields=id,email,created_at,total_price`
+  let url = `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceDate}&limit=250&fields=id,email,created_at,total_price`
   
   while (url) {
     const res = await fetch(url, {
@@ -52,7 +54,8 @@ async function fetchAllOrders(sinceDate) {
   return orders
 }
 
-export async function GET() {
+export async function GET(req) {
+  return withTenantContext(req, async () => {
   try {
     const sinceDate = formatISO(subDays(new Date(), LOOKBACK_DAYS))
     const orders = await fetchAllOrders(sinceDate)
@@ -145,4 +148,5 @@ export async function GET() {
     console.error('Shopify error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
+  })
 }

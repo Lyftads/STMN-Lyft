@@ -1,15 +1,18 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 
+// Tenant-aware: Google OAuth creds + GA4 property id risolti per-request
 async function getAccessToken() {
+  const g = getGoogle()
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      client_id: g.clientId || '',
+      client_secret: g.clientSecret || '',
+      refresh_token: g.refreshToken || '',
       grant_type: 'refresh_token',
     }),
   })
@@ -34,8 +37,10 @@ async function runReport(token, propertyId, body) {
 }
 
 export async function GET(request) {
-  const propertyId = process.env.GA4_PROPERTY_ID
-  const hasConfig = propertyId && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN
+  return withTenantContext(request, async () => {
+  const g = getGoogle()
+  const propertyId = g.ga4PropertyId
+  const hasConfig = propertyId && g.clientId && g.refreshToken
 
   if (!hasConfig) {
     return NextResponse.json({ configured: false })
@@ -131,4 +136,5 @@ export async function GET(request) {
   } catch (e) {
     return NextResponse.json({ configured: false, error: e.message }, { status: 500 })
   }
+  })
 }

@@ -2555,7 +2555,7 @@ export default function App() {
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label="Fatturato" value={totFat>0?f0(totFat):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={totFat} previous={prevTotals.revenue} />
@@ -2568,6 +2568,9 @@ export default function App() {
             <Stat label="Nuovi clienti" value={totNC>0?fn(totNC):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.nc)} sparkColor="var(--cyan)"
               current={totNC} previous={prevTotals.nc} />
+            <Stat label="Clienti di ritorno" value={totRC>0?fn(totRC):'—'} sources={['shopify']}
+              sparkData={swCurrent.map(w=>w.rc)} sparkColor="var(--purple)"
+              current={totRC} previous={prevTotals.rc} />
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>

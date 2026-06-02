@@ -14,6 +14,33 @@ function authHeader() {
   return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
 }
 
+// Classifica un ordine come NC / RC / null (guest).
+//
+// Shopify a volte ritorna customer.orders_count = null/0 per ordini
+// molto recenti (il counter viene aggiornato in modo asincrono),
+// quindi se ho solo un customer.id valido ma orders_count non
+// affidabile, mi baso su:
+//   1) customer.created_at vs order.created_at:
+//      delta < 5 min → cliente appena creato per questo ordine → NC
+//   2) altrimenti default RC (cliente esistente che ordina di nuovo)
+function classifyOrder(o) {
+  const c = o?.customer
+  if (!c || !c.id) return null // guest checkout
+  const cnt = c.orders_count
+  if (typeof cnt === 'number' && cnt > 0) {
+    return cnt === 1 ? 'NC' : 'RC'
+  }
+  // Fallback heuristic quando orders_count non e' settato
+  const orderTs = Date.parse(o.created_at || '')
+  const custTs = Date.parse(c.created_at || '')
+  if (Number.isFinite(orderTs) && Number.isFinite(custTs)) {
+    const deltaSec = Math.abs(orderTs - custTs) / 1000
+    return deltaSec < 300 ? 'NC' : 'RC'
+  }
+  // Customer esiste ma niente date utili → assumo NC (piu' conservativo)
+  return 'NC'
+}
+
 async function fetchOrdersInRange(since, until) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
   // Shopify accetta created_at_min/max in formato ISO. Aggiungo
@@ -74,14 +101,12 @@ export async function GET(request) {
         const date = (o.created_at || '').slice(0, 10) // YYYY-MM-DD
         if (!date) continue
         const revenue = parseFloat(o.total_price || 0)
-        const cnt = o.customer?.orders_count
-        const isNC = cnt === 1
-        const isRC = typeof cnt === 'number' && cnt > 1
+        const cls = classifyOrder(o)
         const prev = byDate.get(date) || { date, revenue: 0, orders: 0, ncOrders: 0, rcOrders: 0, ncRevenue: 0, rcRevenue: 0 }
         prev.revenue += revenue
         prev.orders += 1
-        if (isNC) { prev.ncOrders += 1; prev.ncRevenue += revenue }
-        if (isRC) { prev.rcOrders += 1; prev.rcRevenue += revenue }
+        if (cls === 'NC') { prev.ncOrders += 1; prev.ncRevenue += revenue }
+        if (cls === 'RC') { prev.rcOrders += 1; prev.rcRevenue += revenue }
         byDate.set(date, prev)
       }
       // Genera tutte le date del range (anche giorni a 0) per linea continua
@@ -110,14 +135,7 @@ export async function GET(request) {
       const code = addr?.country_code || null
       const name = addr?.country || (code ? code : 'Sconosciuto')
       const revenue = parseFloat(o.total_price || 0)
-      // Classifica NC/RC via customer.orders_count (lifetime, disponibile
-      // subito, non dipende da job di segmentazione asincrono):
-      //   1 → ordine di un cliente al primo acquisto (NC)
-      //   >1 → cliente di ritorno (RC)
-      //   null/0 → guest checkout, non classificabile
-      const ordersCount = o.customer?.orders_count
-      const isNC = ordersCount === 1
-      const isRC = typeof ordersCount === 'number' && ordersCount > 1
+      const cls = classifyOrder(o)
 
       if (!code && !addr?.country) {
         unknownCount++
@@ -134,8 +152,8 @@ export async function GET(request) {
       }
       prev.revenue += revenue
       prev.orders += 1
-      if (isNC) { prev.ncOrders += 1; prev.ncRevenue += revenue }
-      if (isRC) { prev.rcOrders += 1; prev.rcRevenue += revenue }
+      if (cls === 'NC') { prev.ncOrders += 1; prev.ncRevenue += revenue }
+      if (cls === 'RC') { prev.rcOrders += 1; prev.rcRevenue += revenue }
       byCountry.set(key, prev)
     }
 

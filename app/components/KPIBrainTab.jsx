@@ -787,7 +787,8 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           borderTopColor:'rgba(255,255,255,0.16)',
           borderBottomColor:'rgba(0,0,0,0.7)',
           boxShadow:'0 60px 120px rgba(0,0,0,0.85), 0 0 100px rgba(14,165,233,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08)',
-          animation:'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)',
+          // opacity-only — niente conflitto col translate(-50%, -50%)
+          animation:'modalIn 0.32s cubic-bezier(0.16,1,0.3,1) both',
           overflow:'hidden',
         }}
       >

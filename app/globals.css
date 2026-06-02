@@ -104,6 +104,13 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* modalIn: opacity-only — usato dai modal con transform: translate(-50%, -50%)
+   per il centramento. NON tocca transform per non rompere il posizionamento. */
+@keyframes modalIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @keyframes cr-shine {
   0%   { transform: translateX(-100%); opacity: 0; }
   35%  { opacity: 1; }

@@ -84,6 +84,45 @@ function AdCard({ ad, index }) {
   const title = ad.titles?.[0] || ''
   const caption = ad.captions?.[0] || ''
   const description = ad.descriptions?.[0] || ''
+
+  // ── Reverse-engineering on-brand (additivo) ──
+  const [reOpen, setReOpen] = useState(false)
+  const [brief, setBrief] = useState(null)
+  const [reLoading, setReLoading] = useState(false)
+  const [reError, setReError] = useState(null)
+  const [genImg, setGenImg] = useState(null)
+  const [genLoading, setGenLoading] = useState(false)
+
+  const runReverse = async () => {
+    setReOpen(true)
+    if (brief || reLoading) return
+    setReLoading(true); setReError(null)
+    try {
+      const r = await fetch('/api/creative-reverse', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ad: { pageName: ad.pageName, title, bodies: ad.bodies, body } }),
+      })
+      const j = await r.json()
+      if (j.error) setReError(j.error)
+      else setBrief(j.brief)
+    } catch (e) { setReError(e?.message || 'Errore di rete') }
+    finally { setReLoading(false) }
+  }
+
+  const runImage = async () => {
+    if (!brief?.imagePrompt || genLoading) return
+    setGenLoading(true)
+    try {
+      const r = await fetch('/api/creative-reverse', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generateImage: true, imagePrompt: brief.imagePrompt }),
+      })
+      const j = await r.json()
+      if (j.imageUrl) setGenImg(j.imageUrl)
+      else setReError(j.error || 'Generazione immagine fallita')
+    } catch (e) { setReError(e?.message || 'Errore di rete') }
+    finally { setGenLoading(false) }
+  }
   const startDate = ad.startDate
     ? new Date(ad.startDate).toLocaleDateString('it-IT', {
         day: '2-digit',
@@ -213,7 +252,83 @@ function AdCard({ ad, index }) {
             </svg>
           </a>
         )}
+
+        {(body || title) && (
+          <button
+            onClick={runReverse}
+            className="btn-glass"
+            style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}
+          >
+            ✨ Reverse-engineer on-brand
+          </button>
+        )}
       </div>
+
+      {reOpen && (
+        <div
+          onClick={() => setReOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-section"
+            style={{ width: 'min(640px, 100%)', maxHeight: '88vh', overflowY: 'auto', padding: 24, background: 'rgba(10,10,20,0.92)' }}
+          >
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div className="heading-sm" style={{ fontSize: 16 }}>✨ Variante on-brand STMN</div>
+                <button onClick={() => setReOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}>×</button>
+              </div>
+
+              {reLoading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '20px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo l'inserzione e creo la variante…</div>}
+              {reError && <div style={{ color: 'var(--red)', fontSize: 13 }}>{reError}</div>}
+
+              {brief && (
+                <div style={{ display: 'grid', gap: 14, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
+                  <Field label="Perché funziona l'originale" value={brief.whyItWorks} />
+                  <Field label="Prodotto STMN" value={brief.stmnProduct} />
+                  <Field label="Angolo on-brand" value={brief.angle} />
+                  <Field label="Hook" value={brief.hook} accent />
+                  {Array.isArray(brief.primaryTexts) && brief.primaryTexts.length > 0 && (
+                    <div>
+                      <div className="label" style={{ marginBottom: 6 }}>Copy (varianti)</div>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {brief.primaryTexts.map((t, i) => (
+                          <div key={i} className="glass-card-static" style={{ padding: '10px 12px', borderRadius: 10, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <Field label="Headline" value={brief.headline} />
+                  <Field label="Direzione visiva" value={brief.visualBrief} />
+
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                    {!genImg && (
+                      <button onClick={runImage} disabled={genLoading} className="btn-glass" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: genLoading ? 'wait' : 'pointer' }}>
+                        <span style={{ display: 'inline-block', animation: genLoading ? 'spin 1s linear infinite' : 'none' }}>◍</span>
+                        {genLoading ? 'Genero immagine…' : 'Genera immagine on-brand'}
+                      </button>
+                    )}
+                    {genImg && (
+                      <img src={genImg} alt="creative on-brand" style={{ width: '100%', borderRadius: 12, marginTop: 4, display: 'block' }} />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, value, accent }) {
+  if (!value) return null
+  return (
+    <div>
+      <div className="label" style={{ marginBottom: 4 }}>{label}</div>
+      <div style={{ color: accent ? 'var(--accent)' : 'var(--text)', fontWeight: accent ? 800 : 600 }}>{value}</div>
     </div>
   )
 }

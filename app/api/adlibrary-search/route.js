@@ -310,7 +310,6 @@ export async function GET(request) {
     count: ads.length,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (lastErr || 'no_results') : null,
-    _debug: result?.debug || null,
     libraryUrl: libraryUrlFor(q, country),
     fetchedAt: new Date().toISOString(),
   })

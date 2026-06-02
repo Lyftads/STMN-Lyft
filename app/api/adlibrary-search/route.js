@@ -135,6 +135,82 @@ async function searchViaApi(q, country) {
   }
 }
 
+// Estrae ads strutturate dalle risposte GraphQL dell'Ad Library (dato pulito,
+// allineato per-annuncio). Cammina ricorsivamente cercando nodi con `snapshot`.
+function collectSnapshotNodes(node, out, depth = 0) {
+  if (!node || typeof node !== 'object' || depth > 12) return
+  if (Array.isArray(node)) { for (const x of node) collectSnapshotNodes(x, out, depth + 1); return }
+  if (node.snapshot && typeof node.snapshot === 'object') {
+    out.push(node)
+  }
+  for (const k in node) {
+    const v = node[k]
+    if (v && typeof v === 'object') collectSnapshotNodes(v, out, depth + 1)
+  }
+}
+
+function adFromSnapshotNode(node) {
+  const s = node.snapshot || {}
+  const bodyText = typeof s.body === 'string' ? s.body : (s.body?.text || '')
+  const images = Array.isArray(s.images) ? s.images : []
+  const videos = Array.isArray(s.videos) ? s.videos : []
+  const cards = Array.isArray(s.cards) ? s.cards : []
+
+  let imageUrl =
+    images[0]?.resized_image_url || images[0]?.original_image_url ||
+    cards[0]?.resized_image_url || cards[0]?.original_image_url || null
+  let videoUrl = videos[0]?.video_sd_url || videos[0]?.video_hd_url || null
+  let isVideo = !!videoUrl
+  if (!imageUrl) imageUrl = videos[0]?.video_preview_image_url || cards[0]?.video_preview_image_url || null
+
+  const startEpoch = node.start_date || node.startDate || s.creation_time
+  const startDate = startEpoch ? new Date(Number(startEpoch) * 1000).toISOString().slice(0, 10) : null
+  const adId = node.ad_archive_id || node.adArchiveID || node.id || null
+
+  const body = sanitize(bodyText || cards[0]?.body || '')
+  const title = sanitize(s.title || cards[0]?.title || '')
+  return {
+    id: adId ? `gql_${adId}` : `gql_${Math.random().toString(36).slice(2)}`,
+    bodies: body ? [body] : [],
+    titles: title ? [title] : [],
+    captions: s.caption ? [sanitize(s.caption)] : [],
+    descriptions: s.link_description ? [sanitize(s.link_description)] : [],
+    startDate,
+    snapshotUrl: adId ? `https://www.facebook.com/ads/library/?id=${adId}` : null,
+    pageName: sanitize(s.page_name || ''),
+    platforms: Array.isArray(node.publisher_platform) ? node.publisher_platform.map(p => String(p).toLowerCase()) : ['facebook', 'instagram'],
+    imageUrl, videoUrl, isVideo,
+  }
+}
+
+function parseAdsFromGraphql(texts) {
+  const nodes = []
+  for (const raw of texts) {
+    if (!raw) continue
+    const cleaned = raw.replace(/^for\s*\(;;\);/, '').trim()
+    // Le risposte FB sono spesso JSON multipli newline-delimited
+    const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean)
+    const candidates = lines.length ? lines : [cleaned]
+    for (const line of candidates) {
+      try {
+        const json = JSON.parse(line)
+        collectSnapshotNodes(json, nodes)
+      } catch { /* riga non-JSON, ignora */ }
+    }
+  }
+  const seen = new Set()
+  const ads = []
+  for (const n of nodes) {
+    const ad = adFromSnapshotNode(n)
+    const key = ad.snapshotUrl || ad.imageUrl || ad.bodies[0]
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    if (ad.imageUrl || ad.bodies.length || ad.snapshotUrl) ads.push(ad)
+    if (ads.length >= 24) break
+  }
+  return ads
+}
+
 // ── 2) Browserless headless: renderizza la pagina pubblica (bypassa 403) ──
 async function searchViaBrowserless(q, country) {
   const token = process.env.BROWSERLESS_TOKEN
@@ -151,14 +227,27 @@ async function searchViaBrowserless(q, country) {
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
     await page.setExtraHTTPHeaders({ 'Accept-Language': `${country.toLowerCase()},en;q=0.8` })
 
-    await page.goto(libraryUrlFor(q, country), { waitUntil: 'networkidle2', timeout: 45000 })
-    // Lascia caricare le card e scrolla per innescare il lazy-load
-    await new Promise(r => setTimeout(r, 2500))
-    await page.evaluate(() => window.scrollBy(0, 1600)).catch(() => {})
-    await new Promise(r => setTimeout(r, 2000))
+    // Cattura le risposte GraphQL dell'Ad Library (dato strutturato pulito)
+    const gqlTexts = []
+    page.on('response', async (resp) => {
+      try {
+        const url = resp.url()
+        if (!url.includes('/api/graphql')) return
+        const txt = await resp.text()
+        if (txt.includes('"snapshot"') || txt.includes('ad_archive_id')) gqlTexts.push(txt)
+      } catch { /* response gia' consumata o binaria */ }
+    })
 
-    const html = await page.content()
-    const ads = parseAdsFromHtml(html)
+    await page.goto(libraryUrlFor(q, country), { waitUntil: 'networkidle2', timeout: 38000 })
+    await new Promise(r => setTimeout(r, 2500))
+    await page.evaluate(() => window.scrollBy(0, 1800)).catch(() => {})
+    await new Promise(r => setTimeout(r, 2500))
+
+    // 1° scelta: dato strutturato dalle risposte GraphQL intercettate
+    let ads = parseAdsFromGraphql(gqlTexts)
+    // 2° scelta: parsing dell'HTML renderizzato
+    if (!ads.length) ads = parseAdsFromHtml(await page.content())
+
     return { ads, source: 'browserless' }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }

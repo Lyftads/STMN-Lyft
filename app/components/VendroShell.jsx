@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import TimeframeSelector from './TimeframeSelector'
 import { getBrowserSupabase } from '../../lib/supabase/client'
+import DownloadReportButton from './DownloadReportButton'
 
 function getPageTitle(tab) {
   const map = {
@@ -313,6 +314,9 @@ export default function VendroShell({
                   }}>↻</span>
                   {loading ? 'Carico…' : 'Aggiorna'}
                 </button>
+              )}
+              {['monthly', 'quarter', 'year'].includes(tab) && (
+                <DownloadReportButton tab={getPageTitle(tab)} preset={preset} />
               )}
             </div>
           </header>

@@ -19,6 +19,7 @@ import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import DashboardInsights from './components/DashboardInsights'
 import AlertsPanel from './components/AlertsPanel'
+import DownloadReportButton from './components/DownloadReportButton'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -1832,6 +1833,11 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
           </button>
         )}
         <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
+        <DownloadReportButton
+          tab="Weekly"
+          preset={weeklyTF === 'custom' ? undefined : weeklyTF}
+          custom={weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until ? { since: weeklyCustom.since, until: weeklyCustom.until, label: 'Settimane selezionate' } : undefined}
+        />
       </div>
 
       {/* KPI summary cards */}

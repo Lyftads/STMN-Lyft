@@ -884,7 +884,14 @@ function InvoiceHistory({ invoices, loading }) {
   )
 }
 
+// Sub-tab interne al menu Settings.
+const SETTINGS_TABS = [
+  { id: 'billing', label: 'Billing & Subscription', icon: '◈' },
+  { id: 'brand',   label: 'Brand Identity',          icon: '◉' },
+]
+
 export default function SettingsTab() {
+  const [subTab, setSubTab] = useState('billing')
   const [customerId, setCustomerId] = useState(null)
   const [data, setData] = useState(null) // { subscription, paymentMethod, invoices, email, name }
   const [dataLoading, setDataLoading] = useState(true)
@@ -942,63 +949,109 @@ export default function SettingsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {banner && <CheckoutBanner banner={banner} onClose={() => setBanner(null)} />}
 
-      <StatusCard
-        subscription={data?.subscription}
-        loading={dataLoading}
-        customerId={customerId}
-        onOpenPortal={() => openCustomerPortal({ customerId, setError: setDataError, setLoading: setDataLoading })}
-      />
+      {/* Sub-nav tab interno */}
+      <SubTabNav active={subTab} onChange={setSubTab} />
 
-      <PaymentMethodCard
-        pm={data?.paymentMethod}
-        customerId={customerId}
-        loading={dataLoading}
-        onClearCustomer={clearCustomer}
-      />
+      {subTab === 'billing' && (
+        <>
+          <StatusCard
+            subscription={data?.subscription}
+            loading={dataLoading}
+            customerId={customerId}
+            onOpenPortal={() => openCustomerPortal({ customerId, setError: setDataError, setLoading: setDataLoading })}
+          />
 
-      {/* Change Plan section */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+          <PaymentMethodCard
+            pm={data?.paymentMethod}
+            customerId={customerId}
+            loading={dataLoading}
+            onClearCustomer={clearCustomer}
+          />
+
+          {/* Change Plan section */}
           <div>
-            <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-              {subActive ? 'Change Plan' : 'Scegli un piano'}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+                  {subActive ? 'Change Plan' : 'Scegli un piano'}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+                  {subActive ? 'Cambia il piano della tua subscription' : 'Scegli il piano giusto per la tua crescita'}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
-              {subActive ? 'Cambia il piano della tua subscription' : 'Scegli il piano giusto per la tua crescita'}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 16,
+            }}>
+              {PLANS.map(p => (
+                <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
+              ))}
             </div>
           </div>
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 16,
-        }}>
-          {PLANS.map(p => (
-            <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
-          ))}
-        </div>
-      </div>
 
-      {/* Comparison Table */}
-      <GlassCard padding={26} glow={ACCENT}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-          <span style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(191,90,242,0.10)',
-            display: 'grid', placeItems: 'center',
-            fontSize: 13, color: ACCENT,
-          }}>▦</span>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
-            Comparativa piani
-          </div>
-        </div>
-        <ComparisonTable />
-      </GlassCard>
+          {/* Comparison Table */}
+          <GlassCard padding={26} glow={ACCENT}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+              <span style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'rgba(191,90,242,0.10)',
+                display: 'grid', placeItems: 'center',
+                fontSize: 13, color: ACCENT,
+              }}>▦</span>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+                Comparativa piani
+              </div>
+            </div>
+            <ComparisonTable />
+          </GlassCard>
 
-      <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />
+          <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />
+        </>
+      )}
 
-      {/* Brand Identity — alimenta gli AI agent + creative tools */}
-      <BrandIdentityPanel />
+      {subTab === 'brand' && (
+        <BrandIdentityPanel />
+      )}
+    </div>
+  )
+}
+
+// Sub-tab horizontal nav con stile coerente al design system
+function SubTabNav({ active, onChange }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 6, padding: 5,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 14,
+      width: 'fit-content',
+    }}>
+      {SETTINGS_TABS.map(t => {
+        const isActive = active === t.id
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '10px 18px', borderRadius: 10, cursor: 'pointer',
+              background: isActive
+                ? `linear-gradient(135deg, ${ACCENT}33, rgba(41,151,255,0.20))`
+                : 'transparent',
+              border: isActive ? `1px solid ${ACCENT}66` : '1px solid transparent',
+              color: isActive ? '#fff' : 'var(--text3)',
+              fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em',
+              transition: 'all .18s',
+            }}
+          >
+            <span style={{ fontSize: 14, color: isActive ? ACCENT : 'var(--text4, #666)' }}>{t.icon}</span>
+            {t.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

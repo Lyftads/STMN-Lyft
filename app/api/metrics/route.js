@@ -393,7 +393,23 @@ async function shopifyQL(query) {
 // ── Fallback NC/RC via REST Orders ─────────────────────────────
 // Usato quando ShopifyQL breakdown ritorna 0 ordini classificati
 // (tipico per range cortissimi recenti come oggi/ieri/last_7d).
-// Classifica via customer.orders_count: 1 = NC, >1 = RC, 0/null = guest skip.
+// classifyOrder() robusto: gestisce orders_count null per ordini
+// freschissimi (counter aggiornato asincronamente da Shopify).
+function classifyOrderRest(o) {
+  const c = o?.customer
+  if (!c || !c.id) return null // guest checkout
+  const cnt = c.orders_count
+  if (typeof cnt === 'number' && cnt > 0) return cnt === 1 ? 'NC' : 'RC'
+  // Fallback heuristic quando orders_count e' null:
+  // customer.created_at vicino a order.created_at → cliente nuovo
+  const orderTs = Date.parse(o.created_at || '')
+  const custTs = Date.parse(c.created_at || '')
+  if (Number.isFinite(orderTs) && Number.isFinite(custTs)) {
+    return Math.abs(orderTs - custTs) / 1000 < 300 ? 'NC' : 'RC'
+  }
+  return 'NC' // conservativo: customer esiste ma niente date utili
+}
+
 async function fetchNcRcFromOrdersRest(start, end) {
   const sinceIso = `${start}T00:00:00Z`
   const endDate = new Date(`${end}T00:00:00Z`)
@@ -401,7 +417,8 @@ async function fetchNcRcFromOrdersRest(start, end) {
   const untilIso = endDate.toISOString()
 
   let orders = []
-  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,customer`
+  // Esteso fields con created_at per classifyOrderRest heuristic
+  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,customer`
   let safety = 0
   while (url && safety < 50) {
     safety++
@@ -418,11 +435,10 @@ async function fetchNcRcFromOrdersRest(start, end) {
 
   let nc = 0, rc = 0, fatturNC = 0, fatturRC = 0
   for (const o of orders) {
-    const cnt = o.customer?.orders_count
+    const cls = classifyOrderRest(o)
     const rev = parseFloat(o.total_price || 0)
-    if (cnt === 1) { nc++; fatturNC += rev }
-    else if (cnt > 1) { rc++; fatturRC += rev }
-    // cnt null/0 → guest checkout, salta
+    if (cls === 'NC') { nc++; fatturNC += rev }
+    else if (cls === 'RC') { rc++; fatturRC += rev }
   }
   return { nc, rc, fatturNC: roundMoney(fatturNC), fatturRC: roundMoney(fatturRC) }
 }

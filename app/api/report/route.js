@@ -311,17 +311,18 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
 
 async function renderPdf(html) {
   const token = process.env.BROWSERLESS_TOKEN
-  if (!token) return null
+  if (!token) return { error: 'BROWSERLESS_TOKEN mancante' }
   let browser
   try {
     const { default: puppeteer } = await import('puppeteer-core')
     const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
     browser = await puppeteer.connect({ browserWSEndpoint: `wss://${endpoint}/?token=${encodeURIComponent(token)}` })
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 30000 })
-    const buf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '0', bottom: '0', left: '0', right: '0' } })
-    return buf
-  } catch { return null } finally { if (browser) await browser.disconnect().catch(() => {}) }
+    await page.setContent(html, { waitUntil: 'load', timeout: 30000 })
+    await page.emulateMediaType('screen')
+    const buf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: false, margin: { top: '14px', bottom: '14px', left: '0', right: '0' } })
+    return { buf }
+  } catch (e) { return { error: e?.message || 'render error' } } finally { if (browser) await browser.disconnect().catch(() => {}) }
 }
 
 export async function GET(req) {
@@ -411,10 +412,10 @@ export async function GET(req) {
   const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null })
 
   const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop })
-  const pdf = await renderPdf(html)
+  const { buf: pdf, error: pdfErr } = await renderPdf(html)
   if (!pdf) {
-    // Fallback: restituisce l'HTML (apribile/stampabile) se Browserless non c'è
-    return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+    // Fallback: restituisce l'HTML (apribile/stampabile) se il PDF fallisce
+    return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-PDF-Error': (pdfErr || 'unknown').slice(0, 120) } })
   }
   const fname = `LyftAI_${String(tab).replace(/\s+/g, '_')}_${since}_${until}.pdf`
   return new NextResponse(pdf, {

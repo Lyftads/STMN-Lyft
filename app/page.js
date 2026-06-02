@@ -11,7 +11,6 @@ import CompetitorIntelTab from './components/CompetitorIntelTab'
 import PriceComparisonTab from './components/PriceComparisonTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import CROTab from './components/CROTab'
-import CustomerJourneyTab from './components/CustomerJourneyTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
@@ -4009,11 +4008,6 @@ export default function App() {
 {/* CRO TAB */}
 {tab === 'cro' && (
   <CROTab data={data} live={live} onRefresh={fetchLive} loading={loading} />
-)}
-
-{/* CUSTOMER JOURNEY TAB */}
-{tab === 'customerJourney' && (
-  <CustomerJourneyTab />
 )}
 
 {/* AI WEBSITE SCANNER TAB */}

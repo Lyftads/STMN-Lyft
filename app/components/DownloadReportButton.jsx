@@ -18,6 +18,7 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
     try {
       const { since, until, prevSince, prevUntil, label } = presetToRange(preset, custom)
       const qs = new URLSearchParams({ tab, label, since, until, prevSince, prevUntil })
+      if (preset && !custom) qs.set('preset', preset)
       if (campaignId) qs.set('campaignId', campaignId)
       const res = await fetch(`/api/report?${qs.toString()}`)
       const ct = res.headers.get('content-type') || ''

@@ -318,7 +318,7 @@ async function renderPdf(html) {
     const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
     browser = await puppeteer.connect({ browserWSEndpoint: `wss://${endpoint}/?token=${encodeURIComponent(token)}` })
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 45000 })
+    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 30000 })
     const buf = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '0', bottom: '0', left: '0', right: '0' } })
     return buf
   } catch { return null } finally { if (browser) await browser.disconnect().catch(() => {}) }
@@ -335,51 +335,75 @@ export async function GET(req) {
   const range = { since, until, prevSince, prevUntil }
 
   const isMeta = /meta/i.test(tab)
+  const preset = searchParams.get('preset') || null
+  const metricsOk = preset && !['this_week', 'last_week', 'custom'].includes(preset)
   let kpis = [], daily = [], hierarchy = null, topCampaigns = null, shop = null
 
-  // Dati Meta correnti/precedenti (per tutte le tab)
-  const [mCur, mPrev] = await Promise.all([metaPeriod(since, until), prevSince ? metaPeriod(prevSince, prevUntil) : null])
-
   if (isMeta) {
+    // Meta-attributed KPI (1 chiamata insights account per finestra) + gerarchia/top campagne
+    const [mc, mp] = await Promise.all([metaPeriod(since, until), prevSince ? metaPeriod(prevSince, prevUntil) : null])
     if (campaignId) hierarchy = await campaignHierarchy(campaignId, since, until)
     else {
-      // top campagne del periodo
-      const acc = accountIds(); const rows = []
-      for (const id of acc) {
+      const rows = []
+      for (const id of accountIds()) {
         const d = await metaGraph(`${id}/insights`, { level: 'campaign', time_range: JSON.stringify({ since, until }), fields: 'campaign_name,spend,impressions,inline_link_clicks,actions,action_values', filtering: JSON.stringify([{ field: 'spend', operator: 'GREATER_THAN', value: 1 }]), limit: '100' })
         for (const r of (d?.data || [])) rows.push({ name: r.campaign_name, ...rowFromInsight(r) })
       }
       topCampaigns = rows.sort((a, b) => b.spend - a.spend).slice(0, 15)
     }
-    const mc = mCur || {}, mp = mPrev || {}
+    const a = mc || {}, b = mp || {}
     kpis = [
-      { label: 'Spesa', value: money2(mc.spend), prevValue: money2(mp.spend), cur: mc.spend, prev: mp.spend },
-      { label: 'Revenue (Meta)', value: money2(mc.revenue), prevValue: money2(mp.revenue), cur: mc.revenue, prev: mp.revenue },
-      { label: 'ROAS', value: `${(mc.roas || 0).toFixed(2)}x`, prevValue: `${(mp.roas || 0).toFixed(2)}x`, cur: mc.roas, prev: mp.roas },
-      { label: 'Acquisti', value: intf(mc.purchases), prevValue: intf(mp.purchases), cur: mc.purchases, prev: mp.purchases },
-      { label: 'CTR link', value: `${(mc.ctr || 0).toFixed(2)}%`, prevValue: `${(mp.ctr || 0).toFixed(2)}%`, cur: mc.ctr, prev: mp.ctr },
-      { label: 'CPA', value: money2(mc.cpa), prevValue: money2(mp.cpa), cur: mc.cpa, prev: mp.cpa, lowerBetter: true },
-      { label: 'CPM', value: money2(mc.cpm), prevValue: money2(mp.cpm), cur: mc.cpm, prev: mp.cpm, lowerBetter: true },
-      { label: 'Frequenza', value: (mc.frequency || 0).toFixed(2), prevValue: (mp.frequency || 0).toFixed(2), cur: mc.frequency, prev: mp.frequency, lowerBetter: true },
+      { label: 'Spesa', value: money2(a.spend), prevValue: money2(b.spend), cur: a.spend, prev: b.spend },
+      { label: 'Revenue (Meta)', value: money2(a.revenue), prevValue: money2(b.revenue), cur: a.revenue, prev: b.revenue },
+      { label: 'ROAS', value: `${(a.roas || 0).toFixed(2)}x`, prevValue: `${(b.roas || 0).toFixed(2)}x`, cur: a.roas, prev: b.roas },
+      { label: 'Acquisti', value: intf(a.purchases), prevValue: intf(b.purchases), cur: a.purchases, prev: b.purchases },
+      { label: 'CTR link', value: `${(a.ctr || 0).toFixed(2)}%`, prevValue: `${(b.ctr || 0).toFixed(2)}%`, cur: a.ctr, prev: b.ctr },
+      { label: 'CPA', value: money2(a.cpa), prevValue: money2(b.cpa), cur: a.cpa, prev: b.cpa, lowerBetter: true },
+      { label: 'CPM', value: money2(a.cpm), prevValue: money2(b.cpm), cur: a.cpm, prev: b.cpm, lowerBetter: true },
+      { label: 'Frequenza', value: (a.frequency || 0).toFixed(2), prevValue: (b.frequency || 0).toFixed(2), cur: a.frequency, prev: b.frequency, lowerBetter: true },
     ]
-  } else {
-    const [sCur, sPrev, sDaily] = await Promise.all([
-      shopifyPeriod(origin, since, until),
-      prevSince ? shopifyPeriod(origin, prevSince, prevUntil) : null,
-      shopifyDaily(origin, since, until),
-    ])
-    daily = sDaily; shop = sCur
-    const sc = sCur || {}, sp = sPrev || {}, mc = mCur || {}, mp = mPrev || {}
+  } else if (metricsOk) {
+    // Veloce: 1 chiamata a /api/metrics (ShopifyQL, cache) → corrente+precedente+serie
+    let m = null
+    try { m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(35000) }).then(r => r.json()) } catch {}
+    const sr = m?.shopifyRange || {}, spr = m?.shopifyPrevRange || {}, mr = m?.metaRange || {}, mpr = m?.metaPrevRange || {}
+    const sc = { revenue: num(sr.revenue), orders: num(sr.orders), ncOrders: num(sr.nc), rcOrders: num(sr.rc) }
+    const sp = { revenue: num(spr.revenue), orders: num(spr.orders), ncOrders: num(spr.nc), rcOrders: num(spr.rc) }
+    const mSpend = num(mr.spend), mSpendP = num(mpr.spend)
+    daily = (m?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until).map(w => ({ date: w.date, revenue: num(w.fatturato) }))
     const aov = sc.orders > 0 ? sc.revenue / sc.orders : 0, aovP = sp.orders > 0 ? sp.revenue / sp.orders : 0
-    const mer = mc.spend > 0 ? sc.revenue / mc.spend : 0, merP = mp.spend > 0 ? sp.revenue / mp.spend : 0
+    const mer = mSpend > 0 ? sc.revenue / mSpend : 0, merP = mSpendP > 0 ? sp.revenue / mSpendP : 0
     kpis = [
       { label: 'Fatturato', value: money(sc.revenue), prevValue: money(sp.revenue), cur: sc.revenue, prev: sp.revenue },
       { label: 'Ordini', value: intf(sc.orders), prevValue: intf(sp.orders), cur: sc.orders, prev: sp.orders },
       { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
       { label: 'Nuovi clienti', value: intf(sc.ncOrders), prevValue: intf(sp.ncOrders), cur: sc.ncOrders, prev: sp.ncOrders },
       { label: 'Clienti ritorno', value: intf(sc.rcOrders), prevValue: intf(sp.rcOrders), cur: sc.rcOrders, prev: sp.rcOrders },
-      { label: 'Spesa Meta', value: money(mc.spend), prevValue: money(mp.spend), cur: mc.spend, prev: mp.spend },
-      { label: 'ROAS Meta', value: `${(mc.roas || 0).toFixed(2)}x`, prevValue: `${(mp.roas || 0).toFixed(2)}x`, cur: mc.roas, prev: mp.roas },
+      { label: 'Spesa Meta', value: money(mSpend), prevValue: money(mSpendP), cur: mSpend, prev: mSpendP, lowerBetter: false },
+      { label: 'MER (blended)', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
+      { label: 'CTR Meta', value: `${(num(mr.impressions) > 0 ? (num(mr.clicks) / num(mr.impressions)) * 100 : 0).toFixed(2)}%`, prevValue: `${(num(mpr.impressions) > 0 ? (num(mpr.clicks) / num(mpr.impressions)) * 100 : 0).toFixed(2)}%`, cur: num(mr.impressions) > 0 ? num(mr.clicks) / num(mr.impressions) : 0, prev: num(mpr.impressions) > 0 ? num(mpr.clicks) / num(mpr.impressions) : 0 },
+    ]
+  } else {
+    // Finestra arbitraria (Weekly custom): shopify-countries (finestra breve) + Meta
+    const [sCur, sPrev, sDaily, mc, mp] = await Promise.all([
+      shopifyPeriod(origin, since, until),
+      prevSince ? shopifyPeriod(origin, prevSince, prevUntil) : null,
+      shopifyDaily(origin, since, until),
+      metaPeriod(since, until),
+      prevSince ? metaPeriod(prevSince, prevUntil) : null,
+    ])
+    daily = sDaily; shop = sCur
+    const sc = sCur || {}, sp = sPrev || {}, a = mc || {}, b = mp || {}
+    const aov = sc.orders > 0 ? sc.revenue / sc.orders : 0, aovP = sp.orders > 0 ? sp.revenue / sp.orders : 0
+    const mer = a.spend > 0 ? sc.revenue / a.spend : 0, merP = b.spend > 0 ? sp.revenue / b.spend : 0
+    kpis = [
+      { label: 'Fatturato', value: money(sc.revenue), prevValue: money(sp.revenue), cur: sc.revenue, prev: sp.revenue },
+      { label: 'Ordini', value: intf(sc.orders), prevValue: intf(sp.orders), cur: sc.orders, prev: sp.orders },
+      { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
+      { label: 'Nuovi clienti', value: intf(sc.ncOrders), prevValue: intf(sp.ncOrders), cur: sc.ncOrders, prev: sp.ncOrders },
+      { label: 'Clienti ritorno', value: intf(sc.rcOrders), prevValue: intf(sp.rcOrders), cur: sc.rcOrders, prev: sp.rcOrders },
+      { label: 'Spesa Meta', value: money(a.spend), prevValue: money(b.spend), cur: a.spend, prev: b.spend },
+      { label: 'ROAS Meta', value: `${(a.roas || 0).toFixed(2)}x`, prevValue: `${(b.roas || 0).toFixed(2)}x`, cur: a.roas, prev: b.roas },
       { label: 'MER', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
     ]
   }

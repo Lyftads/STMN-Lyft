@@ -1297,13 +1297,26 @@ async function safeShopifyRange(range) {
 
   let sales = salesQL
 
-  // Admin Orders API used only as fallback for sub-day ranges where
-  // ShopifyQL has aggregation latency (today/yesterday)
-  const sameDay = range.since === range.until
+  // ShopifyQL `sales` ha latenza di aggregazione: i giorni piu' recenti
+  // (~ultimi 5-7) non sono ancora consolidati, quindi le finestre brevi e
+  // recenti (today, yesterday, last_7d) tornano 0 o parziali — e' il motivo
+  // per cui le card "Ultimi 7 giorni" risultavano vuote. L'Admin Orders API
+  // e' real-time e combacia con la dashboard Shopify: per finestre brevi e
+  // recenti la usiamo come fonte quando e' piu' completa di ShopifyQL.
+  const windowDays =
+    Math.round(
+      (new Date(`${range.until}T00:00:00Z`).getTime() -
+        new Date(`${range.since}T00:00:00Z`).getTime()) /
+        86400000
+    ) + 1
+  const endsRecently =
+    Date.now() - new Date(`${range.until}T23:59:59Z`).getTime() <
+    8 * 86400000
   const shopifyQlEmpty = !salesQL || (!salesQL.fatturato && !salesQL.ordini)
-  if (sameDay && shopifyQlEmpty) {
-    const admin = await fetchShopifyOrdersAdmin(range.since, range.until, 4)
-    if (admin && admin.ordini > 0) {
+
+  if (endsRecently && windowDays <= 31 && (windowDays <= 10 || shopifyQlEmpty)) {
+    const admin = await fetchShopifyOrdersAdmin(range.since, range.until, 16)
+    if (admin && admin.ordini > (salesQL?.ordini || 0)) {
       sales = admin
     }
   }

@@ -10,6 +10,7 @@ import KlaviyoTab from './components/KlaviyoTab'
 import CompetitorIntelTab from './components/CompetitorIntelTab'
 import PriceComparisonTab from './components/PriceComparisonTab'
 import IntegrationsTab from './components/IntegrationsTab'
+import SettingsTab from './components/SettingsTab'
 import CROTab from './components/CROTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
 import CreativeLabTab from './components/CreativeLabTab'
@@ -4026,6 +4027,11 @@ export default function App() {
 {/* INTEGRATIONS TAB */}
 {tab === 'integrations' && (
   <IntegrationsTab />
+)}
+
+{/* SETTINGS TAB */}
+{tab === 'settings' && (
+  <SettingsTab />
 )}
 
 {/* CRO TAB */}

@@ -19,6 +19,7 @@ function getPageTitle(tab) {
     competitorIntel: 'Competitor Intel',
     priceComparison: 'Prezzi vs Competitor',
     integrations: 'Integrazioni',
+    settings: 'Settings',
     cro: 'CRO',
     webScanner: 'AI Website Scanner',
     creativeLab: 'Creative Lab',
@@ -36,6 +37,7 @@ function getPageSubtitle(tab) {
     competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
     priceComparison: 'Confronto prezzi per categoria',
     integrations: 'Collega e gestisci tutte le piattaforme',
+    settings: 'Subscription · Piani · Fatturazione',
     cro: 'Funnel · Top Pages · Flusso Traffico',
     webScanner: 'Scanner CRO con AI Vision · Heuristic evaluation · Quick wins',
     creativeLab: 'Genera ad creative con AI',
@@ -120,6 +122,7 @@ export default function VendroShell({
       color: '#86868b',
       items: [
         { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
+        { id: 'settings', label: 'Settings', icon: '✦' },
       ],
     },
   ]

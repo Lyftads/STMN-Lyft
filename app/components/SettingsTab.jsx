@@ -1,0 +1,510 @@
+'use client'
+
+import { useState } from 'react'
+
+const ACCENT = '#bf5af2'
+
+// ── Plans definition ──────────────────────────────────────────────
+const PLANS = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 119.99,
+    priceLabel: '$119.99',
+    period: '/month',
+    tagline: 'Per founder che stanno strutturando il primo brand DTC',
+    accent: '#0ea5e9',
+    accentBg: 'rgba(14,165,233,0.12)',
+    accentBorder: 'rgba(14,165,233,0.30)',
+    features: [
+      'Dashboard KPI core (Fatturato · Ordini · AOV · NC · RC)',
+      'KPI Brain con paesi di fatturazione',
+      'Report Weekly / Monthly / Quarter / Year',
+      'Confronto period-over-period su ogni KPI',
+      'Integrazione Shopify + Meta Ads + GA4',
+      'Esportazione CSV illimitata',
+      'Storico dati 12 mesi',
+      'Email support entro 48h',
+    ],
+  },
+  {
+    id: 'growth',
+    name: 'Growth',
+    price: 179.99,
+    priceLabel: '$179.99',
+    period: '/month',
+    tagline: 'Brand in scaling che cercano leve di crescita data-driven',
+    accent: '#bf5af2',
+    accentBg: 'rgba(191,90,242,0.12)',
+    accentBorder: 'rgba(191,90,242,0.35)',
+    badge: 'POPOLARE',
+    features: [
+      'Tutto di Starter +',
+      'Klaviyo (Email Marketing · Flussi · Segmenti)',
+      'CRO Tab (Funnel · Top Pages · Flusso traffico)',
+      'AI Website Scanner — audit CRO via GPT-4o Vision',
+      'Creative Tab Meta Ads + analisi RSA',
+      'Meta Detail per ad-level performance',
+      'Storico dati 24 mesi',
+      'Priority support entro 12h',
+    ],
+  },
+  {
+    id: 'scale',
+    name: 'Scale',
+    price: 349.99,
+    priceLabel: '$349.99',
+    period: '/month',
+    tagline: 'Brand 7-8 figure con team marketing dedicato',
+    accent: '#22c55e',
+    accentBg: 'rgba(34,197,94,0.12)',
+    accentBorder: 'rgba(34,197,94,0.30)',
+    features: [
+      'Tutto di Growth +',
+      'Creative Lab — generazione AI di ad creative',
+      'Competitor Intel — creative & catalogo competitor',
+      'Performance Agent AI (CMO · CFO · CRO advisor)',
+      'Simulatore LTV:CAC + scenari adv',
+      'Multi-store (fino a 5 brand sotto stesso account)',
+      'White-label opzionale (logo + dominio custom)',
+      'Storico dati illimitato',
+      'CSM dedicato + onboarding personalizzato',
+    ],
+  },
+]
+
+// Feature matrix per la tabella comparativa
+const FEATURE_MATRIX = [
+  { feature: 'Dashboard KPI core', starter: true, growth: true, scale: true },
+  { feature: 'KPI Brain', starter: true, growth: true, scale: true },
+  { feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true },
+  { feature: 'Esportazione CSV', starter: true, growth: true, scale: true },
+  { feature: 'Integrazione Shopify + Meta + GA4', starter: true, growth: true, scale: true },
+  { feature: 'Paesi di fatturazione', starter: true, growth: true, scale: true },
+  { feature: 'Klaviyo (Email & Flussi)', starter: false, growth: true, scale: true },
+  { feature: 'CRO Tab (Funnel · Top Pages)', starter: false, growth: true, scale: true },
+  { feature: 'AI Website Scanner', starter: false, growth: true, scale: true },
+  { feature: 'Creative Tab Meta Ads', starter: false, growth: true, scale: true },
+  { feature: 'Meta Detail ad-level', starter: false, growth: true, scale: true },
+  { feature: 'Creative Lab AI generation', starter: false, growth: false, scale: true },
+  { feature: 'Competitor Intel', starter: false, growth: false, scale: true },
+  { feature: 'Performance Agent AI', starter: false, growth: false, scale: true },
+  { feature: 'Simulatore LTV:CAC', starter: false, growth: false, scale: true },
+  { feature: 'Multi-store (max 5 brand)', starter: false, growth: false, scale: true },
+  { feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: true },
+  { feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato' },
+  { feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato' },
+]
+
+const INVOICES = [
+  { date: '28/12/2025', amount: '$997.00', status: 'Paid' },
+  { date: '28/06/2025', amount: '$997.00', status: 'Paid' },
+  { date: '28/12/2024', amount: '$997.00', status: 'Paid' },
+]
+
+// ── Reusable black glass 3D card ──────────────────────────────────
+function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+        backdropFilter: 'blur(40px) saturate(2.2)',
+        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        borderRadius: 22,
+        overflow: 'hidden',
+        border: '1.5px solid rgba(255,255,255,0.06)',
+        borderTopColor: 'rgba(255,255,255,0.12)',
+        borderBottomColor: 'rgba(0,0,0,0.65)',
+        boxShadow:
+          '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), inset 0 1.5px 0 rgba(255,255,255,0.06)',
+        animation: 'sim-pulse 6s ease-in-out infinite',
+        ...style,
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
+        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
+        animation: 'cr-shine 4s ease-in-out infinite',
+        zIndex: 3, pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: '-50%', width: '40%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        animation: 'sim-scan 9s ease-in-out infinite',
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+      <div style={{ padding, position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  )
+}
+
+function PlanCard({ plan, isCurrent }) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        padding: 26,
+        borderRadius: 20,
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.30))',
+        border: `1.5px solid ${plan.accentBorder}`,
+        borderTopColor: plan.accent + 'AA',
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55), 0 0 36px ${plan.accent}22`,
+        transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease',
+        display: 'flex', flexDirection: 'column', gap: 18,
+        minHeight: 580,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-6px)'
+        e.currentTarget.style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.7), 0 0 60px ${plan.accent}44`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55), 0 0 36px ${plan.accent}22`
+      }}
+    >
+      {plan.badge && (
+        <div style={{
+          position: 'absolute', top: -10, right: 20,
+          padding: '4px 12px', borderRadius: 999,
+          background: `linear-gradient(135deg, ${plan.accent}, ${plan.accent}88)`,
+          color: '#fff', fontSize: 9, fontWeight: 900,
+          letterSpacing: '0.16em', textTransform: 'uppercase',
+          boxShadow: `0 8px 20px ${plan.accent}66`,
+        }}>
+          {plan.badge}
+        </div>
+      )}
+
+      <div>
+        <div style={{
+          fontSize: 26, fontWeight: 900, color: '#fff',
+          letterSpacing: '-0.02em', marginBottom: 6,
+        }}>{plan.name}</div>
+        <div style={{
+          fontSize: 12, color: 'var(--text3)',
+          lineHeight: 1.5, minHeight: 36,
+        }}>{plan.tagline}</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 42, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
+          {plan.priceLabel}
+        </span>
+        <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>
+          {plan.period}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
+        {plan.features.map((f, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+            <div style={{
+              flexShrink: 0,
+              width: 18, height: 18, borderRadius: 5,
+              background: plan.accentBg,
+              border: `1px solid ${plan.accentBorder}`,
+              display: 'grid', placeItems: 'center',
+              color: plan.accent, fontSize: 11, fontWeight: 900,
+              marginTop: 1,
+            }}>✓</div>
+            <span style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>{f}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        disabled={isCurrent}
+        style={{
+          width: '100%',
+          padding: '13px 16px',
+          borderRadius: 12,
+          border: 'none',
+          cursor: isCurrent ? 'default' : 'pointer',
+          background: isCurrent
+            ? 'rgba(255,255,255,0.05)'
+            : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
+          color: isCurrent ? 'var(--text3)' : '#fff',
+          fontSize: 13.5, fontWeight: 800,
+          letterSpacing: '0.04em',
+          boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+          textTransform: 'uppercase',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        }}
+        onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
+        onMouseLeave={e => { e.currentTarget.style.transform = '' }}
+      >
+        {isCurrent ? '✓ Piano attuale' : '↑ Passa a ' + plan.name}
+      </button>
+    </div>
+  )
+}
+
+function ComparisonTable() {
+  return (
+    <div style={{
+      borderRadius: 16,
+      overflow: 'hidden',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderTopColor: 'rgba(255,255,255,0.10)',
+      background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25))',
+    }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <th style={{
+              textAlign: 'left', padding: '14px 16px',
+              fontSize: 10.5, fontWeight: 800, color: 'var(--text3)',
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}>Feature</th>
+            {['Starter','Growth','Scale'].map((p, i) => (
+              <th key={p} style={{
+                textAlign: 'center', padding: '14px 16px', minWidth: 100,
+                fontSize: 11, fontWeight: 900, color: '#fff',
+                letterSpacing: '0.10em', textTransform: 'uppercase',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderLeft: '1px solid rgba(255,255,255,0.04)',
+                background: i === 1 ? 'rgba(191,90,242,0.06)' : 'transparent',
+              }}>{p}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {FEATURE_MATRIX.map((row, i) => (
+            <tr key={i} style={{
+              background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
+            }}>
+              <td style={{
+                padding: '12px 16px',
+                fontSize: 12.5, color: 'var(--text)',
+                borderBottom: '1px solid rgba(255,255,255,0.03)',
+              }}>{row.feature}</td>
+              {['starter','growth','scale'].map((tier, j) => {
+                const v = row[tier]
+                return (
+                  <td key={tier} style={{
+                    textAlign: 'center',
+                    padding: '12px 16px',
+                    fontSize: 12.5, fontWeight: 700,
+                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                    borderLeft: '1px solid rgba(255,255,255,0.04)',
+                    background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent',
+                  }}>
+                    {typeof v === 'boolean'
+                      ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}>✓</span>
+                           : <span style={{ color: 'var(--text3)', opacity: 0.5 }}>—</span>)
+                      : <span style={{ color: '#fff' }}>{v}</span>}
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function StatusCard({ currentPlanId }) {
+  const plan = PLANS.find(p => p.id === currentPlanId) || PLANS[1]
+  return (
+    <GlassCard padding={26} glow={plan.accent}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <span style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: 'rgba(255,255,255,0.05)',
+          display: 'grid', placeItems: 'center',
+          fontSize: 14, color: 'var(--text2)',
+        }}>◧</span>
+        <div style={{
+          fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em',
+        }}>Subscription Status</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: `linear-gradient(135deg, ${plan.accent}, ${plan.accent}88)`,
+            display: 'grid', placeItems: 'center',
+            fontSize: 20, color: '#fff',
+            boxShadow: `0 0 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+          }}>♛</div>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Semi-Annual Billing</div>
+          </div>
+        </div>
+        <div style={{
+          padding: '4px 12px', borderRadius: 999,
+          background: 'rgba(34,197,94,0.15)',
+          border: '1px solid rgba(34,197,94,0.30)',
+          color: '#86efac', fontSize: 10.5, fontWeight: 900,
+          letterSpacing: '0.10em', textTransform: 'uppercase',
+        }}>● Active</div>
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22,
+      }}>
+        <div style={{
+          padding: 14, borderRadius: 11,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Current Period
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>28/12/2025 → 28/06/2026</div>
+        </div>
+        <div style={{
+          padding: 14, borderRadius: 11,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Next Billing Date
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+            28/06/2026 <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>(26 days)</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" style={{
+        marginTop: 18,
+        padding: '10px 18px', borderRadius: 10,
+        background: 'transparent',
+        border: '1px solid rgba(239,68,68,0.35)',
+        color: '#fca5a5', fontSize: 12.5, fontWeight: 700,
+        cursor: 'pointer',
+        letterSpacing: '0.02em',
+      }}>Cancel Subscription</button>
+    </GlassCard>
+  )
+}
+
+function InvoiceHistory() {
+  return (
+    <GlassCard padding={26} glow="#22c55e">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <span style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: 'rgba(34,197,94,0.10)',
+          display: 'grid', placeItems: 'center',
+          fontSize: 13, color: '#86efac',
+        }}>⌗</span>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Invoice History</div>
+      </div>
+      <div style={{
+        borderRadius: 12,
+        overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.05)',
+      }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
+              {['Date','Amount','Status','PDF'].map(h => (
+                <th key={h} style={{
+                  textAlign: 'left', padding: '12px 16px',
+                  fontSize: 10, fontWeight: 800, color: 'var(--text3)',
+                  letterSpacing: '0.10em', textTransform: 'uppercase',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {INVOICES.map((inv, i) => (
+              <tr key={i}>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.date}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.amount} <span style={{ color: 'var(--text3)', fontSize: 11 }}>USD</span></td>
+                <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 999,
+                    background: 'rgba(34,197,94,0.12)',
+                    border: '1px solid rgba(34,197,94,0.30)',
+                    color: '#86efac', fontSize: 10.5, fontWeight: 800,
+                    letterSpacing: '0.04em',
+                  }}>● {inv.status}</span>
+                </td>
+                <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <a href="#" style={{
+                    color: ACCENT, fontSize: 12.5, fontWeight: 700,
+                    textDecoration: 'none',
+                  }}>Download ↗</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </GlassCard>
+  )
+}
+
+export default function SettingsTab() {
+  const [currentPlanId] = useState('growth')
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* Header */}
+      <div>
+        <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+          Subscription Management
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>
+          Settings
+        </div>
+        <div style={{ fontSize: 13.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+          Gestisci il tuo piano, scegli l'upgrade adatto al tuo business, scarica fatture.
+        </div>
+      </div>
+
+      <StatusCard currentPlanId={currentPlanId} />
+
+      {/* Change Plan section */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+              Change Plan
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+              Scegli il piano giusto per la tua crescita
+            </div>
+          </div>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: 16,
+        }}>
+          {PLANS.map(p => (
+            <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
+          ))}
+        </div>
+      </div>
+
+      {/* Comparison Table */}
+      <GlassCard padding={26} glow={ACCENT}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <span style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(191,90,242,0.10)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 13, color: ACCENT,
+          }}>▦</span>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+            Comparativa piani
+          </div>
+        </div>
+        <ComparisonTable />
+      </GlassCard>
+
+      <InvoiceHistory />
+    </div>
+  )
+}

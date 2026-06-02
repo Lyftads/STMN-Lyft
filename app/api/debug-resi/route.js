@@ -27,15 +27,12 @@ export async function GET(req) {
   const p = json?.data?.shopifyqlQuery
   const cols = (p?.tableData?.columns || []).map(c => c.name)
   const rows = p?.tableData?.rows || []
-  const obj = {}
-  if (rows[0]) cols.forEach((c, i) => { obj[c] = rows[0][i] })
 
   return NextResponse.json({
     since, until,
     gqlErrors: json?.errors || null,
     parseErrors: p?.parseErrors || null,
     columns: cols,
-    values: obj,
-    // total_sales == net_sales + taxes + shipping ?  net_sales == gross - discounts - returns ?
+    rowsRaw: rows,
   })
 }

@@ -44,7 +44,7 @@ async function shopifyPeriod(origin, since, until) {
       revenue: num(j.total.revenue), orders: num(j.total.orders),
       ncOrders: c.reduce((s, x) => s + num(x.ncOrders), 0),
       rcOrders: c.reduce((s, x) => s + num(x.rcOrders), 0),
-      countries: c.slice(0, 6),
+      countries: c.slice(0, 10),
     }
   } catch { return null }
 }
@@ -193,7 +193,7 @@ function kpiCard(label, value, prev, opts = {}) {
   return `<div class="kpi"><div class="kpi-l">${esc(label)}</div><div class="kpi-v">${value}</div><div class="kpi-d">${prev !== undefined ? deltaTag(opts.cur, opts.prev, opts) : ''}<span class="kpi-prev">${prev !== undefined ? `prec. ${prev}` : ''}</span></div></div>`
 }
 
-function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop }) {
+function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts }) {
   const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
   const kpiHtml = kpis.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')
 
@@ -242,9 +242,15 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${c.roas.toFixed(2)}x</td><td>${c.ctr.toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
+  const productsHtml = (Array.isArray(topProducts) && topProducts.length) ? `
+    <h2>Prodotti più venduti</h2>
+    <table><thead><tr><th>Prodotto</th><th>Fatturato</th><th>Ordini</th><th>Quantità</th></tr></thead><tbody>
+    ${topProducts.slice(0, 10).map(p => `<tr><td>${esc(p.label || p.title || p.product || '—')}</td><td>${money2(p.revenue ?? p.value)}</td><td>${intf(p.orders)}</td><td>${intf(p.quantity)}</td></tr>`).join('')}
+    </tbody></table>` : ''
+
   const countriesHtml = shop?.countries?.length ? `
-    <h2>Top paesi</h2>
-    <table><thead><tr><th>Paese</th><th>Revenue</th><th>Ordini</th><th>Nuovi</th><th>Ritorno</th></tr></thead><tbody>
+    <h2>Paesi · ordini e fatturato</h2>
+    <table><thead><tr><th>Paese</th><th>Fatturato</th><th>Ordini</th><th>Nuovi</th><th>Ritorno</th></tr></thead><tbody>
     ${shop.countries.map(c => `<tr><td>${esc(c.country)}</td><td>${money2(c.revenue)}</td><td>${intf(c.orders)}</td><td>${intf(c.ncOrders)}</td><td>${intf(c.rcOrders)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
@@ -303,6 +309,7 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
 
     ${hierarchyHtml}
     ${campTable}
+    ${productsHtml}
     ${countriesHtml}
 
     <div class="foot">LyftAI · report generato automaticamente · i dati riflettono il periodo selezionato</div>
@@ -338,7 +345,7 @@ export async function GET(req) {
   const isMeta = /meta/i.test(tab)
   const preset = searchParams.get('preset') || null
   const metricsOk = preset && !['this_week', 'last_week', 'custom'].includes(preset)
-  let kpis = [], daily = [], hierarchy = null, topCampaigns = null, shop = null
+  let kpis = [], daily = [], hierarchy = null, topCampaigns = null, shop = null, topProducts = null
 
   if (isMeta) {
     // Meta-attributed KPI (1 chiamata insights account per finestra) + gerarchia/top campagne
@@ -364,9 +371,17 @@ export async function GET(req) {
       { label: 'Frequenza', value: (a.frequency || 0).toFixed(2), prevValue: (b.frequency || 0).toFixed(2), cur: a.frequency, prev: b.frequency, lowerBetter: true },
     ]
   } else if (metricsOk) {
-    // Veloce: 1 chiamata a /api/metrics (ShopifyQL, cache) → corrente+precedente+serie
-    let m = null
-    try { m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(35000) }).then(r => r.json()) } catch {}
+    // Veloce: 1 chiamata a /api/metrics (ShopifyQL, cache) + paesi (in parallelo)
+    let m = null, countriesData = null
+    try {
+      const [mr0, cd] = await Promise.all([
+        fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(35000) }).then(r => r.json()).catch(() => null),
+        shopifyPeriod(origin, since, until).catch(() => null),
+      ])
+      m = mr0; countriesData = cd
+    } catch {}
+    topProducts = Array.isArray(m?.shopifyTopProducts) ? m.shopifyTopProducts : null
+    if (countriesData?.countries?.length) shop = { countries: countriesData.countries }
     const sr = m?.shopifyRange || {}, spr = m?.shopifyPrevRange || {}, mr = m?.metaRange || {}, mpr = m?.metaPrevRange || {}
     const sc = { revenue: num(sr.revenue), orders: num(sr.orders), ncOrders: num(sr.nc), rcOrders: num(sr.rc), fatturNC: num(sr.fatturNC), fatturRC: num(sr.fatturRC), resi: num(sr.resi), sessions: num(sr.sessions) }
     const sp = { revenue: num(spr.revenue), orders: num(spr.orders), ncOrders: num(spr.nc), rcOrders: num(spr.rc), fatturNC: num(spr.fatturNC), fatturRC: num(spr.fatturRC), resi: num(spr.resi), sessions: num(spr.sessions) }
@@ -432,7 +447,7 @@ export async function GET(req) {
 
   const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null })
 
-  const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop })
+  const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts })
   if (searchParams.get('format') === 'html') {
     return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
   }

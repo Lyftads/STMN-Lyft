@@ -45,6 +45,7 @@ alter table public.companies add column if not exists google_client_secret   tex
 alter table public.companies add column if not exists google_refresh_token   text;
 alter table public.companies add column if not exists klaviyo_api_key        text;
 alter table public.companies add column if not exists is_beta                boolean not null default false;
+alter table public.companies add column if not exists onboarding_completed_at timestamptz;
 
 -- Brand Identity (Fase 3): JSONB unico per flessibilita' — aggiungiamo/
 -- rimuoviamo campi senza migrazioni schema. Struttura tipica:

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // ─────────────────────────────────────────────────────────────
 //  AgentMemoryInspector — vista delle memorie agent.
@@ -101,6 +101,7 @@ export default function AgentMemoryInspector() {
             Quello che i tuoi agent hanno imparato dalle conversazioni e dai dati live. Puoi modificare priorità o cancellare quelle sbagliate — al prossimo recall non verranno usate.
           </div>
         </div>
+        <ExportImportButtons onImported={load} />
         <button
           type="button"
           onClick={load}
@@ -269,5 +270,92 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
         </button>
       </div>
     </div>
+  )
+}
+
+function ExportImportButtons({ onImported }) {
+  const fileRef = useRef(null)
+  const [importing, setImporting] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const handleExport = () => {
+    // Browser triggera download via Content-Disposition header dell'API
+    window.open('/api/agent-memories/export', '_blank')
+  }
+
+  const handleImportFile = async (file) => {
+    if (!file) return
+    setImporting(true)
+    setMsg(null)
+    try {
+      const text = await file.text()
+      const json = JSON.parse(text)
+      const res = await fetch('/api/agent-memories/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(json),
+      })
+      const j = await res.json()
+      if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
+      setMsg(`✓ Importate ${j.imported} memorie`)
+      onImported?.()
+    } catch (e) {
+      setMsg(`⚠ ${e?.message || 'Errore import'}`)
+    } finally {
+      setImporting(false)
+      setTimeout(() => setMsg(null), 5000)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleExport}
+        title="Scarica tutte le memorie come file JSON"
+        style={{
+          padding: '8px 12px', borderRadius: 10,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        ⬇ Export
+      </button>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={importing}
+        title="Carica un file JSON di memorie precedentemente esportato"
+        style={{
+          padding: '8px 12px', borderRadius: 10,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+          cursor: importing ? 'wait' : 'pointer',
+        }}
+      >
+        {importing ? '…' : '⬆ Import'}
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: 'none' }}
+        onChange={e => {
+          const f = e.target.files?.[0]
+          if (f) handleImportFile(f)
+          e.target.value = ''
+        }}
+      />
+      {msg && (
+        <span style={{
+          fontSize: 10.5, color: msg.startsWith('✓') ? '#86efac' : '#fca5a5',
+          padding: '6px 10px', borderRadius: 8,
+          background: msg.startsWith('✓') ? 'rgba(34,197,94,0.10)' : 'rgba(248,113,113,0.10)',
+        }}>{msg}</span>
+      )}
+    </>
   )
 }

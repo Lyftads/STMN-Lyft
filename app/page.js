@@ -2191,6 +2191,19 @@ export default function App() {
     if (s.w) setWeeks(s.w)
   }, [])
 
+  // Post-signup: redirect a /onboarding se l'utente non ha ancora completato
+  // il wizard di setup integrazioni. Una sola fetch al mount, fire-and-forget.
+  useEffect(() => {
+    fetch('/api/onboarding')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (j && j.completed === false && typeof window !== 'undefined') {
+          window.location.href = '/onboarding'
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const fetchLive = useCallback(async () => {
     setLoading(true)
     try {

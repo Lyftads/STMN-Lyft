@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/reset-password',
   '/reset-password/confirm',
   '/auth/callback',
+  '/onboarding',
 ]
 
 export async function middleware(request) {

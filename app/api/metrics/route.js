@@ -671,9 +671,16 @@ async function fetchShopifySalesRange(start, end) {
     }
   }
 
-  // [Fallback REST disabilitato — stava bloccando last_7d ed e' opt-in
-  //  solo se davvero serve, attiva con ENABLE_NCRC_REST_FALLBACK=true]
-  const enableRestFallback = process.env.ENABLE_NCRC_REST_FALLBACK === 'true'
+  // REST fallback per NC/RC incompleti (ShopifyQL classification fallita).
+  // AUTO-ATTIVO solo per finestre PASSATE (until < oggi). Le finestre recenti
+  // (last_7d, today, current_month) NON usano fallback per evitare slowdown.
+  // Il flag ENABLE_NCRC_REST_FALLBACK forza l'attivazione anche su finestre
+  // recenti (legacy override).
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const isPastWindow = end < todayStr
+  const enableRestFallback =
+    process.env.ENABLE_NCRC_REST_FALLBACK === 'true' || isPastWindow
+
   if (enableRestFallback) {
     const shopifyClassified = (nc || 0) + (rc || 0)
     const isIncomplete = ordini > 0 && shopifyClassified < ordini * 0.85

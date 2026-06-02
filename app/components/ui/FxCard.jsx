@@ -11,9 +11,9 @@ export default function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, 
     <div
       style={{
         position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.92) 100%)',
+        backdropFilter: 'blur(40px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(40px) saturate(1.4)',
         borderRadius: 22,
         overflow: 'hidden',
         border: '1.5px solid rgba(255,255,255,0.06)',

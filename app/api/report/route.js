@@ -370,6 +370,14 @@ export async function GET(req) {
     const sr = m?.shopifyRange || {}, spr = m?.shopifyPrevRange || {}, mr = m?.metaRange || {}, mpr = m?.metaPrevRange || {}
     const sc = { revenue: num(sr.revenue), orders: num(sr.orders), ncOrders: num(sr.nc), rcOrders: num(sr.rc), fatturNC: num(sr.fatturNC), fatturRC: num(sr.fatturRC), resi: num(sr.resi), sessions: num(sr.sessions) }
     const sp = { revenue: num(spr.revenue), orders: num(spr.orders), ncOrders: num(spr.nc), rcOrders: num(spr.rc), fatturNC: num(spr.fatturNC), fatturRC: num(spr.fatturRC), resi: num(spr.resi), sessions: num(spr.sessions) }
+
+    // Fallback: se /api/metrics non ha dati Shopify (lento/vuoto), usa shopify-countries
+    if (!sc.revenue && !sc.orders) {
+      const f = await shopifyPeriod(origin, since, until)
+      if (f) { sc.revenue = f.revenue; sc.orders = f.orders; sc.ncOrders = f.ncOrders; sc.rcOrders = f.rcOrders }
+      if (prevSince) { const fp = await shopifyPeriod(origin, prevSince, prevUntil); if (fp) { sp.revenue = fp.revenue; sp.orders = fp.orders; sp.ncOrders = fp.ncOrders; sp.rcOrders = fp.rcOrders } }
+    }
+
     const mSpend = num(mr.spend), mSpendP = num(mpr.spend)
     daily = (m?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until).map(w => ({ date: w.date, revenue: num(w.fatturato) }))
     const aov = sc.orders > 0 ? sc.revenue / sc.orders : 0, aovP = sp.orders > 0 ? sp.revenue / sp.orders : 0
@@ -425,6 +433,9 @@ export async function GET(req) {
   const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null })
 
   const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop })
+  if (searchParams.get('format') === 'html') {
+    return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+  }
   const { buf: pdf, error: pdfErr } = await renderPdf(html)
   if (!pdf) {
     // Fallback: restituisce l'HTML (apribile/stampabile) se il PDF fallisce

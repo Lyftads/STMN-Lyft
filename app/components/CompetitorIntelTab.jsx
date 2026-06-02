@@ -394,13 +394,15 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
     if (apiAds.length > 0 || !pageId) return
     let cancelled = false
     setPageAdsLoading(true)
-    fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=${encodeURIComponent(country)}`)
+    // country=ALL: le creative di un advertiser sono globali (come fa il modulo
+    // competitor). Filtrare per IT escluderebbe i brand esteri (es. Velites/ES).
+    fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=ALL`)
       .then(r => r.json())
       .then(j => { if (!cancelled) setPageAds(Array.isArray(j?.ads) ? j.ads : []) })
       .catch(() => { if (!cancelled) setPageAds([]) })
       .finally(() => { if (!cancelled) setPageAdsLoading(false) })
     return () => { cancelled = true }
-  }, [pageId, apiAds.length, country])
+  }, [pageId, apiAds.length])
 
   const ads = apiAds.length > 0 ? apiAds : (pageAds || [])
 

@@ -25,7 +25,7 @@ export async function GET() {
     }
   `
 
-  const res = await fetch(`https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`, {
+  const res = await fetch(`https://${SHOPIFY_STORE}/admin/api/2026-04/graphql.json`, {
     method: 'POST',
     headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: gql, variables: { q: query } }),

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'cro'
 
@@ -127,6 +127,9 @@ export async function POST(req) {
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+    }
+    if (userId && context) {
+      persistDataMemory({ agentId: AGENT_ID, userId, data: context }).catch(() => {})
     }
 
     return NextResponse.json({

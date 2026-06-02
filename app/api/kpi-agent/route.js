@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -185,6 +185,10 @@ export async function POST(req) {
         userMessage: lastUserMsg,
         assistantMessage: reply,
       }).catch(() => {}) // already-logged inside, swallow
+    }
+    // Auto-extraction da dati live (throttled internamente a 30min per timeframe)
+    if (userId && context) {
+      persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: tf }).catch(() => {})
     }
 
     return NextResponse.json({

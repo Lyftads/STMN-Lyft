@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+
+const AGENT_ID = 'performance'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -418,14 +421,18 @@ export async function POST(req) {
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .slice(-20)
 
+  const lastUserMsg = [...cleanMessages].reverse().find(m => m.role === 'user')?.content || ''
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+
   const openaiBody = {
     model: MODEL,
     temperature: 0.3,
     presence_penalty: 0.2,
     frequency_penalty: 0.2,
     messages: [
+      ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'system', content: 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Particolare attenzione: STMN vende paracalli/corde/accessori CrossFit, NON supplementi. Nessun nome prodotto deve essere inventato.' },
+      { role: 'system', content: 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende).' },
       {
         role: 'system',
         content: `DATI LIVE (periodo: ${preset}):\n${safeJson(context)}`,
@@ -454,6 +461,10 @@ export async function POST(req) {
 
     const json = await r.json()
     const reply = json?.choices?.[0]?.message?.content || ''
+
+    if (userId && lastUserMsg && reply) {
+      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+    }
 
     return NextResponse.json({
       reply,

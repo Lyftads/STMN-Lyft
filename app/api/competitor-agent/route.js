@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+
+const AGENT_ID = 'competitor'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -127,6 +130,9 @@ export async function POST(req) {
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .slice(-20)
 
+  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -139,10 +145,11 @@ export async function POST(req) {
         temperature: 0.4,
         top_p: 0.9,
         messages: [
+          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'system', content: `COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,
-          { role: 'system', content: 'REMINDER: ogni numero/prodotto/prezzo/ad che citi deve essere nel JSON COMPETITOR DATA. Se ads=0 o prodotti mancanti, dillo. STMN e competitor vendono accessori CrossFit (grips/paracalli, polsiere, corde) — MAI supplementi. Comparazioni con numeri esatti, mosse concrete. Bold limitato. Niente intestazioni markdown.' },
+          { role: 'system', content: 'REMINDER: ogni numero/prodotto/prezzo/ad che citi deve essere nel JSON COMPETITOR DATA. Se ads=0 o prodotti mancanti, dillo. Rispetta il BRAND GUARD del CONTESTO BRAND. Comparazioni con numeri esatti, mosse concrete. Bold limitato. Niente intestazioni markdown.' },
         ],
       }),
     })
@@ -153,8 +160,14 @@ export async function POST(req) {
     }
 
     const json = await r.json()
+    const reply = json?.choices?.[0]?.message?.content || ''
+
+    if (userId && lastUserMsg && reply) {
+      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+    }
+
     return NextResponse.json({
-      reply: json?.choices?.[0]?.message?.content || '',
+      reply,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
     })

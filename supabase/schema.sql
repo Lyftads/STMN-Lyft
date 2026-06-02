@@ -130,6 +130,99 @@ create trigger touch_companies_updated_at
   for each row execute function public.touch_updated_at();
 
 -- ============================================================================
+--  Agent Memory — gli agent AI accumulano knowledge tra le sessioni.
+--  Pattern: ad ogni Q&A salva osservazioni, preferenze, fatti, insight; alla
+--  prossima domanda recupera le memorie semanticamente piu' rilevanti via
+--  vector similarity e le inietta nel system prompt.
+--
+--  Risultato: piu' l'utente chatta, piu' l'agent diventa verticale sul
+--  suo brand (impara: "il MER target di STMN e' 2.5x", "Marino preferisce
+--  risposte concise", "Picsil ha lanciato una promo il 15 di ogni mese").
+-- ============================================================================
+
+-- pgvector extension (Supabase ce l'ha gia' attivabile via dashboard, ma
+-- proviamo a crearla idempotente)
+create extension if not exists vector;
+
+create table if not exists public.agent_memories (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users(id) on delete cascade,
+  agent_id        text not null,             -- 'kpi' / 'cro' / 'creative' / 'mensile' / ...
+  role            text not null default 'observation', -- observation / preference / fact / insight
+  content         text not null,
+  embedding       vector(1536),              -- OpenAI text-embedding-3-small
+  importance      smallint not null default 5, -- 1..10
+  source          text default 'auto',       -- auto / manual / extracted
+  created_at      timestamptz not null default now(),
+  last_used_at    timestamptz,
+  use_count       integer not null default 0
+);
+
+create index if not exists idx_agent_memories_user_agent
+  on public.agent_memories (user_id, agent_id, created_at desc);
+
+-- Indice IVFFlat per vector similarity search (cosine).
+-- Va creato dopo aver caricato qualche dato — Postgres consiglia 1k+ righe
+-- prima di costruirlo. Per ora lo creiamo con lists=10 (piccolo, va bene
+-- finche' abbiamo < 10k memorie totali).
+create index if not exists idx_agent_memories_embedding
+  on public.agent_memories using ivfflat (embedding vector_cosine_ops)
+  with (lists = 10);
+
+alter table public.agent_memories enable row level security;
+
+drop policy if exists "agent_memories: select own" on public.agent_memories;
+create policy "agent_memories: select own"
+  on public.agent_memories for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "agent_memories: insert own" on public.agent_memories;
+create policy "agent_memories: insert own"
+  on public.agent_memories for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "agent_memories: update own" on public.agent_memories;
+create policy "agent_memories: update own"
+  on public.agent_memories for update
+  using (auth.uid() = user_id);
+
+drop policy if exists "agent_memories: delete own" on public.agent_memories;
+create policy "agent_memories: delete own"
+  on public.agent_memories for delete
+  using (auth.uid() = user_id);
+
+-- RPC per recall semantico: top-K memorie per (user_id, agent_id) ordinate
+-- per similarity al query embedding. Filtra anche per importanza minima.
+create or replace function public.recall_agent_memories(
+  p_user_id    uuid,
+  p_agent_id   text,
+  p_query_emb  vector(1536),
+  p_limit      int default 5,
+  p_min_imp    int default 1
+)
+returns table (
+  id          uuid,
+  role        text,
+  content     text,
+  importance  smallint,
+  similarity  real,
+  created_at  timestamptz
+)
+language sql stable as $$
+  select
+    m.id, m.role, m.content, m.importance,
+    1 - (m.embedding <=> p_query_emb) as similarity,
+    m.created_at
+  from public.agent_memories m
+  where m.user_id = p_user_id
+    and m.agent_id = p_agent_id
+    and m.importance >= p_min_imp
+    and m.embedding is not null
+  order by m.embedding <=> p_query_emb
+  limit p_limit;
+$$;
+
+-- ============================================================================
 --  Storage bucket per Brand Assets (logo, mood board, foto reference).
 --  Bucket pubblico (lettura senza auth) ma scrittura solo per l'owner via RLS.
 -- ============================================================================

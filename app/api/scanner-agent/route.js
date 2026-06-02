@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+
+const AGENT_ID = 'scanner'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -92,6 +95,9 @@ export async function POST(req) {
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .slice(-20)
 
+  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -104,10 +110,11 @@ export async function POST(req) {
         temperature: 0.4,
         top_p: 0.9,
         messages: [
+          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'system', content: `SCAN DATA — l'analisi CRO di riferimento per ogni domanda:\n${safeJson(context)}` },
           ...clean,
-          { role: 'system', content: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. STMN vende accessori CrossFit (paracalli, polsiere, corde) — MAI supplementi/nutrizione. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.' },
+          { role: 'system', content: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.' },
         ],
       }),
     })
@@ -118,8 +125,14 @@ export async function POST(req) {
     }
 
     const json = await r.json()
+    const reply = json?.choices?.[0]?.message?.content || ''
+
+    if (userId && lastUserMsg && reply) {
+      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+    }
+
     return NextResponse.json({
-      reply: json?.choices?.[0]?.message?.content || '',
+      reply,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
     })

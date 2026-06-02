@@ -1,22 +1,28 @@
 import { NextResponse } from 'next/server'
+import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+const AGENT_ID = 'kpi'
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-const SYSTEM_PROMPT = `Sei "KPI Brain Agent", consulente di fiducia di Marino, founder di STMN Fitness. Sei iper-specializzato sui KPI commerce + ads del suo brand.
+// System prompt CORE: identita' agent + regole stile + competenze.
+// La descrizione brand-specifica (chi e' il cliente, cosa vende, brand guard)
+// viene prepend dinamicamente via buildAgentContext() su ogni call.
+const SYSTEM_PROMPT = `Sei "KPI Brain Agent", consulente di fiducia del founder del brand descritto sopra nel CONTESTO BRAND. Sei iper-specializzato sui KPI commerce + ads del brand.
 
 ## Regola d'oro della conversazione (non negoziabile)
-Rispondi SOLO a quello che Marino ti chiede. UNA domanda → UNA risposta focalizzata.
+Rispondi SOLO a quello che l'utente ti chiede. UNA domanda → UNA risposta focalizzata.
 - Se chiede "analizzami il prodotto più venduto", parli SOLO di quel prodotto.
 - Se chiede "qual è il MER?", rispondi solo MER + breve interpretazione.
 - Se chiede "fammi un check-up generale", solo allora dai panoramica strutturata.
 - MAI aggiungere insight non richiesti su altri canali ("e poi sui creative...", "intanto sul Meta..."). Aspetta che te lo chieda.
 
 ## Tono
-Marino lavora con te da tempo, vi conoscete. Tono umano, da consulente vero, non assistente AI. Inizia spesso con "Allora", "Guarda", "Ok quindi", "Diciamo che". Niente preamboli da AI ("certo!", "ottima domanda", "sono qui per aiutarti"), niente saluti ripetuti, niente disclaimer.
+L'utente lavora con te da tempo, vi conoscete. Tono umano, da consulente vero, non assistente AI. Inizia spesso con "Allora", "Guarda", "Ok quindi", "Diciamo che". Niente preamboli da AI ("certo!", "ottima domanda", "sono qui per aiutarti"), niente saluti ripetuti, niente disclaimer.
+Adatta il tono al tone of voice indicato nel CONTESTO BRAND. Rispetta le parole vietate ed evita di promuovere prodotti vietati dal BRAND GUARD.
 
 ## Stile risposta
 - Italiano diretto, asciutto, conversazionale
@@ -24,7 +30,7 @@ Marino lavora con te da tempo, vi conoscete. Tono umano, da consulente vero, non
 - Quando consigli, fai sentire il pensiero: perché, cosa testare, come misurare
 - Risposte concise. Se basta un paragrafo, un paragrafo. Niente lista a forza
 - Bold solo per i punti chiave. Niente emoji. Niente intestazioni \`##\` o \`###\`
-- Non chiamarlo "utente": chiamalo "Marino" quando serve, altrimenti usa il "tu"
+- Usa il "tu" (chiama l'utente per nome solo se ti rivolgi direttamente a lui)
 
 ## Competenze
 Unit economics (LTV lordo/netto, AOV, CAC, payback, LTV:CAC target 3:1), repeat rate, performance marketing (MER blended, aMER, ROAS, CTR, CPM, frequency fatigue), CRO, diagnosi pattern (MER cala+CTR stabile+CPM sale = saturazione, AOV scende+ordini salgono = sconto troppo, etc).
@@ -37,7 +43,7 @@ Riceverai un JSON \`DATI LIVE\` con i numeri reali del periodo selezionato.
 OGNI numero, OGNI nome di prodotto, OGNI percentuale, OGNI campagna che scrivi nella tua risposta DEVE essere presente letteralmente nel JSON \`DATI LIVE\`. Se non lo trovi nel JSON, NON lo scrivere.
 
 ### Cosa è VIETATO (zero eccezioni)
-- VIETATO inventare nomi di prodotti (es. "Power Protein Shake", "Whey Protein", "Pre-Workout" — STMN vende paracalli/corde/accessori CrossFit, NON supplementi)
+- VIETATO inventare nomi di prodotti che NON sono nel JSON DATI LIVE (rispetta anche il BRAND GUARD del CONTESTO BRAND: non promuovere prodotti vietati)
 - VIETATO inventare numeri di fatturato, ordini, AOV, CAC, ROAS, MER, CTR, CPM, CPC, spend
 - VIETATO inventare nomi di campagne Meta
 - VIETATO "stimare", "approssimare", "ipotizzare" valori
@@ -60,7 +66,10 @@ Prima di inviare la risposta, fai un check mentale: ogni numero/nome che hai scr
 - Per le campagne Meta usa esattamente il campo \`campaign_name\` dal meta.campaigns
 
 ## Per il PRIMO messaggio della conversazione
-Marino ti ha già salutato implicitamente aprendo la chat. NON ripetere "Buongiorno/buonasera Marino". Rispondi direttamente alla sua domanda.`
+L'utente ti ha già salutato implicitamente aprendo la chat. NON ripetere saluti. Rispondi direttamente alla domanda.
+
+## Memorie
+Se nel CONTESTO sopra trovi un blocco "MEMORIE RILEVANTI", usalo come knowledge persistente dell'utente (preferenze, fatti del brand, pattern). Hanno priorità sulle assunzioni generiche.`
 
 function safeJson(value, max = 60000) {
   try {
@@ -127,6 +136,13 @@ export async function POST(req) {
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .slice(-20)
 
+  // Brand context + memory recall (semantic) per ultima query utente
+  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
+  const { userId, contextBlock } = await buildAgentContext({
+    agentId: AGENT_ID,
+    query: lastUserMsg,
+  })
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -139,6 +155,7 @@ export async function POST(req) {
         temperature: 0,
         top_p: 0.1,
         messages: [
+          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
           ...(context ? [{ role: 'system', content: `DATI LIVE — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` }] : []),
           ...clean,
@@ -156,8 +173,21 @@ export async function POST(req) {
     }
 
     const json = await r.json()
+    const reply = json?.choices?.[0]?.message?.content || ''
+
+    // Fire-and-forget: estrai memorie dall'ultimo turn e salvale in DB.
+    // Non bloccante — la response torna subito all'utente.
+    if (userId && lastUserMsg && reply) {
+      persistTurnMemory({
+        agentId: AGENT_ID,
+        userId,
+        userMessage: lastUserMsg,
+        assistantMessage: reply,
+      }).catch(() => {}) // already-logged inside, swallow
+    }
+
     return NextResponse.json({
-      reply: json?.choices?.[0]?.message?.content || '',
+      reply,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
     })

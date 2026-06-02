@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server'
+import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+
+const AGENT_ID = 'year'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -111,6 +114,9 @@ export async function POST(req) {
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .slice(-20)
 
+  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
+  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg })
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -123,6 +129,7 @@ export async function POST(req) {
         temperature: 0.2,
         top_p: 0.2,
         messages: [
+          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'system', content: `DATI ANNUALI — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` },
           ...clean,
@@ -137,8 +144,14 @@ export async function POST(req) {
     }
 
     const json = await r.json()
+    const reply = json?.choices?.[0]?.message?.content || ''
+
+    if (userId && lastUserMsg && reply) {
+      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+    }
+
     return NextResponse.json({
-      reply: json?.choices?.[0]?.message?.content || '',
+      reply,
       usage: json?.usage || null,
       updatedAt: new Date().toISOString(),
     })

@@ -111,24 +111,26 @@ function getPresetRange(preset = 'last_90d') {
     return { since: y, until: y, label: 'Ieri' }
   }
 
+  // Shopify "Ultimi N giorni" = [oggi-N, oggi] (verificato sul report: last_7d
+  // = 26/05 → 02/06, cioe' oggi-7 → oggi). Allineiamo tutti i preset relativi.
   if (preset === 'last_7d') {
-    return { since: toDateString(addDays(today, -6)), until, label: 'Ultimi 7 giorni' }
+    return { since: toDateString(addDays(today, -7)), until, label: 'Ultimi 7 giorni' }
   }
 
   if (preset === 'last_14d') {
-    return { since: toDateString(addDays(today, -13)), until, label: 'Ultimi 14 giorni' }
+    return { since: toDateString(addDays(today, -14)), until, label: 'Ultimi 14 giorni' }
   }
 
   if (preset === 'last_28d') {
-    return { since: toDateString(addDays(today, -27)), until, label: 'Ultimi 28 giorni' }
+    return { since: toDateString(addDays(today, -28)), until, label: 'Ultimi 28 giorni' }
   }
 
   if (preset === 'last_30d') {
-    return { since: toDateString(addDays(today, -29)), until, label: 'Ultimi 30 giorni' }
+    return { since: toDateString(addDays(today, -30)), until, label: 'Ultimi 30 giorni' }
   }
 
   if (preset === 'last_90d') {
-    return { since: toDateString(addDays(today, -89)), until, label: 'Ultimi 90 giorni' }
+    return { since: toDateString(addDays(today, -90)), until, label: 'Ultimi 90 giorni' }
   }
 
   if (preset === 'current_month' || preset === 'mtd') {
@@ -1385,10 +1387,12 @@ async function safeShopifyRange(range) {
   let sales = salesQL
 
   // Override real-time SOLO per le card KPI su finestre piccole e recenti
-  // (oggi, ieri, ultimi 7 giorni, mese corrente appena iniziato): qui ShopifyQL
-  // non ha ancora consolidato la classificazione new/returning (job notturno),
-  // quindi usiamo l'Admin GraphQL (NC/RC via numberOfOrders, real-time). Questo
-  // NON tocca Weekly/Monthly, che restano interamente su ShopifyQL total_sales.
+  // (oggi, ieri, ultimi 7 giorni) e SOLO finche' ShopifyQL non ha ancora
+  // consolidato la classificazione new/returning (job notturno). Appena ShopifyQL
+  // ha i dati classificati li usiamo (combaciano ESATTAMENTE col report Shopify);
+  // l'Admin GraphQL (stima via numberOfOrders) interviene solo come ripiego quando
+  // ShopifyQL e' ancora a 0. Non tocca Weekly/Monthly (interamente ShopifyQL).
+  const classificationMissing = ((salesQL?.nc || 0) + (salesQL?.rc || 0)) === 0
   const endsRecently =
     Date.now() - new Date(`${range.until}T23:59:59Z`).getTime() < 9 * 86400000
   const windowDays =
@@ -1397,9 +1401,9 @@ async function safeShopifyRange(range) {
         new Date(`${range.since}T00:00:00Z`).getTime()) /
         86400000
     ) + 1
-  if (endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+  if (classificationMissing && endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
     const admin = await fetchShopifyOrdersAdminGQL(range.since, range.until)
-    if (admin && admin.ordini > 0 && admin.ordini >= (salesQL?.ordini || 0)) {
+    if (admin && admin.ordini > 0) {
       sales = admin
     }
   }

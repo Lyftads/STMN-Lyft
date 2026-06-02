@@ -65,6 +65,33 @@ async function fetchAdInsights(accountId, range) {
   return out
 }
 
+// Meta usa questo hash come placeholder generico per DPA → niente immagine reale
+const GENERIC_PLACEHOLDER = '75341531_494485104475166'
+
+async function fetchThumbnails(adIds) {
+  const out = {}
+  for (let i = 0; i < adIds.length; i += 50) {
+    const chunk = adIds.slice(i, i + 50)
+    const url = `https://graph.facebook.com/${GRAPH_VERSION}/`
+      + `?ids=${encodeURIComponent(chunk.join(','))}`
+      + `&fields=${encodeURIComponent('creative{thumbnail_url,image_url}')}`
+      + `&access_token=${encodeURIComponent(META_TOKEN)}`
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const data = await res.json()
+      if (!res.ok || data.error) continue
+      for (const id of chunk) {
+        const c = data[id]?.creative || {}
+        const thumb = c.thumbnail_url || null
+        const image = c.image_url || null
+        const ok = (u) => u && !u.includes(GENERIC_PLACEHOLDER)
+        out[id] = { thumbnail: ok(thumb) ? thumb : (ok(image) ? image : null), image: ok(image) ? image : null }
+      }
+    } catch { /* chunk best-effort */ }
+  }
+  return out
+}
+
 export async function GET(req) {
   if (!META_TOKEN || !META_ACCOUNT) {
     return NextResponse.json({ error: 'Meta non configurato', ads: [] }, { status: 200 })
@@ -117,6 +144,16 @@ export async function GET(req) {
     }
 
     ads.sort((a, b) => b.score - a.score)
+    const top = ads.slice(0, 40)
+
+    // Thumbnail della creativa (batch read ?ids=…&fields=creative{...})
+    try {
+      const thumbs = await fetchThumbnails(top.map(a => a.adId))
+      for (const a of top) {
+        const t = thumbs[a.adId]
+        if (t) { a.thumbnail = t.thumbnail || null; a.image = t.image || null }
+      }
+    } catch { /* thumbnail best-effort */ }
 
     return NextResponse.json({
       preset, range,
@@ -124,7 +161,7 @@ export async function GET(req) {
       avgCpa: Math.round(avgCpa * 100) / 100,
       total: ads.length,
       toRefresh: ads.filter(a => a.refresh).length,
-      ads: ads.slice(0, 40),
+      ads: top,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {

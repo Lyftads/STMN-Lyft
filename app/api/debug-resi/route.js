@@ -14,7 +14,7 @@ export async function GET(req) {
   const since = searchParams.get('since') || '2026-05-04'
   const until = searchParams.get('until') || '2026-05-10'
 
-  const q = `FROM sales SHOW gross_sales, net_sales, total_sales, returns, discounts, taxes, shipping, orders SINCE ${since} UNTIL ${until} WITH TOTALS, CURRENCY 'EUR'`
+  const q = `FROM sales SHOW gross_sales, net_sales, total_sales, returns, discounts, orders SINCE ${since} UNTIL ${until} WITH TOTALS, CURRENCY 'EUR'`
 
   const gql = `query($q:String!){ shopifyqlQuery(query:$q){ tableData{ columns{name} rows } parseErrors } }`
 

@@ -286,17 +286,9 @@ export default function BrandIdentityPanel() {
 
 function GlassCard({ children, padding = 22 }) {
   return (
-    <div style={{
-      background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-      backdropFilter: 'blur(40px) saturate(2.2)',
-      WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-      borderRadius: 22,
-      border: '1.5px solid rgba(255,255,255,0.06)',
-      borderTopColor: 'rgba(255,255,255,0.12)',
-      borderBottomColor: 'rgba(0,0,0,0.65)',
-      boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), inset 0 1.5px 0 rgba(255,255,255,0.06)',
-      padding,
-    }}>{children}</div>
+    <div className="glass-card-static" style={{ padding }}>
+      {children}
+    </div>
   )
 }
 
@@ -324,34 +316,38 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
 
 function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
   return (
-    <GlassCard padding={0}>
+    <div className="glass-card-static" style={{ overflow: 'hidden' }}>
       <button
         type="button"
         onClick={onToggle}
         style={{
           width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: 20, textAlign: 'left',
+          padding: 22, textAlign: 'left',
           display: 'flex', alignItems: 'center', gap: 14,
         }}
       >
         <span style={{
-          width: 36, height: 36, borderRadius: 10,
+          width: 38, height: 38, borderRadius: 11,
           background: `${ACCENT}1a`, color: ACCENT,
           display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 800,
           flexShrink: 0,
         }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{title}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{subtitle}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>{subtitle}</div>
         </div>
         <span style={{ color: 'var(--text3)', fontSize: 18, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>›</span>
       </button>
       {open && (
-        <div style={{ padding: '0 22px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{
+          padding: '4px 22px 22px',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
           {children}
         </div>
       )}
-    </GlassCard>
+    </div>
   )
 }
 
@@ -603,11 +599,7 @@ function AssetsManager({ assets, onChange }) {
           const list = assetsByType[at.id] || []
           const isUploading = uploadingType === at.id
           return (
-            <div key={at.id} style={{
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 14, padding: 14,
-            }}>
+            <div key={at.id} className="glass-panel" style={{ borderRadius: 14, padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{at.label}</span>
                 <button
@@ -643,8 +635,8 @@ function AssetsManager({ assets, onChange }) {
                   {list.map(a => (
                     <div key={a.path} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       borderRadius: 10, padding: 8,
                     }}>
                       <img src={a.url} alt={a.name} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, background: '#000' }} onError={e => { e.currentTarget.style.display = 'none' }} />
@@ -699,9 +691,7 @@ function CompetitorList({ competitors, onChange }) {
       )}
 
       {competitors.map((c, idx) => (
-        <div key={idx} style={{
-          background: 'rgba(255,255,255,0.025)',
-          border: '1px solid rgba(255,255,255,0.08)',
+        <div key={idx} className="glass-panel" style={{
           borderRadius: 14, padding: 14,
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>

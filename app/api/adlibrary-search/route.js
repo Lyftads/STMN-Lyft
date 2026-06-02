@@ -251,14 +251,23 @@ async function searchViaBrowserless(q, country) {
     } catch {}
 
     // Carica più "pagine" di risultati (lazy-load), in modo LIMITATO: max 5
-    // passaggi e stop appena non arrivano nuove ads (niente scroll infinito).
-    let prevCount = parseAdsFromGraphql(gqlTexts).length
+    // passaggi e stop appena non arriva una nuova risposta GraphQL.
+    let prevResp = gqlTexts.length
     for (let p = 0; p < 5; p++) {
-      await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight)).catch(() => {})
-      await new Promise(r => setTimeout(r, 1600))
-      const curCount = parseAdsFromGraphql(gqlTexts).length
-      if (curCount <= prevCount) break
-      prevCount = curCount
+      await page.evaluate(() => {
+        window.scrollTo(0, document.documentElement.scrollHeight)
+        window.dispatchEvent(new Event('scroll'))
+      }).catch(() => {})
+      await new Promise(r => setTimeout(r, 2200))
+      if (gqlTexts.length <= prevResp) break
+      prevResp = gqlTexts.length
+    }
+
+    // total_count dal GraphQL (numero reale di risultati)
+    let gqlTotal = null
+    for (const t of gqlTexts) {
+      const m = t.match(/"total_count":\s*(\d+)/)
+      if (m) { const n = parseInt(m[1], 10); if (Number.isFinite(n) && (gqlTotal == null || n > gqlTotal)) gqlTotal = n }
     }
 
     // 1° scelta: dato strutturato dalle risposte GraphQL intercettate
@@ -266,7 +275,8 @@ async function searchViaBrowserless(q, country) {
     // 2° scelta: parsing dell'HTML renderizzato
     if (!ads.length) ads = parseAdsFromHtml(await page.content())
 
-    return { ads, total, source: 'browserless' }
+    const finalTotal = Math.max(gqlTotal || 0, total || 0, ads.length)
+    return { ads, total: finalTotal, source: 'browserless' }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }
   } finally {

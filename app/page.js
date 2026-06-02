@@ -2577,7 +2577,6 @@ export default function App() {
       {tab==='dashboard' && (
         <>
           <RecommendationsFeed metrics={live} preset={preset} />
-          <AlertsPanel live={live} />
 
           <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
@@ -2637,6 +2636,8 @@ export default function App() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          <AlertsPanel live={live} />
 
           <DashboardInsights preset={preset} />
         </>

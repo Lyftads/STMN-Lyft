@@ -973,7 +973,8 @@ export default function CompetitorIntelTab() {
     setAdError(null)
     setAdQuery(t)
     try {
-      const r = await fetch(`/api/adlibrary-search?q=${encodeURIComponent(t)}&country=${encodeURIComponent(country)}`)
+      // ads attive in tutto il mondo (ALL), non solo nel mercato selezionato
+      const r = await fetch(`/api/adlibrary-search?q=${encodeURIComponent(t)}&country=ALL`)
       const j = await r.json()
       setAdLibraryUrl(j?.libraryUrl || null)
       setAdResults(Array.isArray(j?.ads) ? j.ads : [])
@@ -1083,7 +1084,7 @@ export default function CompetitorIntelTab() {
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div className="heading-sm" style={{ fontSize: 16, marginBottom: 4 }}>Ricerca Ad Library</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>
-            Cerca creative attive su Meta per parola chiave, in tutto il mercato {country} — non solo i competitor monitorati.
+            Cerca creative attive su Meta per parola chiave, in tutto il mondo — non solo i competitor monitorati.
           </div>
 
           <form
@@ -1124,7 +1125,7 @@ export default function CompetitorIntelTab() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
-                  {adResults.length} creative attive per “{adQuery}” · mercato {country}
+                  {adResults.length} creative attive per “{adQuery}” · worldwide
                 </span>
                 {adLibraryUrl && (
                   <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>

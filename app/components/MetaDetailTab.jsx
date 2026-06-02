@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import MetaAdsAgent from './MetaAdsAgent'
 import CreativeFatiguePanel from './CreativeFatiguePanel'
 import BudgetAdvisorPanel from './BudgetAdvisorPanel'
+import DownloadReportButton from './DownloadReportButton'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -678,6 +679,13 @@ export default function MetaDetailTab() {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? 'Aggiorno…' : 'Aggiorna'}
           </button>
+
+          <DownloadReportButton
+            tab="Meta Detail"
+            preset={preset === 'custom' ? undefined : preset}
+            custom={preset === 'custom' && customSince && customUntil ? { since: customSince, until: customUntil, label: `${customSince} → ${customUntil}` } : undefined}
+            campaigns={visibleRows.filter(r => r.level === 'campaign').map(r => ({ id: r.id, name: r.name }))}
+          />
         </div>
 
         {preset === 'custom' && (

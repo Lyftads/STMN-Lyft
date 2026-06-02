@@ -7,6 +7,7 @@ import Sparkline from './Sparkline'
 import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
 import TimeframeSelector from './TimeframeSelector'
+import DownloadReportButton from './DownloadReportButton'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
 
@@ -307,6 +308,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
         )}
         <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
+        <DownloadReportButton tab="KPI Brain" preset={preset} style={{ marginLeft: onRefresh ? 0 : 'auto' }} />
       </div>
 
       {/* Key Metrics */}

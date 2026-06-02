@@ -616,19 +616,21 @@ async function fetchShopifySalesRange(start, end) {
       segment.includes('ritorn') ||
       segment.includes('recurr')
 
+    // NC = "ordini di primo acquisto" (orders_first_time)
+    // RC = "ordini da clienti abituali" (orders_returning)
+    // Source of truth: il report Shopify Admin usa queste metriche.
+    // Fallback su row.orders se le metriche specifiche sono null.
+    const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrders
+    const rowOrdersReturning = cleanCount(row.orders_returning) || rowOrders
+
     if (isNew) {
-      // "ordini da nuovi clienti" = tutti gli ordini fatti da clienti new
-      // nel segmento (incluso repeat purchases nello stesso periodo).
-      // row.orders nel gruppo new_or_returning_customer='new' è già quello.
-      nc += rowOrders
+      nc += rowOrdersFirstTime
       fatturNC += rowTotalSales
       resiNC += rowReturns
     }
 
     if (isReturning) {
-      // "ordini da clienti di ritorno" = tutti gli ordini fatti da clienti
-      // returning nel segmento. row.orders nel gruppo è già quello.
-      rc += rowOrders
+      rc += rowOrdersReturning
       fatturRC += rowTotalSales
       resiRC += rowReturns
     }
@@ -640,11 +642,11 @@ async function fetchShopifySalesRange(start, end) {
 
   // Cross-fallback per range lunghi (es. year_) dove una delle due query
   // può fallire silenziosamente per rate limit / cost ShopifyQL.
-  // Se totals=0 ma breakdown ha dati → ricostruisce totals da NC+RC
-  // (escludendo guest checkouts ma meglio di "—").
   if (fatturato <= 0 && (fatturNC > 0 || fatturRC > 0)) {
     fatturato = fatturNC + fatturRC
   }
+  // nc/rc sono ordini_first_time/ordini_returning → la loro somma e' il
+  // totale ordini classificati. Usabile come fallback se totals fail.
   if (ordini <= 0 && (nc > 0 || rc > 0)) {
     ordini = nc + rc
   }
@@ -659,12 +661,14 @@ async function fetchShopifySalesRange(start, end) {
     for (const row of retryRows) {
       const segment = String(row.new_or_returning_customer || '').toLowerCase()
       const rowTotalSales = cleanMoney(row.total_sales)
-      const rowOrders = cleanCount(row.orders)
       const rowReturns = Math.abs(cleanMoney(row.returns))
+      const rowOrdersRow = cleanCount(row.orders)
+      const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrdersRow
+      const rowOrdersReturning = cleanCount(row.orders_returning) || rowOrdersRow
       const isNew = segment.includes('new') || segment.includes('first') || segment.includes('nuov')
       const isReturning = segment.includes('return') || segment.includes('ritorn') || segment.includes('recurr')
-      if (isNew) { nc += rowOrders; fatturNC += rowTotalSales; resiNC += rowReturns }
-      if (isReturning) { rc += rowOrders; fatturRC += rowTotalSales; resiRC += rowReturns }
+      if (isNew) { nc += rowOrdersFirstTime; fatturNC += rowTotalSales; resiNC += rowReturns }
+      if (isReturning) { rc += rowOrdersReturning; fatturRC += rowTotalSales; resiRC += rowReturns }
     }
     if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
       fatturRC = Math.max(fatturato - fatturNC, 0)

@@ -373,16 +373,36 @@ function PromoTag({ promo }) {
   )
 }
 
-function CompetitorSection({ competitor, meta }) {
+function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const [section, setSection] = useState('ads')
   const [showAllProducts, setShowAllProducts] = useState(false)
   const [productSearch, setProductSearch] = useState('')
 
   const { adLibrary, websiteData } = competitor
-  const ads = adLibrary?.ads || []
+  const apiAds = adLibrary?.ads || []
   const products = websiteData?.products || []
   const stats = websiteData?.stats || {}
   const promos = websiteData?.promos || []
+
+  // Enrichment additivo: se l'API non ha (ancora) restituito creative, le
+  // recuperiamo via Browserless (endpoint isolato). Quando l'app Meta sara'
+  // approvata, apiAds sara' popolato e questo blocco non parte nemmeno.
+  const pageId = (meta?.adLibraryUrl || '').match(/view_all_page_id=(\d+)/)?.[1] || null
+  const [pageAds, setPageAds] = useState(null)
+  const [pageAdsLoading, setPageAdsLoading] = useState(false)
+  useEffect(() => {
+    if (apiAds.length > 0 || !pageId) return
+    let cancelled = false
+    setPageAdsLoading(true)
+    fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=${encodeURIComponent(country)}`)
+      .then(r => r.json())
+      .then(j => { if (!cancelled) setPageAds(Array.isArray(j?.ads) ? j.ads : []) })
+      .catch(() => { if (!cancelled) setPageAds([]) })
+      .finally(() => { if (!cancelled) setPageAdsLoading(false) })
+    return () => { cancelled = true }
+  }, [pageId, apiAds.length, country])
+
+  const ads = apiAds.length > 0 ? apiAds : (pageAds || [])
 
   const sortedProducts = useMemo(() => {
     return [...products]
@@ -602,7 +622,14 @@ function CompetitorSection({ competitor, meta }) {
               </div>
             )}
 
-            {ads.length === 0 && (
+            {ads.length === 0 && pageAdsLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '28px 4px', color: 'var(--text3)', fontSize: 13 }}>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span>
+                Carico le creative attive di {meta.name} dalla Ad Library…
+              </div>
+            )}
+
+            {ads.length === 0 && !pageAdsLoading && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Ad Library direct link */}
                 <a
@@ -1202,7 +1229,7 @@ export default function CompetitorIntelTab() {
         }
 
         return (
-          <CompetitorSection key={comp.id} competitor={comp} meta={meta} />
+          <CompetitorSection key={comp.id} competitor={comp} meta={meta} country={country} />
         )
       })}
 

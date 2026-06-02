@@ -202,7 +202,7 @@ async function viaBrowserless(pageId, country) {
       if (m) { const n = parseInt(m[1], 10); if (Number.isFinite(n) && (gqlTotal == null || n > gqlTotal)) gqlTotal = n }
     }
     const ads = parseAdsFromGraphql(gqlTexts)
-    const finalTotal = Math.max(gqlTotal || 0, total || 0, ads.length)
+    const finalTotal = Math.max(gqlTotal || 0, total || 0) || null
     return { ads, total: finalTotal, source: 'browserless' }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }
@@ -225,9 +225,11 @@ export async function GET(request) {
     source = 'browserless'
   }
   const ads = result?.ads || []
-  const total = (result?.total != null && result.total >= ads.length) ? result.total : ads.length
+  // total reale solo se davvero maggiore del caricato; altrimenti null
+  const total = (result?.total != null && result.total > ads.length) ? result.total : null
+  const capped = ads.length >= 60
   return NextResponse.json({
-    pageId, country, ads, count: ads.length, total,
+    pageId, country, ads, count: ads.length, total, capped,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (result?.httpError || 'no_results') : null,
     libraryUrl: pageUrlFor(pageId, country),

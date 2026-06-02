@@ -390,6 +390,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const pageId = (meta?.adLibraryUrl || '').match(/view_all_page_id=(\d+)/)?.[1] || null
   const [pageAds, setPageAds] = useState(null)
   const [pageTotal, setPageTotal] = useState(null)
+  const [pageCapped, setPageCapped] = useState(false)
   const [pageAdsLoading, setPageAdsLoading] = useState(false)
   useEffect(() => {
     if (apiAds.length > 0 || !pageId) return
@@ -399,17 +400,26 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
     // competitor). Filtrare per IT escluderebbe i brand esteri (es. Velites/ES).
     fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=ALL`)
       .then(r => r.json())
-      .then(j => { if (!cancelled) { setPageAds(Array.isArray(j?.ads) ? j.ads : []); setPageTotal(Number.isFinite(j?.total) ? j.total : null) } })
+      .then(j => { if (!cancelled) { setPageAds(Array.isArray(j?.ads) ? j.ads : []); setPageTotal(Number.isFinite(j?.total) ? j.total : null); setPageCapped(!!j?.capped) } })
       .catch(() => { if (!cancelled) setPageAds([]) })
       .finally(() => { if (!cancelled) setPageAdsLoading(false) })
     return () => { cancelled = true }
   }, [pageId, apiAds.length])
 
   const ads = apiAds.length > 0 ? apiAds : (pageAds || [])
-  // Totale ads attive del brand (dichiarato dalla Ad Library); fallback al n. caricato
-  const totalActive = apiAds.length > 0
-    ? (adLibrary?.count || apiAds.length)
-    : (pageTotal != null ? pageTotal : ads.length)
+  // Etichetta "ads attive": totale reale se noto, altrimenti "N+" quando si è
+  // raggiunto il limite di caricamento, altrimenti il numero esatto.
+  const nfmt = (n) => Number(n).toLocaleString('it-IT')
+  const realTotal = apiAds.length > 0 ? (adLibrary?.count || null) : pageTotal
+  const headerAdsLabel =
+    realTotal != null && realTotal >= ads.length ? `${nfmt(realTotal)} ads attive`
+    : (pageCapped || ads.length >= 60) ? `${nfmt(ads.length)}+ ads attive`
+    : ads.length > 0 ? `${nfmt(ads.length)} ads attive`
+    : '— ads attive'
+  const sectionAdsLabel =
+    realTotal != null && realTotal > ads.length ? `${nfmt(ads.length)} mostrate · ${nfmt(realTotal)} attive in totale`
+    : (pageCapped || ads.length >= 60) ? `${nfmt(ads.length)} mostrate · ${nfmt(ads.length)}+ attive`
+    : `${nfmt(ads.length)} creative attive`
 
   const sortedProducts = useMemo(() => {
     return [...products]
@@ -502,7 +512,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
               fontWeight: 800,
             }}
           >
-            {totalActive > 0 ? `${totalActive.toLocaleString('it-IT')} ads attive` : '— ads attive'}
+            {headerAdsLabel}
           </span>
           <span
             style={{
@@ -585,7 +595,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 }}
               >
                 <span style={{ fontSize: 13, color: 'var(--text2)' }}>
-                  {totalActive > ads.length ? `${ads.length} mostrate · ${totalActive.toLocaleString('it-IT')} attive in totale` : `${ads.length} creative attive`}
+                  {sectionAdsLabel}
                   {adLibrary?.source === 'scrape' && (
                     <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
                       via Ad Library scrape
@@ -968,6 +978,7 @@ export default function CompetitorIntelTab() {
   const [adQuery, setAdQuery] = useState('')
   const [adResults, setAdResults] = useState(null)
   const [adTotal, setAdTotal] = useState(null)
+  const [adCapped, setAdCapped] = useState(false)
   const [adLoading, setAdLoading] = useState(false)
   const [adError, setAdError] = useState(null)
   const [adLibraryUrl, setAdLibraryUrl] = useState(null)
@@ -985,6 +996,7 @@ export default function CompetitorIntelTab() {
       setAdLibraryUrl(j?.libraryUrl || null)
       setAdResults(Array.isArray(j?.ads) ? j.ads : [])
       setAdTotal(Number.isFinite(j?.total) ? j.total : null)
+      setAdCapped(!!j?.capped)
       if (j?.error && !(j?.ads?.length)) setAdError(j.error)
     } catch (e) {
       setAdError(e?.message || 'Errore di rete')
@@ -1134,7 +1146,9 @@ export default function CompetitorIntelTab() {
                 <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                   {adTotal != null && adTotal > adResults.length
                     ? `${adResults.length} mostrate · ${adTotal.toLocaleString('it-IT')} attive per “${adQuery}” · worldwide`
-                    : `${adResults.length} creative attive per “${adQuery}” · worldwide`}
+                    : (adCapped || adResults.length >= 60)
+                      ? `${adResults.length} mostrate · ${adResults.length}+ per “${adQuery}” · worldwide`
+                      : `${adResults.length} creative attive per “${adQuery}” · worldwide`}
                 </span>
                 {adLibraryUrl && (
                   <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>

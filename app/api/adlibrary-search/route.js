@@ -275,7 +275,7 @@ async function searchViaBrowserless(q, country) {
     // 2° scelta: parsing dell'HTML renderizzato
     if (!ads.length) ads = parseAdsFromHtml(await page.content())
 
-    const finalTotal = Math.max(gqlTotal || 0, total || 0, ads.length)
+    const finalTotal = Math.max(gqlTotal || 0, total || 0) || null
     return { ads, total: finalTotal, source: 'browserless' }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }
@@ -330,13 +330,15 @@ export async function GET(request) {
   }
 
   const ads = result?.ads || []
-  const total = (result?.total != null && result.total >= ads.length) ? result.total : ads.length
+  const total = (result?.total != null && result.total > ads.length) ? result.total : null
+  const capped = ads.length >= 60
   return NextResponse.json({
     query: q,
     country,
     ads,
     count: ads.length,
     total,
+    capped,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (lastErr || 'no_results') : null,
     libraryUrl: libraryUrlFor(q, country),

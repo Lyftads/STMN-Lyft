@@ -9,7 +9,7 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 
-const START_DATE = '2026-01-01'
+const START_DATE = '2025-01-01'
 const WEEKLY_START_DATE = '2025-12-29'
 
 function shopifyAuth() {

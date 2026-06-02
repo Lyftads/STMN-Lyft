@@ -35,7 +35,7 @@ const ratioStatus = r => r==null?'nd':r<1?'bad':r<3?'warn':'ok'
 const ratioColor  = r => ({nd:'#555',bad:'#ef4444',warn:'#f59e0b',ok:'#22c55e'})[ratioStatus(r)]
 const ratioLabel  = r => ({nd:'N/D',bad:'CRITICO',warn:'ATTENZIONE',ok:'OTTIMO'})[ratioStatus(r)]
 
-const MONTHS_START = '2026-01'
+const MONTHS_START = '2025-01'
 
 // Genera settimane dal 29/12/2025 a oggi (lunedì → domenica)
 function getWeeks() {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import AgentMemoryInspector from './AgentMemoryInspector'
 
 // ─────────────────────────────────────────────────────────────
 //  BrandIdentityPanel — sezione di SettingsTab.
@@ -244,6 +245,9 @@ export default function BrandIdentityPanel() {
           onChange={v => setField('competitors', v)}
         />
       </SectionBlock>
+
+      {/* Memorie degli agent — separato dal form principale (read+modify, no save) */}
+      <AgentMemoryInspector />
 
       {/* Save bar */}
       <div style={{

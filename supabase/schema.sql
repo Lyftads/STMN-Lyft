@@ -191,8 +191,12 @@ create policy "agent_memories: delete own"
   on public.agent_memories for delete
   using (auth.uid() = user_id);
 
--- RPC per recall semantico: top-K memorie per (user_id, agent_id) ordinate
--- per similarity al query embedding. Filtra anche per importanza minima.
+-- RPC per recall semantico: top-K memorie per (user_id, agent_id).
+-- Ranking HYBRID: similarity (70%) + importance (20%) + recency (10%).
+-- Cosi' memorie usate spesso o recenti emergono naturalmente.
+--
+-- Filtra: importance >= p_min_imp, embedding non null, role != 'consolidated_into'
+-- (memorie consolidate sono escluse — la sintesi compatta le rimpiazza).
 create or replace function public.recall_agent_memories(
   p_user_id    uuid,
   p_agent_id   text,
@@ -206,20 +210,44 @@ returns table (
   content     text,
   importance  smallint,
   similarity  real,
+  use_count   int,
   created_at  timestamptz
 )
 language sql stable as $$
   select
     m.id, m.role, m.content, m.importance,
     1 - (m.embedding <=> p_query_emb) as similarity,
+    m.use_count,
     m.created_at
   from public.agent_memories m
   where m.user_id = p_user_id
     and m.agent_id = p_agent_id
     and m.importance >= p_min_imp
     and m.embedding is not null
-  order by m.embedding <=> p_query_emb
+    and m.role <> 'consolidated_into'
+  order by
+    (1 - (m.embedding <=> p_query_emb)) * 0.70
+    + (m.importance::float / 10.0) * 0.20
+    + (case
+         when m.last_used_at is null then 0.0
+         when now() - m.last_used_at < interval '7 days'  then 1.0
+         when now() - m.last_used_at < interval '30 days' then 0.5
+         else 0.2
+       end) * 0.10
+    desc
   limit p_limit;
+$$;
+
+-- RPC per tracciare l'uso: increment use_count + last_used_at = now()
+-- per le memorie che il recall ha effettivamente restituito.
+-- Chiamato in fire-and-forget dal codice JS.
+create or replace function public.track_memory_use(p_ids uuid[])
+returns void
+language sql as $$
+  update public.agent_memories
+    set use_count = use_count + 1,
+        last_used_at = now()
+    where id = any(p_ids);
 $$;
 
 -- ============================================================================

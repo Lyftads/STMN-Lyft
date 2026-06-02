@@ -1,0 +1,273 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+
+// ─────────────────────────────────────────────────────────────
+//  AgentMemoryInspector — vista delle memorie agent.
+//  Permette al user di:
+//   - Vedere cosa gli agent hanno imparato
+//   - Modificare importance (priorita' nel recall)
+//   - Cancellare memorie sbagliate / obsolete
+//  Si aggancia come una sezione collassabile dentro BrandIdentityPanel.
+// ─────────────────────────────────────────────────────────────
+
+const ACCENT = '#bf5af2'
+
+const AGENT_LABELS = {
+  'kpi': 'KPI Brain',
+  'mensile': 'Mensile',
+  'quarter': 'Quarter',
+  'year': 'Year',
+  'weekly': 'Weekly',
+  'cro': 'CRO',
+  'creative': 'Creative',
+  'scanner': 'AI Scanner',
+  'simulator': 'Simulatore',
+  'meta-ads': 'Meta Ads',
+  'competitor': 'Competitor',
+  'performance': 'Performance Agent',
+  'auto-scan': 'Briefing Automatico',
+}
+
+const ROLE_TAGS = {
+  preference: { label: 'Preferenza', icon: '⚙️', color: '#2997ff' },
+  fact:       { label: 'Fatto',       icon: '📌', color: '#22c55e' },
+  insight:    { label: 'Insight',     icon: '💡', color: '#f59e0b' },
+  observation:{ label: 'Osservazione',icon: '·',  color: '#86868b' },
+}
+
+export default function AgentMemoryInspector() {
+  const [memories, setMemories] = useState({ byAgent: {}, total: 0 })
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('')
+  const [agentFilter, setAgentFilter] = useState('all')
+
+  const load = useCallback(() => {
+    setLoading(true)
+    fetch('/api/agent-memories?limit=300')
+      .then(r => r.json())
+      .then(j => {
+        if (!j?.error) setMemories(j)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const handleDelete = async (id) => {
+    if (!confirm('Cancellare definitivamente questa memoria?')) return
+    const res = await fetch(`/api/agent-memories?id=${id}`, { method: 'DELETE' })
+    if (res.ok) load()
+  }
+
+  const handleImportance = async (id, importance) => {
+    await fetch(`/api/agent-memories?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ importance }),
+    })
+    load()
+  }
+
+  // Flatten filtered list
+  const allMemories = []
+  for (const agentId of Object.keys(memories.byAgent || {})) {
+    if (agentFilter !== 'all' && agentFilter !== agentId) continue
+    for (const m of memories.byAgent[agentId]) {
+      if (filter && !m.content.toLowerCase().includes(filter.toLowerCase())) continue
+      allMemories.push(m)
+    }
+  }
+
+  const agentIds = Object.keys(memories.byAgent || {})
+
+  return (
+    <div className="glass-card-static" style={{ padding: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+        <span style={{
+          width: 42, height: 42, borderRadius: 12,
+          background: `${ACCENT}20`, color: ACCENT,
+          display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
+          flexShrink: 0,
+        }}>◓</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+            Memorie Agent
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+            {memories.total} memorie apprese
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+            Quello che i tuoi agent hanno imparato dalle conversazioni e dai dati live. Puoi modificare priorità o cancellare quelle sbagliate — al prossimo recall non verranno usate.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={load}
+          style={{
+            padding: '8px 14px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ↻ Refresh
+        </button>
+      </div>
+
+      {/* Filtri */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        <select
+          value={agentFilter}
+          onChange={e => setAgentFilter(e.target.value)}
+          style={{
+            padding: '10px 12px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#fff', fontSize: 12.5, fontWeight: 600,
+            outline: 'none', cursor: 'pointer', minWidth: 180,
+          }}
+        >
+          <option value="all">Tutti gli agent ({memories.total})</option>
+          {agentIds.map(a => (
+            <option key={a} value={a}>
+              {AGENT_LABELS[a] || a} ({memories.byAgent[a].length})
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder="Cerca nel testo..."
+          style={{
+            flex: 1, minWidth: 200,
+            padding: '10px 12px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#fff', fontSize: 12.5,
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {/* Lista */}
+      {loading ? (
+        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '40px 0', fontSize: 13 }}>
+          Caricamento memorie…
+        </div>
+      ) : allMemories.length === 0 ? (
+        <div style={{
+          color: 'var(--text4, #555)', textAlign: 'center', padding: '40px 0',
+          fontSize: 13, fontStyle: 'italic',
+        }}>
+          Nessuna memoria{filter ? ' corrispondente al filtro' : ' ancora — usa gli agent per iniziare a costruire knowledge'}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 600, overflowY: 'auto' }}>
+          {allMemories.map(m => (
+            <MemoryRow
+              key={m.id}
+              memory={m}
+              onDelete={() => handleDelete(m.id)}
+              onImportanceChange={imp => handleImportance(m.id, imp)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MemoryRow({ memory, onDelete, onImportanceChange }) {
+  const tag = ROLE_TAGS[memory.role] || ROLE_TAGS.observation
+  const agentLabel = AGENT_LABELS[memory.agent_id] || memory.agent_id
+
+  const created = new Date(memory.created_at)
+  const dateStr = created.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+
+  const isAutoScan = memory.source === 'cron-scan'
+  const isConsolidated = memory.source === 'consolidated'
+
+  return (
+    <div className="glass-panel" style={{
+      borderRadius: 12, padding: 14,
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '3px 8px', borderRadius: 6,
+          background: `${tag.color}1f`, border: `1px solid ${tag.color}66`,
+          fontSize: 10, color: tag.color, fontWeight: 700, textTransform: 'uppercase',
+        }}>
+          {tag.icon} {tag.label}
+        </span>
+        <span style={{
+          fontSize: 10, color: 'var(--text4, #666)', fontWeight: 600,
+          padding: '3px 8px', borderRadius: 6,
+          background: 'rgba(255,255,255,0.04)',
+        }}>
+          {agentLabel}
+        </span>
+        {isAutoScan && (
+          <span style={{
+            fontSize: 9.5, color: '#22c55e', fontWeight: 700,
+            padding: '3px 8px', borderRadius: 6,
+            background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)',
+          }}>
+            ◐ Auto-scan
+          </span>
+        )}
+        {isConsolidated && (
+          <span style={{
+            fontSize: 9.5, color: '#f59e0b', fontWeight: 700,
+            padding: '3px 8px', borderRadius: 6,
+            background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)',
+          }}>
+            ⊛ Sintesi
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: 10, color: 'var(--text4, #666)' }}>
+          {dateStr} · usata {memory.use_count || 0}×
+        </span>
+      </div>
+
+      <div style={{ fontSize: 13, color: '#fff', lineHeight: 1.45 }}>
+        {memory.content}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+        <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>Priorità:</span>
+        <input
+          type="range"
+          min={1} max={10} step={1}
+          value={memory.importance}
+          onChange={e => onImportanceChange(parseInt(e.target.value, 10))}
+          style={{ flex: 1, maxWidth: 160, accentColor: ACCENT }}
+        />
+        <span style={{
+          fontSize: 11, color: '#fff', fontWeight: 700,
+          minWidth: 24, textAlign: 'center',
+        }}>
+          {memory.importance}
+        </span>
+        <button
+          type="button"
+          onClick={onDelete}
+          style={{
+            padding: '5px 10px', borderRadius: 8,
+            background: 'transparent',
+            border: '1px solid rgba(248,113,113,0.30)',
+            color: '#f87171', fontSize: 10, fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Elimina
+        </button>
+      </div>
+    </div>
+  )
+}

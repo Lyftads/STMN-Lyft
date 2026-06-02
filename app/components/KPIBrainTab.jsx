@@ -491,9 +491,9 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 const deltaPct = prev.revenue > 0 ? (deltaRev / prev.revenue) * 100 : null
                 const isNew = prev.revenue === 0 && row.revenue > 0
                 const up = deltaRev > 0
-                const deltaColor = isNew ? '#a5b4fc' : up ? '#86efac' : deltaRev < 0 ? '#fca5a5' : 'var(--text3)'
-                const deltaBg = isNew ? 'rgba(99,102,241,0.12)' : up ? 'rgba(34,197,94,0.10)' : deltaRev < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.03)'
-                const deltaBorder = isNew ? 'rgba(99,102,241,0.30)' : up ? 'rgba(34,197,94,0.25)' : deltaRev < 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'
+                const topDeltaColor = isNew ? '#a5b4fc' : up ? '#86efac' : deltaRev < 0 ? '#fca5a5' : 'var(--text3)'
+                const topDeltaBg = isNew ? 'rgba(99,102,241,0.12)' : up ? 'rgba(34,197,94,0.10)' : deltaRev < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.03)'
+                const topDeltaBorder = isNew ? 'rgba(99,102,241,0.30)' : up ? 'rgba(34,197,94,0.25)' : deltaRev < 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'
                 const hasSegmentData = row.ncOrders > 0 || row.rcOrders > 0 || prev.ncOrders > 0 || prev.rcOrders > 0
                 return (
                   <div
@@ -542,11 +542,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                         minWidth:96,
                         padding:'6px 10px',
                         borderRadius:9,
-                        background:deltaBg,
-                        border:`1px solid ${deltaBorder}`,
+                        background:topDeltaBg,
+                        border:`1px solid ${topDeltaBorder}`,
                         boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)',
                       }}>
-                        <div style={{fontSize:12,fontWeight:900,color:deltaColor,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end',lineHeight:1.1}}>
+                        <div style={{fontSize:12,fontWeight:900,color:topDeltaColor,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end',lineHeight:1.1}}>
                           {isNew ? 'NEW' : (
                             <>
                               <span style={{fontSize:10,opacity:0.85}}>{up ? '▲' : deltaRev < 0 ? '▼' : '–'}</span>
@@ -554,10 +554,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                             </>
                           )}
                         </div>
-                        <div style={{fontSize:10,fontWeight:800,color:deltaColor,opacity:0.85,marginTop:2}}>
+                        <div style={{fontSize:10,fontWeight:800,color:topDeltaColor,opacity:0.85,marginTop:2}}>
                           {isNew ? money(row.revenue) : (deltaRev !== 0 ? (deltaRev > 0 ? `+€${Math.round(deltaRev).toLocaleString('it-IT')}` : `-€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT')}`) : '€0')}
                         </div>
-                        <div style={{fontSize:8.5,color:deltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
+                        <div style={{fontSize:8.5,color:topDeltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
                       </div>
                       <div style={{
                         textAlign:'right',

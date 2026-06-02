@@ -412,13 +412,57 @@ function Styles() {
   return (
     <style>{`
       @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes zoomIn { from { opacity: 0; transform: scale(0.85) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       @keyframes pulseDot { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
       @keyframes shineFlow { 0% { background-position: 200% 50%; } 100% { background-position: -200% 50%; } }
       @keyframes barRise { from { transform: scaleY(0); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
       @keyframes lineDraw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
-      @keyframes glowOrb { 0%, 100% { transform: translate(0,0) scale(1); opacity: 0.6; } 50% { transform: translate(20px,-20px) scale(1.1); opacity: 1; } }
-      .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1); }
+
+      /* Orbs di sfondo che vagano lentamente — effetto futurista */
+      @keyframes orbDrift1 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        25%      { transform: translate(15vw, -8vh) scale(1.15); }
+        50%      { transform: translate(8vw, 12vh) scale(0.95); }
+        75%      { transform: translate(-10vw, 5vh) scale(1.05); }
+      }
+      @keyframes orbDrift2 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33%      { transform: translate(-12vw, 10vh) scale(1.2); }
+        66%      { transform: translate(14vw, -6vh) scale(0.9); }
+      }
+      @keyframes orbDrift3 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50%      { transform: translate(20vw, -15vh) scale(1.3); }
+      }
+      @keyframes gridShift { 0% { background-position: 0 0; } 100% { background-position: 80px 80px; } }
+
+      /* Logo */
+      @keyframes logoSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes logoGlow {
+        0%, 100% { filter: drop-shadow(0 0 18px ${ACCENT}88) drop-shadow(0 0 50px ${BLUE}55); }
+        50%      { filter: drop-shadow(0 0 30px ${ACCENT}aa) drop-shadow(0 0 70px ${BLUE}77); }
+      }
+
+      /* Reveal variants */
+      .reveal { opacity: 0; transform: translateY(40px); transition: opacity 1s cubic-bezier(0.16,1,0.3,1), transform 1s cubic-bezier(0.16,1,0.3,1); }
       .reveal.in { opacity: 1; transform: translateY(0); }
+      .reveal-zoom { opacity: 0; transform: scale(0.85); transition: opacity 1s cubic-bezier(0.16,1,0.3,1), transform 1s cubic-bezier(0.16,1,0.3,1); }
+      .reveal-zoom.in { opacity: 1; transform: scale(1); }
+      .reveal-blur { opacity: 0; filter: blur(14px); transform: translateY(20px); transition: opacity 1.1s, filter 1.1s, transform 1.1s; }
+      .reveal-blur.in { opacity: 1; filter: blur(0); transform: translateY(0); }
+
+      /* Parallax — JS-driven via CSS var */
+      .parallax-slow { transform: translateY(calc(var(--scrollY, 0) * -0.15px)); will-change: transform; }
+      .parallax-mid  { transform: translateY(calc(var(--scrollY, 0) * -0.30px)); will-change: transform; }
+      .parallax-fast { transform: translateY(calc(var(--scrollY, 0) * -0.50px)); will-change: transform; }
+
+      /* Hero scroll-driven scale + opacity */
+      .hero-scale {
+        transform: scale(var(--heroScale, 1)) translateY(calc(var(--scrollY, 0) * -0.20px));
+        opacity: var(--heroOpacity, 1);
+        will-change: transform, opacity;
+      }
+
       .shine-text {
         background: linear-gradient(90deg, #fff 0%, ${ACCENT} 35%, ${BLUE} 65%, #fff 100%);
         background-size: 200% 100%;
@@ -434,31 +478,79 @@ function Styles() {
         mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
         -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
         pointer-events: none;
+        animation: gridShift 60s linear infinite;
       }
       .cta-btn { transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s; }
-      .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 30px 70px rgba(191,90,242,0.42); }
+      .cta-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 35px 80px rgba(191,90,242,0.50); }
+
+      .logo-mark-outer { animation: logoGlow 4s ease-in-out infinite; }
+      .logo-ring { animation: logoSpin 20s linear infinite; transform-origin: center; transform-box: fill-box; }
+
       html { scroll-behavior: smooth; }
     `}</style>
   )
 }
 
 function BgFx() {
+  // Mouse parallax: il background reagisce leggermente al movimento del cursore
+  const wrapRef = useRef(null)
+  useEffect(() => {
+    const onMove = (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 2
+      const y = (e.clientY / window.innerHeight - 0.5) * 2
+      if (wrapRef.current) {
+        wrapRef.current.style.setProperty('--mx', `${x * 20}px`)
+        wrapRef.current.style.setProperty('--my', `${y * 20}px`)
+      }
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [])
+
   return (
-    <>
+    <div ref={wrapRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      {/* Solid black base */}
+      <div style={{ position: 'absolute', inset: 0, background: '#000' }} />
+
+      {/* Orbs floating — 3 con animazioni indipendenti */}
       <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-        background: `
-          radial-gradient(circle at 20% 10%, rgba(191,90,242,0.22), transparent 40%),
-          radial-gradient(circle at 80% 60%, rgba(41,151,255,0.18), transparent 45%),
-          radial-gradient(circle at 50% 100%, rgba(34,197,94,0.08), transparent 50%)
-        `,
+        position: 'absolute', top: '-10%', left: '5%',
+        width: 600, height: 600, borderRadius: '50%',
+        background: `radial-gradient(circle, ${ACCENT}55, ${ACCENT}11 40%, transparent 70%)`,
+        filter: 'blur(40px)',
+        animation: 'orbDrift1 28s ease-in-out infinite',
+        transform: 'translate(var(--mx, 0), var(--my, 0))',
       }} />
-      <div className="grid-bg" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
-    </>
+      <div style={{
+        position: 'absolute', bottom: '-15%', right: '0%',
+        width: 700, height: 700, borderRadius: '50%',
+        background: `radial-gradient(circle, ${BLUE}55, ${BLUE}11 40%, transparent 70%)`,
+        filter: 'blur(40px)',
+        animation: 'orbDrift2 34s ease-in-out infinite',
+        transform: 'translate(calc(var(--mx, 0) * -1), calc(var(--my, 0) * -1))',
+      }} />
+      <div style={{
+        position: 'absolute', top: '40%', left: '50%',
+        width: 500, height: 500, borderRadius: '50%',
+        background: `radial-gradient(circle, ${GREEN}33, transparent 70%)`,
+        filter: 'blur(50px)',
+        animation: 'orbDrift3 40s ease-in-out infinite',
+        transform: 'translate(calc(var(--mx, 0) * 0.5), var(--my, 0))',
+      }} />
+
+      {/* Grid overlay con shift animation */}
+      <div className="grid-bg" style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Vignette nei bordi */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)',
+      }} />
+    </div>
   )
 }
 
-function Reveal({ children, delay = 0, style }) {
+function Reveal({ children, delay = 0, style, variant = '' }) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
   useEffect(() => {
@@ -470,9 +562,58 @@ function Reveal({ children, delay = 0, style }) {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+  const baseClass = variant === 'zoom' ? 'reveal-zoom' : variant === 'blur' ? 'reveal-blur' : 'reveal'
   return (
-    <div ref={ref} className={`reveal ${visible ? 'in' : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
+    <div ref={ref} className={`${baseClass} ${visible ? 'in' : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Logo Mark — SVG vettoriale animato
+// ─────────────────────────────────────────────────────────────
+function LogoMark({ size = 80 }) {
+  return (
+    <div className="logo-mark-outer" style={{ width: size, height: size, position: 'relative' }}>
+      <svg viewBox="0 0 100 100" width={size} height={size}>
+        <defs>
+          <linearGradient id="logo-grad-main" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={ACCENT} />
+            <stop offset="100%" stopColor={BLUE} />
+          </linearGradient>
+          <linearGradient id="logo-grad-light" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#fff" stopOpacity="0.3" />
+          </linearGradient>
+        </defs>
+
+        {/* Anello esterno rotante */}
+        <g className="logo-ring">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="url(#logo-grad-main)" strokeWidth="2"
+                  strokeDasharray="60 8 30 8" opacity="0.7" />
+        </g>
+
+        {/* Quadrato principale rotato (rombo) */}
+        <g transform="translate(50 50)">
+          <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)"
+                fill="url(#logo-grad-main)" opacity="0.95" />
+          {/* Highlight superiore */}
+          <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)"
+                fill="url(#logo-grad-light)" opacity="0.18" />
+        </g>
+
+        {/* "L" stilizzata al centro */}
+        <g transform="translate(50 50)" fill="#fff">
+          <rect x="-9" y="-14" width="5" height="28" rx="2" />
+          <rect x="-9" y="9" width="18" height="5" rx="2" />
+        </g>
+
+        {/* Punto accent (segno di "vita") */}
+        <circle cx="78" cy="22" r="3" fill={GREEN}>
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+        </circle>
+      </svg>
     </div>
   )
 }
@@ -500,11 +641,7 @@ function Nav({ t, lang, setLang }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <Link href="/welcome" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: `linear-gradient(135deg, ${ACCENT}, ${BLUE})`,
-            animation: 'pulseDot 4s ease-in-out infinite',
-          }} />
+          <LogoMark size={32} />
           <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: '-0.02em', color: '#fff' }}>LyftAI</span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -564,55 +701,104 @@ const navLinkStyle = { color: 'rgba(255,255,255,0.65)', textDecoration: 'none', 
 //  Hero — Apple-style massiccio
 // ─────────────────────────────────────────────────────────────
 function Hero({ t }) {
+  // Scroll-driven scale + parallax sul titolo Hero
+  const heroRef = useRef(null)
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY
+      if (!heroRef.current) return
+      // Scale: 1 fino a 0px, scende a 0.85 a 600px
+      const scale = Math.max(0.85, 1 - y / 4000)
+      const opacity = Math.max(0, 1 - y / 600)
+      heroRef.current.style.setProperty('--scrollY', String(y))
+      heroRef.current.style.setProperty('--heroScale', String(scale))
+      heroRef.current.style.setProperty('--heroOpacity', String(opacity))
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <section style={{
-      minHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: '60px 24px 80px', textAlign: 'center', position: 'relative',
+    <section ref={heroRef} style={{
+      minHeight: '95vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 24px 80px', textAlign: 'center', position: 'relative',
     }}>
-      <Reveal>
+      <div className="hero-scale" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Logo gigante animato in alto */}
+        <Reveal variant="zoom">
+          <div style={{ marginBottom: 28 }}>
+            <LogoMark size={104} />
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '8px 18px', borderRadius: 999,
+            background: `linear-gradient(90deg, ${GREEN}22, ${ACCENT}18)`,
+            border: `1px solid ${GREEN}55`,
+            fontSize: 12, fontWeight: 800, color: '#fff',
+            letterSpacing: '0.10em', textTransform: 'uppercase',
+            marginBottom: 32,
+            boxShadow: `0 10px 40px ${GREEN}22`,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: GREEN, animation: 'pulseDot 2s infinite' }} />
+            {t.hero.badge}
+          </div>
+        </Reveal>
+
+        <Reveal variant="blur" delay={150}>
+          <h1 style={{
+            fontSize: 'clamp(48px, 9vw, 120px)',
+            fontWeight: 900, letterSpacing: '-0.055em', lineHeight: 0.95,
+            margin: 0, marginBottom: 28, maxWidth: 1100,
+          }}>
+            <span className="shine-text">{t.hero.title1}</span><br />
+            <span style={{ color: 'rgba(255,255,255,0.95)' }}>{t.hero.title2}</span>
+          </h1>
+        </Reveal>
+
+        <Reveal delay={300}>
+          <p style={{
+            fontSize: 'clamp(17px, 1.7vw, 22px)',
+            color: 'rgba(255,255,255,0.7)', lineHeight: 1.5,
+            maxWidth: 780, margin: '0 auto 44px',
+          }}>{t.hero.subtitle}</p>
+        </Reveal>
+
+        <Reveal variant="zoom" delay={450}>
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/register" className="cta-btn" style={primaryCta}>{t.hero.ctaPrimary} →</Link>
+            <a href="#tabs-tour" style={secondaryCta}>{t.hero.ctaSecondary}</a>
+          </div>
+          <div style={{
+            marginTop: 32, fontSize: 12.5, color: 'rgba(255,255,255,0.5)',
+            display: 'flex', justifyContent: 'center', gap: 22, flexWrap: 'wrap',
+          }}>
+            {t.hero.perks.map((p, i) => <span key={i}>✓ {p}</span>)}
+          </div>
+        </Reveal>
+      </div>
+
+      {/* Scroll indicator */}
+      <div style={{
+        position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+        opacity: 0.5, animation: 'pulseDot 2.5s infinite',
+      }}>
+        <div style={{ fontSize: 10, color: '#fff', letterSpacing: '0.20em', textTransform: 'uppercase', fontWeight: 700 }}>Scroll</div>
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '8px 18px', borderRadius: 999,
-          background: `linear-gradient(90deg, ${GREEN}22, ${ACCENT}18)`,
-          border: `1px solid ${GREEN}55`,
-          fontSize: 12, fontWeight: 800, color: '#fff',
-          letterSpacing: '0.10em', textTransform: 'uppercase',
-          marginBottom: 36,
-          boxShadow: `0 10px 40px ${GREEN}22`,
+          width: 22, height: 36, borderRadius: 11,
+          border: '1.5px solid rgba(255,255,255,0.30)',
+          display: 'grid', placeItems: 'center',
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: GREEN, animation: 'pulseDot 2s infinite' }} />
-          {t.hero.badge}
+          <div style={{
+            width: 3, height: 8, borderRadius: 2, background: '#fff',
+            animation: 'fadeUp 1.5s ease-in-out infinite',
+          }} />
         </div>
-      </Reveal>
-      <Reveal delay={150}>
-        <h1 style={{
-          fontSize: 'clamp(48px, 9vw, 120px)',
-          fontWeight: 900, letterSpacing: '-0.055em', lineHeight: 0.95,
-          margin: 0, marginBottom: 28, maxWidth: 1100,
-        }}>
-          <span className="shine-text">{t.hero.title1}</span><br />
-          <span style={{ color: 'rgba(255,255,255,0.95)' }}>{t.hero.title2}</span>
-        </h1>
-      </Reveal>
-      <Reveal delay={300}>
-        <p style={{
-          fontSize: 'clamp(17px, 1.7vw, 22px)',
-          color: 'rgba(255,255,255,0.7)', lineHeight: 1.5,
-          maxWidth: 780, margin: '0 auto 44px',
-        }}>{t.hero.subtitle}</p>
-      </Reveal>
-      <Reveal delay={450}>
-        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/register" className="cta-btn" style={primaryCta}>{t.hero.ctaPrimary} →</Link>
-          <a href="#tabs-tour" style={secondaryCta}>{t.hero.ctaSecondary}</a>
-        </div>
-        <div style={{
-          marginTop: 32, fontSize: 12.5, color: 'rgba(255,255,255,0.5)',
-          display: 'flex', justifyContent: 'center', gap: 22, flexWrap: 'wrap',
-        }}>
-          {t.hero.perks.map((p, i) => <span key={i}>✓ {p}</span>)}
-        </div>
-      </Reveal>
+      </div>
     </section>
   )
 }
@@ -1227,22 +1413,65 @@ function SectionHeader({ eyebrow, title }) {
 function Footer({ t }) {
   return (
     <footer style={{
-      maxWidth: 1200, margin: '0 auto', padding: '40px 24px 60px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      flexWrap: 'wrap', gap: 16, borderTop: '1px solid rgba(255,255,255,0.06)',
+      maxWidth: 1200, margin: '0 auto', padding: '50px 24px 50px',
+      borderTop: '1px solid rgba(255,255,255,0.06)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ width: 24, height: 24, borderRadius: 6, background: `linear-gradient(135deg, ${ACCENT}, ${BLUE})` }} />
-        <span style={{ fontSize: 13, fontWeight: 800 }}>LyftAI</span>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 10 }}>
-          © {new Date().getFullYear()} — {t.footer.tagline}
-        </span>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gap: 30, marginBottom: 30,
+      }}>
+        {/* Brand */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <LogoMark size={32} />
+            <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-0.02em' }}>LyftAI</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+            {t.footer.tagline}
+          </div>
+        </div>
+
+        {/* Dati aziendali */}
+        <div>
+          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+            Dati aziendali
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7 }}>
+            <div style={{ color: '#fff', fontWeight: 700 }}>LYFT SRL</div>
+            <div>Via Corso Giuseppe Mazzini 223</div>
+            <div>San Benedetto del Tronto (AP) 63074</div>
+            <div style={{ marginTop: 4 }}>P. IVA: 02600730440</div>
+          </div>
+        </div>
+
+        {/* Link */}
+        <div>
+          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+            Link
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+            <a href="#features" style={footerLinkStyle}>{t.nav.features}</a>
+            <a href="#pricing" style={footerLinkStyle}>{t.nav.pricing}</a>
+            <a href="#contact" style={footerLinkStyle}>{t.nav.contact}</a>
+            <Link href="/login" style={footerLinkStyle}>{t.nav.login}</Link>
+            <Link href="/register" style={footerLinkStyle}>{t.nav.cta}</Link>
+          </div>
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-        <Link href="/login" style={{ color: 'inherit', textDecoration: 'none' }}>{t.nav.login}</Link>
-        <Link href="/register" style={{ color: 'inherit', textDecoration: 'none' }}>{t.nav.cta}</Link>
-        <a href="#contact" style={{ color: 'inherit', textDecoration: 'none' }}>{t.nav.contact}</a>
+
+      <div style={{
+        paddingTop: 22,
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12,
+        fontSize: 11, color: 'rgba(255,255,255,0.4)',
+      }}>
+        <div>© {new Date().getFullYear()} LYFT SRL — Tutti i diritti riservati</div>
+        <div>Made with ✦ in Italia</div>
       </div>
     </footer>
   )
+}
+const footerLinkStyle = {
+  color: 'rgba(255,255,255,0.6)', textDecoration: 'none', transition: 'color .15s',
 }

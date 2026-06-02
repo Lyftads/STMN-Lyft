@@ -684,32 +684,11 @@ async function fetchShopifySalesRange(start, end) {
     }
   }
 
-  // ShopifyQL e' la fonte di verita' e combacia ESATTAMENTE col report Shopify
-  // (orders_first_time / orders_returning + total_sales gia' al netto dei resi):
-  // lo usiamo per tutti i periodi consolidati (>=14gg, mesi, trimestri, anni).
-  //
-  // Solo per le finestre RECENTI e PICCOLE (oggi, ieri, ultimi 7 giorni) ShopifyQL
-  // non ha ancora consolidato la classificazione new/returning (job notturno):
-  // i totali possono esserci ma nc/rc restano 0. Per queste usiamo l'Admin GraphQL
-  // real-time (NC/RC via numberOfOrders), che e' anche l'unico dato disponibile —
-  // il report Shopify stesso e' vuoto su quei giorni.
-  // NB: <=10 giorni isola esattamente today/yesterday/last_7d e il mese corrente
-  // appena iniziato, senza mai toccare il mese scorso gia' consolidato.
-  const endsRecently =
-    Date.now() - new Date(`${end}T23:59:59Z`).getTime() < 9 * 86400000
-  const windowDays =
-    Math.round(
-      (new Date(`${end}T00:00:00Z`).getTime() -
-        new Date(`${start}T00:00:00Z`).getTime()) /
-        86400000
-    ) + 1
-  if (endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
-    const admin = await fetchShopifyOrdersAdminGQL(start, end)
-    if (admin && admin.ordini > 0 && admin.ordini >= (ordini || 0)) {
-      return admin
-    }
-  }
-
+  // NB: questa funzione restituisce SEMPRE i dati ShopifyQL (total_sales, gia'
+  // al netto dei resi, IVA/spedizione incluse) — coerente col report Shopify.
+  // L'eventuale override real-time per le finestre piccole e recenti vive in
+  // safeShopifyRange, cosi' tocca SOLO le card KPI e non Weekly/Monthly (che
+  // restano interamente su ShopifyQL).
   return {
     fatturato: roundMoney(fatturato),
     resi: roundMoney(resi),
@@ -1405,9 +1384,25 @@ async function safeShopifyRange(range) {
 
   let sales = salesQL
 
-  // La classificazione real-time NC/RC sui giorni recenti e' gestita dentro
-  // fetchShopifySalesRange (via Admin GraphQL), quindi salesQL e' gia' corretto
-  // per range/settimane/mesi recenti. Qui niente fallback extra.
+  // Override real-time SOLO per le card KPI su finestre piccole e recenti
+  // (oggi, ieri, ultimi 7 giorni, mese corrente appena iniziato): qui ShopifyQL
+  // non ha ancora consolidato la classificazione new/returning (job notturno),
+  // quindi usiamo l'Admin GraphQL (NC/RC via numberOfOrders, real-time). Questo
+  // NON tocca Weekly/Monthly, che restano interamente su ShopifyQL total_sales.
+  const endsRecently =
+    Date.now() - new Date(`${range.until}T23:59:59Z`).getTime() < 9 * 86400000
+  const windowDays =
+    Math.round(
+      (new Date(`${range.until}T00:00:00Z`).getTime() -
+        new Date(`${range.since}T00:00:00Z`).getTime()) /
+        86400000
+    ) + 1
+  if (endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+    const admin = await fetchShopifyOrdersAdminGQL(range.since, range.until)
+    if (admin && admin.ordini > 0 && admin.ordini >= (salesQL?.ordini || 0)) {
+      sales = admin
+    }
+  }
 
   if (!sales) {
     sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }

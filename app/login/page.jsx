@@ -1,12 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { AuthShell, AuthInput, AuthButton, AuthError } from '../components/AuthShell'
 
 export default function LoginPage() {
+  // useSearchParams richiede una Suspense boundary in Next 14 SSG
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
   const search = useSearchParams()
   const nextUrl = search.get('next') || '/'

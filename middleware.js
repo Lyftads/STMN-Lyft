@@ -50,12 +50,23 @@ export async function middleware(request) {
   // Altrimenti la sessione non viene refreshata correttamente.
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Helper: crea redirect preservando i cookie refreshati dalla session.
+  // Senza questo, se supabase/ssr ha appena refreshato l'access_token,
+  // il refresh va perso e l'utente viene rimandato al login.
+  const redirectWithCookies = (url) => {
+    const r = NextResponse.redirect(url)
+    response.cookies.getAll().forEach(c => {
+      r.cookies.set(c.name, c.value, c)
+    })
+    return r
+  }
+
   // Se non autenticato e route protetta → redirect a /login
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
-    redirectUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(redirectUrl)
+    redirectUrl.searchParams.set('next', pathname + (request.nextUrl.search || ''))
+    return redirectWithCookies(redirectUrl)
   }
 
   // Se gia' autenticato e cerca /login o /register → redirect alla dashboard
@@ -63,7 +74,7 @@ export async function middleware(request) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/'
     redirectUrl.search = ''
-    return NextResponse.redirect(redirectUrl)
+    return redirectWithCookies(redirectUrl)
   }
 
   return response

@@ -45,10 +45,13 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Nessun cliente Stripe associato. Completa prima un checkout.' }, { status: 400 })
   }
 
+  // Origin per return_url — usa dominio della richiesta attuale per
+  // mantenere la sessione cookie-based (vedi checkout per dettagli)
   const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
     req.headers.get('origin') ||
-    'https://stmn-lyft.vercel.app'
+    (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://lyftai.io'
 
   const stripe = new Stripe(secret, { apiVersion: '2024-06-20' })
 

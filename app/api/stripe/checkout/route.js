@@ -39,12 +39,16 @@ export async function POST(req) {
   const planId = body?.planId
   const mode = body?.mode === 'setup' ? 'setup' : 'subscription'
 
-  // Origin per success/cancel — preferisce env var, altrimenti header origin
+  // Origin per success/cancel — IMPORTANTE: usa il dominio della richiesta
+  // attuale, non NEXT_PUBLIC_APP_URL hardcoded. Altrimenti se l'utente fa
+  // checkout da stmn-lyft.vercel.app e poi viene redirezionato su lyftai.io,
+  // i cookie di Supabase non lo seguono (cookie scope per dominio) → bounce
+  // al login dopo Stripe.
   const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
     req.headers.get('origin') ||
-    req.headers.get('referer')?.replace(/\/[^/]*$/, '') ||
-    'https://stmn-lyft.vercel.app'
+    (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://lyftai.io'
 
   const stripe = new Stripe(secret, { apiVersion: '2024-06-20' })
 

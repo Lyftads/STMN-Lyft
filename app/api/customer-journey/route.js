@@ -357,6 +357,15 @@ async function ga4RunReport(token, propertyId, body) {
   return res.json()
 }
 
+async function getTokenUserEmail(token) {
+  try {
+    const r = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(token)}`)
+    if (!r.ok) return null
+    const j = await r.json()
+    return j?.email || null
+  } catch { return null }
+}
+
 async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
   const propertyId = envTrim('GA4_PROPERTY_ID')
   if (!propertyId) {
@@ -364,6 +373,8 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
   }
   const token = await getGA4AccessToken()
   if (!token) return { configured: false, reason: 'Auth GA4 fallito: service account non valido E nessun OAuth refresh_token disponibile' }
+  // Diagnostico: scopri chi e' davvero questo token (caso OAuth)
+  const tokenEmail = await getTokenUserEmail(token)
 
   // GA4 Data API accetta YYYY-MM-DD, non YYYYMMDD. Converti.
   const toIso = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
@@ -386,7 +397,7 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
         }),
       ])
     } catch (e) {
-      return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId}` }
+      return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'}` }
     }
     const totalSessions = parseFloat(totalRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
     const nodes = (landingRep?.rows || []).map(r => ({
@@ -448,7 +459,7 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
       }),
     ])
   } catch (e) {
-    return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId}` }
+    return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'}` }
   }
 
   const parentSessions = parseFloat(parentRep?.rows?.[0]?.metricValues?.[0]?.value || '0')

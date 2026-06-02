@@ -42,10 +42,11 @@ const ChartTip = ({ active, payload, label }) => {
   )
 }
 
-// ── Shared styles (allineati a KPI Brain) ────────────────────
-const sectionStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 22, padding: 24, marginBottom: 24 }
-const cardStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, minWidth: 0 }
-const panelStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 24px' }
+// ── Shared styles (vetro nero — lo sfondo nero arriva dalle classi
+//    .glass-section / .glass-card / .glass-panel, niente background/border inline) ──
+const sectionStyle = { borderRadius: 22, padding: 24, marginBottom: 24 }
+const cardStyle = { borderRadius: 16, padding: 20, minWidth: 0 }
+const panelStyle = { borderRadius: 18, padding: '20px 24px' }
 
 function Section({ title, subtitle, color = '#8b5cf6', children, style }) {
   return (
@@ -169,7 +170,7 @@ export default function KlaviyoTab() {
       {data.revenueBreakdown && (
         <Section title="Revenue Breakdown — Campagne vs Flussi" color="#22c55e">
           <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="glass-card" style={panelStyle}>
+            <div className="glass-panel" style={panelStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#ec4899' }}>Campagne</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.campaigns?.total)}</span>
@@ -186,7 +187,7 @@ export default function KlaviyoTab() {
               ))}
             </div>
 
-            <div className="glass-card" style={panelStyle}>
+            <div className="glass-panel" style={panelStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#f6b73c' }}>Flussi</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.flows?.total)}</span>
@@ -224,7 +225,7 @@ export default function KlaviyoTab() {
           ))}
         </div>
 
-        <div className="glass-card" style={{ ...panelStyle, padding: 20 }}>
+        <div className="glass-panel" style={{ ...panelStyle, padding: 20 }}>
           <ResponsiveContainer width="100%" height={260}>
             {chartTab === 'revenue' ? (
               <LineChart data={chartData}>
@@ -272,7 +273,7 @@ export default function KlaviyoTab() {
           ))}
         </div>
 
-        <div className="glass-card" style={{ ...panelStyle, padding: 0, overflow: 'hidden' }}>
+        <div className="glass-panel" style={{ ...panelStyle, padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -323,7 +324,7 @@ export default function KlaviyoTab() {
       {/* Segmenti & Liste */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <Section title="Segmenti" color="#06b6d4" style={{ marginBottom: 0 }}>
-          <div className="glass-card" style={{ ...panelStyle, padding: 16 }}>
+          <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
             {(segments || []).map((s, i) => (
               <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center' }}>
                 <StatusDot active={s.isActive} />
@@ -333,7 +334,7 @@ export default function KlaviyoTab() {
           </div>
         </Section>
         <Section title="Liste" color="#a855f7" style={{ marginBottom: 0 }}>
-          <div className="glass-card" style={{ ...panelStyle, padding: 16 }}>
+          <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
             {(lists || []).map((l, i) => (
               <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{l.name}</span>

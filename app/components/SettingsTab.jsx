@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+
+const CUSTOMER_KEY = 'stmn-lyft.stripeCustomerId'
 
 const ACCENT = '#bf5af2'
 
@@ -96,11 +98,6 @@ const FEATURE_MATRIX = [
   { feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato' },
 ]
 
-const INVOICES = [
-  { date: '28/12/2025', amount: '€997,00', status: 'Paid' },
-  { date: '28/06/2025', amount: '€997,00', status: 'Paid' },
-  { date: '28/12/2024', amount: '€997,00', status: 'Paid' },
-]
 
 // ── Reusable black glass 3D card ──────────────────────────────────
 function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
@@ -160,6 +157,48 @@ async function startStripeCheckout({ planId, mode, setError, setLoading }) {
     setError?.(e?.message || 'Errore di rete')
     setLoading?.(false)
   }
+}
+
+// Helper: apre Customer Portal Stripe (cambio piano, cancella, fatture)
+async function openCustomerPortal({ customerId, setError, setLoading }) {
+  if (!customerId) {
+    setError?.('Nessun customer associato. Completa prima un checkout.')
+    return
+  }
+  try {
+    setLoading?.(true)
+    setError?.(null)
+    const r = await fetch('/api/stripe/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId }),
+    })
+    const j = await r.json()
+    if (!r.ok || !j?.url) {
+      setError?.([j?.error, j?.hint].filter(Boolean).join(' — ') || `Errore ${r.status}`)
+      setLoading?.(false)
+      return
+    }
+    window.location.href = j.url
+  } catch (e) {
+    setError?.(e?.message || 'Errore di rete')
+    setLoading?.(false)
+  }
+}
+
+// Mappa brand Stripe → label leggibile (per il display saved card)
+function brandLabel(brand) {
+  const m = {
+    visa: 'VISA',
+    mastercard: 'MASTERCARD',
+    amex: 'AMEX',
+    american_express: 'AMEX',
+    discover: 'DISCOVER',
+    diners: 'DINERS',
+    jcb: 'JCB',
+    unionpay: 'UNIONPAY',
+  }
+  return m[brand?.toLowerCase()] || (brand || 'CARD').toUpperCase()
 }
 
 function PlanCard({ plan, isCurrent }) {
@@ -351,10 +390,28 @@ function ComparisonTable() {
   )
 }
 
-function StatusCard({ currentPlanId }) {
-  const plan = PLANS.find(p => p.id === currentPlanId) || PLANS[1]
+function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
+  const plan = subscription?.planId ? PLANS.find(p => p.id === subscription.planId) : null
+  const hasActive = !!plan && (subscription?.status === 'active' || subscription?.status === 'trialing')
+  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const daysLeft = subscription?.currentPeriodEnd
+    ? Math.max(0, Math.ceil((subscription.currentPeriodEnd * 1000 - Date.now()) / 86400000))
+    : null
+
+  const statusBadge = subscription?.status === 'active'
+    ? { color: '#86efac', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.30)', label: '● Active' }
+    : subscription?.status === 'trialing'
+      ? { color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.30)', label: '● Trial' }
+      : subscription?.status === 'past_due'
+        ? { color: '#fcd34d', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.30)', label: '● Past due' }
+        : subscription?.status === 'canceled'
+          ? { color: '#fca5a5', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.30)', label: '● Cancelled' }
+          : { color: 'var(--text3)', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.08)', label: '● No plan' }
+
+  const accent = plan?.accent || ACCENT
+
   return (
-    <GlassCard padding={26} glow={plan.accent}>
+    <GlassCard padding={26} glow={accent}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <span style={{
           width: 28, height: 28, borderRadius: 8,
@@ -362,70 +419,106 @@ function StatusCard({ currentPlanId }) {
           display: 'grid', placeItems: 'center',
           fontSize: 14, color: 'var(--text2)',
         }}>◧</span>
-        <div style={{
-          fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em',
-        }}>Subscription Status</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Subscription Status</div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: `linear-gradient(135deg, ${plan.accent}, ${plan.accent}88)`,
-            display: 'grid', placeItems: 'center',
-            fontSize: 20, color: '#fff',
-            boxShadow: `0 0 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
-          }}>♛</div>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Semi-Annual Billing</div>
-          </div>
+      {loading && (
+        <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.15)', borderTopColor:'#fff', borderRadius:999, animation:'spin 1s linear infinite' }} />
+          Caricamento subscription…
         </div>
-        <div style={{
-          padding: '4px 12px', borderRadius: 999,
-          background: 'rgba(34,197,94,0.15)',
-          border: '1px solid rgba(34,197,94,0.30)',
-          color: '#86efac', fontSize: 10.5, fontWeight: 900,
-          letterSpacing: '0.10em', textTransform: 'uppercase',
-        }}>● Active</div>
-      </div>
+      )}
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22,
-      }}>
+      {!loading && !hasActive && (
         <div style={{
-          padding: 14, borderRadius: 11,
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          padding: 18, borderRadius: 12,
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)',
+          color: 'var(--text2)', fontSize: 13, lineHeight: 1.5,
         }}>
-          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Current Period
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>28/12/2025 → 28/06/2026</div>
+          {customerId
+            ? <>Nessuna subscription attiva. Scegli un piano qui sotto per attivarla.</>
+            : <>Nessun account Stripe collegato. Completa un checkout per attivare una subscription.</>}
         </div>
-        <div style={{
-          padding: 14, borderRadius: 11,
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.05)',
-        }}>
-          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Next Billing Date
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
-            28/06/2026 <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>(26 days)</span>
-          </div>
-        </div>
-      </div>
+      )}
 
-      <button type="button" style={{
-        marginTop: 18,
-        padding: '10px 18px', borderRadius: 10,
-        background: 'transparent',
-        border: '1px solid rgba(239,68,68,0.35)',
-        color: '#fca5a5', fontSize: 12.5, fontWeight: 700,
-        cursor: 'pointer',
-        letterSpacing: '0.02em',
-      }}>Cancel Subscription</button>
+      {!loading && hasActive && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+                display: 'grid', placeItems: 'center',
+                fontSize: 20, color: '#fff',
+                boxShadow: `0 0 24px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+              }}>♛</div>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                  {subscription?.amount != null
+                    ? `€${(subscription.amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? 'mese' : subscription.interval || 'periodo'}`
+                    : 'Subscription attiva'}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              padding: '4px 12px', borderRadius: 999,
+              background: statusBadge.bg, border: `1px solid ${statusBadge.border}`,
+              color: statusBadge.color, fontSize: 10.5, fontWeight: 900,
+              letterSpacing: '0.10em', textTransform: 'uppercase',
+            }}>{statusBadge.label}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
+            <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
+                Periodo corrente
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+                {fmtDate(subscription.currentPeriodStart)} → {fmtDate(subscription.currentPeriodEnd)}
+              </div>
+            </div>
+            <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
+                {subscription.cancelAtPeriodEnd ? 'Termina il' : 'Prossimo rinnovo'}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+                {fmtDate(subscription.currentPeriodEnd)} {daysLeft != null && <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>({daysLeft} giorni)</span>}
+              </div>
+            </div>
+          </div>
+
+          {subscription.cancelAtPeriodEnd && (
+            <div style={{
+              marginTop: 14, padding: '10px 14px', borderRadius: 9,
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+              color: '#fcd34d', fontSize: 12,
+            }}>
+              ⚠ Cancellazione programmata: la subscription terminerà alla fine del periodo corrente.
+            </div>
+          )}
+        </>
+      )}
+
+      {customerId && (
+        <button
+          type="button"
+          onClick={onOpenPortal}
+          style={{
+            marginTop: 18,
+            padding: '11px 20px', borderRadius: 10,
+            background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+            border: 'none', color: '#fff',
+            fontSize: 13, fontWeight: 800,
+            cursor: 'pointer',
+            letterSpacing: '0.04em',
+            boxShadow: `0 8px 22px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          Gestisci abbonamento ↗
+        </button>
+      )}
     </GlassCard>
   )
 }
@@ -517,10 +610,16 @@ const PAYMENT_ICONS = [
   },
 ]
 
-function PaymentMethodCard() {
-  const [savedCard, setSavedCard] = useState(null) // TODO: leggi da /api/stripe/payment-methods
+function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCustomer }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  // Adatta il pm formato API → struttura interna usata dal display
+  const savedCard = pm ? {
+    brand: brandLabel(pm.brand),
+    last4: pm.last4,
+    name: '',
+    exp: pm.expMonth && pm.expYear ? `${String(pm.expMonth).padStart(2,'0')}/${String(pm.expYear).slice(-2)}` : '••/••',
+  } : null
 
   return (
     <GlassCard padding={26} glow="#f59e0b">
@@ -630,15 +729,16 @@ function PaymentMethodCard() {
           </div>
           <button
             type="button"
-            onClick={() => setSavedCard(null)}
+            onClick={() => openCustomerPortal({ customerId, setError, setLoading })}
+            disabled={loading || !customerId}
             style={{
               padding: '7px 14px', borderRadius: 9,
               background: 'transparent',
-              border: '1px solid rgba(239,68,68,0.30)',
-              color: '#fca5a5', fontSize: 11.5, fontWeight: 700,
-              cursor: 'pointer',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'var(--text2)', fontSize: 11.5, fontWeight: 700,
+              cursor: loading ? 'wait' : 'pointer',
             }}
-          >Rimuovi</button>
+          >{loading ? 'Apertura…' : 'Gestisci ↗'}</button>
         </div>
       )}
 
@@ -686,7 +786,24 @@ function PaymentMethodCard() {
   )
 }
 
-function InvoiceHistory() {
+function InvoiceHistory({ invoices, loading }) {
+  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const fmtMoney = (amount, currency) => {
+    if (amount == null) return '—'
+    const sym = currency?.toLowerCase() === 'eur' ? '€' : currency?.toUpperCase() || ''
+    return `${sym}${(amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+  const statusBadge = (s) => {
+    const m = {
+      paid:          { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', label: 'Paid' },
+      open:          { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', label: 'Open' },
+      draft:         { bg: 'rgba(255,255,255,0.04)',border: 'rgba(255,255,255,0.10)',color: 'var(--text3)', label: 'Draft' },
+      void:          { bg: 'rgba(255,255,255,0.04)',border: 'rgba(255,255,255,0.10)',color: 'var(--text3)', label: 'Void' },
+      uncollectible: { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.30)',  color: '#fca5a5', label: 'Failed' },
+    }
+    return m[s] || { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.10)', color: 'var(--text3)', label: s || '—' }
+  }
+  const list = invoices || []
   return (
     <GlassCard padding={26} glow="#22c55e">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
@@ -698,71 +815,176 @@ function InvoiceHistory() {
         }}>⌗</span>
         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Invoice History</div>
       </div>
-      <div style={{
-        borderRadius: 12,
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.05)',
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
-              {['Date','Amount','Status','PDF'].map(h => (
-                <th key={h} style={{
-                  textAlign: 'left', padding: '12px 16px',
-                  fontSize: 10, fontWeight: 800, color: 'var(--text3)',
-                  letterSpacing: '0.10em', textTransform: 'uppercase',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {INVOICES.map((inv, i) => (
-              <tr key={i}>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.date}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.amount} <span style={{ color: 'var(--text3)', fontSize: 11 }}>EUR</span></td>
-                <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                  <span style={{
-                    padding: '3px 10px', borderRadius: 999,
-                    background: 'rgba(34,197,94,0.12)',
-                    border: '1px solid rgba(34,197,94,0.30)',
-                    color: '#86efac', fontSize: 10.5, fontWeight: 800,
-                    letterSpacing: '0.04em',
-                  }}>● {inv.status}</span>
-                </td>
-                <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                  <a href="#" style={{
-                    color: ACCENT, fontSize: 12.5, fontWeight: 700,
-                    textDecoration: 'none',
-                  }}>Download ↗</a>
-                </td>
+
+      {loading && (
+        <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13 }}>Caricamento fatture…</div>
+      )}
+
+      {!loading && list.length === 0 && (
+        <div style={{
+          padding: 18, borderRadius: 12,
+          background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.10)',
+          color: 'var(--text3)', fontSize: 13, textAlign: 'center',
+        }}>
+          Nessuna fattura. Apparirà qui dopo il primo addebito.
+        </div>
+      )}
+
+      {!loading && list.length > 0 && (
+        <div style={{
+          borderRadius: 12,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
+                {['Data','Importo','Status','Fattura'].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'left', padding: '12px 16px',
+                    fontSize: 10, fontWeight: 800, color: 'var(--text3)',
+                    letterSpacing: '0.10em', textTransform: 'uppercase',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {list.map((inv) => {
+                const sb = statusBadge(inv.status)
+                return (
+                  <tr key={inv.id}>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{fmtDate(inv.date)}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      {fmtMoney(inv.amount, inv.currency)} <span style={{ color: 'var(--text3)', fontSize: 11 }}>{inv.currency?.toUpperCase() || ''}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: 999,
+                        background: sb.bg, border: `1px solid ${sb.border}`,
+                        color: sb.color, fontSize: 10.5, fontWeight: 800,
+                        letterSpacing: '0.04em',
+                      }}>● {sb.label}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      {inv.pdfUrl
+                        ? <a href={inv.pdfUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>PDF ↗</a>
+                        : inv.hostedUrl
+                          ? <a href={inv.hostedUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>Apri ↗</a>
+                          : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </GlassCard>
   )
 }
 
 export default function SettingsTab() {
-  const [currentPlanId] = useState('growth')
+  const [customerId, setCustomerId] = useState(null)
+  const [data, setData] = useState(null) // { subscription, paymentMethod, invoices, email, name }
+  const [dataLoading, setDataLoading] = useState(true)
+  const [dataError, setDataError] = useState(null)
+  const [banner, setBanner] = useState(null) // 'success' | 'cancelled' | 'setup-success' | 'setup-cancelled'
+
+  // 1) On mount: scambia ?session_id=cs_... → customerId, leggi localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    const sessionId = url.searchParams.get('session_id')
+    const checkout = url.searchParams.get('checkout')
+    const setup = url.searchParams.get('setup')
+
+    if (checkout === 'success') setBanner('success')
+    else if (checkout === 'cancelled') setBanner('cancelled')
+    else if (setup === 'success') setBanner('setup-success')
+    else if (setup === 'cancelled') setBanner('setup-cancelled')
+
+    const stored = window.localStorage.getItem(CUSTOMER_KEY)
+
+    if (sessionId) {
+      // Scambio session → customer + persist
+      fetch(`/api/stripe/subscription?sessionId=${encodeURIComponent(sessionId)}`)
+        .then(r => r.json())
+        .then(j => {
+          if (j?.customerId) {
+            window.localStorage.setItem(CUSTOMER_KEY, j.customerId)
+            setCustomerId(j.customerId)
+          } else if (stored) {
+            setCustomerId(stored)
+          }
+          // Pulisci query string per evitare di rieseguire al refresh
+          url.searchParams.delete('session_id')
+          url.searchParams.delete('checkout')
+          url.searchParams.delete('setup')
+          url.searchParams.delete('plan')
+          window.history.replaceState({}, '', url.toString())
+        })
+        .catch(() => stored && setCustomerId(stored))
+    } else if (stored) {
+      setCustomerId(stored)
+    } else {
+      setDataLoading(false)
+    }
+  }, [])
+
+  // 2) Quando ho il customerId, leggi sub + PM + fatture
+  const reload = useCallback(() => {
+    if (!customerId) return
+    setDataLoading(true)
+    setDataError(null)
+    fetch(`/api/stripe/subscription?customerId=${encodeURIComponent(customerId)}`)
+      .then(r => r.json())
+      .then(j => {
+        if (j?.error) { setDataError(j.error); setData(null); return }
+        setData(j)
+      })
+      .catch(e => setDataError(e?.message || 'Errore di rete'))
+      .finally(() => setDataLoading(false))
+  }, [customerId])
+
+  useEffect(() => { reload() }, [reload])
+
+  const clearCustomer = () => {
+    window.localStorage.removeItem(CUSTOMER_KEY)
+    setCustomerId(null)
+    setData(null)
+  }
+
+  const currentPlanId = data?.subscription?.planId || null
+  const subActive = data?.subscription?.status === 'active' || data?.subscription?.status === 'trialing'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <StatusCard currentPlanId={currentPlanId} />
+      {banner && <CheckoutBanner banner={banner} onClose={() => setBanner(null)} />}
 
-      <PaymentMethodCard />
+      <StatusCard
+        subscription={data?.subscription}
+        loading={dataLoading}
+        customerId={customerId}
+        onOpenPortal={() => openCustomerPortal({ customerId, setError: setDataError, setLoading: setDataLoading })}
+      />
+
+      <PaymentMethodCard
+        pm={data?.paymentMethod}
+        customerId={customerId}
+        loading={dataLoading}
+        onClearCustomer={clearCustomer}
+      />
 
       {/* Change Plan section */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-              Change Plan
+              {subActive ? 'Change Plan' : 'Scegli un piano'}
             </div>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
-              Scegli il piano giusto per la tua crescita
+              {subActive ? 'Cambia il piano della tua subscription' : 'Scegli il piano giusto per la tua crescita'}
             </div>
           </div>
         </div>
@@ -793,7 +1015,32 @@ export default function SettingsTab() {
         <ComparisonTable />
       </GlassCard>
 
-      <InvoiceHistory />
+      <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />
+    </div>
+  )
+}
+
+// Banner colorato in cima dopo redirect checkout/portal
+function CheckoutBanner({ banner, onClose }) {
+  const config = {
+    'success':         { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: '✓ Pagamento completato. Subscription attivata.' },
+    'cancelled':       { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: 'Checkout annullato. Nessun addebito.' },
+    'setup-success':   { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: '✓ Metodo di pagamento salvato.' },
+    'setup-cancelled': { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: 'Aggiunta carta annullata.' },
+  }[banner]
+  if (!config) return null
+  return (
+    <div style={{
+      padding: '12px 16px', borderRadius: 12,
+      background: config.bg, border: `1px solid ${config.border}`,
+      color: config.color, fontSize: 13, fontWeight: 700,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    }}>
+      <span>{config.text}</span>
+      <button onClick={onClose} type="button" style={{
+        background: 'transparent', border: 'none', color: config.color,
+        cursor: 'pointer', fontSize: 18, fontWeight: 300, lineHeight: 1,
+      }}>×</button>
     </div>
   )
 }

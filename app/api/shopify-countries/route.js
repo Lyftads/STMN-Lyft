@@ -16,60 +16,84 @@ function authHeader() {
 
 // Classifica un ordine come NC / RC / null (guest).
 //
-// Shopify a volte ritorna customer.orders_count = null/0 per ordini
-// molto recenti (il counter viene aggiornato in modo asincrono),
-// quindi se ho solo un customer.id valido ma orders_count non
-// affidabile, mi baso su:
-//   1) customer.created_at vs order.created_at:
-//      delta < 5 min → cliente appena creato per questo ordine → NC
-//   2) altrimenti default RC (cliente esistente che ordina di nuovo)
+// L'oggetto customer REST incorporato negli ordini NON espone orders_count
+// (snapshot ridotto), quindi qui usiamo customer.numberOfOrders preso dalla
+// GraphQL Admin API (conteggio lifetime): <= 1 ⇒ nuovo cliente, > 1 ⇒ cliente
+// di ritorno. Stessa logica delle card KPI principali.
 function classifyOrder(o) {
-  const c = o?.customer
-  if (!c || !c.id) return null // guest checkout
-  const cnt = c.orders_count
-  if (typeof cnt === 'number' && cnt > 0) {
-    return cnt === 1 ? 'NC' : 'RC'
-  }
-  // Fallback heuristic quando orders_count non e' settato
-  const orderTs = Date.parse(o.created_at || '')
-  const custTs = Date.parse(c.created_at || '')
-  if (Number.isFinite(orderTs) && Number.isFinite(custTs)) {
-    const deltaSec = Math.abs(orderTs - custTs) / 1000
-    return deltaSec < 300 ? 'NC' : 'RC'
-  }
-  // Customer esiste ma niente date utili → assumo NC (piu' conservativo)
-  return 'NC'
+  const n = o?.customer?.numberOfOrders
+  if (n == null) return null // guest checkout (nessun customer)
+  return Number(n) <= 1 ? 'NC' : 'RC'
 }
 
+// Recupera gli ordini del range via GraphQL Admin API, normalizzandoli nella
+// stessa forma che il resto del route si aspetta dal vecchio REST:
+//   { created_at, total_price, billing_address:{country,country_code}, customer:{numberOfOrders} }
 async function fetchOrdersInRange(since, until) {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
-  // Shopify accetta created_at_min/max in formato ISO. Aggiungo
-  // l'estremo superiore +1 giorno per includere tutta la giornata until.
-  const sinceIso = `${since}T00:00:00Z`
-  const untilDate = new Date(`${until}T00:00:00Z`)
-  untilDate.setUTCDate(untilDate.getUTCDate() + 1)
-  const untilIso = untilDate.toISOString()
 
+  const gql = `
+    query($q: String!, $cursor: String) {
+      orders(first: 250, query: $q, after: $cursor, sortKey: CREATED_AT) {
+        edges {
+          cursor
+          node {
+            createdAt
+            currentTotalPriceSet { shopMoney { amount } }
+            customer { numberOfOrders }
+            billingAddress { country countryCodeV2 }
+          }
+        }
+        pageInfo { hasNextPage }
+      }
+    }
+  `
+  const q = `created_at:>=${since}T00:00:00Z created_at:<=${until}T23:59:59Z financial_status:paid`
+
+  const headers = { ...authHeader(), 'Content-Type': 'application/json' }
   let orders = []
-  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,billing_address,customer`
-
+  let cursor = null
   let safety = 0
-  while (url && safety < 200) {
+
+  while (safety < 200) {
     safety++
-    const res = await fetch(url, { headers: authHeader(), cache: 'no-store' })
+    const res = await fetch(
+      `https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`,
+      { method: 'POST', headers, cache: 'no-store', body: JSON.stringify({ query: gql, variables: { q, cursor } }) }
+    )
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`Shopify ${res.status}: ${text.slice(0, 200)}`)
     }
-    const data = await res.json()
-    orders = orders.concat(data.orders || [])
-    const link = res.headers.get('Link')
-    if (link && link.includes('rel="next"')) {
-      const match = link.match(/<([^>]+)>;\s*rel="next"/)
-      url = match ? match[1] : null
-    } else {
-      url = null
+    const json = await res.json()
+
+    // Backoff su throttling GraphQL: aspetta e ritenta lo stesso cursore.
+    const throttled = json.errors?.some(e => e?.extensions?.code === 'THROTTLED')
+    if (throttled) {
+      await new Promise(r => setTimeout(r, 1200))
+      continue
     }
+    if (json.errors?.length) {
+      throw new Error(`Shopify GQL: ${JSON.stringify(json.errors).slice(0, 200)}`)
+    }
+
+    const conn = json.data?.orders
+    const edges = conn?.edges || []
+    for (const e of edges) {
+      const n = e.node
+      orders.push({
+        created_at: n.createdAt,
+        total_price: n.currentTotalPriceSet?.shopMoney?.amount || 0,
+        billing_address: {
+          country: n.billingAddress?.country || n.billingAddress?.countryCodeV2 || null,
+          country_code: n.billingAddress?.countryCodeV2 || null,
+        },
+        customer: n.customer ? { numberOfOrders: Number(n.customer.numberOfOrders || 0) } : null,
+      })
+    }
+    if (!conn?.pageInfo?.hasNextPage) break
+    cursor = edges[edges.length - 1]?.cursor
+    if (!cursor) break
   }
   return orders
 }

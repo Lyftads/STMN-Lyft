@@ -418,6 +418,10 @@ export async function GET(req) {
     ]
   }
 
+  if (searchParams.get('debug') === '1') {
+    return NextResponse.json({ tab, preset, metricsOk, isMeta, range, kpis: kpis.map(k => ({ label: k.label, value: k.value, prev: k.prevValue })), dailyPoints: daily.length })
+  }
+
   const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null })
 
   const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop })

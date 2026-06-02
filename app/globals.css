@@ -218,9 +218,9 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 /* ── 3D Glass cards with light source + shadow ────────── */
 
 .glass-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(60px) saturate(2.8);
-  -webkit-backdrop-filter: blur(60px) saturate(2.8);
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(60px) saturate(1.3);
+  -webkit-backdrop-filter: blur(60px) saturate(1.3);
   border-radius: 20px;
   position: relative;
   overflow: hidden;
@@ -291,9 +291,9 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .glass-card-static {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(40px) saturate(2.2);
-  -webkit-backdrop-filter: blur(40px) saturate(2.2);
+  background: rgba(0,0,0,0.40);
+  backdrop-filter: blur(40px) saturate(1.3);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
   border: 1.5px solid rgba(255,255,255,0.06);
   border-top-color: rgba(255,255,255,0.10);
   border-bottom-color: rgba(0,0,0,0.45);
@@ -306,9 +306,9 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .glass-panel {
-  background: rgba(255,255,255,0.04);
-  backdrop-filter: blur(40px) saturate(2.2);
-  -webkit-backdrop-filter: blur(40px) saturate(2.2);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(40px) saturate(1.3);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
   border: 1.5px solid rgba(255,255,255,0.06);
   border-top-color: rgba(255,255,255,0.10);
   border-bottom-color: rgba(0,0,0,0.45);

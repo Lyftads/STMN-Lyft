@@ -107,6 +107,38 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     }).catch(() => {})
   }, [])
 
+  // ── Paesi di fatturazione (aggiornato col timeframe) ──
+  const kpiRange = live?.kpiBrain?.range
+  const [countries, setCountries] = useState([])
+  const [countriesLoading, setCountriesLoading] = useState(false)
+  const [countriesError, setCountriesError] = useState(null)
+  useEffect(() => {
+    const since = kpiRange?.since
+    const until = kpiRange?.until
+    if (!since || !until) return
+    let cancelled = false
+    setCountriesLoading(true)
+    setCountriesError(null)
+    fetch(`/api/shopify-countries?since=${since}&until=${until}`)
+      .then(r => r.json())
+      .then(j => {
+        if (cancelled) return
+        if (j?.error) { setCountriesError(j.error); setCountries([]); return }
+        setCountries(Array.isArray(j?.countries) ? j.countries : [])
+      })
+      .catch(e => { if (!cancelled) setCountriesError(e?.message || 'Errore di rete') })
+      .finally(() => { if (!cancelled) setCountriesLoading(false) })
+    return () => { cancelled = true }
+  }, [kpiRange?.since, kpiRange?.until])
+
+  const countryFlag = code => {
+    if (!code || code.length !== 2) return '🌐'
+    // Converti country code in flag emoji via regional indicator symbols
+    const A = 0x1F1E6
+    return String.fromCodePoint(...code.toUpperCase().split('').map(c => A + c.charCodeAt(0) - 65))
+  }
+  const countriesTotal = countries.reduce((s, r) => s + (r.revenue || 0), 0)
+
   const findImage = (name) => {
     if (!name) return null
     return productImages[name] || productImages[name.toLowerCase()] ||
@@ -352,6 +384,72 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Paesi di fatturazione ────────────────────────────────── */}
+      <div style={{marginTop:18,padding:20,borderRadius:16,background:'var(--glass)',border:'1px solid var(--border)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,marginBottom:18,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <div style={{width:42,height:42,borderRadius:11,background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',display:'grid',placeItems:'center',fontSize:20,color:'#fff'}}>🌍</div>
+            <div>
+              <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>Paesi di fatturazione</div>
+              <div style={{color:'var(--text2)',fontSize:12}}>
+                {countriesLoading
+                  ? 'Caricamento ordini Shopify…'
+                  : countriesError
+                    ? <span style={{color:'#fca5a5'}}>{countriesError}</span>
+                    : `${countries.length} ${countries.length === 1 ? 'paese' : 'paesi'} nel periodo · ${tfLabel}`}
+              </div>
+            </div>
+          </div>
+        </div>
+        {(!countriesLoading && !countriesError && countries.length === 0) && (
+          <div style={{padding:18,border:'1px solid #f59e0b44',background:'#f59e0b10',borderRadius:12,color:'#fcd34d',fontWeight:700,fontSize:13}}>
+            Nessun ordine nel periodo selezionato.
+          </div>
+        )}
+        {countries.length > 0 && (
+          <div style={{display:'grid',gap:8}}>
+            {countries.map((row, i) => {
+              const pct = countriesTotal > 0 ? (row.revenue / countriesTotal) * 100 : 0
+              return (
+                <div key={`${row.country_code || row.country}-${i}`} style={{
+                  display:'grid',
+                  gridTemplateColumns:'auto 1fr auto auto',
+                  alignItems:'center',
+                  gap:14,
+                  padding:'12px 14px',
+                  borderRadius:11,
+                  background:'rgba(255,255,255,0.025)',
+                  border:'1px solid var(--border)',
+                }}>
+                  <div style={{fontSize:24,lineHeight:1}}>{countryFlag(row.country_code)}</div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13.5,fontWeight:800,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
+                    <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.05)',overflow:'hidden'}}>
+                      <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 10px rgba(14,165,233,0.4)',transition:'width 0.5s ease'}} />
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{money(row.revenue)}</div>
+                    <div style={{fontSize:10.5,color:'var(--text3)',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}>{pct.toFixed(1)}%</div>
+                  </div>
+                  <div style={{
+                    textAlign:'right',
+                    minWidth:64,
+                    padding:'6px 12px',
+                    borderRadius:8,
+                    background:'rgba(34,197,94,0.10)',
+                    border:'1px solid rgba(34,197,94,0.25)',
+                  }}>
+                    <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
+                    <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',opacity:0.7}}>ordini</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <KpiBrainAgent tf={preset} preset={preset} />

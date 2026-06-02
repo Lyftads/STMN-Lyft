@@ -3,6 +3,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Stripe Webhook handler.
 //
@@ -53,36 +54,53 @@ export async function POST(req) {
     switch (event.type) {
       case 'checkout.session.completed': {
         // L'utente ha completato il checkout. La sub e' attiva.
-        // session.customer = cus_..., session.subscription = sub_...
         const s = event.data.object
-        console.log('[stripe webhook] checkout completed', {
-          customer: s.customer,
-          subscription: s.subscription,
-          plan: s.metadata?.plan,
-        })
-        // TODO: scrivi su DB user.activePlan = s.metadata.plan
-        //       user.stripeCustomerId = s.customer
+        const userId = s.metadata?.user_id
+        const customerId = s.customer
+        const planId = s.metadata?.plan
+        console.log('[stripe webhook] checkout completed', { customer: customerId, subscription: s.subscription, plan: planId, user: userId })
+        // Persiste sul record companies
+        if (userId && customerId) {
+          const admin = getAdminSupabase()
+          if (admin) {
+            await admin.from('companies').update({
+              stripe_customer_id: customerId,
+              stripe_subscription_id: s.subscription || null,
+              plan: planId || null,
+              updated_at: new Date().toISOString(),
+            }).eq('user_id', userId)
+          }
+        }
         break
       }
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object
-        console.log('[stripe webhook] subscription state', {
-          id: sub.id,
-          customer: sub.customer,
-          status: sub.status, // active / past_due / canceled / unpaid / trialing
-          priceId: sub.items?.data?.[0]?.price?.id,
-          currentPeriodEnd: sub.current_period_end,
-        })
-        // TODO: aggiorna stato sub su DB
+        console.log('[stripe webhook] subscription state', { id: sub.id, customer: sub.customer, status: sub.status })
+        const admin = getAdminSupabase()
+        if (admin) {
+          // Match by stripe_customer_id (piu' affidabile dell'user_id su metadata che potrebbe mancare su evento delta)
+          await admin.from('companies').update({
+            stripe_subscription_id: sub.id,
+            stripe_subscription_status: sub.status,
+            stripe_current_period_end: sub.current_period_end
+              ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            updated_at: new Date().toISOString(),
+          }).eq('stripe_customer_id', sub.customer)
+        }
         break
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object
-        console.log('[stripe webhook] subscription cancelled', {
-          id: sub.id, customer: sub.customer,
-        })
-        // TODO: marca utente come free / downgrade
+        console.log('[stripe webhook] subscription cancelled', { id: sub.id, customer: sub.customer })
+        const admin = getAdminSupabase()
+        if (admin) {
+          await admin.from('companies').update({
+            stripe_subscription_status: 'canceled',
+            plan: null,
+            updated_at: new Date().toISOString(),
+          }).eq('stripe_customer_id', sub.customer)
+        }
         break
       }
       case 'invoice.paid': {

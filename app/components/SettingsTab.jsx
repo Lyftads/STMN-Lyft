@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-const CUSTOMER_KEY = 'stmn-lyft.stripeCustomerId'
+// Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
+// non piu' localStorage. L'API /api/stripe/subscription lo risolve in automatico
+// dall'utente autenticato.
 
 const ACCENT = '#bf5af2'
 
@@ -159,19 +161,16 @@ async function startStripeCheckout({ planId, mode, setError, setLoading }) {
   }
 }
 
-// Helper: apre Customer Portal Stripe (cambio piano, cancella, fatture)
-async function openCustomerPortal({ customerId, setError, setLoading }) {
-  if (!customerId) {
-    setError?.('Nessun customer associato. Completa prima un checkout.')
-    return
-  }
+// Helper: apre Customer Portal Stripe (cambio piano, cancella, fatture).
+// customerId viene risolto server-side dall'utente autenticato.
+async function openCustomerPortal({ setError, setLoading }) {
   try {
     setLoading?.(true)
     setError?.(null)
     const r = await fetch('/api/stripe/portal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerId }),
+      body: JSON.stringify({}),
     })
     const j = await r.json()
     if (!r.ok || !j?.url) {
@@ -891,11 +890,10 @@ export default function SettingsTab() {
   const [dataError, setDataError] = useState(null)
   const [banner, setBanner] = useState(null) // 'success' | 'cancelled' | 'setup-success' | 'setup-cancelled'
 
-  // 1) On mount: scambia ?session_id=cs_... → customerId, leggi localStorage
+  // 1) On mount: parse query params per banner, pulisci URL, fetch dati
   useEffect(() => {
     if (typeof window === 'undefined') return
     const url = new URL(window.location.href)
-    const sessionId = url.searchParams.get('session_id')
     const checkout = url.searchParams.get('checkout')
     const setup = url.searchParams.get('setup')
 
@@ -904,53 +902,34 @@ export default function SettingsTab() {
     else if (setup === 'success') setBanner('setup-success')
     else if (setup === 'cancelled') setBanner('setup-cancelled')
 
-    const stored = window.localStorage.getItem(CUSTOMER_KEY)
-
-    if (sessionId) {
-      // Scambio session → customer + persist
-      fetch(`/api/stripe/subscription?sessionId=${encodeURIComponent(sessionId)}`)
-        .then(r => r.json())
-        .then(j => {
-          if (j?.customerId) {
-            window.localStorage.setItem(CUSTOMER_KEY, j.customerId)
-            setCustomerId(j.customerId)
-          } else if (stored) {
-            setCustomerId(stored)
-          }
-          // Pulisci query string per evitare di rieseguire al refresh
-          url.searchParams.delete('session_id')
-          url.searchParams.delete('checkout')
-          url.searchParams.delete('setup')
-          url.searchParams.delete('plan')
-          window.history.replaceState({}, '', url.toString())
-        })
-        .catch(() => stored && setCustomerId(stored))
-    } else if (stored) {
-      setCustomerId(stored)
-    } else {
-      setDataLoading(false)
+    // Pulisci query string per evitare di rieseguire il banner al refresh
+    if (checkout || setup) {
+      url.searchParams.delete('session_id')
+      url.searchParams.delete('checkout')
+      url.searchParams.delete('setup')
+      url.searchParams.delete('plan')
+      window.history.replaceState({}, '', url.toString())
     }
   }, [])
 
-  // 2) Quando ho il customerId, leggi sub + PM + fatture
+  // 2) Carica sub + PM + fatture (customerId risolto server-side dall'auth)
   const reload = useCallback(() => {
-    if (!customerId) return
     setDataLoading(true)
     setDataError(null)
-    fetch(`/api/stripe/subscription?customerId=${encodeURIComponent(customerId)}`)
+    fetch('/api/stripe/subscription')
       .then(r => r.json())
       .then(j => {
         if (j?.error) { setDataError(j.error); setData(null); return }
         setData(j)
+        setCustomerId(j?.customerId || null)
       })
       .catch(e => setDataError(e?.message || 'Errore di rete'))
       .finally(() => setDataLoading(false))
-  }, [customerId])
+  }, [])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { reload() }, [reload, banner])
 
   const clearCustomer = () => {
-    window.localStorage.removeItem(CUSTOMER_KEY)
     setCustomerId(null)
     setData(null)
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import TimeframeSelector from './TimeframeSelector'
+import { getBrowserSupabase } from '../../lib/supabase/client'
 
 function getPageTitle(tab) {
   const map = {
@@ -262,22 +263,7 @@ export default function VendroShell({
         </nav>
 
         {/* User */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              display: 'grid', placeItems: 'center',
-              background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-              color: '#fff', fontSize: 11, fontWeight: 700,
-            }}>
-              MC
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>Marino Catasta</div>
-              <div style={{ fontSize: 10, color: 'var(--text3)' }}>Admin</div>
-            </div>
-          </div>
-        </div>
+        <UserSection />
       </aside>
 
       {/* Main */}
@@ -424,6 +410,121 @@ function TabContent({ children }) {
       }}
     >
       {children}
+    </div>
+  )
+}
+
+// ── UserSection: leggi user da Supabase, mostra nome+azienda, dropdown logout ──
+function UserSection() {
+  const [user, setUser] = useState(null)
+  const [company, setCompany] = useState(null)
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase()
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    // Sub al cambiamento sessione (es. logout in un'altra scheda)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    // Leggi metadata custom dal user
+    const meta = user.user_metadata || {}
+    setCompany({
+      name: meta.name || user.email?.split('@')[0] || 'Utente',
+      companyName: meta.company_name || meta.companyName || '',
+      email: user.email || '',
+    })
+  }, [user])
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  const handleLogout = async () => {
+    const supabase = getBrowserSupabase()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  const initials = company?.name
+    ? company.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
+    : '··'
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px', position: 'relative' }} ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', background: 'transparent', border: 'none',
+          cursor: 'pointer', padding: 0, textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}
+      >
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%',
+          display: 'grid', placeItems: 'center',
+          background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
+          color: '#fff', fontSize: 11, fontWeight: 700,
+          flexShrink: 0,
+        }}>{initials}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {company?.name || '…'}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {company?.companyName || (company?.email ? company.email : 'Admin')}
+          </div>
+        </div>
+        <span style={{ color: 'var(--text3)', fontSize: 14 }}>{open ? '▾' : '▸'}</span>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: 14, right: 14,
+          background: 'rgba(10,10,22,0.96)',
+          backdropFilter: 'blur(40px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 11,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+          padding: 6,
+          zIndex: 100,
+        }}>
+          <div style={{
+            padding: '8px 12px',
+            fontSize: 11, color: 'var(--text3)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            marginBottom: 4,
+          }}>{company?.email || ''}</div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              width: '100%', textAlign: 'left',
+              padding: '9px 12px', borderRadius: 7,
+              background: 'transparent', border: 'none',
+              color: '#fca5a5', fontSize: 12.5, fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            ↩ Logout
+          </button>
+        </div>
+      )}
     </div>
   )
 }

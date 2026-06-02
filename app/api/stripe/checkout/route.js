@@ -3,6 +3,7 @@ export const maxDuration = 15
 
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Stripe Checkout Session creator per i 3 piani.
 //
@@ -47,6 +48,32 @@ export async function POST(req) {
 
   const stripe = new Stripe(secret, { apiVersion: '2024-06-20' })
 
+  // Recupera l'utente loggato e l'eventuale customerId gia' creato.
+  // Cosi' Stripe riusa lo stesso customer invece di crearne uno nuovo
+  // ad ogni checkout — fondamentale per webhook + portal coerenti.
+  let userId = null
+  let userEmail = null
+  let stripeCustomerId = null
+  let companyName = null
+  try {
+    const sb = getServerSupabase()
+    const { data: { user } } = await sb.auth.getUser()
+    if (user) {
+      userId = user.id
+      userEmail = user.email
+      const admin = getAdminSupabase()
+      if (admin) {
+        const { data: company } = await admin
+          .from('companies')
+          .select('stripe_customer_id, company_name')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        stripeCustomerId = company?.stripe_customer_id || null
+        companyName = company?.company_name || null
+      }
+    }
+  } catch {}
+
   try {
     if (mode === 'setup') {
       // Setup mode: salva il PM senza addebitare. Usato dal bottone
@@ -55,8 +82,10 @@ export async function POST(req) {
       const session = await stripe.checkout.sessions.create({
         mode: 'setup',
         payment_method_types: ['card'],
-        success_url: `${origin}/?tab=settings&setup=success`,
+        ...(stripeCustomerId ? { customer: stripeCustomerId } : userEmail ? { customer_email: userEmail } : {}),
+        success_url: `${origin}/?tab=settings&setup=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/?tab=settings&setup=cancelled`,
+        metadata: { user_id: userId || '', source: 'lyft-dashboard' },
       })
       return NextResponse.json({ url: session.url })
     }
@@ -76,17 +105,29 @@ export async function POST(req) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      // Allow_promotion_codes per gestire promo via Stripe Dashboard
+      // Riusa il customer esistente se ce ne e' uno → coerenza con webhook + portal
+      ...(stripeCustomerId
+        ? { customer: stripeCustomerId }
+        : userEmail
+          ? { customer_email: userEmail }
+          : {}),
       allow_promotion_codes: true,
-      // Permette al cliente di salvare il metodo per addebiti futuri
-      // (automatico con mode=subscription, ma esplicitiamolo)
       billing_address_collection: 'auto',
-      automatic_tax: { enabled: false }, // attiva true se hai Stripe Tax configurato
+      automatic_tax: { enabled: false },
       success_url: `${origin}/?tab=settings&checkout=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?tab=settings&checkout=cancelled`,
+      // Metadata: usate dal webhook per associare la sub all'utente nel DB
       metadata: {
         plan: planId,
+        user_id: userId || '',
+        company_name: companyName || '',
         source: 'lyft-dashboard',
+      },
+      subscription_data: {
+        metadata: {
+          plan: planId,
+          user_id: userId || '',
+        },
       },
     })
 

@@ -3,6 +3,7 @@ export const maxDuration = 15
 
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Customer Portal: pagina Stripe-hosted dove il cliente puo' self-service
 // cambio piano, cancellazione, aggiorna metodo di pagamento, scarica
@@ -23,12 +24,25 @@ export async function POST(req) {
     return NextResponse.json({ error: 'STRIPE_SECRET_KEY non configurato' }, { status: 500 })
   }
 
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
+  // Recupera customerId dall'utente loggato (DB), no piu' da body
+  let customerId = null
+  try {
+    const sb = getServerSupabase()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+    const admin = getAdminSupabase()
+    if (admin) {
+      const { data: company } = await admin
+        .from('companies')
+        .select('stripe_customer_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      customerId = company?.stripe_customer_id
+    }
+  } catch {}
 
-  const customerId = body?.customerId
   if (!customerId || !customerId.startsWith('cus_')) {
-    return NextResponse.json({ error: 'customerId mancante o invalido (deve iniziare con cus_)' }, { status: 400 })
+    return NextResponse.json({ error: 'Nessun cliente Stripe associato. Completa prima un checkout.' }, { status: 400 })
   }
 
   const origin =

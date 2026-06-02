@@ -3,6 +3,7 @@ export const maxDuration = 15
 
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Subscription + Payment Method read.
 //
@@ -55,16 +56,44 @@ export async function GET(req) {
       })
     }
 
-    // Path 2: leggi tutto su un customer
-    if (!customerId || !customerId.startsWith('cus_')) {
-      return NextResponse.json({ error: 'customerId o sessionId richiesto' }, { status: 400 })
+    // Path 2: leggi tutto su un customer. Se non specificato, lo ricava
+    // dall'utente loggato (companies.stripe_customer_id).
+    let resolvedCustomerId = customerId
+    if (!resolvedCustomerId) {
+      try {
+        const sb = getServerSupabase()
+        const { data: { user } } = await sb.auth.getUser()
+        if (user) {
+          const admin = getAdminSupabase()
+          if (admin) {
+            const { data: company } = await admin
+              .from('companies')
+              .select('stripe_customer_id')
+              .eq('user_id', user.id)
+              .maybeSingle()
+            resolvedCustomerId = company?.stripe_customer_id || null
+          }
+        }
+      } catch {}
     }
 
+    if (!resolvedCustomerId) {
+      // Utente non ancora associato a Stripe → ritorna empty stato
+      return NextResponse.json({
+        customerId: null, email: null, name: null,
+        subscription: null, paymentMethod: null, invoices: [],
+      })
+    }
+    if (!resolvedCustomerId.startsWith('cus_')) {
+      return NextResponse.json({ error: 'customerId malformato' }, { status: 400 })
+    }
+    const customerIdToUse = resolvedCustomerId
+
     const [customer, subs, pms, invoiceList] = await Promise.all([
-      stripe.customers.retrieve(customerId),
-      stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 5, expand: ['data.default_payment_method'] }),
-      stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 5 }),
-      stripe.invoices.list({ customer: customerId, limit: 10 }),
+      stripe.customers.retrieve(customerIdToUse),
+      stripe.subscriptions.list({ customer: customerIdToUse, status: 'all', limit: 5, expand: ['data.default_payment_method'] }),
+      stripe.paymentMethods.list({ customer: customerIdToUse, type: 'card', limit: 5 }),
+      stripe.invoices.list({ customer: customerIdToUse, limit: 10 }),
     ])
 
     // Subscription "vincitore": preferisci active, poi trialing, altrimenti la piu' recente
@@ -115,7 +144,7 @@ export async function GET(req) {
     }))
 
     return NextResponse.json({
-      customerId,
+      customerId: customerIdToUse,
       email: customer?.email || null,
       name: customer?.name || null,
       subscription: formattedSub,

@@ -391,6 +391,7 @@ function PromoTag({ promo }) {
 function CompetitorSection({ competitor, meta }) {
   const [section, setSection] = useState('ads')
   const [showAllProducts, setShowAllProducts] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
 
   const { adLibrary, websiteData } = competitor
   const ads = adLibrary?.ads || []
@@ -407,7 +408,20 @@ function CompetitorSection({ competitor, meta }) {
       })
   }, [products])
 
-  const displayProducts = showAllProducts ? sortedProducts : sortedProducts.slice(0, 12)
+  const query = productSearch.trim().toLowerCase()
+  const filteredProducts = useMemo(() => {
+    if (!query) return sortedProducts
+    return sortedProducts.filter((p) =>
+      `${p.title || ''} ${p.type || ''} ${p.handle || ''}`.toLowerCase().includes(query)
+    )
+  }, [sortedProducts, query])
+
+  // In ricerca mostriamo tutti i risultati; altrimenti il cap a 12 con "Mostra tutti"
+  const displayProducts = query
+    ? filteredProducts
+    : showAllProducts
+      ? filteredProducts
+      : filteredProducts.slice(0, 12)
 
   return (
     <div
@@ -668,6 +682,59 @@ function CompetitorSection({ competitor, meta }) {
         {/* PRODUCTS SECTION */}
         {section === 'products' && (
           <>
+            {/* Search bar */}
+            {products.length > 0 && (
+              <div style={{ position: 'relative', marginBottom: 20, maxWidth: 420 }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text3)',
+                    fontSize: 14,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  ⌕
+                </span>
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Cerca un prodotto…"
+                  className="btn-glass"
+                  style={{
+                    width: '100%',
+                    padding: '11px 38px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    outline: 'none',
+                  }}
+                />
+                {productSearch && (
+                  <button
+                    onClick={() => setProductSearch('')}
+                    aria-label="Pulisci ricerca"
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text3)',
+                      fontSize: 16,
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Price stats */}
             {stats.totalProducts > 0 && (
               <div
@@ -772,6 +839,13 @@ function CompetitorSection({ competitor, meta }) {
               </div>
             )}
 
+            {/* Conteggio risultati ricerca */}
+            {query && (
+              <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 14, fontWeight: 600 }}>
+                {filteredProducts.length} risultat{filteredProducts.length === 1 ? 'o' : 'i'} per “{productSearch.trim()}”
+              </div>
+            )}
+
             {/* Product grid */}
             {displayProducts.length > 0 ? (
               <>
@@ -796,19 +870,19 @@ function CompetitorSection({ competitor, meta }) {
                   ))}
                 </div>
 
-                {sortedProducts.length > 12 && !showAllProducts && (
+                {!query && filteredProducts.length > 12 && !showAllProducts && (
                   <div style={{ textAlign: 'center', marginTop: 20 }}>
                     <button
                       onClick={() => setShowAllProducts(true)}
                       className="btn-glass"
                       style={{ padding: '10px 28px', cursor: 'pointer' }}
                     >
-                      Mostra tutti ({sortedProducts.length} prodotti)
+                      Mostra tutti ({filteredProducts.length} prodotti)
                     </button>
                   </div>
                 )}
 
-                {showAllProducts && sortedProducts.length > 12 && (
+                {!query && showAllProducts && filteredProducts.length > 12 && (
                   <div style={{ textAlign: 'center', marginTop: 20 }}>
                     <button
                       onClick={() => setShowAllProducts(false)}
@@ -830,9 +904,11 @@ function CompetitorSection({ competitor, meta }) {
                   color: '#6b6580',
                 }}
               >
-                {websiteData?.error
-                  ? `Errore nello scraping: ${websiteData.error}`
-                  : 'Nessun prodotto trovato. Il sito potrebbe non essere Shopify o potrebbe bloccare le richieste.'}
+                {query
+                  ? `Nessun prodotto corrisponde a “${productSearch.trim()}”.`
+                  : websiteData?.error
+                    ? `Errore nello scraping: ${websiteData.error}`
+                    : 'Nessun prodotto trovato. Il sito potrebbe non essere Shopify o potrebbe bloccare le richieste.'}
               </div>
             )}
           </>

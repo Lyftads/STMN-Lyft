@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Sparkline from './Sparkline'
 import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
@@ -114,6 +116,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   const [countriesPrev, setCountriesPrev] = useState([])
   const [countriesLoading, setCountriesLoading] = useState(false)
   const [countriesError, setCountriesError] = useState(null)
+  const [selectedCountry, setSelectedCountry] = useState(null)
   useEffect(() => {
     const since = kpiRange?.since
     const until = kpiRange?.until
@@ -491,17 +494,18 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 const deltaColor = isNew ? '#a5b4fc' : up ? '#86efac' : deltaRev < 0 ? '#fca5a5' : 'var(--text3)'
                 const deltaBg = isNew ? 'rgba(99,102,241,0.12)' : up ? 'rgba(34,197,94,0.10)' : deltaRev < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.03)'
                 const deltaBorder = isNew ? 'rgba(99,102,241,0.30)' : up ? 'rgba(34,197,94,0.25)' : deltaRev < 0 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'
+                const hasSegmentData = row.ncOrders > 0 || row.rcOrders > 0 || prev.ncOrders > 0 || prev.rcOrders > 0
                 return (
                   <div
                     key={`${row.country_code || row.country}-${i}`}
+                    onClick={() => setSelectedCountry({ row, prev, range: kpiRange, prevRange: kpiPrevRange })}
                     style={{
                       position:'relative',
-                      display:'grid',
-                      gridTemplateColumns:'auto 1fr auto auto auto',
-                      alignItems:'center',
+                      display:'flex',
+                      flexDirection:'column',
                       gap:14,
-                      padding:'12px 14px',
-                      borderRadius:12,
+                      padding:'14px 16px',
+                      borderRadius:14,
                       background:'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.18))',
                       border:'1px solid rgba(255,255,255,0.05)',
                       borderTopColor:'rgba(255,255,255,0.10)',
@@ -509,124 +513,105 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
                       animation:`fadeUp 0.4s ease ${i*0.04}s both`,
                       transition:'transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s ease, box-shadow 0.25s ease',
+                      cursor:'pointer',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateX(3px)'
-                      e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
-                      e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 16px rgba(0,0,0,0.35), 0 0 24px rgba(14,165,233,0.12)'
+                      e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.22)'
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 20px rgba(0,0,0,0.4), 0 0 32px rgba(14,165,233,0.18)'
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.transform = ''
                       e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.10)'
                       e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)'
                     }}
                   >
-                    <div style={{fontSize:26,lineHeight:1,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'}}>{countryFlag(row.country_code)}</div>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13.5,fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
-                      <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.04)',overflow:'hidden'}}>
-                        <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
-                      </div>
-                      {/* Sub-chip NC / RC con delta % e € */}
-                      {(row.ncOrders > 0 || row.rcOrders > 0 || prev.ncOrders > 0 || prev.rcOrders > 0) && (
-                        <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
-                          {/* NC chip */}
-                          <div style={{
-                            display:'inline-flex',alignItems:'center',gap:6,
-                            padding:'4px 8px',borderRadius:7,
-                            background:'rgba(6,182,212,0.10)',
-                            border:'1px solid rgba(6,182,212,0.25)',
-                            fontSize:10.5,fontWeight:800,color:'#67e8f9',
-                            letterSpacing:'0.02em',
-                          }}>
-                            <span style={{textTransform:'uppercase',letterSpacing:'0.08em',fontSize:9,opacity:0.85}}>Nuovi</span>
-                            <span style={{color:'#fff'}}>{int0(row.ncOrders)} ord</span>
-                            <span style={{opacity:0.85}}>·</span>
-                            <span style={{color:'#fff'}}>{money(row.ncRevenue)}</span>
-                            <span style={{
-                              color: deltaColor(row.ncRevenue, prev.ncRevenue),
-                              opacity: 0.95,
-                            }}>
-                              {fmtDeltaPct(row.ncRevenue, prev.ncRevenue) || '—'}
-                            </span>
-                            {prev.ncRevenue > 0 && (
-                              <span style={{
-                                color: deltaColor(row.ncRevenue, prev.ncRevenue),
-                                opacity: 0.7, fontSize: 9.5,
-                              }}>
-                                ({fmtDeltaEur(row.ncRevenue, prev.ncRevenue)})
-                              </span>
-                            )}
-                          </div>
-                          {/* RC chip */}
-                          <div style={{
-                            display:'inline-flex',alignItems:'center',gap:6,
-                            padding:'4px 8px',borderRadius:7,
-                            background:'rgba(168,85,247,0.10)',
-                            border:'1px solid rgba(168,85,247,0.25)',
-                            fontSize:10.5,fontWeight:800,color:'#d8b4fe',
-                            letterSpacing:'0.02em',
-                          }}>
-                            <span style={{textTransform:'uppercase',letterSpacing:'0.08em',fontSize:9,opacity:0.85}}>Ritorno</span>
-                            <span style={{color:'#fff'}}>{int0(row.rcOrders)} ord</span>
-                            <span style={{opacity:0.85}}>·</span>
-                            <span style={{color:'#fff'}}>{money(row.rcRevenue)}</span>
-                            <span style={{
-                              color: deltaColor(row.rcRevenue, prev.rcRevenue),
-                              opacity: 0.95,
-                            }}>
-                              {fmtDeltaPct(row.rcRevenue, prev.rcRevenue) || '—'}
-                            </span>
-                            {prev.rcRevenue > 0 && (
-                              <span style={{
-                                color: deltaColor(row.rcRevenue, prev.rcRevenue),
-                                opacity: 0.7, fontSize: 9.5,
-                              }}>
-                                ({fmtDeltaEur(row.rcRevenue, prev.rcRevenue)})
-                              </span>
-                            )}
-                          </div>
+                    {/* TOP ROW */}
+                    <div style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto auto auto',alignItems:'center',gap:14}}>
+                      <div style={{fontSize:28,lineHeight:1,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'}}>{countryFlag(row.country_code)}</div>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
+                        <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.04)',overflow:'hidden'}}>
+                          <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
                         </div>
-                      )}
-                    </div>
-                    <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:14,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
-                      <div style={{fontSize:10.5,color:'#0ea5e9',fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}>{pct.toFixed(1)}%</div>
-                    </div>
-                    <div style={{
-                      textAlign:'right',
-                      minWidth:96,
-                      padding:'6px 10px',
-                      borderRadius:9,
-                      background:deltaBg,
-                      border:`1px solid ${deltaBorder}`,
-                      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)',
-                    }}>
-                      <div style={{fontSize:12,fontWeight:900,color:deltaColor,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end',lineHeight:1.1}}>
-                        {isNew ? 'NEW' : (
-                          <>
-                            <span style={{fontSize:10,opacity:0.85}}>{up ? '▲' : deltaRev < 0 ? '▼' : '–'}</span>
-                            {deltaPct != null ? `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—'}
-                          </>
-                        )}
                       </div>
-                      <div style={{fontSize:10,fontWeight:800,color:deltaColor,opacity:0.85,marginTop:2,letterSpacing:'-0.005em'}}>
-                        {isNew ? money(row.revenue) : (deltaRev !== 0 ? `${deltaRev > 0 ? '+' : ''}€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT')}`.replace('+€', '+€').replace(/^€/, deltaRev < 0 ? '-€' : '€') : '€0')}
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:14,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
+                        <div style={{fontSize:10.5,color:'#0ea5e9',fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}>{pct.toFixed(1)}%</div>
                       </div>
-                      <div style={{fontSize:8.5,color:deltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
+                      <div style={{
+                        textAlign:'right',
+                        minWidth:96,
+                        padding:'6px 10px',
+                        borderRadius:9,
+                        background:deltaBg,
+                        border:`1px solid ${deltaBorder}`,
+                        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)',
+                      }}>
+                        <div style={{fontSize:12,fontWeight:900,color:deltaColor,display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end',lineHeight:1.1}}>
+                          {isNew ? 'NEW' : (
+                            <>
+                              <span style={{fontSize:10,opacity:0.85}}>{up ? '▲' : deltaRev < 0 ? '▼' : '–'}</span>
+                              {deltaPct != null ? `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—'}
+                            </>
+                          )}
+                        </div>
+                        <div style={{fontSize:10,fontWeight:800,color:deltaColor,opacity:0.85,marginTop:2}}>
+                          {isNew ? money(row.revenue) : (deltaRev !== 0 ? (deltaRev > 0 ? `+€${Math.round(deltaRev).toLocaleString('it-IT')}` : `-€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT')}`) : '€0')}
+                        </div>
+                        <div style={{fontSize:8.5,color:deltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
+                      </div>
+                      <div style={{
+                        textAlign:'right',
+                        minWidth:68,
+                        padding:'6px 12px',
+                        borderRadius:9,
+                        background:'rgba(34,197,94,0.12)',
+                        border:'1px solid rgba(34,197,94,0.28)',
+                        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
+                      }}>
+                        <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
+                        <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.75,marginTop:1}}>ordini</div>
+                      </div>
+                      <div style={{
+                        width:32,height:32,borderRadius:8,
+                        display:'grid',placeItems:'center',
+                        background:'rgba(255,255,255,0.04)',
+                        border:'1px solid rgba(255,255,255,0.08)',
+                        color:'#0ea5e9',fontSize:14,fontWeight:900,
+                        boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
+                      }}>↗</div>
                     </div>
-                    <div style={{
-                      textAlign:'right',
-                      minWidth:68,
-                      padding:'6px 12px',
-                      borderRadius:9,
-                      background:'rgba(34,197,94,0.12)',
-                      border:'1px solid rgba(34,197,94,0.28)',
-                      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
-                    }}>
-                      <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
-                      <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.75,marginTop:1}}>ordini</div>
-                    </div>
+
+                    {/* BOTTOM: card per ogni dato NC + RC */}
+                    {hasSegmentData && (
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                        <SegmentBlock
+                          title="Nuovi clienti"
+                          accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
+                          ordersCurr={row.ncOrders}
+                          ordersPrev={prev.ncOrders}
+                          revCurr={row.ncRevenue}
+                          revPrev={prev.ncRevenue}
+                          money={money}
+                          int0={int0}
+                          fmtDeltaPct={fmtDeltaPct}
+                          fmtDeltaEur={fmtDeltaEur}
+                          deltaColor={deltaColor}
+                        />
+                        <SegmentBlock
+                          title="Clienti di ritorno"
+                          accent={{ text:'#d8b4fe', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
+                          ordersCurr={row.rcOrders}
+                          ordersPrev={prev.rcOrders}
+                          revCurr={row.rcRevenue}
+                          revPrev={prev.rcRevenue}
+                          money={money}
+                          int0={int0}
+                          fmtDeltaPct={fmtDeltaPct}
+                          fmtDeltaEur={fmtDeltaEur}
+                          deltaColor={deltaColor}
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -658,6 +643,329 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       </div>
 
       <KpiBrainAgent tf={preset} preset={preset} />
+
+      {selectedCountry && (
+        <CountryDetailModal
+          data={selectedCountry}
+          onClose={() => setSelectedCountry(null)}
+          money={money}
+          int0={int0}
+          countryFlag={countryFlag}
+          fmtDeltaPct={fmtDeltaPct}
+          fmtDeltaEur={fmtDeltaEur}
+          deltaColor={deltaColor}
+          tfLabel={tfLabel}
+        />
+      )}
     </div>
+  )
+}
+
+// ── SegmentBlock: card per ogni dato NC/RC sotto la riga country ──
+function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev, money, int0, fmtDeltaPct, fmtDeltaEur, deltaColor }) {
+  const dPct = fmtDeltaPct(revCurr, revPrev)
+  const dEur = revPrev > 0 ? fmtDeltaEur(revCurr, revPrev) : (revCurr > 0 ? `+${money(revCurr)}` : '€0')
+  const dColor = deltaColor(revCurr, revPrev)
+  const cards = [
+    { label: 'Ordini', value: int0(ordersCurr), color: '#fff' },
+    { label: 'Revenue', value: money(revCurr), color: '#fff' },
+    { label: 'Delta %', value: dPct || '—', color: dColor },
+    { label: 'Delta €', value: dEur, color: dColor },
+  ]
+  return (
+    <div style={{
+      padding: '12px 12px 10px',
+      borderRadius: 12,
+      background: accent.bg,
+      border: `1px solid ${accent.border}`,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 800,
+        color: accent.text,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        marginBottom: 10,
+      }}>{title}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+        {cards.map((c, idx) => (
+          <div key={idx} style={{
+            padding: '7px 8px',
+            borderRadius: 8,
+            background: 'rgba(0,0,0,0.30)',
+            border: '1px solid rgba(255,255,255,0.04)',
+            borderTopColor: 'rgba(255,255,255,0.08)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+            minWidth: 0,
+          }}>
+            <div style={{
+              fontSize: 8.5, fontWeight: 700,
+              color: 'var(--text3)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              opacity: 0.85,
+              marginBottom: 3,
+              whiteSpace: 'nowrap',
+            }}>{c.label}</div>
+            <div style={{
+              fontSize: 12.5, fontWeight: 900,
+              color: c.color,
+              letterSpacing: '-0.01em',
+              lineHeight: 1.1,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── CountryDetailModal: popup con pie + area chart + breakdown ─────
+function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaPct, fmtDeltaEur, deltaColor, tfLabel }) {
+  const [daily, setDaily] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    if (!data?.range) return
+    const { range, row } = data
+    setLoading(true)
+    fetch(`/api/shopify-countries?since=${range.since}&until=${range.until}&country=${row.country_code || ''}&breakdown=daily`)
+      .then(r => r.json())
+      .then(j => setDaily(Array.isArray(j?.daily) ? j.daily : []))
+      .catch(() => setDaily([]))
+      .finally(() => setLoading(false))
+  }, [data])
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  if (!mounted || !data) return null
+  const { row, prev } = data
+  const safeCode = (row.country_code || 'XX').toLowerCase()
+  const pieData = [
+    { name: 'Nuovi clienti', value: row.ncRevenue || 0, color: '#06b6d4' },
+    { name: 'Clienti di ritorno', value: row.rcRevenue || 0, color: '#a855f7' },
+  ]
+  const hasPie = (row.ncRevenue || 0) + (row.rcRevenue || 0) > 0
+
+  return createPortal(
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position:'fixed', inset:0,
+          background:'rgba(0,0,0,0.65)',
+          backdropFilter:'blur(8px)',
+          WebkitBackdropFilter:'blur(8px)',
+          zIndex:200,
+          animation:'fadeUp .25s ease',
+        }}
+      />
+      <div
+        style={{
+          position:'fixed',
+          top:'50%', left:'50%',
+          transform:'translate(-50%, -50%)',
+          width:'min(1040px, 95vw)',
+          maxHeight:'92vh',
+          overflowY:'auto',
+          zIndex:201,
+          background:'linear-gradient(180deg, rgba(10,10,22,0.96) 0%, rgba(0,0,0,0.98) 100%)',
+          backdropFilter:'blur(40px) saturate(2.2)',
+          WebkitBackdropFilter:'blur(40px) saturate(2.2)',
+          borderRadius:26,
+          border:'1.5px solid rgba(255,255,255,0.08)',
+          borderTopColor:'rgba(255,255,255,0.16)',
+          borderBottomColor:'rgba(0,0,0,0.7)',
+          boxShadow:'0 60px 120px rgba(0,0,0,0.85), 0 0 100px rgba(14,165,233,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08)',
+          animation:'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)',
+          overflow:'hidden',
+        }}
+      >
+        {/* shine top */}
+        <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1.5, background:'linear-gradient(90deg, transparent, #0ea5e9cc, transparent)', filter:'blur(0.3px)', opacity:1, animation:'cr-shine 4s ease-in-out infinite', zIndex:3, pointerEvents:'none'}} />
+        {/* scan sweep */}
+        <div style={{position:'absolute', top:0, bottom:0, left:'-50%', width:'40%', background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)', animation:'sim-scan 9s ease-in-out infinite', pointerEvents:'none', zIndex:1}} />
+
+        <div style={{padding:28, position:'relative', zIndex:2, overflowY:'auto', maxHeight:'92vh'}}>
+          {/* Header */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, marginBottom:24, flexWrap:'wrap'}}>
+            <div style={{display:'flex', alignItems:'center', gap:16}}>
+              <div style={{fontSize:54, lineHeight:1, filter:'drop-shadow(0 6px 12px rgba(0,0,0,0.5))'}}>{countryFlag(row.country_code)}</div>
+              <div>
+                <div style={{fontSize:9.5, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.16em', textTransform:'uppercase'}}>Paese · {tfLabel}</div>
+                <div style={{fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-0.02em', marginTop:4}}>{row.country}</div>
+                <div style={{fontSize:13, color:'var(--text3)', marginTop:6}}>{money(row.revenue)} fatturato · {int0(row.orders)} ordini</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{
+              background:'rgba(255,255,255,0.06)',
+              border:'1px solid rgba(255,255,255,0.10)',
+              color:'#fff',
+              width:38, height:38,
+              borderRadius:11,
+              cursor:'pointer',
+              fontSize:20, fontWeight:300,
+              display:'grid', placeItems:'center',
+              transition:'all 0.2s ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)' }}
+            >×</button>
+          </div>
+
+          {/* Charts: pie + area */}
+          <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1.4fr)', gap:14, marginBottom:14}}>
+            {/* Pie chart */}
+            <div style={{
+              padding:18, borderRadius:16,
+              background:'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.20))',
+              border:'1px solid rgba(255,255,255,0.06)',
+              borderTopColor:'rgba(255,255,255,0.10)',
+              boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
+              position:'relative', overflow:'hidden',
+            }}>
+              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(6,182,212,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />
+              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>Composizione fatturato</div>
+              {hasPie ? (
+                <>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <defs>
+                        <linearGradient id={`pieNC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#22d3ee" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#0e7490" stopOpacity={1}/>
+                        </linearGradient>
+                        <linearGradient id={`pieRC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#c084fc" stopOpacity={1}/>
+                          <stop offset="100%" stopColor="#6b21a8" stopOpacity={1}/>
+                        </linearGradient>
+                        <filter id={`pieGlow-${safeCode}`}>
+                          <feGaussianBlur stdDeviation="4" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      </defs>
+                      <Pie
+                        data={pieData}
+                        cx="50%" cy="50%"
+                        innerRadius={55} outerRadius={92}
+                        paddingAngle={3}
+                        dataKey="value"
+                        isAnimationActive
+                        animationDuration={1200}
+                        animationEasing="ease-out"
+                        stroke="rgba(255,255,255,0.12)"
+                        strokeWidth={1.5}
+                      >
+                        <Cell fill={`url(#pieNC-${safeCode})`} filter={`url(#pieGlow-${safeCode})`}/>
+                        <Cell fill={`url(#pieRC-${safeCode})`} filter={`url(#pieGlow-${safeCode})`}/>
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid rgba(255,255,255,0.10)', borderRadius:8, fontSize:12, fontWeight:700}}
+                        formatter={v => money(v)}
+                        cursor={{fill:'rgba(255,255,255,0.04)'}}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{display:'flex', justifyContent:'space-around', marginTop:6, fontSize:11.5}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6, color:'#67e8f9', fontWeight:800}}>
+                      <div style={{width:11, height:11, borderRadius:3, background:'linear-gradient(180deg, #22d3ee, #0e7490)', boxShadow:'0 0 10px rgba(6,182,212,0.7)'}} />
+                      Nuovi {money(row.ncRevenue)}
+                    </div>
+                    <div style={{display:'flex', alignItems:'center', gap:6, color:'#d8b4fe', fontWeight:800}}>
+                      <div style={{width:11, height:11, borderRadius:3, background:'linear-gradient(180deg, #c084fc, #6b21a8)', boxShadow:'0 0 10px rgba(168,85,247,0.7)'}} />
+                      Ritorno {money(row.rcRevenue)}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>Nessun fatturato classificato (tutti guest)</div>
+              )}
+            </div>
+
+            {/* Area chart */}
+            <div style={{
+              padding:18, borderRadius:16,
+              background:'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.20))',
+              border:'1px solid rgba(255,255,255,0.06)',
+              borderTopColor:'rgba(255,255,255,0.10)',
+              boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
+              position:'relative', overflow:'hidden',
+            }}>
+              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(14,165,233,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />
+              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>Trend giornaliero fatturato</div>
+              {loading ? (
+                <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:240, gap:12, color:'var(--text3)'}}>
+                  <div style={{width:24, height:24, border:'3px solid rgba(255,255,255,0.1)', borderTopColor:'#0ea5e9', borderRadius:999, animation:'spin 1s linear infinite'}} />
+                  <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase'}}>Caricamento</div>
+                </div>
+              ) : daily.length === 0 ? (
+                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>Nessun dato giornaliero nel periodo</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={daily} margin={{top:8,right:8,left:-8,bottom:0}}>
+                    <defs>
+                      <linearGradient id={`areaTotal-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.55}/>
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id={`areaNC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.45}/>
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id={`areaRC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#a855f7" stopOpacity={0.40}/>
+                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={{stroke:'rgba(255,255,255,0.08)'}} tickFormatter={d => d.slice(5)} />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `€${Math.round(v)}`} />
+                    <Tooltip
+                      contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid rgba(255,255,255,0.10)', borderRadius:8, fontSize:12, fontWeight:700}}
+                      labelStyle={{color:'#0ea5e9'}}
+                      formatter={(v, n) => [money(v), n === 'revenue' ? 'Totale' : n === 'ncRevenue' ? 'Nuovi' : 'Ritorno']}
+                      cursor={{stroke:'rgba(14,165,233,0.4)', strokeWidth:1, strokeDasharray:'3 3'}}
+                    />
+                    <Area type="monotone" dataKey="ncRevenue" stackId="seg" stroke="#22d3ee" strokeWidth={1.5} fill={`url(#areaNC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
+                    <Area type="monotone" dataKey="rcRevenue" stackId="seg" stroke="#c084fc" strokeWidth={1.5} fill={`url(#areaRC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
+                    <Area type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2.5} fill="none" isAnimationActive animationDuration={1600} animationEasing="ease-out" dot={{r:3, fill:'#0ea5e9', stroke:'#fff', strokeWidth:1}}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* NC + RC segment detail */}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+            <SegmentBlock
+              title="Nuovi clienti"
+              accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
+              ordersCurr={row.ncOrders} ordersPrev={prev.ncOrders}
+              revCurr={row.ncRevenue} revPrev={prev.ncRevenue}
+              money={money} int0={int0}
+              fmtDeltaPct={fmtDeltaPct} fmtDeltaEur={fmtDeltaEur} deltaColor={deltaColor}
+            />
+            <SegmentBlock
+              title="Clienti di ritorno"
+              accent={{ text:'#d8b4fe', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
+              ordersCurr={row.rcOrders} ordersPrev={prev.rcOrders}
+              revCurr={row.rcRevenue} revPrev={prev.rcRevenue}
+              money={money} int0={int0}
+              fmtDeltaPct={fmtDeltaPct} fmtDeltaEur={fmtDeltaEur} deltaColor={deltaColor}
+            />
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
   )
 }

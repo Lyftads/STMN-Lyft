@@ -55,12 +55,52 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const since = searchParams.get('since')
   const until = searchParams.get('until')
+  const countryFilter = (searchParams.get('country') || '').toUpperCase() || null
+  const breakdown = searchParams.get('breakdown') || null // 'daily' o null
   if (!since || !until) {
     return NextResponse.json({ error: 'Parametri since e until obbligatori (YYYY-MM-DD)' }, { status: 400 })
   }
 
   try {
     const orders = await fetchOrdersInRange(since, until)
+
+    // Modalita' breakdown daily: filtra per country e aggrega per data
+    if (breakdown === 'daily') {
+      const filtered = countryFilter
+        ? (orders || []).filter(o => (o.billing_address?.country_code || '').toUpperCase() === countryFilter)
+        : (orders || [])
+      const byDate = new Map()
+      for (const o of filtered) {
+        const date = (o.created_at || '').slice(0, 10) // YYYY-MM-DD
+        if (!date) continue
+        const revenue = parseFloat(o.total_price || 0)
+        const cnt = o.customer?.orders_count
+        const isNC = cnt === 1
+        const isRC = typeof cnt === 'number' && cnt > 1
+        const prev = byDate.get(date) || { date, revenue: 0, orders: 0, ncOrders: 0, rcOrders: 0, ncRevenue: 0, rcRevenue: 0 }
+        prev.revenue += revenue
+        prev.orders += 1
+        if (isNC) { prev.ncOrders += 1; prev.ncRevenue += revenue }
+        if (isRC) { prev.rcOrders += 1; prev.rcRevenue += revenue }
+        byDate.set(date, prev)
+      }
+      // Genera tutte le date del range (anche giorni a 0) per linea continua
+      const daily = []
+      const cursor = new Date(`${since}T00:00:00Z`)
+      const last = new Date(`${until}T00:00:00Z`)
+      while (cursor <= last) {
+        const ymd = cursor.toISOString().slice(0, 10)
+        const r = byDate.get(ymd) || { date: ymd, revenue: 0, orders: 0, ncOrders: 0, rcOrders: 0, ncRevenue: 0, rcRevenue: 0 }
+        daily.push({
+          ...r,
+          revenue: Math.round(r.revenue * 100) / 100,
+          ncRevenue: Math.round(r.ncRevenue * 100) / 100,
+          rcRevenue: Math.round(r.rcRevenue * 100) / 100,
+        })
+        cursor.setUTCDate(cursor.getUTCDate() + 1)
+      }
+      return NextResponse.json({ since, until, country: countryFilter, daily, updatedAt: new Date().toISOString() })
+    }
     const byCountry = new Map()
     let unknownCount = 0
     let unknownRevenue = 0

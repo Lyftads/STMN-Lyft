@@ -5,6 +5,7 @@ import TimeframeSelector from './TimeframeSelector'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
+import LogoMark from './LogoMark'
 
 function getPageTitle(tab) {
   const map = {
@@ -151,8 +152,55 @@ export default function VendroShell({
       display: 'flex',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
       position: 'relative',
+      overflow: 'hidden',
     }}>
-      {/* Pure black background — no overlay gradient */}
+      {/* Animated radial gradient background — coerente con landing */}
+      <style>{`
+        @keyframes vendroOrbit1 {
+          0%   { transform: translate(-15vw, -10vh) scale(1); }
+          25%  { transform: translate(10vw, -15vh) scale(1.1); }
+          50%  { transform: translate(20vw, 5vh) scale(0.95); }
+          75%  { transform: translate(-5vw, 10vh) scale(1.05); }
+          100% { transform: translate(-15vw, -10vh) scale(1); }
+        }
+        @keyframes vendroOrbit2 {
+          0%   { transform: translate(15vw, 10vh) scale(1); }
+          33%  { transform: translate(-10vw, 15vh) scale(1.15); }
+          66%  { transform: translate(12vw, -10vh) scale(0.9); }
+          100% { transform: translate(15vw, 10vh) scale(1); }
+        }
+        @keyframes vendroOrbit3 {
+          0%   { transform: translate(0, 0) scale(1); }
+          50%  { transform: translate(-15vw, 12vh) scale(1.2); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+      `}</style>
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: '20%', left: '30%',
+          width: 700, height: 700, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(191,90,242,0.18), rgba(191,90,242,0.05) 40%, transparent 70%)',
+          filter: 'blur(60px)',
+          animation: 'vendroOrbit1 40s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', top: '50%', right: '20%',
+          width: 600, height: 600, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(41,151,255,0.15), rgba(41,151,255,0.04) 40%, transparent 70%)',
+          filter: 'blur(60px)',
+          animation: 'vendroOrbit2 45s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '10%', left: '50%',
+          width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(34,197,94,0.10), transparent 70%)',
+          filter: 'blur(70px)',
+          animation: 'vendroOrbit3 55s ease-in-out infinite',
+        }} />
+      </div>
 
       {/* Sidebar */}
       <aside style={{
@@ -172,19 +220,14 @@ export default function VendroShell({
         {/* Logo */}
         <div style={{ padding: '28px 20px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <svg width="28" height="22" viewBox="0 0 36 28" fill="none">
-              <rect x="1" y="18" width="6" height="9" rx="2" fill="#2997ff" opacity="0.3" />
-              <rect x="10" y="12" width="6" height="15" rx="2" fill="#2997ff" opacity="0.5" />
-              <rect x="19" y="6" width="6" height="21" rx="2" fill="#2997ff" opacity="0.7" />
-              <rect x="28" y="1" width="6" height="26" rx="2" fill="#2997ff" />
-            </svg>
+            <LogoMark size={32} />
             <span style={{
               fontSize: 22,
               fontWeight: 800,
               letterSpacing: '-0.04em',
               color: '#fff',
             }}>
-              Lyft
+              LyftAI
             </span>
           </div>
 

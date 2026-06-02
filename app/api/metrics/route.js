@@ -410,27 +410,42 @@ function classifyOrderRest(o) {
   return 'NC' // conservativo: customer esiste ma niente date utili
 }
 
-async function fetchNcRcFromOrdersRest(start, end) {
+async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {
   const sinceIso = `${start}T00:00:00Z`
   const endDate = new Date(`${end}T00:00:00Z`)
   endDate.setUTCDate(endDate.getUTCDate() + 1)
   const untilIso = endDate.toISOString()
 
+  // Timeout globale: se Shopify e' lento, abortiamo per non bloccare l'intera
+  // response /api/metrics (maxDuration 30s, ma vogliamo tornare prima
+  // anche con dati parziali piuttosto che con un 504).
+  const controller = new AbortController()
+  const t = setTimeout(() => controller.abort(), timeoutMs)
+
   let orders = []
-  // Esteso fields con created_at per classifyOrderRest heuristic
   let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,customer`
   let safety = 0
-  while (url && safety < 50) {
-    safety++
-    const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN }, cache: 'no-store' })
-    if (!res.ok) break
-    const data = await res.json()
-    orders = orders.concat(data.orders || [])
-    const link = res.headers.get('Link')
-    if (link && link.includes('rel="next"')) {
-      const m = link.match(/<([^>]+)>;\s*rel="next"/)
-      url = m ? m[1] : null
-    } else url = null
+  try {
+    while (url && safety < 50) {
+      safety++
+      const res = await fetch(url, {
+        headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN },
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      if (!res.ok) break
+      const data = await res.json()
+      orders = orders.concat(data.orders || [])
+      const link = res.headers.get('Link')
+      if (link && link.includes('rel="next"')) {
+        const m = link.match(/<([^>]+)>;\s*rel="next"/)
+        url = m ? m[1] : null
+      } else url = null
+    }
+  } catch (e) {
+    // Abort o errore di rete → ritorna quello che abbiamo raccolto
+  } finally {
+    clearTimeout(t)
   }
 
   let nc = 0, rc = 0, fatturNC = 0, fatturRC = 0
@@ -440,7 +455,7 @@ async function fetchNcRcFromOrdersRest(start, end) {
     if (cls === 'NC') { nc++; fatturNC += rev }
     else if (cls === 'RC') { rc++; fatturRC += rev }
   }
-  return { nc, rc, fatturNC: roundMoney(fatturNC), fatturRC: roundMoney(fatturRC) }
+  return { nc, rc, fatturNC: roundMoney(fatturNC), fatturRC: roundMoney(fatturRC), partial: !!url }
 }
 
 // ── Shopify sales per range arbitrario ─────────────────────────
@@ -570,19 +585,29 @@ async function fetchShopifySalesRange(start, end) {
   // Fallback REST API: ShopifyQL classifica NC/RC con un job notturno → per
   // i range cortissimi recenti (last_7d, today, yesterday) gli ordini di
   // oggi/ieri spesso non hanno new_or_returning_customer settato e
-  // vengono esclusi dal breakdown. Fallback: leggo Orders REST direttamente
-  // e classifico via customer.orders_count (1 = NC, >1 = RC).
-  if ((nc === 0 && rc === 0) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+  // vengono esclusi dal breakdown.
+  //
+  // Trigger esteso: REST scatta anche su classificazione incompleta
+  // (nc+rc < 85% degli ordini) → tipico last_7d dove gli ordini vecchi
+  // sono classificati ma quelli di oggi no.
+  //
+  // Timeout 12s sul REST per non rischiare di bloccare l'intera /api/metrics:
+  // se Shopify e' lento, lasciamo ShopifyQL parziale piuttosto che 504.
+  const shopifyClassified = (nc || 0) + (rc || 0)
+  const isIncomplete = ordini > 0 && shopifyClassified < ordini * 0.85
+  if ((isIncomplete || (nc === 0 && rc === 0)) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
     try {
-      const restCounts = await fetchNcRcFromOrdersRest(start, end)
-      if (restCounts && (restCounts.nc > 0 || restCounts.rc > 0)) {
+      const restCounts = await fetchNcRcFromOrdersRest(start, end, { timeoutMs: 12000 })
+      const restClassified = (restCounts?.nc || 0) + (restCounts?.rc || 0)
+      // Sostituisci solo se REST e' piu' completo di ShopifyQL
+      if (restCounts && restClassified > shopifyClassified) {
         nc = restCounts.nc
         rc = restCounts.rc
         fatturNC = restCounts.fatturNC
         fatturRC = restCounts.fatturRC
       }
     } catch {
-      // Ignora: meglio NC=0/RC=0 che far crashare la response
+      // Ignora: meglio ShopifyQL parziale che far crashare la response
     }
   }
 

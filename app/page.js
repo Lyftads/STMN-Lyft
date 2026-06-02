@@ -3577,6 +3577,12 @@ export default function App() {
           const useLiveMetaCurrent = isYearPreset && key === presetY && mr
           const useLiveMetaPrev = isYearPreset && key === yearMinus(presetY, 1) && mpr
 
+          // YEAR-ONLY: pre-calcolo somma mensile NC/RC. Le useremo come
+          // floor sotto al live overlay (ShopifyQL su range year_ a volte
+          // ritorna nc/rc=0 per rate-limit → cadiamo su monthly).
+          const ncMonthly = sum('nc')
+          const rcMonthly = sum('rc')
+
           const fatturato = useLiveCurrent ? Number(sr.revenue) || 0
                           : useLivePrev    ? Number(spr.revenue) || 0
                           : sum('fatturato')
@@ -3598,12 +3604,19 @@ export default function App() {
           const ordini    = useLiveCurrent ? Number(sr.orders) || 0
                           : useLivePrev    ? Number(spr.orders) || 0
                           : sum('ordini')
-          const nc        = useLiveCurrent ? Number(sr.nc) || 0
-                          : useLivePrev    ? Number(spr.nc) || 0
-                          : sum('nc')
-          const rc        = useLiveCurrent ? Number(sr.rc) || 0
-                          : useLivePrev    ? Number(spr.rc) || 0
-                          : sum('rc')
+          // YEAR-ONLY: NC/RC = MAX(live overlay, somma mensile)
+          // Su range year_ ShopifyQL nel live API a volte ritorna nc/rc=0
+          // per rate-limit / breakdown query random fail. Monthly e' piu'
+          // affidabile perche' usa lo stesso fetch ma per singoli mesi.
+          //  - se live ha dati piu' freschi (oggi/ieri inclusi), li usa
+          //  - se live ritorna 0 ma monthly ha valori, usa monthly
+          //  - per anni storici (no live overlay), monthly sempre
+          const nc        = useLiveCurrent ? Math.max(Number(sr.nc) || 0, ncMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.nc) || 0, ncMonthly)
+                          : ncMonthly
+          const rc        = useLiveCurrent ? Math.max(Number(sr.rc) || 0, rcMonthly)
+                          : useLivePrev    ? Math.max(Number(spr.rc) || 0, rcMonthly)
+                          : rcMonthly
           const sessioni  = useLiveCurrent ? Number(sr.sessions) || 0
                           : useLivePrev    ? Number(spr.sessions) || 0
                           : sum('sessioni')

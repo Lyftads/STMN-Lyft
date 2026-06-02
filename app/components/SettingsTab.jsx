@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import BrandIdentityPanel from './BrandIdentityPanel'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
 // non piu' localStorage. L'API /api/stripe/subscription lo risolve in automatico
@@ -995,6 +996,9 @@ export default function SettingsTab() {
       </GlassCard>
 
       <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />
+
+      {/* Brand Identity — alimenta gli AI agent + creative tools */}
+      <BrandIdentityPanel />
     </div>
   )
 }

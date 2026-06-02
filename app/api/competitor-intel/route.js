@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+import { getUserCompetitors } from '../../../lib/tenant/brand'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -777,13 +778,50 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
   return result
 }
 
+// Risolve la lista competitor: prima prova brand_identity.competitors
+// dell'utente, fallback su COMPETITORS hardcoded (defaults STMN per tenant
+// beta). Normalizza la shape per essere consumabile dal resto del codice.
+async function resolveCompetitors() {
+  const userList = await getUserCompetitors()
+  if (userList.length === 0) return COMPETITORS
+
+  return userList.map(c => {
+    // Estrae username Instagram da URL completo se necessario
+    let igHandle = c.instagram || ''
+    const igMatch = igHandle.match(/instagram\.com\/([^/?#]+)/i)
+    if (igMatch) igHandle = igMatch[1]
+    igHandle = igHandle.replace(/^@/, '').replace(/\/$/, '')
+
+    // Origin dal website (https://example.com)
+    let origin = c.website || ''
+    if (origin && !/^https?:\/\//i.test(origin)) origin = `https://${origin}`
+    const homepage = origin
+
+    return {
+      id: c.id,
+      name: c.name || c.id,
+      pageId: c.pageId || null,
+      origin,
+      homepage,
+      instagram: igHandle,
+      facebook: c.facebook || '',
+    }
+  })
+}
+
 async function fetchAllCompetitors(countries) {
+  const list = await resolveCompetitors()
   return Promise.all(
-    COMPETITORS.map(async (comp) => {
+    list.map(async (comp) => {
       const [adLibrary, websiteDataRaw, facebookData, instagramData] = await Promise.all([
-        fetchAdLibrary(comp.pageId, countries, comp.name),
+        // Senza pageId non possiamo fare il fetch ads — ritorna struttura vuota
+        comp.pageId
+          ? fetchAdLibrary(comp.pageId, countries, comp.name)
+          : Promise.resolve({ ads: [], pageName: null, error: 'pageId mancante' }),
         scrapeProducts(comp.origin, comp.homepage, comp.currency === 'AUD' ? 'AU' : 'IT'),
-        fetchFacebookPage(comp.pageId),
+        comp.pageId
+          ? fetchFacebookPage(comp.pageId)
+          : Promise.resolve(null),
         fetchInstagramProfile(comp.instagram),
       ])
 

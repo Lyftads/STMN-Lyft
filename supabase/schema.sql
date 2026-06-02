@@ -46,6 +46,32 @@ alter table public.companies add column if not exists google_refresh_token   tex
 alter table public.companies add column if not exists klaviyo_api_key        text;
 alter table public.companies add column if not exists is_beta                boolean not null default false;
 
+-- Brand Identity (Fase 3): JSONB unico per flessibilita' — aggiungiamo/
+-- rimuoviamo campi senza migrazioni schema. Struttura tipica:
+-- {
+--   "tagline": "", "description": "", "mission": "", "founded": "2020",
+--   "website": "", "category": "Fitness", "subcategories": ["CrossFit"],
+--   "products": ["Paracalli", "Corde"], "notSelling": "no integratori",
+--   "targetAudience": "...", "markets": ["IT","EU"], "languages": ["it","en"],
+--   "toneTags": ["Professionale","Energico"], "language": "informale",
+--   "brandWords": ["performance","durabilita"], "forbiddenWords": ["cheap"],
+--   "copyExamples": ["..."], "brandPersona": "...",
+--   "colors": ["#000000","#FF6900"], "primaryFont": "Inter",
+--   "secondaryFont": "...", "photoStyle": "...", "adStyle": "..."
+-- }
+alter table public.companies add column if not exists brand_identity         jsonb not null default '{}'::jsonb;
+
+-- Brand assets (logo, mood board, foto reference): array di asset metadata.
+-- I file binari vivono nel bucket Storage 'brand-assets', qui salviamo solo
+-- url + metadata. Esempio struttura:
+-- [
+--   { "type": "logo_png", "url": "https://.../logo.png", "name": "logo.png", "size": 12345, "uploadedAt": "..." },
+--   { "type": "logo_svg", "url": "...", ... },
+--   { "type": "photo_ref", "url": "...", ... },
+--   { "type": "mood_board", "url": "...", ... }
+-- ]
+alter table public.companies add column if not exists brand_assets           jsonb not null default '[]'::jsonb;
+
 -- Indici utili
 create index if not exists idx_companies_stripe_customer on public.companies(stripe_customer_id);
 create index if not exists idx_companies_plan on public.companies(plan);
@@ -102,6 +128,45 @@ drop trigger if exists touch_companies_updated_at on public.companies;
 create trigger touch_companies_updated_at
   before update on public.companies
   for each row execute function public.touch_updated_at();
+
+-- ============================================================================
+--  Storage bucket per Brand Assets (logo, mood board, foto reference).
+--  Bucket pubblico (lettura senza auth) ma scrittura solo per l'owner via RLS.
+-- ============================================================================
+insert into storage.buckets (id, name, public)
+  values ('brand-assets', 'brand-assets', true)
+  on conflict (id) do nothing;
+
+-- RLS policies su storage.objects per bucket brand-assets.
+-- Path convention: '{user_id}/{filename}' — RLS check sul primo segment del path.
+drop policy if exists "brand-assets: read public" on storage.objects;
+create policy "brand-assets: read public"
+  on storage.objects for select
+  using (bucket_id = 'brand-assets');
+
+drop policy if exists "brand-assets: insert own" on storage.objects;
+create policy "brand-assets: insert own"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'brand-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "brand-assets: update own" on storage.objects;
+create policy "brand-assets: update own"
+  on storage.objects for update
+  using (
+    bucket_id = 'brand-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "brand-assets: delete own" on storage.objects;
+create policy "brand-assets: delete own"
+  on storage.objects for delete
+  using (
+    bucket_id = 'brand-assets'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 -- ============================================================================
 --  Marca il tuo account (STMN, Marino) come beta tenant.

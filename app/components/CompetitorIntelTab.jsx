@@ -929,6 +929,34 @@ export default function CompetitorIntelTab() {
 
   const competitors = data?.competitors || []
 
+  // ── Ricerca Ad Library per keyword (additivo) ──
+  const [adInput, setAdInput] = useState('')
+  const [adQuery, setAdQuery] = useState('')
+  const [adResults, setAdResults] = useState(null)
+  const [adLoading, setAdLoading] = useState(false)
+  const [adError, setAdError] = useState(null)
+  const [adLibraryUrl, setAdLibraryUrl] = useState(null)
+
+  async function runAdSearch(term) {
+    const t = (term ?? adInput).trim()
+    if (!t || adLoading) return
+    setAdLoading(true)
+    setAdError(null)
+    setAdQuery(t)
+    try {
+      const r = await fetch(`/api/adlibrary-search?q=${encodeURIComponent(t)}&country=${encodeURIComponent(country)}`)
+      const j = await r.json()
+      setAdLibraryUrl(j?.libraryUrl || null)
+      setAdResults(Array.isArray(j?.ads) ? j.ads : [])
+      if (j?.error && !(j?.ads?.length)) setAdError(j.error)
+    } catch (e) {
+      setAdError(e?.message || 'Errore di rete')
+      setAdResults([])
+    } finally {
+      setAdLoading(false)
+    }
+  }
+
   return (
     <div>
       {/* Toolbar (il titolo è già nell'header della shell) */}
@@ -1014,6 +1042,80 @@ export default function CompetitorIntelTab() {
           </div>
         </div>
       )}
+
+      {/* ── Ricerca Ad Library per keyword (additivo) ── */}
+      <div
+        className="glass-section reveal-zoom"
+        style={{
+          background: 'var(--glass)', border: '1px solid var(--border)',
+          borderRadius: 18, padding: 22, marginBottom: 24,
+        }}
+      >
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div className="heading-sm" style={{ fontSize: 16, marginBottom: 4 }}>Ricerca Ad Library</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>
+            Cerca creative attive su Meta per parola chiave, in tutto il mercato {country} — non solo i competitor monitorati.
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); runAdSearch() }}
+            style={{ display: 'flex', gap: 10, maxWidth: 520, marginBottom: adResults != null ? 18 : 0 }}
+          >
+            <div style={{ position: 'relative', flex: 1 }}>
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', fontSize: 14, pointerEvents: 'none' }}>⌕</span>
+              <input
+                type="text"
+                value={adInput}
+                onChange={(e) => setAdInput(e.target.value)}
+                placeholder="es. grips, jump rope, knee sleeves…"
+                className="btn-glass"
+                style={{ width: '100%', padding: '11px 14px 11px 38px', fontWeight: 600, color: 'var(--text)', outline: 'none' }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={adLoading || !adInput.trim()}
+              className="btn-glass"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: adLoading || !adInput.trim() ? 'not-allowed' : 'pointer', opacity: adLoading || !adInput.trim() ? 0.6 : 1 }}
+            >
+              <span style={{ display: 'inline-block', animation: adLoading ? 'spin 1s linear infinite' : 'none' }}>⌕</span>
+              {adLoading ? 'Cerco…' : 'Cerca'}
+            </button>
+          </form>
+
+          {adError && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12 }}>
+              Nessun risultato leggibile per “{adQuery}”. {adLibraryUrl && (
+                <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Apri su Ad Library ↗</a>
+              )}
+            </div>
+          )}
+
+          {adResults != null && !adError && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
+                  {adResults.length} creative attive per “{adQuery}” · mercato {country}
+                </span>
+                {adLibraryUrl && (
+                  <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
+                    Vedi tutto su Ad Library ↗
+                  </a>
+                )}
+              </div>
+              {adResults.length > 0 ? (
+                <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+                  {adResults.map((ad, i) => (
+                    <AdCard key={ad.id || i} ad={ad} index={i} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna creative trovata.</div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Overview Cards */}
       {competitors.length > 0 && (

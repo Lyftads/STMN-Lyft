@@ -197,6 +197,11 @@ create policy "agent_memories: delete own"
 --
 -- Filtra: importance >= p_min_imp, embedding non null, role != 'consolidated_into'
 -- (memorie consolidate sono escluse — la sintesi compatta le rimpiazza).
+--
+-- NB: drop esplicito perche' Postgres non permette di cambiare il return
+-- type di una function esistente con CREATE OR REPLACE (versione vecchia
+-- non aveva use_count nel return).
+drop function if exists public.recall_agent_memories(uuid, text, vector(1536), integer, integer);
 create or replace function public.recall_agent_memories(
   p_user_id    uuid,
   p_agent_id   text,

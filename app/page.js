@@ -2193,16 +2193,30 @@ export default function App() {
   }, [])
 
   // Post-signup: redirect a /onboarding se l'utente non ha ancora completato
-  // il wizard di setup integrazioni. Una sola fetch al mount, fire-and-forget.
+  // il wizard di setup integrazioni, oppure a /billing-required se non ha
+  // una sub attiva/trialing. Sequenziale: prima onboarding, poi billing.
   useEffect(() => {
-    fetch('/api/onboarding')
-      .then(r => r.ok ? r.json() : null)
-      .then(j => {
-        if (j && j.completed === false && typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ob = await fetch('/api/onboarding').then(r => r.ok ? r.json() : null)
+        if (cancelled) return
+        if (ob && ob.completed === false) {
           window.location.href = '/onboarding'
+          return
         }
-      })
-      .catch(() => {})
+        // Onboarding ok → verifica subscription status
+        const sub = await fetch('/api/stripe/subscription').then(r => r.ok ? r.json() : null)
+        if (cancelled) return
+        const status = sub?.subscription?.status
+        const isPaying = status === 'active' || status === 'trialing'
+        if (!isPaying) {
+          window.location.href = '/billing-required'
+        }
+      } catch {}
+    })()
+    return () => { cancelled = true }
   }, [])
 
   const fetchLive = useCallback(async () => {

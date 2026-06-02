@@ -105,6 +105,16 @@ export async function POST(req) {
       }, { status: 500 })
     }
 
+    // Trial 14gg per nuovi customer: passa subscription_data.trial_period_days.
+    // payment_method_collection: 'if_required' = no carta richiesta upfront
+    // (matcha la promessa "niente carta richiesta" della landing). Alla
+    // scadenza Stripe manda email per chiedere PM o sub si cancella.
+    //
+    // Body opt-out: se il client manda trial=false (upgrade da Settings di
+    // utente gia' attivo), saltiamo il trial.
+    const enableTrial = body?.trial !== false && !stripeCustomerId
+    const trialPeriodDays = enableTrial ? 14 : undefined
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -118,16 +128,20 @@ export async function POST(req) {
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       automatic_tax: { enabled: false },
+      // No carta richiesta in trial → max conversione signup
+      ...(enableTrial ? { payment_method_collection: 'if_required' } : {}),
       success_url: `${origin}/?tab=settings&checkout=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/?tab=settings&checkout=cancelled`,
+      cancel_url: `${origin}/billing-required?cancelled=1`,
       // Metadata: usate dal webhook per associare la sub all'utente nel DB
       metadata: {
         plan: planId,
         user_id: userId || '',
         company_name: companyName || '',
         source: 'lyft-dashboard',
+        trial: enableTrial ? '14d' : 'none',
       },
       subscription_data: {
+        ...(trialPeriodDays ? { trial_period_days: trialPeriodDays } : {}),
         metadata: {
           plan: planId,
           user_id: userId || '',

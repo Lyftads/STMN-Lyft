@@ -664,19 +664,6 @@ export default function SettingsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      {/* Header */}
-      <div>
-        <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-          Subscription Management
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>
-          Settings
-        </div>
-        <div style={{ fontSize: 13.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
-          Gestisci il tuo piano, scegli l'upgrade adatto al tuo business, scarica fatture.
-        </div>
-      </div>
-
       <StatusCard currentPlanId={currentPlanId} />
 
       <PaymentMethodCard />

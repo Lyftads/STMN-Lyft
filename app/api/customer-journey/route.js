@@ -366,6 +366,33 @@ async function getTokenUserEmail(token) {
   } catch { return null }
 }
 
+// Lista le property GA4 a cui il token ha accesso (Admin API).
+// Se la property che stiamo cercando NON e' nella lista, e' confermato
+// che il refresh_token rappresenta un account diverso da quello atteso.
+async function listAccessibleProperties(token) {
+  try {
+    const r = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '')
+      return { error: `Admin API ${r.status}: ${txt.slice(0, 200)}` }
+    }
+    const j = await r.json()
+    const properties = []
+    for (const acc of j.accountSummaries || []) {
+      for (const p of acc.propertySummaries || []) {
+        // p.property = "properties/123456" → estrai l'ID
+        const id = (p.property || '').replace(/^properties\//, '')
+        properties.push({ id, name: p.displayName, account: acc.displayName })
+      }
+    }
+    return { properties }
+  } catch (e) {
+    return { error: e?.message || 'unknown' }
+  }
+}
+
 async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
   const propertyId = envTrim('GA4_PROPERTY_ID')
   if (!propertyId) {
@@ -397,7 +424,11 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
         }),
       ])
     } catch (e) {
-      return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'}` }
+      const propsInfo = await listAccessibleProperties(token)
+      const propsList = propsInfo?.properties
+        ? propsInfo.properties.map(p => `${p.id} (${p.name})`).join(', ') || '(nessuna)'
+        : propsInfo?.error || 'unknown'
+      return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'} — properties accessible: ${propsList}` }
     }
     const totalSessions = parseFloat(totalRep?.rows?.[0]?.metricValues?.[0]?.value || '0')
     const nodes = (landingRep?.rows || []).map(r => ({
@@ -459,7 +490,11 @@ async function fetchFromGA4DataAPI({ preset, path, level, limit, start, end }) {
       }),
     ])
   } catch (e) {
-    return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'}` }
+    const propsInfo = await listAccessibleProperties(token)
+    const propsList = propsInfo?.properties
+      ? propsInfo.properties.map(p => `${p.id} (${p.name})`).join(', ') || '(nessuna)'
+      : propsInfo?.error || 'unknown'
+    return { configured: false, reason: `GA4 Data API: ${e?.message?.slice(0, 300)} — property=${propertyId} — token user=${tokenEmail || 'unknown'} — properties accessible: ${propsList}` }
   }
 
   const parentSessions = parseFloat(parentRep?.rows?.[0]?.metricValues?.[0]?.value || '0')

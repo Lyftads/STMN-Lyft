@@ -3,37 +3,24 @@ export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
 import { format, subDays } from 'date-fns'
-import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/credentials'
 
-// Le credenziali Shopify/Meta sono per-tenant: risolte all'inizio della
-// request dentro withTenantContext() e lette dai getter sotto. Per il
-// tenant beta (STMN) con company row vuota, i getter cadono su env var,
-// preservando il comportamento pre-refactor.
-//
-// IMPORTANTE: NON chiamare getShopify()/getMeta() a livello modulo —
-// vanno chiamati DENTRO una request, dopo withTenantContext().
-
-// Compat shim: gli helper sotto leggono creds Shopify/Meta a runtime tramite
-// questi 4 getter, che risolvono dal context AsyncLocalStorage settato da
-// withTenantContext() in GET(). Per il tenant beta STMN i getter cadono su
-// env var, preservando il comportamento pre-refactor.
-const shopifyStoreUrl = () => getShopify().storeUrl
-const shopifyToken    = () => getShopify().adminToken
-const metaToken       = () => getMeta().accessToken
-const metaAccount     = () => getMeta().adAccountId
+const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
+const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
+const META_TOKEN = process.env.META_ACCESS_TOKEN
+const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 
 const START_DATE = '2025-01-01'
 const WEEKLY_START_DATE = '2025-12-29'
 
 function shopifyAuth() {
   return {
-    'X-Shopify-Access-Token': shopifyToken() || '',
+    'X-Shopify-Access-Token': SHOPIFY_TOKEN || '',
   }
 }
 
 function shopifyGraphQLHeaders() {
   return {
-    'X-Shopify-Access-Token': shopifyToken() || '',
+    'X-Shopify-Access-Token': SHOPIFY_TOKEN || '',
     'Content-Type': 'application/json',
   }
 }
@@ -333,7 +320,7 @@ function monthRanges() {
 
 // ── ShopifyQL via GraphQL ─────────────────────────────────────
 async function shopifyQL(query) {
-  if (!shopifyStoreUrl() || !shopifyToken()) return []
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
   const gql = `
     query ShopifyQLReport($query: String!) {
@@ -353,7 +340,7 @@ async function shopifyQL(query) {
 
   try {
     const res = await fetch(
-      `https://${shopifyStoreUrl()}/admin/api/2026-04/graphql.json`,
+      `https://${SHOPIFY_STORE}/admin/api/2026-04/graphql.json`,
       {
         method: 'POST',
         headers: shopifyGraphQLHeaders(),
@@ -438,13 +425,13 @@ async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {
   const t = setTimeout(() => controller.abort(), timeoutMs)
 
   let orders = []
-  let url = `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,customer`
+  let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,created_at,total_price,customer`
   let safety = 0
   try {
     while (url && safety < 50) {
       safety++
       const res = await fetch(url, {
-        headers: { 'X-Shopify-Access-Token': shopifyToken() },
+        headers: { 'X-Shopify-Access-Token': SHOPIFY_TOKEN },
         cache: 'no-store',
         signal: controller.signal,
       })
@@ -480,7 +467,7 @@ async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {
 // Admin API espone customer.numberOfOrders (conteggio lifetime) → numberOfOrders
 // <= 1 ⇒ nuovo cliente, > 1 ⇒ cliente di ritorno. Combacia con la dashboard.
 async function fetchShopifyOrdersAdminGQL(start, end, maxPages = 20) {
-  if (!shopifyStoreUrl() || !shopifyToken()) return null
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
 
   const gql = `
     query($q: String!, $cursor: String) {
@@ -508,7 +495,7 @@ async function fetchShopifyOrdersAdminGQL(start, end, maxPages = 20) {
   try {
     while (pages < maxPages) {
       const res = await fetch(
-        `https://${shopifyStoreUrl()}/admin/api/2024-01/graphql.json`,
+        `https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`,
         {
           method: 'POST',
           headers: shopifyGraphQLHeaders(),
@@ -685,7 +672,7 @@ async function fetchShopifySalesRange(start, end) {
   if (enableRestFallback) {
     const shopifyClassified = (nc || 0) + (rc || 0)
     const isIncomplete = ordini > 0 && shopifyClassified < ordini * 0.85
-    if ((isIncomplete || (nc === 0 && rc === 0)) && fatturato > 0 && shopifyStoreUrl() && shopifyToken()) {
+    if ((isIncomplete || (nc === 0 && rc === 0)) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
       try {
         const restCounts = await fetchNcRcFromOrdersRest(start, end, { timeoutMs: 8000 })
         const restClassified = (restCounts?.nc || 0) + (restCounts?.rc || 0)
@@ -769,7 +756,7 @@ async function fetchShopifyVisitorsRange(start, end) {
 }
 
 async function fetchShopifyWeekly() {
-  if (!shopifyStoreUrl() || !shopifyToken()) return []
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
   try {
     const ranges = weekRanges()
@@ -819,7 +806,7 @@ async function fetchShopifyWeekly() {
 }
 
 async function fetchShopifyMonthly() {
-  if (!shopifyStoreUrl() || !shopifyToken()) return []
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
   try {
     const ranges = monthRanges()
@@ -872,14 +859,14 @@ async function fetchShopifyMonthly() {
 // ── AOV ultimi 30 giorni ──────────────────────────────────────
 async function fetchAOV() {
   try {
-    if (!shopifyStoreUrl() || !shopifyToken()) {
+    if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) {
       return { aov: 0, orders: 0 }
     }
 
     const since = subDays(new Date(), 30).toISOString()
 
     const res = await fetch(
-      `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`,
+      `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`,
       {
         headers: shopifyAuth(),
       }
@@ -906,14 +893,14 @@ async function fetchAOV() {
 
 // ── Shopify orders REST pagination ─────────────────────────────
 async function fetchShopifyOrdersSince(startDate = START_DATE, endDate = null) {
-  if (!shopifyStoreUrl() || !shopifyToken()) return []
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
 
   const orders = []
   const createdAtMin = `${startDate}T00:00:00Z`
   const createdAtMax = endDate ? `${endDate}T23:59:59Z` : null
 
   let url =
-    `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json` +
+    `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json` +
     `?status=any` +
     `&financial_status=paid` +
     `&created_at_min=${encodeURIComponent(createdAtMin)}` +
@@ -1014,7 +1001,7 @@ function isMarketingSource(order) {
     combined.includes('tiktok') ||
     combined.includes('klaviyo') ||
     combined.includes('email') ||
-    Boolean(referrer && !referrer.includes(shopifyStoreUrl()))
+    Boolean(referrer && !referrer.includes(SHOPIFY_STORE))
   )
 }
 
@@ -1165,9 +1152,9 @@ async function fetchShopifyDayBreakdown(start = START_DATE, end = null) {
 
 // ── Meta weekly ───────────────────────────────────────────────
 async function fetchMetaWeekly() {
-  if (!metaToken() || !metaAccount()) return []
+  if (!META_TOKEN || !META_ACCOUNT) return []
 
-  const accounts = metaAccount().split(',')
+  const accounts = META_ACCOUNT.split(',')
     .map(s => s.trim())
     .filter(Boolean)
 
@@ -1185,7 +1172,7 @@ async function fetchMetaWeekly() {
           `?fields=${fields}` +
           `&time_range={"since":"${since}","until":"${until}"}` +
           `&time_increment=7` +
-          `&access_token=${metaToken()}`
+          `&access_token=${META_TOKEN}`
 
         const res = await fetch(url)
         const data = await res.json()
@@ -1288,9 +1275,9 @@ async function fetchMetaWeekly() {
 
 // ── Meta monthly spend ────────────────────────────────────────
 async function fetchMeta() {
-  if (!metaToken() || !metaAccount()) return []
+  if (!META_TOKEN || !META_ACCOUNT) return []
 
-  const accounts = metaAccount().split(',')
+  const accounts = META_ACCOUNT.split(',')
     .map(s => s.trim())
     .filter(Boolean)
 
@@ -1302,7 +1289,7 @@ async function fetchMeta() {
           `?fields=spend` +
           `&time_range={"since":"${START_DATE}","until":"${format(new Date(), 'yyyy-MM-dd')}"}` +
           `&time_increment=monthly` +
-          `&access_token=${metaToken()}`
+          `&access_token=${META_TOKEN}`
 
         const res = await fetch(url)
         const data = await res.json()
@@ -1343,11 +1330,11 @@ async function fetchMeta() {
 
 // Direct Admin REST API — accurate, matches Shopify dashboard exactly
 async function fetchShopifyOrdersAdmin(start, end, maxPages = 20) {
-  if (!shopifyStoreUrl() || !shopifyToken()) return null
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
   try {
     const sinceIso = `${start}T00:00:00Z`
     const untilIso = `${end}T23:59:59Z`
-    let url = `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,subtotal_price,customer,refunds,cancelled_at`
+    let url = `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${sinceIso}&created_at_max=${untilIso}&limit=250&fields=id,total_price,subtotal_price,customer,refunds,cancelled_at`
     let revenue = 0, orders = 0, resi = 0
     let fatturNC = 0, fatturRC = 0, nc = 0, rc = 0
     let resiNC = 0, resiRC = 0
@@ -1414,7 +1401,7 @@ async function safeShopifyRange(range) {
         new Date(`${range.since}T00:00:00Z`).getTime()) /
         86400000
     ) + 1
-  if (classificationMissing && endsRecently && windowDays <= 10 && shopifyStoreUrl() && shopifyToken()) {
+  if (classificationMissing && endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
     const admin = await fetchShopifyOrdersAdminGQL(range.since, range.until)
     if (admin && admin.ordini > 0) {
       sales = admin
@@ -1443,13 +1430,13 @@ async function safeShopifyRange(range) {
 
 async function safeMetaRange(range) {
   try {
-    if (!metaToken() || !metaAccount()) return null
+    if (!META_TOKEN || !META_ACCOUNT) return null
     if (!range?.since || !range?.until) return null
-    const accounts = metaAccount().split(',').map(s => s.trim()).filter(Boolean)
+    const accounts = META_ACCOUNT.split(',').map(s => s.trim()).filter(Boolean)
     const fields = 'spend,impressions,reach,frequency,cpm,ctr,outbound_clicks,cost_per_outbound_click'
     let spend = 0, impressions = 0, reach = 0, clicks = 0
     for (const id of accounts) {
-      const url = `https://graph.facebook.com/v19.0/${id}/insights?fields=${fields}&time_range={"since":"${range.since}","until":"${range.until}"}&access_token=${metaToken()}`
+      const url = `https://graph.facebook.com/v19.0/${id}/insights?fields=${fields}&time_range={"since":"${range.since}","until":"${range.until}"}&access_token=${META_TOKEN}`
       const res = await fetch(url)
       const data = await res.json()
       if (data.error) continue
@@ -1505,7 +1492,6 @@ async function safeShopifyDayBreakdown(range) {
 
 // ── API Route ─────────────────────────────────────────────────
 export async function GET(req) {
-  return withTenantContext(req, async () => {
   try {
     const { searchParams } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_90d'
@@ -1634,5 +1620,4 @@ export async function GET(req) {
       updatedAt: new Date().toISOString(),
     })
   }
-  })
 }

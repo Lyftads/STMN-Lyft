@@ -389,6 +389,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   // approvata, apiAds sara' popolato e questo blocco non parte nemmeno.
   const pageId = (meta?.adLibraryUrl || '').match(/view_all_page_id=(\d+)/)?.[1] || null
   const [pageAds, setPageAds] = useState(null)
+  const [pageTotal, setPageTotal] = useState(null)
   const [pageAdsLoading, setPageAdsLoading] = useState(false)
   useEffect(() => {
     if (apiAds.length > 0 || !pageId) return
@@ -398,13 +399,17 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
     // competitor). Filtrare per IT escluderebbe i brand esteri (es. Velites/ES).
     fetch(`/api/adlibrary-page?pageId=${encodeURIComponent(pageId)}&country=ALL`)
       .then(r => r.json())
-      .then(j => { if (!cancelled) setPageAds(Array.isArray(j?.ads) ? j.ads : []) })
+      .then(j => { if (!cancelled) { setPageAds(Array.isArray(j?.ads) ? j.ads : []); setPageTotal(Number.isFinite(j?.total) ? j.total : null) } })
       .catch(() => { if (!cancelled) setPageAds([]) })
       .finally(() => { if (!cancelled) setPageAdsLoading(false) })
     return () => { cancelled = true }
   }, [pageId, apiAds.length])
 
   const ads = apiAds.length > 0 ? apiAds : (pageAds || [])
+  // Totale ads attive del brand (dichiarato dalla Ad Library); fallback al n. caricato
+  const totalActive = apiAds.length > 0
+    ? (adLibrary?.count || apiAds.length)
+    : (pageTotal != null ? pageTotal : ads.length)
 
   const sortedProducts = useMemo(() => {
     return [...products]
@@ -497,7 +502,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
               fontWeight: 800,
             }}
           >
-            {ads.length} ads attive
+            {totalActive > 0 ? `${totalActive.toLocaleString('it-IT')} ads attive` : '— ads attive'}
           </span>
           <span
             style={{
@@ -580,7 +585,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 }}
               >
                 <span style={{ fontSize: 13, color: 'var(--text2)' }}>
-                  {ads.length} creative attive
+                  {totalActive > ads.length ? `${ads.length} mostrate · ${totalActive.toLocaleString('it-IT')} attive in totale` : `${ads.length} creative attive`}
                   {adLibrary?.source === 'scrape' && (
                     <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
                       via Ad Library scrape
@@ -962,6 +967,7 @@ export default function CompetitorIntelTab() {
   const [adInput, setAdInput] = useState('')
   const [adQuery, setAdQuery] = useState('')
   const [adResults, setAdResults] = useState(null)
+  const [adTotal, setAdTotal] = useState(null)
   const [adLoading, setAdLoading] = useState(false)
   const [adError, setAdError] = useState(null)
   const [adLibraryUrl, setAdLibraryUrl] = useState(null)
@@ -978,6 +984,7 @@ export default function CompetitorIntelTab() {
       const j = await r.json()
       setAdLibraryUrl(j?.libraryUrl || null)
       setAdResults(Array.isArray(j?.ads) ? j.ads : [])
+      setAdTotal(Number.isFinite(j?.total) ? j.total : null)
       if (j?.error && !(j?.ads?.length)) setAdError(j.error)
     } catch (e) {
       setAdError(e?.message || 'Errore di rete')
@@ -1125,7 +1132,9 @@ export default function CompetitorIntelTab() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
-                  {adResults.length} creative attive per “{adQuery}” · worldwide
+                  {adTotal != null && adTotal > adResults.length
+                    ? `${adResults.length} mostrate · ${adTotal.toLocaleString('it-IT')} attive per “${adQuery}” · worldwide`
+                    : `${adResults.length} creative attive per “${adQuery}” · worldwide`}
                 </span>
                 {adLibraryUrl && (
                   <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>

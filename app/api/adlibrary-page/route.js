@@ -87,7 +87,7 @@ function parseAdsFromGraphql(texts) {
     if (!key || seen.has(key)) continue
     seen.add(key)
     if (ad.imageUrl || ad.bodies.length || ad.snapshotUrl) ads.push(ad)
-    if (ads.length >= 24) break
+    if (ads.length >= 60) break
   }
   return ads
 }
@@ -167,12 +167,33 @@ async function viaBrowserless(pageId, country) {
         if (txt.includes('"snapshot"') || txt.includes('ad_archive_id')) gqlTexts.push(txt)
       } catch {}
     })
-    await page.goto(pageUrlFor(pageId, country), { waitUntil: 'networkidle2', timeout: 38000 })
-    await new Promise(r => setTimeout(r, 2500))
-    await page.evaluate(() => window.scrollBy(0, 1800)).catch(() => {})
-    await new Promise(r => setTimeout(r, 2500))
+    await page.goto(pageUrlFor(pageId, country), { waitUntil: 'networkidle2', timeout: 35000 })
+    await new Promise(r => setTimeout(r, 2000))
+
+    // Totale ads attive dichiarato dalla pagina ("~1.234 risultati / results")
+    let total = null
+    try {
+      total = await page.evaluate(() => {
+        const m = document.body.innerText.match(/~?\s*([\d., \s]+?)\s*(?:results|risultati|resultados|résultats|annunci|ads|Ergebnisse)/i)
+        if (!m) return null
+        const n = parseInt(m[1].replace(/[^\d]/g, ''), 10)
+        return Number.isFinite(n) ? n : null
+      })
+    } catch {}
+
+    // Carica più "pagine" di risultati (lazy-load), in modo LIMITATO: max 5
+    // passaggi e stop appena non arrivano nuove ads (niente scroll infinito).
+    let prevCount = parseAdsFromGraphql(gqlTexts).length
+    for (let p = 0; p < 5; p++) {
+      await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight)).catch(() => {})
+      await new Promise(r => setTimeout(r, 1600))
+      const curCount = parseAdsFromGraphql(gqlTexts).length
+      if (curCount <= prevCount) break // nessuna nuova pagina → stop
+      prevCount = curCount
+    }
+
     const ads = parseAdsFromGraphql(gqlTexts)
-    return { ads, source: 'browserless' }
+    return { ads, total, source: 'browserless' }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }
   } finally {
@@ -194,8 +215,9 @@ export async function GET(request) {
     source = 'browserless'
   }
   const ads = result?.ads || []
+  const total = (result?.total != null && result.total >= ads.length) ? result.total : ads.length
   return NextResponse.json({
-    pageId, country, ads, count: ads.length,
+    pageId, country, ads, count: ads.length, total,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (result?.httpError || 'no_results') : null,
     libraryUrl: pageUrlFor(pageId, country),

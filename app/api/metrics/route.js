@@ -582,32 +582,23 @@ async function fetchShopifySalesRange(start, end) {
     }
   }
 
-  // Fallback REST API: ShopifyQL classifica NC/RC con un job notturno → per
-  // i range cortissimi recenti (last_7d, today, yesterday) gli ordini di
-  // oggi/ieri spesso non hanno new_or_returning_customer settato e
-  // vengono esclusi dal breakdown.
-  //
-  // Trigger esteso: REST scatta anche su classificazione incompleta
-  // (nc+rc < 85% degli ordini) → tipico last_7d dove gli ordini vecchi
-  // sono classificati ma quelli di oggi no.
-  //
-  // Timeout 12s sul REST per non rischiare di bloccare l'intera /api/metrics:
-  // se Shopify e' lento, lasciamo ShopifyQL parziale piuttosto che 504.
-  const shopifyClassified = (nc || 0) + (rc || 0)
-  const isIncomplete = ordini > 0 && shopifyClassified < ordini * 0.85
-  if ((isIncomplete || (nc === 0 && rc === 0)) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
-    try {
-      const restCounts = await fetchNcRcFromOrdersRest(start, end, { timeoutMs: 12000 })
-      const restClassified = (restCounts?.nc || 0) + (restCounts?.rc || 0)
-      // Sostituisci solo se REST e' piu' completo di ShopifyQL
-      if (restCounts && restClassified > shopifyClassified) {
-        nc = restCounts.nc
-        rc = restCounts.rc
-        fatturNC = restCounts.fatturNC
-        fatturRC = restCounts.fatturRC
-      }
-    } catch {
-      // Ignora: meglio ShopifyQL parziale che far crashare la response
+  // [Fallback REST disabilitato — stava bloccando last_7d ed e' opt-in
+  //  solo se davvero serve, attiva con ENABLE_NCRC_REST_FALLBACK=true]
+  const enableRestFallback = process.env.ENABLE_NCRC_REST_FALLBACK === 'true'
+  if (enableRestFallback) {
+    const shopifyClassified = (nc || 0) + (rc || 0)
+    const isIncomplete = ordini > 0 && shopifyClassified < ordini * 0.85
+    if ((isIncomplete || (nc === 0 && rc === 0)) && fatturato > 0 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+      try {
+        const restCounts = await fetchNcRcFromOrdersRest(start, end, { timeoutMs: 8000 })
+        const restClassified = (restCounts?.nc || 0) + (restCounts?.rc || 0)
+        if (restCounts && restClassified > shopifyClassified) {
+          nc = restCounts.nc
+          rc = restCounts.rc
+          fatturNC = restCounts.fatturNC
+          fatturRC = restCounts.fatturRC
+        }
+      } catch {}
     }
   }
 

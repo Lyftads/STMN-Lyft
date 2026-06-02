@@ -10,7 +10,7 @@ const PLANS = [
     id: 'starter',
     name: 'Starter',
     price: 119.99,
-    priceLabel: '$119.99',
+    priceLabel: '€119,99',
     period: '/month',
     tagline: 'Per founder che stanno strutturando il primo brand DTC',
     accent: '#0ea5e9',
@@ -31,7 +31,7 @@ const PLANS = [
     id: 'growth',
     name: 'Growth',
     price: 179.99,
-    priceLabel: '$179.99',
+    priceLabel: '€179,99',
     period: '/month',
     tagline: 'Brand in scaling che cercano leve di crescita data-driven',
     accent: '#bf5af2',
@@ -53,7 +53,7 @@ const PLANS = [
     id: 'scale',
     name: 'Scale',
     price: 349.99,
-    priceLabel: '$349.99',
+    priceLabel: '€349,99',
     period: '/month',
     tagline: 'Brand 7-8 figure con team marketing dedicato',
     accent: '#22c55e',
@@ -97,9 +97,9 @@ const FEATURE_MATRIX = [
 ]
 
 const INVOICES = [
-  { date: '28/12/2025', amount: '$997.00', status: 'Paid' },
-  { date: '28/06/2025', amount: '$997.00', status: 'Paid' },
-  { date: '28/12/2024', amount: '$997.00', status: 'Paid' },
+  { date: '28/12/2025', amount: '€997,00', status: 'Paid' },
+  { date: '28/06/2025', amount: '€997,00', status: 'Paid' },
+  { date: '28/12/2024', amount: '€997,00', status: 'Paid' },
 ]
 
 // ── Reusable black glass 3D card ──────────────────────────────────
@@ -386,6 +386,220 @@ function StatusCard({ currentPlanId }) {
   )
 }
 
+// Accepted payment methods + colori per chip
+const PAYMENT_BRANDS = [
+  { id: 'visa',       label: 'Visa',       color: '#1A1F71', textColor: '#fff' },
+  { id: 'mastercard', label: 'Mastercard', color: '#EB001B', textColor: '#fff' },
+  { id: 'amex',       label: 'AmEx',       color: '#016FD0', textColor: '#fff' },
+  { id: 'paypal',     label: 'PayPal',     color: '#003087', textColor: '#FFC439' },
+  { id: 'bancomat',   label: 'Bancomat',   color: '#005EAA', textColor: '#fff' },
+  { id: 'creditcard', label: 'Credit Card', color: '#1f2937', textColor: '#fff' },
+  { id: 'revolut',    label: 'Revolut',    color: '#000000', textColor: '#fff' },
+]
+
+function PaymentMethodCard() {
+  const [savedCard, setSavedCard] = useState(null) // mock: nessuna carta salvata
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ number: '', name: '', exp: '', cvc: '' })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const last4 = form.number.replace(/\s+/g, '').slice(-4) || '••••'
+    const brand = /^4/.test(form.number.trim()) ? 'Visa' : /^5/.test(form.number.trim()) ? 'Mastercard' : /^3[47]/.test(form.number.trim()) ? 'AmEx' : 'Card'
+    // Mock save — sostituibile con Stripe.setupIntent + paymentMethods.attach
+    setSavedCard({ brand, last4, name: form.name || 'Marino Catasta', exp: form.exp || '••/••' })
+    setAdding(false)
+    setForm({ number: '', name: '', exp: '', cvc: '' })
+  }
+
+  return (
+    <GlassCard padding={26} glow="#f59e0b">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'rgba(245,158,11,0.10)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 13, color: '#fcd34d',
+          }}>▭</span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Metodo di pagamento</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
+              Salva la carta per gli addebiti automatici. Tokenizzata in modo sicuro.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {!savedCard && !adding && (
+        <div style={{
+          padding: '28px 24px',
+          borderRadius: 14,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px dashed rgba(255,255,255,0.10)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          textAlign: 'center', gap: 14,
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            background: 'rgba(255,255,255,0.04)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 24, color: 'var(--text3)',
+          }}>▭</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Nessun metodo di pagamento</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, maxWidth: 420, lineHeight: 1.5 }}>
+              Aggiungi una carta per abilitare la fatturazione automatica. I dati vengono tokenizzati e gestiti via Stripe (PCI-DSS).
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            style={{
+              padding: '11px 22px', borderRadius: 11,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', color: '#fff',
+              fontSize: 13.5, fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(245,158,11,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+              letterSpacing: '0.04em',
+            }}
+          >+ Aggiungi metodo di pagamento</button>
+        </div>
+      )}
+
+      {savedCard && (
+        <div style={{
+          padding: '16px 18px',
+          borderRadius: 12,
+          background: 'linear-gradient(135deg, rgba(34,197,94,0.10), rgba(0,0,0,0.30))',
+          border: '1px solid rgba(34,197,94,0.30)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 32, borderRadius: 7,
+              background: 'linear-gradient(135deg, #1f2937, #0f172a)',
+              display: 'grid', placeItems: 'center',
+              fontSize: 10, fontWeight: 900, color: '#fff',
+              letterSpacing: '0.04em',
+              border: '1px solid rgba(255,255,255,0.10)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}>{savedCard.brand}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '0.06em', fontFamily: 'ui-monospace, monospace' }}>
+                •••• •••• •••• {savedCard.last4}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                {savedCard.name} · scad. {savedCard.exp}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSavedCard(null)}
+            style={{
+              padding: '7px 14px', borderRadius: 9,
+              background: 'transparent',
+              border: '1px solid rgba(239,68,68,0.30)',
+              color: '#fca5a5', fontSize: 11.5, fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >Rimuovi</button>
+        </div>
+      )}
+
+      {adding && (
+        <form onSubmit={handleSubmit} style={{
+          padding: 18, borderRadius: 12,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
+            Mock form — sara' sostituito da Stripe Elements
+          </div>
+          <input
+            type="text" placeholder="Numero carta (4242 4242 4242 4242)"
+            value={form.number}
+            onChange={e => setForm({...form, number: e.target.value})}
+            style={inputStyle}
+          />
+          <input
+            type="text" placeholder="Nome sulla carta"
+            value={form.name}
+            onChange={e => setForm({...form, name: e.target.value})}
+            style={inputStyle}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <input
+              type="text" placeholder="MM / AA"
+              value={form.exp}
+              onChange={e => setForm({...form, exp: e.target.value})}
+              style={inputStyle}
+            />
+            <input
+              type="text" placeholder="CVC"
+              value={form.cvc}
+              onChange={e => setForm({...form, cvc: e.target.value})}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button type="submit" style={{
+              flex: 1, padding: '11px 16px', borderRadius: 10,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 800,
+              cursor: 'pointer', letterSpacing: '0.04em',
+              boxShadow: '0 6px 18px rgba(245,158,11,0.35)',
+            }}>Salva carta</button>
+            <button type="button" onClick={() => setAdding(false)} style={{
+              padding: '11px 16px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'var(--text2)', fontSize: 12.5, fontWeight: 700,
+              cursor: 'pointer',
+            }}>Annulla</button>
+          </div>
+        </form>
+      )}
+
+      {/* Accepted brands */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{
+          fontSize: 9.5, color: 'var(--text3)', fontWeight: 800,
+          letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10,
+        }}>Metodi accettati</div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {PAYMENT_BRANDS.map(b => (
+            <div key={b.id} style={{
+              padding: '6px 12px', borderRadius: 8,
+              background: b.color,
+              color: b.textColor,
+              fontSize: 11, fontWeight: 900,
+              letterSpacing: '0.04em',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 6px rgba(0,0,0,0.40)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>{b.label}</div>
+          ))}
+        </div>
+      </div>
+    </GlassCard>
+  )
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '11px 14px',
+  borderRadius: 10,
+  background: 'rgba(0,0,0,0.40)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  color: '#fff',
+  fontSize: 13,
+  outline: 'none',
+  fontFamily: 'ui-monospace, monospace',
+}
+
 function InvoiceHistory() {
   return (
     <GlassCard padding={26} glow="#22c55e">
@@ -420,7 +634,7 @@ function InvoiceHistory() {
             {INVOICES.map((inv, i) => (
               <tr key={i}>
                 <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.date}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.amount} <span style={{ color: 'var(--text3)', fontSize: 11 }}>USD</span></td>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{inv.amount} <span style={{ color: 'var(--text3)', fontSize: 11 }}>EUR</span></td>
                 <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <span style={{
                     padding: '3px 10px', borderRadius: 999,
@@ -464,6 +678,8 @@ export default function SettingsTab() {
       </div>
 
       <StatusCard currentPlanId={currentPlanId} />
+
+      <PaymentMethodCard />
 
       {/* Change Plan section */}
       <div>

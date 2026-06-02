@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import AnimatedNumber from './ui/AnimatedNumber'
 
 const COMPETITOR_META = {
   velites: {
@@ -41,31 +42,11 @@ function money(v) {
   return `€${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function StatMini({ label, value, tone = '#fff' }) {
+function StatMini({ label, value, tone = 'var(--text)' }) {
   return (
-    <div
-      style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        padding: '12px 14px',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 9,
-          color: '#8b8aa0',
-          textTransform: 'uppercase',
-          letterSpacing: '0.12em',
-          marginBottom: 6,
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: 18, fontWeight: 900, color: tone, fontFamily: 'Barlow' }}>
-        {value}
-      </div>
+    <div className="glass-card-static" style={{ padding: '14px 16px', borderRadius: 14 }}>
+      <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
+      <div className="metric-value-sm" style={{ color: tone }}>{value}</div>
     </div>
   )
 }
@@ -120,10 +101,9 @@ function AdCard({ ad, index }) {
 
   return (
     <div
+      className="glass-card-static"
       style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
-        borderRadius: 16,
+        borderRadius: 18,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -246,9 +226,8 @@ function AdCard({ ad, index }) {
 function ProductCard({ product }) {
   return (
     <div
+      className="glass-card-static"
       style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
         position: 'relative',
@@ -432,6 +411,7 @@ function CompetitorSection({ competitor, meta }) {
 
   return (
     <div
+      className="glass-section reveal-zoom"
       style={{
         background: 'var(--glass)',
         border: '1px solid var(--border)',
@@ -446,6 +426,8 @@ function CompetitorSection({ competitor, meta }) {
           padding: '20px 24px',
           borderBottom: '1px solid var(--border)',
           background: `linear-gradient(135deg, ${meta.color}15, transparent)`,
+          position: 'relative',
+          zIndex: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -533,6 +515,8 @@ function CompetitorSection({ competitor, meta }) {
           display: 'flex',
           gap: 0,
           borderBottom: '1px solid var(--border)',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
         {[
@@ -561,7 +545,7 @@ function CompetitorSection({ competitor, meta }) {
         ))}
       </div>
 
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 24, position: 'relative', zIndex: 2 }}>
         {/* ADS SECTION */}
         {section === 'ads' && (
           <>
@@ -605,6 +589,7 @@ function CompetitorSection({ competitor, meta }) {
 
             {ads.length > 0 && (
               <div
+                className="stagger-zoom"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -686,6 +671,7 @@ function CompetitorSection({ competitor, meta }) {
             {/* Price stats */}
             {stats.totalProducts > 0 && (
               <div
+                className="stagger-zoom"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
@@ -790,6 +776,7 @@ function CompetitorSection({ competitor, meta }) {
             {displayProducts.length > 0 ? (
               <>
                 <div
+                  className="stagger-zoom"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -813,16 +800,8 @@ function CompetitorSection({ competitor, meta }) {
                   <div style={{ textAlign: 'center', marginTop: 20 }}>
                     <button
                       onClick={() => setShowAllProducts(true)}
-                      style={{
-                        padding: '10px 28px',
-                        borderRadius: 12,
-                        background: 'var(--glass)',
-                        border: '1px solid var(--border)',
-                        color: '#c8c0d6',
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
+                      className="btn-glass"
+                      style={{ padding: '10px 28px', cursor: 'pointer' }}
                     >
                       Mostra tutti ({sortedProducts.length} prodotti)
                     </button>
@@ -833,16 +812,8 @@ function CompetitorSection({ competitor, meta }) {
                   <div style={{ textAlign: 'center', marginTop: 20 }}>
                     <button
                       onClick={() => setShowAllProducts(false)}
-                      style={{
-                        padding: '10px 28px',
-                        borderRadius: 12,
-                        background: 'var(--glass)',
-                        border: '1px solid var(--border)',
-                        color: '#c8c0d6',
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
+                      className="btn-glass"
+                      style={{ padding: '10px 28px', cursor: 'pointer' }}
                     >
                       Mostra meno
                     </button>
@@ -899,60 +870,40 @@ export default function CompetitorIntelTab() {
 
   return (
     <div>
-      {/* Header */}
+      {/* Toolbar (il titolo è già nell'header della shell) */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 28,
+          alignItems: 'center',
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: 'wrap',
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              color: '#fff',
-              fontSize: 32,
-              fontWeight: 950,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            Competitor Intelligence
-          </h1>
-          <p style={{ margin: '8px 0 0', color: '#8b8aa0', fontSize: 14 }}>
-            Creative attive · Catalogo prodotti · Prezzi · Promozioni
-            {data?.fetchedAt && (
-              <span style={{ marginLeft: 12, color: '#4a4060' }}>
-                Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
-                {data?.cached && ' (cache)'}
-              </span>
-            )}
-            <br />
-            <span style={{ fontSize: 11, color: 'var(--border)' }}>
-              Aggiornamento automatico ogni lunedì alle 06:00
-              {data?.nextRefresh && ` · Prossimo: ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
-            </span>
-          </p>
+        <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
+          {data?.fetchedAt && (
+            <>
+              Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
+              {data?.cached && ' (cache)'}
+              <br />
+            </>
+          )}
+          <span style={{ color: 'var(--text3)' }}>
+            Aggiornamento automatico ogni lunedì alle 06:00
+            {data?.nextRefresh && ` · Prossimo: ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <select
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            style={{
-              background: 'var(--glass)',
-              color: '#fff',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              padding: '10px 14px',
-              fontSize: 13,
-              outline: 'none',
-              fontWeight: 700,
-            }}
+            className="btn-glass"
+            style={{ padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}
           >
             {COUNTRIES.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} style={{ background: 'var(--surface)' }}>
                 {c.label}
               </option>
             ))}
@@ -961,18 +912,17 @@ export default function CompetitorIntelTab() {
           <button
             onClick={fetchData}
             disabled={loading}
+            className="btn-glass"
             style={{
-              padding: '10px 20px',
-              borderRadius: 12,
-              border: '1px solid var(--border)',
-              background: loading ? 'var(--glass)' : '#8b5cf620',
-              color: loading ? '#6b6580' : '#c4b5fd',
-              fontSize: 13,
-              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
               cursor: loading ? 'wait' : 'pointer',
+              opacity: loading ? 0.6 : 1,
             }}
           >
-            {loading ? 'Analisi in corso…' : 'Aggiorna'}
+            <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+            {loading ? 'Analisi…' : 'Aggiorna'}
           </button>
         </div>
       </div>
@@ -1007,6 +957,7 @@ export default function CompetitorIntelTab() {
       {/* Overview Cards */}
       {competitors.length > 0 && (
         <div
+          className="stagger-zoom"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${competitors.length}, minmax(0, 1fr))`,
@@ -1023,62 +974,51 @@ export default function CompetitorIntelTab() {
             return (
               <div
                 key={comp.id}
-                style={{
-                  background: 'var(--glass)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 16,
-                  padding: 20,
-                  borderTop: `3px solid ${meta.color || '#555'}`,
-                }}
+                className="glass-card"
+                style={{ padding: 22, borderTop: `3px solid ${meta.color || 'var(--accent)'}` }}
               >
                 <div
                   style={{
-                    fontSize: 16,
-                    fontWeight: 950,
-                    color: '#fff',
-                    marginBottom: 14,
-                    letterSpacing: '-0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginBottom: 16,
+                    position: 'relative',
+                    zIndex: 2,
                   }}
                 >
-                  {meta.name || comp.name}
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color || 'var(--accent)', boxShadow: `0 0 10px ${meta.color || 'var(--accent)'}` }} />
+                  <div className="heading-sm" style={{ fontSize: 16 }}>{meta.name || comp.name}</div>
                 </div>
 
                 <div
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
-                    gap: 8,
+                    gap: 16,
+                    position: 'relative',
+                    zIndex: 2,
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
-                      Ads attive
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: al.count > 0 ? '#fff' : '#4a4060', fontFamily: 'Barlow' }}>
-                      {al.count || 0}
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Ads attive</div>
+                    <div className="metric-value-sm" style={{ color: al.count > 0 ? 'var(--text)' : 'var(--text3)' }}>
+                      <AnimatedNumber value={al.count || 0} />
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
-                      Prodotti
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: s.totalProducts > 0 ? '#fff' : '#4a4060', fontFamily: 'Barlow' }}>
-                      {s.totalProducts || 0}
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Prodotti</div>
+                    <div className="metric-value-sm" style={{ color: s.totalProducts > 0 ? 'var(--text)' : 'var(--text3)' }}>
+                      <AnimatedNumber value={s.totalProducts || 0} />
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
-                      Prezzo medio
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#22c55e', fontFamily: 'Barlow' }}>
-                      {money(s.avgPrice)}
-                    </div>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Prezzo medio</div>
+                    <div className="metric-value-sm" style={{ color: 'var(--green)' }}>{money(s.avgPrice)}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
-                      In saldo
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: s.onSaleCount > 0 ? '#e63946' : '#4a4060', fontFamily: 'Barlow' }}>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>In saldo</div>
+                    <div className="metric-value-sm" style={{ color: s.onSaleCount > 0 ? 'var(--red)' : 'var(--text3)' }}>
                       {s.onSaleCount > 0 ? `${s.onSaleCount} (${s.onSalePct}%)` : '—'}
                     </div>
                   </div>

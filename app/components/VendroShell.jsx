@@ -319,7 +319,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','cro','kpiBrain','webScanner'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

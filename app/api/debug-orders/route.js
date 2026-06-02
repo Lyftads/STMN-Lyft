@@ -5,12 +5,9 @@ import { subDays } from 'date-fns'
 const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
 const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 
-function shopifyAuth() {
-  return { 'X-Shopify-Access-Token': SHOPIFY_TOKEN || '' }
-}
-
-// Diagnostica TEMPORANEA: ispeziona la classificazione NC/RC sul fallback
-// Admin Orders per gli ultimi 7 giorni. Da rimuovere dopo il fix.
+// Diagnostica TEMPORANEA: verifica se la GraphQL Admin API restituisce
+// customer.numberOfOrders (classificazione NC/RC affidabile per i giorni
+// recenti che ShopifyQL non ha ancora consolidato). Da rimuovere dopo il fix.
 export async function GET() {
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) {
     return NextResponse.json({ error: 'no creds' })
@@ -19,50 +16,81 @@ export async function GET() {
   const since = subDays(new Date(), 6).toISOString().slice(0, 10)
   const until = new Date().toISOString().slice(0, 10)
 
-  const url =
-    `https://${SHOPIFY_STORE}/admin/api/2024-01/orders.json` +
-    `?status=any&financial_status=paid` +
-    `&created_at_min=${since}T00:00:00Z&created_at_max=${until}T23:59:59Z` +
-    `&limit=250&fields=id,total_price,email,customer,financial_status`
+  const query = `
+    query($q: String!, $cursor: String) {
+      orders(first: 100, query: $q, after: $cursor) {
+        edges {
+          cursor
+          node {
+            id
+            currentTotalPriceSet { shopMoney { amount } }
+            customer { numberOfOrders }
+          }
+        }
+        pageInfo { hasNextPage }
+      }
+    }
+  `
 
-  const res = await fetch(url, { headers: shopifyAuth() })
-  const data = await res.json()
-  const orders = data.orders || []
+  const q = `created_at:>=${since} created_at:<=${until} financial_status:paid`
 
+  let cursor = null
+  let pages = 0
+  let total = 0
   let withCustomer = 0
-  let withOrdersCount = 0
+  let withNumberOfOrders = 0
   let nc = 0
   let rc = 0
-  let withEmail = 0
+  let firstError = null
+  let sampleNode = null
 
-  for (const o of orders) {
-    if (o.email) withEmail++
-    if (o.customer) withCustomer++
-    const oc = o.customer?.orders_count
-    if (oc != null) withOrdersCount++
-    const isNew = !oc || Number(oc) <= 1
-    if (isNew) nc++
-    else rc++
+  try {
+    while (pages < 6) {
+      const res = await fetch(
+        `https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query, variables: { q, cursor } }),
+        }
+      )
+      const json = await res.json()
+      if (json.errors) {
+        firstError = JSON.stringify(json.errors).slice(0, 500)
+        break
+      }
+      const conn = json.data?.orders
+      const edges = conn?.edges || []
+      for (const e of edges) {
+        total++
+        const n = e.node
+        if (!sampleNode) sampleNode = n
+        const num = n.customer?.numberOfOrders
+        if (n.customer) withCustomer++
+        if (num != null) withNumberOfOrders++
+        const isNew = !num || Number(num) <= 1
+        if (isNew) nc++
+        else rc++
+      }
+      pages++
+      if (!conn?.pageInfo?.hasNextPage) break
+      cursor = edges[edges.length - 1]?.cursor
+    }
+  } catch (e) {
+    firstError = e.message
   }
 
-  // campione del primo ordine per vedere la forma reale del customer
-  const sample = orders[0]
-    ? {
-        id: orders[0].id,
-        email_present: !!orders[0].email,
-        customer_keys: orders[0].customer ? Object.keys(orders[0].customer) : null,
-        customer_orders_count: orders[0].customer?.orders_count ?? null,
-      }
-    : null
-
   return NextResponse.json({
-    httpStatus: res.status,
     window: { since, until },
-    totalOrders: orders.length,
-    withEmail,
+    pages,
+    total,
     withCustomer,
-    withOrdersCount,
+    withNumberOfOrders,
     classified: { nc, rc },
-    sample,
+    firstError,
+    sampleNode,
   })
 }

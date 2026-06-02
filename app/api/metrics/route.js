@@ -458,6 +458,88 @@ async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {
   return { nc, rc, fatturNC: roundMoney(fatturNC), fatturRC: roundMoney(fatturRC), partial: !!url }
 }
 
+// ── Admin Orders via GraphQL — NC/RC real-time per i giorni recenti ─────
+// ShopifyQL `sales` ha latenza di aggregazione (ultimi ~5-7 giorni), quindi
+// per le finestre recenti torna 0/parziale. L'oggetto customer REST incorporato
+// nell'ordine NON contiene orders_count (snapshot ridotto), ma la GraphQL
+// Admin API espone customer.numberOfOrders (conteggio lifetime) → numberOfOrders
+// <= 1 ⇒ nuovo cliente, > 1 ⇒ cliente di ritorno. Combacia con la dashboard.
+async function fetchShopifyOrdersAdminGQL(start, end, maxPages = 20) {
+  if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return null
+
+  const gql = `
+    query($q: String!, $cursor: String) {
+      orders(first: 100, query: $q, after: $cursor, sortKey: CREATED_AT) {
+        edges {
+          cursor
+          node {
+            currentTotalPriceSet { shopMoney { amount } }
+            totalRefundedSet { shopMoney { amount } }
+            customer { numberOfOrders }
+          }
+        }
+        pageInfo { hasNextPage }
+      }
+    }
+  `
+  const q = `created_at:>=${start}T00:00:00Z created_at:<=${end}T23:59:59Z financial_status:paid`
+
+  let cursor = null
+  let pages = 0
+  let ordini = 0, nc = 0, rc = 0
+  let fatturato = 0, fatturNC = 0, fatturRC = 0
+  let resi = 0, resiNC = 0, resiRC = 0
+
+  try {
+    while (pages < maxPages) {
+      const res = await fetch(
+        `https://${SHOPIFY_STORE}/admin/api/2024-01/graphql.json`,
+        {
+          method: 'POST',
+          headers: shopifyGraphQLHeaders(),
+          body: JSON.stringify({ query: gql, variables: { q, cursor } }),
+        }
+      )
+      if (!res.ok) break
+      const json = await res.json()
+      if (json.errors?.length) {
+        console.log('Admin GQL orders error:', JSON.stringify(json.errors).slice(0, 200))
+        break
+      }
+      const conn = json.data?.orders
+      const edges = conn?.edges || []
+      for (const e of edges) {
+        const n = e.node
+        const total = parseFloat(n.currentTotalPriceSet?.shopMoney?.amount || 0)
+        const refund = Math.abs(parseFloat(n.totalRefundedSet?.shopMoney?.amount || 0))
+        const num = Number(n.customer?.numberOfOrders || 0)
+        const isNew = num <= 1
+        ordini += 1
+        fatturato += total
+        resi += refund
+        if (isNew) { nc += 1; fatturNC += total; resiNC += refund }
+        else { rc += 1; fatturRC += total; resiRC += refund }
+      }
+      pages++
+      if (!conn?.pageInfo?.hasNextPage) break
+      cursor = edges[edges.length - 1]?.cursor
+      if (!cursor) break
+    }
+    return {
+      fatturato: roundMoney(fatturato),
+      resi: roundMoney(resi),
+      fatturNC: roundMoney(fatturNC),
+      resiNC: roundMoney(resiNC),
+      fatturRC: roundMoney(fatturRC),
+      resiRC: roundMoney(resiRC),
+      ordini, nc, rc,
+    }
+  } catch (e) {
+    console.log('Admin GQL orders exception:', e.message)
+    return null
+  }
+}
+
 // ── Shopify sales per range arbitrario ─────────────────────────
 async function fetchShopifySalesRange(start, end) {
   // 1) Query non filtrata per il totale ACCURATO (include guest checkouts
@@ -599,6 +681,25 @@ async function fetchShopifySalesRange(start, end) {
           fatturRC = restCounts.fatturRC
         }
       } catch {}
+    }
+  }
+
+  // Override real-time per finestre brevi e recenti (today/yesterday/last_7d e
+  // settimana/mese correnti): ShopifyQL non ha ancora consolidato i giorni
+  // recenti → usiamo Admin GraphQL, che ha NC/RC accurati via numberOfOrders,
+  // quando copre piu' ordini del dato ShopifyQL.
+  const endsRecently =
+    Date.now() - new Date(`${end}T23:59:59Z`).getTime() < 8 * 86400000
+  const windowDays =
+    Math.round(
+      (new Date(`${end}T00:00:00Z`).getTime() -
+        new Date(`${start}T00:00:00Z`).getTime()) /
+        86400000
+    ) + 1
+  if (endsRecently && windowDays <= 45 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+    const admin = await fetchShopifyOrdersAdminGQL(start, end)
+    if (admin && admin.ordini > (ordini || 0)) {
+      return admin
     }
   }
 
@@ -1297,29 +1398,9 @@ async function safeShopifyRange(range) {
 
   let sales = salesQL
 
-  // ShopifyQL `sales` ha latenza di aggregazione: i giorni piu' recenti
-  // (~ultimi 5-7) non sono ancora consolidati, quindi le finestre brevi e
-  // recenti (today, yesterday, last_7d) tornano 0 o parziali — e' il motivo
-  // per cui le card "Ultimi 7 giorni" risultavano vuote. L'Admin Orders API
-  // e' real-time e combacia con la dashboard Shopify: per finestre brevi e
-  // recenti la usiamo come fonte quando e' piu' completa di ShopifyQL.
-  const windowDays =
-    Math.round(
-      (new Date(`${range.until}T00:00:00Z`).getTime() -
-        new Date(`${range.since}T00:00:00Z`).getTime()) /
-        86400000
-    ) + 1
-  const endsRecently =
-    Date.now() - new Date(`${range.until}T23:59:59Z`).getTime() <
-    8 * 86400000
-  const shopifyQlEmpty = !salesQL || (!salesQL.fatturato && !salesQL.ordini)
-
-  if (endsRecently && windowDays <= 31 && (windowDays <= 10 || shopifyQlEmpty)) {
-    const admin = await fetchShopifyOrdersAdmin(range.since, range.until, 16)
-    if (admin && admin.ordini > (salesQL?.ordini || 0)) {
-      sales = admin
-    }
-  }
+  // La classificazione real-time NC/RC sui giorni recenti e' gestita dentro
+  // fetchShopifySalesRange (via Admin GraphQL), quindi salesQL e' gia' corretto
+  // per range/settimane/mesi recenti. Qui niente fallback extra.
 
   if (!sales) {
     sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }

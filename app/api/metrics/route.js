@@ -684,21 +684,25 @@ async function fetchShopifySalesRange(start, end) {
     }
   }
 
-  // Override real-time per finestre brevi e recenti (today/yesterday/last_7d e
-  // settimana/mese correnti): ShopifyQL non ha ancora consolidato i giorni
-  // recenti → usiamo Admin GraphQL, che ha NC/RC accurati via numberOfOrders,
-  // quando copre piu' ordini del dato ShopifyQL.
+  // ShopifyQL e' la fonte di verita' e combacia ESATTAMENTE col report Shopify
+  // (orders_first_time / orders_returning + total_sales gia' al netto dei resi).
+  // Lo usiamo SEMPRE quando ha dati. Solo quando ShopifyQL e' completamente
+  // vuoto — cioe' i giorni recentissimi non ancora consolidati (today/yesterday/
+  // last_7d) — ripieghiamo sull'Admin GraphQL real-time (NC/RC via numberOfOrders).
+  // NB: NON sovrascriviamo mai un periodo gia' consolidato (es. il mese scorso),
+  // altrimenti rovineremmo numeri corretti con la stima.
+  const shopifyQlEmpty = !(ordini > 0) && !(fatturato > 0)
   const endsRecently =
-    Date.now() - new Date(`${end}T23:59:59Z`).getTime() < 8 * 86400000
+    Date.now() - new Date(`${end}T23:59:59Z`).getTime() < 9 * 86400000
   const windowDays =
     Math.round(
       (new Date(`${end}T00:00:00Z`).getTime() -
         new Date(`${start}T00:00:00Z`).getTime()) /
         86400000
     ) + 1
-  if (endsRecently && windowDays <= 45 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+  if (shopifyQlEmpty && endsRecently && windowDays <= 45 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
     const admin = await fetchShopifyOrdersAdminGQL(start, end)
-    if (admin && admin.ordini > (ordini || 0)) {
+    if (admin && admin.ordini > 0) {
       return admin
     }
   }

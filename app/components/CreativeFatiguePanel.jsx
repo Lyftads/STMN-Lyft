@@ -1,7 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
+import TimeframeSelector from './TimeframeSelector'
+
+function DeltaBadge({ d, lowerBetter = false }) {
+  if (!d || d.pct == null) return null
+  const up = d.pct > 0, good = lowerBetter ? !up : up
+  return <span style={{ fontSize: 10, fontWeight: 800, marginLeft: 6, color: good ? 'var(--green)' : 'var(--red)' }}>{up ? '▲' : '▼'} {Math.abs(d.pct).toFixed(1)}%</span>
+}
 
 const SEV = {
   high: { color: 'var(--red)', bg: 'rgba(255,69,58,0.14)', label: 'DA RINFRESCARE' },
@@ -18,17 +26,21 @@ export default function CreativeFatiguePanel() {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
+  const [preset, setPreset] = useState('last_28d')
 
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError(null)
-    fetch(`/api/creative-fatigue?preset=last_28d${account ? `&account=${encodeURIComponent(account)}` : ''}`)
+    fetch(`/api/creative-fatigue?preset=${encodeURIComponent(preset)}${account ? `&account=${encodeURIComponent(account)}` : ''}`)
       .then(r => r.json())
       .then(j => { if (!cancelled) { if (j.error && !(j.ads?.length)) setError(j.error); setData(j) } })
       .catch(e => { if (!cancelled) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [account])
+  }, [account, preset])
+
+  const delta = data?.delta || {}
+  const chartData = (data?.ads || []).slice(0, 10).map(a => ({ name: (a.name || '').slice(0, 12), score: a.score, sev: a.severity }))
 
   const accounts = data?.accounts || []
 
@@ -42,24 +54,25 @@ export default function CreativeFatiguePanel() {
   const ctrTone = (c) => (avgCtr > 0 && c < avgCtr * 0.8 ? 'var(--red)' : avgCtr > 0 && c < avgCtr ? 'var(--orange)' : 'var(--text)')
   const cpaTone = (c) => (c == null ? 'var(--text3)' : avgCpa > 0 && c > avgCpa * 1.3 ? 'var(--red)' : avgCpa > 0 && c > avgCpa ? 'var(--orange)' : 'var(--text)')
 
-  const Stat = ({ label, value, tone }) => (
+  const Stat = ({ label, value, tone, d, lowerBetter }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
-      <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}</div>
+      <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}<DeltaBadge d={d} lowerBetter={lowerBetter} /></div>
     </div>
   )
 
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard title="Creative Fatigue" subtitle="Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media" delay={1.8}>
-        {accounts.length > 1 && (
-          <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+          <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+          {accounts.length > 1 && (
             <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
               <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
               {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
             </select>
-          </div>
-        )}
+          )}
+        </div>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le creative attive…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna creativa con dati sufficienti nel periodo.</div>}
@@ -69,8 +82,8 @@ export default function CreativeFatiguePanel() {
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
               <Stat label="Creative analizzate" value={nf(data.total)} />
               <Stat label="Da rinfrescare" value={nf(data.toRefresh)} tone={data.toRefresh > 0 ? 'var(--red)' : 'var(--green)'} />
-              <Stat label="CTR medio" value={`${avgCtr}%`} />
-              <Stat label="CPA medio" value={money(avgCpa)} />
+              <Stat label="CTR medio" value={`${avgCtr}%`} d={delta.ctr} />
+              <Stat label="CPA medio" value={money(avgCpa)} d={delta.cpa} lowerBetter />
             </div>
 
             <div className="stagger" style={{ display: 'grid', gap: 8 }}>
@@ -116,6 +129,25 @@ export default function CreativeFatiguePanel() {
                 <button onClick={() => setShowAll(v => !v)} className="btn-glass" style={{ padding: '9px 24px', cursor: 'pointer' }}>
                   {showAll ? 'Mostra meno' : `Mostra tutte (${ads.length})`}
                 </button>
+              </div>
+            )}
+
+            {chartData.length > 0 && (
+              <div className="glass-card-static reveal-zoom" style={{ marginTop: 22, padding: 18, borderRadius: 16 }}>
+                <div className="label" style={{ marginBottom: 12 }}>Top creative per fatigue score</div>
+                <ResponsiveContainer width="100%" height={230}>
+                  <BarChart data={chartData} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                    <defs>
+                      <filter id="fgGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                    </defs>
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={48} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: 'var(--text2)' }} />
+                    <Bar dataKey="score" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#fgGlow)' }}>
+                      {chartData.map((d, i) => <Cell key={i} fill={d.sev === 'high' ? '#ff453a' : d.sev === 'medium' ? '#ff9f0a' : '#30d158'} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </>

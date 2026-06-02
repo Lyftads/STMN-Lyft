@@ -1,7 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import FxCard from './ui/FxCard'
+import TimeframeSelector from './TimeframeSelector'
+
+function DeltaBadge({ d, lowerBetter = false }) {
+  if (!d || d.pct == null) return null
+  const up = d.pct > 0, good = lowerBetter ? !up : up
+  return <span style={{ fontSize: 10, fontWeight: 800, marginLeft: 6, color: good ? 'var(--green)' : 'var(--red)' }}>{up ? '▲' : '▼'} {Math.abs(d.pct).toFixed(1)}%</span>
+}
 
 const ACT = {
   scala: { color: 'var(--green)', bg: 'rgba(48,209,88,0.14)', label: 'SCALA' },
@@ -18,41 +26,45 @@ export default function BudgetAdvisorPanel() {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
+  const [preset, setPreset] = useState('last_28d')
 
   useEffect(() => {
     let cancelled = false
     setLoading(true); setError(null)
-    fetch(`/api/budget-advisor?preset=last_28d${account ? `&account=${encodeURIComponent(account)}` : ''}`)
+    fetch(`/api/budget-advisor?preset=${encodeURIComponent(preset)}${account ? `&account=${encodeURIComponent(account)}` : ''}`)
       .then(r => r.json())
       .then(j => { if (!cancelled) { if (j.error && !(j.campaigns?.length)) setError(j.error); setData(j) } })
       .catch(e => { if (!cancelled) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [account])
+  }, [account, preset])
 
   const accounts = data?.accounts || []
   const camps = data?.campaigns || []
+  const delta = data?.delta || {}
+  const chartData = camps.slice(0, 10).map(c => ({ name: (c.name || '').slice(0, 12), attuale: c.spend, consigliata: c.suggestedSpend }))
   const shown = showAll ? camps : camps.slice(0, 12)
   const re = data?.reallocation || {}
 
-  const Stat = ({ label, value, tone }) => (
+  const Stat = ({ label, value, tone, d, lowerBetter }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
-      <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}</div>
+      <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}<DeltaBadge d={d} lowerBetter={lowerBetter} /></div>
     </div>
   )
 
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard title="Budget Advisor" subtitle="Ultimi 28 giorni · solo campagne attive · riallocazione a parità di spesa · consulenziale (non esecutivo)" delay={2.2}>
-        {accounts.length > 1 && (
-          <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+          <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+          {accounts.length > 1 && (
             <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
               <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
               {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
             </select>
-          </div>
-        )}
+          )}
+        </div>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le campagne…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && camps.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna campagna con spesa nel periodo.</div>}
@@ -60,8 +72,8 @@ export default function BudgetAdvisorPanel() {
         {camps.length > 0 && (
           <>
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 16px' }}>
-              <Stat label="Spesa totale" value={eur(data.totalSpend)} />
-              <Stat label="ROAS medio (MER)" value={`${data.mer}x`} tone={data.mer >= 2 ? 'var(--green)' : data.mer >= 1 ? 'var(--orange)' : 'var(--red)'} />
+              <Stat label="Spesa totale" value={eur(data.totalSpend)} d={delta.spend} />
+              <Stat label="ROAS medio (MER)" value={`${data.mer}x`} tone={data.mer >= 2 ? 'var(--green)' : data.mer >= 1 ? 'var(--orange)' : 'var(--red)'} d={delta.mer} />
               <Stat label="Da scalare" value={data.counts?.scala || 0} tone="var(--green)" />
               <Stat label="Da ridurre / tagliare" value={(data.counts?.riduci || 0) + (data.counts?.taglia || 0)} tone="var(--red)" />
             </div>
@@ -110,6 +122,27 @@ export default function BudgetAdvisorPanel() {
                 <button onClick={() => setShowAll(v => !v)} className="btn-glass" style={{ padding: '9px 24px', cursor: 'pointer' }}>
                   {showAll ? 'Mostra meno' : `Mostra tutte (${camps.length})`}
                 </button>
+              </div>
+            )}
+
+            {chartData.length > 0 && (
+              <div className="glass-card-static reveal-zoom" style={{ marginTop: 22, padding: 18, borderRadius: 16 }}>
+                <div className="label" style={{ marginBottom: 12 }}>Spesa attuale vs consigliata (top campagne)</div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="baAtt" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2997ff" stopOpacity={0.95} /><stop offset="100%" stopColor="#2997ff" stopOpacity={0.35} /></linearGradient>
+                      <linearGradient id="baCon" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#30d158" stopOpacity={0.95} /><stop offset="100%" stopColor="#30d158" stopOpacity={0.35} /></linearGradient>
+                      <filter id="baGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                    </defs>
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={48} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: 'var(--text2)' }} formatter={(v) => eur2(v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="attuale" name="Attuale" fill="url(#baAtt)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
+                    <Bar dataKey="consigliata" name="Consigliata" fill="url(#baCon)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </>

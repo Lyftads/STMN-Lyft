@@ -33,7 +33,7 @@ function kpiComment(kpis) {
 const ChartTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 12px', fontSize: 11, fontWeight: 700 }}>
+    <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 11, fontWeight: 700, boxShadow: '0 12px 30px rgba(0,0,0,0.6)' }}>
       <p style={{ color: '#888', marginBottom: 4 }}>{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }}>{p.name}: {typeof p.value === 'number' && p.value > 100 ? fmtN(p.value) : p.value?.toFixed?.(2) ?? p.value}</p>
@@ -42,16 +42,28 @@ const ChartTip = ({ active, payload, label }) => {
   )
 }
 
+// ── Shared styles (allineati a KPI Brain) ────────────────────
+const sectionStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 22, padding: 24, marginBottom: 24 }
+const cardStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, minWidth: 0 }
+const panelStyle = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 24px' }
+
+function Section({ title, subtitle, color = '#8b5cf6', children, style }) {
+  return (
+    <div className="glass-section reveal-zoom" style={{ ...sectionStyle, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: subtitle ? 6 : 20 }}>
+        <span style={{ width: 4, height: 20, borderRadius: 99, background: color, boxShadow: `0 0 14px ${color}, 0 0 4px ${color}` }} />
+        <span style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</span>
+      </div>
+      {subtitle && <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 20 }}>{subtitle}</div>}
+      {children}
+    </div>
+  )
+}
+
 function Card({ title, value, badge, color = '#8b5cf6' }) {
   return (
-    <div style={{
-      background: 'var(--glass)',
-      border: '1px solid var(--border)',
-      borderRadius: 14,
-      padding: '18px 20px',
-      minWidth: 0,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+    <div className="glass-card" style={cardStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ fontSize: 11, color: '#9b90aa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em' }}>{title}</span>
         {badge && (
           <span style={{
@@ -65,29 +77,12 @@ function Card({ title, value, badge, color = '#8b5cf6' }) {
   )
 }
 
-function SectionTitle({ children, color = '#8b5cf6' }) {
-  return (
-    <div style={{
-      margin: '36px 0 18px',
-      padding: '8px 16px',
-      borderRadius: '0 10px 10px 0',
-      background: `linear-gradient(90deg, ${color}25, transparent)`,
-      color,
-      fontSize: 12,
-      fontWeight: 950,
-      textTransform: 'uppercase',
-      letterSpacing: '0.17em',
-    }}>
-      {children}
-    </div>
-  )
-}
-
 function StatusDot({ active }) {
   return (
     <span style={{
       display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
       background: active ? '#22c55e' : '#555', marginRight: 8,
+      boxShadow: active ? '0 0 8px #22c55e' : 'none',
     }} />
   )
 }
@@ -130,11 +125,12 @@ export default function KlaviyoTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      {/* Header: saluto + selettore giorni */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <p style={{ color: '#9f93ad', fontSize: 13, margin: 0 }}>{greetMarino()}</p>
         <div style={{ display: 'flex', gap: 6 }}>
           {[7, 14, 30, 60, 90].map(d => (
-            <button key={d} onClick={() => setDays(d)} style={{
+            <button key={d} onClick={() => setDays(d)} className="btn-glass" style={{
               border: days === d ? '1px solid #8b5cf6' : '1px solid var(--border)',
               background: days === d ? '#8b5cf622' : 'var(--glass)',
               color: days === d ? '#c4b5fd' : '#9b90aa',
@@ -144,35 +140,36 @@ export default function KlaviyoTab() {
         </div>
       </div>
 
-      <div style={{
-        background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12,
-        padding: '12px 18px', marginBottom: 24, color: '#c4b5fd', fontSize: 13, fontWeight: 600,
-      }}>
-        {kpiComment(kpis)}
-      </div>
+      {/* Panoramica Email */}
+      <Section title="Panoramica Email" subtitle={`Klaviyo · ultimi ${days} giorni`} color="#8b5cf6">
+        <div className="reveal" style={{
+          background: 'linear-gradient(90deg, rgba(139,92,246,0.12), transparent)',
+          border: '1px solid var(--border)', borderRadius: 12,
+          padding: '12px 18px', marginBottom: 20, color: '#c4b5fd', fontSize: 13, fontWeight: 600,
+        }}>
+          {kpiComment(kpis)}
+        </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
-        <Card title="Email Ricevute" value={fmtN(kpis?.received?.total)} badge="Klaviyo" color="#8b5cf6" />
-        <Card title="Aperte" value={fmtN(kpis?.opened?.total)} badge="Open" color="#3b82f6" />
-        <Card title="Cliccate" value={fmtN(kpis?.clicked?.total)} badge="Click" color="#06b6d4" />
-        <Card title="Open Rate" value={fmtP(kpis?.openRate)} badge="Rate" color="#22c55e" />
-        <Card title="Click Rate" value={fmtP(kpis?.clickRate)} badge="Rate" color="#22c55e" />
-        <Card title="CTOR" value={fmtP(kpis?.ctor)} badge="Rate" color="#f59e0b" />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        <Card title="Bounce" value={fmtN(kpis?.bounced?.total)} badge="Health" color="#ef4444" />
-        <Card title="Unsub" value={fmtN(kpis?.unsubscribed?.total)} badge="Health" color="#ef4444" />
-        <Card title="Revenue" value={fmtE(kpis?.revenue?.total)} badge="€" color="#22c55e" />
-      </div>
+        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <Card title="Email Ricevute" value={fmtN(kpis?.received?.total)} badge="Klaviyo" color="#8b5cf6" />
+          <Card title="Aperte" value={fmtN(kpis?.opened?.total)} badge="Open" color="#3b82f6" />
+          <Card title="Cliccate" value={fmtN(kpis?.clicked?.total)} badge="Click" color="#06b6d4" />
+          <Card title="Open Rate" value={fmtP(kpis?.openRate)} badge="Rate" color="#22c55e" />
+          <Card title="Click Rate" value={fmtP(kpis?.clickRate)} badge="Rate" color="#22c55e" />
+          <Card title="CTOR" value={fmtP(kpis?.ctor)} badge="Rate" color="#f59e0b" />
+        </div>
+        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+          <Card title="Bounce" value={fmtN(kpis?.bounced?.total)} badge="Health" color="#ef4444" />
+          <Card title="Unsub" value={fmtN(kpis?.unsubscribed?.total)} badge="Health" color="#ef4444" />
+          <Card title="Revenue" value={fmtE(kpis?.revenue?.total)} badge="€" color="#22c55e" />
+        </div>
+      </Section>
 
       {/* Revenue Breakdown */}
       {data.revenueBreakdown && (
-        <>
-          <SectionTitle color="#22c55e">Revenue Breakdown — Campagne vs Flussi</SectionTitle>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
-            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px' }}>
+        <Section title="Revenue Breakdown — Campagne vs Flussi" color="#22c55e">
+          <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="glass-card" style={panelStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#ec4899' }}>Campagne</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.campaigns?.total)}</span>
@@ -189,7 +186,7 @@ export default function KlaviyoTab() {
               ))}
             </div>
 
-            <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px' }}>
+            <div className="glass-card" style={panelStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, color: '#f6b73c' }}>Flussi</span>
                 <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.flows?.total)}</span>
@@ -206,130 +203,127 @@ export default function KlaviyoTab() {
               ))}
             </div>
           </div>
-        </>
+        </Section>
       )}
 
-      {/* Charts */}
-      <SectionTitle color="#8b5cf6">Trend Giornaliero</SectionTitle>
+      {/* Trend Giornaliero */}
+      <Section title="Trend Giornaliero" color="#8b5cf6">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[
+            { id: 'received', label: 'Ricevute' },
+            { id: 'opened', label: 'Aperte' },
+            { id: 'clicked', label: 'Cliccate' },
+            { id: 'revenue', label: 'Revenue' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setChartTab(t.id)} className="btn-glass" style={{
+              border: chartTab === t.id ? '1px solid #8b5cf6' : '1px solid var(--border)',
+              background: chartTab === t.id ? '#8b5cf622' : 'var(--glass)',
+              color: chartTab === t.id ? '#c4b5fd' : '#9b90aa',
+              borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
+            }}>{t.label}</button>
+          ))}
+        </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {[
-          { id: 'received', label: 'Ricevute' },
-          { id: 'opened', label: 'Aperte' },
-          { id: 'clicked', label: 'Cliccate' },
-          { id: 'revenue', label: 'Revenue' },
-        ].map(t => (
-          <button key={t.id} onClick={() => setChartTab(t.id)} style={{
-            border: chartTab === t.id ? '1px solid #8b5cf6' : '1px solid var(--border)',
-            background: chartTab === t.id ? '#8b5cf622' : 'var(--glass)',
-            color: chartTab === t.id ? '#c4b5fd' : '#9b90aa',
-            borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
-          }}>{t.label}</button>
-        ))}
-      </div>
+        <div className="glass-card" style={{ ...panelStyle, padding: 20 }}>
+          <ResponsiveContainer width="100%" height={260}>
+            {chartTab === 'revenue' ? (
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
+                <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
+                <Tooltip content={<ChartTip />} />
+                <Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} dot={false} />
+              </LineChart>
+            ) : chartTab === 'opened' || chartTab === 'clicked' ? (
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
+                <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
+                <Tooltip content={<ChartTip />} />
+                <Area type="monotone" dataKey={chartTab} stroke={chartTab === 'opened' ? '#3b82f6' : '#06b6d4'} fill={chartTab === 'opened' ? '#3b82f622' : '#06b6d422'} strokeWidth={2} />
+              </AreaChart>
+            ) : (
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
+                <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
+                <Tooltip content={<ChartTip />} />
+                <Bar dataKey="received" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      </Section>
 
-      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, marginBottom: 8 }}>
-        <ResponsiveContainer width="100%" height={260}>
-          {chartTab === 'revenue' ? (
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
-              <Tooltip content={<ChartTip />} />
-              <Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} dot={false} />
-            </LineChart>
-          ) : chartTab === 'opened' || chartTab === 'clicked' ? (
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
-              <Tooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey={chartTab} stroke={chartTab === 'opened' ? '#3b82f6' : '#06b6d4'} fill={chartTab === 'opened' ? '#3b82f622' : '#06b6d422'} strokeWidth={2} />
-            </AreaChart>
-          ) : (
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="date" tick={{ fill: '#776a86', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#776a86', fontSize: 10 }} />
-              <Tooltip content={<ChartTip />} />
-              <Bar dataKey="received" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          )}
-        </ResponsiveContainer>
-      </div>
+      {/* Campagne */}
+      <Section title="Campagne" color="#ec4899">
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[
+            { id: 'sent', label: `Inviate (${campaigns?.sent?.length || 0})` },
+            { id: 'draft', label: `Bozze (${campaigns?.draft?.length || 0})` },
+            { id: 'scheduled', label: `Programmate (${campaigns?.scheduled?.length || 0})` },
+          ].map(t => (
+            <button key={t.id} onClick={() => setCampTab(t.id)} className="btn-glass" style={{
+              border: campTab === t.id ? '1px solid #ec4899' : '1px solid var(--border)',
+              background: campTab === t.id ? '#ec489922' : 'var(--glass)',
+              color: campTab === t.id ? '#f9a8d4' : '#9b90aa',
+              borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
+            }}>{t.label}</button>
+          ))}
+        </div>
 
-      {/* Campaigns */}
-      <SectionTitle color="#ec4899">Campagne</SectionTitle>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {[
-          { id: 'sent', label: `Inviate (${campaigns?.sent?.length || 0})` },
-          { id: 'draft', label: `Bozze (${campaigns?.draft?.length || 0})` },
-          { id: 'scheduled', label: `Programmate (${campaigns?.scheduled?.length || 0})` },
-        ].map(t => (
-          <button key={t.id} onClick={() => setCampTab(t.id)} style={{
-            border: campTab === t.id ? '1px solid #ec4899' : '1px solid var(--border)',
-            background: campTab === t.id ? '#ec489922' : 'var(--glass)',
-            color: campTab === t.id ? '#f9a8d4' : '#9b90aa',
-            borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
-          }}>{t.label}</button>
-        ))}
-      </div>
-
-      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Campagna</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Data Invio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => (
-              <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{c.name}</td>
-                <td style={{ padding: '10px 16px' }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
-                    background: c.status === 'Sent' ? '#22c55e22' : c.status === 'Draft' ? '#f59e0b22' : '#3b82f622',
-                    color: c.status === 'Sent' ? '#22c55e' : c.status === 'Draft' ? '#f59e0b' : '#3b82f6',
-                  }}>{c.status}</span>
-                </td>
-                <td style={{ padding: '10px 16px', color: '#9b90aa', fontSize: 12 }}>{c.sendTime ? new Date(c.sendTime).toLocaleString('it-IT') : '—'}</td>
+        <div className="glass-card" style={{ ...panelStyle, padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Campagna</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Data Invio</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => (
+                <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{c.name}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
+                      background: c.status === 'Sent' ? '#22c55e22' : c.status === 'Draft' ? '#f59e0b22' : '#3b82f622',
+                      color: c.status === 'Sent' ? '#22c55e' : c.status === 'Draft' ? '#f59e0b' : '#3b82f6',
+                    }}>{c.status}</span>
+                  </td>
+                  <td style={{ padding: '10px 16px', color: '#9b90aa', fontSize: 12 }}>{c.sendTime ? new Date(c.sendTime).toLocaleString('it-IT') : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
 
-      {/* Flows */}
-      <SectionTitle color="#f6b73c">Flussi</SectionTitle>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
-        {(flows || []).map((f, i) => (
-          <div key={f.id || i} style={{
-            background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14 }}>{f.name}</span>
-              <span style={{
-                fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
-                background: f.status === 'live' ? '#22c55e22' : '#55555522',
-                color: f.status === 'live' ? '#22c55e' : '#888',
-                textTransform: 'uppercase',
-              }}>{f.status}</span>
+      {/* Flussi */}
+      <Section title="Flussi" color="#f6b73c">
+        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+          {(flows || []).map((f, i) => (
+            <div key={f.id || i} className="glass-card" style={{ ...cardStyle, padding: '16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14 }}>{f.name}</span>
+                <span style={{
+                  fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
+                  background: f.status === 'live' ? '#22c55e22' : '#55555522',
+                  color: f.status === 'live' ? '#22c55e' : '#888',
+                  textTransform: 'uppercase',
+                }}>{f.status}</span>
+              </div>
+              <span style={{ color: '#776a86', fontSize: 11, fontWeight: 700 }}>Trigger: {f.triggerType || '—'}</span>
             </div>
-            <span style={{ color: '#776a86', fontSize: 11, fontWeight: 700 }}>Trigger: {f.triggerType || '—'}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Section>
 
-      {/* Segments & Lists */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 12 }}>
-        <div>
-          <SectionTitle color="#06b6d4">Segmenti</SectionTitle>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+      {/* Segmenti & Liste */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <Section title="Segmenti" color="#06b6d4" style={{ marginBottom: 0 }}>
+          <div className="glass-card" style={{ ...panelStyle, padding: 16 }}>
             {(segments || []).map((s, i) => (
               <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center' }}>
                 <StatusDot active={s.isActive} />
@@ -337,17 +331,16 @@ export default function KlaviyoTab() {
               </div>
             ))}
           </div>
-        </div>
-        <div>
-          <SectionTitle color="#a855f7">Liste</SectionTitle>
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
+        </Section>
+        <Section title="Liste" color="#a855f7" style={{ marginBottom: 0 }}>
+          <div className="glass-card" style={{ ...panelStyle, padding: 16 }}>
             {(lists || []).map((l, i) => (
               <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{l.name}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       </div>
     </div>
   )

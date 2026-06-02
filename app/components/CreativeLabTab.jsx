@@ -457,15 +457,6 @@ export default function CreativeLabTab() {
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ margin: 0, color: '#fff', fontSize: 32, fontWeight: 950, letterSpacing: '-0.04em' }}>
-          Creative Lab
-        </h1>
-        <p style={{ margin: '8px 0 0', color: '#8b8aa0', fontSize: 14 }}>
-          Genera ad creative basate su best seller, performance ads e analisi competitor
-        </p>
-      </div>
-
       {loading && !data && (
         <div style={{ textAlign: 'center', padding: 80, color: '#6b6580' }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Carico dati prodotti e performance…</div>

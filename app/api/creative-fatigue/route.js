@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
+import { getRange, prevRange } from '../../../lib/metaRange'
 
 // ── Creative Fatigue Tracker (additivo, isolato) ──────────────────
 // Legge gli insights Meta a livello AD (tutto l'account) e calcola un fatigue
@@ -28,24 +29,18 @@ async function accountNames(ids) {
   return out
 }
 
-function addDays(date, days) {
-  const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10)
-}
-function getRange(preset) {
-  const today = new Date().toISOString().slice(0, 10)
-  switch (preset) {
-    case 'today': return { since: today, until: today }
-    case 'yesterday': { const y = addDays(today, -1); return { since: y, until: y } }
-    case 'last_7d': return { since: addDays(today, -7), until: today }
-    case 'last_14d': return { since: addDays(today, -14), until: today }
-    case 'last_90d': return { since: addDays(today, -90), until: today }
-    case 'current_month': case 'mtd': return { since: `${today.slice(0, 7)}-01`, until: today }
-    case 'last_month': {
-      const d = new Date(`${today.slice(0, 7)}-01T00:00:00`); d.setDate(0)
-      const end = d.toISOString().slice(0, 10); return { since: `${end.slice(0, 7)}-01`, until: end }
-    }
-    case 'last_28d': default: return { since: addDays(today, -28), until: today }
+// Aggregato account-level per il periodo (per le variazioni vs precedente)
+async function accountAgg(used, since, until) {
+  let spend = 0, impressions = 0, clicks = 0, purchases = 0
+  for (const id of used) {
+    const url = `https://graph.facebook.com/${GRAPH_VERSION}/${id}/insights?time_range=${encodeURIComponent(JSON.stringify({ since, until }))}&fields=${encodeURIComponent('spend,impressions,inline_link_clicks,actions')}&access_token=${encodeURIComponent(META_TOKEN)}`
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const j = await res.json()
+      for (const r of (j.data || [])) { spend += num(r.spend); impressions += num(r.impressions); clicks += num(r.inline_link_clicks); purchases += purchasesFrom(r.actions) }
+    } catch {}
   }
+  return { spend, ctr: impressions > 0 ? (clicks / impressions) * 100 : 0, cpa: purchases > 0 ? spend / purchases : 0, purchases }
 }
 
 function purchasesFrom(actions) {
@@ -212,6 +207,11 @@ export async function GET(req) {
       }
     } catch { /* thumbnail best-effort */ }
 
+    // Periodo precedente → variazioni
+    const pr = prevRange(range)
+    const [curAgg, prevAgg] = await Promise.all([accountAgg(used, range.since, range.until), accountAgg(used, pr.since, pr.until)])
+    const mkDelta = (cur, prev) => ({ abs: Math.round((cur - prev) * 100) / 100, pct: prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null })
+
     const accountsList = await accountNames(allAccounts())
 
     return NextResponse.json({
@@ -220,6 +220,9 @@ export async function GET(req) {
       account: used.length === 1 ? used[0] : '',
       avgCtr: Math.round(avgCtr * 100) / 100,
       avgCpa: Math.round(avgCpa * 100) / 100,
+      spend: Math.round(curAgg.spend * 100) / 100,
+      prev: { spend: Math.round(prevAgg.spend * 100) / 100, ctr: Math.round(prevAgg.ctr * 100) / 100, cpa: Math.round(prevAgg.cpa * 100) / 100 },
+      delta: { spend: mkDelta(curAgg.spend, prevAgg.spend), ctr: mkDelta(curAgg.ctr, prevAgg.ctr), cpa: mkDelta(curAgg.cpa, prevAgg.cpa) },
       total: ads.length,
       toRefresh: ads.filter(a => a.refresh).length,
       ads: top,

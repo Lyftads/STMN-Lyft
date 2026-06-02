@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
+import { getRange, prevRange } from '../../../lib/metaRange'
 
 // ── Budget Advisor (additivo, isolato, CONSULENZIALE — non esecutivo) ─────────
 // Legge gli insights Meta a livello CAMPAGNA e suggerisce riallocazioni di
@@ -46,18 +47,6 @@ async function activeCampaignIds(accountId) {
     } catch { break }
   }
   return ids
-}
-function addDays(date, days) { const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10) }
-function getRange(preset) {
-  const today = new Date().toISOString().slice(0, 10)
-  switch (preset) {
-    case 'last_7d': return { since: addDays(today, -7), until: today }
-    case 'last_14d': return { since: addDays(today, -14), until: today }
-    case 'last_90d': return { since: addDays(today, -90), until: today }
-    case 'current_month': case 'mtd': return { since: `${today.slice(0, 7)}-01`, until: today }
-    case 'last_month': { const d = new Date(`${today.slice(0, 7)}-01T00:00:00`); d.setDate(0); const e = d.toISOString().slice(0, 10); return { since: `${e.slice(0, 7)}-01`, until: e } }
-    case 'last_28d': default: return { since: addDays(today, -28), until: today }
-  }
 }
 function valFrom(arr, types) {
   if (!Array.isArray(arr)) return 0
@@ -148,6 +137,22 @@ export async function GET(req) {
 
     campaigns.sort((a, b) => b.spend - a.spend)
 
+    // Periodo precedente (stesse campagne attive) → variazioni % e €
+    const pr = prevRange(range)
+    let prevSpend = 0, prevRevenue = 0
+    try {
+      const prevRaw = []
+      for (const acc of used) prevRaw.push(...(await fetchCampaignInsights(acc, pr)))
+      for (const r of prevRaw.filter(r => activeIds.has(r.campaign_id))) {
+        const sp = num(r.spend)
+        let rev = valFrom(r.action_values, ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase'])
+        if (!rev) { const prr = valFrom(r.purchase_roas, ['omni_purchase', 'purchase']); if (prr) rev = prr * sp }
+        prevSpend += sp; prevRevenue += rev
+      }
+    } catch {}
+    const prevMer = prevSpend > 0 ? prevRevenue / prevSpend : 0
+    const mkDelta = (cur, prev) => ({ abs: Math.round((cur - prev) * 100) / 100, pct: prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null })
+
     const accountsList = await accountNames(allAccounts())
 
     return NextResponse.json({
@@ -157,6 +162,8 @@ export async function GET(req) {
       totalSpend: Math.round(totalSpend * 100) / 100,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       mer: Math.round(mer * 100) / 100,
+      prev: { totalSpend: Math.round(prevSpend * 100) / 100, totalRevenue: Math.round(prevRevenue * 100) / 100, mer: Math.round(prevMer * 100) / 100 },
+      delta: { spend: mkDelta(totalSpend, prevSpend), revenue: mkDelta(totalRevenue, prevRevenue), mer: mkDelta(mer, prevMer) },
       counts: {
         scala: campaigns.filter(c => c.action === 'scala').length,
         riduci: campaigns.filter(c => c.action === 'riduci').length,

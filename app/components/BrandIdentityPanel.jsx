@@ -288,9 +288,9 @@ export default function BrandIdentityPanel() {
 // Building blocks
 // ─────────────────────────────────────────────────────────────
 
-function GlassCard({ children, padding = 22 }) {
+function GlassCard({ children, padding = 22, reveal = 'reveal-zoom' }) {
   return (
-    <div className="glass-card-static" style={{ padding }}>
+    <div className={`glass-section ${reveal}`} style={{ padding, borderRadius: 22 }}>
       {children}
     </div>
   )
@@ -301,9 +301,12 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
       <span style={{
         width: 42, height: 42, borderRadius: 12,
-        background: `${ACCENT}20`, color: ACCENT,
+        background: `linear-gradient(135deg, ${ACCENT}33, ${ACCENT}14)`, color: ACCENT,
         display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
         flexShrink: 0,
+        border: `1px solid ${ACCENT}44`,
+        boxShadow: `0 0 18px ${ACCENT}33, inset 0 1px 0 rgba(255,255,255,0.12)`,
+        animation: 'float 4s ease-in-out infinite',
       }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
@@ -320,21 +323,28 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
 
 function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
   return (
-    <div className="glass-card-static" style={{ overflow: 'hidden' }}>
+    <div
+      className="glass-section reveal-zoom"
+      style={{ overflow: 'hidden', borderRadius: 22, transition: 'transform .4s cubic-bezier(0.16,1,0.3,1)' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = '' }}
+    >
       <button
         type="button"
         onClick={onToggle}
         style={{
           width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: 22, textAlign: 'left',
+          padding: 22, textAlign: 'left', position: 'relative', zIndex: 2,
           display: 'flex', alignItems: 'center', gap: 14,
         }}
       >
         <span style={{
           width: 38, height: 38, borderRadius: 11,
-          background: `${ACCENT}1a`, color: ACCENT,
+          background: `linear-gradient(135deg, ${ACCENT}30, ${ACCENT}10)`, color: ACCENT,
           display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 800,
           flexShrink: 0,
+          border: `1px solid ${ACCENT}3a`,
+          boxShadow: `0 0 14px ${ACCENT}2e, inset 0 1px 0 rgba(255,255,255,0.10)`,
         }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
@@ -347,6 +357,7 @@ function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
           padding: '4px 22px 22px',
           borderTop: '1px solid rgba(255,255,255,0.04)',
           display: 'flex', flexDirection: 'column', gap: 14,
+          position: 'relative', zIndex: 2,
         }}>
           {children}
         </div>
@@ -603,7 +614,13 @@ function AssetsManager({ assets, onChange }) {
           const list = assetsByType[at.id] || []
           const isUploading = uploadingType === at.id
           return (
-            <div key={at.id} className="glass-panel" style={{ borderRadius: 14, padding: 14 }}>
+            <div
+              key={at.id}
+              className="glass-panel"
+              style={{ borderRadius: 14, padding: 14, transition: 'transform .35s cubic-bezier(0.16,1,0.3,1), box-shadow .35s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 24px 50px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22` }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{at.label}</span>
                 <button
@@ -695,10 +712,17 @@ function CompetitorList({ competitors, onChange }) {
       )}
 
       {competitors.map((c, idx) => (
-        <div key={idx} className="glass-panel" style={{
-          borderRadius: 14, padding: 14,
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
+        <div
+          key={idx}
+          className="glass-panel"
+          style={{
+            borderRadius: 14, padding: 14,
+            display: 'flex', flexDirection: 'column', gap: 10,
+            transition: 'transform .35s cubic-bezier(0.16,1,0.3,1), box-shadow .35s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 24px 50px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22` }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>#{idx + 1}</span>
             <input

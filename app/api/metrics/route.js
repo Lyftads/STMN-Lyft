@@ -685,13 +685,16 @@ async function fetchShopifySalesRange(start, end) {
   }
 
   // ShopifyQL e' la fonte di verita' e combacia ESATTAMENTE col report Shopify
-  // (orders_first_time / orders_returning + total_sales gia' al netto dei resi).
-  // Lo usiamo SEMPRE quando ha dati. Solo quando ShopifyQL e' completamente
-  // vuoto — cioe' i giorni recentissimi non ancora consolidati (today/yesterday/
-  // last_7d) — ripieghiamo sull'Admin GraphQL real-time (NC/RC via numberOfOrders).
-  // NB: NON sovrascriviamo mai un periodo gia' consolidato (es. il mese scorso),
-  // altrimenti rovineremmo numeri corretti con la stima.
-  const shopifyQlEmpty = !(ordini > 0) && !(fatturato > 0)
+  // (orders_first_time / orders_returning + total_sales gia' al netto dei resi):
+  // lo usiamo per tutti i periodi consolidati (>=14gg, mesi, trimestri, anni).
+  //
+  // Solo per le finestre RECENTI e PICCOLE (oggi, ieri, ultimi 7 giorni) ShopifyQL
+  // non ha ancora consolidato la classificazione new/returning (job notturno):
+  // i totali possono esserci ma nc/rc restano 0. Per queste usiamo l'Admin GraphQL
+  // real-time (NC/RC via numberOfOrders), che e' anche l'unico dato disponibile —
+  // il report Shopify stesso e' vuoto su quei giorni.
+  // NB: <=10 giorni isola esattamente today/yesterday/last_7d e il mese corrente
+  // appena iniziato, senza mai toccare il mese scorso gia' consolidato.
   const endsRecently =
     Date.now() - new Date(`${end}T23:59:59Z`).getTime() < 9 * 86400000
   const windowDays =
@@ -700,9 +703,9 @@ async function fetchShopifySalesRange(start, end) {
         new Date(`${start}T00:00:00Z`).getTime()) /
         86400000
     ) + 1
-  if (shopifyQlEmpty && endsRecently && windowDays <= 45 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
+  if (endsRecently && windowDays <= 10 && SHOPIFY_STORE && SHOPIFY_TOKEN) {
     const admin = await fetchShopifyOrdersAdminGQL(start, end)
-    if (admin && admin.ordini > 0) {
+    if (admin && admin.ordini > 0 && admin.ordini >= (ordini || 0)) {
       return admin
     }
   }

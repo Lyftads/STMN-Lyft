@@ -244,11 +244,13 @@ async function searchViaBrowserless(q, country) {
     await new Promise(r => setTimeout(r, 2500))
 
     // 1° scelta: dato strutturato dalle risposte GraphQL intercettate
-    let ads = parseAdsFromGraphql(gqlTexts)
+    const gqlAds = parseAdsFromGraphql(gqlTexts)
+    let ads = gqlAds
+    let via = 'graphql'
     // 2° scelta: parsing dell'HTML renderizzato
-    if (!ads.length) ads = parseAdsFromHtml(await page.content())
+    if (!ads.length) { ads = parseAdsFromHtml(await page.content()); via = 'html' }
 
-    return { ads, source: 'browserless' }
+    return { ads, source: 'browserless', debug: { gqlResponses: gqlTexts.length, gqlAds: gqlAds.length, via } }
   } catch (e) {
     return { ads: [], source: 'browserless', httpError: e.message }
   } finally {
@@ -308,6 +310,7 @@ export async function GET(request) {
     count: ads.length,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (lastErr || 'no_results') : null,
+    _debug: result?.debug || null,
     libraryUrl: libraryUrlFor(q, country),
     fetchedAt: new Date().toISOString(),
   })

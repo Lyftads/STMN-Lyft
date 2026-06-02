@@ -549,11 +549,16 @@ async function fetchShopifyOrdersAdminGQL(start, end, maxPages = 20) {
 
 // ── Shopify sales per range arbitrario ─────────────────────────
 async function fetchShopifySalesRange(start, end) {
-  // 1) Query non filtrata per il totale ACCURATO (include guest checkouts
-  //    e ordini senza classificazione NC/RC che la WHERE escludeva).
+  // 1) Query non filtrata per il totale ACCURATO + metriche NC/RC dirette.
+  //    orders_first_time / orders_returning sono aggregati cross-segment di
+  //    ShopifyQL — non serve GROUP BY per ottenerli, esattamente come il
+  //    report Shopify Admin Analytics. Stesso per total_sales_first_time/
+  //    total_sales_returning per i fatturati.
   const totalsQuery = `
     FROM sales
-      SHOW orders, total_sales, returns
+      SHOW orders, total_sales, returns,
+           orders_first_time, total_sales_first_time,
+           orders_returning, total_sales_returning
       SINCE ${start}
       UNTIL ${end}
       WITH TOTALS, CURRENCY 'EUR'
@@ -586,53 +591,44 @@ async function fetchShopifySalesRange(start, end) {
   const totalsRows = await shopifyQL(totalsQuery)
   const rows = await shopifyQL(breakdownQuery)
 
-  // Totali reali dalla query non filtrata
+  // Totali reali + NC/RC direttamente dalla query non filtrata.
+  // orders_first_time / orders_returning sono metriche aggregate Shopify
+  // (stesso valore che vedi nel report Shopify Admin).
   let fatturato = 0, ordini = 0, resi = 0
+  let fatturNC = 0, fatturRC = 0, nc = 0, rc = 0
+  let resiNC = 0, resiRC = 0 // resi NC/RC non disponibili lato Shopify direttamente
   for (const row of (totalsRows || [])) {
     fatturato += cleanMoney(row.total_sales)
     ordini += cleanCount(row.orders)
     resi += Math.abs(cleanMoney(row.returns))
+    nc += cleanCount(row.orders_first_time)
+    rc += cleanCount(row.orders_returning)
+    fatturNC += cleanMoney(row.total_sales_first_time)
+    fatturRC += cleanMoney(row.total_sales_returning)
   }
 
-  // Suddivisione NC/RC dalla query filtrata
-  let fatturNC = 0, fatturRC = 0
-  let resiNC = 0, resiRC = 0
-  let nc = 0, rc = 0
-
-  for (const row of rows) {
-    const segment = String(row.new_or_returning_customer || '').toLowerCase()
-
-    const rowTotalSales = cleanMoney(row.total_sales)
-    const rowOrders = cleanCount(row.orders)
-    const rowReturns = Math.abs(cleanMoney(row.returns))
-
-    const isNew =
-      segment.includes('new') ||
-      segment.includes('first') ||
-      segment.includes('nuov')
-
-    const isReturning =
-      segment.includes('return') ||
-      segment.includes('ritorn') ||
-      segment.includes('recurr')
-
-    // NC = "ordini di primo acquisto" (orders_first_time)
-    // RC = "ordini da clienti abituali" (orders_returning)
-    // Source of truth: il report Shopify Admin usa queste metriche.
-    // Fallback su row.orders se le metriche specifiche sono null.
-    const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrders
-    const rowOrdersReturning = cleanCount(row.orders_returning) || rowOrders
-
-    if (isNew) {
-      nc += rowOrdersFirstTime
-      fatturNC += rowTotalSales
-      resiNC += rowReturns
-    }
-
-    if (isReturning) {
-      rc += rowOrdersReturning
-      fatturRC += rowTotalSales
-      resiRC += rowReturns
+  // Fallback breakdown query SOLO se totalsQuery non ha popolato NC/RC
+  // (Shopify a volte rifiuta orders_first_time per certi range).
+  if (nc === 0 && rc === 0) {
+    for (const row of rows) {
+      const segment = String(row.new_or_returning_customer || '').toLowerCase()
+      const rowTotalSales = cleanMoney(row.total_sales)
+      const rowOrders = cleanCount(row.orders)
+      const rowReturns = Math.abs(cleanMoney(row.returns))
+      const isNew = segment.includes('new') || segment.includes('first') || segment.includes('nuov')
+      const isReturning = segment.includes('return') || segment.includes('ritorn') || segment.includes('recurr')
+      const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrders
+      const rowOrdersReturning = cleanCount(row.orders_returning) || rowOrders
+      if (isNew) {
+        nc += rowOrdersFirstTime
+        fatturNC += rowTotalSales
+        resiNC += rowReturns
+      }
+      if (isReturning) {
+        rc += rowOrdersReturning
+        fatturRC += rowTotalSales
+        resiRC += rowReturns
+      }
     }
   }
 

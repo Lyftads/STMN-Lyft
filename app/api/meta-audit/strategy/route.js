@@ -209,6 +209,14 @@ function classifyByName(adsetName = '') {
 }
 
 function classifyAdset(adset, audMap) {
+  // Step 0 (HIGHEST PRIORITY): match ESATTO sui 4 nomi adset Meta standard.
+  // Lo screenshot di Marino mostra che dentro ogni campagna gli adset si
+  // chiamano letteralmente "Pubblico che ha interagito", "Clienti esistenti",
+  // "Nuovo pubblico", "Sconosciuto". Questo match e' la classifica primaria.
+  const exact = classifyByNameExact(adset.name)
+  if (exact) return exact
+
+  // Step 1: targeting subtype (replica logica Meta).
   const t = adset.targeting || {}
   const includedRaw = (t.custom_audiences || [])
   const excludedRaw = (t.excluded_custom_audiences || [])
@@ -217,7 +225,6 @@ function classifyAdset(adset, audMap) {
   const incKinds = included.map(classifyAudienceSubtype)
   const excKinds = excluded.map(classifyAudienceSubtype)
 
-  // Step 1: targeting subtype (più affidabile del nome, replica Meta nativo).
   if (incKinds.includes('crm_active') || incKinds.includes('crm_lapsed')) {
     return 'retention'
   }
@@ -227,9 +234,6 @@ function classifyAdset(adset, audMap) {
   if (incKinds.includes('lookalike')) {
     return 'acquisition_prospecting'
   }
-  // No custom audience INCLUSO (broad / interest / demographics) → Prospecting,
-  // ma SOLO se il targeting ha almeno 1 indicatore di prospecting (interests,
-  // flexible_spec, age_min, geo_locations). Altrimenti unknown.
   const hasAnyTargeting =
     Array.isArray(t.flexible_spec) && t.flexible_spec.length > 0 ||
     Array.isArray(t.interests) && t.interests.length > 0 ||
@@ -238,18 +242,26 @@ function classifyAdset(adset, audMap) {
     return 'acquisition_prospecting'
   }
 
-  // Step 2: se l'audMap non ha risolto gli IDs (permission/rate-limit),
-  // proviamo a classify per nome con regex larghi.
+  // Step 2: fallback regex larghi su name.
   const byName = classifyByName(adset.name)
   if (byName) return byName
 
-  // Step 3: signal addizionale dagli ESCLUSI (esclusione di CRM → cold)
+  // Step 3: esclusione di CRM → cold prospecting.
   if (excKinds.some(k => ['crm_active', 'crm_lapsed'].includes(k))) {
     return 'acquisition_prospecting'
   }
 
-  // Last resort: unknown (Meta nativo lo chiama "Sconosciuto").
   return 'unknown'
+}
+
+// Match esatto sulle 4 etichette standard Meta Ads Manager.
+function classifyByNameExact(adsetName = '') {
+  const name = String(adsetName).trim().toLowerCase()
+  if (name === 'clienti esistenti' || name === 'existing customers') return 'retention'
+  if (name === 'pubblico che ha interagito' || name === 'engaged audience' || name === 'engaged audiences') return 'retargeting'
+  if (name === 'nuovo pubblico' || name === 'new audience' || name === 'new audiences') return 'acquisition_prospecting'
+  if (name === 'sconosciuto' || name === 'unknown') return 'unknown'
+  return null
 }
 
 // ── Insights extraction ──────────────────────────────────────────
@@ -278,21 +290,48 @@ async function buildAudit({ accessToken, accountIds, range }) {
   // client-side per status=ACTIVE dopo la fetch.
   // Per fields: 'targeting{...}' nested non sempre ritorna la sub-struttura,
   // chiediamo 'targeting' intero.
-  // Includiamo TUTTI gli adset (no filtro status). Il "active filter" lo
-  // applichiamo a posteriori basandoci su spend>0 negli insights del periodo:
-  // questo evita di perdere adset con effective_status anomalo (es. budget
-  // exhausted, CAMPAIGN_PAUSED, ADSET_PAUSED transient) che Meta nativo
-  // raggruppa comunque sotto la campagna.
-  let debugTotalFetched = 0
+  // STEP 1: fetch SOLO le campagne attive (effective_status=ACTIVE).
+  // Stesso criterio di "Inserzioni attive" su Meta Ads Manager.
+  let debugCampaignsFetched = 0
+  const activeCampaignIds = []
+  const campaignMeta = {} // id → { name, account }
   for (const accId of accountIds) {
-    const fields = encodeURIComponent('id,name,status,effective_status,campaign_id,campaign{name,status},targeting')
-    const url = `${GRAPH}/${accId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`
+    const fields = encodeURIComponent('id,name,status,effective_status')
+    const effective = encodeURIComponent(JSON.stringify(['ACTIVE']))
+    const url = `${GRAPH}/${accId}/campaigns?fields=${fields}&effective_status=${effective}&limit=500&access_token=${accessToken}`
     try {
       const list = await fbGetAllPages(url, 20)
+      debugCampaignsFetched += list.length
+      for (const c of list) {
+        activeCampaignIds.push(c.id)
+        campaignMeta[c.id] = { name: c.name, account: accId }
+      }
+    } catch (e) {
+      console.log('[meta-audit] campaigns fetch failed for', accId, e?.message)
+    }
+  }
+
+  // STEP 2: per ogni account, fetch tutti gli adset e tieni solo quelli
+  // appartenenti a una campagna ATTIVA. Cosi' replichiamo il filtro
+  // "Inserzioni attive" di Meta Ads Manager.
+  // Includiamo adset anche se status=PAUSED a livello adset: Meta Ads
+  // Manager li mostra comunque raggruppati sotto la campagna attiva
+  // (sono sotto-segmenti di pubblico spesso paused per fine budget).
+  const activeCampaignSet = new Set(activeCampaignIds)
+  let debugTotalFetched = 0
+  for (const accId of accountIds) {
+    const fields = encodeURIComponent('id,name,status,effective_status,campaign_id,targeting')
+    const url = `${GRAPH}/${accId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`
+    try {
+      const list = await fbGetAllPages(url, 30)
       debugTotalFetched += list.length
-      // Escludiamo solo DELETED/ARCHIVED (mai si vedono in Ads Manager nativo)
-      const usable = list.filter(a => !['DELETED', 'ARCHIVED'].includes(a.effective_status))
-      for (const a of usable) adsetsAll.push({ ...a, _account: accId })
+      const usable = list.filter(a =>
+        activeCampaignSet.has(a.campaign_id) &&
+        !['DELETED', 'ARCHIVED'].includes(a.effective_status)
+      )
+      for (const a of usable) {
+        adsetsAll.push({ ...a, _account: accId, _campaignName: campaignMeta[a.campaign_id]?.name || '' })
+      }
     } catch (e) {
       console.log('[meta-audit] adsets fetch failed for', accId, e?.message)
     }
@@ -466,13 +505,14 @@ async function buildAudit({ accessToken, accountIds, range }) {
     audiencesAnalyzed: audMap.size,
     adsetsAnalyzed: adsetsAll.length,
     debug: {
+      campaigns_active: debugCampaignsFetched,
       adsets_fetched_total: debugTotalFetched,
-      adsets_active_after_filter: adsetsAll.length,
+      adsets_kept_after_filter: adsetsAll.length,
       audiences_in_map: audMap.size,
       audience_ids_referenced: audienceIds.size,
       accounts: accountIds,
       classification_breakdown: adsetCountByCat,
-      sample_adset_names: adsetsClassified.slice(0, 10).map(a => ({ n: a.name, cat: a.category })),
+      sample_adset_names: adsetsClassified.slice(0, 15).map(a => ({ n: a.name, cmp: a._campaignName, cat: a.category })),
     },
   }
 }

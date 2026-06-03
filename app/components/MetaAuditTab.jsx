@@ -108,11 +108,11 @@ export default function MetaAuditTab() {
             <PlatformBadges sources={['meta']} size={16} />
           </div>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
-            Performance per segmento di pubblico · {data?.adsetsAnalyzed || 0} adset attivi
+            Performance per segmento di pubblico · {data?.debug?.campaigns_active || 0} campagne attive
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
-            Aggregazione per Nuovo pubblico · Pubblico che ha interagito · Clienti esistenti.
-            {data?.debug?.adsets_fetched_total != null && ` (${data.debug.adsets_fetched_total} adset totali in account)`}
+            Aggregazione per Nuovo pubblico · Pubblico che ha interagito · Clienti esistenti · Sconosciuto.
+            {data?.adsetsAnalyzed != null && ` (${data.adsetsAnalyzed} adset nelle campagne attive)`}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

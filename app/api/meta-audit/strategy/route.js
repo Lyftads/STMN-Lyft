@@ -241,18 +241,23 @@ function pickPurchases(actions) {
 async function buildAudit({ accessToken, accountIds, range }) {
   const adsetsAll = []
 
-  // 1) Per ogni account, recupera tutti gli adset ATTIVI con targeting.
-  // IMPORTANTE: fields nested 'targeting{custom_audiences,...}' a volte non
-  // ritorna la sub-struttura (Meta API limitation). Chiediamo 'targeting'
-  // intero, poi accediamo a custom_audiences/excluded_custom_audiences dal JSON.
+  // 1) Per ogni account, recupera TUTTI gli adset con targeting (no filtro
+  // effective_status: a volte un adset 'status=ACTIVE' ha effective_status
+  // PAUSED se la campagna superiore e' pausata → veniva escluso. Filtriamo
+  // client-side per status=ACTIVE dopo la fetch.
+  // Per fields: 'targeting{...}' nested non sempre ritorna la sub-struttura,
+  // chiediamo 'targeting' intero.
+  let debugTotalFetched = 0
   for (const accId of accountIds) {
-    const fields = encodeURIComponent('id,name,effective_status,campaign_id,campaign{name},targeting')
-    const url = `${GRAPH}/${accId}/adsets?effective_status=["ACTIVE"]&fields=${fields}&limit=500&access_token=${accessToken}`
+    const fields = encodeURIComponent('id,name,status,effective_status,campaign_id,campaign{name,status,effective_status},targeting')
+    const url = `${GRAPH}/${accId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`
     try {
       const list = await fbGetAllPages(url, 20)
-      for (const a of list) adsetsAll.push({ ...a, _account: accId })
+      debugTotalFetched += list.length
+      // Adset attivi a livello adset (anche se campagna sopra e' pausata)
+      const activeAdsets = list.filter(a => a.status === 'ACTIVE')
+      for (const a of activeAdsets) adsetsAll.push({ ...a, _account: accId })
     } catch (e) {
-      // skip account ma continua
       console.log('[meta-audit] adsets fetch failed for', accId, e?.message)
     }
   }
@@ -424,6 +429,11 @@ async function buildAudit({ accessToken, accountIds, range }) {
     })),
     audiencesAnalyzed: audMap.size,
     adsetsAnalyzed: adsetsAll.length,
+    debug: {
+      adsets_fetched_total: debugTotalFetched,
+      adsets_active_after_filter: adsetsAll.length,
+      accounts: accountIds,
+    },
   }
 }
 

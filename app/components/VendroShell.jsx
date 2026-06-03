@@ -18,7 +18,7 @@ function getPageTitle(tab) {
     year: 'Year',
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
-    metaAudit: 'Meta Audit 360°',
+    metaKpi: 'Meta KPI',
     creative: 'Creative',
     creativeFatigue: 'Creative Fatigue',
     budgetAdvisor: 'Budget Advisor',
@@ -44,7 +44,7 @@ function getPageSubtitle(tab) {
     creativeFatigue: 'Creative da rinfrescare · frequency, CTR, CPA',
     budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
     metaDetail: 'Dettaglio performance Meta',
-    metaAudit: 'Strategy audit: Prospecting · Re-Engagement · Retargeting · Retention',
+    metaKpi: 'KPI completi Meta Ads · Spend, ROAS, CPO, CTR, CPM, Frequency, Reach',
     performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
     klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
     competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
@@ -103,7 +103,7 @@ export default function VendroShell({
       items: [
         { id: 'creative', label: 'Creative', icon: '▧' },
         { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
-        { id: 'metaAudit', label: 'Meta Audit 360°', icon: '◎' },
+        { id: 'metaKpi', label: 'Meta KPI', icon: '◎' },
         { id: 'creativeFatigue', label: 'Creative Fatigue', icon: '◍' },
         { id: 'budgetAdvisor', label: 'Budget Advisor', icon: '⊞' },
       ],
@@ -353,7 +353,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaAudit','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

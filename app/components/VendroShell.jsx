@@ -261,7 +261,7 @@ export default function VendroShell({
             const isOpen = !!openGroups[group.title]
             const hasActive = group.items.some(i => i.id === tab)
             return (
-            <div key={group.title} style={{ marginBottom: isOpen ? 16 : 2 }}>
+            <div key={group.title} style={{ marginBottom: isOpen ? 30 : 16 }}>
               <button
                 type="button"
                 onClick={() => toggleGroup(group.title)}
@@ -274,15 +274,15 @@ export default function VendroShell({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: isOpen || hasActive ? 'var(--text2)' : 'var(--text3)',
-                  fontSize: 10,
-                  fontWeight: 700,
+                  color: isOpen || hasActive ? '#fff' : 'var(--text2)',
+                  fontSize: 13,
+                  fontWeight: 800,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
+                  letterSpacing: '0.10em',
                   transition: 'color 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? 'var(--text2)' : 'var(--text3)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? '#fff' : 'var(--text2)' }}
               >
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%',
@@ -328,7 +328,7 @@ export default function VendroShell({
                         textAlign: 'left',
                         color: active ? '#fff' : 'var(--text2)',
                         background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: active ? 600 : 500,
                         transition: 'all 0.15s ease',
                         outline: 'none',

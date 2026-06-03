@@ -2680,8 +2680,6 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
-          <RecommendationsFeed metrics={live} preset={preset} />
-
           <MultiWindowCards />
 
           <div className="reveal-zoom" style={{marginBottom:24}}>
@@ -2746,6 +2744,8 @@ export default function App() {
           </div>
 
           <AlertsPanel live={live} />
+
+          <RecommendationsFeed metrics={live} preset={preset} />
 
           <DashboardInsights preset={preset} />
         </>

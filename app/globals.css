@@ -763,3 +763,23 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   0% { left: -50%; }
   100% { left: 100%; }
 }
+
+/* ── Movimento card DISABILITATO (richiesta utente) ──────────────────────
+   Le card restano completamente ferme: niente "respiro"/float idle, niente
+   sweep di luce (shine/scan), niente salto in hover. Ottenuto neutralizzando
+   i keyframe di movimento (vale anche per gli usi inline nei componenti) e
+   azzerando le pseudo-sweep delle card.
+   NON tocca i grafici: recharts, .fx-chart-body (fx-scan), fx-spark,
+   fx-pulse-dot, fx-glow-sweep e lo spinner (spin) restano animati. */
+@keyframes card-pulse { 0%, 100% { transform: none; } }
+@keyframes sim-pulse  { 0%, 100% { transform: none; } }
+@keyframes float      { 0%, 100% { transform: none; } }
+@keyframes cr-shine   { 0%, 100% { opacity: 0; } }
+@keyframes sim-scan   { 0%, 100% { opacity: 0; } }
+@keyframes fx-scan-card    { 0%, 100% { left: -60%; } }
+@keyframes fx-scan-section { 0%, 100% { left: -60%; } }
+
+.glass-card { animation: none !important; }
+.glass-card::after { animation: none !important; display: none; }
+.glass-card:hover { transform: none; }
+.glass-section::after { animation: none !important; display: none; }

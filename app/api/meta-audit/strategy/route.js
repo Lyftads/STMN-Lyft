@@ -210,9 +210,6 @@ function classifyByName(adsetName = '') {
 
 function classifyAdset(adset, audMap) {
   // Step 0 (HIGHEST PRIORITY): match ESATTO sui 4 nomi adset Meta standard.
-  // Lo screenshot di Marino mostra che dentro ogni campagna gli adset si
-  // chiamano letteralmente "Pubblico che ha interagito", "Clienti esistenti",
-  // "Nuovo pubblico", "Sconosciuto". Questo match e' la classifica primaria.
   const exact = classifyByNameExact(adset.name)
   if (exact) return exact
 
@@ -234,6 +231,17 @@ function classifyAdset(adset, audMap) {
   if (incKinds.includes('lookalike')) {
     return 'acquisition_prospecting'
   }
+
+  // Step 2: fallback regex larghi su ADSET name.
+  const byAdsetName = classifyByName(adset.name)
+  if (byAdsetName) return byAdsetName
+
+  // Step 3: fallback su CAMPAIGN name (intent del marketer).
+  // Es. "ITA-3.0_REM-DPA-ABO" → REM/DPA → retargeting catalog.
+  const byCampaign = classifyByCampaignName(adset._campaignName || '')
+  if (byCampaign) return byCampaign
+
+  // Step 4: targeting "broad" interpretabile → prospecting.
   const hasAnyTargeting =
     Array.isArray(t.flexible_spec) && t.flexible_spec.length > 0 ||
     Array.isArray(t.interests) && t.interests.length > 0 ||
@@ -242,16 +250,35 @@ function classifyAdset(adset, audMap) {
     return 'acquisition_prospecting'
   }
 
-  // Step 2: fallback regex larghi su name.
-  const byName = classifyByName(adset.name)
-  if (byName) return byName
-
-  // Step 3: esclusione di CRM → cold prospecting.
+  // Step 5: esclusione di CRM → cold prospecting.
   if (excKinds.some(k => ['crm_active', 'crm_lapsed'].includes(k))) {
     return 'acquisition_prospecting'
   }
 
   return 'unknown'
+}
+
+// Classifica per nome CAMPAGNA: usa convention di naming comuni nei
+// performance marketers (REM/RET = retargeting, DPA = dynamic catalog ads
+// → retargeting, CRM/Customer = retention, LAL/LLA/Broad = prospecting).
+function classifyByCampaignName(name = '') {
+  const n = String(name).toLowerCase().trim()
+  if (!n) return null
+  // Retention: CRM, customer file, DABA (Dynamic Audience-Based)
+  if (/\b(crm|customer[- ]?file|clienti?[- ]?esistent|past[- ]?customer|retention)\b/i.test(n)) {
+    return 'retention'
+  }
+  // Retargeting: REM, RMK, RET, REMK, remarketing, retargeting, DPA
+  // (Dynamic Product Ads = catalog retargeting), warm
+  if (/\b(rem|rmk|ret|remk|retarg|remark|warm|dpa|catalog|abandon|atc)\b/i.test(n)) {
+    return 'retargeting'
+  }
+  // Prospecting: LAL, LLA, broad, prospect, cold, interest, testing,
+  // acquisition, CBO (Campaign Budget Optimization e' tipicamente prospecting)
+  if (/\b(lal|lla|lookalike|broad|prospect|cold|interest|test|testing|acq|acquisition|acquisizione|cbo|abo|aab)\b/i.test(n)) {
+    return 'acquisition_prospecting'
+  }
+  return null
 }
 
 // Match esatto sulle 4 etichette standard Meta Ads Manager.

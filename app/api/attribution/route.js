@@ -71,11 +71,65 @@ async function metaPeriod(since, until) {
   return agg
 }
 
+// Insights Meta giornalieri (time_increment=1) → { 'YYYY-MM-DD': {spend, metaRevenue} }
+async function metaDaily(since, until) {
+  const acc = allAccounts()
+  const byDate = {}
+  if (!acc.length || !metaToken()) return byDate
+  const fields = 'spend,action_values,purchase_roas'
+  for (const id of acc) {
+    let url = `https://graph.facebook.com/${GRAPH_VERSION}/${id}/insights`
+      + `?time_range=${encodeURIComponent(JSON.stringify({ since, until }))}`
+      + `&time_increment=1&fields=${encodeURIComponent(fields)}&limit=500&access_token=${encodeURIComponent(metaToken())}`
+    let guard = 0
+    while (url && guard < 8) {
+      guard++
+      try {
+        const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+        const j = await res.json()
+        if (j.error) break
+        for (const row of (j.data || [])) {
+          const d = row.date_start
+          if (!d) continue
+          const spend = num(row.spend)
+          let rev = valFrom(row.action_values, ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase'])
+          if (!rev) { const pr = valFrom(row.purchase_roas, ['omni_purchase', 'purchase']); if (pr) rev = pr * spend }
+          if (!byDate[d]) byDate[d] = { spend: 0, metaRevenue: 0 }
+          byDate[d].spend += spend
+          byDate[d].metaRevenue += rev
+        }
+        url = j.paging?.next || null
+      } catch { break }
+    }
+  }
+  return byDate
+}
+
+// Serie giornaliera unificata per gli sparkline delle card
+function buildDaily(shopifyDaily, metaByDate) {
+  const srev = {}
+  for (const d of (Array.isArray(shopifyDaily) ? shopifyDaily : [])) srev[d.date] = num(d.revenue)
+  const dates = new Set([...Object.keys(srev), ...Object.keys(metaByDate || {})])
+  return [...dates].sort().map(date => {
+    const revenue = srev[date] || 0
+    const spend = metaByDate?.[date]?.spend || 0
+    const metaRevenue = metaByDate?.[date]?.metaRevenue || 0
+    return {
+      date,
+      revenue: r2(revenue),
+      spend: r2(spend),
+      mer: spend > 0 ? r2(revenue / spend) : 0,
+      metaRevenue: r2(metaRevenue),
+      metaRoas: spend > 0 ? r2(metaRevenue / spend) : 0,
+    }
+  })
+}
+
 const mkDelta = (cur, prev) => ({ abs: r2(cur - prev), pct: prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null })
 
 // Calcolo puro (riusato da GET e POST). Riceve i dati Shopify già pronti
 // (slice di /api/metrics) + gli aggregati Meta attribuiti per finestra.
-function computeAttribution({ preset, range, prev, sr = {}, spr = {}, sources = [], prevSources = [], metaCur, metaPrev }) {
+function computeAttribution({ preset, range, prev, sr = {}, spr = {}, sources = [], prevSources = [], metaCur, metaPrev, daily = [] }) {
     // ── Totali business ──
     const totalRevenue = num(sr.revenue)
     const totalOrders = num(sr.orders)
@@ -167,6 +221,7 @@ function computeAttribution({ preset, range, prev, sr = {}, spr = {}, sources = 
         ncPct: (ncRevenue + rcRevenue) > 0 ? Math.round((ncRevenue / (ncRevenue + rcRevenue)) * 1000) / 10 : 0,
       },
       channels,
+      daily: Array.isArray(daily) ? daily : [],
       attribution: {
         metaRevenue: r2(metaRevenue),
         metaTrackedRevenue: r2(metaTrackedRevenue),
@@ -184,16 +239,18 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}))
     const range = body.range || null
     const prev = body.prevRange || null
-    const [metaCur, metaPrev] = await Promise.all([
+    const [metaCur, metaPrev, metaByDate] = await Promise.all([
       range?.since ? metaPeriod(range.since, range.until) : Promise.resolve(null),
       prev?.since ? metaPeriod(prev.since, prev.until) : Promise.resolve(null),
+      range?.since ? metaDaily(range.since, range.until) : Promise.resolve({}),
     ])
+    const daily = buildDaily(body.shopifyDaily, metaByDate)
     const out = computeAttribution({
       preset: body.preset, range, prev,
       sr: body.shopifyRange || {}, spr: body.shopifyPrevRange || {},
       sources: Array.isArray(body.sources) ? body.sources : [],
       prevSources: Array.isArray(body.prevSources) ? body.prevSources : [],
-      metaCur, metaPrev,
+      metaCur, metaPrev, daily,
     })
     return NextResponse.json(out)
   })
@@ -210,16 +267,22 @@ export async function GET(req) {
     } catch {}
     const range = m?.kpiBrain?.range || null
     const prev = m?.kpiBrain?.previousRange || null
-    const [metaCur, metaPrev] = await Promise.all([
+    let shopifyDaily = []
+    if (range?.since) {
+      try { shopifyDaily = await fetch(`${origin}/api/shopify-countries?since=${range.since}&until=${range.until}&breakdown=daily`, { cache: 'no-store', signal: AbortSignal.timeout(40000) }).then(r => r.json()).then(j => j.daily || []) } catch {}
+    }
+    const [metaCur, metaPrev, metaByDate] = await Promise.all([
       range ? metaPeriod(range.since, range.until) : Promise.resolve(null),
       prev ? metaPeriod(prev.since, prev.until) : Promise.resolve(null),
+      range ? metaDaily(range.since, range.until) : Promise.resolve({}),
     ])
+    const daily = buildDaily(shopifyDaily, metaByDate)
     const out = computeAttribution({
       preset, range, prev,
       sr: m?.shopifyRange || {}, spr: m?.shopifyPrevRange || {},
       sources: Array.isArray(m?.shopifyMarketingSources) ? m.shopifyMarketingSources : [],
       prevSources: Array.isArray(m?.kpiBrain?.previous?.shopifyMarketingSources) ? m.kpiBrain.previous.shopifyMarketingSources : [],
-      metaCur, metaPrev,
+      metaCur, metaPrev, daily,
     })
     return NextResponse.json(out)
   })

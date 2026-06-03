@@ -89,19 +89,25 @@ export default function MetaAuditTab() {
             {data?.audiencesAnalyzed > 0 && ` ${data.audiencesAnalyzed} audiences scansionate.`}
           </div>
         </div>
-        <select
-          value={preset}
-          onChange={e => setPreset(e.target.value)}
-          style={{
-            padding: '10px 14px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            color: '#fff', fontSize: 13, fontWeight: 600,
-            outline: 'none', cursor: 'pointer',
-          }}
-        >
-          {PRESET_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {PRESET_OPTIONS.map(o => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setPreset(o.value)}
+              className="btn-glass"
+              style={{
+                border: preset === o.value ? '1px solid #2997ff' : '1px solid var(--border)',
+                background: preset === o.value ? 'rgba(41,151,255,0.13)' : 'var(--glass)',
+                color: preset === o.value ? '#7dd3fc' : 'var(--text3)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {o.label.replace('Ultimi ', '')}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Errore */}
@@ -113,8 +119,8 @@ export default function MetaAuditTab() {
 
       {/* Loading initial */}
       {loading && !data && (
-        <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-          Sto leggendo audiences e adset di Meta… (può richiedere 20-40 secondi su account grandi)
+        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
+          Un attimo, sto leggendo audiences e adset di Meta… (può richiedere 20-40 secondi su account grandi)
         </div>
       )}
 
@@ -129,18 +135,19 @@ export default function MetaAuditTab() {
           <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
             Metrica grafici
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {TREND_METRICS.map(m => (
               <button
                 key={m.key}
                 type="button"
                 onClick={() => setActiveMetric(m.key)}
+                className="btn-glass"
                 style={{
-                  padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
-                  background: activeMetric === m.key ? `${m.color}28` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${activeMetric === m.key ? m.color : 'rgba(255,255,255,0.10)'}`,
+                  border: activeMetric === m.key ? `1px solid ${m.color}` : '1px solid var(--border)',
+                  background: activeMetric === m.key ? `${m.color}1c` : 'var(--glass)',
                   color: activeMetric === m.key ? '#fff' : 'var(--text3)',
-                  fontSize: 12, fontWeight: 700,
+                  borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
+                  cursor: 'pointer',
                 }}
               >
                 {m.label}

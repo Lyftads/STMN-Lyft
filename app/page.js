@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
 import KPIBrainTab from './components/KPIBrainTab'
@@ -2219,18 +2220,82 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  const fetchLive = useCallback(async () => {
-    setLoading(true)
-    try {
-      const r = await fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`)
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      setLive(await r.json())
+  // fetchLive — usa cache SWR. Comportamento:
+  // - cache hit fresh (< 60s): mostra subito, NO loading spinner, niente fetch
+  // - cache hit stale (60s..5min): mostra cached subito, revalida in bg, onUpdate aggiorna silent
+  // - cache miss: setLoading=true, fetch sync
+  // - force=true (bottone Aggiorna): bypass cache, fetch sync
+  const fetchLive = useCallback(async (force = false) => {
+    const key = `metrics:${preset}`
+    const cached = !force ? getCached(key) : null
+
+    if (cached) {
+      // Mostra subito dati cached, NO loading flicker
+      setLive(cached.data)
       setUpdated(new Date())
-    } catch(e) { console.log(e.message) }
-    finally { setLoading(false) }
+    } else {
+      setLoading(true)
+    }
+
+    try {
+      const { data, fromCache } = await swrFetch({
+        key,
+        forceRefresh: force,
+        fetcher: async () => {
+          const r = await fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`)
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          return r.json()
+        },
+        // Revalidate background completata: aggiorna silent (no spinner)
+        onUpdate: (fresh) => {
+          setLive(fresh)
+          setUpdated(new Date())
+        },
+      })
+      // Se era miss/force, scrivi i dati appena arrivati
+      if (!cached || force) {
+        setLive(data)
+        setUpdated(new Date())
+      }
+    } catch (e) { console.log(e.message) }
+    finally {
+      if (!cached) setLoading(false)
+    }
   }, [preset])
 
   useEffect(() => { fetchLive() }, [fetchLive])
+
+  // Prefetch staggered al primo mount: warma la cache per i preset piu' usati
+  // cosi' cambiare tab e' istantaneo. Stagger 250ms per non saturare la rete.
+  // Skip preset gia' cached fresh.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const now = new Date()
+    const mLabel = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const q = Math.floor(now.getMonth() / 3) + 1
+    const y = now.getFullYear()
+
+    const PRESETS = [
+      'last_7d', 'last_30d', 'last_90d',
+      `month_${mLabel}`,
+      `quarter_${y}-Q${q}`,
+      `year_${y}`,
+    ]
+
+    const timers = []
+    PRESETS.forEach((p, i) => {
+      const t = setTimeout(() => {
+        prefetch({
+          key: `metrics:${p}`,
+          fetcher: () => fetch(`/api/metrics?preset=${encodeURIComponent(p)}`)
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+        })
+      }, 800 + i * 250) // start 800ms dopo mount, poi stagger 250ms
+      timers.push(t)
+    })
+
+    return () => { timers.forEach(clearTimeout) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-allinea il preset al tipo di tab quando l'utente entra nella tab Quarter/Year/Monthly
   // (altrimenti shopifyRange continua a portare i dati del preset precedente, es. last_7d)
@@ -2579,7 +2644,7 @@ export default function App() {
     preset={preset}
     setPreset={setPreset}
     loading={loading}
-    onRefresh={fetchLive}
+    onRefresh={() => fetchLive(true)}
   >
     {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
 
@@ -2666,7 +2731,7 @@ export default function App() {
     S={S}
     shopifyWeeklyAll={shopifyWeeklyAll}
     metaWeeklyAll={metaWeeklyAll}
-    onRefresh={fetchLive}
+    onRefresh={() => fetchLive(true)}
     loading={loading}
     preset={preset}
     setPreset={setPreset}
@@ -2894,7 +2959,7 @@ export default function App() {
               hideDateRange
               monthsCount={18}
             />
-            <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+            <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
               marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
               cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
             }}>
@@ -3134,7 +3199,7 @@ export default function App() {
           setWeeklyTF={setWeeklyTF}
           weeklyCustom={weeklyCustom}
           setWeeklyCustom={setWeeklyCustom}
-          onRefresh={fetchLive}
+          onRefresh={() => fetchLive(true)}
           loading={loading}
         />
       )}
@@ -3366,7 +3431,7 @@ export default function App() {
                 disabled={loading}
                 mode="quarter"
               />
-              <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
                 marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
@@ -3814,7 +3879,7 @@ export default function App() {
                 disabled={loading}
                 mode="year"
               />
-              <button onClick={fetchLive} disabled={loading} className="btn-glass" style={{
+              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
                 marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
@@ -4091,7 +4156,7 @@ export default function App() {
 
 {/* CRO TAB */}
 {tab === 'cro' && (
-  <CROTab data={data} live={live} onRefresh={fetchLive} loading={loading} />
+  <CROTab data={data} live={live} onRefresh={() => fetchLive(true)} loading={loading} />
 )}
 
 {/* AI WEBSITE SCANNER TAB */}

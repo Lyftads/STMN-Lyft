@@ -282,20 +282,44 @@ function pickPurchases(actions) {
 // ── Main builder ─────────────────────────────────────────────────
 
 async function buildAudit({ accessToken, accountIds, range }) {
+  const errors = []
   const adsetsAll = []
 
-  // 1) Per ogni account, recupera TUTTI gli adset con targeting (no filtro
-  // effective_status: a volte un adset 'status=ACTIVE' ha effective_status
-  // PAUSED se la campagna superiore e' pausata → veniva escluso. Filtriamo
-  // client-side per status=ACTIVE dopo la fetch.
-  // Per fields: 'targeting{...}' nested non sempre ritorna la sub-struttura,
-  // chiediamo 'targeting' intero.
-  // STEP 1: fetch TUTTE le campagne dell'account, poi filtra client-side
-  // per effective_status === 'ACTIVE'. Piu' affidabile del filtro server-side
-  // 'effective_status=["ACTIVE"]' (che a volte ritorna 0 risultati).
+  // STEP 1: fetch insights level=adset direttamente per il periodo.
+  // Questo ritorna SOLO adset con spesa > 0 nel periodo (implicitamente
+  // attivi) e ci da' subito adset_name + campaign_name. Niente call separate
+  // per campagne/adsets.
+  const insightsByAdset = new Map() // adset_id → { adset_name, campaign_id, campaign_name, account, totals }
+  for (const accId of accountIds) {
+    const fields = encodeURIComponent('adset_id,adset_name,campaign_id,campaign_name,spend,impressions,clicks,inline_link_clicks,actions,action_values')
+    const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
+    const url = `${GRAPH}/${accId}/insights?level=adset&time_range=${timeRange}&fields=${fields}&limit=500&access_token=${accessToken}`
+    try {
+      const rows = await fbGetAllPages(url, 30)
+      for (const r of rows) {
+        if (!r.adset_id) continue
+        if (!insightsByAdset.has(r.adset_id)) {
+          insightsByAdset.set(r.adset_id, {
+            id: r.adset_id,
+            name: r.adset_name || '',
+            campaign_id: r.campaign_id,
+            _campaignName: r.campaign_name || '',
+            _account: accId,
+            _agg: zeroBucket(),
+          })
+        }
+        accumulate(insightsByAdset.get(r.adset_id)._agg, r)
+      }
+    } catch (e) {
+      errors.push(`insights ${accId}: ${e?.message}`)
+    }
+  }
+
+  // STEP 2: filtra a campagne ATTIVE. Fetch campaigns dell'account, filtra
+  // client-side per effective_status === 'ACTIVE'.
   let debugCampaignsAll = 0
-  const activeCampaignIds = []
-  const campaignMeta = {} // id → { name, account }
+  const activeCampaignSet = new Set()
+  const campaignMeta = {}
   for (const accId of accountIds) {
     const fields = encodeURIComponent('id,name,status,effective_status')
     const url = `${GRAPH}/${accId}/campaigns?fields=${fields}&limit=500&access_token=${accessToken}`
@@ -304,41 +328,44 @@ async function buildAudit({ accessToken, accountIds, range }) {
       debugCampaignsAll += list.length
       for (const c of list) {
         if (c.effective_status === 'ACTIVE') {
-          activeCampaignIds.push(c.id)
+          activeCampaignSet.add(c.id)
           campaignMeta[c.id] = { name: c.name, account: accId }
         }
       }
     } catch (e) {
-      console.log('[meta-audit] campaigns fetch failed for', accId, e?.message)
+      errors.push(`campaigns ${accId}: ${e?.message}`)
     }
   }
-  const debugCampaignsFetched = activeCampaignIds.length
+  const debugCampaignsFetched = activeCampaignSet.size
 
-  // STEP 2: per ogni account, fetch tutti gli adset e tieni solo quelli
-  // appartenenti a una campagna ATTIVA. Cosi' replichiamo il filtro
-  // "Inserzioni attive" di Meta Ads Manager.
-  // Includiamo adset anche se status=PAUSED a livello adset: Meta Ads
-  // Manager li mostra comunque raggruppati sotto la campagna attiva
-  // (sono sotto-segmenti di pubblico spesso paused per fine budget).
-  const activeCampaignSet = new Set(activeCampaignIds)
-  let debugTotalFetched = 0
-  for (const accId of accountIds) {
-    const fields = encodeURIComponent('id,name,status,effective_status,campaign_id,targeting')
-    const url = `${GRAPH}/${accId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`
+  // STEP 3: tieni solo gli adset (dagli insights) che appartengono a una
+  // campagna attiva. Se NESSUNA campagna attiva e' stata trovata
+  // (es. campaigns endpoint fallisce), fallback: tieni tutti gli adset
+  // con spesa nel periodo (meglio mostrare qualcosa che 0).
+  for (const adset of insightsByAdset.values()) {
+    if (activeCampaignSet.size === 0 || activeCampaignSet.has(adset.campaign_id)) {
+      adsetsAll.push(adset)
+    }
+  }
+
+  // STEP 4: fetch targeting di ogni adset (batch by IDs).
+  // Serve per la classifyAudienceSubtype fallback quando il name non matcha.
+  const adsetIds = adsetsAll.map(a => a.id)
+  for (let i = 0; i < adsetIds.length; i += 50) {
+    const chunk = adsetIds.slice(i, i + 50)
+    const url = `${GRAPH}/?ids=${chunk.join(',')}&fields=id,targeting&access_token=${accessToken}`
     try {
-      const list = await fbGetAllPages(url, 30)
-      debugTotalFetched += list.length
-      const usable = list.filter(a =>
-        activeCampaignSet.has(a.campaign_id) &&
-        !['DELETED', 'ARCHIVED'].includes(a.effective_status)
-      )
-      for (const a of usable) {
-        adsetsAll.push({ ...a, _account: accId, _campaignName: campaignMeta[a.campaign_id]?.name || '' })
+      const data = await fbGet(url)
+      for (const adset of adsetsAll) {
+        if (data[adset.id]?.targeting) {
+          adset.targeting = data[adset.id].targeting
+        }
       }
     } catch (e) {
-      console.log('[meta-audit] adsets fetch failed for', accId, e?.message)
+      errors.push(`targeting batch: ${e?.message}`)
     }
   }
+  const debugTotalFetched = insightsByAdset.size
 
   if (adsetsAll.length === 0) {
     return { total: zeroBucket(), categories: emptyCategories(), adsetsClassified: [] }
@@ -360,48 +387,37 @@ async function buildAudit({ accessToken, accountIds, range }) {
     category: classifyAdset(a, audMap),
   }))
 
-  // 5) Insights aggregate per categoria (timeRange totale)
-  //    + daily breakdown (time_increment=1) per chart trend
+  // STEP 5: aggrega gli insights per categoria. Gli adset hanno gia' _agg
+  // (totale del periodo) dal fetch insights iniziale.
   const buckets = {}
   for (const cat of Object.keys(CATEGORIES)) buckets[cat] = zeroBucket()
   const trendByCategory = {}
-  for (const cat of Object.keys(CATEGORIES)) trendByCategory[cat] = new Map() // date → metrics
+  for (const cat of Object.keys(CATEGORIES)) trendByCategory[cat] = new Map()
 
-  // Adset insights con filtering=adset.id IN [...] non e' scalabile. Andiamo
-  // per account con time_range + filtering by adset_ids in chunks di 50.
+  for (const a of adsetsClassified) {
+    const cat = a.category
+    const agg = a._agg
+    buckets[cat].spend       += agg.spend || 0
+    buckets[cat].revenue     += agg.revenue || 0
+    buckets[cat].purchases   += agg.purchases || 0
+    buckets[cat].impressions += agg.impressions || 0
+    buckets[cat].clicks      += agg.clicks || 0
+    buckets[cat].link_clicks += agg.link_clicks || 0
+  }
+
+  // Trend chart: fetch insights con time_increment=1 per ogni adset attivo.
+  // Solo per le categorie con almeno 1 adset (skip empty).
   const adsetByAccount = {}
   for (const a of adsetsClassified) {
     if (!adsetByAccount[a._account]) adsetByAccount[a._account] = []
     adsetByAccount[a._account].push(a)
   }
-
   for (const [accId, list] of Object.entries(adsetByAccount)) {
     const idToCategory = {}
     for (const a of list) idToCategory[a.id] = a.category
-
-    // Fetch insights aggregato senza time_increment (totali per adset)
-    const adsetIds = list.map(a => a.id)
-    for (let i = 0; i < adsetIds.length; i += 50) {
-      const chunk = adsetIds.slice(i, i + 50)
-      const filtering = encodeURIComponent(JSON.stringify([{ field: 'adset.id', operator: 'IN', value: chunk }]))
-      const fields = encodeURIComponent('adset_id,spend,impressions,clicks,inline_link_clicks,reach,ctr,cpm,actions,action_values')
-      const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
-      const url = `${GRAPH}/${accId}/insights?level=adset&time_range=${timeRange}&filtering=${filtering}&fields=${fields}&limit=500&access_token=${accessToken}`
-      try {
-        const rows = await fbGetAllPages(url, 10)
-        for (const r of rows) {
-          const cat = idToCategory[r.adset_id]
-          if (!cat) continue
-          accumulate(buckets[cat], r)
-        }
-      } catch (e) {
-        console.log('[meta-audit] adset insights failed', e?.message)
-      }
-    }
-
-    // Fetch insights con time_increment=1 per trend chart (con TUTTE le metriche)
-    for (let i = 0; i < adsetIds.length; i += 50) {
-      const chunk = adsetIds.slice(i, i + 50)
+    const adsetIdsChunk = list.map(a => a.id)
+    for (let i = 0; i < adsetIdsChunk.length; i += 50) {
+      const chunk = adsetIdsChunk.slice(i, i + 50)
       const filtering = encodeURIComponent(JSON.stringify([{ field: 'adset.id', operator: 'IN', value: chunk }]))
       const fields = encodeURIComponent('adset_id,date_start,spend,impressions,clicks,inline_link_clicks,actions,action_values')
       const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
@@ -423,11 +439,10 @@ async function buildAudit({ accessToken, accountIds, range }) {
           t.purchases += pickPurchases(r.actions)
           t.impressions += parseInt(r.impressions || 0)
           t.clicks += parseInt(r.clicks || 0)
-          // inline_link_clicks puo' venire dal fields diretto o da actions[action_type=link_click]
           t.link_clicks += parseInt(r.inline_link_clicks || 0) || numFrom(r.actions, ['link_click'])
         }
       } catch (e) {
-        console.log('[meta-audit] adset trend failed', e?.message)
+        errors.push(`trend ${accId}: ${e?.message}`)
       }
     }
   }
@@ -510,12 +525,13 @@ async function buildAudit({ accessToken, accountIds, range }) {
     debug: {
       campaigns_total: debugCampaignsAll,
       campaigns_active: debugCampaignsFetched,
-      adsets_fetched_total: debugTotalFetched,
+      adsets_with_spend: debugTotalFetched,
       adsets_kept_after_filter: adsetsAll.length,
       audiences_in_map: audMap.size,
       audience_ids_referenced: audienceIds.size,
       accounts: accountIds,
       classification_breakdown: adsetCountByCat,
+      errors,
       sample_adset_names: adsetsClassified.slice(0, 15).map(a => ({ n: a.name, cmp: a._campaignName, cat: a.category })),
     },
   }

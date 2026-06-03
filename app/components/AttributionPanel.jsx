@@ -88,7 +88,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
   const Stat = ({ label, value, sub, tone, dd, lowerBetter }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
-      <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}<DeltaBadge d={dd} lowerBetter={lowerBetter} /></div>
+      <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{value}<DeltaBadge d={dd} lowerBetter={lowerBetter} /></div>
       {sub && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{sub}</div>}
     </div>
   )
@@ -134,12 +134,12 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
               <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 12 }}>
                 <div className="glass-card" style={{ padding: '16px 18px' }}>
                   <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Fatturato tracciato (marketing)</div>
-                  <div className="metric-value-sm" style={{ color: '#2997ff' }}>{eur(split.paidRevenue)}<DeltaBadge d={split.deltaPaid} /></div>
+                  <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur(split.paidRevenue)}<DeltaBadge d={split.deltaPaid} /></div>
                   <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{nf(split.paidOrders)} ordini · {split.paidPct}% del totale</div>
                 </div>
                 <div className="glass-card" style={{ padding: '16px 18px' }}>
                   <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Fatturato organico / diretto</div>
-                  <div className="metric-value-sm" style={{ color: '#30d158' }}>{eur(split.organicRevenue)}<DeltaBadge d={split.deltaOrganic} /></div>
+                  <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur(split.organicRevenue)}<DeltaBadge d={split.deltaOrganic} /></div>
                   <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{nf(split.organicOrders)} ordini · {split.organicPct}% del totale</div>
                 </div>
               </div>

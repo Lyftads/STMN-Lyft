@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import MetaBadge from './MetaBadge'
+import { PlatformBadges } from './PlatformIcon'
 
 const STYLES = [
   { id: 'performance', label: 'Performance', desc: 'Direct response, CTA forte' },
@@ -473,7 +473,7 @@ export default function CreativeLabTab() {
                 <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>
                   Top ads per ROAS (ultimi 28g)
                 </div>
-                <MetaBadge size="sm" />
+                <PlatformBadges sources={['meta']} size={14} />
               </div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
                 {bestAds.slice(0, 6).map((ad, i) => (

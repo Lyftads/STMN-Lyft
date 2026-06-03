@@ -5,7 +5,7 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
 import TimeframeSelector from './TimeframeSelector'
-import MetaBadge from './MetaBadge'
+import { PlatformBadges } from './PlatformIcon'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -73,7 +73,10 @@ export default function CreativeFatiguePanel() {
 
   const Stat = ({ label, value, tone, d, lowerBetter }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
-      <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div className="label" style={{ fontSize: 9 }}>{label}</div>
+        <PlatformBadges sources={['meta']} size={14} />
+      </div>
       <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}<DeltaBadge d={d} lowerBetter={lowerBetter} /></div>
     </div>
   )
@@ -82,7 +85,7 @@ export default function CreativeFatiguePanel() {
     <div style={{ marginTop: 24 }}>
       <FxCard title="Creative Fatigue" subtitle="Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media" delay={1.8}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
-          <MetaBadge size="md" />
+          <PlatformBadges sources={['meta']} size={18} />
           <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
           {accounts.length > 1 && (
             <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>

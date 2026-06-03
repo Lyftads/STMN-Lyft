@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import CreativeAgent from './CreativeAgent'
-import MetaBadge from './MetaBadge'
+import { PlatformBadges } from './PlatformIcon'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -129,17 +129,17 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
         padding: '14px 16px',
       }}
     >
-      <div
-        style={{
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{
           fontSize: 10,
           color: 'var(--text3)',
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
-          marginBottom: 8,
           fontWeight: 800,
-        }}
-      >
-        {label}
+        }}>
+          {label}
+        </div>
+        <PlatformBadges sources={['meta']} size={14} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: tone }}>
@@ -941,7 +941,7 @@ export default function CreativeTab() {
           marginBottom: 18,
         }}
       >
-        <MetaBadge size="md" />
+        <PlatformBadges sources={['meta']} size={18} />
         <select
           value={preset}
           onChange={(e) => setPreset(e.target.value)}

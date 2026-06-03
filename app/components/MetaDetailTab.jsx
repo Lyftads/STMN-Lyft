@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
-import MetaBadge from './MetaBadge'
+import { PlatformBadges } from './PlatformIcon'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -182,14 +182,16 @@ function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', da
         zIndex: 1,
       }} />
       <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{
-          fontSize: 10,
-          fontWeight: 800,
-          color: 'var(--text3)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.14em',
-          marginBottom: 12,
-        }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+          <div style={{
+            fontSize: 10,
+            fontWeight: 800,
+            color: 'var(--text3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+          }}>{label}</div>
+          <PlatformBadges sources={['meta']} size={14} />
+        </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: prevDelta != null ? 8 : 0 }}>
           <div style={{
             fontSize: 26,
@@ -622,7 +624,7 @@ export default function MetaDetailTab() {
         gap: 12,
         marginBottom: 18,
       }}>
-        <MetaBadge size="md" />
+        <PlatformBadges sources={['meta']} size={18} />
         <div style={{
           display: 'flex',
           alignItems: 'center',

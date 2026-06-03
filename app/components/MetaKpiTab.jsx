@@ -8,6 +8,8 @@ import {
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
+import RecommendationsFeed from './RecommendationsFeed'
+import MetaAdsAgent from './MetaAdsAgent'
 
 // Mini-grafico sparkline per le card KPI
 function Sparkline({ data, dataKey, color = '#2997ff', width = 92, height = 30 }) {
@@ -88,7 +90,7 @@ const CHARTS = [
 ]
 
 
-export default function MetaKpiTab() {
+export default function MetaKpiTab({ live, globalPreset }) {
   const [preset, setPreset] = useState('last_28d')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -222,8 +224,17 @@ export default function MetaKpiTab() {
               <SeparateChart key={c.key} chart={c} daily={daily} />
             ))}
           </div>
+
+          {/* Raccomandazioni proattive (come in Dashboard) */}
+          <RecommendationsFeed metrics={live} preset={globalPreset || preset} />
         </>
       )}
+
+      {/* Agente verticalizzato Meta Ads */}
+      <MetaAdsAgent
+        data={{ summary: totals, previousSummary: prevTotals, dailySeries: daily, range: data?.range, rows: [] }}
+        preset={preset}
+      />
     </div>
   )
 }

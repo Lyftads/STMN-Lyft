@@ -4142,7 +4142,7 @@ export default function App() {
 )}
 
 {tab === 'metaKpi' && (
-  <MetaKpiTab />
+  <MetaKpiTab live={live} globalPreset={preset} />
 )}
 
 {tab === 'creativeFatigue' && (

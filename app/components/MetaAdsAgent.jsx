@@ -13,6 +13,17 @@ const SUGGESTIONS = [
   'Genera un report sintetico del periodo per il team',
 ]
 
+const META_AGENT = {
+  endpoint: '/api/meta-ads-agent',
+  title: 'Meta Ads Agent',
+  subtitle: 'Meta Ads specialist senior · Andromeda-aware',
+  suggestions: SUGGESTIONS,
+  accent: '#0866FF',
+  accent2: '#4267B2',
+  loadingLabel: "Analizzo l'account…",
+  placeholder: 'Chiedi setup campagna, analisi, scaling, report…',
+}
+
 function timeGreeting() {
   const h = new Date().getHours()
   if (h >= 5 && h < 12) return 'Buongiorno'
@@ -34,7 +45,8 @@ function formatMessage(text) {
   })
 }
 
-export default function MetaAdsAgent({ data, preset }) {
+export default function MetaAdsAgent({ data, preset, config }) {
+  const cfg = { ...META_AGENT, ...(config || {}) }
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -67,7 +79,7 @@ export default function MetaAdsAgent({ data, preset }) {
     setLoading(true)
 
     try {
-      const r = await fetch('/api/meta-ads-agent', {
+      const r = await fetch(cfg.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next, data, preset }),
@@ -95,8 +107,8 @@ export default function MetaAdsAgent({ data, preset }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri Meta Ads Agent"
-          title="Meta Ads Agent"
+          aria-label={`Apri ${cfg.title}`}
+          title={cfg.title}
           style={{
             position: 'fixed',
             bottom: 28,
@@ -104,7 +116,7 @@ export default function MetaAdsAgent({ data, preset }) {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: 'linear-gradient(140deg, #0866FF 0%, #4267B2 100%)',
+            background: `linear-gradient(140deg, ${cfg.accent} 0%, ${cfg.accent2} 100%)`,
             border: '2px solid rgba(255,255,255,0.18)',
             cursor: 'pointer',
             zIndex: 50,
@@ -113,7 +125,7 @@ export default function MetaAdsAgent({ data, preset }) {
             placeItems: 'center',
             overflow: 'hidden',
             boxShadow:
-              '0 16px 40px rgba(8,102,255,0.4), 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18)',
+              '0 16px 40px rgba(0,0,0,0.45), 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18)',
             transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease',
             animation: 'card-pulse 3.5s ease-in-out infinite',
           }}
@@ -178,14 +190,14 @@ export default function MetaAdsAgent({ data, preset }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
-              background: 'linear-gradient(135deg, #0866FF, #4267B2)',
+              background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`,
               display: 'grid', placeItems: 'center',
               fontSize: 16, fontWeight: 900, color: '#fff',
             }}>✦</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Meta Ads Agent</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{cfg.title}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Meta Ads specialist senior · Andromeda-aware
+                {cfg.subtitle}
               </div>
             </div>
           </div>
@@ -231,7 +243,7 @@ export default function MetaAdsAgent({ data, preset }) {
                 {timeGreeting()} Marino. Cosa serve oggi?
               </div>
               <div style={{ display: 'grid', gap: 7 }}>
-                {SUGGESTIONS.map(s => (
+                {cfg.suggestions.map(s => (
                   <button
                     key={s}
                     type="button"
@@ -248,7 +260,7 @@ export default function MetaAdsAgent({ data, preset }) {
                       cursor: loading ? 'not-allowed' : 'pointer',
                       transition: 'border-color .15s, color .15s',
                     }}
-                    onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = '#0866FF66'; e.currentTarget.style.color = 'var(--text)' } }}
+                    onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = `${cfg.accent}66`; e.currentTarget.style.color = 'var(--text)' } }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)' }}
                   >{s}</button>
                 ))}
@@ -261,7 +273,7 @@ export default function MetaAdsAgent({ data, preset }) {
               <div style={{
                 maxWidth: '88%',
                 background: m.role === 'user'
-                  ? 'linear-gradient(135deg, #0866FF, #4267B2)'
+                  ? `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`
                   : 'rgba(255,255,255,0.04)',
                 border: m.role === 'user' ? 'none' : (m.isError ? '1px solid #ef444455' : '1px solid var(--border)'),
                 color: m.isError ? '#fecaca' : (m.role === 'user' ? '#fff' : 'var(--text)'),
@@ -293,7 +305,7 @@ export default function MetaAdsAgent({ data, preset }) {
                 <span style={{ display: 'inline-flex', gap: 4 }}>
                   <Dot delay={0} /><Dot delay={150} /><Dot delay={300} />
                 </span>
-                Analizzo l'account…
+                {cfg.loadingLabel}
               </div>
             </div>
           )}
@@ -317,7 +329,7 @@ export default function MetaAdsAgent({ data, preset }) {
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Chiedi setup campagna, analisi, scaling, report…"
+              placeholder={cfg.placeholder}
               disabled={loading}
               style={{
                 flex: 1,
@@ -336,7 +348,7 @@ export default function MetaAdsAgent({ data, preset }) {
               style={{
                 background: loading || !input.trim()
                   ? 'rgba(255,255,255,0.05)'
-                  : 'linear-gradient(135deg, #0866FF, #4267B2)',
+                  : `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`,
                 color: loading || !input.trim() ? 'var(--text3)' : '#fff',
                 border: 'none',
                 borderRadius: 11,

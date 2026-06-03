@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import FxCard from './ui/FxCard'
+import RecommendationsFeed from './RecommendationsFeed'
+import MetaAdsAgent from './MetaAdsAgent'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -242,9 +244,39 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
                 </ResponsiveContainer>
               </div>
             )}
+
+            {/* Raccomandazioni proattive (come in Dashboard) */}
+            <div style={{ marginTop: 22 }}>
+              <RecommendationsFeed metrics={live} preset={preset} />
+            </div>
           </>
         )}
       </FxCard>
+
+      {/* Agente verticalizzato sull'attribuzione */}
+      {data && (
+        <MetaAdsAgent
+          data={data}
+          preset={preset}
+          config={{
+            endpoint: '/api/attribution-agent',
+            title: 'Attribution Agent',
+            subtitle: 'Analista attribuzione & MER blended',
+            accent: '#bf5af2',
+            accent2: '#7b3fe4',
+            loadingLabel: "Analizzo l'attribuzione…",
+            placeholder: 'Chiedi del MER, split organico, gap Meta, canali…',
+            suggestions: [
+              'Sintetizza il Total Impact del periodo in 3 punti',
+              'Quanto è reale il ROAS Meta rispetto al MER blended?',
+              'Quanto fatturato è organico/diretto e cosa significa?',
+              'Dipendo troppo da un canale? Dove sta il rischio?',
+              'Dove sposterei budget per migliorare il MER?',
+              'Nuovi vs ritorno: sto acquisendo abbastanza?',
+            ],
+          }}
+        />
+      )}
     </div>
   )
 }

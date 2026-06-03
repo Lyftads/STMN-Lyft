@@ -216,9 +216,12 @@ function pickPurchases(actions) {
 async function buildAudit({ accessToken, accountIds, range }) {
   const adsetsAll = []
 
-  // 1) Per ogni account, recupera tutti gli adset ATTIVI con targeting
+  // 1) Per ogni account, recupera tutti gli adset ATTIVI con targeting.
+  // IMPORTANTE: fields nested 'targeting{custom_audiences,...}' a volte non
+  // ritorna la sub-struttura (Meta API limitation). Chiediamo 'targeting'
+  // intero, poi accediamo a custom_audiences/excluded_custom_audiences dal JSON.
   for (const accId of accountIds) {
-    const fields = encodeURIComponent('id,name,effective_status,campaign_id,campaign{name},targeting{custom_audiences,excluded_custom_audiences,age_min,age_max,geo_locations}')
+    const fields = encodeURIComponent('id,name,effective_status,campaign_id,campaign{name},targeting')
     const url = `${GRAPH}/${accId}/adsets?effective_status=["ACTIVE"]&fields=${fields}&limit=500&access_token=${accessToken}`
     try {
       const list = await fbGetAllPages(url, 20)

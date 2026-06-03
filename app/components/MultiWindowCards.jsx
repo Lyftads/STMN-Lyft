@@ -30,13 +30,15 @@ const METRICS = [
     format: v => v > 0 ? Number(v).toLocaleString('it-IT') : '—',
   },
   { id: 'meta_spend', label: 'Meta Spend', icon: '◧', color: '#bf5af2',
-    extract: m => m?.metaSpend || m?.metaRange?.spend || 0,
+    // metaRange.spend e' il spend del PRESET range specifico.
+    // (m.metaSpend e' invece il totale degli ultimi 12 mesi e NON va usato qui)
+    extract: m => m?.metaRange?.spend || 0,
     format: v => v > 0 ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—',
   },
   { id: 'roas', label: 'ROAS', icon: '📈', color: '#fbbf24',
     extract: m => {
       const rev = m?.shopifyRange?.revenue || 0
-      const spend = m?.metaSpend || m?.metaRange?.spend || 0
+      const spend = m?.metaRange?.spend || 0
       return spend > 0 ? rev / spend : 0
     },
     format: v => v > 0 ? `${v.toFixed(2)}x` : '—',

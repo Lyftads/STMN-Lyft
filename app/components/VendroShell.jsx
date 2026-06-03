@@ -150,6 +150,20 @@ export default function VendroShell({
     if (typeof setTab === 'function') setTab(id)
   }
 
+  // ── Accordion gruppi sidebar ──────────────────────────────
+  // Apre di default solo il gruppo che contiene la tab attiva.
+  const groupOf = (t) => navGroups.find(g => g.items.some(i => i.id === t))?.title
+  const [openGroups, setOpenGroups] = useState(() => {
+    const active = groupOf(tab)
+    return active ? { [active]: true } : {}
+  })
+  // Se cambio tab (es. da link esterno), assicura che il suo gruppo sia aperto.
+  useEffect(() => {
+    const active = groupOf(tab)
+    if (active) setOpenGroups(prev => (prev[active] ? prev : { ...prev, [active]: true }))
+  }, [tab])
+  const toggleGroup = (title) => setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }))
+
   return (
     <div style={{
       height: '100vh',
@@ -243,19 +257,57 @@ export default function VendroShell({
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0 16px' }}>
-          {navGroups.map((group) => (
-            <div key={group.title} style={{ marginBottom: 20 }}>
-              <div style={{
-                padding: '6px 20px',
-                color: 'var(--text3)',
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-              }}>
-                {group.title}
-              </div>
+          {navGroups.map((group) => {
+            const isOpen = !!openGroups[group.title]
+            const hasActive = group.items.some(i => i.id === tab)
+            return (
+            <div key={group.title} style={{ marginBottom: isOpen ? 16 : 2 }}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.title)}
+                style={{
+                  width: '100%',
+                  border: 0,
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  padding: '7px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  color: isOpen || hasActive ? 'var(--text2)' : 'var(--text3)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? 'var(--text2)' : 'var(--text3)' }}
+              >
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: group.color, flexShrink: 0,
+                  boxShadow: `0 0 6px ${group.color}`,
+                  opacity: isOpen || hasActive ? 1 : 0.5,
+                }} />
+                <span style={{ flex: 1, textAlign: 'left' }}>{group.title}</span>
+                {!isOpen && hasActive && (
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: group.color, flexShrink: 0,
+                    boxShadow: `0 0 6px ${group.color}`,
+                  }} />
+                )}
+                <span style={{
+                  fontSize: 12,
+                  color: 'var(--text3)',
+                  transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                  display: 'inline-flex',
+                }}>›</span>
+              </button>
 
+              {isOpen && (
               <div style={{ display: 'grid', gap: 1, padding: '4px 8px 0' }}>
                 {group.items.map((item) => {
                   const active = tab === item.id
@@ -300,8 +352,10 @@ export default function VendroShell({
                   )
                 })}
               </div>
+              )}
             </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* User */}

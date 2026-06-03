@@ -22,6 +22,13 @@ function repeatColor(pct) {
   return '#ff453a'
 }
 
+const MONTH_FULL = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+function sinceLabel(since) {
+  if (!since) return ''
+  const [y, m] = since.split('-').map(Number)
+  return `${MONTH_FULL[(m || 1) - 1]} ${y}`
+}
+
 export default function LtvCohortsTab() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -71,7 +78,7 @@ export default function LtvCohortsTab() {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <FxCard title="LTV & Coorti" subtitle="Coorti per mese di acquisizione · repeat rate · ordini per cliente · LTV (lifetime)" delay={1.6}>
+      <FxCard delay={1.6}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {WINDOWS.map(w => (
@@ -179,6 +186,32 @@ export default function LtvCohortsTab() {
             {data?.truncated && (
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}>⚠ Dataset ampio: analisi sui clienti più recenti del periodo (troncato per performance).</div>
             )}
+
+            {/* Spiegazione dinamica (cambia col timeframe selezionato) */}
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginTop: 20 }}>
+              <div className="label" style={{ marginBottom: 10 }}>Come leggere questi dati</div>
+              <div style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text2)' }}>
+                <p style={{ margin: '0 0 10px' }}>
+                  Stai analizzando i <strong style={{ color: 'var(--text)' }}>{nf(s.customers)} clienti</strong> acquisiti negli <strong style={{ color: 'var(--text)' }}>ultimi {months} mesi</strong> (da {sinceLabel(data?.since)}). Una <strong style={{ color: 'var(--text)' }}>coorte</strong> raggruppa i clienti in base al <strong style={{ color: 'var(--text)' }}>mese del loro primo acquisto</strong>: così confronti gruppi omogenei e vedi come si comportano nel tempo, al netto della stagionalità.
+                </p>
+                <ul style={{ margin: '0 0 10px', paddingLeft: 18, display: 'grid', gap: 6 }}>
+                  <li><strong style={{ color: 'var(--text)' }}>Repeat rate</strong> — % di clienti della coorte che ha fatto <strong style={{ color: 'var(--text)' }}>almeno 2 ordini</strong>. Misura quanto trattieni i clienti. Nel periodo: <strong style={{ color: repeatColor(s.repeatRate) }}>{s.repeatRate}%</strong>.</li>
+                  <li><strong style={{ color: 'var(--text)' }}>LTV medio</strong> — spesa <strong style={{ color: 'var(--text)' }}>lifetime</strong> (totale storico) media per cliente: {eur2(s.avgLtv)}. È il valore reale di un cliente, da confrontare col CAC.</li>
+                  <li><strong style={{ color: 'var(--text)' }}>Ordini/cliente</strong> ({s.avgOrders}) e <strong style={{ color: 'var(--text)' }}>clienti monouso</strong> ({s.oneTimeRate}%) — quanto il fatturato dipende da chi compra una volta sola.</li>
+                  <li><strong style={{ color: 'var(--text)' }}>Distribuzione per n° ordini</strong> — quanti clienti si fermano a 1, 2, 3 o 4+ ordini: la "scala" della fedeltà.</li>
+                </ul>
+                <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', color: 'var(--text3)' }}>
+                  ⚠ <strong style={{ color: 'var(--text2)' }}>Effetto maturità</strong>: le coorti più recenti (in alto) hanno repeat rate e LTV <em>fisiologicamente più bassi</em> perché hanno avuto meno tempo per riacquistare. Per il potenziale reale guarda le coorti più vecchie. {months <= 6
+                    ? `Con una finestra di ${months} mesi vedi soprattutto l'acquisizione recente: allarga a 12–24 mesi per valutare la retention matura.`
+                    : `Con ${months} mesi includi anche coorti mature: confronta le righe vecchie (LTV/repeat consolidati) con le recenti per stimare dove arriveranno.`}
+                  {s.repeatRate < 15
+                    ? ` Il repeat rate complessivo (${s.repeatRate}%) è basso: c'è leva su retention — flussi email post-acquisto, bundle, reorder reminder.`
+                    : s.repeatRate < 30
+                      ? ` Il repeat rate (${s.repeatRate}%) è discreto: spingere su win-back e cross-sell può alzarlo.`
+                      : ` Ottimo repeat rate (${s.repeatRate}%): base clienti fedele, conviene investire in acquisizione.`}
+                </p>
+              </div>
+            </div>
           </>
         )}
       </FxCard>

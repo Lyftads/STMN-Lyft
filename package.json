@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@nangohq/frontend": "^0.70.6",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "date-fns": "^3.6.0",

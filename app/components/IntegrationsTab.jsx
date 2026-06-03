@@ -1,6 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import NangoConnectButton from './NangoConnectButton'
+
+// Provider collegabili via Nango OAuth (integration id = unique key su Nango).
+// Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
+const NANGO_PROVIDERS = [
+  { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche' },
+]
 
 const LOGO_MAP = {
   'shopify.com':          { slug: 'shopify',          color: '95BF47' },
@@ -346,6 +353,27 @@ export default function IntegrationsTab() {
 
   return (
     <div>
+      {NANGO_PROVIDERS.length > 0 && (
+        <div style={{ marginBottom: 36 }}>
+          {sectionHeader('Collega via OAuth', NANGO_PROVIDERS.length, '#2997ff')}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+            {NANGO_PROVIDERS.map(p => (
+              <div key={p.integrationId} style={{
+                background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
+                padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
+              }}>
+                <BrandLogo domain={p.domain} size={38} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{p.desc}</div>
+                </div>
+                <NangoConnectButton integrationId={p.integrationId} label="Collega" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {active.length > 0 && (
         <div style={{ marginBottom: 36 }}>
           {sectionHeader('Connected', active.length, '#22c55e')}

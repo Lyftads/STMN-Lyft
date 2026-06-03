@@ -28,6 +28,19 @@ function valFrom(arr, types) {
   return 0
 }
 
+// Normalizza/raggruppa i canali grezzi (UTM/referrer) in bucket canonici.
+// La long-tail non riconosciuta resta com'è (capitalizzata).
+function canonChannel(raw) {
+  const l = String(raw || '').toLowerCase()
+  if (/facebook|instagram|(^|[_\s-])meta|fbclid|igshid|(^|[_\s-])(fb|ig)([_\s-]|$)|abo|caba|daba/.test(l)) return 'Meta Ads'
+  if (/google|gclid|youtube|gads|pmax|performance.?max|(^|[_\s-])g(ads)?([_\s-]|$)/.test(l)) return 'Google'
+  if (/klaviyo|email|newsletter|mailchimp|sendgrid/.test(l)) return 'Email / Klaviyo'
+  if (/tiktok|ttclid/.test(l)) return 'TikTok'
+  if (/bing|microsoft/.test(l)) return 'Bing'
+  const s = String(raw || '—').trim()
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
 // Insights account-level aggregati su tutti gli account, per la finestra data
 async function metaPeriod(since, until) {
   const acc = allAccounts()
@@ -99,18 +112,21 @@ export async function GET(req) {
     const prevBlendedMer = prevAdSpend > 0 ? prevTotalRevenue / prevAdSpend : 0
     const prevMetaRoas = prevAdSpend > 0 ? prevMetaRevenue / prevAdSpend : 0
 
-    // ── Canali (last-click Shopify da UTM/referrer) ──
-    const channels = sources.map(x => {
-      const revenue = num(x.revenue)
-      const orders = num(x.orders)
-      return {
-        label: x.label || x.source || '—',
-        revenue: r2(revenue),
-        orders,
-        aov: orders > 0 ? r2(revenue / orders) : 0,
-        sharePct: totalRevenue > 0 ? Math.round((revenue / totalRevenue) * 1000) / 10 : 0,
-      }
-    }).sort((a, b) => b.revenue - a.revenue)
+    // ── Canali (last-click Shopify da UTM/referrer), normalizzati e raggruppati ──
+    const grouped = {}
+    for (const x of sources) {
+      const label = canonChannel(x.label || x.source || '—')
+      if (!grouped[label]) grouped[label] = { label, revenue: 0, orders: 0 }
+      grouped[label].revenue += num(x.revenue)
+      grouped[label].orders += num(x.orders)
+    }
+    const channels = Object.values(grouped).map(g => ({
+      label: g.label,
+      revenue: r2(g.revenue),
+      orders: g.orders,
+      aov: g.orders > 0 ? r2(g.revenue / g.orders) : 0,
+      sharePct: totalRevenue > 0 ? Math.round((g.revenue / totalRevenue) * 1000) / 10 : 0,
+    })).sort((a, b) => b.revenue - a.revenue)
 
     const trackedRevenue = channels.reduce((s, c) => s + c.revenue, 0)
     const trackedOrders = channels.reduce((s, c) => s + c.orders, 0)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
+import MetaBadge from './MetaBadge'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -613,14 +614,15 @@ export default function MetaDetailTab() {
 
   return (
     <div>
-      {/* Status pill (titolo gestito dalla shell) */}
+      {/* Status pill + Meta badge (titolo gestito dalla shell) */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        gap: 16,
+        gap: 12,
         marginBottom: 18,
       }}>
+        <MetaBadge size="md" />
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -641,7 +643,7 @@ export default function MetaDetailTab() {
             boxShadow: '0 0 10px #30d158',
             animation: 'card-pulse 2s ease-in-out infinite',
           }} />
-          {loading ? 'Sync…' : data?.sources?.meta ? 'Live · Meta' : 'Offline'}
+          {loading ? 'Sync…' : data?.sources?.meta ? 'Live' : 'Offline'}
         </div>
       </div>
 

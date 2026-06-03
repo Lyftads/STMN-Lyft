@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
+import MetaBadge from './MetaBadge'
 
 // ─────────────────────────────────────────────────────────────
 //  Meta Audit 360° Tab (stile Madgicx)
@@ -100,8 +101,11 @@ export default function MetaAuditTab() {
           display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
         }}>◎</span>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 9.5, color: '#2997ff', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            Meta Audit 360°
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 9.5, color: '#2997ff', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+              Meta Audit 360°
+            </div>
+            <MetaBadge size="sm" />
           </div>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
             Performance per segmento di pubblico · {data?.adsetsAnalyzed || 0} adset attivi

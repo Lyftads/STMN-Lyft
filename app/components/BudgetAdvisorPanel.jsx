@@ -5,6 +5,7 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import FxCard from './ui/FxCard'
 import TimeframeSelector from './TimeframeSelector'
+import MetaBadge from './MetaBadge'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -73,6 +74,7 @@ export default function BudgetAdvisorPanel() {
     <div style={{ marginTop: 24 }}>
       <FxCard title="Budget Advisor" subtitle="Ultimi 28 giorni · solo campagne attive · riallocazione a parità di spesa · consulenziale (non esecutivo)" delay={2.2}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+          <MetaBadge size="md" />
           <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
           {accounts.length > 1 && (
             <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>

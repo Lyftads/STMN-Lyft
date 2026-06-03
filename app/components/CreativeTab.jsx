@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import CreativeAgent from './CreativeAgent'
+import MetaBadge from './MetaBadge'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi' },
@@ -936,10 +937,11 @@ export default function CreativeTab() {
           display: 'flex',
           justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: 16,
+          gap: 12,
           marginBottom: 18,
         }}
       >
+        <MetaBadge size="md" />
         <select
           value={preset}
           onChange={(e) => setPreset(e.target.value)}

@@ -135,23 +135,40 @@ function classifyAudienceSubtype(aud) {
 }
 
 async function fetchAudiencesMap(accessToken, accountIds, audienceIdsSet) {
-  // Recupera batch info per le audience IDs (max 50 per call con /?ids=)
   const map = new Map()
-  const ids = Array.from(audienceIdsSet)
-  if (ids.length === 0) return map
 
-  const chunks = []
-  for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50))
-
-  for (const chunk of chunks) {
-    const url = `${GRAPH}/?ids=${chunk.join(',')}&fields=id,name,subtype&access_token=${accessToken}`
+  // 1) Prima prova: fetch TUTTE le custom audiences di ogni account in 1 call.
+  //    Piu' affidabile del batch by IDs (che spesso ritorna null per audiences
+  //    cross-account o senza permission diretto).
+  for (const accId of accountIds) {
+    const url = `${GRAPH}/${accId}/customaudiences?fields=id,name,subtype,customer_file_source&limit=500&access_token=${accessToken}`
     try {
-      const data = await fbGet(url)
-      for (const id of chunk) {
-        if (data[id]) map.set(id, data[id])
+      const list = await fbGetAllPages(url, 10)
+      for (const a of list) {
+        if (a?.id) map.set(a.id, a)
       }
-    } catch {}
+    } catch (e) {
+      console.log('[meta-audit] account audiences fetch failed', accId, e?.message)
+    }
   }
+
+  // 2) Per gli IDs non risolti dal listing account (es. audiences in altro
+  //    account shared), fallback su batch by IDs.
+  const missing = Array.from(audienceIdsSet).filter(id => !map.has(id))
+  if (missing.length > 0) {
+    const chunks = []
+    for (let i = 0; i < missing.length; i += 50) chunks.push(missing.slice(i, i + 50))
+    for (const chunk of chunks) {
+      const url = `${GRAPH}/?ids=${chunk.join(',')}&fields=id,name,subtype&access_token=${accessToken}`
+      try {
+        const data = await fbGet(url)
+        for (const id of chunk) {
+          if (data[id]) map.set(id, data[id])
+        }
+      } catch {}
+    }
+  }
+
   return map
 }
 
@@ -167,28 +184,27 @@ const CATEGORIES = {
   retention:               { label: 'Clienti esistenti',         color: '#22c55e' },
 }
 
-// Classifica per nome ADSET soltanto (NON usare campagna name).
-// Match esatto sui 3 segmenti di pubblico standard di Meta Ads Manager
-// (come Marino li nomina nei suoi adset).
+// Classifica per nome ADSET (regex largo: copre IT + EN + abbreviazioni).
+// Match sui 3 segmenti standard di Meta Ads Manager.
 function classifyByName(adsetName = '') {
   const name = String(adsetName).toLowerCase().trim()
 
-  // Retention: "Clienti esistenti" (e varianti)
-  if (/clienti esistenti|existing customer|customer file|cliente[- ]?esistent/i.test(name)) {
+  // Retention: customer file / clienti esistenti
+  if (/clienti esistenti|cliente[- ]?esistent|existing customer|customer file|customer list|buyer[s]?|past[- ]?customer|purchaser|crm|email[- ]?upload/i.test(name)) {
     return 'retention'
   }
 
-  // Retargeting: "Pubblico che ha interagito" (e varianti warm)
-  if (/pubblico che ha interagit|che ha interagit|interagit[ao]|engaged audience|engagement audience/i.test(name)) {
+  // Retargeting: warm / pubblico che ha interagito / website visitors / engagement
+  if (/pubblico che ha interagit|che ha interagit|interagit[ao]|engagement|engaged|retargeting|retarget|remarketing|warm|website visitor|web[- ]?visit|page view|video view|ig[- ]?engag|fb[- ]?engag|add[- ]?to[- ]?cart|atc|view[- ]?content|vc|abandoned/i.test(name)) {
     return 'retargeting'
   }
 
-  // Prospecting: "Nuovo pubblico" (e varianti)
-  if (/nuovo pubblico|new audience|broad audience|prospecting audience/i.test(name)) {
+  // Prospecting: cold / nuovo pubblico / broad / interest / lookalike
+  if (/nuovo pubblico|new audience|broad|prospecting|prospect|cold|interest|lookalike|\blal\b|\blla\b|acquisition|acquisizione/i.test(name)) {
     return 'acquisition_prospecting'
   }
 
-  return null // no match → cade su targeting analysis (audience subtype)
+  return null // no match → fallback su targeting analysis (audience subtype)
 }
 
 function classifyAdset(adset, audMap) {
@@ -432,7 +448,11 @@ async function buildAudit({ accessToken, accountIds, range }) {
     debug: {
       adsets_fetched_total: debugTotalFetched,
       adsets_active_after_filter: adsetsAll.length,
+      audiences_in_map: audMap.size,
+      audience_ids_referenced: audienceIds.size,
       accounts: accountIds,
+      classification_breakdown: adsetCountByCat,
+      sample_adset_names: adsetsClassified.slice(0, 10).map(a => ({ n: a.name, cat: a.category })),
     },
   }
 }

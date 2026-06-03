@@ -290,26 +290,29 @@ async function buildAudit({ accessToken, accountIds, range }) {
   // client-side per status=ACTIVE dopo la fetch.
   // Per fields: 'targeting{...}' nested non sempre ritorna la sub-struttura,
   // chiediamo 'targeting' intero.
-  // STEP 1: fetch SOLO le campagne attive (effective_status=ACTIVE).
-  // Stesso criterio di "Inserzioni attive" su Meta Ads Manager.
-  let debugCampaignsFetched = 0
+  // STEP 1: fetch TUTTE le campagne dell'account, poi filtra client-side
+  // per effective_status === 'ACTIVE'. Piu' affidabile del filtro server-side
+  // 'effective_status=["ACTIVE"]' (che a volte ritorna 0 risultati).
+  let debugCampaignsAll = 0
   const activeCampaignIds = []
   const campaignMeta = {} // id → { name, account }
   for (const accId of accountIds) {
     const fields = encodeURIComponent('id,name,status,effective_status')
-    const effective = encodeURIComponent(JSON.stringify(['ACTIVE']))
-    const url = `${GRAPH}/${accId}/campaigns?fields=${fields}&effective_status=${effective}&limit=500&access_token=${accessToken}`
+    const url = `${GRAPH}/${accId}/campaigns?fields=${fields}&limit=500&access_token=${accessToken}`
     try {
-      const list = await fbGetAllPages(url, 20)
-      debugCampaignsFetched += list.length
+      const list = await fbGetAllPages(url, 30)
+      debugCampaignsAll += list.length
       for (const c of list) {
-        activeCampaignIds.push(c.id)
-        campaignMeta[c.id] = { name: c.name, account: accId }
+        if (c.effective_status === 'ACTIVE') {
+          activeCampaignIds.push(c.id)
+          campaignMeta[c.id] = { name: c.name, account: accId }
+        }
       }
     } catch (e) {
       console.log('[meta-audit] campaigns fetch failed for', accId, e?.message)
     }
   }
+  const debugCampaignsFetched = activeCampaignIds.length
 
   // STEP 2: per ogni account, fetch tutti gli adset e tieni solo quelli
   // appartenenti a una campagna ATTIVA. Cosi' replichiamo il filtro
@@ -505,6 +508,7 @@ async function buildAudit({ accessToken, accountIds, range }) {
     audiencesAnalyzed: audMap.size,
     adsetsAnalyzed: adsetsAll.length,
     debug: {
+      campaigns_total: debugCampaignsAll,
       campaigns_active: debugCampaignsFetched,
       adsets_fetched_total: debugTotalFetched,
       adsets_kept_after_filter: adsetsAll.length,

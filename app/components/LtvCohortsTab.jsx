@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
 
 const eur = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`)
@@ -16,20 +16,10 @@ const WINDOWS = [
   { value: 24, label: '24 mesi' },
 ]
 
-const MONTH_LABELS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
-function cohortLabel(key) {
-  const [y, m] = key.split('-').map(Number)
-  return `${MONTH_LABELS[m - 1]} ${String(y).slice(2)}`
-}
-// Colore cella retention: scala verde su sfondo nero
-function cellBg(pct) {
-  if (pct == null) return 'transparent'
-  const a = 0.06 + (Math.min(100, pct) / 100) * 0.62
-  return `rgba(48,209,88,${a.toFixed(3)})`
-}
-function cellText(pct) {
-  if (pct == null) return 'var(--text3)'
-  return pct >= 45 ? '#04130a' : 'var(--text)'
+function repeatColor(pct) {
+  if (pct >= 25) return '#30d158'
+  if (pct >= 12) return '#ff9f0a'
+  return '#ff453a'
 }
 
 export default function LtvCohortsTab() {
@@ -65,9 +55,11 @@ export default function LtvCohortsTab() {
 
   const s = data?.summary || {}
   const cohorts = data?.cohorts || []
-  const maxOffset = data?.maxOffset ?? 12
-  const ltvCurve = (data?.ltvCurve || []).filter(d => d.value != null).map(d => ({ m: `M${d.m}`, value: d.value }))
-  const retentionAvg = (data?.retentionAvg || []).filter(d => d.pct != null).map(d => ({ m: `M${d.m}`, pct: d.pct }))
+  const distribution = data?.distribution || []
+  // Grafici in ordine cronologico (coorte arriva desc → reverse)
+  const chrono = [...cohorts].reverse()
+  const ltvChart = chrono.map(c => ({ name: c.label, ltv: c.ltv }))
+  const repeatChart = chrono.map(c => ({ name: c.label, repeat: c.repeatRate }))
 
   const Stat = ({ label, value, sub }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
@@ -79,7 +71,7 @@ export default function LtvCohortsTab() {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <FxCard title="LTV & Coorti" subtitle="Retention per coorte di acquisizione · repeat rate · tempo al 2° ordine · curva LTV cumulata" delay={1.6}>
+      <FxCard title="LTV & Coorti" subtitle="Coorti per mese di acquisizione · repeat rate · ordini per cliente · LTV (lifetime)" delay={1.6}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {WINDOWS.map(w => (
@@ -102,81 +94,90 @@ export default function LtvCohortsTab() {
         {s.customers > 0 && (
           <>
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12, margin: '8px 0 20px' }}>
-              <Stat label="Clienti totali" value={nf(s.customers)} sub={`${nf(s.ordersTotal)} ordini`} />
+              <Stat label="Clienti acquisiti" value={nf(s.customers)} sub={`${nf(s.ordersTotal)} ordini totali`} />
               <Stat label="Repeat rate" value={`${s.repeatRate}%`} sub={`${nf(s.repeatCustomers)} con ≥2 ordini`} />
-              <Stat label="LTV medio" value={eur2(s.avgLtv)} sub="ricavo medio per cliente" />
+              <Stat label="LTV medio" value={eur2(s.avgLtv)} sub="spesa lifetime per cliente" />
               <Stat label="Ordini / cliente" value={s.avgOrders} />
-              <Stat label="Tempo al 2° ordine" value={s.medianDaysTo2nd > 0 ? `${s.medianDaysTo2nd} gg` : '—'} sub="mediana" />
-              <Stat label="Fatturato coorti" value={eur(s.revenueTotal)} />
+              <Stat label="Clienti monouso" value={`${s.oneTimeRate}%`} sub="1 solo ordine" />
+              <Stat label="Fatturato clienti" value={eur(s.revenueTotal)} sub="lifetime delle coorti" />
             </div>
 
-            {/* Heatmap retention per coorte */}
+            {/* Tabella coorti per acquisizione */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 20, overflowX: 'auto' }}>
-              <div className="label" style={{ marginBottom: 12 }}>Retention per coorte · % di clienti che riordinano (M0 = mese di acquisizione)</div>
-              <table style={{ borderCollapse: 'separate', borderSpacing: 3, fontSize: 11, minWidth: 720 }}>
+              <div className="label" style={{ marginBottom: 12 }}>Coorti per mese di acquisizione</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 520 }}>
                 <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>Coorte</th>
-                    <th style={{ padding: '4px 6px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>Clienti</th>
-                    {Array.from({ length: maxOffset + 1 }, (_, k) => (
-                      <th key={k} style={{ padding: '4px 6px', color: 'var(--text3)', fontWeight: 800, fontSize: 10, minWidth: 42 }}>M{k}</th>
-                    ))}
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>COORTE</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>CLIENTI</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>REPEAT</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>ORDINI/CL.</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>LTV</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cohorts.map(c => (
-                    <tr key={c.cohort}>
-                      <td style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text)', fontWeight: 700, whiteSpace: 'nowrap' }}>{cohortLabel(c.cohort)}</td>
-                      <td style={{ padding: '4px 6px', textAlign: 'center', color: 'var(--text2)', fontWeight: 700 }}>{nf(c.size)}</td>
-                      {c.retention.map(cell => (
-                        <td key={cell.m} title={cell.pct != null ? `${cell.pct}% · ${nf(cell.active)} clienti` : ''}
-                          style={{ padding: '6px 4px', textAlign: 'center', borderRadius: 6, fontWeight: 800, background: cellBg(cell.pct), color: cellText(cell.pct) }}>
-                          {cell.pct == null ? '' : `${cell.pct}%`}
-                        </td>
-                      ))}
+                    <tr key={c.cohort} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text)', fontWeight: 700 }}>{c.label}</td>
+                      <td style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text2)', fontWeight: 700 }}>{nf(c.size)}</td>
+                      <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 800, color: repeatColor(c.repeatRate) }}>{c.repeatRate}%</td>
+                      <td style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text2)', fontWeight: 700 }}>{c.avgOrders}</td>
+                      <td style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text)', fontWeight: 900 }}>{eur2(c.ltv)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Curve LTV + retention media */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px,1fr))', gap: 16 }}>
+            {/* Grafici */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px,1fr))', gap: 16 }}>
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Curva LTV cumulata (media per cliente)</div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={ltvCurve} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
+                <div className="label" style={{ marginBottom: 12 }}>LTV medio per coorte</div>
+                <ResponsiveContainer width="100%" height={230}>
+                  <BarChart data={ltvChart} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="ltvGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#30d158" stopOpacity={0.45} />
-                        <stop offset="100%" stopColor="#30d158" stopOpacity={0} />
-                      </linearGradient>
+                      <linearGradient id="ltvBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#30d158" stopOpacity={0.95} /><stop offset="100%" stopColor="#30d158" stopOpacity={0.4} /></linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="m" tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={42} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => eur2(v)} />
-                    <Area type="monotone" dataKey="value" stroke="#30d158" strokeWidth={2} fill="url(#ltvGrad)" animationDuration={1400} />
-                  </AreaChart>
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => eur2(v)} />
+                    <Bar dataKey="ltv" fill="url(#ltvBar)" radius={[5, 5, 0, 0]} animationDuration={1400} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
 
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Retention media per mese dall'acquisizione</div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={retentionAvg} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
+                <div className="label" style={{ marginBottom: 12 }}>Repeat rate per coorte</div>
+                <ResponsiveContainer width="100%" height={230}>
+                  <LineChart data={repeatChart} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="m" tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={42} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} unit="%" />
                     <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => `${v}%`} />
-                    <Line type="monotone" dataKey="pct" stroke="#2997ff" strokeWidth={2} dot={{ r: 3, fill: '#2997ff' }} animationDuration={1400} />
+                    <Line type="monotone" dataKey="repeat" stroke="#2997ff" strokeWidth={2} dot={{ r: 3, fill: '#2997ff' }} animationDuration={1400} />
                   </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
+                <div className="label" style={{ marginBottom: 12 }}>Distribuzione clienti per n° ordini</div>
+                <ResponsiveContainer width="100%" height={230}>
+                  <BarChart data={distribution} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => nf(v)} />
+                    <Bar dataKey="count" radius={[5, 5, 0, 0]} animationDuration={1400}>
+                      {distribution.map((e, i) => <Cell key={i} fill={['#ff453a', '#ff9f0a', '#64d2ff', '#30d158'][i] || '#2997ff'} />)}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {data?.truncated && (
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}>⚠ Dataset ampio: analisi basata sugli ordini più recenti del periodo (troncato per performance).</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}>⚠ Dataset ampio: analisi sui clienti più recenti del periodo (troncato per performance).</div>
             )}
           </>
         )}

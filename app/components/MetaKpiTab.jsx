@@ -34,29 +34,30 @@ const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
 const KPIS = [
-  { key: 'spend',      label: 'Spesa',         fmt: eur,  color: '#3b82f6' },
-  { key: 'revenue',    label: 'Revenue',       fmt: eur,  color: '#22c55e' },
-  { key: 'roas',       label: 'ROAS',          fmt: mul,  color: '#22c55e' },
-  { key: 'purchases',  label: 'Acquisti',      fmt: num,  color: '#f97316' },
-  { key: 'cpo',        label: 'CPO',           fmt: eur2, color: '#a78bfa', lower: true },
-  { key: 'impressions',label: 'Impressioni',   fmt: num,  color: '#06b6d4' },
-  { key: 'reach',      label: 'Copertura',     fmt: num,  color: '#0ea5e9' },
-  { key: 'frequency',  label: 'Frequenza',     fmt: v => v != null ? Number(v).toFixed(2) : '—', color: '#fbbf24', lower: true },
-  { key: 'cpm',        label: 'CPM',           fmt: eur2, color: '#ec4899', lower: true },
-  { key: 'ctr_link',   label: 'CTR link',      fmt: pct,  color: '#bf5af2' },
-  { key: 'cpc_link',   label: 'CPC link',      fmt: eur2, color: '#f43f5e', lower: true },
-  { key: 'link_clicks',label: 'Click link',    fmt: num,  color: '#14b8a6' },
+  { key: 'spend',      label: 'Spesa',         fmt: eur },
+  { key: 'revenue',    label: 'Revenue',       fmt: eur },
+  { key: 'roas',       label: 'ROAS',          fmt: mul },
+  { key: 'purchases',  label: 'Acquisti',      fmt: num },
+  { key: 'cpo',        label: 'CPO',           fmt: eur2 },
+  { key: 'impressions',label: 'Impressioni',   fmt: num },
+  { key: 'reach',      label: 'Copertura',     fmt: num },
+  { key: 'frequency',  label: 'Frequenza',     fmt: v => v != null ? Number(v).toFixed(2) : '—' },
+  { key: 'cpm',        label: 'CPM',           fmt: eur2 },
+  { key: 'ctr_link',   label: 'CTR link',      fmt: pct },
+  { key: 'cpc_link',   label: 'CPC link',      fmt: eur2 },
+  { key: 'link_clicks',label: 'Click link',    fmt: num },
 ]
 
 const CHARTS = [
-  { key: 'spend',     label: 'Spending',    fmt: eur,  color: '#3b82f6' },
-  { key: 'roas',      label: 'ROAS',        fmt: mul,  color: '#22c55e' },
-  { key: 'cpo',       label: 'CPO',         fmt: eur2, color: '#a78bfa' },
-  { key: 'ctr_link',  label: 'CTR link',    fmt: pct,  color: '#bf5af2' },
-  { key: 'cpm',       label: 'CPM',         fmt: eur2, color: '#ec4899' },
-  { key: 'frequency', label: 'Frequenza',   fmt: v => v != null ? Number(v).toFixed(2) : '—', color: '#fbbf24' },
-  { key: 'reach',     label: 'Copertura',   fmt: num,  color: '#0ea5e9' },
+  { key: 'spend',     label: 'Spending',    fmt: eur  },
+  { key: 'roas',      label: 'ROAS',        fmt: mul  },
+  { key: 'cpo',       label: 'CPO',         fmt: eur2 },
+  { key: 'ctr_link',  label: 'CTR link',    fmt: pct  },
+  { key: 'cpm',       label: 'CPM',         fmt: eur2 },
+  { key: 'frequency', label: 'Frequenza',   fmt: v => v != null ? Number(v).toFixed(2) : '—' },
+  { key: 'reach',     label: 'Copertura',   fmt: num  },
 ]
+
 
 export default function MetaKpiTab() {
   const [preset, setPreset] = useState('last_28d')
@@ -202,7 +203,7 @@ function KpiCard({ kpi, value }) {
         <PlatformBadges sources={['meta']} size={14} />
       </div>
       <div style={{
-        fontSize: 24, fontWeight: 900, color: kpi.color,
+        fontSize: 24, fontWeight: 900, color: '#fff',
         letterSpacing: '-0.02em',
       }}>
         {kpi.fmt(value)}
@@ -234,8 +235,8 @@ function SeparateChart({ chart, daily }) {
           <AreaChart data={series}>
             <defs>
               <linearGradient id={`grad-${chart.key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor={chart.color} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={chart.color} stopOpacity={0} />
+                <stop offset="0%"  stopColor="#ffffff" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -245,7 +246,7 @@ function SeparateChart({ chart, daily }) {
               contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
               formatter={v => [chart.fmt(v), chart.label]}
             />
-            <Area type="monotone" dataKey="v" stroke={chart.color} fill={`url(#grad-${chart.key})`} strokeWidth={2} />
+            <Area type="monotone" dataKey="v" stroke="#ffffff" fill={`url(#grad-${chart.key})`} strokeWidth={1.5} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

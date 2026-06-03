@@ -157,50 +157,47 @@ async function fetchAudiencesMap(accessToken, accountIds, audienceIdsSet) {
 
 // ── Adset classification ─────────────────────────────────────────
 
+// 3 segmenti di pubblico esatti come Marino li imposta in Meta Ads Manager:
+//   - Nuovo pubblico         (Acquisition / Prospecting)
+//   - Pubblico che ha interagito (Retargeting / warm)
+//   - Clienti esistenti      (Retention)
 const CATEGORIES = {
-  acquisition_prospecting:    { label: 'Acquisition Prospecting',    color: '#2997ff' },
-  acquisition_re_engagement:  { label: 'Acquisition Re-Engagement',  color: '#fbbf24' },
-  retargeting:                { label: 'Retargeting',                color: '#bf5af2' },
-  retention:                  { label: 'Retention',                  color: '#22c55e' },
+  acquisition_prospecting: { label: 'Nuovo pubblico',           color: '#2997ff' },
+  retargeting:             { label: 'Pubblico che ha interagito', color: '#bf5af2' },
+  retention:               { label: 'Clienti esistenti',         color: '#22c55e' },
 }
 
-// Name-based classification PRIMARIA. Spesso piu' affidabile dei custom
-// audience IDs perche' molti account hanno naming convention chiare
-// ("Clienti esistenti", "Pubblico che ha interagito", "Nuovo pubblico"...).
-// Pattern italiano + inglese.
-function classifyByName(adsetName = '', campaignName = '') {
-  const text = `${adsetName} ${campaignName}`.toLowerCase()
+// Classifica per nome ADSET soltanto (NON usare campagna name).
+// Match esatto sui 3 segmenti di pubblico standard di Meta Ads Manager
+// (come Marino li nomina nei suoi adset).
+function classifyByName(adsetName = '') {
+  const name = String(adsetName).toLowerCase().trim()
 
-  // Re-Engagement (lapsed customers / winback)
-  if (/(lapsed|winback|win[- ]?back|re[- ]?engage|ria(?:ttiv)|dormant|inattiv|churned|past[- ]?customer|riconquist|60[- ]?d|90[- ]?d|180[- ]?d)/i.test(text)) {
-    return 'acquisition_re_engagement'
-  }
-
-  // Retention (Clienti esistenti)
-  if (/(clienti esistenti|customer[s]?[- ]?existing|existing customer|retention|abitua(?:li)|fidelizz|ricorrent|customer file|repeat[- ]?customer)/i.test(text)) {
+  // Retention: "Clienti esistenti" (e varianti)
+  if (/clienti esistenti|existing customer|customer file|cliente[- ]?esistent/i.test(name)) {
     return 'retention'
   }
 
-  // Retargeting (warm visitors / engagers / DPA)
-  if (/(pubblico che ha interagit|che ha interagit|interagi|engagement|engager|retarget|remarket|rem[\b_ ]|visitor|sito|website|wca|page[- ]?view|atc|add[- ]?to[- ]?cart|view[- ]?content|ic|initiate[- ]?checkout|dpa|abandon|warm)/i.test(text)) {
+  // Retargeting: "Pubblico che ha interagito" (e varianti warm)
+  if (/pubblico che ha interagit|che ha interagit|interagit[ao]|engaged audience|engagement audience/i.test(name)) {
     return 'retargeting'
   }
 
-  // Prospecting (Nuovo pubblico / Cold / Lookalike / Broad / Test)
-  if (/(nuovo pubblico|nuovo |new audience|prospect|cold|broad|lookalike|lal\b|interest|interess|advantage[+ ]|aac|cbo[- ]?test|test[a-z]*[- ]?acq|acquisit|acquisition)/i.test(text)) {
+  // Prospecting: "Nuovo pubblico" (e varianti)
+  if (/nuovo pubblico|new audience|broad audience|prospecting audience/i.test(name)) {
     return 'acquisition_prospecting'
   }
 
-  return null // no match → cade su targeting analysis
+  return null // no match → cade su targeting analysis (audience subtype)
 }
 
 function classifyAdset(adset, audMap) {
-  // Step 1: prova classificazione per nome (piu' affidabile su account con
-  // naming convention come "Clienti esistenti" / "Nuovo pubblico" / etc.)
-  const byName = classifyByName(adset.name, adset.campaign?.name)
+  // Step 1: classifica per nome ADSET (i 3 segmenti standard Meta).
+  const byName = classifyByName(adset.name)
   if (byName) return byName
 
-  // Step 2: fallback su analisi targeting (custom audiences + lookalike)
+  // Step 2: fallback su targeting analysis (custom audiences subtype)
+  // SOLO se name non matcha. Mappa i subtype sui 3 segmenti.
   const t = adset.targeting || {}
   const included = (t.custom_audiences || []).map(x => audMap.get(x.id)).filter(Boolean)
   const excluded = (t.excluded_custom_audiences || []).map(x => audMap.get(x.id)).filter(Boolean)
@@ -208,27 +205,19 @@ function classifyAdset(adset, audMap) {
   const incKinds = included.map(classifyAudienceSubtype)
   const excKinds = excluded.map(classifyAudienceSubtype)
 
-  // Rule 1: CRM lapsed/winback nei custom audiences inclusi → Re-engagement
-  if (incKinds.includes('crm_lapsed')) {
-    return 'acquisition_re_engagement'
-  }
-  // Rule 2: CRM customer file attivo → Retention
-  if (incKinds.includes('crm_active')) {
+  // CRM customer file (sia "active" che "lapsed" → Retention)
+  if (incKinds.includes('crm_active') || incKinds.includes('crm_lapsed')) {
     return 'retention'
   }
-  // Rule 3: Website/Engagement (warm) → Retargeting
+  // Website / Engagement (warm) → Retargeting
   if (incKinds.some(k => ['website', 'engagement', 'app'].includes(k))) {
     return 'retargeting'
   }
-  // Rule 4: Lookalike inclusa → Prospecting
-  if (incKinds.includes('lookalike')) {
+  // Lookalike o CRM ESCLUSO → Prospecting cold
+  if (incKinds.includes('lookalike') || excKinds.some(k => ['crm_active', 'crm_lapsed'].includes(k))) {
     return 'acquisition_prospecting'
   }
-  // Rule 5: Custom audience CRM ESCLUSA (broad + exclude clienti) → Prospecting cold
-  if (excKinds.some(k => ['crm_active', 'crm_lapsed'].includes(k))) {
-    return 'acquisition_prospecting'
-  }
-  // Rule 6: Default broad/interest → Prospecting
+  // Default broad/interest → Prospecting
   return 'acquisition_prospecting'
 }
 
@@ -312,7 +301,7 @@ async function buildAudit({ accessToken, accountIds, range }) {
     for (let i = 0; i < adsetIds.length; i += 50) {
       const chunk = adsetIds.slice(i, i + 50)
       const filtering = encodeURIComponent(JSON.stringify([{ field: 'adset.id', operator: 'IN', value: chunk }]))
-      const fields = encodeURIComponent('adset_id,spend,impressions,clicks,reach,ctr,cpm,actions,action_values')
+      const fields = encodeURIComponent('adset_id,spend,impressions,clicks,inline_link_clicks,reach,ctr,cpm,actions,action_values')
       const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
       const url = `${GRAPH}/${accId}/insights?level=adset&time_range=${timeRange}&filtering=${filtering}&fields=${fields}&limit=500&access_token=${accessToken}`
       try {
@@ -402,6 +391,7 @@ async function buildAudit({ accessToken, accountIds, range }) {
     total.purchases += buckets[cat].purchases
     total.impressions += buckets[cat].impressions
     total.clicks += buckets[cat].clicks
+    total.link_clicks += buckets[cat].link_clicks
   }
   finalize(total)
 
@@ -440,8 +430,8 @@ async function buildAudit({ accessToken, accountIds, range }) {
 function zeroBucket() {
   return {
     spend: 0, revenue: 0, purchases: 0,
-    impressions: 0, clicks: 0,
-    roas: 0, cpp: null, cpm: 0, ctr: 0,
+    impressions: 0, clicks: 0, link_clicks: 0,
+    roas: 0, cpp: null, cpm: 0, ctr: 0, ctr_link: 0, cpc_link: null,
   }
 }
 
@@ -451,6 +441,7 @@ function accumulate(bucket, r) {
   bucket.purchases += pickPurchases(r.actions)
   bucket.impressions += parseInt(r.impressions || 0)
   bucket.clicks += parseInt(r.clicks || 0)
+  bucket.link_clicks += parseInt(r.inline_link_clicks || 0) || numFrom(r.actions, ['link_click'])
 }
 
 function finalize(b) {
@@ -458,6 +449,8 @@ function finalize(b) {
   b.cpp = b.purchases > 0 ? +(b.spend / b.purchases).toFixed(2) : null
   b.cpm = b.impressions > 0 ? +((b.spend / b.impressions) * 1000).toFixed(2) : 0
   b.ctr = b.impressions > 0 ? +((b.clicks / b.impressions) * 100).toFixed(2) : 0
+  b.ctr_link = b.impressions > 0 ? +((b.link_clicks / b.impressions) * 100).toFixed(3) : 0
+  b.cpc_link = b.link_clicks > 0 ? +(b.spend / b.link_clicks).toFixed(2) : null
   b.spend = +b.spend.toFixed(2)
   b.revenue = +b.revenue.toFixed(2)
   b.purchases = Math.round(b.purchases)

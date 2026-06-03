@@ -1,13 +1,19 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { useEffect, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { swrFetch, getCached } from '../../lib/clientCache'
 
 // ─────────────────────────────────────────────────────────────
 //  Meta Audit 360° Tab
-//  Classifica adset attivi in 4 strategy bucket (Prospecting,
-//  Re-Engagement, Retargeting, Retention) e mostra metriche + trend.
+//  Aggrega gli adset attivi su 3 segmenti di pubblico esatti:
+//    - Nuovo pubblico (Prospecting)
+//    - Pubblico che ha interagito (Retargeting)
+//    - Clienti esistenti (Retention)
+//
+//  Tabella: KPI × 3 segmenti + Totale (somma per spesa/acquisti/revenue,
+//  media ponderata per ROAS/CPO/CPM/CTR/CPC).
+//  Sotto: grafico daily con 3 linee + selettore metrica.
 //
 //  Endpoint: /api/meta-audit/strategy?preset=X
 // ─────────────────────────────────────────────────────────────
@@ -21,15 +27,34 @@ const PRESET_OPTIONS = [
 ]
 
 const TREND_METRICS = [
-  { key: 'spend',    label: 'Spesa',       fmt: v => `€${Math.round(v).toLocaleString('it-IT')}`,    color: '#2997ff' },
-  { key: 'revenue',  label: 'Revenue',     fmt: v => `€${Math.round(v).toLocaleString('it-IT')}`,    color: '#22c55e' },
-  { key: 'roas',     label: 'ROAS',        fmt: v => `${(+v).toFixed(2)}x`,                          color: '#fbbf24' },
-  { key: 'cpo',      label: 'CPO',         fmt: v => v != null ? `€${(+v).toFixed(2)}` : '—',         color: '#bf5af2' },
-  { key: 'cac',      label: 'CAC',         fmt: v => v != null ? `€${(+v).toFixed(2)}` : '—',         color: '#ec4899' },
-  { key: 'cpm',      label: 'CPM',         fmt: v => `€${(+v).toFixed(2)}`,                          color: '#06b6d4' },
-  { key: 'ctr_link', label: 'CTR link',    fmt: v => `${(+v).toFixed(2)}%`,                          color: '#f97316' },
-  { key: 'cpc_link', label: 'CPC link',    fmt: v => v != null ? `€${(+v).toFixed(2)}` : '—',         color: '#84cc16' },
+  { key: 'spend',     label: 'Spesa',    agg: 'sum',   fmt: v => `€${Math.round(v).toLocaleString('it-IT')}`,         color: '#2997ff' },
+  { key: 'revenue',   label: 'Revenue',  agg: 'sum',   fmt: v => `€${Math.round(v).toLocaleString('it-IT')}`,         color: '#22c55e' },
+  { key: 'purchases', label: 'Acquisti', agg: 'sum',   fmt: v => Math.round(v).toLocaleString('it-IT'),                color: '#a78bfa' },
+  { key: 'roas',      label: 'ROAS',     agg: 'ratio', fmt: v => v > 0 ? `${(+v).toFixed(2)}x` : '—',                  color: '#fbbf24' },
+  { key: 'cpo',       label: 'CPO',      agg: 'ratio', fmt: v => v != null && v > 0 ? `€${(+v).toFixed(2)}` : '—',     color: '#bf5af2' },
+  { key: 'cpm',       label: 'CPM',      agg: 'ratio', fmt: v => v > 0 ? `€${(+v).toFixed(2)}` : '—',                  color: '#06b6d4' },
+  { key: 'ctr_link',  label: 'CTR link', agg: 'ratio', fmt: v => v > 0 ? `${(+v).toFixed(2)}%` : '—',                  color: '#f97316' },
+  { key: 'cpc_link',  label: 'CPC link', agg: 'ratio', fmt: v => v != null && v > 0 ? `€${(+v).toFixed(2)}` : '—',     color: '#84cc16' },
 ]
+
+// Estrae il valore aggregato di una metrica dal bucket di categoria.
+// Per ROAS / CPO / CPM / CTR / CPC fa il rapporto sui totali (medie
+// ponderate), non la media dei singoli giorni.
+function cellValue(metricKey, m) {
+  if (!m) return 0
+  const linkClicks = m.link_clicks || m.linkClicks || 0
+  switch (metricKey) {
+    case 'spend':     return m.spend || 0
+    case 'revenue':   return m.revenue || 0
+    case 'purchases': return m.purchases || 0
+    case 'roas':      return m.spend > 0 ? m.revenue / m.spend : 0
+    case 'cpo':       return m.purchases > 0 ? m.spend / m.purchases : null
+    case 'cpm':       return m.impressions > 0 ? (m.spend / m.impressions) * 1000 : 0
+    case 'ctr_link':  return m.impressions > 0 ? (linkClicks / m.impressions) * 100 : 0
+    case 'cpc_link':  return linkClicks > 0 ? m.spend / linkClicks : null
+    default:          return 0
+  }
+}
 
 export default function MetaAuditTab() {
   const [preset, setPreset] = useState('last_28d')
@@ -37,7 +62,6 @@ export default function MetaAuditTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeMetric, setActiveMetric] = useState('roas')
-  const [openCats, setOpenCats] = useState({ acquisition_prospecting: true })
 
   useEffect(() => {
     let cancelled = false
@@ -51,8 +75,7 @@ export default function MetaAuditTab() {
     setError(null)
     swrFetch({
       key,
-      fetcher: () => fetch(`/api/meta-audit/strategy?preset=${encodeURIComponent(preset)}`)
-        .then(r => r.json()),
+      fetcher: () => fetch(`/api/meta-audit/strategy?preset=${encodeURIComponent(preset)}`).then(r => r.json()),
       onUpdate: fresh => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => {
@@ -82,11 +105,11 @@ export default function MetaAuditTab() {
             Meta Audit 360°
           </div>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
-            Strategy breakdown · {data?.adsetsAnalyzed || 0} adset analizzati
+            Performance per segmento di pubblico · {data?.adsetsAnalyzed || 0} adset
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
-            Classificazione automatica per targeting (custom audiences, lookalike, broad).
-            {data?.audiencesAnalyzed > 0 && ` ${data.audiencesAnalyzed} audiences scansionate.`}
+            Aggregazione per Nuovo pubblico · Pubblico che ha interagito · Clienti esistenti.
+            Somma per spesa/acquisti/revenue, media ponderata per ROAS/CPO/CPM/CTR/CPC.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -110,223 +133,182 @@ export default function MetaAuditTab() {
         </div>
       </div>
 
-      {/* Errore */}
       {error && (
         <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}>
           ⚠ {error}
         </div>
       )}
 
-      {/* Loading initial */}
       {loading && !data && (
         <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
           Un attimo, sto leggendo audiences e adset di Meta… (può richiedere 20-40 secondi su account grandi)
         </div>
       )}
 
-      {/* Total summary */}
-      {data && total && (
-        <TotalSummary total={total} />
-      )}
-
-      {/* Metric selector */}
       {data && (
-        <div className="glass-card-static" style={{ padding: 18 }}>
-          <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
-            Metrica grafici
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {TREND_METRICS.map(m => (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => setActiveMetric(m.key)}
-                className="btn-glass"
-                style={{
-                  border: activeMetric === m.key ? `1px solid ${m.color}` : '1px solid var(--border)',
-                  background: activeMetric === m.key ? `${m.color}1c` : 'var(--glass)',
-                  color: activeMetric === m.key ? '#fff' : 'var(--text3)',
-                  borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <>
+          <AggregateTable cats={cats} total={total} activeMetric={activeMetric} onMetricClick={setActiveMetric} />
+          <TrendCharts cats={cats} activeMetric={activeMetric} onMetricChange={setActiveMetric} />
+        </>
       )}
-
-      {/* Per categoria */}
-      {data && Object.values(cats).map(cat => (
-        <CategoryBlock
-          key={cat.id}
-          cat={cat}
-          open={!!openCats[cat.id]}
-          toggle={() => setOpenCats(p => ({ ...p, [cat.id]: !p[cat.id] }))}
-          activeMetric={activeMetric}
-        />
-      ))}
     </div>
   )
 }
 
-// ── Totale top summary ─────────────────────────────────────────
-function TotalSummary({ total }) {
-  const cards = [
-    { label: 'Spesa totale', value: `€${Math.round(total.spend).toLocaleString('it-IT')}`, color: '#2997ff' },
-    { label: 'Revenue',      value: `€${Math.round(total.revenue).toLocaleString('it-IT')}`, color: '#22c55e' },
-    { label: 'ROAS',         value: total.roas ? `${total.roas.toFixed(2)}x` : '—', color: '#fbbf24' },
-    { label: 'Acquisti',     value: total.purchases.toLocaleString('it-IT'), color: '#bf5af2' },
-    { label: 'CPO',          value: total.cpp != null ? `€${total.cpp.toFixed(2)}` : '—', color: '#ec4899' },
-    { label: 'CPM',          value: total.cpm ? `€${total.cpm.toFixed(2)}` : '—', color: '#06b6d4' },
-    { label: 'CTR',          value: total.ctr ? `${total.ctr.toFixed(2)}%` : '—', color: '#f97316' },
-  ]
-  return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`,
-      gap: 12,
-    }}>
-      {cards.map(c => (
-        <div key={c.label} className="glass-card-static" style={{ padding: 16 }}>
-          <div style={{ fontSize: 9.5, color: c.color, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            {c.label}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginTop: 6, letterSpacing: '-0.02em' }}>
-            {c.value}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ── Categoria block: header strip + grande chart sulla metrica selezionata + mini metric strip
-function CategoryBlock({ cat, open, toggle, activeMetric }) {
-  const m = cat.metrics
-  const metricInfo = TREND_METRICS.find(t => t.key === activeMetric) || TREND_METRICS[0]
-  const chartData = (cat.trend || []).map(t => ({
-    date: t.date.slice(5), // MM-DD
-    value: t[activeMetric] ?? 0,
-  }))
-
+// ── Tabella aggregata: righe = KPI, colonne = 3 segmenti + Totale ──
+function AggregateTable({ cats, total, activeMetric, onMetricClick }) {
+  const cols = Object.values(cats)
   return (
     <div className="glass-card-static" style={{ padding: 0, overflow: 'hidden' }}>
-      {/* Header riga clickable */}
-      <button
-        type="button"
-        onClick={toggle}
-        style={{
-          width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: 20, textAlign: 'left',
-          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        }}
-      >
-        <span style={{
-          width: 12, height: 12, borderRadius: 4, background: cat.color, flexShrink: 0,
-        }} />
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
-            {cat.label}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
-            {cat.adsetCount} adset · €{Math.round(m.spend).toLocaleString('it-IT')} spesi
-          </div>
-        </div>
-        {/* Mini KPIs in header */}
-        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <MiniKpi label="ROAS"     value={m.roas ? `${m.roas.toFixed(2)}x` : '—'} color="#fbbf24" />
-          <MiniKpi label="Acquisti" value={m.purchases.toLocaleString('it-IT')} color="#22c55e" />
-          <MiniKpi label="CPO"      value={m.cpp != null ? `€${m.cpp.toFixed(2)}` : '—'} color="#bf5af2" />
-          <MiniKpi label="CPM"      value={m.cpm ? `€${m.cpm.toFixed(2)}` : '—'} color="#06b6d4" />
-          <MiniKpi label="CTR"      value={m.ctr ? `${m.ctr.toFixed(2)}%` : '—'} color="#f97316" />
-        </div>
-        <span style={{ color: 'var(--text3)', fontSize: 16, transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .25s' }}>›</span>
-      </button>
-
-      {/* Body: grande chart + altri sparkline */}
-      {open && (
-        <div style={{ padding: '0 22px 22px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ paddingTop: 18 }}>
-            <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 12 }}>
-              {metricInfo.label} — trend daily
-            </div>
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id={`grad-${cat.id}-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={metricInfo.color} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={metricInfo.color} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
-                  <Tooltip
-                    contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, fontSize: 12 }}
-                    formatter={(v) => [metricInfo.fmt(v), metricInfo.label]}
-                  />
-                  <Area type="monotone" dataKey="value" stroke={metricInfo.color} fill={`url(#grad-${cat.id}-${activeMetric})`} strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Sparkline grid per le altre 7 metriche */}
-          <div style={{ marginTop: 22 }}>
-            <div style={{ fontSize: 10.5, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Tutte le metriche
-            </div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12,
-            }}>
-              {TREND_METRICS.map(t => (
-                <Sparkline key={t.key} cat={cat} metric={t} />
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={th}>KPI</th>
+              {cols.map(c => (
+                <th key={c.id} style={{ ...th, color: c.color, textAlign: 'right' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
+                    {c.label}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600, marginTop: 2, textAlign: 'right' }}>
+                    {c.adsetCount} adset
+                  </div>
+                </th>
               ))}
-            </div>
+              <th style={{ ...th, textAlign: 'right', color: '#fff' }}>Totale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {TREND_METRICS.map(metric => (
+              <tr
+                key={metric.key}
+                onClick={() => onMetricClick(metric.key)}
+                style={{
+                  cursor: 'pointer',
+                  background: activeMetric === metric.key ? `${metric.color}10` : 'transparent',
+                  transition: 'background .15s',
+                }}
+              >
+                <td style={tdLabel}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 3, height: 16, borderRadius: 2, background: metric.color }} />
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{metric.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text4, #555)', fontWeight: 600 }}>
+                      {metric.agg === 'sum' ? '(somma)' : '(media)'}
+                    </span>
+                  </div>
+                </td>
+                {cols.map(c => (
+                  <td key={c.id} style={tdNum}>
+                    {metric.fmt(cellValue(metric.key, c.metrics))}
+                  </td>
+                ))}
+                <td style={{ ...tdNum, color: '#fff', fontWeight: 800 }}>
+                  {metric.fmt(cellValue(metric.key, total))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding: '10px 16px', fontSize: 11, color: 'var(--text4, #666)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        Click su una riga per selezionare la metrica nel grafico sotto.
+      </div>
+    </div>
+  )
+}
+
+const th = {
+  textAlign: 'left', padding: '14px 16px', fontSize: 10.5, fontWeight: 800,
+  letterSpacing: '0.10em', textTransform: 'uppercase',
+  color: 'var(--text3)', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  whiteSpace: 'nowrap',
+}
+const tdLabel = {
+  padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+}
+const tdNum = {
+  padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.04)',
+  fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.88)', fontWeight: 600,
+}
+
+// ── Grafico unificato: 1 line chart con 3 linee (1 per segmento) ──
+function TrendCharts({ cats, activeMetric, onMetricChange }) {
+  const metricInfo = TREND_METRICS.find(t => t.key === activeMetric) || TREND_METRICS[0]
+  const cols = Object.values(cats)
+
+  // Asse comune: tutti i giorni presenti in almeno 1 categoria
+  const allDates = new Set()
+  cols.forEach(c => (c.trend || []).forEach(t => allDates.add(t.date)))
+  const dates = Array.from(allDates).sort()
+
+  // chartData: una entry per giorno, una colonna per categoria
+  const chartData = dates.map(d => {
+    const row = { date: d.slice(5) }
+    cols.forEach(c => {
+      const point = (c.trend || []).find(t => t.date === d)
+      row[c.id] = point ? (point[activeMetric] ?? 0) : 0
+    })
+    return row
+  })
+
+  return (
+    <div className="glass-card-static" style={{ padding: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 10.5, color: metricInfo.color, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Trend {metricInfo.label}
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 4 }}>
+            Andamento daily per segmento
           </div>
         </div>
-      )}
-    </div>
-  )
-}
-
-function MiniKpi({ label, value, color }) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 9, color, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-        {label}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {TREND_METRICS.map(m => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => onMetricChange(m.key)}
+              className="btn-glass"
+              style={{
+                border: activeMetric === m.key ? `1px solid ${m.color}` : '1px solid var(--border)',
+                background: activeMetric === m.key ? `${m.color}1c` : 'var(--glass)',
+                color: activeMetric === m.key ? '#fff' : 'var(--text3)',
+                borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginTop: 2 }}>{value}</div>
-    </div>
-  )
-}
 
-function Sparkline({ cat, metric }) {
-  const data = (cat.trend || []).map(t => ({ date: t.date.slice(5), value: t[metric.key] ?? 0 }))
-  const last = data.length > 0 ? data[data.length - 1].value : 0
-  return (
-    <div className="glass-panel" style={{ borderRadius: 10, padding: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 10, color: metric.color, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-          {metric.label}
-        </span>
-        <span style={{ fontSize: 13, color: '#fff', fontWeight: 800 }}>
-          {metric.fmt(last)}
-        </span>
-      </div>
-      <div style={{ height: 50 }}>
+      <div style={{ height: 320 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <Line type="monotone" dataKey="value" stroke={metric.color} dot={false} strokeWidth={1.5} />
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
             <Tooltip
-              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
-              formatter={(v) => [metric.fmt(v), metric.label]}
-              labelFormatter={(l) => `Giorno ${l}`}
+              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, fontSize: 12 }}
+              formatter={(v, name) => [metricInfo.fmt(v), cats[name]?.label || name]}
             />
+            {cols.map(c => (
+              <Line key={c.id} type="monotone" dataKey={c.id} stroke={c.color} strokeWidth={2} dot={false} />
+            ))}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16, flexWrap: 'wrap' }}>
+        {cols.map(c => (
+          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ width: 16, height: 3, borderRadius: 2, background: c.color }} />
+            <span style={{ color: 'rgba(255,255,255,0.85)' }}>{c.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   )

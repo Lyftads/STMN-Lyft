@@ -24,6 +24,7 @@ import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MultiWindowCards from './components/MultiWindowCards'
+import MetaAuditTab from './components/MetaAuditTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
@@ -4135,6 +4136,10 @@ export default function App() {
 {/* META DETAIL TAB */}
 {tab === 'metaDetail' && (
   <MetaDetailTab />
+)}
+
+{tab === 'metaAudit' && (
+  <MetaAuditTab />
 )}
 
 {tab === 'creativeFatigue' && (

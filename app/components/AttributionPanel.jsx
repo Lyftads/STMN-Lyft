@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import FxCard from './ui/FxCard'
 
@@ -27,7 +26,7 @@ function chColor(label, i) {
   return CH_COLORS[i % CH_COLORS.length]
 }
 
-export default function AttributionPanel({ preset = 'last_28d', reloadKey }) {
+export default function AttributionPanel({ preset = 'last_28d', reloadKey, live }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -35,25 +34,42 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey }) {
   useEffect(() => {
     let cancelled = false
     setError(null)
-    const url = `/api/attribution?preset=${encodeURIComponent(preset)}`
-    const key = `attribution:${preset}`
-    const cached = getCached(key)
-    if (cached) setData(cached.data)
-    else setLoading(true)
-    swrFetch({
-      key,
-      fetcher: () => fetch(url).then(r => r.json()),
-      onUpdate: (fresh) => { if (!cancelled) setData(fresh) },
-    })
-      .then(({ data: j }) => {
+    setLoading(true)
+    ;(async () => {
+      try {
+        // I dati Shopify arrivano da /api/metrics (già in `live` per lo stesso
+        // preset). Se mancano, li carico lato client (browser autenticato →
+        // funziona anche sui preview deploy protetti, a differenza di una
+        // self-fetch server→server).
+        let m = live
+        if (!m || !m.kpiBrain) {
+          m = await fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`).then(r => r.json())
+        }
+        const payload = {
+          preset,
+          range: m?.kpiBrain?.range || null,
+          prevRange: m?.kpiBrain?.previousRange || null,
+          shopifyRange: m?.shopifyRange || {},
+          shopifyPrevRange: m?.shopifyPrevRange || {},
+          sources: m?.shopifyMarketingSources || [],
+          prevSources: m?.kpiBrain?.previous?.shopifyMarketingSources || [],
+        }
+        const j = await fetch('/api/attribution', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).then(r => r.json())
         if (cancelled) return
         if (j.error && !j.totals) setError(j.error)
-        if (!cached) setData(j)
-      })
-      .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
-      .finally(() => { if (!cancelled && !cached) setLoading(false) })
+        else setData(j)
+      } catch (e) {
+        if (!cancelled) setError(e?.message || 'Errore di rete')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => { cancelled = true }
-  }, [preset, reloadKey])
+  }, [preset, reloadKey, live])
 
   const t = data?.totals || {}
   const d = data?.delta || {}

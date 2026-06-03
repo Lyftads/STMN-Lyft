@@ -73,30 +73,9 @@ async function metaPeriod(since, until) {
 
 const mkDelta = (cur, prev) => ({ abs: r2(cur - prev), pct: prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null })
 
-export async function GET(req) {
-  return withTenantContext(req, async () => {
-    const { searchParams, origin } = new URL(req.url)
-    const preset = searchParams.get('preset') || 'last_28d'
-
-    // Dati Shopify dalla rotta metrics (finestre già calcolate e cache)
-    let m = null
-    try {
-      m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(40000) }).then(r => r.json())
-    } catch {}
-
-    const range = m?.kpiBrain?.range || null
-    const prev = m?.kpiBrain?.previousRange || null
-    const sr = m?.shopifyRange || {}
-    const spr = m?.shopifyPrevRange || {}
-    const sources = Array.isArray(m?.shopifyMarketingSources) ? m.shopifyMarketingSources : []
-    const prevSources = Array.isArray(m?.kpiBrain?.previous?.shopifyMarketingSources) ? m.kpiBrain.previous.shopifyMarketingSources : []
-
-    // Meta attribuito sulla stessa finestra
-    const [metaCur, metaPrev] = await Promise.all([
-      range ? metaPeriod(range.since, range.until) : Promise.resolve(null),
-      prev ? metaPeriod(prev.since, prev.until) : Promise.resolve(null),
-    ])
-
+// Calcolo puro (riusato da GET e POST). Riceve i dati Shopify già pronti
+// (slice di /api/metrics) + gli aggregati Meta attribuiti per finestra.
+function computeAttribution({ preset, range, prev, sr = {}, spr = {}, sources = [], prevSources = [], metaCur, metaPrev }) {
     // ── Totali business ──
     const totalRevenue = num(sr.revenue)
     const totalOrders = num(sr.orders)
@@ -147,10 +126,10 @@ export async function GET(req) {
     const attributionGap = r2(metaRevenue - metaTrackedRevenue)
     const overAttributionPct = metaTrackedRevenue > 0 ? Math.round(((metaRevenue - metaTrackedRevenue) / metaTrackedRevenue) * 100) : null
 
-    const hasShopify = m?.sources?.shopify && totalRevenue > 0
+    const hasShopify = totalRevenue > 0
     const hasMeta = !!(metaToken() && metaAccount()) && adSpend > 0
 
-    return NextResponse.json({
+    return {
       preset,
       range,
       label: range?.label || preset,
@@ -195,6 +174,53 @@ export async function GET(req) {
         overAttributionPct,
       },
       updatedAt: new Date().toISOString(),
+    }
+}
+
+// POST: il client (autenticato) invia i dati Shopify già caricati da /api/metrics.
+// Robusto anche sui preview deploy protetti da Vercel (niente self-fetch server→server).
+export async function POST(req) {
+  return withTenantContext(req, async () => {
+    const body = await req.json().catch(() => ({}))
+    const range = body.range || null
+    const prev = body.prevRange || null
+    const [metaCur, metaPrev] = await Promise.all([
+      range?.since ? metaPeriod(range.since, range.until) : Promise.resolve(null),
+      prev?.since ? metaPeriod(prev.since, prev.until) : Promise.resolve(null),
+    ])
+    const out = computeAttribution({
+      preset: body.preset, range, prev,
+      sr: body.shopifyRange || {}, spr: body.shopifyPrevRange || {},
+      sources: Array.isArray(body.sources) ? body.sources : [],
+      prevSources: Array.isArray(body.prevSources) ? body.prevSources : [],
+      metaCur, metaPrev,
     })
+    return NextResponse.json(out)
+  })
+}
+
+// GET: comodo per curl/produzione (self-fetch a /api/metrics via origin).
+export async function GET(req) {
+  return withTenantContext(req, async () => {
+    const { searchParams, origin } = new URL(req.url)
+    const preset = searchParams.get('preset') || 'last_28d'
+    let m = null
+    try {
+      m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(40000) }).then(r => r.json())
+    } catch {}
+    const range = m?.kpiBrain?.range || null
+    const prev = m?.kpiBrain?.previousRange || null
+    const [metaCur, metaPrev] = await Promise.all([
+      range ? metaPeriod(range.since, range.until) : Promise.resolve(null),
+      prev ? metaPeriod(prev.since, prev.until) : Promise.resolve(null),
+    ])
+    const out = computeAttribution({
+      preset, range, prev,
+      sr: m?.shopifyRange || {}, spr: m?.shopifyPrevRange || {},
+      sources: Array.isArray(m?.shopifyMarketingSources) ? m.shopifyMarketingSources : [],
+      prevSources: Array.isArray(m?.kpiBrain?.previous?.shopifyMarketingSources) ? m.kpiBrain.previous.shopifyMarketingSources : [],
+      metaCur, metaPrev,
+    })
+    return NextResponse.json(out)
   })
 }

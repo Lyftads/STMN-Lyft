@@ -2706,7 +2706,9 @@ export default function App() {
               current={totRC} previous={prevTotals.rc} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(6, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+            <Stat label="MER blended" value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
+              current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
             <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a`} />
             <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}

@@ -33,19 +33,25 @@ const num  = v => v != null ? Number(v).toLocaleString('it-IT') : '—'
 const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
+// 'kind' controlla il formato del delta assoluto:
+//   money   → mostra € (es. +€1.234)
+//   ratio   → mostra unita' (es. +0.12 punti per ROAS/freq)
+//   percent → mostra punti percentuali (es. +0.45 pp per CTR)
+//   count   → mostra numero (es. +1.234)
+// 'lower' = true significa che un calo e' positivo (CPO, CPM, CPC, frequenza).
 const KPIS = [
-  { key: 'spend',      label: 'Spesa',         fmt: eur },
-  { key: 'revenue',    label: 'Revenue',       fmt: eur },
-  { key: 'roas',       label: 'ROAS',          fmt: mul },
-  { key: 'purchases',  label: 'Acquisti',      fmt: num },
-  { key: 'cpo',        label: 'CPO',           fmt: eur2 },
-  { key: 'impressions',label: 'Impressioni',   fmt: num },
-  { key: 'reach',      label: 'Copertura',     fmt: num },
-  { key: 'frequency',  label: 'Frequenza',     fmt: v => v != null ? Number(v).toFixed(2) : '—' },
-  { key: 'cpm',        label: 'CPM',           fmt: eur2 },
-  { key: 'ctr_link',   label: 'CTR link',      fmt: pct },
-  { key: 'cpc_link',   label: 'CPC link',      fmt: eur2 },
-  { key: 'link_clicks',label: 'Click link',    fmt: num },
+  { key: 'spend',      label: 'Spesa',         fmt: eur,  kind: 'money'   },
+  { key: 'revenue',    label: 'Revenue',       fmt: eur,  kind: 'money'   },
+  { key: 'roas',       label: 'ROAS',          fmt: mul,  kind: 'ratio'   },
+  { key: 'purchases',  label: 'Acquisti',      fmt: num,  kind: 'count'   },
+  { key: 'cpo',        label: 'CPO',           fmt: eur2, kind: 'money',  lower: true },
+  { key: 'impressions',label: 'Impressioni',   fmt: num,  kind: 'count'   },
+  { key: 'reach',      label: 'Copertura',     fmt: num,  kind: 'count'   },
+  { key: 'frequency',  label: 'Frequenza',     fmt: v => v != null ? Number(v).toFixed(2) : '—', kind: 'ratio', lower: true },
+  { key: 'cpm',        label: 'CPM',           fmt: eur2, kind: 'money',  lower: true },
+  { key: 'ctr_link',   label: 'CTR link',      fmt: pct,  kind: 'percent' },
+  { key: 'cpc_link',   label: 'CPC link',      fmt: eur2, kind: 'money',  lower: true },
+  { key: 'link_clicks',label: 'Click link',    fmt: num,  kind: 'count'   },
 ]
 
 const CHARTS = [
@@ -97,6 +103,7 @@ export default function MetaKpiTab() {
   }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = data?.totals || {}
+  const prevTotals = data?.prevTotals || {}
   const daily = Array.isArray(data?.daily) ? data.daily : []
 
   return (
@@ -119,27 +126,35 @@ export default function MetaKpiTab() {
             Performance Meta Ads · {data?.range?.since} → {data?.range?.until}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {PRESETS.map(o => (
-            <button
-              key={o.value} type="button"
-              onClick={() => setPreset(o.value)}
-              style={{
-                border: preset === o.value ? '1px solid #2997ff' : '1px solid var(--border)',
-                background: preset === o.value ? 'rgba(41,151,255,0.13)' : 'var(--glass)',
-                color: preset === o.value ? '#7dd3fc' : 'var(--text3)',
-                borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >{o.label}</button>
-          ))}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            value={preset}
+            onChange={e => setPreset(e.target.value)}
+            style={{
+              background: 'var(--glass)',
+              border: '1px solid var(--border)',
+              color: '#fff',
+              borderRadius: 10,
+              padding: '8px 14px',
+              fontSize: 13, fontWeight: 700,
+              outline: 'none',
+              cursor: 'pointer',
+              minWidth: 160,
+            }}
+          >
+            {PRESETS.map(o => (
+              <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>
+                {o.label}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={() => load(true)}
             disabled={loading}
             style={{
               border: '1px solid var(--border)', background: 'var(--glass)',
-              color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800,
+              color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
               display: 'flex', alignItems: 'center', gap: 6,
             }}
@@ -165,11 +180,11 @@ export default function MetaKpiTab() {
           {/* CARD KPI */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: 12,
           }}>
             {KPIS.map(k => (
-              <KpiCard key={k.key} kpi={k} value={totals[k.key]} />
+              <KpiCard key={k.key} kpi={k} value={totals[k.key]} prev={prevTotals[k.key]} />
             ))}
           </div>
 
@@ -190,7 +205,31 @@ export default function MetaKpiTab() {
 }
 
 // ── Card KPI singola ─────────────────────────────────────────
-function KpiCard({ kpi, value }) {
+function KpiCard({ kpi, value, prev }) {
+  const v = Number(value || 0)
+  const p = Number(prev || 0)
+  const hasPrev = prev != null && Number.isFinite(p)
+  const absDelta = hasPrev ? v - p : null
+  const pctDelta = hasPrev && p !== 0 ? ((v - p) / Math.abs(p)) * 100 : null
+
+  // Per metriche "lower is better" un calo (delta negativo) e' positivo.
+  const isPositive = absDelta == null ? null
+                   : kpi.lower ? absDelta < 0
+                   : absDelta > 0
+
+  const fmtAbs = (d) => {
+    if (d == null) return ''
+    const sign = d > 0 ? '+' : d < 0 ? '−' : ''
+    const x = Math.abs(d)
+    switch (kpi.kind) {
+      case 'money':   return `${sign}€${x.toLocaleString('it-IT', { maximumFractionDigits: x < 100 ? 2 : 0 })}`
+      case 'ratio':   return `${sign}${x.toFixed(2)}`
+      case 'percent': return `${sign}${x.toFixed(2)} pp`
+      case 'count':   return `${sign}${x.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+      default:        return `${sign}${x.toFixed(2)}`
+    }
+  }
+
   return (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
@@ -208,6 +247,26 @@ function KpiCard({ kpi, value }) {
       }}>
         {kpi.fmt(value)}
       </div>
+      {hasPrev && Math.abs(absDelta) > 0.0001 && (
+        <div style={{
+          marginTop: 8,
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 11, fontWeight: 700,
+          color: isPositive ? '#22c55e' : '#f87171',
+        }}>
+          <span>{absDelta > 0 ? '▲' : '▼'}</span>
+          {pctDelta != null && (
+            <span>{Math.abs(pctDelta).toFixed(1)}%</span>
+          )}
+          <span style={{ color: 'var(--text3)', fontWeight: 600 }}>·</span>
+          <span style={{ color: 'var(--text2)', fontWeight: 600 }}>{fmtAbs(absDelta)}</span>
+        </div>
+      )}
+      {hasPrev && Math.abs(absDelta) <= 0.0001 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+          = periodo precedente
+        </div>
+      )}
     </div>
   )
 }

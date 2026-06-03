@@ -35,13 +35,19 @@ export async function GET(req) {
       .map(a => a.startsWith('act_') ? a : `act_${a}`)
 
     try {
-      const { totals, daily } = await buildKpi({ accessToken, accountIds, range })
+      const prevRange = previousRange(range)
+      const [{ totals, daily }, prevAgg] = await Promise.all([
+        buildKpi({ accessToken, accountIds, range }),
+        buildKpiTotalsOnly({ accessToken, accountIds, range: prevRange }),
+      ])
       return NextResponse.json({
-        preset, range, accounts: accountIds, totals, daily,
+        preset, range, prevRange,
+        accounts: accountIds,
+        totals, prevTotals: prevAgg.totals, daily,
         updatedAt: new Date().toISOString(),
       })
     } catch (err) {
-      return NextResponse.json({ error: err?.message || 'Errore Meta', totals: zeroBucket(), daily: [] }, { status: 200 })
+      return NextResponse.json({ error: err?.message || 'Errore Meta', totals: zeroBucket(), prevTotals: zeroBucket(), daily: [] }, { status: 200 })
     }
   })
 }
@@ -98,6 +104,34 @@ function pickPurchases(actions) {
 
 function pickRevenue(actionValues) {
   return numFrom(actionValues, ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase'])
+}
+
+function previousRange({ since, until }) {
+  const day = 24 * 60 * 60 * 1000
+  const sinceD = new Date(`${since}T00:00:00Z`)
+  const untilD = new Date(`${until}T00:00:00Z`)
+  const days = Math.floor((untilD - sinceD) / day) + 1
+  const prevUntilD = new Date(sinceD.getTime() - day)
+  const prevSinceD = new Date(prevUntilD.getTime() - (days - 1) * day)
+  const fmt = d => d.toISOString().slice(0, 10)
+  return { since: fmt(prevSinceD), until: fmt(prevUntilD) }
+}
+
+async function buildKpiTotalsOnly({ accessToken, accountIds, range }) {
+  const totals = zeroBucket()
+  for (const accId of accountIds) {
+    const fields = encodeURIComponent('spend,impressions,clicks,inline_link_clicks,reach,frequency,actions,action_values')
+    const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
+    const url = `${GRAPH}/${accId}/insights?level=account&time_range=${timeRange}&fields=${fields}&access_token=${accessToken}`
+    try {
+      const data = await fbGet(url)
+      for (const r of (data.data || [])) accumulate(totals, r)
+    } catch (e) {
+      console.log('[meta-kpi] prev totals failed', accId, e?.message)
+    }
+  }
+  finalize(totals)
+  return { totals }
 }
 
 async function buildKpi({ accessToken, accountIds, range }) {

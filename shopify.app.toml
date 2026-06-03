@@ -1,0 +1,23 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "a385cfa5245273f810530fe2e88c46bf"
+application_url = "https://stmn-lyft.vercel.app"
+embedded = false
+name = "LyftAI"
+
+[webhooks]
+api_version = "2026-04"
+
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "https://stmn-lyft.vercel.app/api/shopify/webhooks/compliance"
+  customer_deletion_url = "https://stmn-lyft.vercel.app/api/shopify/webhooks/compliance"
+  shop_deletion_url = "https://stmn-lyft.vercel.app/api/shopify/webhooks/compliance"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,read_products,read_customers,read_reports,read_inventory,read_locations,read_discounts,read_marketing_events,read_fulfillments,read_returns"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ "https://api.nango.dev/oauth/callback" ]

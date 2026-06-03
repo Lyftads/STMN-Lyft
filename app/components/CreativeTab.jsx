@@ -142,7 +142,7 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
         <PlatformBadges sources={['meta']} size={14} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: tone }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>
           {value}
         </div>
         {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={tone} />}
@@ -465,7 +465,7 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
         flexWrap: 'wrap',
       }}>
         <div style={{
-          color: highlight && tone ? tone : '#fff',
+          color: '#fff',
           fontSize: 13,
           fontWeight: 900,
           letterSpacing: '-0.01em',

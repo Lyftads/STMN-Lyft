@@ -149,7 +149,7 @@ export default function VendroShell({
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       background: '#000',
       color: 'var(--text)',
       display: 'flex',
@@ -210,7 +210,7 @@ export default function VendroShell({
         width: 240,
         minWidth: 240,
         height: '100vh',
-        position: 'sticky',
+        position: 'relative',
         top: 0,
         borderRight: '1px solid var(--border)',
         background: 'rgba(0,0,0,0.6)',
@@ -309,6 +309,8 @@ export default function VendroShell({
       <main style={{
         flex: 1,
         minWidth: 0,
+        height: '100vh',
+        overflowY: 'auto',
         padding: '40px 48px 80px',
         position: 'relative',
         zIndex: 1,

@@ -23,6 +23,7 @@ import RecommendationsFeed from './components/RecommendationsFeed'
 import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
+import MultiWindowCards from './components/MultiWindowCards'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
@@ -2276,7 +2277,9 @@ export default function App() {
     const y = now.getFullYear()
 
     const PRESETS = [
-      'last_7d', 'last_30d', 'last_90d',
+      // Rolling windows usate da MultiWindowCards
+      'last_3d', 'last_7d', 'last_14d', 'last_30d',
+      'last_90d',
       `month_${mLabel}`,
       `quarter_${y}-Q${q}`,
       `year_${y}`,
@@ -2677,6 +2680,8 @@ export default function App() {
       {tab==='dashboard' && (
         <>
           <RecommendationsFeed metrics={live} preset={preset} />
+
+          <MultiWindowCards />
 
           <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />

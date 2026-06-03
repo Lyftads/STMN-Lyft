@@ -118,6 +118,10 @@ function getPresetRange(preset = 'last_90d') {
 
   // Shopify "Ultimi N giorni" = [oggi-N, oggi] (verificato sul report: last_7d
   // = 26/05 → 02/06, cioe' oggi-7 → oggi). Allineiamo tutti i preset relativi.
+  if (preset === 'last_3d') {
+    return { since: toDateString(addDays(today, -3)), until, label: 'Ultimi 3 giorni' }
+  }
+
   if (preset === 'last_7d') {
     return { since: toDateString(addDays(today, -7)), until, label: 'Ultimi 7 giorni' }
   }

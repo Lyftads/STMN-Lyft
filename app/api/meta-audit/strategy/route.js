@@ -348,21 +348,26 @@ async function buildAudit({ accessToken, accountIds, range }) {
     }
   }
 
-  // STEP 4: fetch targeting di ogni adset (batch by IDs).
-  // Serve per la classifyAudienceSubtype fallback quando il name non matcha.
-  const adsetIds = adsetsAll.map(a => a.id)
-  for (let i = 0; i < adsetIds.length; i += 50) {
-    const chunk = adsetIds.slice(i, i + 50)
-    const url = `${GRAPH}/?ids=${chunk.join(',')}&fields=id,targeting&access_token=${accessToken}`
+  // STEP 4: fetch targeting di ogni adset attivo (account-level listing).
+  // Il batch /?ids=A,B,C&fields=targeting NON funziona affidabile per gli
+  // adset (Meta restituisce error o targeting null). Usiamo il listing
+  // /act_X/adsets che e' garantito.
+  const adsetMap = new Map(adsetsAll.map(a => [a.id, a]))
+  let debugAdsetsWithTargeting = 0
+  for (const accId of accountIds) {
+    const fields = encodeURIComponent('id,name,targeting')
+    const url = `${GRAPH}/${accId}/adsets?fields=${fields}&limit=500&access_token=${accessToken}`
     try {
-      const data = await fbGet(url)
-      for (const adset of adsetsAll) {
-        if (data[adset.id]?.targeting) {
-          adset.targeting = data[adset.id].targeting
+      const list = await fbGetAllPages(url, 30)
+      for (const a of list) {
+        const target = adsetMap.get(a.id)
+        if (target) {
+          target.targeting = a.targeting || {}
+          if (a.targeting) debugAdsetsWithTargeting++
         }
       }
     } catch (e) {
-      errors.push(`targeting batch: ${e?.message}`)
+      errors.push(`targeting listing ${accId}: ${e?.message}`)
     }
   }
   const debugTotalFetched = insightsByAdset.size
@@ -527,12 +532,22 @@ async function buildAudit({ accessToken, accountIds, range }) {
       campaigns_active: debugCampaignsFetched,
       adsets_with_spend: debugTotalFetched,
       adsets_kept_after_filter: adsetsAll.length,
+      adsets_with_targeting: debugAdsetsWithTargeting,
       audiences_in_map: audMap.size,
       audience_ids_referenced: audienceIds.size,
       accounts: accountIds,
       classification_breakdown: adsetCountByCat,
       errors,
-      sample_adset_names: adsetsClassified.slice(0, 15).map(a => ({ n: a.name, cmp: a._campaignName, cat: a.category })),
+      sample_adset_names: adsetsClassified.slice(0, 22).map(a => ({
+        n: a.name,
+        cmp: a._campaignName,
+        cat: a.category,
+        ca: (a.targeting?.custom_audiences || []).map(x => x.id),
+        eca: (a.targeting?.excluded_custom_audiences || []).map(x => x.id),
+        ls: (a.targeting?.flexible_spec || []).length,
+        ag: a.targeting?.age_min || null,
+        geo: a.targeting?.geo_locations ? 'y' : 'n',
+      })),
     },
   }
 }

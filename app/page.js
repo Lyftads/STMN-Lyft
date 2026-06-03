@@ -26,6 +26,7 @@ import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MultiWindowCards from './components/MultiWindowCards'
 import MetaAuditTab from './components/MetaAuditTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
+import AttributionPanel from './components/AttributionPanel'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -4150,6 +4151,10 @@ export default function App() {
 
 {tab === 'budgetAdvisor' && (
   <BudgetAdvisorPanel />
+)}
+
+{tab === 'attribution' && (
+  <AttributionPanel />
 )}
 
 {/* PERFORMANCE AGENT TAB */}

@@ -12,6 +12,7 @@ function getPageTitle(tab) {
     dashboard: 'Dashboard',
     kpiBrain: 'KPI Brain',
     attribution: 'Attribuzione',
+    ltvCohorts: 'LTV & Coorti',
     monthly: 'Monthly',
     weekly: 'Weekly',
     quarter: 'Quarter',
@@ -40,6 +41,7 @@ function getPageSubtitle(tab) {
   const map = {
     kpiBrain: 'Your business intelligence at a glance',
     attribution: 'Total Impact · paid vs organico · contributo per canale · MER blended',
+    ltvCohorts: 'Retention per coorte · repeat rate · tempo al 2° ordine · curva LTV',
     creative: 'Analisi creative Meta Ads',
     creativeFatigue: 'Creative da rinfrescare · frequency, CTR, CPA',
     budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
@@ -92,6 +94,7 @@ export default function VendroShell({
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
+        { id: 'ltvCohorts', label: 'LTV & Coorti', icon: '⧗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
         { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },

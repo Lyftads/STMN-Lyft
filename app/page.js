@@ -27,6 +27,7 @@ import MultiWindowCards from './components/MultiWindowCards'
 import MetaKpiTab from './components/MetaKpiTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import AttributionPanel from './components/AttributionPanel'
+import LtvCohortsTab from './components/LtvCohortsTab'
 import TimeframeSelector from './components/TimeframeSelector'
 import MensileAgent from './components/MensileAgent'
 import WeeklyAgent from './components/WeeklyAgent'
@@ -4155,6 +4156,10 @@ export default function App() {
 
 {tab === 'attribution' && (
   <AttributionPanel preset={preset} reloadKey={updated} live={live} />
+)}
+
+{tab === 'ltvCohorts' && (
+  <LtvCohortsTab />
 )}
 
 {/* PERFORMANCE AGENT TAB */}

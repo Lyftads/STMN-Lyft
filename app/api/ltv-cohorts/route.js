@@ -17,12 +17,13 @@ const r2 = (n) => Math.round(num(n) * 100) / 100
 
 const MONTH_LABELS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
-async function fetchCustomers(sinceStr) {
+async function fetchCustomers(startTs) {
   if (!storeUrl() || !token()) return { customers: [], truncated: false }
   const out = []
-  const query = `created_at:>=${sinceStr}`
+  // Più recenti prima: così raccolgo solo la finestra e mi fermo appena
+  // arrivo a clienti più vecchi dell'inizio periodo.
   const gql = `query($cursor: String) {
-    customers(first: 250, after: $cursor, query: ${JSON.stringify(query)}, sortKey: CREATED_AT) {
+    customers(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
       edges { node { createdAt numberOfOrders amountSpent { amount } } }
       pageInfo { hasNextPage endCursor }
     }
@@ -31,7 +32,8 @@ async function fetchCustomers(sinceStr) {
   let pages = 0
   const MAX_PAGES = 80
   let truncated = false
-  while (pages < MAX_PAGES) {
+  let done = false
+  while (pages < MAX_PAGES && !done) {
     pages++
     const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
@@ -43,9 +45,13 @@ async function fetchCustomers(sinceStr) {
     const j = await res.json()
     const conn = j?.data?.customers
     if (!conn) { if (pages === 1 && j?.errors) throw new Error(j.errors[0]?.message || 'GraphQL error'); break }
-    for (const e of (conn.edges || [])) out.push(e.node)
-    if (conn.pageInfo?.hasNextPage) { cursor = conn.pageInfo.endCursor }
-    else break
+    for (const e of (conn.edges || [])) {
+      const ts = new Date(e.node.createdAt).getTime()
+      if (Number.isFinite(ts) && ts < startTs) { done = true; break } // più vecchio della finestra → stop
+      out.push(e.node)
+    }
+    if (done || !conn.pageInfo?.hasNextPage) break
+    cursor = conn.pageInfo.endCursor
     if (pages >= MAX_PAGES && conn.pageInfo?.hasNextPage) truncated = true
   }
   return { customers: out, truncated }
@@ -62,7 +68,7 @@ export async function GET(req) {
     const sinceStr = start.toISOString().slice(0, 10)
 
     try {
-      const { customers, truncated } = await fetchCustomers(sinceStr)
+      const { customers, truncated } = await fetchCustomers(start.getTime())
 
       const cohortMap = new Map() // 'YYYY-MM' → agg
       let totCustomers = 0, totOrders = 0, totRevenue = 0, repeatTot = 0

@@ -4154,7 +4154,7 @@ export default function App() {
 )}
 
 {tab === 'attribution' && (
-  <AttributionPanel />
+  <AttributionPanel preset={preset} reloadKey={updated} />
 )}
 
 {/* PERFORMANCE AGENT TAB */}

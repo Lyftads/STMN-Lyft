@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import FxCard from './ui/FxCard'
-import TimeframeSelector from './TimeframeSelector'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -28,11 +27,10 @@ function chColor(label, i) {
   return CH_COLORS[i % CH_COLORS.length]
 }
 
-export default function AttributionPanel() {
+export default function AttributionPanel({ preset = 'last_28d', reloadKey }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [preset, setPreset] = useState('last_28d')
 
   useEffect(() => {
     let cancelled = false
@@ -55,7 +53,7 @@ export default function AttributionPanel() {
       .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled && !cached) setLoading(false) })
     return () => { cancelled = true }
-  }, [preset])
+  }, [preset, reloadKey])
 
   const t = data?.totals || {}
   const d = data?.delta || {}
@@ -82,10 +80,6 @@ export default function AttributionPanel() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard title="Attribuzione · Total Impact" subtitle="Vista blended del business · paid vs organico · contributo per canale · MER reale vs ROAS dichiarato da Meta" delay={1.6}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
-          <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
-        </div>
-
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Calcolo l'attribuzione del periodo…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && !(t.revenue > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessun dato nel periodo selezionato.</div>}

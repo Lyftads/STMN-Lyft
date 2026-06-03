@@ -348,7 +348,7 @@ export default function VendroShell({
               flexShrink: 0,
             }}>
               <AlertsBell />
-              {setPreset && tab === 'dashboard' && (
+              {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
                 <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo

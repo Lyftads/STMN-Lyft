@@ -274,15 +274,15 @@ export default function VendroShell({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: isOpen || hasActive ? '#fff' : 'var(--text2)',
-                  fontSize: 13,
+                  color: isOpen || hasActive ? '#fff' : '#c7c7cf',
+                  fontSize: 14,
                   fontWeight: 800,
                   textTransform: 'uppercase',
                   letterSpacing: '0.10em',
                   transition: 'color 0.15s ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? '#fff' : 'var(--text2)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? '#fff' : '#c7c7cf' }}
               >
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%',
@@ -326,9 +326,9 @@ export default function VendroShell({
                         gap: 10,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        color: active ? '#fff' : 'var(--text2)',
+                        color: active ? '#fff' : '#c7c7cf',
                         background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: active ? 600 : 500,
                         transition: 'all 0.15s ease',
                         outline: 'none',
@@ -342,7 +342,7 @@ export default function VendroShell({
                         fontSize: 14,
                         display: 'inline-flex',
                         justifyContent: 'center',
-                        opacity: active ? 1 : 0.6,
+                        opacity: active ? 1 : 0.85,
                         transition: 'opacity 0.15s',
                       }}>
                         {item.icon}

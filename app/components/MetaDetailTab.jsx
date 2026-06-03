@@ -196,7 +196,7 @@ function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', da
           <div style={{
             fontSize: 26,
             fontWeight: 900,
-            color: accent,
+            color: '#fff',
             letterSpacing: '-0.02em',
           }}>{value}</div>
           {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}

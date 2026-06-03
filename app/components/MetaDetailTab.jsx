@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
 
@@ -491,22 +492,40 @@ export default function MetaDetailTab() {
     [preset, customSince, customUntil, accountFilter]
   )
 
-  const fetchMain = useCallback(async () => {
-    setLoading(true)
+  const fetchMain = useCallback(async (force = false) => {
     setError('')
     setOpenCampaigns({})
     setOpenAdsets({})
     setChildren({})
+    const queryString = qs({ level: 'campaigns' })
+    const key = `meta-detail:campaigns:${queryString}`
+    const cached = !force ? getCached(key) : null
+
+    if (cached) {
+      setData(cached.data)
+    } else {
+      setLoading(true)
+    }
+
     try {
-      const res = await fetch(`/api/meta-detail?${qs({ level: 'campaigns' })}`, { cache: 'no-store' })
-      const json = await res.json()
-      if (!json.ok) throw new Error(json.error || 'Errore caricamento Meta')
-      setData(json)
+      const { data: json } = await swrFetch({
+        key, forceRefresh: force,
+        fetcher: async () => {
+          const res = await fetch(`/api/meta-detail?${queryString}`, { cache: 'no-store' })
+          const j = await res.json()
+          if (!j.ok) throw new Error(j.error || 'Errore caricamento Meta')
+          return j
+        },
+        onUpdate: (fresh) => setData(fresh),
+      })
+      if (!cached || force) setData(json)
     } catch (e) {
-      setError(e.message)
-      setData(null)
+      if (!cached) {
+        setError(e.message)
+        setData(null)
+      }
     } finally {
-      setLoading(false)
+      if (!cached) setLoading(false)
     }
   }, [qs])
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { swrFetch, getCached } from '../../lib/clientCache'
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -97,12 +98,26 @@ export default function KlaviyoTab() {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    fetch(`/api/klaviyo?days=${days}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(json => { if (active) setData(json) })
+    const key = `klaviyo:${days}`
+    const cached = getCached(key)
+    if (cached) {
+      setData(cached.data)
+      // no setLoading: dati gia' visibili
+    } else {
+      setLoading(true)
+    }
+    swrFetch({
+      key,
+      fetcher: () => fetch(`/api/klaviyo?days=${days}`, { cache: 'no-store' })
+        .then(r => r.json()),
+      onUpdate: (fresh) => { if (active) setData(fresh) },
+    })
+      .then(({ data, fromCache }) => {
+        if (!active) return
+        if (!cached) setData(data)
+      })
       .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
+      .finally(() => { if (active && !cached) setLoading(false) })
     return () => { active = false }
   }, [days])
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
 import TimeframeSelector from './TimeframeSelector'
@@ -30,12 +31,27 @@ export default function CreativeFatiguePanel() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true); setError(null)
-    fetch(`/api/creative-fatigue?preset=${encodeURIComponent(preset)}${account ? `&account=${encodeURIComponent(account)}` : ''}`)
-      .then(r => r.json())
-      .then(j => { if (!cancelled) { if (j.error && !(j.ads?.length)) setError(j.error); setData(j) } })
-      .catch(e => { if (!cancelled) setError(e?.message || 'Errore di rete') })
-      .finally(() => { if (!cancelled) setLoading(false) })
+    setError(null)
+    const url = `/api/creative-fatigue?preset=${encodeURIComponent(preset)}${account ? `&account=${encodeURIComponent(account)}` : ''}`
+    const key = `creative-fatigue:${preset}:${account}`
+    const cached = getCached(key)
+    if (cached) {
+      setData(cached.data)
+    } else {
+      setLoading(true)
+    }
+    swrFetch({
+      key,
+      fetcher: () => fetch(url).then(r => r.json()),
+      onUpdate: (fresh) => { if (!cancelled) setData(fresh) },
+    })
+      .then(({ data: j }) => {
+        if (cancelled) return
+        if (j.error && !(j.ads?.length)) setError(j.error)
+        if (!cached) setData(j)
+      })
+      .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
+      .finally(() => { if (!cancelled && !cached) setLoading(false) })
     return () => { cancelled = true }
   }, [account, preset])
 

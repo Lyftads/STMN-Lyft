@@ -2282,15 +2282,36 @@ export default function App() {
       `year_${y}`,
     ]
 
+    // Prefetch list: [key, fetcher]
+    const PREFETCH = [
+      // Metrics core (dashboard / weekly / monthly / quarter / year / KPI brain)
+      ...PRESETS.map(p => [
+        `metrics:${p}`,
+        () => fetch(`/api/metrics?preset=${encodeURIComponent(p)}`).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+      ]),
+      // Klaviyo default (30 giorni)
+      ['klaviyo:30', () => fetch('/api/klaviyo?days=30').then(r => r.json())],
+      // Meta Detail default (last_28d, campaigns level)
+      // Key deve matchare quella generata da MetaDetailTab: qs() produce
+      // "preset=X&level=Y" (preset set per primo, level secondo da extra)
+      ['meta-detail:campaigns:preset=last_28d&level=campaigns',
+        () => fetch('/api/meta-detail?preset=last_28d&level=campaigns', { cache: 'no-store' }).then(r => r.json()),
+      ],
+      // Creative Fatigue (last_28d)
+      ['creative-fatigue:last_28d:',
+        () => fetch('/api/creative-fatigue?preset=last_28d').then(r => r.json()),
+      ],
+      // Budget Advisor (last_28d)
+      ['budget-advisor:last_28d:',
+        () => fetch('/api/budget-advisor?preset=last_28d').then(r => r.json()),
+      ],
+    ]
+
     const timers = []
-    PRESETS.forEach((p, i) => {
+    PREFETCH.forEach(([key, fetcher], i) => {
       const t = setTimeout(() => {
-        prefetch({
-          key: `metrics:${p}`,
-          fetcher: () => fetch(`/api/metrics?preset=${encodeURIComponent(p)}`)
-            .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
-        })
-      }, 800 + i * 250) // start 800ms dopo mount, poi stagger 250ms
+        prefetch({ key, fetcher })
+      }, 800 + i * 250) // start 800ms dopo mount, stagger 250ms
       timers.push(t)
     })
 

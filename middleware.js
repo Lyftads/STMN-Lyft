@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/auth/callback',
   '/onboarding',
   '/welcome',
+  '/privacy',
 ]
 
 export async function middleware(request) {

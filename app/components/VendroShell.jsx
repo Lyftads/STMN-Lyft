@@ -428,7 +428,7 @@ export default function VendroShell({
                   {loading ? 'Carico…' : 'Aggiorna'}
                 </button>
               )}
-              {['monthly', 'quarter', 'year'].includes(tab) && (
+              {['monthly', 'quarter', 'year', 'attribution'].includes(tab) && (
                 <DownloadReportButton tab={getPageTitle(tab)} preset={preset} />
               )}
             </div>

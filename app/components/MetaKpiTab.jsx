@@ -7,6 +7,29 @@ import {
 } from 'recharts'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
+import DownloadReportButton from './DownloadReportButton'
+
+// Mini-grafico sparkline per le card KPI
+function Sparkline({ data, dataKey, color = '#2997ff', width = 92, height = 30 }) {
+  const vals = (data || []).map(d => Number(d[dataKey] || 0))
+  if (vals.length < 2 || vals.every(v => v === 0)) return null
+  const max = Math.max(...vals), min = Math.min(...vals)
+  const range = max - min || 1
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * width},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ')
+  const gid = `mk-sl-${dataKey}-${color.replace('#', '')}`
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ flexShrink: 0, overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${height} ${pts} ${width},${height}`} fill={`url(#${gid})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 // ─────────────────────────────────────────────────────────────
 //  Meta KPI Tab
@@ -162,6 +185,7 @@ export default function MetaKpiTab() {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? 'Aggiorno…' : 'Aggiorna'}
           </button>
+          <DownloadReportButton tab="Meta KPI" preset={preset} />
         </div>
       </div>
 
@@ -184,7 +208,7 @@ export default function MetaKpiTab() {
             gap: 12,
           }}>
             {KPIS.map(k => (
-              <KpiCard key={k.key} kpi={k} value={totals[k.key]} prev={prevTotals[k.key]} />
+              <KpiCard key={k.key} kpi={k} value={totals[k.key]} prev={prevTotals[k.key]} daily={daily} />
             ))}
           </div>
 
@@ -205,7 +229,7 @@ export default function MetaKpiTab() {
 }
 
 // ── Card KPI singola ─────────────────────────────────────────
-function KpiCard({ kpi, value, prev }) {
+function KpiCard({ kpi, value, prev, daily }) {
   const v = Number(value || 0)
   const p = Number(prev || 0)
   const hasPrev = prev != null && Number.isFinite(p)
@@ -241,11 +265,14 @@ function KpiCard({ kpi, value, prev }) {
         </div>
         <PlatformBadges sources={['meta']} size={14} />
       </div>
-      <div style={{
-        fontSize: 24, fontWeight: 900, color: '#fff',
-        letterSpacing: '-0.02em',
-      }}>
-        {kpi.fmt(value)}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{
+          fontSize: 24, fontWeight: 900, color: '#fff',
+          letterSpacing: '-0.02em',
+        }}>
+          {kpi.fmt(value)}
+        </div>
+        <Sparkline data={daily} dataKey={kpi.key} color="#2997ff" />
       </div>
       {hasPrev && Math.abs(absDelta) > 0.0001 && (
         <div style={{

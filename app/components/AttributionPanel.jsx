@@ -10,6 +10,28 @@ function DeltaBadge({ d, lowerBetter = false }) {
   return <span style={{ fontSize: 10, fontWeight: 800, marginLeft: 6, color: good ? 'var(--green)' : 'var(--red)' }}>{up ? '▲' : '▼'} {Math.abs(d.pct).toFixed(1)}%</span>
 }
 
+// Mini-grafico sparkline per le card KPI
+function Sparkline({ data, dataKey, color = '#2997ff', width = 88, height = 28 }) {
+  const vals = (data || []).map(d => Number(d[dataKey] || 0))
+  if (vals.length < 2 || vals.every(v => v === 0)) return null
+  const max = Math.max(...vals), min = Math.min(...vals)
+  const range = max - min || 1
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * width},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ')
+  const gid = `at-sl-${dataKey}-${color.replace('#', '')}`
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ flexShrink: 0, overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${height} ${pts} ${width},${height}`} fill={`url(#${gid})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 const eur = (n) => `€${Number(n || 0).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
 const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
 const nf = (n) => Number(n || 0).toLocaleString('it-IT')
@@ -45,14 +67,23 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
         if (!m || !m.kpiBrain) {
           m = await fetch(`/api/metrics?preset=${encodeURIComponent(preset)}`).then(r => r.json())
         }
+        const range = m?.kpiBrain?.range || null
+        // Serie giornaliera Shopify (lato client → robusta anche sui preview protetti)
+        let shopifyDaily = []
+        if (range?.since) {
+          try {
+            shopifyDaily = await fetch(`/api/shopify-countries?since=${range.since}&until=${range.until}&breakdown=daily`).then(r => r.json()).then(j => j.daily || [])
+          } catch {}
+        }
         const payload = {
           preset,
-          range: m?.kpiBrain?.range || null,
+          range,
           prevRange: m?.kpiBrain?.previousRange || null,
           shopifyRange: m?.shopifyRange || {},
           shopifyPrevRange: m?.shopifyPrevRange || {},
           sources: m?.shopifyMarketingSources || [],
           prevSources: m?.kpiBrain?.previous?.shopifyMarketingSources || [],
+          shopifyDaily,
         }
         const j = await fetch('/api/attribution', {
           method: 'POST',
@@ -77,6 +108,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
   const cust = data?.customers || {}
   const channels = data?.channels || []
   const attr = data?.attribution || {}
+  const daily = data?.daily || []
 
   const pieData = [
     { name: 'Tracciato (paid/marketing)', value: split.paidRevenue || 0, color: '#2997ff' },
@@ -85,10 +117,13 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
   const chartData = channels.slice(0, 8).map((c, i) => ({ name: (c.label || '').slice(0, 14), revenue: c.revenue, color: chColor(c.label, i) }))
   const maxRev = Math.max(...channels.map(c => c.revenue || 0), 1)
 
-  const Stat = ({ label, value, sub, tone, dd, lowerBetter }) => (
+  const Stat = ({ label, value, sub, tone, dd, lowerBetter, dataKey, sparkColor = '#2997ff' }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
-      <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{value}<DeltaBadge d={dd} lowerBetter={lowerBetter} /></div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+        <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{value}<DeltaBadge d={dd} lowerBetter={lowerBetter} /></div>
+        {dataKey && <Sparkline data={daily} dataKey={dataKey} color={sparkColor} />}
+      </div>
       {sub && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{sub}</div>}
     </div>
   )
@@ -104,10 +139,10 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
           <>
             {/* KPI Total Impact */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
-              <Stat label="Fatturato totale" value={eur(t.revenue)} sub={`${nf(t.orders)} ordini`} dd={d.revenue} />
-              <Stat label="Spesa Ads (Meta)" value={eur(t.adSpend)} dd={d.adSpend} lowerBetter />
-              <Stat label="MER blended" value={`${(t.blendedMer || 0).toFixed(2)}x`} sub="Fatturato / Ad Spend" tone={t.blendedMer >= 3 ? 'var(--green)' : t.blendedMer >= 1.5 ? 'var(--orange)' : 'var(--red)'} dd={d.blendedMer} />
-              <Stat label="ROAS Meta (dichiarato)" value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={`${nf(t.metaPurchases)} acquisti attribuiti`} dd={d.metaRoas} />
+              <Stat label="Fatturato totale" value={eur(t.revenue)} sub={`${nf(t.orders)} ordini`} dd={d.revenue} dataKey="revenue" sparkColor="#30d158" />
+              <Stat label="Spesa Ads (Meta)" value={eur(t.adSpend)} dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
+              <Stat label="MER blended" value={`${(t.blendedMer || 0).toFixed(2)}x`} sub="Fatturato / Ad Spend" dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
+              <Stat label="ROAS Meta (dichiarato)" value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={`${nf(t.metaPurchases)} acquisti attribuiti`} dd={d.metaRoas} dataKey="metaRoas" sparkColor="#64d2ff" />
             </div>
 
             {/* Paid vs Organico */}

@@ -16,7 +16,6 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 const WINDOWS = [
   { key: 'last_3d',  label: '3gg',  days: 3 },
   { key: 'last_7d',  label: '7gg',  days: 7 },
-  { key: 'last_14d', label: '14gg', days: 14 },
   { key: 'last_30d', label: '30gg', days: 30 },
 ]
 
@@ -95,13 +94,13 @@ export default function MultiWindowCards() {
             Rolling Windows
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 3 }}>
-            Performance ultimi 3 / 7 / 14 / 30 giorni
+            Performance ultimi 3 / 7 / 30 giorni
           </div>
         </div>
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: '120px repeat(4, 1fr)', gap: 10,
+        display: 'grid', gridTemplateColumns: '120px repeat(3, 1fr)', gap: 10,
         alignItems: 'stretch',
       }}>
         {/* Header row: vuota + window labels */}

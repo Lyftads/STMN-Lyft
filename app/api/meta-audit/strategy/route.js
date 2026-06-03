@@ -164,7 +164,43 @@ const CATEGORIES = {
   retention:                  { label: 'Retention',                  color: '#22c55e' },
 }
 
+// Name-based classification PRIMARIA. Spesso piu' affidabile dei custom
+// audience IDs perche' molti account hanno naming convention chiare
+// ("Clienti esistenti", "Pubblico che ha interagito", "Nuovo pubblico"...).
+// Pattern italiano + inglese.
+function classifyByName(adsetName = '', campaignName = '') {
+  const text = `${adsetName} ${campaignName}`.toLowerCase()
+
+  // Re-Engagement (lapsed customers / winback)
+  if (/(lapsed|winback|win[- ]?back|re[- ]?engage|ria(?:ttiv)|dormant|inattiv|churned|past[- ]?customer|riconquist|60[- ]?d|90[- ]?d|180[- ]?d)/i.test(text)) {
+    return 'acquisition_re_engagement'
+  }
+
+  // Retention (Clienti esistenti)
+  if (/(clienti esistenti|customer[s]?[- ]?existing|existing customer|retention|abitua(?:li)|fidelizz|ricorrent|customer file|repeat[- ]?customer)/i.test(text)) {
+    return 'retention'
+  }
+
+  // Retargeting (warm visitors / engagers / DPA)
+  if (/(pubblico che ha interagit|che ha interagit|interagi|engagement|engager|retarget|remarket|rem[\b_ ]|visitor|sito|website|wca|page[- ]?view|atc|add[- ]?to[- ]?cart|view[- ]?content|ic|initiate[- ]?checkout|dpa|abandon|warm)/i.test(text)) {
+    return 'retargeting'
+  }
+
+  // Prospecting (Nuovo pubblico / Cold / Lookalike / Broad / Test)
+  if (/(nuovo pubblico|nuovo |new audience|prospect|cold|broad|lookalike|lal\b|interest|interess|advantage[+ ]|aac|cbo[- ]?test|test[a-z]*[- ]?acq|acquisit|acquisition)/i.test(text)) {
+    return 'acquisition_prospecting'
+  }
+
+  return null // no match → cade su targeting analysis
+}
+
 function classifyAdset(adset, audMap) {
+  // Step 1: prova classificazione per nome (piu' affidabile su account con
+  // naming convention come "Clienti esistenti" / "Nuovo pubblico" / etc.)
+  const byName = classifyByName(adset.name, adset.campaign?.name)
+  if (byName) return byName
+
+  // Step 2: fallback su analisi targeting (custom audiences + lookalike)
   const t = adset.targeting || {}
   const included = (t.custom_audiences || []).map(x => audMap.get(x.id)).filter(Boolean)
   const excluded = (t.excluded_custom_audiences || []).map(x => audMap.get(x.id)).filter(Boolean)

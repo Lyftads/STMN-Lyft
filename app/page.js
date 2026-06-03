@@ -2278,8 +2278,8 @@ export default function App() {
     const y = now.getFullYear()
 
     const PRESETS = [
-      // Rolling windows usate da MultiWindowCards
-      'last_3d', 'last_7d', 'last_14d', 'last_30d',
+      // Rolling windows usate da MultiWindowCards (3/7/30 giorni)
+      'last_3d', 'last_7d', 'last_30d',
       'last_90d',
       `month_${mLabel}`,
       `quarter_${y}-Q${q}`,

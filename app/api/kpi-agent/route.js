@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
+import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -144,6 +145,14 @@ export async function POST(req) {
     conversationLength: clean.length,
   })
 
+  // Skill matching contestuale: carica solo le skill rilevanti per la query
+  // utente (max 2). Le skill aggiunte come system messages dedicati.
+  const matchedSkills = matchSkillsForContext(lastUserMsg, { limit: 2 })
+  const skillBlocks = matchedSkills.map(s => ({
+    role: 'system',
+    content: `SKILL ATTIVATA: ${s.name} (v${s.version})\nUsa le istruzioni seguenti per strutturare la risposta:\n\n${s.body}`,
+  }))
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -158,6 +167,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...skillBlocks,
           ...(context ? [{ role: 'system', content: `DATI LIVE — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` }] : []),
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere, verifica che OGNI numero e OGNI nome (prodotti, campagne) che stai per scrivere sia letteralmente presente nel JSON DATI LIVE. Se manca anche un solo dato, scrivi "Non ho questo dato" invece di inventare.' },

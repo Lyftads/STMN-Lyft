@@ -13,22 +13,6 @@ import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../
 const metricsCache = new Map()
 const METRICS_TTL_MS = 5 * 60_000
 
-// Esegue i thunk con concorrenza limitata (evita di prosciugare il rate limit
-// Shopify con un burst di ~15 query parallele → throttle → dati a 0). Preserva
-// l'ordine dei risultati; gli indici bassi partono per primi.
-async function runLimited(thunks, limit = 3) {
-  const results = new Array(thunks.length)
-  let i = 0
-  const worker = async () => {
-    while (i < thunks.length) {
-      const idx = i++
-      results[idx] = await thunks[idx]()
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, thunks.length) }, worker))
-  return results
-}
-
 // Tenant-aware getter: leggono dal context AsyncLocalStorage settato da
 // withTenantContext() in GET. In env-only mode (default su Vercel finche'
 // LYFT_MULTI_TENANT non e' settato) il context cade su env var → zero
@@ -1553,16 +1537,10 @@ export async function GET(req) {
     const range = getPresetRange(preset)
     const previousRange = getPreviousRange(range, preset)
 
-    // Ordine: PRIMA le query critiche (KPI cards + meta), POI le pesanti REST
-    // (top prodotti / sorgenti / day breakdown ×2). Concorrenza 3 → niente burst.
     const [
-      shopifyRange,
-      shopifyPrevRange,
-      metaRange,
-      metaPrevRange,
+      aovData,
       shopifyWeekly,
       shopifyMonthly,
-      aovData,
       metaMonthly,
       metaWeekly,
       shopifyTopProducts,
@@ -1571,23 +1549,27 @@ export async function GET(req) {
       previousShopifyTopProducts,
       previousShopifyMarketingSources,
       previousShopifyDayBreakdown,
-    ] = await runLimited([
-      () => safeShopifyRange(range),
-      () => safeShopifyRange(previousRange),
-      () => safeMetaRange(range),
-      () => safeMetaRange(previousRange),
-      () => fetchShopifyWeekly(),
-      () => fetchShopifyMonthly(),
-      () => fetchAOV(),
-      () => fetchMeta(),
-      () => fetchMetaWeekly(),
-      () => safeShopifyTopProducts(range),
-      () => safeShopifyMarketingSources(range),
-      () => safeShopifyDayBreakdown(range),
-      () => safeShopifyTopProducts(previousRange),
-      () => safeShopifyMarketingSources(previousRange),
-      () => safeShopifyDayBreakdown(previousRange),
-    ], 3)
+      shopifyRange,
+      shopifyPrevRange,
+      metaRange,
+      metaPrevRange,
+    ] = await Promise.all([
+      fetchAOV(),
+      fetchShopifyWeekly(),
+      fetchShopifyMonthly(),
+      fetchMeta(),
+      fetchMetaWeekly(),
+      safeShopifyTopProducts(range),
+      safeShopifyMarketingSources(range),
+      safeShopifyDayBreakdown(range),
+      safeShopifyTopProducts(previousRange),
+      safeShopifyMarketingSources(previousRange),
+      safeShopifyDayBreakdown(previousRange),
+      safeShopifyRange(range),
+      safeShopifyRange(previousRange),
+      safeMetaRange(range),
+      safeMetaRange(previousRange),
+    ])
 
     const metaTotal = metaMonthly.reduce(
       (sum, row) => sum + row.spend,

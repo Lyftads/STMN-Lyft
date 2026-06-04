@@ -168,7 +168,16 @@ export default function PnLTab({ data = [] }) {
                 return (
                   <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
                     <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', fontWeight: line.strong || line.ebit ? 700 : 500 }}>{line.label}</td>
-                    {asc.map(r => <td key={r.month} style={{ ...baseTd, color: colorOf(r[line.key]), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>{fmtCell(line, r[line.key])}</td>)}
+                    {asc.map((r, j) => {
+                      const cur = r[line.key]
+                      const prev = j > 0 ? asc[j - 1][line.key] : null
+                      return (
+                        <td key={r.month} style={{ ...baseTd, color: colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
+                          <div>{fmtCell(line, cur)}</div>
+                          {!line.pct && !line.int && j > 0 && <MoM cur={cur} prev={prev} lowerBetter={line.neg} />}
+                        </td>
+                      )
+                    })}
                     <td style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>
                   </tr>
                 )
@@ -179,6 +188,17 @@ export default function PnLTab({ data = [] }) {
       )}
     </div>
   )
+}
+
+// Variazione mese-su-mese (% e €) per cella della matrice
+function MoM({ cur, prev, lowerBetter = false }) {
+  if (prev == null || cur == null || !Number.isFinite(prev) || prev === 0) return null
+  const d = cur - prev
+  const pct = (d / Math.abs(prev)) * 100
+  const up = d > 0
+  const good = lowerBetter ? !up : up
+  const col = Math.abs(pct) < 0.05 ? 'var(--text3)' : good ? '#30d158' : '#ff375f'
+  return <div style={{ fontSize: 9.5, fontWeight: 600, color: col, marginTop: 2, whiteSpace: 'nowrap' }}>{up ? '▲' : '▼'} {Math.abs(pct).toFixed(0)}% · {up ? '+' : '−'}{eur(Math.abs(d))}</div>
 }
 
 function Field({ label, value, onChange, ph }) {

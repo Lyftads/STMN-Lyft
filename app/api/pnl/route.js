@@ -138,6 +138,10 @@ export async function GET(req) {
       const fetched = await Promise.all(NAMES.map(n => metricOf(n)))
       NAMES.forEach((n, i) => { maps[n] = fetched[i] })
 
+      // diagnostica: quante righe ha restituito ogni metrica (per capire quali nomi sono validi)
+      const metricRows = {}
+      for (const n of NAMES) metricRows[n] = Object.keys(maps[n]).length
+
       const allMonths = new Set()
       for (const n of NAMES) Object.keys(maps[n]).forEach(m => allMonths.add(m))
       const series = [...allMonths].sort().map(month => ({
@@ -169,7 +173,7 @@ export async function GET(req) {
 
       return NextResponse.json({
         configured: true, months, since, until,
-        series,
+        series, metricRows,
         cogsByMonth: cogsRes?.map || null, cogsSource, cogsRatio, avgMargin,
         feesByMonth, feesSource: feesByMonth ? 'shopify-payments' : 'none',
         updatedAt: new Date().toISOString(),

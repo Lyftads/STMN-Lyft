@@ -18,8 +18,9 @@ async function getAccessToken(g) {
       grant_type: 'refresh_token',
     }),
   })
-  const data = await res.json()
-  return data.access_token || null
+  const data = await res.json().catch(() => ({}))
+  // Ritorna anche l'errore OAuth (invalid_grant / invalid_client / ...) per diagnosi
+  return { token: data.access_token || null, error: data.error || null, desc: data.error_description || null }
 }
 
 async function runRealtime(token, propertyId, body) {
@@ -49,8 +50,21 @@ export async function GET(request) {
     const debug = searchParams.get('debug') === '1'
 
     try {
-      const token = await getAccessToken(g)
-      if (!token) throw new Error('Google OAuth failed')
+      const auth = await getAccessToken(g)
+      if (!auth.token) {
+        // Token refresh fallito: in debug mostra l'errore OAuth esatto
+        if (debug) {
+          return NextResponse.json({
+            configured: true, propertyId,
+            oauthError: auth.error, oauthDesc: auth.desc,
+            hint: auth.error === 'invalid_grant'
+              ? 'Refresh token scaduto/revocato (probabile consent screen in Test mode → scade ogni 7gg). Ricollega Google o pubblica il consent screen.'
+              : 'Verifica GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN.',
+          })
+        }
+        throw new Error('Google OAuth failed')
+      }
+      const token = auth.token
 
       const res = await runRealtime(token, propertyId, {
         dimensions: [{ name: 'countryId' }, { name: 'country' }, { name: 'city' }],

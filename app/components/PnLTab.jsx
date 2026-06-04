@@ -59,7 +59,11 @@ export default function PnLTab({ data = [] }) {
     const series = state.series || []
     return series.map(s => {
       const net = s.netSales
-      const cogs = cogsRatio != null ? net * cogsRatio : null
+      // priorità: override manuale % → COGS reale mensile da Shopify → ratio margine medio
+      const realCogs = (state.cogsByMonth && state.cogsByMonth[s.month] != null) ? state.cogsByMonth[s.month] : null
+      const cogs = cfg.cogsPct != null
+        ? net * (cfg.cogsPct / 100)
+        : (realCogs != null ? realCogs : (state.cogsRatio != null ? net * state.cogsRatio : null))
       const grossMargin = cogs != null ? net - cogs : null
       const ads = adByMonth[s.month] ?? 0
       const fee = (state.feesByMonth && state.feesByMonth[s.month] != null)
@@ -71,7 +75,7 @@ export default function PnLTab({ data = [] }) {
       const ebitPct = ebit != null && net > 0 ? (ebit / net) * 100 : null
       return { ...s, net, cogs, grossMargin, ads, fee, packaging, contrib, fixed: fixedTotal, ebit, ebitPct }
     })
-  }, [state.series, state.feesByMonth, cogsRatio, adByMonth, cfg, fixedTotal])
+  }, [state.series, state.feesByMonth, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, cfg, fixedTotal])
 
   const annual = useMemo(() => {
     if (!rows.length) return null
@@ -120,7 +124,7 @@ export default function PnLTab({ data = [] }) {
           ))}
           <button onClick={() => saveCfg({ ...cfg, fixedCosts: [...(cfg.fixedCosts || []), { name: '', amount: '' }] })} style={{ ...inp, cursor: 'pointer' }}>+ Aggiungi costo fisso</button>
           <div style={{ fontSize: 11, opacity: 0.5, marginTop: 12 }}>
-            COGS: {state.cogsRatio != null ? `auto da costi Shopify (margine medio ${state.avgMargin}%)` : 'imposta una % qui'} · Fee: {state.feesSource === 'shopify-payments' ? 'reali da Shopify Payments ✓' : 'stima da % (Shopify Payments non disponibile)'}
+            COGS: {cfg.cogsPct != null ? `override manuale ${cfg.cogsPct}%` : state.cogsSource === 'shopify' ? 'reale dalle analitiche Shopify ✓ (cost_of_goods_sold)' : state.cogsRatio != null ? `stima da margine medio catalogo ${state.avgMargin}%` : 'imposta una % qui'} · Fee: {state.feesSource === 'shopify-payments' ? 'reali da Shopify Payments ✓' : 'stima da % (Shopify Payments non disponibile)'}
           </div>
         </div>
       )}

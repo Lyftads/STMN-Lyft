@@ -81,6 +81,32 @@ async function fetchFeesByMonth(sinceISO) {
   } catch { return null }
 }
 
+// COGS reale mensile dalle analitiche Shopify. Provo i nomi metrica possibili
+// (variano per versione ShopifyQL); query SEPARATA → se un nome non esiste,
+// parseError isolato e non rompe la serie principale.
+async function fetchCogsByMonth(since, until) {
+  const monthOf = (row) => {
+    const v = row.month || Object.values(row).find(x => typeof x === 'string' && /^\d{4}-\d{2}/.test(x)) || ''
+    return String(v).slice(0, 7)
+  }
+  const candidates = [
+    // sintassi confermata dal report Shopify del merchant (cost_of_goods_sold + cost_is_recorded)
+    { q: `FROM sales SHOW cost_of_goods_sold WHERE cost_is_recorded = true GROUP BY month SINCE ${since} UNTIL ${until} ORDER BY month ASC`, pick: r => Math.abs(r2(r.cost_of_goods_sold)) },
+    { q: `FROM sales SHOW cost_of_goods_sold GROUP BY month SINCE ${since} UNTIL ${until} ORDER BY month ASC`, pick: r => Math.abs(r2(r.cost_of_goods_sold)) },
+    { q: `FROM sales SHOW total_cost GROUP BY month SINCE ${since} UNTIL ${until} ORDER BY month ASC`, pick: r => Math.abs(r2(r.total_cost)) },
+    { q: `FROM sales SHOW net_sales, gross_profit GROUP BY month SINCE ${since} UNTIL ${until} ORDER BY month ASC`, pick: r => r2(num(r.net_sales) - num(r.gross_profit)) },
+  ]
+  for (const c of candidates) {
+    const rows = await shopifyQL(c.q)
+    if (rows && rows.length) {
+      const map = {}
+      for (const row of rows) { const m = monthOf(row); if (m) map[m] = c.pick(row) }
+      if (Object.keys(map).length) return { map, field: c.show }
+    }
+  }
+  return null
+}
+
 export async function GET(req) {
   return withTenantContext(req, async () => {
     if (!storeUrl() || !token()) return NextResponse.json({ configured: false, error: 'Shopify non configurato' }, { status: 200 })
@@ -126,13 +152,17 @@ export async function GET(req) {
         else if (pc?.avgMargin != null) { avgMargin = pc.avgMargin; cogsRatio = r2(1 - avgMargin / 100) }
       } catch {}
 
+      // COGS reale mensile da Shopify (preferito), altrimenti ratio dai costi prodotto
+      const cogsRes = await fetchCogsByMonth(since, until)
+      const cogsSource = cogsRes ? 'shopify' : (cogsRatio != null ? 'ratio' : 'none')
+
       // Fee reali (best-effort)
       const feesByMonth = await fetchFeesByMonth(since)
 
       return NextResponse.json({
         configured: true, months, since, until,
         series,
-        cogsRatio, avgMargin,
+        cogsByMonth: cogsRes?.map || null, cogsSource, cogsRatio, avgMargin,
         feesByMonth, feesSource: feesByMonth ? 'shopify-payments' : 'none',
         updatedAt: new Date().toISOString(),
       })

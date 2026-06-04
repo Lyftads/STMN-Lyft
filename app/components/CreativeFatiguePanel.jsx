@@ -83,16 +83,19 @@ export default function CreativeFatiguePanel() {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <FxCard title="Creative Fatigue" subtitle="Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media" delay={1.8}>
+      <FxCard delay={1.8}>
+        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
-          <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
-          {accounts.length > 1 && (
-            <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
-              <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
-              {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
-            </select>
-          )}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+            {accounts.length > 1 && (
+              <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
+                <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
+                {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
+              </select>
+            )}
+          </div>
         </div>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le creative attive…</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}

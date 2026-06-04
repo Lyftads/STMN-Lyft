@@ -28,7 +28,8 @@ function Delta({ cur, prev, lowerBetter = false }) {
 }
 
 export default function PnLTab({ data = [] }) {
-  const [months, setMonths] = useState(12)
+  const [view, setView] = useState('12')   // 'last' | 'prev' | '6' | '12' | '24'
+  const fetchMonths = (view === 'last' || view === 'prev') ? 3 : Number(view)
   const [state, setState] = useState({ loading: true })
   const [cfg, setCfg] = useState(DEF_CFG)
   const [showCfg, setShowCfg] = useState(false)
@@ -42,10 +43,10 @@ export default function PnLTab({ data = [] }) {
   useEffect(() => {
     let alive = true
     setState({ loading: true })
-    fetch(`/api/pnl?months=${months}`, { cache: 'no-store' }).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
+    fetch(`/api/pnl?months=${fetchMonths}`, { cache: 'no-store' }).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
       .catch(() => alive && setState({ loading: false, configured: false }))
     return () => { alive = false }
-  }, [months, refreshKey])
+  }, [fetchMonths, refreshKey])
 
   // spesa ads per mese dal data mensile dell'app
   const adByMonth = useMemo(() => {
@@ -117,16 +118,26 @@ export default function PnLTab({ data = [] }) {
     { label: 'EBIT %', key: 'ebitPct', pct: true },
     { label: 'Ordini', key: 'orders', int: true },
   ]
-  const asc = rows // ascending (Gen → Dic)
-  const totalOf = (key) => key === 'ebitPct' ? (annual?.ebitPct) : asc.reduce((a, r) => a + (Number(r[key]) || 0), 0)
+  // mese precedente per ogni mese (per la variazione MoM, indipendente da cosa mostro)
+  const prevOf = {}
+  rows.forEach((r, i) => { prevOf[r.month] = i > 0 ? rows[i - 1] : null })
+  // mesi mostrati: tutti (finestra) oppure solo ultimo / precedente
+  const asc = view === 'last' ? rows.slice(-1) : view === 'prev' ? rows.slice(-2, -1) : rows
+  const totSum = (key) => asc.reduce((a, r) => a + (Number(r[key]) || 0), 0)
+  const totalOf = (key) => key === 'ebitPct' ? (totSum('net') > 0 ? totSum('ebit') / totSum('net') * 100 : null) : totSum(key)
+  const showTotal = asc.length > 1
   const fmtCell = (line, v) => line.pct ? pctv(v) : line.int ? (v == null ? '—' : Math.round(v).toLocaleString('it-IT')) : eur(v)
 
   return (
     <div style={{ maxWidth: 1280 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.</div>
-        <select value={months} onChange={e => setMonths(+e.target.value)} style={inp}>
-          <option value={6}>6 mesi</option><option value={12}>12 mesi</option><option value={24}>24 mesi</option>
+        <select value={view} onChange={e => setView(e.target.value)} style={inp}>
+          <option value="last">Mese attuale</option>
+          <option value="prev">Mese precedente</option>
+          <option value="6">6 mesi</option>
+          <option value="12">12 mesi</option>
+          <option value="24">24 mesi</option>
         </select>
         <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>⚙ Costi & impostazioni</button>
         <button onClick={() => setRefreshKey(k => k + 1)} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? 'Aggiorno…' : 'Aggiorna'}</button>
@@ -166,7 +177,7 @@ export default function PnLTab({ data = [] }) {
               <tr>
                 <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>Voce</th>
                 {asc.map(r => <th key={r.month} style={{ ...th, minWidth: 110 }}>{monthFull(r.month)}</th>)}
-                <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>Totale</th>
+                {showTotal && <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>Totale</th>}
               </tr>
             </thead>
             <tbody>
@@ -177,17 +188,18 @@ export default function PnLTab({ data = [] }) {
                 return (
                   <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
                     <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', fontWeight: line.strong || line.ebit ? 700 : 500 }}>{line.label}</td>
-                    {asc.map((r, j) => {
+                    {asc.map((r) => {
                       const cur = r[line.key]
-                      const prev = j > 0 ? asc[j - 1][line.key] : null
+                      const prevRow = prevOf[r.month]
+                      const prev = prevRow ? prevRow[line.key] : null
                       return (
                         <td key={r.month} style={{ ...baseTd, color: colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
                           <div>{fmtCell(line, cur)}</div>
-                          {!line.pct && !line.int && j > 0 && <MoM cur={cur} prev={prev} lowerBetter={line.neg} />}
+                          {!line.pct && !line.int && prev != null && <MoM cur={cur} prev={prev} lowerBetter={line.neg} />}
                         </td>
                       )
                     })}
-                    <td style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>
+                    {showTotal && <td style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>}
                   </tr>
                 )
               })}

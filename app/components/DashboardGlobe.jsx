@@ -97,7 +97,7 @@ export default function DashboardGlobe() {
       controls.enablePan = false
     } catch {}
     // Inquadratura iniziale: Europa/Atlantico, sfera grande (altitude più bassa = più vicina)
-    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.78 }, 0) } catch {}
+    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.55 }, 0) } catch {}
   }, [size.w])
 
   // Zoom via pulsanti +/- (altitude più bassa = più vicino)
@@ -112,18 +112,23 @@ export default function DashboardGlobe() {
   }
 
   const zoomBtn = {
-    width: 34, height: 34, borderRadius: 9, cursor: 'pointer',
-    background: 'rgba(8,8,15,0.6)', backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.12)', color: '#fff',
-    fontSize: 20, fontWeight: 600, lineHeight: 1, display: 'flex',
+    width: 38, height: 38, borderRadius: 10, cursor: 'pointer',
+    background: 'rgba(8,8,15,0.72)', backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.18)', color: '#fff',
+    fontSize: 22, fontWeight: 700, lineHeight: 1, display: 'flex',
     alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 8px 20px rgba(0,0,0,0.45)',
+    transition: 'background 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
   }
+  const onZoomEnter = e => { e.currentTarget.style.background = 'rgba(191,90,242,0.35)'; e.currentTarget.style.borderColor = 'rgba(191,90,242,0.6)'; e.currentTarget.style.transform = 'scale(1.06)' }
+  const onZoomLeave = e => { e.currentTarget.style.background = 'rgba(8,8,15,0.72)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.transform = 'scale(1)' }
 
   return (
     <div ref={wrapRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <div style={{ position: 'absolute', bottom: 28, right: 'calc(12vw + 24px)', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button aria-label="Zoom in" onClick={() => zoom(-1)} style={zoomBtn}>+</button>
-        <button aria-label="Zoom out" onClick={() => zoom(1)} style={zoomBtn}>−</button>
+      <div style={{ position: 'absolute', bottom: 150, right: 24, zIndex: 3, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button aria-label="Zoom in" onClick={() => zoom(-1)} onMouseEnter={onZoomEnter} onMouseLeave={onZoomLeave} style={zoomBtn}>+</button>
+        <button aria-label="Zoom out" onClick={() => zoom(1)} onMouseEnter={onZoomEnter} onMouseLeave={onZoomLeave} style={zoomBtn}>−</button>
       </div>
       <Globe
         ref={globeRef}

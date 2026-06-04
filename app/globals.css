@@ -801,28 +801,29 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    bordo (stile BFCM). Assoluto = scrolla via, non copre il resto. */
 .dash-live-globe {
   position: absolute;
-  top: -70px;
-  bottom: -130px;
-  right: -12vw;
-  width: 64vw;
+  top: -80px;
+  bottom: -140px;
+  right: 0;
+  width: 60vw;
   z-index: 0;
   pointer-events: auto;
 }
-/* "Punto luce dietro il globo": alone radiale viola/blu */
+/* "Punto luce dietro il globo": alone radiale viola/blu — centrato sulla
+   sfera e interamente dentro il layer, così non viene tagliato a destra. */
 .dash-live-globe::before {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 78%;
-  height: 78%;
+  width: 70%;
+  aspect-ratio: 1 / 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle,
-    rgba(191,90,242,0.34) 0%,
-    rgba(100,160,255,0.16) 40%,
-    rgba(0,0,0,0) 70%);
-  filter: blur(46px);
+    rgba(191,90,242,0.36) 0%,
+    rgba(100,160,255,0.18) 38%,
+    rgba(0,0,0,0) 68%);
+  filter: blur(52px);
   pointer-events: none;
   z-index: -1;
 }

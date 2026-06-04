@@ -3,7 +3,15 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { format, subDays } from 'date-fns'
-import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+
+// ── Cache server-side della risposta /api/metrics ──────────────────────────
+// La route è pesante (decine di query Shopify). Senza cache, ogni cambio tab /
+// refresh ricalcola tutto e satura il rate limit Shopify → dati intermittenti.
+// Cache per (tenant, preset), TTL 5 min. Cachiamo SOLO risultati validi (con
+// dati), mai i throttled-vuoti (così un throttle non resta "congelato" 5 min).
+const metricsCache = new Map()
+const METRICS_TTL_MS = 5 * 60_000
 
 // Tenant-aware getter: leggono dal context AsyncLocalStorage settato da
 // withTenantContext() in GET. In env-only mode (default su Vercel finche'
@@ -1517,6 +1525,14 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_90d'
+    const force = searchParams.get('force') === '1'
+
+    // Cache hit → ritorna subito (niente query Shopify)
+    const cacheKey = `${getTenantInfo().userId || 'env'}:${preset}`
+    if (!force) {
+      const hit = metricsCache.get(cacheKey)
+      if (hit && hit.expiresAt > Date.now()) return NextResponse.json(hit.payload)
+    }
 
     const range = getPresetRange(preset)
     const previousRange = getPreviousRange(range, preset)
@@ -1560,7 +1576,7 @@ export async function GET(req) {
       0
     )
 
-    return NextResponse.json({
+    const payload = {
       aovLive: Math.round(aovData.aov * 100) / 100,
       ordersLive: aovData.orders,
 
@@ -1603,7 +1619,14 @@ export async function GET(req) {
       },
 
       updatedAt: new Date().toISOString(),
-    })
+    }
+
+    // Cache SOLO se il risultato è valido (non throttled-vuoto). shopifyWeekly
+    // è la serie storica completa (~23 punti): se è quasi vuota → throttle → non cachiamo.
+    const looksValid = Array.isArray(shopifyWeekly) && shopifyWeekly.length >= 5
+    if (looksValid) metricsCache.set(cacheKey, { payload, expiresAt: Date.now() + METRICS_TTL_MS })
+
+    return NextResponse.json(payload)
   } catch (err) {
     console.log('Metrics API error:', err.message)
 

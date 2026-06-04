@@ -794,6 +794,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   position: relative;
   min-height: 580px;
   margin-bottom: 28px;
+  overflow-x: clip;   /* contiene lo sbordo orizzontale del globo → niente scroll laterale */
 }
 
 /* Layer globo: grande ma contenuto, ancorato a destra, sborda un po' oltre il

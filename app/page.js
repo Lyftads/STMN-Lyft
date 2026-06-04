@@ -2179,7 +2179,7 @@ export default function App() {
   const [tab, setTab] = useState('dashboard')
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [cfg, setCfg] = useState(DEF)
+  const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
   const [ltvAuto, setLtvAuto] = useState(null)  // LTV calcolato dai dati (coorti 24m)
   const [showCfg, setShowCfg] = useState(false)
   const [months, setMonths] = useState({})
@@ -2195,7 +2195,7 @@ export default function App() {
 
   useEffect(() => {
     const s = load()
-    if (s.c && Object.keys(s.c).length) setCfg({...DEF,...s.c})
+    if (s.c && Object.keys(s.c).length) setCfgBase({...DEF,...s.c})
     if (s.m) setMonths(s.m)
     if (s.w) setWeeks(s.w)
   }, [])
@@ -2206,6 +2206,15 @@ export default function App() {
     fetch('/api/ltv-auto?months=24').then(r => r.json()).then(j => { if (alive && j?.enoughData) setLtvAuto(j) }).catch(() => {})
     return () => { alive = false }
   }, [])
+
+  // cfg "effettiva": se abbiamo l'LTV dai dati, sostituisce gli ordini-a-vita
+  // (freq×life) con il valore reale calcolato sulle coorti. Così OGNI calcolo
+  // LTV:CAC in App e nei componenti figli (Weekly/KPI Brain/Mensile/...) usa il
+  // dato reale, senza toccare la config manuale (cfgBase, usata dall'editor).
+  const ltvFromData = !!ltvAuto?.projectedAvgOrders
+  const cfg = ltvFromData
+    ? { ...cfgBase, freq: +(ltvAuto.projectedAvgOrders / (cfgBase.life || 1)).toFixed(4) }
+    : cfgBase
 
   // Post-signup: redirect a /onboarding se l'utente non ha ancora completato
   // il wizard di setup integrazioni, oppure a /billing-required se non ha
@@ -2628,9 +2637,8 @@ export default function App() {
   const avgAOVNC = totNC  > 0 ? totFatNC / totNC  : 0
   const avgAOVRC = totRC  > 0 ? totFatRC / totRC  : 0
 
-  // Ordini-a-vita per cliente: dai dati reali (coorti 24m) se disponibili, altrimenti config
-  const lifeOrders = ltvAuto?.projectedAvgOrders || (cfg.freq * cfg.life)
-  const ltvFromData = !!ltvAuto?.projectedAvgOrders
+  // Ordini-a-vita per cliente (= freq×life; data-driven quando disponibile)
+  const lifeOrders = +(cfg.freq * cfg.life).toFixed(2)
   const avgLTVGross = avgAOV > 0 ? avgAOV * lifeOrders : null
   const avgLTV   = avgAOV > 0 ? avgAOV * lifeOrders * cfg.margin / 100 : null
   const avgCAC   = totSpend > 0 && totNC  > 0 ? totSpend / totNC  : null
@@ -2684,7 +2692,7 @@ export default function App() {
     loading={loading}
     onRefresh={() => fetchLive(true)}
   >
-    {showCfg && <Settings cfg={cfg} onSave={c=>setCfg(c)} onClose={()=>setShowCfg(false)} />}
+    {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
 

@@ -144,17 +144,23 @@ export async function GET(req) {
 
       const allMonths = new Set()
       for (const n of NAMES) Object.keys(maps[n]).forEach(m => allMonths.add(m))
-      const series = [...allMonths].sort().map(month => ({
-        month,
-        totalSales: r2(maps.total_sales[month]),
-        netSales: r2(maps.net_sales[month]),
-        grossSales: r2(maps.gross_sales[month]),
-        discounts: r2(maps.discounts[month]),
-        returns: Math.abs(r2(maps.returns[month])),
-        taxes: r2(maps.taxes[month]),
-        shipping: r2(maps.shipping[month]),
-        orders: Math.round(num(maps.orders[month])),
-      }))
+      const series = [...allMonths].sort().map(month => {
+        const netSales = r2(maps.net_sales[month])
+        const taxes = r2(maps.taxes[month])
+        const shipping = r2(maps.shipping[month])
+        const ts = r2(maps.total_sales[month])
+        // Fatturato (incl. IVA): total_sales se valorizzato, altrimenti ricostruito
+        // da net_sales + IVA + spedizione (total_sales a volte torna 0 in ShopifyQL)
+        const totalSales = ts > 0 ? ts : r2(netSales + taxes + shipping)
+        return {
+          month,
+          totalSales, netSales, taxes, shipping,
+          grossSales: r2(maps.gross_sales[month]),
+          discounts: r2(maps.discounts[month]),
+          returns: Math.abs(r2(maps.returns[month])),
+          orders: Math.round(num(maps.orders[month])),
+        }
+      })
 
       // COGS ratio reale dai costi prodotto Shopify
       let cogsRatio = null, avgMargin = null

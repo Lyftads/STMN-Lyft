@@ -135,8 +135,9 @@ export async function GET(req) {
       }
       const NAMES = ['total_sales', 'net_sales', 'gross_sales', 'discounts', 'returns', 'taxes', 'shipping', 'orders']
       const maps = {}
-      const fetched = await Promise.all(NAMES.map(n => metricOf(n)))
-      NAMES.forEach((n, i) => { maps[n] = fetched[i] })
+      // SEQUENZIALI (non in parallelo): 8 query ShopifyQL in burst venivano
+      // throttlate da Shopify → metriche vuote in modo intermittente/variabile.
+      for (const n of NAMES) { maps[n] = await metricOf(n) }
 
       // diagnostica: quante righe ha restituito ogni metrica (per capire quali nomi sono validi)
       const metricRows = {}

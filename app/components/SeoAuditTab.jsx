@@ -107,6 +107,7 @@ export default function SeoAuditTab() {
         <Pill active={view === 'editor'} onClick={() => setView('editor')}>Editor contenuti</Pill>
         <Pill active={view === 'competitor'} onClick={() => setView('competitor')}>Competitor</Pill>
         <Pill active={view === 'aeo'} onClick={() => setView('aeo')}>AI Visibility</Pill>
+        <Pill active={view === 'gsc'} onClick={() => setView('gsc')}>Search Console</Pill>
         <Pill active={view === 'history'} onClick={() => { setView('history'); loadHistory() }}>Storico {history.length ? `(${history.length})` : ''}</Pill>
       </div>
 
@@ -114,6 +115,7 @@ export default function SeoAuditTab() {
       {view === 'editor' && <EditorPanel />}
       {view === 'competitor' && <CompetitorPanel />}
       {view === 'aeo' && <AeoPanel />}
+      {view === 'gsc' && <GSCPanel />}
 
       {view === 'audit' && (
         <>
@@ -513,6 +515,138 @@ function AeoPanel() {
               {r.howToImprove && <div style={{ fontSize: 12.5, marginTop: 6, color: '#64d2ff' }}>→ {r.howToImprove}</div>}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Google Search Console (dati reali) ---------- */
+const nf = (n) => Number(n || 0).toLocaleString('it-IT')
+const pct = (c) => `${(Number(c || 0) * 100).toFixed(1)}%`
+
+function SetupGSC() {
+  return (
+    <div className="glass-card" style={{ padding: 24 }}>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Collega Google Search Console</div>
+      <div style={{ fontSize: 13.5, opacity: 0.8, lineHeight: 1.7 }}>
+        Per mostrare le keyword e le posizioni reali servono 3 step una tantum:
+        <ol style={{ margin: '12px 0', paddingLeft: 20 }}>
+          <li>Google Cloud (progetto <b>lyftai</b>) → <i>API e servizi</i> → abilita <b>Google Search Console API</b>.</li>
+          <li>OAuth Playground → rigenera il refresh token includendo <b>entrambi</b> gli scope:<br />
+            <code style={{ fontSize: 12 }}>https://www.googleapis.com/auth/analytics.readonly</code><br />
+            <code style={{ fontSize: 12 }}>https://www.googleapis.com/auth/webmasters.readonly</code></li>
+          <li>Aggiorna <b>GOOGLE_REFRESH_TOKEN</b> su Vercel (Production) → Redeploy.</li>
+        </ol>
+        ⚠️ Includi <b>entrambi</b> gli scope, così GA4 (globo) continua a funzionare e si attiva anche GSC.
+      </div>
+    </div>
+  )
+}
+
+function GSCPanel() {
+  const [state, setState] = useState({ loading: true })
+  const [site, setSite] = useState('')
+  const [days, setDays] = useState(28)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/gsc?action=sites'); const j = await r.json()
+        setState({ loading: false, configured: !!j.configured, sites: j.sites || [] })
+        if (j.sites?.length) setSite(j.sites[0].siteUrl)
+      } catch { setState({ loading: false, configured: false }) }
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (!site) return
+    let alive = true
+    setLoading(true); setError(null); setData(null)
+    fetch(`/api/gsc?site=${encodeURIComponent(site)}&days=${days}`).then(r => r.json()).then(j => {
+      if (!alive) return
+      if (j.error) setError(j.error); else if (!j.totals) setError('Nessun dato nel periodo.'); else setData(j)
+    }).catch(() => alive && setError('Errore')).finally(() => alive && setLoading(false))
+    return () => { alive = false }
+  }, [site, days])
+
+  if (state.loading) return <div style={{ opacity: 0.5, fontSize: 13 }}>Carico…</div>
+  if (!state.configured) return <SetupGSC />
+  if (!state.sites?.length) return <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>Nessuna proprietà Search Console accessibile da questo account Google.</div>
+
+  const QTable = ({ title, rows }) => (
+    <Block title={title}>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead><tr><th style={thStyle}>Query</th><th style={thStyle}>Click</th><th style={thStyle}>Impr.</th><th style={thStyle}>CTR</th><th style={thStyle}>Pos.</th></tr></thead>
+          <tbody>{rows.map((q, i) => (
+            <tr key={i}><td style={tdStyle}>{q.key}</td><td style={tdStyle}>{nf(q.clicks)}</td><td style={tdStyle}>{nf(q.impressions)}</td><td style={tdStyle}>{pct(q.ctr)}</td><td style={tdStyle}>{q.position.toFixed(1)}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </Block>
+  )
+
+  return (
+    <div>
+      <Row>
+        <select value={site} onChange={e => setSite(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+          {state.sites.map(s => <option key={s.siteUrl} value={s.siteUrl} style={{ background: 'var(--surface)' }}>{s.siteUrl}</option>)}
+        </select>
+        <select value={days} onChange={e => setDays(+e.target.value)} style={{ ...inputStyle, flex: 'none', width: 150 }}>
+          <option value={7}>7 giorni</option><option value={28}>28 giorni</option><option value={90}>90 giorni</option><option value={180}>180 giorni</option>
+        </select>
+      </Row>
+
+      {loading && <div style={{ opacity: 0.5, fontSize: 13, marginTop: 16 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Carico i dati da Search Console…</div>}
+      {error && <Err>{error}</Err>}
+
+      {data && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
+            <Mini label="Click" value={nf(data.totals.clicks)} />
+            <Mini label="Impression" value={nf(data.totals.impressions)} />
+            <Mini label="CTR medio" value={pct(data.totals.ctr)} />
+            <Mini label="Posizione media" value={data.totals.position.toFixed(1)} />
+          </div>
+
+          {data.opportunities.nearFirstPage.length > 0 && (
+            <Block title="⚡ Opportunità — quasi in prima pagina (pos. 11–20)">
+              {data.opportunities.nearFirstPage.map((q, i) => (
+                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}>
+                  <span style={{ flex: 1 }}>{q.key}</span>
+                  <span style={{ opacity: 0.6 }}>pos {q.position.toFixed(1)}</span>
+                  <span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span>
+                </div>
+              ))}
+            </Block>
+          )}
+          {data.opportunities.lowCtr.length > 0 && (
+            <Block title="⚡ Opportunità — alto traffico potenziale, CTR basso (migliora title/meta)">
+              {data.opportunities.lowCtr.map((q, i) => (
+                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}>
+                  <span style={{ flex: 1 }}>{q.key}</span>
+                  <span style={{ opacity: 0.6 }}>CTR {pct(q.ctr)}</span>
+                  <span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span>
+                </div>
+              ))}
+            </Block>
+          )}
+
+          <QTable title="Top query" rows={data.queries.slice(0, 50)} />
+          <Block title="Top pagine">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead><tr><th style={thStyle}>Pagina</th><th style={thStyle}>Click</th><th style={thStyle}>Impr.</th><th style={thStyle}>CTR</th><th style={thStyle}>Pos.</th></tr></thead>
+                <tbody>{data.pages.slice(0, 30).map((p, i) => (
+                  <tr key={i}><td style={{ ...tdStyle, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.key}</td><td style={tdStyle}>{nf(p.clicks)}</td><td style={tdStyle}>{nf(p.impressions)}</td><td style={tdStyle}>{pct(p.ctr)}</td><td style={tdStyle}>{p.position.toFixed(1)}</td></tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </Block>
         </div>
       )}
     </div>

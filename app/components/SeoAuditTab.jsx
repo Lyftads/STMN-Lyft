@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 
 const STATUS = { pass: { color: '#30d158', icon: '✓' }, warn: { color: '#ff9f0a', icon: '!' }, fail: { color: '#ff375f', icon: '×' } }
 const GROUPS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
@@ -9,7 +10,7 @@ const scoreCol = s => s >= 85 ? '#30d158' : s >= 70 ? '#64d2ff' : s >= 50 ? '#ff
 const fmtDate = d => new Date(d).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 export default function SeoAuditTab() {
-  const [view, setView] = useState('audit')            // audit | keyword | editor | competitor | aeo | history
+  const [view, setView] = useState('gsc')              // gsc | audit | keyword | editor | competitor | aeo | history
   const [mode, setMode] = useState('page')             // page | site
   const [url, setUrl] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -78,12 +79,12 @@ export default function SeoAuditTab() {
     <div style={{ maxWidth: 1100 }}>
       {/* Sub-nav */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+        <Pill active={view === 'gsc'} onClick={() => setView('gsc')}>Search Console</Pill>
         <Pill active={view === 'audit'} onClick={() => setView('audit')}>Audit</Pill>
         <Pill active={view === 'keyword'} onClick={() => setView('keyword')}>Keyword AI</Pill>
         <Pill active={view === 'editor'} onClick={() => setView('editor')}>Editor contenuti</Pill>
         <Pill active={view === 'competitor'} onClick={() => setView('competitor')}>Competitor</Pill>
         <Pill active={view === 'aeo'} onClick={() => setView('aeo')}>AI Visibility</Pill>
-        <Pill active={view === 'gsc'} onClick={() => setView('gsc')}>Search Console</Pill>
         <Pill active={view === 'history'} onClick={() => { setView('history'); loadHistory() }}>Storico {history.length ? `(${history.length})` : ''}</Pill>
       </div>
 
@@ -464,6 +465,19 @@ function CompetitorPanel() {
       {error && <Err>{error}</Err>}
       {rows && (
         <>
+          <Block title="Score a confronto">
+            <div style={{ width: '100%', height: 170 }}>
+              <ResponsiveContainer>
+                <BarChart data={rows.filter(r => !r.error).map(r => ({ name: host(r.url).slice(0, 20), score: r.score }))} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text3)', fontSize: 10 }} width={34} />
+                  <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} />
+                  <Bar dataKey="score" radius={[4, 4, 0, 0]}>{rows.filter(r => !r.error).map((r, i) => <Cell key={i} fill={scoreCol(r.score)} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Block>
           <div className="glass-card" style={{ padding: 20, marginTop: 20, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ff375f' }}>{host(r.url)} (errore)</span> : host(r.url)}</th>)}</tr></thead>
@@ -546,6 +560,25 @@ function SetupGSC() {
   )
 }
 
+function Delta({ v, suffix = '%', invert = false }) {
+  if (v == null) return null
+  const good = invert ? v < 0 : v > 0
+  const col = v === 0 ? 'var(--text3)' : good ? '#30d158' : '#ff375f'
+  return <span style={{ fontSize: 11, fontWeight: 700, color: col, marginLeft: 6 }}>{v > 0 ? '▲' : v < 0 ? '▼' : '•'} {Math.abs(v)}{suffix}</span>
+}
+function DimTable({ rows, label, fmtKey }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead><tr><th style={thStyle}>{label}</th><th style={thStyle}>Click</th><th style={thStyle}>Impr.</th><th style={thStyle}>CTR</th><th style={thStyle}>Pos.</th></tr></thead>
+        <tbody>{rows.map((q, i) => (
+          <tr key={i}><td style={{ ...tdStyle, maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtKey ? fmtKey(q.key) : q.key}</td><td style={tdStyle}>{nf(q.clicks)}</td><td style={tdStyle}>{nf(q.impressions)}</td><td style={tdStyle}>{pct(q.ctr)}</td><td style={tdStyle}>{q.position.toFixed(1)}</td></tr>
+        ))}</tbody>
+      </table>
+    </div>
+  )
+}
+
 function GSCPanel() {
   const [state, setState] = useState({ loading: true })
   const [site, setSite] = useState('')
@@ -553,6 +586,7 @@ function GSCPanel() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [dim, setDim] = useState('query')
 
   useEffect(() => {
     (async () => {
@@ -579,18 +613,11 @@ function GSCPanel() {
   if (!state.configured) return <SetupGSC />
   if (!state.sites?.length) return <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>Nessuna proprietà Search Console accessibile da questo account Google.</div>
 
-  const QTable = ({ title, rows }) => (
-    <Block title={title}>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr><th style={thStyle}>Query</th><th style={thStyle}>Click</th><th style={thStyle}>Impr.</th><th style={thStyle}>CTR</th><th style={thStyle}>Pos.</th></tr></thead>
-          <tbody>{rows.map((q, i) => (
-            <tr key={i}><td style={tdStyle}>{q.key}</td><td style={tdStyle}>{nf(q.clicks)}</td><td style={tdStyle}>{nf(q.impressions)}</td><td style={tdStyle}>{pct(q.ctr)}</td><td style={tdStyle}>{q.position.toFixed(1)}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-    </Block>
-  )
+  const fmtDay = (d) => d ? d.slice(5).replace('-', '/') : ''
+  const dims = [['query', 'Query'], ['page', 'Pagine'], ['country', 'Paesi'], ['device', 'Dispositivi'], ['appearance', 'Aspetto ricerca']]
+  const dimRows = data ? ({ query: data.queries, page: data.pages, country: data.countries, device: data.devices, appearance: data.appearance }[dim] || []) : []
+  const dimLabel = { query: 'Query', page: 'Pagina', country: 'Paese', device: 'Dispositivo', appearance: 'Aspetto' }[dim]
+  const fmtKey = dim === 'country' ? (k => (k || '').toUpperCase()) : dim === 'device' ? (k => ({ DESKTOP: 'Desktop', MOBILE: 'Mobile', TABLET: 'Tablet' }[k] || k)) : null
 
   return (
     <div>
@@ -608,47 +635,91 @@ function GSCPanel() {
 
       {data && (
         <div style={{ marginTop: 18 }}>
+          {/* KPI con delta vs periodo precedente */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
-            <Mini label="Click" value={nf(data.totals.clicks)} />
-            <Mini label="Impression" value={nf(data.totals.impressions)} />
-            <Mini label="CTR medio" value={pct(data.totals.ctr)} />
-            <Mini label="Posizione media" value={data.totals.position.toFixed(1)} />
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>Click</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.clicks)}<Delta v={data.deltas.clicks} /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>Impression</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.impressions)}<Delta v={data.deltas.impressions} /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>CTR medio</div><div style={{ fontSize: 22, fontWeight: 700 }}>{pct(data.totals.ctr)}<Delta v={data.deltas.ctr} suffix="pp" /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>Posizione media</div><div style={{ fontSize: 22, fontWeight: 700 }}>{data.totals.position.toFixed(1)}<Delta v={data.deltas.position} suffix="" invert /></div></div>
           </div>
 
+          {/* Grafico temporale */}
+          <Block title="Rendimento nel tempo">
+            <div style={{ width: '100%', height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={data.series} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" tickFormatter={fmtDay} tick={{ fill: 'var(--text3)', fontSize: 10 }} minTickGap={28} />
+                  <YAxis yAxisId="l" tick={{ fill: 'var(--text3)', fontSize: 10 }} width={42} />
+                  <YAxis yAxisId="r" orientation="right" tick={{ fill: 'var(--text3)', fontSize: 10 }} width={42} />
+                  <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelFormatter={fmtDay} />
+                  <Line yAxisId="l" type="monotone" dataKey="clicks" name="Click" stroke="#2997ff" strokeWidth={2} dot={false} />
+                  <Line yAxisId="r" type="monotone" dataKey="impressions" name="Impr." stroke="#bf5af2" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Block>
+
+          {/* Brand vs non-brand + Paesi (mini grafici) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+            <Block title="Traffico correlato al brand">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ flex: 1 }}>Con brand</span><span style={{ fontWeight: 700 }}>{data.branded.brandedPct}%</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 4, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
+              <div style={{ fontSize: 11, opacity: 0.5 }}>{nf(data.branded.brandedClicks)} click brand · {nf(data.branded.nonBrandedClicks)} non-brand · token: {data.branded.tokens.join(', ')}</div>
+            </Block>
+            <Block title="Paesi principali (click)">
+              <div style={{ width: '100%', height: 130 }}>
+                <ResponsiveContainer>
+                  <BarChart data={data.countries.slice(0, 6).map(c => ({ name: (c.key || '').toUpperCase(), clicks: c.clicks }))} layout="vertical" margin={{ left: 6, right: 8, top: 0, bottom: 0 }}>
+                    <XAxis type="number" hide /><YAxis type="category" dataKey="name" width={42} tick={{ fill: 'var(--text3)', fontSize: 11 }} />
+                    <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} />
+                    <Bar dataKey="clicks" radius={[0, 4, 4, 0]} fill="#30d158" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Block>
+          </div>
+
+          {/* Pagine in crescita / calo */}
+          {(data.pageMovers.up.length > 0 || data.pageMovers.down.length > 0) && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+              <Block title="↑ Pagine in crescita (click vs periodo prec.)">
+                {data.pageMovers.up.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>—</div>}
+                {data.pageMovers.up.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 12.5, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#30d158', fontWeight: 700 }}>+{nf(p.delta)}</span></div>)}
+              </Block>
+              <Block title="↓ Pagine in calo">
+                {data.pageMovers.down.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>—</div>}
+                {data.pageMovers.down.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 12.5, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#ff375f', fontWeight: 700 }}>{nf(p.delta)}</span></div>)}
+              </Block>
+            </div>
+          )}
+
+          {/* Opportunità */}
           {data.opportunities.nearFirstPage.length > 0 && (
             <Block title="⚡ Opportunità — quasi in prima pagina (pos. 11–20)">
               {data.opportunities.nearFirstPage.map((q, i) => (
-                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}>
-                  <span style={{ flex: 1 }}>{q.key}</span>
-                  <span style={{ opacity: 0.6 }}>pos {q.position.toFixed(1)}</span>
-                  <span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span>
-                </div>
+                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>pos {q.position.toFixed(1)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
               ))}
             </Block>
           )}
           {data.opportunities.lowCtr.length > 0 && (
-            <Block title="⚡ Opportunità — alto traffico potenziale, CTR basso (migliora title/meta)">
+            <Block title="⚡ Opportunità — alto traffico, CTR basso (migliora title/meta)">
               {data.opportunities.lowCtr.map((q, i) => (
-                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}>
-                  <span style={{ flex: 1 }}>{q.key}</span>
-                  <span style={{ opacity: 0.6 }}>CTR {pct(q.ctr)}</span>
-                  <span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span>
-                </div>
+                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>CTR {pct(q.ctr)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
               ))}
             </Block>
           )}
 
-          <QTable title="Top query" rows={data.queries.slice(0, 50)} />
-          <Block title="Top pagine">
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead><tr><th style={thStyle}>Pagina</th><th style={thStyle}>Click</th><th style={thStyle}>Impr.</th><th style={thStyle}>CTR</th><th style={thStyle}>Pos.</th></tr></thead>
-                <tbody>{data.pages.slice(0, 30).map((p, i) => (
-                  <tr key={i}><td style={{ ...tdStyle, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.key}</td><td style={tdStyle}>{nf(p.clicks)}</td><td style={tdStyle}>{nf(p.impressions)}</td><td style={tdStyle}>{pct(p.ctr)}</td><td style={tdStyle}>{p.position.toFixed(1)}</td></tr>
-                ))}</tbody>
-              </table>
-            </div>
+          {/* Tabella per dimensione */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {dims.map(([id, lbl]) => <Pill key={id} small active={dim === id} onClick={() => setDim(id)}>{lbl}</Pill>)}
+          </div>
+          <Block title={`Dettaglio per ${dimLabel.toLowerCase()}`}>
+            {dimRows.length === 0 ? <div style={{ fontSize: 13, opacity: 0.4 }}>Nessun dato per questa dimensione.</div> : <DimTable rows={dimRows.slice(0, 50)} label={dimLabel} fmtKey={fmtKey} />}
           </Block>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="gsc" data={data} /></div>
           <SeoAgentPanel context={{ type: 'gsc', data }} hint="Esperto SEO — conosce i dati reali di Search Console qui sopra." suggestions={['Su quali query lavoro per prime?', 'Come alzo il CTR delle query con CTR basso?', 'Quali pagine ottimizzo per salire di posizione?']} />
         </div>

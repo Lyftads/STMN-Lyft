@@ -130,7 +130,12 @@ async function getMetrics() {
 async function queryMetric(metricId, measurement, days) {
   const now = new Date()
   const start = new Date(now)
-  start.setDate(start.getDate() - days)
+  if (days === 0) {
+    // "Oggi": da mezzanotte (locale Europe/Rome ~UTC+2 estate) a now.
+    start.setHours(0, 0, 0, 0)
+  } else {
+    start.setDate(start.getDate() - days)
+  }
 
   const body = {
     data: {
@@ -201,7 +206,11 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
 
   const now = new Date()
   const start = new Date(now)
-  start.setDate(start.getDate() - days)
+  if (days === 0) {
+    start.setHours(0, 0, 0, 0)
+  } else {
+    start.setDate(start.getDate() - days)
+  }
   const timeframe = {
     start: start.toISOString().slice(0, 10),
     end: now.toISOString().slice(0, 10),
@@ -277,7 +286,8 @@ export async function GET(request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const days = parseInt(searchParams.get('days') || '30', 10)
+  const daysParam = searchParams.get('days')
+  const days = daysParam != null ? parseInt(daysParam, 10) : 30
 
   try {
     const [account, lists, segments, sent, draft, scheduled, flows, metrics] = await Promise.all([

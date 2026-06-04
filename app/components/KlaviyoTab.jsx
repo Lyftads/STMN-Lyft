@@ -145,19 +145,19 @@ export default function KlaviyoTab() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <p style={{ color: '#9f93ad', fontSize: 13, margin: 0 }}>{greetMarino()}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          {[7, 14, 30, 60, 90].map(d => (
-            <button key={d} onClick={() => setDays(d)} className="btn-glass" style={{
-              border: days === d ? '1px solid #8b5cf6' : '1px solid var(--border)',
-              background: days === d ? '#8b5cf622' : 'var(--glass)',
-              color: days === d ? '#c4b5fd' : '#9b90aa',
+          {[{ d: 0, label: 'Oggi' }, { d: 7, label: '7g' }, { d: 14, label: '14g' }, { d: 30, label: '30g' }, { d: 60, label: '60g' }, { d: 90, label: '90g' }].map(o => (
+            <button key={o.d} onClick={() => setDays(o.d)} className="btn-glass" style={{
+              border: days === o.d ? '1px solid #8b5cf6' : '1px solid var(--border)',
+              background: days === o.d ? '#8b5cf622' : 'var(--glass)',
+              color: days === o.d ? '#c4b5fd' : '#9b90aa',
               borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
-            }}>{d}g</button>
+            }}>{o.label}</button>
           ))}
         </div>
       </div>
 
       {/* Panoramica Email */}
-      <Section title="Panoramica Email" subtitle={`Klaviyo · ultimi ${days} giorni`} color="#8b5cf6">
+      <Section title="Panoramica Email" subtitle={`Klaviyo · ${days === 0 ? 'oggi' : `ultimi ${days} giorni`}`} color="#8b5cf6">
         <div className="reveal" style={{
           background: 'linear-gradient(90deg, rgba(139,92,246,0.12), transparent)',
           border: '1px solid var(--border)', borderRadius: 12,

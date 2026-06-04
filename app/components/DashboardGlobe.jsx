@@ -93,18 +93,38 @@ export default function DashboardGlobe() {
       const controls = g.controls()
       controls.autoRotate = true
       controls.autoRotateSpeed = 0.5
-      controls.enableZoom = true           // zoom con rotellina/pinch (come Shopify)
-      controls.zoomSpeed = 0.8
-      controls.minDistance = 130            // quanto ci si può avvicinare
-      controls.maxDistance = 520            // quanto ci si può allontanare
+      controls.enableZoom = false          // niente zoom da rotellina → lo scroll pagina resta libero
       controls.enablePan = false
     } catch {}
     // Inquadratura iniziale: Europa/Atlantico, sfera grande (altitude più bassa = più vicina)
     try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.5 }, 0) } catch {}
   }, [size.w])
 
+  // Zoom via pulsanti +/- (altitude più bassa = più vicino)
+  const zoom = (dir) => {
+    const g = globeRef.current
+    if (!g) return
+    try {
+      const pov = g.pointOfView()
+      const next = Math.min(3.2, Math.max(0.6, (pov.altitude || 1.5) + (dir < 0 ? -0.35 : 0.35)))
+      g.pointOfView({ ...pov, altitude: next }, 400)
+    } catch {}
+  }
+
+  const zoomBtn = {
+    width: 34, height: 34, borderRadius: 9, cursor: 'pointer',
+    background: 'rgba(8,8,15,0.6)', backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255,255,255,0.12)', color: '#fff',
+    fontSize: 20, fontWeight: 600, lineHeight: 1, display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+  }
+
   return (
-    <div ref={wrapRef} style={{ width: '100%', height: '100%' }}>
+    <div ref={wrapRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div style={{ position: 'absolute', bottom: 28, right: 'calc(14vw + 24px)', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button aria-label="Zoom in" onClick={() => zoom(-1)} style={zoomBtn}>+</button>
+        <button aria-label="Zoom out" onClick={() => zoom(1)} style={zoomBtn}>−</button>
+      </div>
       <Globe
         ref={globeRef}
         width={size.w}

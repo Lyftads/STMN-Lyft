@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
@@ -35,10 +35,31 @@ export default function PnLTab({ data = [] }) {
   const [showCfg, setShowCfg] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const [saved, setSaved] = useState(false)
+  const saveTimer = useRef(null)
+
   useEffect(() => {
+    let alive = true
+    // 1) localStorage subito (istantaneo) → 2) account sul server (sovrascrive se presente)
     try { const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (s) setCfg({ ...DEF_CFG, ...s }) } catch {}
+    fetch('/api/pnl/config').then(r => r.json()).then(j => {
+      if (alive && j?.config && Object.keys(j.config).length) {
+        setCfg({ ...DEF_CFG, ...j.config })
+        try { localStorage.setItem(LS_KEY, JSON.stringify(j.config)) } catch {}
+      }
+    }).catch(() => {})
+    return () => { alive = false }
   }, [])
-  const saveCfg = (next) => { setCfg(next); try { localStorage.setItem(LS_KEY, JSON.stringify(next)) } catch {} }
+
+  const saveCfg = (next) => {
+    setCfg(next)
+    try { localStorage.setItem(LS_KEY, JSON.stringify(next)) } catch {}
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      fetch('/api/pnl/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: next }) })
+        .then(() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }).catch(() => {})
+    }, 700)
+  }
 
   useEffect(() => {
     let alive = true
@@ -162,7 +183,10 @@ export default function PnLTab({ data = [] }) {
               <button onClick={() => saveCfg({ ...cfg, fixedCosts: cfg.fixedCosts.filter((_, j) => j !== i) })} style={{ ...inp, cursor: 'pointer', width: 40 }}>×</button>
             </div>
           ))}
-          <button onClick={() => saveCfg({ ...cfg, fixedCosts: [...(cfg.fixedCosts || []), { name: '', amount: '' }] })} style={{ ...inp, cursor: 'pointer' }}>+ Aggiungi costo fisso</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => saveCfg({ ...cfg, fixedCosts: [...(cfg.fixedCosts || []), { name: '', amount: '' }] })} style={{ ...inp, cursor: 'pointer' }}>+ Aggiungi costo fisso</button>
+            <span style={{ fontSize: 11, color: saved ? '#30d158' : 'var(--text3)' }}>{saved ? '✓ Salvato sul tuo account' : 'Si salva automaticamente sul tuo account'}</span>
+          </div>
           <div style={{ fontSize: 11, opacity: 0.5, marginTop: 12 }}>
             COGS: {cfg.cogsPct != null ? `override manuale ${cfg.cogsPct}%` : state.cogsSource === 'shopify' ? 'reale dalle analitiche Shopify ✓ (cost_of_goods_sold)' : state.cogsRatio != null ? `stima da margine medio catalogo ${state.avgMargin}%` : 'imposta una % qui'} · Fee: {state.feesSource === 'shopify-payments' ? 'reali da Shopify Payments ✓' : 'stima da % (Shopify Payments non disponibile)'}
           </div>

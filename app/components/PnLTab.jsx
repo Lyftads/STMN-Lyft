@@ -54,6 +54,13 @@ export default function PnLTab({ data = [] }) {
     return m
   }, [data])
 
+  // Fatturato (incl. IVA) dal monthly dell'app — stesso "Fatturato" delle altre tab
+  const fattByMonth = useMemo(() => {
+    const m = {}
+    for (const r of (data || [])) { if (r?.month) m[r.month] = Number(r.fatturato) || 0 }
+    return m
+  }, [data])
+
   const cogsRatio = cfg.cogsPct != null ? cfg.cogsPct / 100 : (state.cogsRatio ?? null)
   const fixedTotal = (cfg.fixedCosts || []).reduce((s, f) => s + (Number(f.amount) || 0), 0)
 
@@ -76,9 +83,11 @@ export default function PnLTab({ data = [] }) {
       const contrib = grossMargin != null ? grossMargin - ads - fee - packaging : null
       const ebit = contrib != null ? contrib - fixedTotal : null
       const ebitPct = ebit != null && net > 0 ? (ebit / net) * 100 : null
-      return { ...s, net, cogs, grossMargin, ads, fee, packaging, contrib, fixed: fixedTotal, ebit, ebitPct }
+      // Fatturato (incl. IVA): dal monthly app (come le altre tab); fallback a total_sales ShopifyQL
+      const fatturato = (fattByMonth[s.month] != null && fattByMonth[s.month] > 0) ? fattByMonth[s.month] : s.totalSales
+      return { ...s, fatturato, net, cogs, grossMargin, ads, fee, packaging, contrib, fixed: fixedTotal, ebit, ebitPct }
     })
-  }, [state.series, state.feesByMonth, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, cfg, fixedTotal])
+  }, [state.series, state.feesByMonth, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, fattByMonth, cfg, fixedTotal])
 
   const annual = useMemo(() => {
     if (!rows.length) return null
@@ -94,7 +103,7 @@ export default function PnLTab({ data = [] }) {
   const desc = [...rows].reverse() // più recente in alto
   // Voci del conto economico (righe); i mesi sono le colonne
   const lines = [
-    { label: 'Incassato (incl. IVA)', key: 'totalSales' },
+    { label: 'Fatturato (incl. IVA)', key: 'fatturato' },
     { label: 'IVA', key: 'taxes' },
     { label: 'Ricavi netti (ex-IVA)', key: 'net', strong: true },
     { label: 'COGS (costo prodotti)', key: 'cogs', neg: true },

@@ -783,3 +783,56 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 .glass-card::after { animation: none !important; display: none; }
 .glass-card:hover { transform: none; }
 .glass-section::after { animation: none !important; display: none; }
+
+/* ============================================================================
+   DASHBOARD LIVE VIEW — globo 3D di sfondo + card spostate a sinistra
+   Stile BFCM Shopify: globo quasi nero con alone luminoso dietro la sfera.
+   ============================================================================ */
+.dash-live-wrap { position: relative; }
+
+/* Layer globo: fissato a destra del viewport, dietro al contenuto */
+.dash-live-globe {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 60vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: auto;
+}
+/* "Punto luce dietro il globo": alone radiale viola/blu */
+.dash-live-globe::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 52%;
+  width: 70%;
+  height: 70%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(191,90,242,0.30) 0%,
+    rgba(100,160,255,0.14) 38%,
+    rgba(0,0,0,0) 68%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Contenuto: spostato a sinistra; le card più a destra galleggiano sul globo */
+.dash-live-content {
+  position: relative;
+  z-index: 1;
+  max-width: 62%;
+}
+
+/* Schermi stretti: globo a tutta larghezza, molto tenue, contenuto pieno */
+@media (max-width: 1100px) {
+  .dash-live-globe { width: 100vw; opacity: 0.30; }
+  .dash-live-content { max-width: 100%; }
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.7); }
+}

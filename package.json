@@ -18,8 +18,10 @@
     "puppeteer-core": "^23.11.1",
     "react": "^18",
     "react-dom": "^18",
+    "react-globe.gl": "^2.38.0",
     "recharts": "^2.12.7",
-    "stripe": "^22.2.0"
+    "stripe": "^22.2.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.0.1",

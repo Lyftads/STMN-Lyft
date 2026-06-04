@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
+import dynamicImport from 'next/dynamic'
+import LiveStatsCards from './components/LiveStatsCards'
+const DashboardGlobe = dynamicImport(() => import('./components/DashboardGlobe'), { ssr: false })
 import KPIBrainTab from './components/KPIBrainTab'
 import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
@@ -2680,7 +2683,10 @@ export default function App() {
 
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
-        <>
+        <div className="dash-live-wrap">
+          <div className="dash-live-globe"><DashboardGlobe /></div>
+          <div className="dash-live-content">
+          <LiveStatsCards />
           <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>
@@ -2747,7 +2753,8 @@ export default function App() {
           <RecommendationsFeed metrics={live} preset={preset} />
 
           <DashboardInsights preset={preset} />
-        </>
+          </div>
+        </div>
       )}
 {/* KPI BRAIN TAB */}
 {tab === 'kpiBrain' && (

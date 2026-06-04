@@ -102,6 +102,12 @@ export default function VendroShell({
         { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: '⧗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
+      ],
+    },
+    {
+      title: 'Website',
+      color: '#ff9f0a',
+      items: [
         { id: 'cro', label: 'CRO', icon: '⊘' },
         { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },
       ],

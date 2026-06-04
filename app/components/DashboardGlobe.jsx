@@ -92,12 +92,15 @@ export default function DashboardGlobe() {
     try {
       const controls = g.controls()
       controls.autoRotate = true
-      controls.autoRotateSpeed = 0.55
-      controls.enableZoom = false
+      controls.autoRotateSpeed = 0.5
+      controls.enableZoom = true           // zoom con rotellina/pinch (come Shopify)
+      controls.zoomSpeed = 0.8
+      controls.minDistance = 130            // quanto ci si può avvicinare
+      controls.maxDistance = 520            // quanto ci si può allontanare
       controls.enablePan = false
     } catch {}
-    // Inquadratura iniziale: Europa/Atlantico, zoom più ravvicinato (sfera grande)
-    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.85 }, 0) } catch {}
+    // Inquadratura iniziale: Europa/Atlantico, sfera grande (altitude più bassa = più vicina)
+    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.5 }, 0) } catch {}
   }, [size.w])
 
   return (

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
-  vatRate: 22, cogsPct: null, packagingPerOrder: 0, gatewayPct: 0, gatewayFixed: 0,
+  vatRate: 22, cogsPct: null, packagingPerOrder: 0, shippingPerOrder: 0, gatewayPct: 0, gatewayFixed: 0,
   // righe OPEX suggerite (Shopify non espone piano/app via API → vanno qui)
   fixedCosts: [{ name: 'Shopify (piano)', amount: '' }, { name: 'App Shopify', amount: '' }],
 }
@@ -81,12 +81,13 @@ export default function PnLTab({ data = [] }) {
         ? state.feesByMonth[s.month]
         : (s.totalSales * (cfg.gatewayPct || 0) / 100 + s.orders * (cfg.gatewayFixed || 0))
       const packaging = s.orders * (cfg.packagingPerOrder || 0)
-      const contrib = grossMargin != null ? grossMargin - ads - fee - packaging : null
+      const shipCost = s.orders * (cfg.shippingPerOrder || 0)
+      const contrib = grossMargin != null ? grossMargin - ads - fee - packaging - shipCost : null
       const ebit = contrib != null ? contrib - fixedTotal : null
       const ebitPct = ebit != null && net > 0 ? (ebit / net) * 100 : null
       // Fatturato (incl. IVA): dal monthly app (come le altre tab); fallback a total_sales ShopifyQL
       const fatturato = (fattByMonth[s.month] != null && fattByMonth[s.month] > 0) ? fattByMonth[s.month] : s.totalSales
-      return { ...s, fatturato, net, cogs, grossMargin, ads, fee, packaging, contrib, fixed: fixedTotal, ebit, ebitPct }
+      return { ...s, fatturato, net, cogs, grossMargin, ads, fee, packaging, shipCost, contrib, fixed: fixedTotal, ebit, ebitPct }
     })
   }, [state.series, state.feesByMonth, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, fattByMonth, cfg, fixedTotal])
 
@@ -112,6 +113,7 @@ export default function PnLTab({ data = [] }) {
     { label: 'Advertising', key: 'ads', neg: true },
     { label: 'Fee gateway', key: 'fee', neg: true },
     { label: 'Packaging', key: 'packaging', neg: true },
+    { label: 'Spedizione (corriere)', key: 'shipCost', neg: true },
     { label: 'Costi fissi (OPEX)', key: 'fixed', neg: true },
     { label: 'Margine contribuzione', key: 'contrib', strong: true },
     { label: 'EBIT (utile)', key: 'ebit', ebit: true },
@@ -148,6 +150,7 @@ export default function PnLTab({ data = [] }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 14, marginBottom: 16 }}>
             <Field label="COGS % (se costi Shopify mancanti)" value={cfg.cogsPct ?? ''} ph={state.avgMargin != null ? `auto: ${(100 - state.avgMargin).toFixed(0)}%` : 'es. 40'} onChange={v => saveCfg({ ...cfg, cogsPct: v === '' ? null : Number(v) })} />
             <Field label="Packaging €/ordine" value={cfg.packagingPerOrder} onChange={v => saveCfg({ ...cfg, packagingPerOrder: Number(v) || 0 })} />
+            <Field label="Spedizione corriere €/ordine" value={cfg.shippingPerOrder} ph="es. 5.50 (tariffa media)" onChange={v => saveCfg({ ...cfg, shippingPerOrder: Number(v) || 0 })} />
             <Field label="Fee gateway %" value={cfg.gatewayPct} ph={state.feesSource === 'shopify-payments' ? 'auto da Shopify Payments' : 'es. 1.5'} onChange={v => saveCfg({ ...cfg, gatewayPct: Number(v) || 0 })} />
             <Field label="Fee gateway € fisso/ordine" value={cfg.gatewayFixed} onChange={v => saveCfg({ ...cfg, gatewayFixed: Number(v) || 0 })} />
           </div>

@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
   '/onboarding',
   '/welcome',
   '/privacy',
+  '/terms',
 ]
 
 export async function middleware(request) {

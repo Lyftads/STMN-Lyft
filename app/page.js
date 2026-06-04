@@ -18,6 +18,7 @@ import SettingsTab from './components/SettingsTab'
 import BrandIdentityPanel from './components/BrandIdentityPanel'
 import CROTab from './components/CROTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
+import SeoAuditTab from './components/SeoAuditTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
@@ -4219,6 +4220,10 @@ export default function App() {
 {/* AI WEBSITE SCANNER TAB */}
 {tab === 'webScanner' && (
   <WebsiteScannerTab />
+)}
+
+{tab === 'seoAudit' && (
+  <SeoAuditTab />
 )}
 
 {/* CREATIVE LAB TAB */}

@@ -61,11 +61,17 @@ export default function PnLTab({ data = [] }) {
     }, 700)
   }
 
+  const cacheRef = useRef({})  // memoria per fetchMonths → niente reload cambiando timeframe
   useEffect(() => {
     let alive = true
+    const cached = cacheRef.current[fetchMonths]
+    if (cached) { setState({ loading: false, ...cached }); return () => { alive = false } }
     setState({ loading: true })
-    fetch(`/api/pnl?months=${fetchMonths}`, { cache: 'no-store' }).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
-      .catch(() => alive && setState({ loading: false, configured: false }))
+    fetch(`/api/pnl?months=${fetchMonths}`, { cache: 'no-store' }).then(r => r.json()).then(j => {
+      if (!alive) return
+      cacheRef.current[fetchMonths] = j
+      setState({ loading: false, ...j })
+    }).catch(() => alive && setState({ loading: false, configured: false }))
     return () => { alive = false }
   }, [fetchMonths, refreshKey])
 
@@ -163,7 +169,7 @@ export default function PnLTab({ data = [] }) {
           <option value="24">24 mesi</option>
         </select>
         <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>⚙ Costi & impostazioni</button>
-        <button onClick={() => setRefreshKey(k => k + 1)} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? 'Aggiorno…' : 'Aggiorna'}</button>
+        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? 'Aggiorno…' : 'Aggiorna'}</button>
       </div>
 
       {showCfg && (

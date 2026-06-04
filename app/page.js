@@ -2755,8 +2755,6 @@ export default function App() {
           <AlertsPanel live={live} />
 
           <RecommendationsFeed metrics={live} preset={preset} />
-
-          <DashboardInsights preset={preset} />
         </>
       )}
 {/* KPI BRAIN TAB */}

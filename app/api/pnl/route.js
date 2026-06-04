@@ -14,6 +14,11 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0
 }
 const r2 = (n) => Math.round(num(n) * 100) / 100
+// estrae 'YYYY-MM' dalla riga ShopifyQL (la dimensione mese può avere nomi diversi)
+const monthOfRow = (row) => {
+  const v = row.month || row.billing_month || Object.values(row).find(x => typeof x === 'string' && /^\d{4}-\d{2}/.test(x)) || ''
+  return String(v).slice(0, 7)
+}
 
 // ── ShopifyQL (stesso pattern di /api/metrics, con retry sul throttling) ──
 async function shopifyQL(query) {
@@ -120,29 +125,32 @@ export async function GET(req) {
     const origin = new URL(req.url).origin
 
     try {
-      const qlRows = await shopifyQL(`
-        FROM sales
-          SHOW gross_sales, discounts, returns, net_sales, taxes, shipping, total_sales, orders
-          GROUP BY month
-          SINCE ${since} UNTIL ${until}
-          ORDER BY month ASC
-      `)
+      // Interrogo OGNI metrica separatamente (query a singola metrica = robuste:
+      // se un nome non è valido in questa versione ShopifyQL non azzera le altre).
+      const metricOf = async (metric) => {
+        const rows = await shopifyQL(`FROM sales SHOW ${metric} GROUP BY month SINCE ${since} UNTIL ${until} ORDER BY month ASC`)
+        const map = {}
+        for (const row of rows) { const m = monthOfRow(row); if (m) map[m] = row[metric] }
+        return map
+      }
+      const NAMES = ['total_sales', 'net_sales', 'gross_sales', 'discounts', 'returns', 'taxes', 'shipping', 'orders']
+      const maps = {}
+      const fetched = await Promise.all(NAMES.map(n => metricOf(n)))
+      NAMES.forEach((n, i) => { maps[n] = fetched[i] })
 
-      const series = qlRows.map(row => {
-        // la dimensione mese può chiamarsi 'month' o simili → prendi la prima chiave non-metrica
-        const monthKey = row.month || row.billing_month || Object.values(row).find(v => typeof v === 'string' && /^\d{4}-\d{2}/.test(v)) || ''
-        return {
-          month: String(monthKey).slice(0, 7),
-          grossSales: r2(row.gross_sales),
-          discounts: r2(row.discounts),
-          returns: Math.abs(r2(row.returns)),
-          netSales: r2(row.net_sales),
-          taxes: r2(row.taxes),
-          shipping: r2(row.shipping),
-          totalSales: r2(row.total_sales),
-          orders: Math.round(num(row.orders)),
-        }
-      }).filter(r => r.month)
+      const allMonths = new Set()
+      for (const n of NAMES) Object.keys(maps[n]).forEach(m => allMonths.add(m))
+      const series = [...allMonths].sort().map(month => ({
+        month,
+        totalSales: r2(maps.total_sales[month]),
+        netSales: r2(maps.net_sales[month]),
+        grossSales: r2(maps.gross_sales[month]),
+        discounts: r2(maps.discounts[month]),
+        returns: Math.abs(r2(maps.returns[month])),
+        taxes: r2(maps.taxes[month]),
+        shipping: r2(maps.shipping[month]),
+        orders: Math.round(num(maps.orders[month])),
+      }))
 
       // COGS ratio reale dai costi prodotto Shopify
       let cogsRatio = null, avgMargin = null

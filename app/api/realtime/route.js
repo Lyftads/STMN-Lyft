@@ -31,8 +31,10 @@ async function runRealtime(token, propertyId, body) {
       body: JSON.stringify(body),
     }
   )
-  if (!res.ok) return null
-  return res.json()
+  const text = await res.text()
+  let json = null
+  try { json = JSON.parse(text) } catch {}
+  return { ok: res.ok, status: res.status, json, errText: res.ok ? null : text.slice(0, 500) }
 }
 
 export async function GET(request) {
@@ -43,18 +45,33 @@ export async function GET(request) {
       return NextResponse.json({ configured: false })
     }
 
+    const { searchParams } = new URL(request.url)
+    const debug = searchParams.get('debug') === '1'
+
     try {
       const token = await getAccessToken(g)
       if (!token) throw new Error('Google OAuth failed')
 
-      const report = await runRealtime(token, propertyId, {
+      const res = await runRealtime(token, propertyId, {
         dimensions: [{ name: 'countryId' }, { name: 'country' }, { name: 'city' }],
         metrics: [{ name: 'activeUsers' }],
         orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
         limit: 100,
       })
 
-      const rows = report?.rows || []
+      if (debug) {
+        return NextResponse.json({
+          configured: true,
+          propertyId,
+          apiOk: res.ok,
+          apiStatus: res.status,
+          apiError: res.errText,
+          rowCount: res.json?.rows?.length || 0,
+          sampleRows: (res.json?.rows || []).slice(0, 5),
+        })
+      }
+
+      const rows = res.json?.rows || []
       let activeUsers = 0
       const byLocation = []
       const points = []

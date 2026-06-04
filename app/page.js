@@ -2683,12 +2683,15 @@ export default function App() {
 
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
-        <div className="dash-live-wrap">
-          <div className="dash-live-globe"><DashboardGlobe /></div>
-          <div className="dash-live-content">
-          <LiveStatsCards />
-          <div className="reveal-zoom" style={{marginBottom:24}}>
-            <RatioWidget ratio={avgRatio} mer={avgMER} />
+        <>
+          <div className="dash-live-hero">
+            <div className="dash-live-globe"><DashboardGlobe /></div>
+            <div className="dash-live-left">
+              <LiveStatsCards />
+              <div className="reveal-zoom" style={{marginBottom:24}}>
+                <RatioWidget ratio={avgRatio} mer={avgMER} />
+              </div>
+            </div>
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
@@ -2753,8 +2756,7 @@ export default function App() {
           <RecommendationsFeed metrics={live} preset={preset} />
 
           <DashboardInsights preset={preset} />
-          </div>
-        </div>
+        </>
       )}
 {/* KPI BRAIN TAB */}
 {tab === 'kpiBrain' && (

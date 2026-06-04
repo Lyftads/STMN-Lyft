@@ -788,15 +788,22 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    DASHBOARD LIVE VIEW — globo 3D di sfondo + card spostate a sinistra
    Stile BFCM Shopify: globo quasi nero con alone luminoso dietro la sfera.
    ============================================================================ */
-.dash-live-wrap { position: relative; }
+/* HERO: contiene il globo (sfondo a destra) + le card live (sinistra).
+   Confinato in alto → tutto il resto della dashboard resta full-width. */
+.dash-live-hero {
+  position: relative;
+  min-height: 520px;
+  margin-bottom: 28px;
+}
 
-/* Layer globo: fissato a destra del viewport, dietro al contenuto */
+/* Layer globo: grande, ancorato a destra, sborda oltre il bordo per sembrare
+   più imponente (stile BFCM). Assoluto = scrolla via, non copre il resto. */
 .dash-live-globe {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 60vw;
-  height: 100vh;
+  position: absolute;
+  top: -60px;
+  bottom: -120px;
+  right: -12vw;
+  width: 62vw;
   z-index: 0;
   pointer-events: auto;
 }
@@ -805,31 +812,31 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   content: '';
   position: absolute;
   top: 50%;
-  left: 52%;
-  width: 70%;
-  height: 70%;
+  left: 50%;
+  width: 78%;
+  height: 78%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle,
-    rgba(191,90,242,0.30) 0%,
-    rgba(100,160,255,0.14) 38%,
-    rgba(0,0,0,0) 68%);
-  filter: blur(40px);
+    rgba(191,90,242,0.34) 0%,
+    rgba(100,160,255,0.16) 40%,
+    rgba(0,0,0,0) 70%);
+  filter: blur(46px);
   pointer-events: none;
   z-index: -1;
 }
 
-/* Contenuto: spostato a sinistra; le card più a destra galleggiano sul globo */
-.dash-live-content {
+/* Card live a sinistra, galleggiano sopra il bordo sinistro della sfera */
+.dash-live-left {
   position: relative;
   z-index: 1;
-  max-width: 62%;
+  max-width: 50%;
 }
 
-/* Schermi stretti: globo a tutta larghezza, molto tenue, contenuto pieno */
+/* Schermi stretti: globo molto tenue dietro, card a tutta larghezza */
 @media (max-width: 1100px) {
-  .dash-live-globe { width: 100vw; opacity: 0.30; }
-  .dash-live-content { max-width: 100%; }
+  .dash-live-globe { right: -20vw; width: 90vw; opacity: 0.35; }
+  .dash-live-left { max-width: 100%; }
 }
 
 @keyframes livePulse {

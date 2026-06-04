@@ -12,8 +12,8 @@ import Globe from 'react-globe.gl'
 import * as THREE from 'three'
 import { swrFetch } from '../../lib/clientCache'
 
-const COUNTRIES_URL =
-  'https://vasturiano.github.io/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson'
+// GeoJSON bundlato in /public/geo (stesso dominio → niente redirect/CORS)
+const COUNTRIES_URL = '/geo/countries-110m.geojson'
 
 const TEAL = '#34e7b0'
 const PURPLE = '#bf5af2'
@@ -96,8 +96,8 @@ export default function DashboardGlobe() {
       controls.enableZoom = false
       controls.enablePan = false
     } catch {}
-    // Inquadratura iniziale: Atlantico/Europa
-    try { g.pointOfView({ lat: 28, lng: -8, altitude: 2.2 }, 0) } catch {}
+    // Inquadratura iniziale: Europa/Atlantico, zoom più ravvicinato (sfera grande)
+    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.85 }, 0) } catch {}
   }, [size.w])
 
   return (
@@ -112,9 +112,9 @@ export default function DashboardGlobe() {
         atmosphereAltitude={0.28}
         hexPolygonsData={countries.features}
         hexPolygonResolution={3}
-        hexPolygonMargin={0.32}
+        hexPolygonMargin={0.18}
         hexPolygonUseDots
-        hexPolygonColor={() => 'rgba(100,210,255,0.22)'}
+        hexPolygonColor={() => 'rgba(105,212,255,0.6)'}
         pointsData={points}
         pointLat="lat"
         pointLng="lng"

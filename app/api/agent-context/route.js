@@ -21,7 +21,7 @@ export async function GET(request) {
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
 
-  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel] =
+  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`),
       safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
@@ -34,7 +34,16 @@ export async function GET(request) {
       safeFetch(`${base}/api/competitor-intel`),
       safeFetch(`${base}/api/product-costs`),
       safeFetch(`${base}/api/market-intel`),
+      safeFetch(`${base}/api/realtime`),
     ])
+
+  // Search Console (dati reali): risolvi la prima proprietà verificata e prendi i dati
+  let gsc = null
+  try {
+    const gscSites = await safeFetch(`${base}/api/gsc?action=sites`)
+    const firstSite = gscSites?.sites?.[0]?.siteUrl
+    if (firstSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(firstSite)}&days=${days}`)
+  } catch {}
 
   const sources = {
     shopify: !!metrics?.sources?.shopify,
@@ -45,6 +54,8 @@ export async function GET(request) {
     tiktok: !!tiktok?.configured,
     pinterest: !!pinterest?.configured,
     snapchat: !!snapchat?.configured,
+    searchConsole: !!gsc?.totals,
+    realtime: !!realtime?.configured,
   }
 
   const activeCount = Object.values(sources).filter(Boolean).length
@@ -242,6 +253,23 @@ export async function GET(request) {
       }
     })
     context.competitorsFetchedAt = competitorIntel.fetchedAt
+  }
+
+  if (gsc?.totals) {
+    context.searchConsole = {
+      site: gsc.site,
+      totals: gsc.totals,
+      deltas: gsc.deltas,
+      branded: gsc.branded,
+      opportunities: gsc.opportunities,
+      topQueries: (gsc.queries || []).slice(0, 30),
+      topPages: (gsc.pages || []).slice(0, 15),
+      pageMovers: gsc.pageMovers,
+    }
+  }
+
+  if (realtime?.configured) {
+    context.realtime = { activeUsers: realtime.activeUsers, byLocation: realtime.byLocation }
   }
 
   return NextResponse.json(context)

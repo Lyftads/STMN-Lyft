@@ -23,6 +23,7 @@ function getPageTitle(tab) {
     totalImpact: 'Total Impact',
     lighthouse: 'Lighthouse',
     forecast: 'Forecast',
+    scheduledReports: 'Scheduled Reports',
     creative: 'Creative',
     creativeFatigue: 'Creative Fatigue',
     budgetAdvisor: 'Budget Advisor',
@@ -53,6 +54,7 @@ function getPageSubtitle(tab) {
     totalImpact: 'Attribuzione cross-channel · Meta · Klaviyo · Organic · Gap reported vs deduplicato',
     lighthouse: 'Alert center · Anomalie CPM · CTR · ROAS · CPO · Frequenza',
     forecast: 'Proiezione revenue · spesa · MER · 30/60/90 giorni',
+    scheduledReports: 'Digest automatici via email · Weekly · Monthly',
     performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
     klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
     competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
@@ -124,6 +126,7 @@ export default function VendroShell({
       title: 'Reports',
       color: '#30d158',
       items: [
+        { id: 'scheduledReports', label: 'Scheduled', icon: '✉' },
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
         { id: 'monthly', label: 'Monthly', icon: '▦' },
         { id: 'quarter', label: 'Quarter', icon: '◧' },
@@ -419,7 +422,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','totalImpact','lighthouse','forecast','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','totalImpact','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

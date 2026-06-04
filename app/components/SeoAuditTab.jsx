@@ -21,6 +21,30 @@ export default function SeoAuditTab() {
   const [history, setHistory] = useState([])
   const [picks, setPicks] = useState([])               // id selezionati per confronto
   const [compare, setCompare] = useState(null)         // { before, after }
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const downloadPdf = async (result) => {
+    if (!result || pdfLoading) return
+    setPdfLoading(true)
+    try {
+      const r = await fetch('/api/seo-audit/pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result }),
+      })
+      const ct = r.headers.get('content-type') || ''
+      const blob = await r.blob()
+      const u = URL.createObjectURL(blob)
+      if (ct.includes('pdf')) {
+        const host = (() => { try { return new URL(result.url).hostname.replace(/^www\./, '') } catch { return 'site' } })()
+        const a = document.createElement('a')
+        a.href = u; a.download = `SEO_${host}.pdf`
+        document.body.appendChild(a); a.click(); a.remove()
+      } else {
+        window.open(u, '_blank') // fallback HTML (Browserless non configurato)
+      }
+      setTimeout(() => URL.revokeObjectURL(u), 15000)
+    } catch {} finally { setPdfLoading(false) }
+  }
 
   const loadHistory = useCallback(async () => {
     try {
@@ -108,7 +132,18 @@ export default function SeoAuditTab() {
           {error && <div className="glass-card" style={{ padding: 18, color: '#ff375f', marginBottom: 20 }}>⚠ {error}</div>}
 
           {compare && <CompareView compare={compare} />}
-          {!compare && res && (res.mode === 'site' ? <SiteResult res={res} /> : <PageResult res={res} />)}
+          {!compare && res && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                <button onClick={() => downloadPdf(res)} disabled={pdfLoading} style={{
+                  padding: '9px 18px', borderRadius: 10, cursor: pdfLoading ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
+                  background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)',
+                }}>⤓ {pdfLoading ? 'Genero PDF…' : 'Scarica PDF'}</button>
+              </div>
+              {res.mode === 'site' ? <SiteResult res={res} /> : <PageResult res={res} />}
+              <SeoAgentPanel audit={res} />
+            </>
+          )}
         </>
       )}
 
@@ -257,6 +292,79 @@ function CompareView({ compare }) {
         </div>
       </div>
     </>
+  )
+}
+
+/* ---------- agente SEO verticale (chat) ---------- */
+function SeoAgentPanel({ audit }) {
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const send = async (text) => {
+    const content = (text ?? input).trim()
+    if (!content || loading) return
+    const next = [...messages, { role: 'user', content }]
+    setMessages(next); setInput(''); setLoading(true)
+    try {
+      const r = await fetch('/api/seo-agent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: next, audit }),
+      })
+      const j = await r.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: j.reply || `⚠ ${j.error || 'errore'}` }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠ Errore di rete' }])
+    } finally { setLoading(false) }
+  }
+
+  const suggestions = [
+    'Riscrivi title e meta description ottimizzati',
+    'Quali keyword dovrei targetizzare e perché?',
+    'Genera lo JSON-LD adatto a questa pagina',
+    'Dammi una roadmap SEO prioritizzata (impatto/sforzo)',
+  ]
+
+  return (
+    <div className="glass-card" style={{ padding: 24, marginTop: 16 }}>
+      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>✦ Esperto SEO</div>
+      <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>Consulente SEO verticale — conosce l'audit qui sopra. Chiedi riscritture, keyword, schema, roadmap.</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            <div style={{
+              maxWidth: '82%', padding: '10px 14px', borderRadius: 14, fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
+              background: m.role === 'user' ? 'var(--accent)' : 'var(--glass)',
+              color: m.role === 'user' ? '#fff' : 'var(--text)',
+              border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+            }}>{m.content}</div>
+          </div>
+        ))}
+        {loading && <div style={{ fontSize: 13, opacity: 0.5 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> L'esperto sta elaborando…</div>}
+      </div>
+
+      {messages.length === 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {suggestions.map((s, i) => (
+            <button key={i} onClick={() => send(s)} style={{
+              fontSize: 12, padding: '7px 12px', borderRadius: 10, cursor: 'pointer',
+              background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)',
+            }}>{s}</button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+          placeholder="Chiedi all'esperto SEO…"
+          style={{ flex: 1, padding: '12px 14px', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
+        <button onClick={() => send()} disabled={loading || !input.trim()} style={{
+          padding: '12px 22px', borderRadius: 12, border: 'none', cursor: loading ? 'wait' : 'pointer',
+          background: loading ? 'rgba(41,151,255,0.4)' : 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 14,
+        }}>Invia</button>
+      </div>
+    </div>
   )
 }
 

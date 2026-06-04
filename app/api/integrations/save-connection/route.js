@@ -33,7 +33,7 @@ export async function POST(req) {
 
     // Update-first: aggiorna se la riga esiste, inserisce solo se assente.
     const { data: updated, error: upErr } = await admin
-      .from('companies').update({ nango_connections: map }).eq('user_id', userId).select('id')
+      .from('companies').update({ nango_connections: map }).eq('user_id', userId).select('user_id')
     if (upErr) throw new Error(upErr.message)
     if (!updated || updated.length === 0) {
       const { error: insErr } = await admin.from('companies').insert({ user_id: userId, nango_connections: map })

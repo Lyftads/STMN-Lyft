@@ -13,7 +13,9 @@ const eur = (n) => (n == null || !Number.isFinite(n)) ? '—' : `€${Math.round
 const eur2 = (n) => (n == null || !Number.isFinite(n)) ? '—' : `€${n.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 const pctv = (n) => (n == null || !Number.isFinite(n)) ? '—' : `${n.toFixed(1)}%`
 const MLAB = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+const MFULL = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
 const monthLabel = (m) => { const [y, mm] = m.split('-').map(Number); return `${MLAB[(mm || 1) - 1]} ${String(y).slice(2)}` }
+const monthFull = (m) => { const [y, mm] = m.split('-').map(Number); return `${MFULL[(mm || 1) - 1]} ${y}` }
 
 function Delta({ cur, prev, lowerBetter = false }) {
   if (prev == null || cur == null || !Number.isFinite(prev) || prev === 0) return null
@@ -90,12 +92,25 @@ export default function PnLTab({ data = [] }) {
   }, [rows, fixedTotal])
 
   const desc = [...rows].reverse() // più recente in alto
-  const cols = [
-    ['Incassato (incl. IVA)', 'totalSales', false], ['IVA', 'taxes', false], ['Ricavi netti', 'net', false],
-    ['COGS', 'cogs', true], ['Margine lordo', 'grossMargin', false], ['Advertising', 'ads', true],
-    ['Fee gateway', 'fee', true], ['Packaging', 'packaging', true], ['Margine contrib.', 'contrib', false],
-    ['Costi fissi', 'fixed', true], ['EBIT', 'ebit', false],
+  // Voci del conto economico (righe); i mesi sono le colonne
+  const lines = [
+    { label: 'Incassato (incl. IVA)', key: 'totalSales' },
+    { label: 'IVA', key: 'taxes' },
+    { label: 'Ricavi netti (ex-IVA)', key: 'net', strong: true },
+    { label: 'COGS (costo prodotti)', key: 'cogs', neg: true },
+    { label: 'Margine lordo', key: 'grossMargin', strong: true },
+    { label: 'Advertising', key: 'ads', neg: true },
+    { label: 'Fee gateway', key: 'fee', neg: true },
+    { label: 'Packaging', key: 'packaging', neg: true },
+    { label: 'Costi fissi (OPEX)', key: 'fixed', neg: true },
+    { label: 'Margine contribuzione', key: 'contrib', strong: true },
+    { label: 'EBIT (utile)', key: 'ebit', ebit: true },
+    { label: 'EBIT %', key: 'ebitPct', pct: true },
+    { label: 'Ordini', key: 'orders', int: true },
   ]
+  const asc = rows // ascending (Gen → Dic)
+  const totalOf = (key) => key === 'ebitPct' ? (annual?.ebitPct) : asc.reduce((a, r) => a + (Number(r[key]) || 0), 0)
+  const fmtCell = (line, v) => line.pct ? pctv(v) : line.int ? (v == null ? '—' : Math.round(v).toLocaleString('it-IT')) : eur(v)
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -137,49 +152,24 @@ export default function PnLTab({ data = [] }) {
 
       {!state.loading && rows.length > 0 && (
         <div className="glass-card" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1100 }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, background: 'var(--surface, #0a0a12)' }}>Mese</th>
-                {cols.map(([l]) => <th key={l} style={th}>{l}</th>)}
-                <th style={th}>EBIT %</th>
+                <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>Voce</th>
+                {asc.map(r => <th key={r.month} style={{ ...th, minWidth: 110 }}>{monthFull(r.month)}</th>)}
+                <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>Totale</th>
               </tr>
             </thead>
             <tbody>
-              {annual && (
-                <tr style={{ background: 'rgba(41,151,255,0.06)', fontWeight: 700 }}>
-                  <td style={{ ...td, textAlign: 'left', position: 'sticky', left: 0, background: 'rgba(20,24,40,0.95)' }}>Annuale ({rows.length}m)</td>
-                  <td style={td}>{eur(annual.totalSales || (annual.net + annual.taxes))}</td>
-                  <td style={td}>{eur(annual.taxes)}</td>
-                  <td style={td}>{eur(annual.net)}</td>
-                  <td style={td}>{eur(annual.cogs)}</td>
-                  <td style={td}>{eur(annual.grossMargin)}</td>
-                  <td style={td}>{eur(annual.ads)}</td>
-                  <td style={td}>{eur(annual.fee)}</td>
-                  <td style={td}>{eur(annual.packaging)}</td>
-                  <td style={td}>{eur(annual.contrib)}</td>
-                  <td style={td}>{eur(annual.fixed)}</td>
-                  <td style={{ ...td, color: annual.ebit >= 0 ? '#30d158' : '#ff375f', fontWeight: 800 }}>{eur(annual.ebit)}</td>
-                  <td style={td}>{pctv(annual.ebitPct)}</td>
-                </tr>
-              )}
-              {desc.map((r, i) => {
-                const prev = desc[i + 1] // mese precedente (più vecchio)
+              {lines.map(line => {
+                const total = totalOf(line.key)
+                const baseTd = { ...td, ...(line.strong ? { fontWeight: 700 } : {}) }
+                const colorOf = (v) => line.ebit ? (v >= 0 ? '#30d158' : '#ff375f') : undefined
                 return (
-                  <tr key={r.month}>
-                    <td style={{ ...td, textAlign: 'left', fontWeight: 600, position: 'sticky', left: 0, background: 'var(--surface, #0a0a12)' }}>{monthLabel(r.month)}</td>
-                    <td style={td}>{eur(r.totalSales)}</td>
-                    <td style={td}>{eur(r.taxes)}</td>
-                    <td style={td}>{eur(r.net)}<Delta cur={r.net} prev={prev?.net} /></td>
-                    <td style={td}>{eur(r.cogs)}</td>
-                    <td style={td}>{eur(r.grossMargin)}<Delta cur={r.grossMargin} prev={prev?.grossMargin} /></td>
-                    <td style={td}>{eur(r.ads)}</td>
-                    <td style={td}>{eur(r.fee)}</td>
-                    <td style={td}>{eur(r.packaging)}</td>
-                    <td style={td}>{eur(r.contrib)}</td>
-                    <td style={td}>{eur(r.fixed)}</td>
-                    <td style={{ ...td, color: r.ebit >= 0 ? '#30d158' : '#ff375f', fontWeight: 700 }}>{eur(r.ebit)}<Delta cur={r.ebit} prev={prev?.ebit} /></td>
-                    <td style={td}>{pctv(r.ebitPct)}</td>
+                  <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
+                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', fontWeight: line.strong || line.ebit ? 700 : 500 }}>{line.label}</td>
+                    {asc.map(r => <td key={r.month} style={{ ...baseTd, color: colorOf(r[line.key]), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>{fmtCell(line, r[line.key])}</td>)}
+                    <td style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>
                   </tr>
                 )
               })}

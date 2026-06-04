@@ -26,6 +26,12 @@ function Setup({ reason }) {
     'scope': ['Il token non ha lo scope bigquery.readonly. Rigeneralo includendo anche analytics.readonly + webmasters.readonly + bigquery.readonly e aggiorna GOOGLE_REFRESH_TOKEN su Vercel → Redeploy.'],
     'oauth': ['Errore OAuth Google: rigenera il refresh token (con i 3 scope) e aggiornalo su Vercel.'],
     'api': ['Errore BigQuery. Verifica che l\'export GA4→BigQuery sia attivo e popolato, che la BigQuery API sia abilitata e che il dataset/project nelle env siano corretti.'],
+    'not-ready': [
+      'Permessi e token OK ✓ — ma nel dataset non ci sono ancora tabelle events_ (l\'export non si è ancora popolato).',
+      'GA4 → Amministrazione → Collegamenti BigQuery: verifica che il link sia attivo. Le tabelle giornaliere events_AAAAMMGG compaiono dal giorno successivo.',
+      'Per dati quasi in tempo reale attiva anche lo "Streaming" (richiede un account di fatturazione sul progetto GCP) → crea events_intraday_ in pochi minuti.',
+      'Controlla in BigQuery (progetto/dataset) che esistano tabelle events_*; se il numero proprietà nel nome dataset è diverso, aggiorna GA4_BQ_DATASET.',
+    ],
   }
   const list = steps[reason] || steps['no-config']
   return (

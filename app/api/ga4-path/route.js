@@ -57,7 +57,7 @@ export async function GET(request) {
           event_timestamp ts,
           COALESCE((SELECT value.string_value FROM UNNEST(event_params) WHERE key='page_title'),'(not set)') title
         FROM \`${project}.${dataset}.events_*\`
-        WHERE _TABLE_SUFFIX BETWEEN '${suffix(start)}' AND '${suffix(end)}' AND event_name='page_view'
+        WHERE event_name='page_view' AND (_TABLE_SUFFIX BETWEEN '${suffix(start)}' AND '${suffix(end)}' OR STARTS_WITH(_TABLE_SUFFIX, 'intraday_'))
       ),
       o AS (SELECT *, ROW_NUMBER() OVER(PARTITION BY user_pseudo_id, sid ORDER BY ts) step FROM pv),
       s AS (
@@ -77,10 +77,12 @@ export async function GET(request) {
     const j = await res.json().catch(() => ({}))
     if (!res.ok) {
       const msg = j?.error?.message || `BigQuery ${res.status}`
-      const insufficient = /bigquery.readonly|permission|access denied|insufficient/i.test(msg)
+      const insufficient = /bigquery.readonly|permission|access denied|insufficient|jobs.create/i.test(msg)
+      const notReady = /does not match any table|not found: table|was not found/i.test(msg)
+      const reason = notReady ? 'not-ready' : insufficient ? 'scope' : 'api'
       return NextResponse.json(debug
-        ? { configured: false, reason: 'api', status: res.status, error: msg }
-        : { configured: false, reason: insufficient ? 'scope' : 'api', error: msg.slice(0, 200) })
+        ? { configured: false, reason, status: res.status, error: msg }
+        : { configured: false, reason, error: msg.slice(0, 200) })
     }
 
     const rows = (j.rows || []).map(r => ({ s1: r.f[0].v, s2: r.f[1].v, s3: r.f[2].v, c: +r.f[3].v }))

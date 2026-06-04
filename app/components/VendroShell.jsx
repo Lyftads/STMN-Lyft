@@ -20,7 +20,6 @@ function getPageTitle(tab) {
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
     metaKpi: 'Meta KPI',
-    totalImpact: 'Total Impact',
     lighthouse: 'Lighthouse',
     forecast: 'Forecast',
     scheduledReports: 'Scheduled Reports',
@@ -51,7 +50,6 @@ function getPageSubtitle(tab) {
     budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
     metaDetail: 'Dettaglio performance Meta',
     metaKpi: 'KPI completi Meta Ads · Spend, ROAS, CPO, CTR, CPM, Frequency, Reach',
-    totalImpact: 'Attribuzione cross-channel · Meta · Klaviyo · Organic · Gap reported vs deduplicato',
     lighthouse: 'Alert center · Anomalie CPM · CTR · ROAS · CPO · Frequenza',
     forecast: 'Proiezione revenue · spesa · MER · 30/60/90 giorni',
     scheduledReports: 'Digest automatici via email · Weekly · Monthly',
@@ -102,7 +100,6 @@ export default function VendroShell({
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
-        { id: 'totalImpact', label: 'Total Impact', icon: '⊕' },
         { id: 'forecast', label: 'Forecast', icon: '↗' },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: '⧗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
@@ -422,7 +419,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','totalImpact','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

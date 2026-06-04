@@ -7,11 +7,19 @@ import { withTenantContext, getKlaviyo } from '../../../lib/tenant/credentials'
 // Tenant-aware getter (env-only mode di default)
 const klaviyoApiKey = () => getKlaviyo().apiKey
 const BASE = 'https://a.klaviyo.com/api'
-const buildHeaders = () => ({
-  Authorization: `Klaviyo-API-Key ${klaviyoApiKey() || ''}`,
-  accept: 'application/json',
-  revision: '2024-10-15',
-})
+// Klaviyo accetta due schemi di auth diversi:
+//  - Private API key  → "Klaviyo-API-Key <key>"
+//  - OAuth (via Nango) → "Bearer <access_token>"
+// getKlaviyo().isOAuth indica quale usare.
+const buildHeaders = () => {
+  const k = getKlaviyo()
+  const token = k.apiKey || ''
+  return {
+    Authorization: k.isOAuth ? `Bearer ${token}` : `Klaviyo-API-Key ${token}`,
+    accept: 'application/json',
+    revision: '2024-10-15',
+  }
+}
 
 async function klaviyoGet(path, retries = 3) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`

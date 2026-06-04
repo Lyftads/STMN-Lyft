@@ -30,6 +30,7 @@ export default function PnLTab({ data = [] }) {
   const [state, setState] = useState({ loading: true })
   const [cfg, setCfg] = useState(DEF_CFG)
   const [showCfg, setShowCfg] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     try { const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (s) setCfg({ ...DEF_CFG, ...s }) } catch {}
@@ -39,10 +40,10 @@ export default function PnLTab({ data = [] }) {
   useEffect(() => {
     let alive = true
     setState({ loading: true })
-    fetch(`/api/pnl?months=${months}`).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
+    fetch(`/api/pnl?months=${months}`, { cache: 'no-store' }).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
       .catch(() => alive && setState({ loading: false, configured: false }))
     return () => { alive = false }
-  }, [months])
+  }, [months, refreshKey])
 
   // spesa ads per mese dal data mensile dell'app
   const adByMonth = useMemo(() => {
@@ -104,6 +105,7 @@ export default function PnLTab({ data = [] }) {
           <option value={6}>6 mesi</option><option value={12}>12 mesi</option><option value={24}>24 mesi</option>
         </select>
         <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>⚙ Costi & impostazioni</button>
+        <button onClick={() => setRefreshKey(k => k + 1)} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? 'Aggiorno…' : 'Aggiorna'}</button>
       </div>
 
       {showCfg && (

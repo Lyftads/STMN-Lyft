@@ -27,6 +27,14 @@ export async function GET(req) {
     const v = graphVersion || 'v20.0'
     const acctFields = 'id,name,account_id,currency,account_status'
 
+    // Chi è il token? (Marino via Nango, o system user via env STMN?)
+    let meInfo = null
+    try {
+      const r = await fetch(`https://graph.facebook.com/${v}/me?fields=id,name&access_token=${encodeURIComponent(accessToken)}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const j = await r.json()
+      meInfo = j.error ? { error: j.error.message } : { id: j.id, name: j.name }
+    } catch (e) { meInfo = { error: e?.message } }
+
     const byId = new Map()
     const add = (rows, bizName) => {
       for (const a of (rows || [])) {
@@ -61,6 +69,7 @@ export async function GET(req) {
 
     const accounts = [...byId.values()]
     return NextResponse.json({
+      connectedAs: meInfo,
       count: accounts.length,
       businesses: biz.data.map(b => b.name),
       accounts,

@@ -18,13 +18,14 @@ export async function POST(req) {
   if (!admin) return NextResponse.json({ error: 'DB non disponibile' }, { status: 500 })
 
   try {
-    const { data: company } = await admin.from('companies').select('id').eq('user_id', userId).maybeSingle()
-    if (company) {
-      const { error } = await admin.from('companies').update({ meta_account_id: accountId }).eq('user_id', userId)
-      if (error) throw new Error(error.message)
-    } else {
-      const { error } = await admin.from('companies').insert({ user_id: userId, meta_account_id: accountId })
-      if (error) throw new Error(error.message)
+    // Update-first: aggiorna la riga se esiste; inserisce solo se davvero assente.
+    // Evita il duplicate-key su companies quando la riga è già presente.
+    const { data: updated, error: upErr } = await admin
+      .from('companies').update({ meta_account_id: accountId }).eq('user_id', userId).select('id')
+    if (upErr) throw new Error(upErr.message)
+    if (!updated || updated.length === 0) {
+      const { error: insErr } = await admin.from('companies').insert({ user_id: userId, meta_account_id: accountId })
+      if (insErr) throw new Error(insErr.message)
     }
     invalidateTenantCache(userId)
     return NextResponse.json({ ok: true, meta_account_id: accountId })

@@ -23,20 +23,21 @@ export async function POST(req) {
   if (!admin) return NextResponse.json({ error: 'DB non disponibile' }, { status: 500 })
 
   try {
-    const { data: company } = await admin
+    const { data: existing } = await admin
       .from('companies')
-      .select('id, nango_connections')
+      .select('nango_connections')
       .eq('user_id', userId)
       .maybeSingle()
 
-    const map = { ...(company?.nango_connections && typeof company.nango_connections === 'object' ? company.nango_connections : {}), [integrationId]: connectionId }
+    const map = { ...(existing?.nango_connections && typeof existing.nango_connections === 'object' ? existing.nango_connections : {}), [integrationId]: connectionId }
 
-    if (company) {
-      const { error } = await admin.from('companies').update({ nango_connections: map }).eq('user_id', userId)
-      if (error) throw new Error(error.message)
-    } else {
-      const { error } = await admin.from('companies').insert({ user_id: userId, nango_connections: map })
-      if (error) throw new Error(error.message)
+    // Update-first: aggiorna se la riga esiste, inserisce solo se assente.
+    const { data: updated, error: upErr } = await admin
+      .from('companies').update({ nango_connections: map }).eq('user_id', userId).select('id')
+    if (upErr) throw new Error(upErr.message)
+    if (!updated || updated.length === 0) {
+      const { error: insErr } = await admin.from('companies').insert({ user_id: userId, nango_connections: map })
+      if (insErr) throw new Error(insErr.message)
     }
 
     invalidateTenantCache(userId) // forza il refresh delle creds al prossimo giro

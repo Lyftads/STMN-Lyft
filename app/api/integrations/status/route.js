@@ -14,11 +14,15 @@ export async function GET() {
   try {
     const { data } = await admin
       .from('companies')
-      .select('nango_connections, meta_account_id')
+      .select('nango_connections, meta_account_id, google_refresh_token')
       .eq('user_id', userId)
       .maybeSingle()
     const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
-    return NextResponse.json({ connected: Object.keys(conns), metaAccountId: data?.meta_account_id || null })
+    return NextResponse.json({
+      connected: Object.keys(conns),
+      metaAccountId: data?.meta_account_id || null,
+      googleConnected: !!data?.google_refresh_token,
+    })
   } catch {
     return NextResponse.json({ connected: [], metaAccountId: null })
   }

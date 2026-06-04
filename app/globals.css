@@ -792,18 +792,18 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    Confinato in alto → tutto il resto della dashboard resta full-width. */
 .dash-live-hero {
   position: relative;
-  min-height: 760px;
+  min-height: 640px;
   margin-bottom: 28px;
 }
 
-/* Layer globo: MOLTO grande, ancorato a destra, sborda oltre i bordi per
-   sembrare imponente (stile BFCM). Assoluto = scrolla via, non copre il resto. */
+/* Layer globo: grande (via di mezzo), ancorato a destra, sborda oltre i bordi
+   per sembrare imponente (stile BFCM). Assoluto = scrolla via, non copre il resto. */
 .dash-live-globe {
   position: absolute;
-  top: -120px;
-  bottom: -200px;
-  right: -14vw;
-  width: 80vw;
+  top: -90px;
+  bottom: -160px;
+  right: -13vw;
+  width: 70vw;
   z-index: 0;
   pointer-events: auto;
 }

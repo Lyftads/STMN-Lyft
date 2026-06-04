@@ -97,7 +97,7 @@ export default function DashboardGlobe() {
       controls.enablePan = false
     } catch {}
     // Inquadratura iniziale: Europa/Atlantico, sfera grande (altitude più bassa = più vicina)
-    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.5 }, 0) } catch {}
+    try { g.pointOfView({ lat: 30, lng: 6, altitude: 1.68 }, 0) } catch {}
   }, [size.w])
 
   // Zoom via pulsanti +/- (altitude più bassa = più vicino)
@@ -121,7 +121,7 @@ export default function DashboardGlobe() {
 
   return (
     <div ref={wrapRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <div style={{ position: 'absolute', bottom: 28, right: 'calc(14vw + 24px)', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ position: 'absolute', bottom: 28, right: 'calc(13vw + 24px)', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button aria-label="Zoom in" onClick={() => zoom(-1)} style={zoomBtn}>+</button>
         <button aria-label="Zoom out" onClick={() => zoom(1)} style={zoomBtn}>−</button>
       </div>

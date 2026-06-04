@@ -2180,6 +2180,7 @@ export default function App() {
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [cfg, setCfg] = useState(DEF)
+  const [ltvAuto, setLtvAuto] = useState(null)  // LTV calcolato dai dati (coorti 24m)
   const [showCfg, setShowCfg] = useState(false)
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
@@ -2197,6 +2198,13 @@ export default function App() {
     if (s.c && Object.keys(s.c).length) setCfg({...DEF,...s.c})
     if (s.m) setMonths(s.m)
     if (s.w) setWeeks(s.w)
+  }, [])
+
+  // LTV automatico dai dati Shopify (proiezione coorti, 24 mesi) — una volta
+  useEffect(() => {
+    let alive = true
+    fetch('/api/ltv-auto?months=24').then(r => r.json()).then(j => { if (alive && j?.enoughData) setLtvAuto(j) }).catch(() => {})
+    return () => { alive = false }
   }, [])
 
   // Post-signup: redirect a /onboarding se l'utente non ha ancora completato
@@ -2620,8 +2628,11 @@ export default function App() {
   const avgAOVNC = totNC  > 0 ? totFatNC / totNC  : 0
   const avgAOVRC = totRC  > 0 ? totFatRC / totRC  : 0
 
-  const avgLTVGross = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life : null
-  const avgLTV   = avgAOV > 0 ? avgAOV * cfg.freq * cfg.life * cfg.margin / 100 : null
+  // Ordini-a-vita per cliente: dai dati reali (coorti 24m) se disponibili, altrimenti config
+  const lifeOrders = ltvAuto?.projectedAvgOrders || (cfg.freq * cfg.life)
+  const ltvFromData = !!ltvAuto?.projectedAvgOrders
+  const avgLTVGross = avgAOV > 0 ? avgAOV * lifeOrders : null
+  const avgLTV   = avgAOV > 0 ? avgAOV * lifeOrders * cfg.margin / 100 : null
   const avgCAC   = totSpend > 0 && totNC  > 0 ? totSpend / totNC  : null
   const avgCPO   = totSpend > 0 && totOrd > 0 ? totSpend / totOrd : null
   const avgRatio = avgLTV && avgCAC ? avgLTV / avgCAC : null
@@ -2713,8 +2724,8 @@ export default function App() {
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(6, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label="MER blended" value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
               current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
-            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a`} />
-            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={`${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
+            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m` : `${cfg.freq}× · ${cfg.life}a`} />
+            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={ltvFromData ? `${lifeOrders} ord. · ${cfg.margin}% margine · dati ${ltvAuto.months}m` : `${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}
               current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
             <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} sources={['meta']}

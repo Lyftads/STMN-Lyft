@@ -73,6 +73,74 @@ function wrap(inner) {
   </style></head><body>${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">Generato da LyftAI · SEO Audit</div></body></html>`
 }
 
+function genHead(title, sub) {
+  return `<div class="hd"><div><div class="brand">LyftAI · SEO</div><div class="url">${esc(title)}</div><div class="date">${esc(sub || '')}${sub ? ' · ' : ''}${new Date().toLocaleString('it-IT')}</div></div></div>`
+}
+const chip = (t) => `<span class="chip">${esc(t)}</span>`
+
+function kwHtml(d) {
+  return wrap(`${genHead('Keyword: ' + (d.keyword || ''), 'Analisi keyword AI')}
+    <table>
+      <tr><td>Intent</td><td>${esc(d.intent)} — ${esc(d.intentNote || '')}</td></tr>
+      <tr><td>Difficoltà</td><td>${esc(d.difficulty?.level)} — ${esc(d.difficulty?.note || '')}</td></tr>
+      <tr><td>AI Overview</td><td>${d.aiOverview?.likely ? 'Probabile' : 'Improbabile'} — ${esc(d.aiOverview?.note || '')}</td></tr>
+      ${d.volumeHint ? `<tr><td>Volume</td><td>${esc(d.volumeHint)}</td></tr>` : ''}
+    </table>
+    ${d.summary ? `<p>${esc(d.summary)}</p>` : ''}
+    <h2>Keyword correlate</h2><div>${(d.related || []).map(r => chip(r.term)).join('')}</div>
+    <h2>Domande (PAA)</h2>${(d.questions || []).map(q => `<div>• ${esc(q)}</div>`).join('')}
+    <h2>Idee di contenuto</h2>${(d.contentIdeas || []).map(c => `<div><b>${esc(c.title)}</b> — ${esc(c.angle || '')}</div>`).join('')}`)
+}
+function editorHtml(d) {
+  return wrap(`${genHead('Brief: ' + (d.keyword || ''), 'Editor contenuti')}
+    <table><tr><td>Intent</td><td>${esc(d.searchIntent)}</td></tr><tr><td>Lunghezza</td><td>${d.recommendedWords || '—'} parole</td></tr></table>
+    ${d.title ? `<h2>Title & Meta</h2><div><b>Title:</b> ${esc(d.title)}</div><div><b>Meta:</b> ${esc(d.metaDescription || '')}</div>` : ''}
+    <h2>Struttura heading</h2>${(d.headings || []).map(h => `<div style="padding-left:${h.tag === 'H3' ? 18 : 0}px"><small>${esc(h.tag)}</small> ${esc(h.text)}</div>`).join('')}
+    <h2>Entità da coprire</h2><div>${(d.entities || []).map(chip).join('')}</div>
+    ${(d.faq || []).length ? `<h2>FAQ</h2>${d.faq.map(f => `<div style="padding:4px 0"><b>${esc(f.q)}</b><br>${esc(f.a)}</div>`).join('')}` : ''}
+    ${d.schema ? `<h2>Schema</h2><div>${esc(d.schema)}</div>` : ''}
+    ${(d.gaps || []).length ? `<h2>Gap / opportunità</h2>${d.gaps.map(g => `<div>• ${esc(g)}</div>`).join('')}` : ''}`)
+}
+function compHtml(d) {
+  const rows = d.rows || []
+  const host = u => { try { return new URL(u).hostname.replace(/^www\./, '') } catch { return u } }
+  const cols = rows.map(r => `<td><b>${esc(host(r.url))}${r.error ? ' (err)' : ''}</b></td>`).join('')
+  const m = [
+    ['Score', r => r.score], ['Title (lung.)', r => r.titleLen], ['Meta (lung.)', r => r.descLen], ['Parole', r => r.words],
+    ['JSON-LD', r => r.jsonld ? '✓' : '×'], ['Hreflang', r => r.hreflang ? '✓' : '×'], ['OG image', r => r.og ? '✓' : '×'],
+    ['Alt %', r => r.altCoverage == null ? '—' : r.altCoverage + '%'], ['Velocità', r => r.speedMs == null ? '—' : (r.speedMs / 1000).toFixed(1) + 's'], ['HTTPS', r => r.https ? '✓' : '×'],
+  ]
+  const tb = m.map(([l, fn]) => `<tr><td>${l}</td>${rows.map(r => `<td>${r.error ? '—' : esc(String(fn(r)))}</td>`).join('')}</tr>`).join('')
+  return wrap(`${genHead('Confronto competitor on-page', '')}<table><tr class="th"><td></td>${cols}</tr>${tb}</table>`)
+}
+function aeoHtml(d) {
+  return wrap(`${genHead('AI Visibility — ' + (d.brand || ''), 'Answer Engine Optimization')}
+    <div class="score" style="color:${scoreCol(d.visibilityScore)};border-color:${scoreCol(d.visibilityScore)};display:inline-block"><div class="num">${d.visibilityScore}</div><div class="lbl">Visibility</div></div>
+    ${d.summary ? `<p style="margin-top:12px">${esc(d.summary)}</p>` : ''}
+    <h2>Risultati per prompt</h2>
+    ${(d.results || []).map(r => `<div class="rec"><b style="color:${r.mentioned ? '#1a8f3c' : '#c8102e'}">${r.mentioned ? '✓ Citato' : '× Non citato'}</b> — ${esc(r.prompt)}<br><small>${esc(r.why || '')}</small>${r.howToImprove ? `<br><small>→ ${esc(r.howToImprove)}</small>` : ''}</div>`).join('')}`)
+}
+function gscHtml(d) {
+  const q = (d.queries || []).slice(0, 40).map(x => `<tr><td>${esc(x.key)}</td><td>${x.clicks}</td><td>${x.impressions}</td><td>${(x.ctr * 100).toFixed(1)}%</td><td>${x.position.toFixed(1)}</td></tr>`).join('')
+  const opp = (d.opportunities?.nearFirstPage || []).map(x => `<tr><td>${esc(x.key)}</td><td>${x.position.toFixed(1)}</td><td>${x.impressions}</td></tr>`).join('')
+  const t = d.totals || {}
+  return wrap(`${genHead('Search Console — ' + (d.site || ''), `Periodo ${d.range?.startDate || ''} → ${d.range?.endDate || ''}`)}
+    <table><tr><td>Click</td><td>${t.clicks ?? '—'}</td></tr><tr><td>Impression</td><td>${t.impressions ?? '—'}</td></tr><tr><td>CTR medio</td><td>${((t.ctr || 0) * 100).toFixed(1)}%</td></tr><tr><td>Posizione media</td><td>${(t.position || 0).toFixed(1)}</td></tr></table>
+    ${opp ? `<h2>Opportunità — quasi prima pagina (pos 11–20)</h2><table><tr class="th"><td>Query</td><td>Pos</td><td>Impr</td></tr>${opp}</table>` : ''}
+    <h2>Top query</h2><table><tr class="th"><td>Query</td><td>Click</td><td>Impr</td><td>CTR</td><td>Pos</td></tr>${q}</table>`)
+}
+
+function buildHtmlByType(type, data) {
+  switch (type) {
+    case 'keyword': return kwHtml(data)
+    case 'editor': return editorHtml(data)
+    case 'competitor': return compHtml(data)
+    case 'aeo': return aeoHtml(data)
+    case 'gsc': return gscHtml(data)
+    default: return buildHtml(data)
+  }
+}
+
 async function renderPdf(html) {
   const token = process.env.BROWSERLESS_TOKEN
   if (!token) return { error: 'BROWSERLESS_TOKEN mancante' }
@@ -92,17 +160,21 @@ async function renderPdf(html) {
 export async function POST(request) {
   let body = {}
   try { body = await request.json() } catch {}
-  const result = body.result
-  if (!result || !result.url) return NextResponse.json({ error: 'result mancante' }, { status: 400 })
+  const type = body.type || null
+  const data = body.data || body.result
+  if (!data) return NextResponse.json({ error: 'dati mancanti' }, { status: 400 })
 
-  const html = buildHtml(result)
+  const html = buildHtmlByType(type, data)
   const { buf, error } = await renderPdf(html)
   if (!buf) {
     // fallback: ritorna l'HTML (apribile/stampabile dal browser) con header che segnala l'errore
     return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-PDF-Error': (error || 'unknown').slice(0, 120) } })
   }
-  const host = (() => { try { return new URL(result.url).hostname.replace(/^www\./, '') } catch { return 'site' } })()
-  const fname = `SEO_${host}_${new Date().toISOString().slice(0, 10)}.pdf`
+  const slug = (() => {
+    try { return new URL(data.url).hostname.replace(/^www\./, '') } catch {}
+    return (data.keyword || data.brand || data.site || 'seo').toString().replace(/[^a-z0-9]+/gi, '-').slice(0, 40)
+  })()
+  const fname = `SEO_${type || 'audit'}_${slug}_${new Date().toISOString().slice(0, 10)}.pdf`
   return new NextResponse(buf, {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${fname}"` },
   })

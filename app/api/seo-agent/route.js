@@ -34,18 +34,36 @@ export async function POST(req) {
     .slice(-20)
   if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
 
-  // contesto audit (compatto: niente liste keyword enormi)
-  let auditBlock = ''
-  const a = body.audit
-  if (a && a.url) {
-    if (a.mode === 'site') {
-      auditBlock = `AUDIT SEO (sito ${a.url}) — score medio ${a.avgScore}, ${a.pagesAnalyzed} pagine.\nProblemi ricorrenti: ${(a.commonIssues || []).map(i => `${i.label} (${i.affected}/${a.pagesAnalyzed})`).join('; ')}`
-    } else {
-      const issues = (a.checks || []).filter(c => c.status !== 'pass').map(c => `${c.label}: ${c.detail}`).join('\n')
-      const kw = a.keywords ? `Top keyword: ${(a.keywords.unigrams || []).slice(0, 8).map(k => k.term).join(', ')}.${a.keywords.target ? ` Target "${a.keywords.target.keyword}" densità ${a.keywords.target.density}%.` : ''}` : ''
-      auditBlock = `AUDIT SEO (pagina ${a.url}) — score ${a.score}/100.\nTitle attuale: "${a.meta?.title || ''}"\nMeta description: "${a.meta?.description || ''}"\nProblemi rilevati:\n${issues || 'nessuno'}\n${kw}`
+  // contesto generico: qualsiasi tab SEO passa { type, data }
+  // (retro-compat: body.audit → page/site audit)
+  const safe = (o, max = 4500) => { try { const s = JSON.stringify(o); return s.length > max ? s.slice(0, max) + '…(troncato)' : s } catch { return '' } }
+  function buildContext(ctx) {
+    if (!ctx || !ctx.data) return ''
+    const d = ctx.data
+    switch (ctx.type) {
+      case 'site-audit':
+        return `AUDIT SEO (sito ${d.url}) — score medio ${d.avgScore}, ${d.pagesAnalyzed} pagine.\nProblemi ricorrenti: ${(d.commonIssues || []).map(i => `${i.label} (${i.affected}/${d.pagesAnalyzed})`).join('; ')}`
+      case 'page-audit': {
+        const issues = (d.checks || []).filter(c => c.status !== 'pass').map(c => `${c.label}: ${c.detail}`).join('\n')
+        const kw = d.keywords ? `Top keyword: ${(d.keywords.unigrams || []).slice(0, 8).map(k => k.term).join(', ')}.` : ''
+        return `AUDIT SEO (pagina ${d.url}) — score ${d.score}/100.\nTitle: "${d.meta?.title || ''}"\nMeta: "${d.meta?.description || ''}"\nProblemi:\n${issues || 'nessuno'}\n${kw}`
+      }
+      case 'keyword':
+        return `ANALISI KEYWORD "${d.keyword}": intent ${d.intent}, difficoltà ${d.difficulty?.level}. Correlate: ${(d.related || []).map(r => r.term).join(', ')}. Domande: ${(d.questions || []).join(' | ')}.`
+      case 'editor':
+        return `BRIEF EDITORIALE keyword "${d.keyword}":\n${safe(d)}`
+      case 'competitor':
+        return `CONFRONTO COMPETITOR ON-PAGE:\n${safe(d.rows || d)}`
+      case 'aeo':
+        return `AI VISIBILITY brand "${d.brand}" (score ${d.visibilityScore}):\n${safe(d.results)}`
+      case 'gsc':
+        return `GOOGLE SEARCH CONSOLE (${d.site}) — totali click ${d.totals?.clicks}, impr ${d.totals?.impressions}, CTR ${(d.totals?.ctr * 100 || 0).toFixed(1)}%, pos ${d.totals?.position?.toFixed(1)}.\nOpportunità: ${safe(d.opportunities)}\nTop query: ${safe((d.queries || []).slice(0, 30))}`
+      default:
+        return safe(d)
     }
   }
+  const ctx = body.context || (body.audit ? { type: body.audit.mode === 'site' ? 'site-audit' : 'page-audit', data: body.audit } : null)
+  const auditBlock = buildContext(ctx)
 
   try {
     const r = await fetch(OPENAI_URL, {

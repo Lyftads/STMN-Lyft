@@ -21,30 +21,6 @@ export default function SeoAuditTab() {
   const [history, setHistory] = useState([])
   const [picks, setPicks] = useState([])               // id selezionati per confronto
   const [compare, setCompare] = useState(null)         // { before, after }
-  const [pdfLoading, setPdfLoading] = useState(false)
-
-  const downloadPdf = async (result) => {
-    if (!result || pdfLoading) return
-    setPdfLoading(true)
-    try {
-      const r = await fetch('/api/seo-audit/pdf', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ result }),
-      })
-      const ct = r.headers.get('content-type') || ''
-      const blob = await r.blob()
-      const u = URL.createObjectURL(blob)
-      if (ct.includes('pdf')) {
-        const host = (() => { try { return new URL(result.url).hostname.replace(/^www\./, '') } catch { return 'site' } })()
-        const a = document.createElement('a')
-        a.href = u; a.download = `SEO_${host}.pdf`
-        document.body.appendChild(a); a.click(); a.remove()
-      } else {
-        window.open(u, '_blank') // fallback HTML (Browserless non configurato)
-      }
-      setTimeout(() => URL.revokeObjectURL(u), 15000)
-    } catch {} finally { setPdfLoading(false) }
-  }
 
   const loadHistory = useCallback(async () => {
     try {
@@ -146,13 +122,10 @@ export default function SeoAuditTab() {
           {!compare && res && (
             <>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                <button onClick={() => downloadPdf(res)} disabled={pdfLoading} style={{
-                  padding: '9px 18px', borderRadius: 10, cursor: pdfLoading ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
-                  background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)',
-                }}>⤓ {pdfLoading ? 'Genero PDF…' : 'Scarica PDF'}</button>
+                <PdfButton data={res} />
               </div>
               {res.mode === 'site' ? <SiteResult res={res} /> : <PageResult res={res} />}
-              <SeoAgentPanel audit={res} />
+              <SeoAgentPanel context={{ type: res.mode === 'site' ? 'site-audit' : 'page-audit', data: res }} />
             </>
           )}
         </>
@@ -306,8 +279,32 @@ function CompareView({ compare }) {
   )
 }
 
-/* ---------- agente SEO verticale (chat) ---------- */
-function SeoAgentPanel({ audit }) {
+/* ---------- download PDF condiviso ---------- */
+async function seoDownloadPdf(type, data, setBusy) {
+  if (!data) return
+  setBusy?.(true)
+  try {
+    const r = await fetch('/api/seo-audit/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, data }) })
+    const ct = r.headers.get('content-type') || ''
+    const blob = await r.blob(); const u = URL.createObjectURL(blob)
+    if (ct.includes('pdf')) { const a = document.createElement('a'); a.href = u; a.download = `SEO_${type || 'audit'}.pdf`; document.body.appendChild(a); a.click(); a.remove() }
+    else window.open(u, '_blank')
+    setTimeout(() => URL.revokeObjectURL(u), 15000)
+  } catch {} finally { setBusy?.(false) }
+}
+function PdfButton({ type, data }) {
+  const [busy, setBusy] = useState(false)
+  return <button onClick={() => seoDownloadPdf(type, data, setBusy)} disabled={busy} style={{ padding: '9px 16px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)' }}>⤓ {busy ? 'Genero PDF…' : 'Scarica PDF'}</button>
+}
+
+/* ---------- agente SEO verticale (chat) — usabile in ogni tab ---------- */
+const DEFAULT_SUG = [
+  'Riscrivi title e meta description ottimizzati',
+  'Quali keyword dovrei targetizzare e perché?',
+  'Genera lo JSON-LD adatto a questa pagina',
+  'Dammi una roadmap SEO prioritizzata (impatto/sforzo)',
+]
+function SeoAgentPanel({ context, suggestions: customSug, hint }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -320,7 +317,7 @@ function SeoAgentPanel({ audit }) {
     try {
       const r = await fetch('/api/seo-agent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, audit }),
+        body: JSON.stringify({ messages: next, context }),
       })
       const j = await r.json()
       setMessages(prev => [...prev, { role: 'assistant', content: j.reply || `⚠ ${j.error || 'errore'}` }])
@@ -329,17 +326,12 @@ function SeoAgentPanel({ audit }) {
     } finally { setLoading(false) }
   }
 
-  const suggestions = [
-    'Riscrivi title e meta description ottimizzati',
-    'Quali keyword dovrei targetizzare e perché?',
-    'Genera lo JSON-LD adatto a questa pagina',
-    'Dammi una roadmap SEO prioritizzata (impatto/sforzo)',
-  ]
+  const suggestions = customSug || DEFAULT_SUG
 
   return (
     <div className="glass-card" style={{ padding: 24, marginTop: 16 }}>
       <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>✦ Esperto SEO</div>
-      <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>Consulente SEO verticale — conosce l'audit qui sopra. Chiedi riscritture, keyword, schema, roadmap.</div>
+      <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>{hint || 'Consulente SEO verticale — conosce i dati di questa scheda. Chiedi riscritture, keyword, schema, roadmap.'}</div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
         {messages.map((m, i) => (
@@ -404,6 +396,8 @@ function KeywordAIPanel() {
           <Block title="Keyword correlate"><Chips list={(d.related || []).map(r => `${r.term}${r.intent ? ` · ${r.intent}` : ''}`)} /></Block>
           <Block title="Domande (People Also Ask)">{(d.questions || []).map((q, i) => <div key={i} style={{ fontSize: 13.5, padding: '4px 0' }}>• {q}</div>)}</Block>
           <Block title="Idee di contenuto">{(d.contentIdeas || []).map((c, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13.5 }}><strong>{c.title}</strong>{c.angle ? <span style={{ opacity: 0.65 }}> — {c.angle}</span> : null}</div>)}</Block>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="keyword" data={d} /></div>
+          <SeoAgentPanel context={{ type: 'keyword', data: d }} hint="Esperto SEO — conosce questa analisi keyword." suggestions={['Crea un cluster di contenuti da queste keyword', 'Scrivi 3 title ottimizzati per la keyword principale', 'Quale intent prioritizzo e perché?']} />
         </>
       )}
     </div>
@@ -437,6 +431,8 @@ function EditorPanel() {
           {(d.faq || []).length > 0 && <Block title="FAQ suggerite">{d.faq.map((f, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13.5 }}><strong>{f.q}</strong><div style={{ opacity: 0.7 }}>{f.a}</div></div>)}</Block>}
           {d.schema && <Block title="Schema (JSON-LD)"><div style={{ fontSize: 13, opacity: 0.8 }}>{d.schema}</div></Block>}
           {(d.gaps || []).length > 0 && <Block title="Gap / opportunità vs competitor">{d.gaps.map((g, i) => <div key={i} style={{ fontSize: 13.5, padding: '3px 0' }}>• {g}</div>)}</Block>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="editor" data={d} /></div>
+          <SeoAgentPanel context={{ type: 'editor', data: d }} hint="Esperto SEO — conosce questo brief editoriale." suggestions={['Espandi questo brief in una bozza di articolo', 'Genera lo JSON-LD completo', 'Migliora title e meta description']} />
         </div>
       )}
     </div>
@@ -467,14 +463,18 @@ function CompetitorPanel() {
       <Row><button onClick={run} disabled={loading} style={{ ...btnStyle(loading), marginTop: 12 }}>{loading ? 'Confronto…' : 'Confronta'}</button></Row>
       {error && <Err>{error}</Err>}
       {rows && (
-        <div className="glass-card" style={{ padding: 20, marginTop: 20, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ff375f' }}>{host(r.url)} (errore)</span> : host(r.url)}</th>)}</tr></thead>
-            <tbody>{metrics.map(([label, fn], mi) => (
-              <tr key={mi}><td style={{ ...tdStyle, opacity: 0.6 }}>{label}</td>{rows.map((r, i) => <td key={i} style={tdStyle}>{r.error ? '—' : fn(r)}</td>)}</tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <>
+          <div className="glass-card" style={{ padding: 20, marginTop: 20, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ff375f' }}>{host(r.url)} (errore)</span> : host(r.url)}</th>)}</tr></thead>
+              <tbody>{metrics.map(([label, fn], mi) => (
+                <tr key={mi}><td style={{ ...tdStyle, opacity: 0.6 }}>{label}</td>{rows.map((r, i) => <td key={i} style={tdStyle}>{r.error ? '—' : fn(r)}</td>)}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0 4px' }}><PdfButton type="competitor" data={{ rows }} /></div>
+          <SeoAgentPanel context={{ type: 'competitor', data: { rows } }} hint="Esperto SEO — conosce questo confronto con i competitor." suggestions={['Come supero il competitor migliore?', 'Quali gap colmo per primi?', 'Piano on-page per batterli in SERP']} />
+        </>
       )}
     </div>
   )
@@ -515,6 +515,8 @@ function AeoPanel() {
               {r.howToImprove && <div style={{ fontSize: 12.5, marginTop: 6, color: '#64d2ff' }}>→ {r.howToImprove}</div>}
             </div>
           ))}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="aeo" data={d} /></div>
+          <SeoAgentPanel context={{ type: 'aeo', data: d }} hint="Esperto SEO — conosce questo report di AI Visibility." suggestions={['Come mi faccio citare da ChatGPT per questi prompt?', 'Strategia per migliorare la AI visibility', 'Che contenuti creo per gli answer engine?']} />
         </div>
       )}
     </div>
@@ -647,6 +649,8 @@ function GSCPanel() {
               </table>
             </div>
           </Block>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="gsc" data={data} /></div>
+          <SeoAgentPanel context={{ type: 'gsc', data }} hint="Esperto SEO — conosce i dati reali di Search Console qui sopra." suggestions={['Su quali query lavoro per prime?', 'Come alzo il CTR delle query con CTR basso?', 'Quali pagine ottimizzo per salire di posizione?']} />
         </div>
       )}
     </div>

@@ -358,7 +358,7 @@ export default function IntegrationsTab() {
     <div>
       {NANGO_PROVIDERS.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader('Collega via OAuth', NANGO_PROVIDERS.length + 1, '#2997ff')}
+          {sectionHeader('Collega via OAuth', NANGO_PROVIDERS.length + 2, '#2997ff')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {NANGO_PROVIDERS.map(p => (
               <div key={p.integrationId} style={{
@@ -378,17 +378,29 @@ export default function IntegrationsTab() {
               </div>
             ))}
 
-            {/* Google: flusso OAuth nativo (GA4 + Ads), non Nango */}
+            {/* Google: flusso OAuth nativo (una connessione copre GA4 + Ads), due card */}
+            <div style={{
+              background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
+              padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <BrandLogo domain="analytics.google.com" size={38} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Analytics 4</div>
+                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>Sessioni, conversioni, sorgenti di traffico</div>
+              </div>
+              <GoogleConnectButton service="ga4" />
+            </div>
+
             <div style={{
               background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
               padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
             }}>
               <BrandLogo domain="ads.google.com" size={38} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google (Ads + GA4)</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>Google Ads + Analytics 4 · spesa, conversioni, sessioni</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Ads</div>
+                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>Spesa, conversioni, campagne</div>
               </div>
-              <GoogleConnectButton />
+              <GoogleConnectButton service="ads" />
             </div>
           </div>
         </div>

@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom'
 
 // Google (GA4 + Ads): flusso OAuth NATIVO (/api/google/auth/start → refresh_token
 // per tenant). Pulsante "Collega" + "Proprietà GA4" (pop-up selezione proprietà).
-export default function GoogleConnectButton() {
+// service: 'ga4' → selettore proprietà GA4 | 'ads' → (selettore account dopo dev token)
+export default function GoogleConnectButton({ service = 'ga4' }) {
   const [connected, setConnected] = useState(false)
   const [modal, setModal] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -26,12 +27,19 @@ export default function GoogleConnectButton() {
           <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={btn}>
             {connected ? 'Ricollega' : 'Collega'}
           </button>
-          <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
-            Proprietà GA4
-          </button>
+          {service === 'ga4' && (
+            <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
+              Proprietà GA4
+            </button>
+          )}
         </div>
+        {service === 'ads' && connected && (
+          <span style={{ fontSize: 10.5, color: 'var(--text3)', maxWidth: 220, textAlign: 'right' }}>
+            Selezione account dopo il Developer Token
+          </span>
+        )}
       </div>
-      {mounted && modal && createPortal(<Ga4PropertyModal onClose={() => setModal(false)} />, document.body)}
+      {mounted && modal && service === 'ga4' && createPortal(<Ga4PropertyModal onClose={() => setModal(false)} />, document.body)}
     </>
   )
 }

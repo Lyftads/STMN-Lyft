@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
@@ -202,6 +203,26 @@ export default function PnLTab({ data = [] }) {
       {state.loading && <div style={{ opacity: 0.5, fontSize: 13 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Calcolo il conto economico…</div>}
       {!state.loading && !state.configured && <div className="glass-card" style={{ padding: 20, fontSize: 13, color: '#ff375f' }}>⚠ {state.error || 'Shopify non configurato.'}</div>}
       {!state.loading && state.configured && rows.length === 0 && <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>Nessun dato nel periodo.</div>}
+
+      {!state.loading && asc.length > 1 && (
+        <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, opacity: 0.85 }}>Andamento · Ricavi netti · Costi totali · EBIT</div>
+          <div style={{ width: '100%', height: 290 }}>
+            <ResponsiveContainer>
+              <ComposedChart data={asc.map(r => ({ name: monthLabel(r.month), Ricavi: r.net, Costi: (r.net != null && r.ebit != null) ? Math.round(r.net - r.ebit) : null, EBIT: r.ebit }))} margin={{ top: 6, right: 8, left: -4, bottom: 0 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 10 }} />
+                <YAxis tick={{ fill: 'var(--text3)', fontSize: 10 }} width={52} tickFormatter={v => `€${Math.round(v / 1000)}k`} />
+                <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={v => eur(v)} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="Ricavi" fill="#2997ff" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Costi" fill="#ff453a" radius={[3, 3, 0, 0]} />
+                <Line dataKey="EBIT" stroke="#30d158" strokeWidth={2.5} dot={{ r: 2 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {!state.loading && rows.length > 0 && (
         <div className="glass-card" style={{ padding: 0, overflowX: 'auto' }}>

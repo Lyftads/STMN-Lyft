@@ -7,6 +7,7 @@ import NangoConnectButton from './NangoConnectButton'
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
 const NANGO_PROVIDERS = [
   { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche' },
+  { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights' },
 ]
 
 const LOGO_MAP = {

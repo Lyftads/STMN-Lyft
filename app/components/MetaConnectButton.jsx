@@ -9,9 +9,19 @@ export default function MetaConnectButton() {
   const [connecting, setConnecting] = useState(false)
   const [modal, setModal] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [connected, setConnected] = useState(false)
   const [err, setErr] = useState(null)
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Stato persistente: connesso se esiste una connection 'facebook' salvata.
+  const refreshStatus = () => {
+    fetch('/api/integrations/status')
+      .then(r => r.json())
+      .then(j => setConnected(Array.isArray(j.connected) && j.connected.includes('facebook')))
+      .catch(() => {})
+  }
+  useEffect(() => { refreshStatus() }, [])
 
   const openConnect = async () => {
     setConnecting(true); setErr(null)
@@ -40,6 +50,8 @@ export default function MetaConnectButton() {
               body: JSON.stringify({ integrationId: provider, connectionId }),
             }).catch(() => {})
           }
+          setConnected(true)
+          refreshStatus()
           setConnecting(false)
           setModal(true) // apri pop-up selezione ad account
         } else if (t === 'close') {
@@ -56,10 +68,13 @@ export default function MetaConnectButton() {
 
   return (
     <>
-      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+        {connected && (
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}>✓ Collegato</span>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={openConnect} disabled={connecting} style={btn}>
-            {connecting ? 'Collegamento…' : 'Collega'}
+            {connecting ? 'Collegamento…' : (connected ? 'Ricollega' : 'Collega')}
           </button>
           <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
             Ad account

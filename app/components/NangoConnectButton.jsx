@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // Pulsante che apre la Nango Connect UI per collegare un provider OAuth.
 // Flusso: crea session (backend) → openConnectUI → on 'connect' salva il
@@ -9,6 +9,14 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState(null)
+
+  // Stato persistente: già collegato se la sua integration è in companies.
+  useEffect(() => {
+    fetch('/api/integrations/status')
+      .then(r => r.json())
+      .then(j => { if (Array.isArray(j.connected) && j.connected.includes(integrationId)) setDone(true) })
+      .catch(() => {})
+  }, [integrationId])
 
   const start = async () => {
     setLoading(true); setErr(null)

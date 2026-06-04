@@ -214,7 +214,7 @@ function Field({ label, value, onChange, ph }) {
   return (
     <div>
       <label style={{ fontSize: 11, opacity: 0.6, display: 'block', marginBottom: 4 }}>{label}</label>
-      <input value={value} type="number" placeholder={ph} onChange={e => onChange(e.target.value)} style={{ ...inp, width: '100%' }} />
+      <input value={value === 0 || value == null ? '' : value} type="number" placeholder={ph || '0'} onChange={e => onChange(e.target.value)} style={{ ...inp, width: '100%' }} />
     </div>
   )
 }

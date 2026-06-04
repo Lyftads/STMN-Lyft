@@ -27,6 +27,7 @@ import MultiWindowCards from './components/MultiWindowCards'
 import MetaKpiTab from './components/MetaKpiTab'
 import TotalImpactTab from './components/TotalImpactTab'
 import LighthouseTab from './components/LighthouseTab'
+import ForecastTab from './components/ForecastTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
@@ -4154,6 +4155,10 @@ export default function App() {
 
 {tab === 'lighthouse' && (
   <LighthouseTab />
+)}
+
+{tab === 'forecast' && (
+  <ForecastTab />
 )}
 
 {tab === 'creativeFatigue' && (

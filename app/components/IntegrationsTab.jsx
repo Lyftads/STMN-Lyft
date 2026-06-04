@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import NangoConnectButton from './NangoConnectButton'
+import MetaAccountSelector from './MetaAccountSelector'
 
 // Provider collegabili via Nango OAuth (integration id = unique key su Nango).
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
@@ -361,14 +362,17 @@ export default function IntegrationsTab() {
             {NANGO_PROVIDERS.map(p => (
               <div key={p.integrationId} style={{
                 background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
-                padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
+                padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 6,
               }}>
-                <BrandLogo domain={p.domain} size={38} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{p.desc}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <BrandLogo domain={p.domain} size={38} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{p.desc}</div>
+                  </div>
+                  <NangoConnectButton integrationId={p.integrationId} label="Collega" />
                 </div>
-                <NangoConnectButton integrationId={p.integrationId} label="Collega" />
+                {p.integrationId === 'facebook' && <MetaAccountSelector />}
               </div>
             ))}
           </div>

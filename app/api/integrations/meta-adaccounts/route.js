@@ -70,6 +70,7 @@ export async function GET(req) {
     const accounts = [...byId.values()]
     return NextResponse.json({
       connectedAs: meInfo,
+      currentAccountId: getMeta().adAccountId || null,
       count: accounts.length,
       businesses: biz.data.map(b => b.name),
       accounts,

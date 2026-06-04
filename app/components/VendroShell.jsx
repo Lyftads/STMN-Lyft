@@ -111,6 +111,7 @@ export default function VendroShell({
         { id: 'cro', label: 'CRO', icon: '⊘' },
         { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },
         { id: 'seoAudit', label: 'SEO Audit', icon: '⌕' },
+        { id: 'userPath', label: 'User Path', icon: '⤳' },
       ],
     },
     {
@@ -425,7 +426,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','userPath','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

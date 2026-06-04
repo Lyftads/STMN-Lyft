@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
+import SeoAgent from './SeoAgent'
 
 const STATUS = { pass: { color: '#30d158', icon: '✓' }, warn: { color: '#ff9f0a', icon: '!' }, fail: { color: '#ff375f', icon: '×' } }
 const GROUPS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
@@ -126,11 +127,13 @@ export default function SeoAuditTab() {
                 <PdfButton data={res} />
               </div>
               {res.mode === 'site' ? <SiteResult res={res} /> : <PageResult res={res} />}
-              <SeoAgentPanel context={{ type: res.mode === 'site' ? 'site-audit' : 'page-audit', data: res }} />
             </>
           )}
         </>
       )}
+
+      {/* Floating SEO Agent — visibile sempre, conosce l'audit corrente se presente */}
+      <SeoAgent audit={res} />
 
       {view === 'history' && (
         <div className="glass-card" style={{ padding: 20 }}>
@@ -298,79 +301,6 @@ function PdfButton({ type, data }) {
   return <button onClick={() => seoDownloadPdf(type, data, setBusy)} disabled={busy} style={{ padding: '9px 16px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)' }}>⤓ {busy ? 'Genero PDF…' : 'Scarica PDF'}</button>
 }
 
-/* ---------- agente SEO verticale (chat) — usabile in ogni tab ---------- */
-const DEFAULT_SUG = [
-  'Riscrivi title e meta description ottimizzati',
-  'Quali keyword dovrei targetizzare e perché?',
-  'Genera lo JSON-LD adatto a questa pagina',
-  'Dammi una roadmap SEO prioritizzata (impatto/sforzo)',
-]
-function SeoAgentPanel({ context, suggestions: customSug, hint }) {
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const send = async (text) => {
-    const content = (text ?? input).trim()
-    if (!content || loading) return
-    const next = [...messages, { role: 'user', content }]
-    setMessages(next); setInput(''); setLoading(true)
-    try {
-      const r = await fetch('/api/seo-agent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, context }),
-      })
-      const j = await r.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: j.reply || `⚠ ${j.error || 'errore'}` }])
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠ Errore di rete' }])
-    } finally { setLoading(false) }
-  }
-
-  const suggestions = customSug || DEFAULT_SUG
-
-  return (
-    <div className="glass-card" style={{ padding: 24, marginTop: 16 }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>✦ Esperto SEO</div>
-      <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 16 }}>{hint || 'Consulente SEO verticale — conosce i dati di questa scheda. Chiedi riscritture, keyword, schema, roadmap.'}</div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
-        {messages.map((m, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-            <div style={{
-              maxWidth: '82%', padding: '10px 14px', borderRadius: 14, fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
-              background: m.role === 'user' ? 'var(--accent)' : 'var(--glass)',
-              color: m.role === 'user' ? '#fff' : 'var(--text)',
-              border: m.role === 'user' ? 'none' : '1px solid var(--border)',
-            }}>{m.content}</div>
-          </div>
-        ))}
-        {loading && <div style={{ fontSize: 13, opacity: 0.5 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> L'esperto sta elaborando…</div>}
-      </div>
-
-      {messages.length === 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-          {suggestions.map((s, i) => (
-            <button key={i} onClick={() => send(s)} style={{
-              fontSize: 12, padding: '7px 12px', borderRadius: 10, cursor: 'pointer',
-              background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)',
-            }}>{s}</button>
-          ))}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 10 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
-          placeholder="Chiedi all'esperto SEO…"
-          style={{ flex: 1, padding: '12px 14px', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
-        <button onClick={() => send()} disabled={loading || !input.trim()} style={{
-          padding: '12px 22px', borderRadius: 12, border: 'none', cursor: loading ? 'wait' : 'pointer',
-          background: loading ? 'rgba(41,151,255,0.4)' : 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 14,
-        }}>Invia</button>
-      </div>
-    </div>
-  )
-}
 
 /* ---------- Keyword AI (à la Neil Patel) ---------- */
 function KeywordAIPanel() {
@@ -398,7 +328,7 @@ function KeywordAIPanel() {
           <Block title="Domande (People Also Ask)">{(d.questions || []).map((q, i) => <div key={i} style={{ fontSize: 13.5, padding: '4px 0' }}>• {q}</div>)}</Block>
           <Block title="Idee di contenuto">{(d.contentIdeas || []).map((c, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13.5 }}><strong>{c.title}</strong>{c.angle ? <span style={{ opacity: 0.65 }}> — {c.angle}</span> : null}</div>)}</Block>
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="keyword" data={d} /></div>
-          <SeoAgentPanel context={{ type: 'keyword', data: d }} hint="Esperto SEO — conosce questa analisi keyword." suggestions={['Crea un cluster di contenuti da queste keyword', 'Scrivi 3 title ottimizzati per la keyword principale', 'Quale intent prioritizzo e perché?']} />
+          <SeoAgent context={{ type: 'keyword', data: d }} hint="Esperto SEO — conosce questa analisi keyword." suggestions={['Crea un cluster di contenuti da queste keyword', 'Scrivi 3 title ottimizzati per la keyword principale', 'Quale intent prioritizzo e perché?']} />
         </>
       )}
     </div>
@@ -433,7 +363,7 @@ function EditorPanel() {
           {d.schema && <Block title="Schema (JSON-LD)"><div style={{ fontSize: 13, opacity: 0.8 }}>{d.schema}</div></Block>}
           {(d.gaps || []).length > 0 && <Block title="Gap / opportunità vs competitor">{d.gaps.map((g, i) => <div key={i} style={{ fontSize: 13.5, padding: '3px 0' }}>• {g}</div>)}</Block>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="editor" data={d} /></div>
-          <SeoAgentPanel context={{ type: 'editor', data: d }} hint="Esperto SEO — conosce questo brief editoriale." suggestions={['Espandi questo brief in una bozza di articolo', 'Genera lo JSON-LD completo', 'Migliora title e meta description']} />
+          <SeoAgent context={{ type: 'editor', data: d }} hint="Esperto SEO — conosce questo brief editoriale." suggestions={['Espandi questo brief in una bozza di articolo', 'Genera lo JSON-LD completo', 'Migliora title e meta description']} />
         </div>
       )}
     </div>
@@ -487,7 +417,7 @@ function CompetitorPanel() {
             </table>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0 4px' }}><PdfButton type="competitor" data={{ rows }} /></div>
-          <SeoAgentPanel context={{ type: 'competitor', data: { rows } }} hint="Esperto SEO — conosce questo confronto con i competitor." suggestions={['Come supero il competitor migliore?', 'Quali gap colmo per primi?', 'Piano on-page per batterli in SERP']} />
+          <SeoAgent context={{ type: 'competitor', data: { rows } }} hint="Esperto SEO — conosce questo confronto con i competitor." suggestions={['Come supero il competitor migliore?', 'Quali gap colmo per primi?', 'Piano on-page per batterli in SERP']} />
         </>
       )}
     </div>
@@ -530,7 +460,7 @@ function AeoPanel() {
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="aeo" data={d} /></div>
-          <SeoAgentPanel context={{ type: 'aeo', data: d }} hint="Esperto SEO — conosce questo report di AI Visibility." suggestions={['Come mi faccio citare da ChatGPT per questi prompt?', 'Strategia per migliorare la AI visibility', 'Che contenuti creo per gli answer engine?']} />
+          <SeoAgent context={{ type: 'aeo', data: d }} hint="Esperto SEO — conosce questo report di AI Visibility." suggestions={['Come mi faccio citare da ChatGPT per questi prompt?', 'Strategia per migliorare la AI visibility', 'Che contenuti creo per gli answer engine?']} />
         </div>
       )}
     </div>
@@ -721,7 +651,7 @@ function GSCPanel() {
           </Block>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="gsc" data={data} /></div>
-          <SeoAgentPanel context={{ type: 'gsc', data }} hint="Esperto SEO — conosce i dati reali di Search Console qui sopra." suggestions={['Su quali query lavoro per prime?', 'Come alzo il CTR delle query con CTR basso?', 'Quali pagine ottimizzo per salire di posizione?']} />
+          <SeoAgent context={{ type: 'gsc', data }} hint="Esperto SEO — conosce i dati reali di Search Console qui sopra." suggestions={['Su quali query lavoro per prime?', 'Come alzo il CTR delle query con CTR basso?', 'Quali pagine ottimizzo per salire di posizione?']} />
         </div>
       )}
     </div>

@@ -130,6 +130,7 @@ export default function VendroShell({
       title: 'Reports',
       color: '#30d158',
       items: [
+        { id: 'pnl', label: 'Conto Economico', icon: '€' },
         { id: 'scheduledReports', label: 'Scheduled', icon: '✉' },
         { id: 'weekly', label: 'Weekly', icon: '⟳' },
         { id: 'monthly', label: 'Monthly', icon: '▦' },
@@ -426,7 +427,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','userPath','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','userPath','pnl','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

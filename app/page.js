@@ -25,6 +25,7 @@ import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MultiWindowCards from './components/MultiWindowCards'
 import MetaKpiTab from './components/MetaKpiTab'
+import TotalImpactTab from './components/TotalImpactTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
@@ -4144,6 +4145,10 @@ export default function App() {
 
 {tab === 'metaKpi' && (
   <MetaKpiTab live={live} globalPreset={preset} />
+)}
+
+{tab === 'totalImpact' && (
+  <TotalImpactTab />
 )}
 
 {tab === 'creativeFatigue' && (

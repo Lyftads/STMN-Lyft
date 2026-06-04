@@ -20,6 +20,7 @@ function getPageTitle(tab) {
     simulator: 'Simulatore',
     metaDetail: 'Meta Detail',
     metaKpi: 'Meta KPI',
+    totalImpact: 'Total Impact',
     creative: 'Creative',
     creativeFatigue: 'Creative Fatigue',
     budgetAdvisor: 'Budget Advisor',
@@ -47,6 +48,7 @@ function getPageSubtitle(tab) {
     budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
     metaDetail: 'Dettaglio performance Meta',
     metaKpi: 'KPI completi Meta Ads · Spend, ROAS, CPO, CTR, CPM, Frequency, Reach',
+    totalImpact: 'Attribuzione cross-channel · Meta · Klaviyo · Organic · Gap reported vs deduplicato',
     performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
     klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
     competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
@@ -94,6 +96,7 @@ export default function VendroShell({
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
+        { id: 'totalImpact', label: 'Total Impact', icon: '⊕' },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: '⧗' },
         { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
         { id: 'cro', label: 'CRO', icon: '⊘' },
@@ -410,7 +413,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','totalImpact','cro','kpiBrain','webScanner','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

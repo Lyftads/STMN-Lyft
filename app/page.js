@@ -22,7 +22,6 @@ import SeoAuditTab from './components/SeoAuditTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
-import DashboardInsights from './components/DashboardInsights'
 import RecommendationsFeed from './components/RecommendationsFeed'
 import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
@@ -2168,9 +2167,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
         </>
       )}
 
-      {/* AI Insights & To-do */}
-      <DashboardInsights preset={presetProp} />
-
       {/* Floating Weekly Agent */}
       <WeeklyAgent weeks={filled} preset={presetProp} />
     </>
@@ -3212,9 +3208,6 @@ export default function App() {
           </>
           )}
 
-          {/* AI Insights & To-do */}
-          <DashboardInsights preset={preset} />
-
           {/* Floating Mensile Agent (vertical chat) */}
           <MensileAgent data={data} selectedMonth={m0} previousMonth={m1} preset={preset} />
         </>
@@ -3679,9 +3672,6 @@ export default function App() {
               </>
             )}
 
-            {/* AI Insights & To-do */}
-            <DashboardInsights preset={preset} />
-
             {/* Floating Quarter Agent (vertical chat) */}
             <QuarterAgent quarters={aggregatedQuarters} selectedQuarter={q0} previousQuarter={q1} preset={preset} />
           </>
@@ -4126,9 +4116,6 @@ export default function App() {
                 </div>
               </>
             )}
-
-            {/* AI Insights & To-do */}
-            <DashboardInsights preset={preset} />
 
             {/* Floating Year Agent (vertical chat) */}
             <YearAgent years={aggregatedYears} selectedYear={y0} previousYear={y1} preset={preset} />

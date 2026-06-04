@@ -23,10 +23,8 @@ import RecommendationsFeed from './components/RecommendationsFeed'
 import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
-import MultiWindowCards from './components/MultiWindowCards'
 import MetaKpiTab from './components/MetaKpiTab'
 import LighthouseTab from './components/LighthouseTab'
-import ForecastTab from './components/ForecastTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import AttributionPanel from './components/AttributionPanel'
@@ -2282,13 +2280,11 @@ export default function App() {
     const q = Math.floor(now.getMonth() / 3) + 1
     const y = now.getFullYear()
 
+    // Prefetch ALLEGGERITO: solo i range corti/comuni per non saturare il
+    // rate-limit Shopify all'avvio. I range lunghi (90d/mese/trimestre/anno)
+    // si caricano on-demand quando l'utente apre quella tab, poi restano in cache.
     const PRESETS = [
-      // Rolling windows usate da MultiWindowCards (3/7/30 giorni)
-      'last_3d', 'last_7d', 'last_30d',
-      'last_90d',
-      `month_${mLabel}`,
-      `quarter_${y}-Q${q}`,
-      `year_${y}`,
+      'last_7d', 'last_30d',
     ]
 
     // Prefetch list: [key, fetcher]
@@ -2685,8 +2681,6 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
-          <MultiWindowCards />
-
           <div className="reveal-zoom" style={{marginBottom:24}}>
             <RatioWidget ratio={avgRatio} mer={avgMER} />
           </div>
@@ -4151,10 +4145,6 @@ export default function App() {
 
 {tab === 'lighthouse' && (
   <LighthouseTab />
-)}
-
-{tab === 'forecast' && (
-  <ForecastTab />
 )}
 
 {tab === 'scheduledReports' && (

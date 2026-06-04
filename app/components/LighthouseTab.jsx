@@ -12,6 +12,8 @@ import { PlatformBadges } from './PlatformIcon'
 // ─────────────────────────────────────────────────────────────
 
 const PRESETS = [
+  { value: 'today',    label: 'Oggi' },
+  { value: 'last_7d',  label: '7 giorni' },
   { value: 'last_14d', label: '14 giorni' },
   { value: 'last_28d', label: '28 giorni' },
   { value: 'last_30d', label: '30 giorni' },
@@ -56,6 +58,7 @@ export default function LighthouseTab() {
   useEffect(() => { return load() }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const alerts = Array.isArray(data?.alerts) ? data.alerts : []
+  const proposals = Array.isArray(data?.proposals) ? data.proposals : []
   const summary = data?.summary || { high: 0, medium: 0, low: 0, total: 0 }
   const filtered = filter === 'all' ? alerts : alerts.filter(a => a.severity === filter)
 
@@ -106,6 +109,20 @@ export default function LighthouseTab() {
           </button>
         </div>
       </div>
+
+      {/* PROPOSTE PROATTIVE */}
+      {proposals.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{
+            fontSize: 11, color: 'var(--text3)', fontWeight: 800,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            marginTop: 6,
+          }}>
+            ✦ Cosa fare adesso
+          </div>
+          {proposals.map(p => <ProposalCard key={p.id} proposal={p} />)}
+        </div>
+      )}
 
       {/* Summary + filter pills */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -169,6 +186,48 @@ function SummaryPill({ active, onClick, label, count, color }) {
         {count}
       </span>
     </button>
+  )
+}
+
+const PRIORITY_COLORS = {
+  high:   { stripe: '#ef4444', text: '#fca5a5', bg: 'rgba(239,68,68,0.08)', chip: '#ef4444' },
+  medium: { stripe: '#fbbf24', text: '#fcd34d', bg: 'rgba(251,191,36,0.08)', chip: '#fbbf24' },
+  low:    { stripe: '#22c55e', text: '#86efac', bg: 'rgba(34,197,94,0.06)', chip: '#22c55e' },
+}
+const PRIORITY_LABEL = { high: 'Priorità alta', medium: 'Priorità media', low: 'Priorità bassa' }
+
+function ProposalCard({ proposal }) {
+  const c = PRIORITY_COLORS[proposal.priority] || PRIORITY_COLORS.low
+  return (
+    <div className="glass-card-static" style={{
+      padding: '18px 22px',
+      borderLeft: `4px solid ${c.stripe}`,
+      background: c.bg,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 20 }}>{proposal.icon}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{proposal.title}</span>
+        <span style={{
+          fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em',
+          background: c.chip, color: '#0a0a14',
+          padding: '3px 8px', borderRadius: 5,
+        }}>
+          {PRIORITY_LABEL[proposal.priority]}
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '6px 14px', fontSize: 13, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Cosa</div>
+        <div style={{ color: '#fff', fontWeight: 600 }}>{proposal.what}</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Perché</div>
+        <div style={{ color: 'var(--text2)' }}>{proposal.why}</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Come</div>
+        <ol style={{ margin: 0, paddingLeft: 16, color: 'var(--text2)' }}>
+          {(proposal.how || []).map((step, i) => (
+            <li key={i} style={{ marginBottom: 4 }}>{step}</li>
+          ))}
+        </ol>
+      </div>
+    </div>
   )
 }
 

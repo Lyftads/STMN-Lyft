@@ -347,58 +347,70 @@ async function shopifyQL(query) {
     }
   `
 
-  try {
-    const res = await fetch(
-      `https://${shopifyStoreUrl()}/admin/api/2026-04/graphql.json`,
-      {
-        method: 'POST',
-        headers: shopifyGraphQLHeaders(),
-        body: JSON.stringify({
-          query: gql,
-          variables: { query },
-        }),
+  // Retry con backoff sul throttling Shopify (GraphQL cost-based rate limit):
+  // su carico elevato Shopify risponde THROTTLED → senza retry i dati tornavano
+  // a 0 in modo intermittente (soprattutto sui range lunghi). Ora riproviamo.
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+  const MAX = 4
+
+  for (let attempt = 1; attempt <= MAX; attempt++) {
+    try {
+      const res = await fetch(
+        `https://${shopifyStoreUrl()}/admin/api/2026-04/graphql.json`,
+        {
+          method: 'POST',
+          headers: shopifyGraphQLHeaders(),
+          body: JSON.stringify({ query: gql, variables: { query } }),
+        }
+      )
+
+      let json = null
+      try { json = await res.json() } catch {}
+      const errs = json?.errors || []
+      const throttleStatus = json?.extensions?.cost?.throttleStatus
+
+      const throttled =
+        res.status === 429 ||
+        errs.some(e => e?.extensions?.code === 'THROTTLED' || /throttl/i.test(e?.message || '')) ||
+        (throttleStatus && throttleStatus.currentlyAvailable === 0)
+
+      if (throttled && attempt < MAX) {
+        const restore = throttleStatus?.restoreRate || 100
+        const requested = json?.extensions?.cost?.requestedQueryCost || 200
+        const base = Math.min(5000, Math.max(700, Math.ceil((requested / restore) * 1000)))
+        await sleep(base * attempt) // backoff crescente + scaglionamento
+        continue
       }
-    )
 
-    const json = await res.json()
+      if (!res.ok || errs.length) {
+        console.log('Shopify GraphQL error:', JSON.stringify(errs.length ? errs : json, null, 2))
+        return []
+      }
 
-    if (!res.ok || json.errors?.length) {
-      console.log(
-        'Shopify GraphQL error:',
-        JSON.stringify(json.errors || json, null, 2)
-      )
-      return []
-    }
+      const payload = json?.data?.shopifyqlQuery
+      if (payload?.parseErrors?.length) {
+        console.log('ShopifyQL parse error:', JSON.stringify(payload.parseErrors, null, 2))
+        return []
+      }
 
-    const payload = json.data?.shopifyqlQuery
-
-    if (payload?.parseErrors?.length) {
-      console.log(
-        'ShopifyQL parse error:',
-        JSON.stringify(payload.parseErrors, null, 2)
-      )
-      return []
-    }
-
-    const columns = payload?.tableData?.columns || []
-    const rows = payload?.tableData?.rows || []
-
-    return rows.map(row => {
-      if (!Array.isArray(row)) return row
-
-      const obj = {}
-
-      columns.forEach((col, i) => {
-        const key = col.name || col.displayName || `col_${i}`
-        obj[key] = row[i]
+      const columns = payload?.tableData?.columns || []
+      const rows = payload?.tableData?.rows || []
+      return rows.map(row => {
+        if (!Array.isArray(row)) return row
+        const obj = {}
+        columns.forEach((col, i) => {
+          const key = col.name || col.displayName || `col_${i}`
+          obj[key] = row[i]
+        })
+        return obj
       })
-
-      return obj
-    })
-  } catch (e) {
-    console.log('ShopifyQL error:', e.message)
-    return []
+    } catch (e) {
+      console.log('ShopifyQL error:', e.message)
+      if (attempt < MAX) { await sleep(900 * attempt); continue }
+      return []
+    }
   }
+  return []
 }
 
 // ── Fallback NC/RC via REST Orders ─────────────────────────────

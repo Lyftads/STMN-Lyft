@@ -83,7 +83,7 @@ export function ChannelMembersDialog({ channel, members, memberIds, onClose, onT
     <div onClick={onClose} style={overlay}>
       <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(460px,100%)', maxHeight: '86vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: '#fff' }}>Membri di 🔒 {channel?.name}</h3>
+          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: '#fff' }}>Membri di {channel?.is_private ? '🔒' : '#'} {channel?.name}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22 }}>×</button>
         </div>
         <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, padding: 6 }}>

@@ -21,6 +21,11 @@ const EMOJIS = [
 ]
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '✅', '🙏', '🔥', '👀']
 
+function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+function highlightComposer(text) {
+  return escHtml(text).replace(/(^|\s)(@[\p{L}\w.\-]+)/gu, '$1<span style="color:#7b9cff;font-weight:700">$2</span>').replace(/\n/g, '<br>')
+}
+
 export default function ChatTab({ standalone = false }) {
   const [channels, setChannels] = useState([])
   const [active, setActive] = useState(null)
@@ -50,6 +55,9 @@ export default function ChatTab({ standalone = false }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
   const [muted, setMuted] = useState(false)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkText, setLinkText] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
   const scrollRef = useRef(null)
   const taRef = useRef(null)
   const lastAtRef = useRef(null)
@@ -59,6 +67,7 @@ export default function ChatTab({ standalone = false }) {
   const threadSeen = useRef(new Set())
   const recTimerRef = useRef(null)
   const recCancelRef = useRef(false)
+  const linkSelRef = useRef({ s: 0, e: 0 })
 
   useEffect(() => {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
@@ -309,6 +318,22 @@ export default function ChatTab({ standalone = false }) {
     setText(text.slice(0, s) + str + text.slice(e))
     requestAnimationFrame(() => { ta.focus(); const p = s + str.length; ta.selectionStart = ta.selectionEnd = p })
   }
+  function openLink() {
+    const ta = taRef.current
+    const s = ta ? ta.selectionStart : text.length
+    const e = ta ? ta.selectionEnd : text.length
+    linkSelRef.current = { s, e }
+    setLinkText(text.slice(s, e)); setLinkUrl(''); setLinkOpen(true)
+  }
+  function saveLink() {
+    let url = linkUrl.trim()
+    if (!url) { alert('Inserisci il collegamento'); return }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+    const label = linkText.trim() || url
+    const { s, e } = linkSelRef.current
+    setText(text.slice(0, s) + `[${label}](${url})` + text.slice(e))
+    setLinkOpen(false); setLinkText(''); setLinkUrl('')
+  }
 
   const memberMap = useMemo(() => { const m = {}; members.forEach(x => { m[x.id] = x }); return m }, [members])
   const isOnline = (mem) => !!(mem?.last_seen_at && (Date.now() - new Date(mem.last_seen_at).getTime() < 70000))
@@ -415,7 +440,7 @@ export default function ChatTab({ standalone = false }) {
                 <HBtn onClick={() => setSearchOpen(o => !o)} title="Cerca nel canale">🔍</HBtn>
                 <HBtn onClick={toggleMute} title={muted ? 'Notifiche disattivate (clicca per attivare)' : 'Notifiche attive (clicca per disattivare)'}>{muted ? '🔕' : '🔔'}</HBtn>
                 <HBtn onClick={startCall} title="Videochiamata">📹</HBtn>
-                {activeChannel?.is_private && !activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri">👥</HBtn>}
+                {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri / aggiungi persone">👥</HBtn>}
               </div>
             )}
           </div>
@@ -528,19 +553,23 @@ export default function ChatTab({ standalone = false }) {
                 <TB onClick={() => surround('~~', '~~')} title="Barrato"><s>S</s></TB>
                 <TB onClick={() => surround('`', '`')} title="Codice">{'</>'}</TB>
                 <span style={{ width: 1, height: 16, background: 'var(--border, rgba(255,255,255,0.12))', margin: '0 4px' }} />
-                <TB onClick={() => insertAtCursor('\n- ')} title="Elenco">•</TB>
-                <TB onClick={() => surround('[', '](https://)')} title="Link">🔗</TB>
+                <TB onClick={() => insertAtCursor('\n- ')} title="Elenco puntato">•</TB>
+                <TB onClick={() => insertAtCursor('\n1. ')} title="Elenco numerato">1.</TB>
+                <TB onClick={openLink} title="Link">🔗</TB>
               </div>
-              {/* Input */}
-              <textarea
-                ref={taRef}
-                rows={2}
-                value={text}
-                onChange={handleChange}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-                placeholder={activeChannel ? `Messaggio ${activeChannel.is_dm ? `a ${channelLabel(activeChannel)}` : `in ${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}`}…` : 'Messaggio…'}
-                style={{ ...FIELD, border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px' }}
-              />
+              {/* Input con evidenziazione menzioni */}
+              <div style={{ position: 'relative' }}>
+                <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: '#e7e7ef', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
+                <textarea
+                  ref={taRef}
+                  rows={2}
+                  value={text}
+                  onChange={handleChange}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                  placeholder={activeChannel ? `Messaggio ${activeChannel.is_dm ? `a ${channelLabel(activeChannel)}` : `in ${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}`}…` : 'Messaggio…'}
+                  style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: 'transparent', caretColor: '#fff' }}
+                />
+              </div>
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
                 <label title="Allega file" style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
@@ -552,8 +581,14 @@ export default function ChatTab({ standalone = false }) {
                 <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia">➤</button>
 
                 {emojiOpen && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 8, display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2, width: 300, zIndex: 10 }}>
-                    {EMOJIS.map(em => <button key={em} onClick={() => { insertAtCursor(em); setEmojiOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>{em}</button>)}
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 8, width: 320, zIndex: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: MUTED }}>Emoji</span>
+                      <button onClick={() => setEmojiOpen(false)} title="Chiudi" style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2, maxHeight: 200, overflowY: 'auto' }}>
+                      {EMOJIS.map(em => <button key={em} onClick={() => { insertAtCursor(em); setEmojiOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>{em}</button>)}
+                    </div>
                   </div>
                 )}
                 {mentionOpen && mentionList.length > 0 && (
@@ -610,6 +645,25 @@ export default function ChatTab({ standalone = false }) {
                 {mem.full_name || mem.email}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {linkOpen && (
+        <div onClick={() => setLinkOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'Barlow' }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(440px,100%)', padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 21, fontWeight: 700 }}>Aggiungi collegamento</h3>
+              <button onClick={() => setLinkOpen(false)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
+            </div>
+            <label style={{ fontSize: 12, color: MUTED }}>Testo</label>
+            <input autoFocus style={{ ...FIELD, marginTop: 4, marginBottom: 12 }} value={linkText} onChange={e => setLinkText(e.target.value)} placeholder="Testo del link" />
+            <label style={{ fontSize: 12, color: MUTED }}>Collegamento</label>
+            <input style={{ ...FIELD, marginTop: 4 }} value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === 'Enter') saveLink() }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setLinkOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: '9px 14px', color: '#fff', cursor: 'pointer', fontFamily: 'Barlow' }}>Annulla</button>
+              <button onClick={saveLink} style={{ ...BTN }}>Salva</button>
+            </div>
           </div>
         </div>
       )}

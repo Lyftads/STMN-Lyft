@@ -23,6 +23,7 @@ import SeoAuditTab from './components/SeoAuditTab'
 import UserPathTab from './components/UserPathTab'
 import PnLTab from './components/PnLTab'
 import TasksTab from './components/TasksTab'
+import ChatTab from './components/ChatTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
@@ -4269,6 +4270,11 @@ export default function App() {
 {/* TEAM · PROGETTI & TASK */}
 {tab === 'tasks' && (
   <TasksTab />
+)}
+
+{/* TEAM · CHAT */}
+{tab === 'chat' && (
+  <ChatTab />
 )}
 
 {/* CREATIVE LAB TAB */}

@@ -27,8 +27,6 @@ const PRIORITY_ROWS = [
   { id: 'medium', label: 'Media', color: '#ffd60a' },
   { id: 'low', label: 'Bassa', color: '#30d158' },
 ]
-// Ordine priorità per l'ordinamento dei task dentro le colonne di stato.
-const PRIO_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 }
 
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
 const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
@@ -254,25 +252,8 @@ export default function TasksTab() {
               <button style={{ ...btn, opacity: creating ? 0.6 : 1 }} disabled={creating} onClick={createTask}>+ Crea</button>
             </div>
 
-            {/* Board per stato (colonne), ordinata per priorità dentro ogni colonna */}
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto' }}>
-              {COLUMNS.map(col => {
-                const items = visible.filter(t => (t.status || 'todo') === col.id).sort((a, b) => PRIO_ORDER[a.priority || 'medium'] - PRIO_ORDER[b.priority || 'medium'])
-                return (
-                  <div key={col.id} style={{ minWidth: 200 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color }} />
-                      <span style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '.05em' }}>{col.label}</span>
-                      <span style={{ color: '#b0b0bd', fontSize: 12 }}>{items.length}</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
-                      {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, padding: '8px 2px' }}>—</div>}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            {/* Board a righe di priorità (come "Le mie attività") */}
+            <PriorityBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
             </>)}
           </div>
         </div>

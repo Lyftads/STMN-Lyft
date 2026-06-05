@@ -370,15 +370,22 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
   const [email, setEmail] = useState('')
   const [roles, setRoles] = useState([])
   const [sending, setSending] = useState(false)
+  const [sentMsg, setSentMsg] = useState('')
 
   const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
 
   async function submit() {
     if (!email.trim() || !email.includes('@')) { alert('Inserisci una email valida'); return }
     setSending(true)
+    setSentMsg('')
     try {
-      const r = await onInvite(email.trim().toLowerCase(), roles)
-      if (r && r.ok) { setEmail(''); setRoles([]) }
+      const target = email.trim().toLowerCase()
+      const r = await onInvite(target, roles)
+      if (r && r.ok) {
+        setEmail(''); setRoles([])
+        setSentMsg(r.emailSent ? `✓ Invito inviato a ${target}` : `✓ Membro aggiunto a ${target} (email non inviata)`)
+        setTimeout(() => setSentMsg(''), 6000)
+      }
     } finally { setSending(false) }
   }
 
@@ -402,9 +409,12 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
               </label>
             ))}
           </div>
-          <button style={{ ...btn, marginTop: 12, opacity: sending ? 0.6 : 1 }} disabled={sending} onClick={submit}>
-            {sending ? 'Invio…' : '✉ Invia invito'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+            <button style={{ ...btn, opacity: sending ? 0.6 : 1 }} disabled={sending} onClick={submit}>
+              {sending ? 'Invio…' : '✉ Invia invito'}
+            </button>
+            {sentMsg && <span style={{ color: '#30d158', fontSize: 13, fontWeight: 600 }}>{sentMsg}</span>}
+          </div>
         </div>
 
         {/* Membri */}

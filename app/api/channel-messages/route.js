@@ -22,6 +22,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const channelId = searchParams.get('channel_id')
   const after = searchParams.get('after')
+  const threadRoot = searchParams.get('thread_root')
   if (!channelId) return NextResponse.json({ messages: [] })
   try {
     let q = admin.from('channel_messages').select('*')
@@ -29,6 +30,9 @@ export async function GET(req) {
       .eq('channel_id', channelId)
       .order('created_at', { ascending: true })
       .limit(300)
+    // vista canale: solo top-level; vista thread: solo le risposte del root
+    if (threadRoot) q = q.eq('thread_root', threadRoot)
+    else q = q.is('thread_root', null)
     if (after) q = q.gt('created_at', after)
     const { data } = await q
     return NextResponse.json({ messages: data || [] })
@@ -48,6 +52,7 @@ export async function POST(req) {
   const body = String(b.body || '').trim()
   const audioUrl = b.audio_url || null
   const fileUrl = b.file_url || null
+  const threadRoot = b.thread_root || null
   if (!channelId || (!body && !audioUrl && !fileUrl)) return NextResponse.json({ ok: false, error: 'Dati mancanti' }, { status: 400 })
 
   let authorName = 'Utente'
@@ -68,9 +73,17 @@ export async function POST(req) {
         file_url: fileUrl,
         file_name: b.file_name ? String(b.file_name).slice(0, 160) : null,
         file_type: b.file_type ? String(b.file_type).slice(0, 80) : null,
+        thread_root: threadRoot,
       })
       .select('*').single()
     if (error) throw error
+    // incrementa il conteggio risposte sul messaggio radice
+    if (threadRoot) {
+      try {
+        const { data: root } = await admin.from('channel_messages').select('reply_count').eq('id', threadRoot).maybeSingle()
+        await admin.from('channel_messages').update({ reply_count: (root?.reply_count || 0) + 1 }).eq('id', threadRoot).eq('workspace_id', ws.workspaceId)
+      } catch {}
+    }
     return NextResponse.json({ ok: true, message: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

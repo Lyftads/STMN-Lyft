@@ -40,14 +40,25 @@ export default function ChatTab({ standalone = false }) {
   const [mentionQuery, setMentionQuery] = useState('')
   const [activeMemberIds, setActiveMemberIds] = useState([])
   const [recording, setRecording] = useState(false)
+  const [recSeconds, setRecSeconds] = useState(0)
   const [reactFor, setReactFor] = useState(null)
   const [forwardMsg, setForwardMsg] = useState(null)
+  const [threadRoot, setThreadRoot] = useState(null)
+  const [threadMsgs, setThreadMsgs] = useState([])
+  const [threadText, setThreadText] = useState('')
+  const [channelView, setChannelView] = useState('messages')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const [muted, setMuted] = useState(false)
   const scrollRef = useRef(null)
   const taRef = useRef(null)
   const lastAtRef = useRef(null)
   const seenRef = useRef(new Set())
   const recRef = useRef(null)
   const chunksRef = useRef([])
+  const threadSeen = useRef(new Set())
+  const recTimerRef = useRef(null)
+  const recCancelRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
@@ -70,7 +81,8 @@ export default function ChatTab({ standalone = false }) {
 
   useEffect(() => {
     if (!active) return
-    seenRef.current = new Set(); lastAtRef.current = null; setReplyTo(null)
+    seenRef.current = new Set(); lastAtRef.current = null; setReplyTo(null); setChannelView('messages'); setThreadRoot(null); setSearchOpen(false); setSearchQ('')
+    try { setMuted(localStorage.getItem('chmute_' + active) === '1') } catch {}
     fetch(`/api/channel-messages?channel_id=${active}`, { cache: 'no-store' }).then(r => r.json()).then(d => {
       const msgs = d.messages || []
       msgs.forEach(m => seenRef.current.add(m.id))
@@ -100,6 +112,19 @@ export default function ChatTab({ standalone = false }) {
   }, [active])
 
   const updateMsg = (msg) => setMessages(prev => prev.map(x => x.id === msg.id ? msg : x))
+
+  // polling del thread aperto
+  useEffect(() => {
+    if (!threadRoot) return
+    const t = setInterval(() => {
+      if (document.hidden) return
+      fetch(`/api/channel-messages?channel_id=${active}&thread_root=${threadRoot.id}`, { cache: 'no-store' }).then(r => r.json()).then(d => {
+        const incoming = (d.messages || []).filter(x => !threadSeen.current.has(x.id))
+        if (incoming.length) { incoming.forEach(x => threadSeen.current.add(x.id)); setThreadMsgs(prev => [...prev, ...incoming]) }
+      }).catch(() => {})
+    }, 5000)
+    return () => clearInterval(t)
+  }, [threadRoot, active])
 
   async function send() {
     const body = text.trim()
@@ -195,16 +220,20 @@ export default function ChatTab({ standalone = false }) {
       mr.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
+        clearInterval(recTimerRef.current)
+        if (recCancelRef.current) return
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' })
         const fd = new FormData(); fd.append('file', blob, 'audio.webm')
         const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
         if (up.ok && up.url) await pushMessage({ channel_id: active, body: '🎤 Messaggio vocale', audio_url: up.url })
         else alert('Upload audio fallito')
       }
-      recRef.current = mr; mr.start(); setRecording(true)
+      recRef.current = mr; mr.start(); setRecording(true); setRecSeconds(0)
+      recTimerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000)
     } catch { alert('Microfono non disponibile o permesso negato') }
   }
-  function stopRec() { try { recRef.current && recRef.current.stop() } catch {}; setRecording(false) }
+  function stopRec() { recCancelRef.current = false; try { recRef.current && recRef.current.stop() } catch {}; setRecording(false) }
+  function cancelRec() { recCancelRef.current = true; try { recRef.current && recRef.current.stop() } catch {}; clearInterval(recTimerRef.current); setRecording(false) }
 
   async function attachFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''
@@ -213,6 +242,28 @@ export default function ChatTab({ standalone = false }) {
     const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
     if (up.ok && up.url) await pushMessage({ channel_id: active, body: '', file_url: up.url, file_name: up.name, file_type: up.type || f.type })
     else alert(up.error || 'Upload fallito')
+  }
+
+  function openThread(m) {
+    setThreadRoot(m); setThreadMsgs([]); threadSeen.current = new Set()
+    fetch(`/api/channel-messages?channel_id=${active}&thread_root=${m.id}`, { cache: 'no-store' }).then(r => r.json()).then(d => {
+      const msgs = d.messages || []; msgs.forEach(x => threadSeen.current.add(x.id)); setThreadMsgs(msgs)
+    }).catch(() => {})
+  }
+  async function sendThread() {
+    const body = threadText.trim(); if (!body || !threadRoot) return
+    setThreadText('')
+    const r = await fetch('/api/channel-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel_id: active, body, thread_root: threadRoot.id }) }).then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.message) {
+      if (!threadSeen.current.has(r.message.id)) { threadSeen.current.add(r.message.id); setThreadMsgs(prev => [...prev, r.message]) }
+      setMessages(prev => prev.map(x => x.id === threadRoot.id ? { ...x, reply_count: (x.reply_count || 0) + 1 } : x))
+      setThreadRoot(prev => prev ? { ...prev, reply_count: (prev.reply_count || 0) + 1 } : prev)
+    }
+  }
+
+  function toggleMute() {
+    const v = !muted; setMuted(v)
+    try { localStorage.setItem('chmute_' + active, v ? '1' : '0') } catch {}
   }
 
   function startCall() {
@@ -272,6 +323,25 @@ export default function ChatTab({ standalone = false }) {
     ? members.filter(m => activeMemberIds.includes(m.id))
     : members
   const mentionList = mentionPool.filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 8)
+  const shownMessages = searchQ.trim() ? messages.filter(m => (m.body || '').toLowerCase().includes(searchQ.trim().toLowerCase())) : messages
+  const sharedFiles = messages.filter(m => m.file_url || m.audio_url)
+
+  const miniMsg = (m) => {
+    const mem = memberMap[m.author_id]
+    return (
+      <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
+        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url} size={30} online={mem ? isOnline(mem) : undefined} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
+          {m.audio_url && <audio controls src={m.audio_url} style={{ marginTop: 6, height: 36, maxWidth: 240 }} />}
+          {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
+            ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt="" style={{ marginTop: 6, maxWidth: 240, borderRadius: 8, display: 'block' }} /></a>
+            : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-block', color: '#7b9cff', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>)}
+        </div>
+      </div>
+    )
+  }
 
   if (loading) return <div style={{ padding: 40, color: MUTED, fontFamily: 'Barlow' }}>Caricamento chat…</div>
 
@@ -325,25 +395,40 @@ export default function ChatTab({ standalone = false }) {
 
         {/* Conversazione */}
         <div style={{ ...PANEL, flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {activeChannel?.is_dm
-                ? <><Avatar name={channelLabel(activeChannel)} url={dmOther(activeChannel)?.avatar_url} size={24} online={isOnline(dmOther(activeChannel))} /> {channelLabel(activeChannel)}</>
-                : (active ? `${activeChannel?.is_private ? '🔒' : '#'} ${activeName(activeChannel)}` : 'Seleziona una conversazione')}
-            </span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {active && (
-              <button onClick={startCall} title="Avvia videochiamata" style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'Barlow' }}>📹</button>
-            )}
-            {activeChannel?.is_private && !activeChannel?.is_dm && (
-              <button onClick={() => openManage(activeChannel.id)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow' }}>👥 Membri</button>
-            )}
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+              <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {activeChannel?.is_dm
+                  ? <><Avatar name={channelLabel(activeChannel)} url={dmOther(activeChannel)?.avatar_url} size={24} online={isOnline(dmOther(activeChannel))} /> {channelLabel(activeChannel)}</>
+                  : (active ? `${activeChannel?.is_private ? '🔒' : '#'} ${activeName(activeChannel)}` : 'Seleziona una conversazione')}
+              </span>
+              {active && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[['messages', 'Messaggi'], ['files', 'File']].map(([v, l]) => (
+                    <button key={v} onClick={() => setChannelView(v)} style={{ background: channelView === v ? 'rgba(123,91,255,0.16)' : 'transparent', border: 'none', borderRadius: 8, padding: '5px 10px', color: channelView === v ? '#fff' : MUTED, cursor: 'pointer', fontSize: 13, fontWeight: channelView === v ? 700 : 500, fontFamily: 'Barlow' }}>{l}</button>
+                  ))}
+                </div>
+              )}
             </div>
+            {active && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <HBtn onClick={() => setSearchOpen(o => !o)} title="Cerca nel canale">🔍</HBtn>
+                <HBtn onClick={toggleMute} title={muted ? 'Notifiche disattivate (clicca per attivare)' : 'Notifiche attive (clicca per disattivare)'}>{muted ? '🔕' : '🔔'}</HBtn>
+                <HBtn onClick={startCall} title="Videochiamata">📹</HBtn>
+                {activeChannel?.is_private && !activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri">👥</HBtn>}
+              </div>
+            )}
           </div>
+          {searchOpen && (
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
+              <input autoFocus style={FIELD} placeholder="Cerca nei messaggi del canale…" value={searchQ} onChange={e => setSearchQ(e.target.value)} />
+            </div>
+          )}
 
+          {channelView === 'messages' ? (
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
-            {messages.length === 0 && <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Nessun messaggio. Scrivi il primo!</div>}
-            {messages.map(m => {
+            {shownMessages.length === 0 && <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>{searchQ ? 'Nessun risultato.' : 'Nessun messaggio. Scrivi il primo!'}</div>}
+            {shownMessages.map(m => {
               const mem = memberMap[m.author_id]
               const mine = me?.memberId && m.author_id === me.memberId
               const reactions = (m.reactions && typeof m.reactions === 'object') ? m.reactions : {}
@@ -372,6 +457,9 @@ export default function ChatTab({ standalone = false }) {
                         ))}
                       </div>
                     )}
+                    {m.reply_count > 0 && (
+                      <div onClick={() => openThread(m)} style={{ marginTop: 5, color: '#7b9cff', fontSize: 12.5, cursor: 'pointer', fontWeight: 600 }}>💬 {m.reply_count} rispost{m.reply_count === 1 ? 'a' : 'e'}</div>
+                    )}
                     {reactFor === m.id && (
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, ...PANEL, padding: 4, width: 'fit-content' }}>
                         {QUICK_REACTIONS.map(em => <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 }}>{em}</button>)}
@@ -380,7 +468,7 @@ export default function ChatTab({ standalone = false }) {
                   </div>
                   <div className="chat-actions" style={{ position: 'absolute', top: -12, right: 10, display: 'flex', gap: 2, background: 'var(--glass, rgba(20,20,30,0.92))', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: 3, opacity: 0, transition: 'opacity .12s', backdropFilter: 'blur(8px)' }}>
                     <ActBtn title="Reazione" onClick={() => setReactFor(reactFor === m.id ? null : m.id)}>😊</ActBtn>
-                    <ActBtn title="Rispondi" onClick={() => setReplyTo({ id: m.id, author: mem?.full_name || m.author_name || 'Utente', excerpt: (m.body || '🎤 audio').slice(0, 120) })}>↩︎</ActBtn>
+                    <ActBtn title="Rispondi nella conversazione" onClick={() => openThread(m)}>↩︎</ActBtn>
                     <ActBtn title="Inoltra" onClick={() => setForwardMsg(m)}>↪︎</ActBtn>
                     {(mine || me?.isAdmin) && <ActBtn title="Elimina" onClick={() => deleteMessage(m.id)}>🗑</ActBtn>}
                   </div>
@@ -388,6 +476,30 @@ export default function ChatTab({ standalone = false }) {
               )
             })}
           </div>
+          ) : (
+            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+              {sharedFiles.length === 0 ? <div style={{ color: MUTED, fontSize: 13 }}>Nessun file condiviso in questo canale.</div> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {sharedFiles.slice().reverse().map(m => {
+                    const mem = memberMap[m.author_id]
+                    const isImg = (/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
+                    return (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 10 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 18 }}>
+                          {m.audio_url ? '🎤' : (isImg ? <img src={m.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📎')}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13.5, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? 'Messaggio vocale' : (m.file_name || 'Allegato')}</div>
+                          <div style={{ fontSize: 11.5, color: MUTED }}>{mem?.full_name || m.author_name || 'Utente'} · {new Date(m.created_at).toLocaleDateString('it-IT')}</div>
+                        </div>
+                        <a href={m.file_url || m.audio_url} target="_blank" rel="noopener" style={{ color: '#7b9cff', fontSize: 13, textDecoration: 'none' }}>Apri</a>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Composer stile Slack */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
@@ -395,6 +507,17 @@ export default function ChatTab({ standalone = false }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 12.5 }}>
                 <span style={{ color: MUTED }}>↩︎ Rispondi a <b style={{ color: '#fff' }}>{replyTo.author}</b>: {replyTo.excerpt.slice(0, 60)}</span>
                 <button onClick={() => setReplyTo(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 14 }}>×</button>
+              </div>
+            )}
+            {recording && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 12, padding: '8px 12px', marginBottom: 8 }}>
+                <span style={{ color: '#ff5a7a', fontSize: 13, animation: 'pulse 1s infinite' }}>●</span>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, flex: 1, height: 24, overflow: 'hidden' }}>
+                  {Array.from({ length: 32 }).map((_, i) => <span key={i} style={{ width: 3, borderRadius: 2, background: '#7b9cff', height: 5 + ((i * 7 + recSeconds * 5) % 19) }} />)}
+                </div>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: 13 }}>{Math.floor(recSeconds / 60)}:{String(recSeconds % 60).padStart(2, '0')}</span>
+                <button onClick={cancelRec} title="Annulla registrazione" style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 18 }}>×</button>
+                <button onClick={stopRec} title="Invia vocale" style={{ ...BTN, width: 40, padding: 0 }}>✓</button>
               </div>
             )}
             <div style={{ border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 12, background: 'var(--surface, rgba(10,10,18,0.55))' }}>
@@ -424,7 +547,6 @@ export default function ChatTab({ standalone = false }) {
                   +<input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
                 </label>
                 <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}>{recording ? '⏹' : '🎤'}</TB>
-                {recording && <span style={{ fontSize: 12, color: '#ff5a7a' }}>● rec…</span>}
                 <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title="Emoji">😊</TB>
                 <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title="Menziona">@</TB>
                 <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia">➤</button>
@@ -448,6 +570,24 @@ export default function ChatTab({ standalone = false }) {
             </div>
           </div>
         </div>
+
+        {threadRoot && (
+          <div style={{ ...PANEL, width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 17 }}>Conversazione</span>
+              <button onClick={() => setThreadRoot(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 20 }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
+              {miniMsg(threadRoot)}
+              <div style={{ fontSize: 12, color: MUTED, margin: '6px 0 8px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', paddingBottom: 8 }}>{threadMsgs.length} rispost{threadMsgs.length === 1 ? 'a' : 'e'}</div>
+              {threadMsgs.map(miniMsg)}
+            </div>
+            <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
+              <input style={FIELD} placeholder="Rispondi…" value={threadText} onChange={e => setThreadText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendThread() } }} />
+              <button onClick={sendThread} style={{ ...BTN, width: 40, padding: 0 }}>➤</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showProfile && (
@@ -474,13 +614,17 @@ export default function ChatTab({ standalone = false }) {
         </div>
       )}
 
-      <style>{`.chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0} .chat-row:hover .chat-actions{opacity:1}`}</style>
+      <style>{`.chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0} .chat-row:hover .chat-actions{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}`}</style>
     </div>
   )
 }
 
 function ActBtn({ onClick, title, children }) {
   return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#c9c9d6', cursor: 'pointer', fontSize: 14, width: 28, height: 26, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
+}
+
+function HBtn({ onClick, title, children }) {
+  return <button type="button" onClick={onClick} title={title} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{children}</button>
 }
 
 function TB({ onClick, title, children }) {

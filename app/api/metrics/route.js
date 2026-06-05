@@ -580,7 +580,7 @@ async function fetchShopifySalesRange(start, end) {
   //    total_sales_returning per i fatturati.
   const totalsQuery = `
     FROM sales
-      SHOW orders, total_sales, returns,
+      SHOW orders, total_sales, net_sales, taxes, shipping_charges, returns,
            orders_first_time, total_sales_first_time,
            orders_returning, total_sales_returning
       SINCE ${start}
@@ -621,14 +621,26 @@ async function fetchShopifySalesRange(start, end) {
   let fatturato = 0, ordini = 0, resi = 0
   let fatturNC = 0, fatturRC = 0, nc = 0, rc = 0
   let resiNC = 0, resiRC = 0 // resi NC/RC non disponibili lato Shopify direttamente
+  let netSales = 0, taxes = 0, shipping = 0 // per ricostruire total_sales quando torna 0
   for (const row of (totalsRows || [])) {
     fatturato += cleanMoney(row.total_sales)
+    netSales  += cleanMoney(row.net_sales)
+    taxes     += cleanMoney(row.taxes)
+    shipping  += cleanMoney(row.shipping_charges)
     ordini += cleanCount(row.orders)
     resi += Math.abs(cleanMoney(row.returns))
     nc += cleanCount(row.orders_first_time)
     rc += cleanCount(row.orders_returning)
     fatturNC += cleanMoney(row.total_sales_first_time)
     fatturRC += cleanMoney(row.total_sales_returning)
+  }
+
+  // Su API 2026-04 `total_sales` torna 0 anche quando ci sono vendite (bug noto,
+  // stesso comportamento gestito nel route P&L). Ricostruiamo il fatturato dai
+  // componenti: net_sales + taxes + shipping_charges. Senza questo i mesi
+  // precedenti (che dipendono solo da ShopifyQL, niente fallback Admin) restano a 0.
+  if (fatturato <= 0 && (netSales > 0 || taxes > 0 || shipping > 0)) {
+    fatturato = netSales + taxes + shipping
   }
 
   // Fallback breakdown query SOLO se totalsQuery non ha popolato NC/RC
@@ -657,6 +669,14 @@ async function fetchShopifySalesRange(start, end) {
   }
 
   if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
+    fatturRC = Math.max(fatturato - fatturNC, 0)
+  }
+
+  // Se ENTRAMBI gli split NC/RC sono 0 (anche total_sales_first_time/returning
+  // tornano 0 su 2026-04) ma abbiamo il fatturato totale ricostruito e i
+  // conteggi ordini, ripartiamo il fatturato in proporzione agli ordini.
+  if (fatturNC <= 0 && fatturRC <= 0 && fatturato > 0 && (nc + rc) > 0) {
+    fatturNC = Math.round(fatturato * (nc / (nc + rc)))
     fatturRC = Math.max(fatturato - fatturNC, 0)
   }
 

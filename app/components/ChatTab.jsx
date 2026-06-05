@@ -9,7 +9,7 @@ const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius
 const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none' }
 const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 16px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 
-export default function ChatTab() {
+export default function ChatTab({ standalone = false }) {
   const [channels, setChannels] = useState([])
   const [active, setActive] = useState(null)
   const [messages, setMessages] = useState([])
@@ -102,8 +102,13 @@ export default function ChatTab() {
 
   return (
     <div style={{ fontFamily: 'Barlow', color: '#fff' }}>
-      <h2 style={{ margin: '0 0 14px', fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 700 }}>Chat del team</h2>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: '68vh' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px', gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 700 }}>💬 Chat del team</h2>
+        {!standalone && (
+          <a href="/chat" target="_blank" rel="noopener" style={{ ...btn, textDecoration: 'none', fontSize: 13 }}>↗ Apri come app</a>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '68vh' }}>
         {/* Canali */}
         <aside style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>Canali</div>

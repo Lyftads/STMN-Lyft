@@ -111,7 +111,7 @@ export default function KlaviyoTab() {
     }
     swrFetch({
       key,
-      fetcher: () => fetch(`/api/klaviyo?days=${days}`, { cache: 'no-store' })
+      fetcher: () => fetch(`/api/klaviyo?days=${days}`, { cache: 'no-store', signal: AbortSignal.timeout(40000) })
         .then(r => r.json()),
       onUpdate: (fresh) => { if (active) setData(fresh) },
     })

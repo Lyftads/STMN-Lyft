@@ -113,24 +113,15 @@ async function getFlows() {
 }
 
 async function getMetrics() {
-  let all = []
-  let url = '/metrics'
-  let pages = 0
-  while (url && pages < 4) {   // tetto pagine: evita loop lunghissimi
-    pages++
-    const data = await klaviyoGet(url)
-    if (!data) break
-    for (const i of (data.data || [])) {
-      all.push({
-        id: i.id,
-        name: i.attributes?.name,
-        integrationKey: i.attributes?.integration?.key || '',
-        integrationName: i.attributes?.integration?.name || '',
-      })
-    }
-    url = data.links?.next || null
-  }
-  return all
+  // Una sola pagina: ci servono solo poche metriche standard (Received/Opened/
+  // Clicked Email, Placed Order). La paginazione completa rendeva la tab lenta.
+  const data = await klaviyoGet('/metrics')
+  return (data?.data || []).map(i => ({
+    id: i.id,
+    name: i.attributes?.name,
+    integrationKey: i.attributes?.integration?.key || '',
+    integrationName: i.attributes?.integration?.name || '',
+  }))
 }
 
 async function queryMetric(metricId, measurement, days) {

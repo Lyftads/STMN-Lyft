@@ -709,9 +709,7 @@ function Hero({ t }) {
       <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', top: '50%', right: '-12vw', transform: 'translateY(-50%)',
-          width: 'min(1050px, 80vw)', height: 'min(1050px, 80vw)', opacity: 0.85,
-          maskImage: 'radial-gradient(circle, #000 62%, transparent 82%)',
-          WebkitMaskImage: 'radial-gradient(circle, #000 62%, transparent 82%)',
+          width: 'min(1050px, 80vw)', height: 'min(1050px, 80vw)', opacity: 1,
         }}>
           <LandingGlobe />
         </div>

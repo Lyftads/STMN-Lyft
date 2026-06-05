@@ -2,7 +2,12 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getKlaviyo } from '../../../lib/tenant/credentials'
+import { withTenantContext, getKlaviyo, getTenantInfo } from '../../../lib/tenant/credentials'
+
+// Cache server-side: la tab fa molte chiamate Klaviyo (lente). 5 min TTL così
+// riaprire la tab è istantaneo. ?force=1 bypassa.
+const klaviyoCache = new Map()
+const KLAVIYO_TTL_MS = 5 * 60_000
 
 // Tenant-aware getter (env-only mode di default)
 const klaviyoApiKey = () => getKlaviyo().apiKey
@@ -177,10 +182,12 @@ async function getEmailKPIs(days, metrics) {
   }
 
   const results = {}
-  for (const [key, { metric, measurement }] of Object.entries(targets)) {
-    if (!metric) { results[key] = { total: 0, dates: [], values: [] }; continue }
-    results[key] = await queryMetric(metric.id, measurement, days)
-  }
+  // Query metriche IN PARALLELO (prima erano 6 chiamate sequenziali → lentissimo)
+  const entries = Object.entries(targets)
+  const fetched = await Promise.all(entries.map(([, { metric, measurement }]) =>
+    metric ? queryMetric(metric.id, measurement, days) : Promise.resolve({ total: 0, dates: [], values: [] })
+  ))
+  entries.forEach(([key], i) => { results[key] = fetched[i] })
 
   const r = results.received.total
   const o = results.opened.total
@@ -297,6 +304,12 @@ export async function GET(request) {
   const daysParam = searchParams.get('days')
   const days = daysParam != null ? parseInt(daysParam, 10) : 30
 
+  const cacheKey = `${getTenantInfo().userId || 'env'}:${days}`
+  if (searchParams.get('force') !== '1') {
+    const hit = klaviyoCache.get(cacheKey)
+    if (hit && hit.exp > Date.now()) return NextResponse.json(hit.payload)
+  }
+
   try {
     const [account, lists, segments, sent, draft, scheduled, flows, metrics] = await Promise.all([
       getAccount(),
@@ -309,10 +322,13 @@ export async function GET(request) {
       getMetrics(),
     ])
 
-    const kpis = await getEmailKPIs(days, metrics)
-    const revenueBreakdown = await getRevenueBreakdown(sent, flows, days, metrics).catch(() => null)
+    // KPI e revenue breakdown sono indipendenti → in parallelo
+    const [kpis, revenueBreakdown] = await Promise.all([
+      getEmailKPIs(days, metrics),
+      getRevenueBreakdown(sent, flows, days, metrics).catch(() => null),
+    ])
 
-    return NextResponse.json({
+    const payload = {
       account,
       lists,
       segments,
@@ -321,7 +337,9 @@ export async function GET(request) {
       metrics,
       kpis,
       revenueBreakdown,
-    })
+    }
+    klaviyoCache.set(cacheKey, { payload, exp: Date.now() + KLAVIYO_TTL_MS })
+    return NextResponse.json(payload)
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }

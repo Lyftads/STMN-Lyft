@@ -194,7 +194,7 @@ export default function TasksTab() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 2, border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}>
-            {[['board', 'Board'], ['projects', 'Progetti']].map(([v, l]) => (
+            {[['board', 'Board'], ['projects', 'Progetti'], ['mine', 'Le mie attività']].map(([v, l]) => (
               <button key={v} onClick={() => setView(v)} style={{ border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: 'pointer', fontFamily: 'Barlow', background: view === v ? 'var(--glass)' : 'transparent', color: view === v ? '#fff' : '#b0b0bd' }}>{l}</button>
             ))}
           </div>
@@ -309,6 +309,22 @@ export default function TasksTab() {
         />
       )}
 
+      {view === 'mine' && (() => {
+        const mine = tasks.filter(t => me?.memberId && t.assignee_id === me.memberId)
+        return (
+          <div>
+            <div style={{ fontSize: 13, color: '#b0b0bd', marginBottom: 12 }}>{mine.length} attività assegnate a te</div>
+            {mine.length === 0 ? (
+              <div style={{ color: '#b0b0bd', fontSize: 14, padding: '20px 0' }}>Nessuna attività assegnata a te.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                {mine.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {detailTask && (
         <TaskDetail
           task={detailTask}
@@ -383,6 +399,24 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
   const saveDesc = () => { if (desc !== (task.description || '')) onPatch(task.id, { description: desc }) }
   const saveAndClose = () => { saveDesc(); onClose() }
 
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState('')
+  useEffect(() => {
+    let alive = true
+    fetch(`/api/task-comments?task_id=${task.id}`, { cache: 'no-store' })
+      .then(r => r.json()).then(d => { if (alive) setComments(d.comments || []) }).catch(() => {})
+    return () => { alive = false }
+  }, [task.id])
+
+  async function addComment() {
+    const body = newComment.trim()
+    if (!body) return
+    setNewComment('')
+    const r = await fetch('/api/task-comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: task.id, body }) })
+      .then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.comment) setComments(prev => [...prev, r.comment])
+  }
+
   const attachments = Array.isArray(task.attachments) ? task.attachments : []
 
   async function onPick(e) {
@@ -452,6 +486,28 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
               <button onClick={() => onDeleteAttachment(task.id, a.path)} title="Elimina" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>
             </div>
           ))}
+        </div>
+
+        {/* Commenti */}
+        <div style={{ marginTop: 18 }}>
+          <label style={{ fontSize: 12, color: '#d0d0d8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>Commenti</label>
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {comments.length === 0 && <div style={{ color: '#48484a', fontSize: 12 }}>Nessun commento.</div>}
+            {comments.map(c => (
+              <div key={c.id} style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: '#b0b0bd', marginBottom: 2 }}>
+                  <b style={{ color: '#fff' }}>{c.author_name || 'Utente'}</b> · {new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{c.body}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <input style={input} placeholder="Scrivi un commento…" value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment() } }} />
+            <button style={btn} onClick={addComment}>Invia</button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>

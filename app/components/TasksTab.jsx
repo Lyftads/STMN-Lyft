@@ -179,6 +179,7 @@ export default function TasksTab() {
   const visible = tasks.filter(t =>
     activeProject === 'all' ? true : activeProject === 'none' ? !t.project_id : t.project_id === activeProject)
   const detailTask = detailId ? tasks.find(t => t.id === detailId) : null
+  const myTasks = tasks.filter(t => me?.memberId && t.assignee_id === me.memberId)
 
   if (loading) {
     return <div style={{ padding: 40, color: '#b0b0bd', fontFamily: 'Barlow' }}>Caricamento board…</div>
@@ -194,8 +195,8 @@ export default function TasksTab() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 2, border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}>
-            {[['board', 'Board'], ['projects', 'Progetti'], ['mine', 'Le mie attività']].map(([v, l]) => (
-              <button key={v} onClick={() => setView(v)} style={{ border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 13, fontWeight: view === v ? 700 : 500, cursor: 'pointer', fontFamily: 'Barlow', background: view === v ? 'var(--glass)' : 'transparent', color: view === v ? '#fff' : '#b0b0bd' }}>{l}</button>
+            {[['board', 'Board', view === 'board' || view === 'mine'], ['projects', 'Progetti', view === 'projects']].map(([v, l, on]) => (
+              <button key={v} onClick={() => setView(v)} style={{ border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 13, fontWeight: on ? 700 : 500, cursor: 'pointer', fontFamily: 'Barlow', background: on ? 'var(--glass)' : 'transparent', color: on ? '#fff' : '#b0b0bd' }}>{l}</button>
             ))}
           </div>
           {view === 'board' && (
@@ -209,24 +210,33 @@ export default function TasksTab() {
         </div>
       </div>
 
-      {view === 'board' && (
+      {(view === 'board' || view === 'mine') && (
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
           {/* Sidebar progetti */}
           <aside style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
             <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>Progetti</div>
-            <SideItem label="Tutti i progetti" count={tasks.length} active={activeProject === 'all'} onClick={() => setActiveProject('all')} />
+            <SideItem label="Tutti i progetti" count={tasks.length} active={view === 'board' && activeProject === 'all'} onClick={() => { setActiveProject('all'); setView('board') }} />
             {projects.map(p => (
               <SideItem key={p.id} label={p.name} color={p.color || '#7b5bff'} count={tasks.filter(t => t.project_id === p.id).length}
-                active={activeProject === p.id} onClick={() => setActiveProject(p.id)} onDelete={() => deleteProject(p.id)} />
+                active={view === 'board' && activeProject === p.id} onClick={() => { setActiveProject(p.id); setView('board') }} onDelete={() => deleteProject(p.id)} />
             ))}
             {tasks.some(t => !t.project_id) && (
-              <SideItem label="Senza progetto" count={tasks.filter(t => !t.project_id).length} active={activeProject === 'none'} onClick={() => setActiveProject('none')} />
+              <SideItem label="Senza progetto" count={tasks.filter(t => !t.project_id).length} active={view === 'board' && activeProject === 'none'} onClick={() => { setActiveProject('none'); setView('board') }} />
             )}
             <button style={{ ...btnGhost, width: '100%', marginTop: 10 }} onClick={addProject}>+ Nuovo progetto</button>
+            <div style={{ height: 1, background: 'var(--border)', margin: '12px 4px' }} />
+            <SideItem label="✅ Le mie attività" count={myTasks.length} active={view === 'mine'} onClick={() => setView('mine')} />
           </aside>
 
           {/* Contenuto */}
           <div style={{ flex: 1, minWidth: 0 }}>
+            {view === 'mine' && (
+              <>
+                <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20, marginBottom: 14 }}>Le mie attività · {myTasks.length}</div>
+                <PriorityBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+              </>
+            )}
+            {view === 'board' && (<>
             {/* Nuovo task */}
             <div style={{ ...card, marginBottom: 18, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '2 1 240px' }}>
@@ -276,25 +286,9 @@ export default function TasksTab() {
                 })}
               </div>
             ) : (
-              /* Raggruppamento per priorità (righe colorate) */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {PRIORITY_ROWS.map(row => {
-                  const items = visible.filter(t => (t.priority || 'medium') === row.id)
-                  return (
-                    <div key={row.id} style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderLeft: `5px solid ${row.color}`, borderRadius: 10, background: `${row.color}14`, minHeight: 72 }}>
-                      <div style={{ width: 130, flexShrink: 0, padding: 14, borderRight: '1px solid var(--border)' }}>
-                        <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 16, color: row.color, textTransform: 'uppercase' }}>{row.label}</div>
-                        <div style={{ fontSize: 12, color: '#b0b0bd' }}>{items.length} task</div>
-                      </div>
-                      <div style={{ flex: 1, display: 'flex', gap: 10, flexWrap: 'wrap', padding: 12, minWidth: 0 }}>
-                        {items.map(t => <div key={t.id} style={{ width: 240 }}><TaskCard t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} /></div>)}
-                        {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, alignSelf: 'center' }}>Nessun task</div>}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              <PriorityBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
             )}
+            </>)}
           </div>
         </div>
       )}
@@ -308,22 +302,6 @@ export default function TasksTab() {
           onDelete={deleteProject}
         />
       )}
-
-      {view === 'mine' && (() => {
-        const mine = tasks.filter(t => me?.memberId && t.assignee_id === me.memberId)
-        return (
-          <div>
-            <div style={{ fontSize: 13, color: '#b0b0bd', marginBottom: 12 }}>{mine.length} attività assegnate a te</div>
-            {mine.length === 0 ? (
-              <div style={{ color: '#b0b0bd', fontSize: 14, padding: '20px 0' }}>Nessuna attività assegnata a te.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                {mine.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
-              </div>
-            )}
-          </div>
-        )
-      })()}
 
       {detailTask && (
         <TaskDetail
@@ -428,8 +406,9 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(640px, 100%)', maxWidth: 640, maxHeight: '86vh', overflowY: 'auto' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, padding: 0, width: 'min(640px, 100%)', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ overflowY: 'auto', padding: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <input
             defaultValue={task.title}
@@ -510,7 +489,8 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+        </div>{/* fine corpo scrollabile */}
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 18px', borderTop: '1px solid var(--border)', background: '#15151f' }}>
           <button onClick={onClose} style={btnGhost}>Chiudi</button>
           <button onClick={saveAndClose} style={btn}>✓ Salva e chiudi</button>
         </div>
@@ -675,6 +655,30 @@ function SideItem({ label, count, color, active, onClick, onDelete }) {
       <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#fff' : '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
       <span style={{ fontSize: 11, color: '#b0b0bd' }}>{count}</span>
       {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete() }} title="Elimina progetto" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>}
+    </div>
+  )
+}
+
+// Board a righe colorate per priorità (Urgente/Alta/Media/Bassa). Riutilizzata
+// dalla board (raggruppa per priorità) e dalla vista "Le mie attività".
+function PriorityBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {PRIORITY_ROWS.map(row => {
+        const items = tasks.filter(t => (t.priority || 'medium') === row.id)
+        return (
+          <div key={row.id} style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderLeft: `5px solid ${row.color}`, borderRadius: 10, background: `${row.color}14`, minHeight: 72 }}>
+            <div style={{ width: 130, flexShrink: 0, padding: 14, borderRight: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 16, color: row.color, textTransform: 'uppercase' }}>{row.label}</div>
+              <div style={{ fontSize: 12, color: '#b0b0bd' }}>{items.length} task</div>
+            </div>
+            <div style={{ flex: 1, display: 'flex', gap: 10, flexWrap: 'wrap', padding: 12, minWidth: 0 }}>
+              {items.map(t => <div key={t.id} style={{ width: 240 }}><TaskCard t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} /></div>)}
+              {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, alignSelf: 'center' }}>Nessun task</div>}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

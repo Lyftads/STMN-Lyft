@@ -114,7 +114,7 @@ async function sendCredentialsEmail({ to, origin, roles, password }) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [to], subject: 'Il tuo accesso a LyftAI', html }),
+      body: JSON.stringify({ from, to: [to], reply_to: process.env.REPLY_TO || 'info@lyftads.agency', subject: 'Il tuo accesso a LyftAI', html }),
     })
     if (!res.ok) { const t = await res.text(); return { ok: false, reason: `resend_${res.status}: ${t.slice(0, 160)}` } }
     return { ok: true }

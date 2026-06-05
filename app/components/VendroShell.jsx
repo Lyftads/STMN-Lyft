@@ -94,6 +94,13 @@ export default function VendroShell({
 }) {
   const navGroups = [
     {
+      title: 'Team',
+      color: '#7b5bff',
+      items: [
+        { id: 'tasks', label: 'Progetti & Task', icon: '◳' },
+      ],
+    },
+    {
       title: 'Commerce',
       color: '#ff375f',
       items: [

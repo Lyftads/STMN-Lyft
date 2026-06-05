@@ -21,6 +21,7 @@ import WebsiteScannerTab from './components/WebsiteScannerTab'
 import SeoAuditTab from './components/SeoAuditTab'
 import UserPathTab from './components/UserPathTab'
 import PnLTab from './components/PnLTab'
+import TasksTab from './components/TasksTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
@@ -4238,6 +4239,11 @@ export default function App() {
 
 {tab === 'pnl' && (
   <PnLTab data={data} />
+)}
+
+{/* TEAM · PROGETTI & TASK */}
+{tab === 'tasks' && (
+  <TasksTab />
 )}
 
 {/* CREATIVE LAB TAB */}

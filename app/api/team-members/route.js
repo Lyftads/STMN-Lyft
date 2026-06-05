@@ -144,7 +144,7 @@ export async function GET() {
       members: data || [],
       roles: ROLES,
       roleLabels: ROLE_LABELS,
-      me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin },
+      me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin, isMember: ws.workspaceId !== ws.userId },
     })
   } catch (e) {
     return NextResponse.json({ members: [], error: e.message })

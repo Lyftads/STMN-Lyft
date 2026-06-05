@@ -2244,6 +2244,12 @@ export default function App() {
     let cancelled = false
     ;(async () => {
       try {
+        // I membri del team appartengono al workspace dell'owner (che paga):
+        // saltano onboarding e paywall, vanno dritti nell'app.
+        const me = await fetch('/api/team-members', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => d?.me).catch(() => null)
+        if (cancelled) return
+        if (me && me.isMember) return
+
         const ob = await fetch('/api/onboarding').then(r => r.ok ? r.json() : null)
         if (cancelled) return
         if (ob && ob.completed === false) {

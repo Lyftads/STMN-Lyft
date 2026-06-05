@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { Fragment, useEffect, useState, useCallback } from 'react'
 
 // Modulo Team → Progetti & Task (Fase 1). Board Kanban + creazione task/progetti,
 // assegnazione, priorità, scadenze, approvazione (aperta a tutti).
@@ -220,7 +220,7 @@ export default function TasksTab() {
             {view === 'mine' && (
               <>
                 <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20, marginBottom: 14 }}>Le mie attività · {myTasks.length}</div>
-                <PriorityBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+                <SwimlaneBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
               </>
             )}
             {view === 'board' && (<>
@@ -252,8 +252,8 @@ export default function TasksTab() {
               <button style={{ ...btn, opacity: creating ? 0.6 : 1 }} disabled={creating} onClick={createTask}>+ Crea</button>
             </div>
 
-            {/* Board a righe di priorità (come "Le mie attività") */}
-            <PriorityBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+            {/* Griglia: colonne di stato × righe di priorità */}
+            <SwimlaneBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
             </>)}
           </div>
         </div>
@@ -615,26 +615,40 @@ function SideItem({ label, count, color, active, onClick, onDelete }) {
   )
 }
 
-// Board a righe colorate per priorità (Urgente/Alta/Media/Bassa). Riutilizzata
-// dalla board (raggruppa per priorità) e dalla vista "Le mie attività".
-function PriorityBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
+// Griglia "tutto in uno": righe = priorità (Urgente/Alta/Media/Bassa),
+// colonne = stato (Da fare/In corso/...). I task finiscono all'incrocio
+// priorità×stato. Usata sia dalla board sia da "Le mie attività".
+function SwimlaneBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
+  const gridCols = `120px repeat(${COLUMNS.length}, minmax(180px, 1fr))`
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {PRIORITY_ROWS.map(row => {
-        const items = tasks.filter(t => (t.priority || 'medium') === row.id)
-        return (
-          <div key={row.id} style={{ display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderLeft: `5px solid ${row.color}`, borderRadius: 10, background: `${row.color}14`, minHeight: 72 }}>
-            <div style={{ width: 130, flexShrink: 0, padding: 14, borderRight: '1px solid var(--border)' }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 16, color: row.color, textTransform: 'uppercase' }}>{row.label}</div>
-              <div style={{ fontSize: 12, color: '#b0b0bd' }}>{items.length} task</div>
-            </div>
-            <div style={{ flex: 1, display: 'flex', gap: 10, flexWrap: 'wrap', padding: 12, minWidth: 0 }}>
-              {items.map(t => <div key={t.id} style={{ width: 240 }}><TaskCard t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} /></div>)}
-              {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, alignSelf: 'center' }}>Nessun task</div>}
-            </div>
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 8, minWidth: 980 }}>
+        {/* intestazione colonne (stato) */}
+        <div />
+        {COLUMNS.map(col => (
+          <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color }} />
+            <span style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '.05em' }}>{col.label}</span>
           </div>
-        )
-      })}
+        ))}
+        {/* righe per priorità */}
+        {PRIORITY_ROWS.map(row => (
+          <Fragment key={row.id}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 10, borderLeft: `4px solid ${row.color}`, background: `${row.color}14`, borderRadius: 8 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 15, color: row.color, textTransform: 'uppercase' }}>{row.label}</div>
+              <div style={{ fontSize: 11, color: '#b0b0bd' }}>{tasks.filter(t => (t.priority || 'medium') === row.id).length} task</div>
+            </div>
+            {COLUMNS.map(col => {
+              const items = tasks.filter(t => (t.priority || 'medium') === row.id && (t.status || 'todo') === col.id)
+              return (
+                <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 8, background: `${row.color}0a`, borderRadius: 8, minHeight: 60 }}>
+                  {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
+                </div>
+              )
+            })}
+          </Fragment>
+        ))}
+      </div>
     </div>
   )
 }

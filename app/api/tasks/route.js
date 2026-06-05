@@ -4,9 +4,16 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
+import { notifyAssignment, notifyStatusChange, notifyCalendarUpdate } from '../../../lib/team/notify'
 
 const STATUSES = ['todo', 'in_progress', 'in_review', 'approved', 'done']
 const PRIORITIES = ['low', 'medium', 'high', 'urgent']
+
+function originOf(req) {
+  return req.headers.get('origin') ||
+    (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
+    process.env.NEXT_PUBLIC_APP_URL || 'https://stmn-lyft.vercel.app'
+}
 
 export async function GET(req) {
   const ws = await resolveWorkspace()
@@ -62,6 +69,7 @@ export async function POST(req) {
   try {
     const { data, error } = await admin.from('tasks').insert(row).select('*').single()
     if (error) throw error
+    if (data?.assignee_id) await notifyAssignment({ workspaceId: ws.workspaceId, task: data, origin: originOf(req) })
     return NextResponse.json({ ok: true, task: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
@@ -105,6 +113,10 @@ export async function PATCH(req) {
       .select('*')
       .single()
     if (error) throw error
+    const origin = originOf(req)
+    if (b.assignee_id) await notifyAssignment({ workspaceId: ws.workspaceId, task: data, origin })
+    else if (b.due_date) await notifyCalendarUpdate({ workspaceId: ws.workspaceId, task: data, origin })
+    if (b.status !== undefined) await notifyStatusChange({ workspaceId: ws.workspaceId, task: data, origin })
     return NextResponse.json({ ok: true, task: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

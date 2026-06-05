@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import Avatar from './Avatar'
+import ProfileModal from './ProfileModal'
 
 // Chat interna del team: canali + messaggi. Aggiornamento via polling (5s) per
 // non dipendere dalla config Realtime/RLS di Supabase.
@@ -15,6 +17,9 @@ export default function ChatTab({ standalone = false }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [me, setMe] = useState(null)
+  const [members, setMembers] = useState([])
+  const [profile, setProfile] = useState(null)
+  const [showProfile, setShowProfile] = useState(false)
   const [loading, setLoading] = useState(true)
   const scrollRef = useRef(null)
   const lastAtRef = useRef(null)
@@ -27,6 +32,16 @@ export default function ChatTab({ standalone = false }) {
       setMe(d.me || null)
       if (d.channels && d.channels.length) setActive(prev => prev || d.channels[0].id)
     }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  // membri + presenza (heartbeat ogni 30s)
+  useEffect(() => {
+    const loadMembers = () => fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {})
+    const ping = () => fetch('/api/presence', { method: 'POST' }).catch(() => {})
+    loadMembers(); ping()
+    fetch('/api/profile', { cache: 'no-store' }).then(r => r.json()).then(d => setProfile(d.profile || null)).catch(() => {})
+    const t = setInterval(() => { if (!document.hidden) { ping(); loadMembers() } }, 30000)
+    return () => clearInterval(t)
   }, [])
 
   const scrollBottom = () => {
@@ -97,6 +112,8 @@ export default function ChatTab({ standalone = false }) {
   }
 
   const activeName = channels.find(c => c.id === active)?.name
+  const memberMap = useMemo(() => { const m = {}; members.forEach(x => { m[x.id] = x }); return m }, [members])
+  const isOnline = (mem) => !!(mem?.last_seen_at && (Date.now() - new Date(mem.last_seen_at).getTime() < 70000))
 
   if (loading) return <div style={{ padding: 40, color: '#b0b0bd', fontFamily: 'Barlow' }}>Caricamento chat…</div>
 
@@ -110,14 +127,30 @@ export default function ChatTab({ standalone = false }) {
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '68vh' }}>
         {/* Canali */}
-        <aside style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>Canali</div>
+        <aside style={{ ...PANEL, width: 240, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 6px' }}>Canali</div>
             {channels.map(c => (
               <div key={c.id} onClick={() => setActive(c.id)} style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: active === c.id ? 700 : 500, color: active === c.id ? '#fff' : '#d0d0d8', background: active === c.id ? 'rgba(123,91,255,0.18)' : 'transparent', marginBottom: 2 }}># {c.name}</div>
             ))}
+            <button style={{ background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={addChannel}>+ Nuovo canale</button>
+
+            <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '16px 8px 6px' }}>Persone · {members.filter(isOnline).length} online</div>
+            {members.map(mem => (
+              <div key={mem.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px' }}>
+                <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={28} online={isOnline(mem)} />
+                <span style={{ fontSize: 13, color: '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}{mem.status === 'invited' ? ' (invitato)' : ''}</span>
+              </div>
+            ))}
           </div>
-          <button style={{ background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '8px', color: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'Barlow', marginTop: 8 }} onClick={addChannel}>+ Nuovo canale</button>
+
+          <div onClick={() => setShowProfile(true)} title="Modifica profilo" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderTop: '1px solid #3d3d4c', marginTop: 8, cursor: 'pointer' }}>
+            <Avatar name={profile?.full_name || profile?.email} url={profile?.avatar_url} size={32} online />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name || 'Il mio profilo'}</div>
+              <div style={{ fontSize: 11, color: '#7b5bff' }}>Modifica profilo</div>
+            </div>
+          </div>
         </aside>
 
         {/* Messaggi */}
@@ -128,13 +161,16 @@ export default function ChatTab({ standalone = false }) {
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {messages.length === 0 && <div style={{ color: '#48484a', fontSize: 13 }}>Nessun messaggio. Scrivi il primo!</div>}
             {messages.map(m => {
-              const mine = me?.memberId && m.author_id === me.memberId
+              const mem = memberMap[m.author_id]
               return (
-                <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
-                  <div style={{ fontSize: 11, color: '#b0b0bd', marginBottom: 2, textAlign: mine ? 'right' : 'left' }}>
-                    {mine ? 'Tu' : (m.author_name || 'Utente')} · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                <div key={m.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={36} online={mem ? isOnline(mem) : undefined} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, color: '#b0b0bd' }}>
+                      <b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div style={{ fontSize: 14, color: '#e6e6ee', whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: 1 }}>{m.body}</div>
                   </div>
-                  <div style={{ background: mine ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : '#1f1f2b', color: '#fff', padding: '9px 12px', borderRadius: 12, fontSize: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
                 </div>
               )
             })}
@@ -147,6 +183,14 @@ export default function ChatTab({ standalone = false }) {
           </div>
         </div>
       </div>
+
+      {showProfile && (
+        <ProfileModal
+          profile={profile || { email: '' }}
+          onClose={() => setShowProfile(false)}
+          onSaved={(p) => { setProfile(p); setMembers(prev => prev.map(m => m.id === p.id ? { ...m, full_name: p.full_name, avatar_url: p.avatar_url } : m)) }}
+        />
+      )}
     </div>
   )
 }

@@ -47,6 +47,7 @@ export default function ChatTab({ standalone = false }) {
   const [recording, setRecording] = useState(false)
   const [recSeconds, setRecSeconds] = useState(0)
   const [reactFor, setReactFor] = useState(null)
+  const [actionsFor, setActionsFor] = useState(null)
   const [forwardMsg, setForwardMsg] = useState(null)
   const [threadRoot, setThreadRoot] = useState(null)
   const [threadMsgs, setThreadMsgs] = useState([])
@@ -458,7 +459,7 @@ export default function ChatTab({ standalone = false }) {
               const mine = me?.memberId && m.author_id === me.memberId
               const reactions = (m.reactions && typeof m.reactions === 'object') ? m.reactions : {}
               return (
-                <div key={m.id} className="chat-row" style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
+                <div key={m.id} className="chat-row" onClick={() => setActionsFor(actionsFor === m.id ? null : m.id)} style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
                   <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
@@ -491,7 +492,7 @@ export default function ChatTab({ standalone = false }) {
                       </div>
                     )}
                   </div>
-                  <div className="chat-actions" style={{ position: 'absolute', top: -12, right: 10, display: 'flex', gap: 2, background: 'var(--glass, rgba(20,20,30,0.92))', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: 3, opacity: 0, transition: 'opacity .12s', backdropFilter: 'blur(8px)' }}>
+                  <div className={`chat-actions${actionsFor === m.id ? ' show' : ''}`} onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: -10, right: 10, display: 'flex', gap: 2, background: 'rgba(24,24,36,0.97)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: 3, backdropFilter: 'blur(8px)', zIndex: 5 }}>
                     <ActBtn title="Reazione" onClick={() => setReactFor(reactFor === m.id ? null : m.id)}>😊</ActBtn>
                     <ActBtn title="Rispondi nella conversazione" onClick={() => openThread(m)}>↩︎</ActBtn>
                     <ActBtn title="Inoltra" onClick={() => setForwardMsg(m)}>↪︎</ActBtn>
@@ -668,7 +669,7 @@ export default function ChatTab({ standalone = false }) {
         </div>
       )}
 
-      <style>{`.chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0} .chat-row:hover .chat-actions{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}`}</style>
+      <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}`}</style>
     </div>
   )
 }

@@ -840,8 +840,16 @@ async function fetchShopifyMonthly() {
   try {
     const ranges = monthRanges()
 
-    const rows = await Promise.all(
-      ranges.map(async ({ month, start, end }) => {
+    // Concorrenza limitata (batch da 3) invece di Promise.all su TUTTI i mesi:
+    // ~17 mesi x 2 query ShopifyQL in parallelo saturavano il cost-based rate
+    // limit Shopify e alcuni mesi tornavano vuoti → poi scartati dal filtro sotto
+    // (es. maggio/febbraio "spariti"). Con batch piccoli il picco resta basso e
+    // il retry/backoff in shopifyQL copre l'eventuale residuo. maxDuration=60s.
+    const CONCURRENCY = 3
+    const rows = []
+    for (let i = 0; i < ranges.length; i += CONCURRENCY) {
+      const batchRows = await Promise.all(
+        ranges.slice(i, i + CONCURRENCY).map(async ({ month, start, end }) => {
         const [sales, uniqueSessions] = await Promise.all([
           fetchShopifySalesRange(start, end),
           fetchShopifyVisitorsRange(start, end),
@@ -866,8 +874,10 @@ async function fetchShopifyMonthly() {
 
           uniqueSessions,
         }
-      })
-    )
+        })
+      )
+      rows.push(...batchRows)
+    }
 
     return rows.filter(
       r =>

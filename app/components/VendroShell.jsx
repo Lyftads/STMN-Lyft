@@ -411,19 +411,21 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            <div>
-              <h1 className="heading-lg" style={{ marginBottom: 6 }}>
-                {getPageTitle(tab)}
-              </h1>
-              <p style={{
-                margin: 0,
-                color: 'var(--text3)',
-                fontSize: 14,
-                fontWeight: 400,
-              }}>
-                {getPageSubtitle(tab)}
-              </p>
-            </div>
+            {tab !== 'tasks' ? (
+              <div>
+                <h1 className="heading-lg" style={{ marginBottom: 6 }}>
+                  {getPageTitle(tab)}
+                </h1>
+                <p style={{
+                  margin: 0,
+                  color: 'var(--text3)',
+                  fontSize: 14,
+                  fontWeight: 400,
+                }}>
+                  {getPageSubtitle(tab)}
+                </p>
+              </div>
+            ) : <div />}
 
             <div style={{
               display: 'flex',

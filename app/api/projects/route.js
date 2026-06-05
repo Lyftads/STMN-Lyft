@@ -72,3 +72,20 @@ export async function PATCH(req) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
   }
 }
+
+export async function DELETE(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false })
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ ok: false, error: 'id mancante' }, { status: 400 })
+  try {
+    // i task collegati restano: project_id -> null (ON DELETE SET NULL)
+    await admin.from('projects').delete().eq('id', id).eq('workspace_id', ws.workspaceId)
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
+  }
+}

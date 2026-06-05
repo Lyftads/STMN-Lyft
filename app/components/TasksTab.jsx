@@ -161,7 +161,6 @@ export default function TasksTab() {
         if (i >= 0) { const c = [...prev]; c[i] = r.member; return c }
         return [...prev, r.member]
       })
-      if (!r.emailSent) alert('Membro aggiunto, ma email non inviata: ' + (r.emailError || 'configura RESEND_API_KEY'))
     } else alert(r.error || 'Errore invito')
     return r
   }
@@ -474,21 +473,20 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
   const [email, setEmail] = useState('')
   const [roles, setRoles] = useState([])
   const [sending, setSending] = useState(false)
-  const [sentMsg, setSentMsg] = useState('')
+  const [created, setCreated] = useState(null)
 
   const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
 
   async function submit() {
     if (!email.trim() || !email.includes('@')) { alert('Inserisci una email valida'); return }
     setSending(true)
-    setSentMsg('')
+    setCreated(null)
     try {
       const target = email.trim().toLowerCase()
       const r = await onInvite(target, roles)
       if (r && r.ok) {
         setEmail(''); setRoles([])
-        setSentMsg(r.emailSent ? `✓ Invito inviato a ${target}` : `✓ Membro aggiunto a ${target} (email non inviata)`)
-        setTimeout(() => setSentMsg(''), 6000)
+        setCreated({ email: target, password: r.tempPassword, emailSent: r.emailSent })
       }
     } finally { setSending(false) }
   }
@@ -515,10 +513,20 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
             <button style={{ ...btn, opacity: sending ? 0.6 : 1 }} disabled={sending} onClick={submit}>
-              {sending ? 'Invio…' : '✉ Invia invito'}
+              {sending ? 'Creo accesso…' : '✉ Crea accesso & invita'}
             </button>
-            {sentMsg && <span style={{ color: '#30d158', fontSize: 13, fontWeight: 600 }}>{sentMsg}</span>}
           </div>
+
+          {created && (
+            <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
+              <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}>✓ Accesso pronto per {created.email}</div>
+              <div style={{ fontSize: 14 }}>Password temporanea: <b style={{ fontFamily: 'monospace', userSelect: 'all', background: '#0d0d16', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
+              <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
+                {created.emailSent ? 'Inviata anche via email. ' : 'Email non inviata: comunica tu queste credenziali. '}
+                Il collaboratore accede da /login e può cambiare la password dalla pagina di reset.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Membri */}

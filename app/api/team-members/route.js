@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { getAdminSupabase, getServerSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
@@ -66,25 +67,54 @@ function originOf(req) {
     process.env.NEXT_PUBLIC_APP_URL || 'https://stmn-lyft.vercel.app'
 }
 
-async function sendInviteEmail({ to, origin, roles }) {
+// Trova un utente auth per email (no filtro nativo → scorre le pagine).
+async function findAuthUserByEmail(admin, email) {
+  try {
+    const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+    return (data?.users || []).find(u => (u.email || '').toLowerCase() === email) || null
+  } catch { return null }
+}
+
+// Crea (o aggiorna) l'utente auth GIÀ confermato con una password temporanea.
+// Bypassa del tutto l'email di conferma Supabase. Ritorna { userId, password }.
+async function ensureAuthUser(admin, email) {
+  const password = 'Ly' + randomBytes(6).toString('hex') // 14 char, ≥ min Supabase
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email, password, email_confirm: true,
+  })
+  if (!error && created?.user?.id) return { userId: created.user.id, password }
+  // probabile "already registered" → trova e aggiorna (conferma + nuova password)
+  const existing = await findAuthUserByEmail(admin, email)
+  if (existing) {
+    await admin.auth.admin.updateUserById(existing.id, { password, email_confirm: true })
+    return { userId: existing.id, password }
+  }
+  throw new Error(error?.message || 'createUser fallito')
+}
+
+async function sendCredentialsEmail({ to, origin, roles, password }) {
   const key = process.env.RESEND_API_KEY
   if (!key) return { ok: false, reason: 'RESEND_API_KEY mancante' }
   const from = process.env.REPORT_FROM || process.env.CONTACT_FROM || 'LyftAI <onboarding@resend.dev>'
   const roleNames = (roles || []).map(r => ROLE_LABELS[r] || r).join(', ') || 'Collaboratore'
-  const link = `${origin}/register`
+  const link = `${origin}/login`
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">
-      <h2 style="color:#5b8bff">Sei stato invitato su LyftAI</h2>
+      <h2 style="color:#5b8bff">Il tuo accesso a LyftAI è pronto</h2>
       <p>Sei stato aggiunto al team come <b>${roleNames}</b>.</p>
-      <p>Per accedere, registrati usando <b>questa stessa email</b> (${to}):</p>
-      <p><a href="${link}" style="background:#5b8bff;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">Crea il tuo accesso →</a></p>
-      <p style="color:#888;font-size:13px">Una volta registrato con questa email, verrai collegato automaticamente al workspace.</p>
+      <p>Accedi con queste credenziali:</p>
+      <p style="background:#f4f4f8;padding:14px 16px;border-radius:8px;font-size:15px">
+        Email: <b>${to}</b><br>
+        Password temporanea: <b style="font-family:monospace">${password}</b>
+      </p>
+      <p><a href="${link}" style="background:#5b8bff;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">Accedi →</a></p>
+      <p style="color:#888;font-size:13px">Dopo il primo accesso puoi cambiare la password dalla pagina di reset.</p>
     </div>`
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [to], subject: 'Invito al team su LyftAI', html }),
+      body: JSON.stringify({ from, to: [to], subject: 'Il tuo accesso a LyftAI', html }),
     })
     if (!res.ok) { const t = await res.text(); return { ok: false, reason: `resend_${res.status}: ${t.slice(0, 160)}` } }
     return { ok: true }
@@ -137,20 +167,33 @@ export async function POST(req) {
   }
   const roles = Array.isArray(b.roles) ? b.roles.filter(r => ROLES.includes(r)) : []
 
+  // 1) account auth GIÀ confermato con password temporanea (no email Supabase)
+  let auth
+  try {
+    auth = await ensureAuthUser(admin, email)
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: 'Auth: ' + e.message }, { status: 200 })
+  }
+
+  // 2) team_member attivo e collegato all'utente auth
+  let member = null
   try {
     const { data, error } = await admin
       .from('team_members')
       .upsert(
-        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, roles, status: 'invited' },
+        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, user_id: auth.userId, roles, status: 'active', accepted_at: new Date().toISOString() },
         { onConflict: 'workspace_id,email' }
       )
       .select('*').single()
     if (error) throw error
-    const mail = await sendInviteEmail({ to: email, origin: originOf(req), roles })
-    return NextResponse.json({ ok: true, member: data, emailSent: mail.ok, emailError: mail.ok ? null : mail.reason })
+    member = data
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
   }
+
+  // 3) email con credenziali via Resend (password mostrata anche all'admin come fallback)
+  const mail = await sendCredentialsEmail({ to: email, origin: originOf(req), roles, password: auth.password })
+  return NextResponse.json({ ok: true, member, emailSent: mail.ok, emailError: mail.ok ? null : mail.reason, tempPassword: auth.password })
 }
 
 export async function PATCH(req) {

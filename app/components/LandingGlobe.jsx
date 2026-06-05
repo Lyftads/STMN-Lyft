@@ -44,7 +44,7 @@ export default function LandingGlobe() {
 
   useEffect(() => {
     let alive = true
-    fetch(COUNTRIES_URL).then(r => r.json()).then(d => { if (alive) setCountries(d) }).catch(() => {})
+    fetch(COUNTRIES_URL, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (alive && d?.features) setCountries(d) }).catch(() => {})
     return () => { alive = false }
   }, [])
 

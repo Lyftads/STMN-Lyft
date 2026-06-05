@@ -57,7 +57,12 @@ export async function POST(req) {
   try {
     const { data, error } = await admin
       .from('channel_messages')
-      .insert({ channel_id: channelId, workspace_id: ws.workspaceId, author_id: ws.memberId, author_name: authorName, body })
+      .insert({
+        channel_id: channelId, workspace_id: ws.workspaceId, author_id: ws.memberId, author_name: authorName, body,
+        reply_to: b.reply_to || null,
+        reply_author: b.reply_author ? String(b.reply_author).slice(0, 80) : null,
+        reply_excerpt: b.reply_excerpt ? String(b.reply_excerpt).slice(0, 140) : null,
+      })
       .select('*').single()
     if (error) throw error
     return NextResponse.json({ ok: true, message: data })

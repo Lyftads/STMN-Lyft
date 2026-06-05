@@ -43,6 +43,21 @@ export async function POST(req) {
   if (!admin) return NextResponse.json({ ok: false })
   let b = {}
   try { b = await req.json() } catch {}
+
+  // Messaggio diretto: get-or-create del canale DM tra 2 membri
+  if (b.dm && b.target_id && ws.memberId) {
+    const ids = [ws.memberId, b.target_id].sort()
+    const dmName = `dm_${ids[0]}_${ids[1]}`
+    try {
+      const { data: ch } = await admin.from('channels').upsert(
+        { workspace_id: ws.workspaceId, name: dmName, is_dm: true, is_private: true, created_by: ws.memberId },
+        { onConflict: 'workspace_id,name' }
+      ).select('*').single()
+      await admin.from('channel_members').upsert(ids.map(id => ({ channel_id: ch.id, member_id: id })), { onConflict: 'channel_id,member_id' })
+      return NextResponse.json({ ok: true, channel: ch })
+    } catch (e) { return NextResponse.json({ ok: false, error: e.message }, { status: 200 }) }
+  }
+
   const name = String(b.name || '').trim().toLowerCase().replace(/[^a-z0-9\-_]+/g, '-').replace(/^-+|-+$/g, '')
   if (!name) return NextResponse.json({ ok: false, error: 'Nome non valido' }, { status: 400 })
   const isPrivate = !!b.is_private

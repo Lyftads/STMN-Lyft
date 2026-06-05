@@ -565,6 +565,9 @@ function GSCPanel() {
 
       {data && (
         <div style={{ marginTop: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+            <PdfButton type="gsc" data={data} />
+          </div>
           {/* KPI con delta vs periodo precedente */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
             <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>Click</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.clicks)}<Delta v={data.deltas.clicks} /></div></div>
@@ -643,14 +646,13 @@ function GSCPanel() {
           )}
 
           {/* Tabella per dimensione */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, marginBottom: 30 }}>
             {dims.map(([id, lbl]) => <Pill key={id} small active={dim === id} onClick={() => setDim(id)}>{lbl}</Pill>)}
           </div>
           <Block title={`Dettaglio per ${dimLabel.toLowerCase()}`}>
             {dimRows.length === 0 ? <div style={{ fontSize: 13, opacity: 0.4 }}>Nessun dato per questa dimensione.</div> : <DimTable rows={dimRows.slice(0, 50)} label={dimLabel} fmtKey={fmtKey} />}
           </Block>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="gsc" data={data} /></div>
           <SeoAgent context={{ type: 'gsc', data }} hint="Esperto SEO — conosce i dati reali di Search Console qui sopra." suggestions={['Su quali query lavoro per prime?', 'Come alzo il CTR delle query con CTR basso?', 'Quali pagine ottimizzo per salire di posizione?']} />
         </div>
       )}

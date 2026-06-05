@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
+import { allowedTabsFor } from '../lib/team/roleTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
 import dynamicImport from 'next/dynamic'
@@ -2179,6 +2180,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState('dashboard')
+  const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
@@ -2194,6 +2196,22 @@ export default function App() {
   const [weeklyCustom, setWeeklyCustom] = useState({ since: '', until: '' })
 
   const avail = getMonths()
+
+  // Gating per ruolo: recupera i ruoli dell'utente e calcola le tab consentite.
+  // Admin/owner → allowedTabs=null (vede tutto). I membri non-admin → Set ridotto.
+  useEffect(() => {
+    let active = true
+    fetch('/api/team-members', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => { if (active && d?.me) setAllowedTabs(allowedTabsFor(d.me.roles, d.me.isAdmin)) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
+  // Se la tab attiva non è consentita per il ruolo, riportala su Progetti & Task.
+  useEffect(() => {
+    if (allowedTabs && !allowedTabs.has(tab)) setTab('tasks')
+  }, [allowedTabs, tab])
 
   useEffect(() => {
     const s = load()
@@ -2692,6 +2710,7 @@ export default function App() {
     preset={preset}
     setPreset={setPreset}
     loading={loading}
+    allowedTabs={allowedTabs}
     onRefresh={() => fetchLive(true)}
   >
     {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}

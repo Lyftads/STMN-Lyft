@@ -90,6 +90,7 @@ export default function VendroShell({
   setPreset,
   loading,
   onRefresh,
+  allowedTabs,
   children,
 }) {
   const navGroups = [
@@ -173,13 +174,21 @@ export default function VendroShell({
     },
   ]
 
+  // Gating per ruolo: se allowedTabs è un Set, filtra le voci (l'Admin/owner
+  // riceve allowedTabs=undefined → vede tutto, comportamento invariato).
+  const groups = allowedTabs
+    ? navGroups
+        .map(g => ({ ...g, items: g.items.filter(it => allowedTabs.has(it.id)) }))
+        .filter(g => g.items.length > 0)
+    : navGroups
+
   const goTo = (id) => {
     if (typeof setTab === 'function') setTab(id)
   }
 
   // ── Accordion gruppi sidebar ──────────────────────────────
   // Apre di default solo il gruppo che contiene la tab attiva.
-  const groupOf = (t) => navGroups.find(g => g.items.some(i => i.id === t))?.title
+  const groupOf = (t) => groups.find(g => g.items.some(i => i.id === t))?.title
   const [openGroups, setOpenGroups] = useState(() => {
     const active = groupOf(tab)
     return active ? { [active]: true } : {}
@@ -284,7 +293,7 @@ export default function VendroShell({
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0 16px' }}>
-          {navGroups.map((group) => {
+          {groups.map((group) => {
             const isOpen = !!openGroups[group.title]
             const hasActive = group.items.some(i => i.id === tab)
             return (

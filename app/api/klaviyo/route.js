@@ -223,6 +223,7 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
         statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
         timeframe,
         conversion_metric_id: placedOrderMetric,
+        group_by: ['campaign_id'],     // 1 riga per campagna (no split per canale)
       },
     },
   })
@@ -234,6 +235,7 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
         statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
         timeframe,
         conversion_metric_id: placedOrderMetric,
+        group_by: ['flow_id'],          // 1 riga per flusso (no duplicati per messaggio/canale)
       },
     },
   })
@@ -241,27 +243,33 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
   const campRows = (campRes?.data?.attributes?.results || []).map(r => {
     const g = r.groupings || {}
     const s = r.statistics || {}
+    const revenue = s.conversion_value || 0
+    const recipients = s.recipients || 0
     return {
       name: campaignMap[g.campaign_id] || g.campaign_id,
-      revenue: s.conversion_value || 0,
+      revenue,
       conversions: s.conversions || 0,
-      recipients: s.recipients || 0,
-      openRate: s.open_rate || 0,
-      clickRate: s.click_rate || 0,
+      recipients,
+      revenuePerRecipient: recipients > 0 ? revenue / recipients : 0,
+      openRate: (s.open_rate || 0) * 100,    // Klaviyo ritorna frazione (0–1) → %
+      clickRate: (s.click_rate || 0) * 100,
     }
   }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
 
   const flowRows = (flowRes?.data?.attributes?.results || []).map(r => {
     const g = r.groupings || {}
     const s = r.statistics || {}
+    const revenue = s.conversion_value || 0
+    const recipients = s.recipients || 0
     return {
       flowId: g.flow_id,
       name: flowMap[g.flow_id] || g.flow_name || g.flow_id,
-      revenue: s.conversion_value || 0,
+      revenue,
       conversions: s.conversions || 0,
-      recipients: s.recipients || 0,
-      openRate: s.open_rate || 0,
-      clickRate: s.click_rate || 0,
+      recipients,
+      revenuePerRecipient: recipients > 0 ? revenue / recipients : 0,
+      openRate: (s.open_rate || 0) * 100,
+      clickRate: (s.click_rate || 0) * 100,
     }
   }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
 

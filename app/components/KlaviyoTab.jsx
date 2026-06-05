@@ -214,6 +214,7 @@ export default function KlaviyoTab() {
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
                   <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
                   <span style={{ color: '#9b90aa', fontSize: 10, flexShrink: 0 }}>{fmtN(r.conversions)} conv</span>
+                  <span style={{ color: '#64d2ff', fontSize: 10, flexShrink: 0 }} title="Entrate per destinatario">€{(r.revenuePerRecipient || 0).toFixed(2)}/dest</span>
                   <span style={{ color: '#22c55e', fontWeight: 800, flexShrink: 0 }}>{fmtE(r.revenue)}</span>
                 </div>
               ))}

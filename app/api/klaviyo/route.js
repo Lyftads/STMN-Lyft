@@ -215,6 +215,8 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
     end: now.toISOString().slice(0, 10),
   }
 
+  // NB: niente group_by (non accettato da questi report → 400 → vuoto).
+  // I report tornano righe per messaggio/canale → aggrego per id lato server.
   const campRes = await klaviyoPost('/campaign-values-reports', {
     data: {
       type: 'campaign-values-report',
@@ -222,7 +224,6 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
         statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
         timeframe,
         conversion_metric_id: placedOrderMetric,
-        group_by: ['campaign_id'],     // 1 riga per campagna (no split per canale)
       },
     },
   })
@@ -234,44 +235,41 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
         statistics: ['conversion_value', 'conversions', 'recipients', 'open_rate', 'click_rate'],
         timeframe,
         conversion_metric_id: placedOrderMetric,
-        group_by: ['flow_id'],          // 1 riga per flusso (no duplicati per messaggio/canale)
       },
     },
   })
 
-  const campRows = (campRes?.data?.attributes?.results || []).map(r => {
-    const g = r.groupings || {}
-    const s = r.statistics || {}
-    const revenue = s.conversion_value || 0
-    const recipients = s.recipients || 0
-    return {
-      campaignId: g.campaign_id,
-      name: campaignMap[g.campaign_id] || g.campaign_id,
-      revenue,
-      conversions: s.conversions || 0,
-      recipients,
-      revenuePerRecipient: recipients > 0 ? revenue / recipients : 0,
-      openRate: (s.open_rate || 0) * 100,    // Klaviyo ritorna frazione (0–1) → %
-      clickRate: (s.click_rate || 0) * 100,
+  // Aggrega le righe per id (somma revenue/conv/destinatari; tassi pesati sui destinatari)
+  const aggregate = (results, idKey, nameMap) => {
+    const map = {}
+    for (const r of (results || [])) {
+      const g = r.groupings || {}
+      const s = r.statistics || {}
+      const id = g[idKey]
+      if (!id) continue
+      if (!map[id]) map[id] = { id, name: nameMap[id] || g.flow_name || g.campaign_name || id, revenue: 0, conversions: 0, recipients: 0, wOpen: 0, wClick: 0 }
+      const rec = s.recipients || 0
+      const m = map[id]
+      m.revenue += s.conversion_value || 0
+      m.conversions += s.conversions || 0
+      m.recipients += rec
+      m.wOpen += (s.open_rate || 0) * rec
+      m.wClick += (s.click_rate || 0) * rec
     }
-  }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+    return Object.values(map).map(m => ({
+      [idKey === 'campaign_id' ? 'campaignId' : 'flowId']: m.id,
+      name: m.name,
+      revenue: m.revenue,
+      conversions: m.conversions,
+      recipients: m.recipients,
+      revenuePerRecipient: m.recipients > 0 ? m.revenue / m.recipients : 0,
+      openRate: m.recipients > 0 ? (m.wOpen / m.recipients) * 100 : 0,
+      clickRate: m.recipients > 0 ? (m.wClick / m.recipients) * 100 : 0,
+    })).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+  }
 
-  const flowRows = (flowRes?.data?.attributes?.results || []).map(r => {
-    const g = r.groupings || {}
-    const s = r.statistics || {}
-    const revenue = s.conversion_value || 0
-    const recipients = s.recipients || 0
-    return {
-      flowId: g.flow_id,
-      name: flowMap[g.flow_id] || g.flow_name || g.flow_id,
-      revenue,
-      conversions: s.conversions || 0,
-      recipients,
-      revenuePerRecipient: recipients > 0 ? revenue / recipients : 0,
-      openRate: (s.open_rate || 0) * 100,
-      clickRate: (s.click_rate || 0) * 100,
-    }
-  }).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+  const campRows = aggregate(campRes?.data?.attributes?.results, 'campaign_id', campaignMap)
+  const flowRows = aggregate(flowRes?.data?.attributes?.results, 'flow_id', flowMap)
 
   return {
     campaigns: {

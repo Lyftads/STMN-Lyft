@@ -18,8 +18,10 @@ import { getServerSupabase } from '../../../../../lib/supabase/server'
 // ============================================================================
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/analytics.readonly',
-  'https://www.googleapis.com/auth/adwords',
+  'https://www.googleapis.com/auth/analytics.readonly',   // GA4 reporting + Realtime
+  'https://www.googleapis.com/auth/adwords',              // Google Ads
+  'https://www.googleapis.com/auth/webmasters.readonly',  // Search Console
+  'https://www.googleapis.com/auth/bigquery.readonly',    // User Path (export GA4 → BigQuery)
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ')
 

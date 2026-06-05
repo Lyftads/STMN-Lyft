@@ -539,6 +539,16 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.full_name || m.email}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, border: `1px solid ${badge.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{isOwner ? 'Admin' : badge.label}</span>
+                  {!isOwner && (
+                    <button
+                      onClick={async () => {
+                        const r = await onInvite(m.email, m.roles || [])
+                        if (r && r.ok) setCreated({ email: m.email, password: r.tempPassword, emailSent: r.emailSent })
+                      }}
+                      title="Rigenera e reinvia la password"
+                      style={{ ...btnGhost, padding: '4px 10px', fontSize: 11 }}
+                    >🔑 Reinvia accesso</button>
+                  )}
                   {!isOwner && <button onClick={() => onRemove(m.id)} title="Rimuovi" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>}
                 </div>
                 {m.full_name && <div style={{ fontSize: 12, color: '#b0b0bd' }}>{m.email}</div>}

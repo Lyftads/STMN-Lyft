@@ -159,7 +159,13 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
                     <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={78} paddingAngle={3} stroke="none" animationDuration={1200} style={{ filter: 'url(#atGlow)' }}>
                       {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => eur2(v)} />
+                    <Tooltip
+                      allowEscapeViewBox={{ x: true, y: true }}
+                      wrapperStyle={{ zIndex: 50, pointerEvents: 'none' }}
+                      contentStyle={{ background: 'rgba(0,0,0,0.92)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' }}
+                      itemStyle={{ color: '#fff' }}
+                      formatter={(v) => eur2(v)}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginTop: 6 }}>

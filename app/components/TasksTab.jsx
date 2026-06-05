@@ -27,6 +27,8 @@ const PRIORITY_ROWS = [
   { id: 'medium', label: 'Media', color: '#ffd60a' },
   { id: 'low', label: 'Bassa', color: '#30d158' },
 ]
+// Ordine priorità per l'ordinamento dei task dentro le colonne di stato.
+const PRIO_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 }
 
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
 const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
@@ -43,7 +45,6 @@ export default function TasksTab() {
   const [roleLabels, setRoleLabels] = useState({})
   const [showTeam, setShowTeam] = useState(false)
   const [view, setView] = useState('board')
-  const [groupBy, setGroupBy] = useState('status')
   const [activeProject, setActiveProject] = useState('all')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -194,18 +195,6 @@ export default function TasksTab() {
           <div style={{ color: '#b0b0bd', fontSize: 13 }}>Assegna, scadenze, revisione e approvazione del team</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 2, border: '1px solid var(--border)', borderRadius: 9, padding: 3 }}>
-            {[['board', 'Board', view === 'board' || view === 'mine'], ['projects', 'Progetti', view === 'projects']].map(([v, l, on]) => (
-              <button key={v} onClick={() => setView(v)} style={{ border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 13, fontWeight: on ? 700 : 500, cursor: 'pointer', fontFamily: 'Barlow', background: on ? 'var(--glass)' : 'transparent', color: on ? '#fff' : '#b0b0bd' }}>{l}</button>
-            ))}
-          </div>
-          {view === 'board' && (
-            <div style={{ display: 'flex', gap: 2, border: '1px solid var(--border)', borderRadius: 9, padding: 3 }} title="Raggruppa le task">
-              {[['status', 'Stato'], ['priority', 'Priorità']].map(([g, l]) => (
-                <button key={g} onClick={() => setGroupBy(g)} style={{ border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: groupBy === g ? 700 : 500, cursor: 'pointer', fontFamily: 'Barlow', background: groupBy === g ? 'var(--glass)' : 'transparent', color: groupBy === g ? '#fff' : '#b0b0bd' }}>{l}</button>
-              ))}
-            </div>
-          )}
           {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}>👥 Gestione team</button>}
         </div>
       </div>
@@ -265,42 +254,28 @@ export default function TasksTab() {
               <button style={{ ...btn, opacity: creating ? 0.6 : 1 }} disabled={creating} onClick={createTask}>+ Crea</button>
             </div>
 
-            {groupBy === 'status' ? (
-              /* Board per stato (colonne) */
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto' }}>
-                {COLUMNS.map(col => {
-                  const items = visible.filter(t => (t.status || 'todo') === col.id)
-                  return (
-                    <div key={col.id} style={{ minWidth: 200 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color }} />
-                        <span style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '.05em' }}>{col.label}</span>
-                        <span style={{ color: '#b0b0bd', fontSize: 12 }}>{items.length}</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
-                        {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, padding: '8px 2px' }}>—</div>}
-                      </div>
+            {/* Board per stato (colonne), ordinata per priorità dentro ogni colonna */}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(200px, 1fr))`, gap: 12, overflowX: 'auto' }}>
+              {COLUMNS.map(col => {
+                const items = visible.filter(t => (t.status || 'todo') === col.id).sort((a, b) => PRIO_ORDER[a.priority || 'medium'] - PRIO_ORDER[b.priority || 'medium'])
+                return (
+                  <div key={col.id} style={{ minWidth: 200 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color }} />
+                      <span style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '.05em' }}>{col.label}</span>
+                      <span style={{ color: '#b0b0bd', fontSize: 12 }}>{items.length}</span>
                     </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <PriorityBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
-            )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
+                      {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, padding: '8px 2px' }}>—</div>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             </>)}
           </div>
         </div>
-      )}
-
-      {view === 'projects' && (
-        <ProjectsView
-          projects={projects}
-          tasks={tasks}
-          onOpen={(id) => { setActiveProject(id); setView('board') }}
-          onAdd={addProject}
-          onDelete={deleteProject}
-        />
       )}
 
       {detailTask && (
@@ -335,7 +310,7 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
   const prio = PRIORITIES.find(p => p.id === (t.priority || 'medium')) || PRIORITIES[1]
   const overdue = t.due_date && t.status !== 'done' && t.status !== 'approved' && new Date(t.due_date) < new Date(new Date().toDateString())
   return (
-    <div onClick={onOpen} title="Apri per note, dettagli e allegati" style={{ ...card, padding: 12, cursor: 'pointer' }}>
+    <div onClick={onOpen} title="Apri per note, dettagli e allegati" style={{ ...card, padding: 12, cursor: 'pointer', borderLeft: `4px solid ${prio.color}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
         <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
         <button onClick={(e) => { e.stopPropagation(); onDelete(t.id) }} title="Elimina" style={{ background: 'none', border: 'none', color: '#48484a', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>

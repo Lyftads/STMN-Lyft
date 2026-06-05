@@ -31,6 +31,9 @@ export default function TasksTab() {
   const [members, setMembers] = useState([])
   const [tasks, setTasks] = useState([])
   const [me, setMe] = useState(null)
+  const [rolesCatalog, setRolesCatalog] = useState([])
+  const [roleLabels, setRoleLabels] = useState({})
+  const [showTeam, setShowTeam] = useState(false)
   const [activeProject, setActiveProject] = useState('all')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -52,6 +55,8 @@ export default function TasksTab() {
       ])
       setProjects(p.projects || [])
       setMembers(mem.members || [])
+      setRolesCatalog(mem.roles || [])
+      setRoleLabels(mem.roleLabels || {})
       setMe(t.me || mem.me || null)
       setTasks(t.tasks || [])
     } finally {
@@ -128,6 +133,31 @@ export default function TasksTab() {
     if (r.ok && r.task) setTasks(prev => prev.map(t => t.id === taskId ? r.task : t))
   }
 
+  async function inviteMember(email, roles) {
+    const r = await fetch('/api/team-members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, roles }) })
+      .then(x => x.json()).catch(() => ({ ok: false, error: 'Errore di rete' }))
+    if (r.ok && r.member) {
+      setMembers(prev => {
+        const i = prev.findIndex(m => m.email === r.member.email)
+        if (i >= 0) { const c = [...prev]; c[i] = r.member; return c }
+        return [...prev, r.member]
+      })
+      if (!r.emailSent) alert('Membro aggiunto, ma email non inviata: ' + (r.emailError || 'configura RESEND_API_KEY'))
+    } else alert(r.error || 'Errore invito')
+    return r
+  }
+
+  async function updateMemberRoles(id, roles) {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, roles } : m))
+    await fetch('/api/team-members', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, roles }) })
+  }
+
+  async function removeMember(id) {
+    if (!confirm('Rimuovere il membro dal team?')) return
+    setMembers(prev => prev.filter(m => m.id !== id))
+    await fetch(`/api/team-members?id=${id}`, { method: 'DELETE' })
+  }
+
   const visible = tasks.filter(t => activeProject === 'all' || t.project_id === activeProject)
   const detailTask = detailId ? tasks.find(t => t.id === detailId) : null
 
@@ -149,6 +179,7 @@ export default function TasksTab() {
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <button style={btnGhost} onClick={addProject}>+ Progetto</button>
+          {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}>👥 Gestione team</button>}
         </div>
       </div>
 
@@ -209,6 +240,19 @@ export default function TasksTab() {
           onUpload={uploadFile}
           onDownload={downloadAttachment}
           onDeleteAttachment={deleteAttachment}
+        />
+      )}
+
+      {showTeam && (
+        <TeamModal
+          members={members}
+          rolesCatalog={rolesCatalog}
+          roleLabels={roleLabels}
+          ownerUserId={me?.userId}
+          onClose={() => setShowTeam(false)}
+          onInvite={inviteMember}
+          onUpdateRoles={updateMemberRoles}
+          onRemove={removeMember}
         />
       )}
     </div>
@@ -310,6 +354,88 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
               <button onClick={() => onDeleteAttachment(task.id, a.path)} title="Elimina" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const STATUS_BADGE = {
+  invited: { label: 'Invitato', color: '#ff9f0a' },
+  active: { label: 'Attivo', color: '#30d158' },
+  disabled: { label: 'Disattivato', color: '#86868b' },
+}
+
+function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, onInvite, onUpdateRoles, onRemove }) {
+  const [email, setEmail] = useState('')
+  const [roles, setRoles] = useState([])
+  const [sending, setSending] = useState(false)
+
+  const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
+
+  async function submit() {
+    if (!email.trim() || !email.includes('@')) { alert('Inserisci una email valida'); return }
+    setSending(true)
+    try {
+      const r = await onInvite(email.trim().toLowerCase(), roles)
+      if (r && r.ok) { setEmail(''); setRoles([]) }
+    } finally { setSending(false) }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...card, width: 'min(680px, 100%)', maxWidth: 680 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700 }}>Gestione team</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#86868b', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+        </div>
+
+        {/* Invita */}
+        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ fontSize: 12, color: '#86868b', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Invita un collaboratore</div>
+          <input style={input} placeholder="email@esempio.com" value={email} onChange={e => setEmail(e.target.value)} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            {rolesCatalog.map(r => (
+              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? '#5b8bff' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={roles.includes(r)} onChange={() => setRoles(prev => toggle(prev, r))} />
+                {roleLabels[r] || r}
+              </label>
+            ))}
+          </div>
+          <button style={{ ...btn, marginTop: 12, opacity: sending ? 0.6 : 1 }} disabled={sending} onClick={submit}>
+            {sending ? 'Invio…' : '✉ Invia invito'}
+          </button>
+        </div>
+
+        {/* Membri */}
+        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {members.map(m => {
+            const isOwner = m.user_id && m.user_id === ownerUserId || (m.roles || []).includes('admin')
+            const badge = STATUS_BADGE[m.status] || STATUS_BADGE.invited
+            return (
+              <div key={m.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.full_name || m.email}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, border: `1px solid ${badge.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{isOwner ? 'Admin' : badge.label}</span>
+                  {!isOwner && <button onClick={() => onRemove(m.id)} title="Rimuovi" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>}
+                </div>
+                {m.full_name && <div style={{ fontSize: 12, color: '#86868b' }}>{m.email}</div>}
+                {!isOwner && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {rolesCatalog.map(r => {
+                      const on = (m.roles || []).includes(r)
+                      return (
+                        <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 8px', border: `1px solid ${on ? '#5b8bff' : 'var(--border)'}`, borderRadius: 7, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={on} onChange={() => onUpdateRoles(m.id, toggle(m.roles || [], r))} />
+                          {roleLabels[r] || r}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

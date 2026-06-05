@@ -105,7 +105,7 @@ export default function KlaviyoTab() {
     const cached = getCached(key)
     if (cached) {
       setData(cached.data)
-      // no setLoading: dati gia' visibili
+      setLoading(false)   // FIX: con cache i dati ci sono → spegni subito il loading
     } else {
       setLoading(true)
     }
@@ -120,7 +120,7 @@ export default function KlaviyoTab() {
         if (!cached) setData(data)
       })
       .catch(() => {})
-      .finally(() => { if (active && !cached) setLoading(false) })
+      .finally(() => { if (active) setLoading(false) })   // FIX: spegni sempre il loading
     return () => { active = false }
   }, [days])
 

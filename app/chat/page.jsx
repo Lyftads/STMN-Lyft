@@ -2,11 +2,15 @@
 
 import ChatTab from '../components/ChatTab'
 
-// Pagina chat a tutto schermo: è la "app chat" installabile (PWA dedicata,
-// manifest /chat-manifest.webmanifest). Si apre direttamente sulla chat.
+// Pagina chat a tutto schermo: è la "app chat" installabile (PWA dedicata).
+// Sfondo coerente con l'estetica del software (glow viola/blu su nero).
 export default function ChatAppPage() {
   return (
-    <div style={{ minHeight: '100dvh', background: '#0b0b14', padding: '12px 14px' }}>
+    <div style={{
+      minHeight: '100dvh',
+      padding: '14px 16px',
+      background: 'radial-gradient(1100px 760px at 12% -10%, rgba(123,91,255,0.20), transparent 60%), radial-gradient(1000px 720px at 100% 110%, rgba(91,139,255,0.16), transparent 60%), #07070e',
+    }}>
       <ChatTab standalone />
     </div>
   )

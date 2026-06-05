@@ -11,7 +11,15 @@ const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px so
 const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none', resize: 'none' }
 const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 const MUTED = '#8b8b9a'
-const EMOJIS = ['😀', '😂', '😉', '😍', '👍', '🙏', '🔥', '🎉', '✅', '❌', '💪', '🚀', '👀', '💡', '⚠️', '📌', '❤️', '😎', '🤝', '👏']
+const EMOJIS = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😋', '😎', '🤩',
+  '🤔', '🤨', '😐', '😶', '🙄', '😏', '😴', '😪', '😜', '🤪', '😝', '🤤', '😒', '😓', '😔', '😕', '🙁', '😖', '😞', '😟',
+  '😢', '😭', '😤', '😠', '😡', '🤬', '😱', '😨', '😰', '😥', '🤯', '😬', '😮', '😲', '🥳', '🤗', '🤭', '🤫', '🫶', '🙏',
+  '👍', '👎', '👌', '🤌', '✌️', '🤞', '🤝', '👏', '🙌', '💪', '🫡', '👋', '🤙', '✍️', '🫵', '🔥', '✨', '⭐', '🌟', '💥',
+  '✅', '❌', '⚠️', '❗', '❓', '💯', '🎉', '🎊', '🚀', '💡', '📌', '📎', '📈', '📉', '💰', '💸', '🛒', '📦', '📣', '🔔',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💔', '💬', '👀', '🍕', '☕', '🍻', '🎯', '⏰', '📅', '🤖', '👑', '🙈',
+]
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '✅', '🙏', '🔥', '👀']
 
 export default function ChatTab({ standalone = false }) {
   const [channels, setChannels] = useState([])
@@ -29,10 +37,17 @@ export default function ChatTab({ standalone = false }) {
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [mentionOpen, setMentionOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [activeMemberIds, setActiveMemberIds] = useState([])
+  const [recording, setRecording] = useState(false)
+  const [reactFor, setReactFor] = useState(null)
+  const [forwardMsg, setForwardMsg] = useState(null)
   const scrollRef = useRef(null)
   const taRef = useRef(null)
   const lastAtRef = useRef(null)
   const seenRef = useRef(new Set())
+  const recRef = useRef(null)
+  const chunksRef = useRef([])
 
   useEffect(() => {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
@@ -77,6 +92,14 @@ export default function ChatTab({ standalone = false }) {
     }).catch(() => {})
   }, [active])
   useEffect(() => { const t = setInterval(poll, 5000); return () => clearInterval(t) }, [poll])
+
+  // membri del canale attivo (per le menzioni @)
+  useEffect(() => {
+    if (!active) { setActiveMemberIds([]); return }
+    fetch(`/api/channel-members?channel_id=${active}`, { cache: 'no-store' }).then(r => r.json()).then(d => setActiveMemberIds(d.member_ids || [])).catch(() => {})
+  }, [active])
+
+  const updateMsg = (msg) => setMessages(prev => prev.map(x => x.id === msg.id ? msg : x))
 
   async function send() {
     const body = text.trim()
@@ -137,6 +160,89 @@ export default function ChatTab({ standalone = false }) {
     }
   }
 
+  function handleChange(e) {
+    const v = e.target.value
+    setText(v)
+    const upto = v.slice(0, e.target.selectionStart || v.length)
+    const m = upto.match(/(?:^|\s)@([\p{L}\w.\-]*)$/u)
+    if (m) { setMentionQuery(m[1]); setMentionOpen(true); setEmojiOpen(false) } else setMentionOpen(false)
+  }
+  function pickMention(mem) {
+    const name = '@' + (mem.full_name || mem.email).replace(/\s+/g, '') + ' '
+    const ta = taRef.current
+    if (!ta) { insertAtCursor(name); setMentionOpen(false); return }
+    const pos = ta.selectionStart
+    const before = text.slice(0, pos).replace(/@([\p{L}\w.\-]*)$/u, name)
+    const nv = before + text.slice(pos)
+    setText(nv); setMentionOpen(false)
+    requestAnimationFrame(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = before.length })
+  }
+
+  async function pushMessage(payload) {
+    const r = await fetch('/api/channel-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.message && !seenRef.current.has(r.message.id)) {
+      seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
+      setMessages(prev => [...prev, r.message]); scrollBottom()
+    }
+    return r
+  }
+
+  async function startRec() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      chunksRef.current = []
+      mr.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' })
+        const fd = new FormData(); fd.append('file', blob, 'audio.webm')
+        const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
+        if (up.ok && up.url) await pushMessage({ channel_id: active, body: '🎤 Messaggio vocale', audio_url: up.url })
+        else alert('Upload audio fallito')
+      }
+      recRef.current = mr; mr.start(); setRecording(true)
+    } catch { alert('Microfono non disponibile o permesso negato') }
+  }
+  function stopRec() { try { recRef.current && recRef.current.stop() } catch {}; setRecording(false) }
+
+  async function attachFile(e) {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''
+    if (!f || !active) return
+    const fd = new FormData(); fd.append('file', f)
+    const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
+    if (up.ok && up.url) await pushMessage({ channel_id: active, body: '', file_url: up.url, file_name: up.name, file_type: up.type || f.type })
+    else alert(up.error || 'Upload fallito')
+  }
+
+  function startCall() {
+    if (!active) return
+    const room = `LyftAI-${active}-${Date.now().toString(36)}`
+    const url = `https://meet.jit.si/${room}`
+    window.open(url, '_blank', 'noopener')
+    pushMessage({ channel_id: active, body: `📹 Videochiamata avviata — entra: ${url}` })
+  }
+
+  async function toggleReaction(id, emoji) {
+    setReactFor(null)
+    const r = await fetch('/api/channel-messages', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, emoji }) }).then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.message) updateMsg(r.message)
+  }
+  async function deleteMessage(id) {
+    if (!confirm('Eliminare il messaggio?')) return
+    setMessages(prev => prev.filter(m => m.id !== id))
+    await fetch(`/api/channel-messages?id=${id}`, { method: 'DELETE' })
+  }
+  async function forwardTo(member, msg) {
+    setForwardMsg(null)
+    const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dm: true, target_id: member.id }) }).then(x => x.json()).catch(() => ({}))
+    if (!r.ok || !r.channel) { alert('Errore'); return }
+    setChannels(prev => prev.some(c => c.id === r.channel.id) ? prev : [...prev, r.channel])
+    const body = `↪︎ Inoltrato:\n${msg.body || (msg.audio_url ? '🎤 Messaggio vocale' : '')}`
+    await fetch('/api/channel-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel_id: r.channel.id, body, audio_url: msg.audio_url || null }) })
+    setActive(r.channel.id)
+  }
+
   // composer helpers
   function surround(pre, post) {
     const ta = taRef.current; if (!ta) { setText(t => t + pre + post); return }
@@ -162,6 +268,10 @@ export default function ChatTab({ standalone = false }) {
   const dmChannels = channels.filter(c => c.is_dm)
   const activeChannel = channels.find(c => c.id === active)
   const manageChannel = channels.find(c => c.id === manageId)
+  const mentionPool = (activeChannel && (activeChannel.is_private || activeChannel.is_dm) && activeMemberIds.length)
+    ? members.filter(m => activeMemberIds.includes(m.id))
+    : members
+  const mentionList = mentionPool.filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 8)
 
   if (loading) return <div style={{ padding: 40, color: MUTED, fontFamily: 'Barlow' }}>Caricamento chat…</div>
 
@@ -221,17 +331,24 @@ export default function ChatTab({ standalone = false }) {
                 ? <><Avatar name={channelLabel(activeChannel)} url={dmOther(activeChannel)?.avatar_url} size={24} online={isOnline(dmOther(activeChannel))} /> {channelLabel(activeChannel)}</>
                 : (active ? `${activeChannel?.is_private ? '🔒' : '#'} ${activeName(activeChannel)}` : 'Seleziona una conversazione')}
             </span>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {active && (
+              <button onClick={startCall} title="Avvia videochiamata" style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'Barlow' }}>📹</button>
+            )}
             {activeChannel?.is_private && !activeChannel?.is_dm && (
               <button onClick={() => openManage(activeChannel.id)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow' }}>👥 Membri</button>
             )}
+            </div>
           </div>
 
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
             {messages.length === 0 && <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Nessun messaggio. Scrivi il primo!</div>}
             {messages.map(m => {
               const mem = memberMap[m.author_id]
+              const mine = me?.memberId && m.author_id === me.memberId
+              const reactions = (m.reactions && typeof m.reactions === 'object') ? m.reactions : {}
               return (
-                <div key={m.id} className="chat-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
+                <div key={m.id} className="chat-row" style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
                   <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
@@ -242,9 +359,31 @@ export default function ChatTab({ standalone = false }) {
                         ↩︎ <b style={{ color: '#b9b9c8' }}>{m.reply_author || ''}</b>: {m.reply_excerpt}
                       </div>
                     )}
-                    <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />
+                    {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
+                    {m.audio_url && <audio controls src={m.audio_url} style={{ marginTop: 6, height: 38, maxWidth: 280 }} />}
+                    {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
+                      ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 10, display: 'block' }} /></a>
+                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: '#fff', textDecoration: 'none', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>
+                    )}
+                    {Object.keys(reactions).length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                        {Object.entries(reactions).map(([em, ids]) => (
+                          <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '1px 8px', fontSize: 12.5, color: '#fff', cursor: 'pointer', border: (ids || []).includes(me?.memberId) ? '1px solid #7b5bff' : '1px solid var(--border, rgba(255,255,255,0.12))' }}>{em} {(ids || []).length}</button>
+                        ))}
+                      </div>
+                    )}
+                    {reactFor === m.id && (
+                      <div style={{ display: 'flex', gap: 4, marginTop: 6, ...PANEL, padding: 4, width: 'fit-content' }}>
+                        {QUICK_REACTIONS.map(em => <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 }}>{em}</button>)}
+                      </div>
+                    )}
                   </div>
-                  <button onClick={() => setReplyTo({ id: m.id, author: mem?.full_name || m.author_name || 'Utente', excerpt: (m.body || '').slice(0, 120) })} title="Rispondi" className="chat-reply" style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 14, opacity: 0.5 }}>↩︎</button>
+                  <div className="chat-actions" style={{ position: 'absolute', top: -12, right: 10, display: 'flex', gap: 2, background: 'var(--glass, rgba(20,20,30,0.92))', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: 3, opacity: 0, transition: 'opacity .12s', backdropFilter: 'blur(8px)' }}>
+                    <ActBtn title="Reazione" onClick={() => setReactFor(reactFor === m.id ? null : m.id)}>😊</ActBtn>
+                    <ActBtn title="Rispondi" onClick={() => setReplyTo({ id: m.id, author: mem?.full_name || m.author_name || 'Utente', excerpt: (m.body || '🎤 audio').slice(0, 120) })}>↩︎</ActBtn>
+                    <ActBtn title="Inoltra" onClick={() => setForwardMsg(m)}>↪︎</ActBtn>
+                    {(mine || me?.isAdmin) && <ActBtn title="Elimina" onClick={() => deleteMessage(m.id)}>🗑</ActBtn>}
+                  </div>
                 </div>
               )
             })}
@@ -274,13 +413,18 @@ export default function ChatTab({ standalone = false }) {
                 ref={taRef}
                 rows={2}
                 value={text}
-                onChange={e => setText(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder={activeChannel ? `Messaggio ${activeChannel.is_dm ? `a ${channelLabel(activeChannel)}` : `in ${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}`}…` : 'Messaggio…'}
                 style={{ ...FIELD, border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px' }}
               />
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
+                <label title="Allega file" style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                  +<input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
+                </label>
+                <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}>{recording ? '⏹' : '🎤'}</TB>
+                {recording && <span style={{ fontSize: 12, color: '#ff5a7a' }}>● rec…</span>}
                 <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title="Emoji">😊</TB>
                 <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title="Menziona">@</TB>
                 <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia">➤</button>
@@ -290,11 +434,11 @@ export default function ChatTab({ standalone = false }) {
                     {EMOJIS.map(em => <button key={em} onClick={() => { insertAtCursor(em); setEmojiOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>{em}</button>)}
                   </div>
                 )}
-                {mentionOpen && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 6, width: 220, maxHeight: 220, overflowY: 'auto', zIndex: 10 }}>
-                    {members.map(mem => (
-                      <div key={mem.id} onClick={() => { insertAtCursor('@' + (mem.full_name || mem.email).replace(/\s+/g, '') + ' '); setMentionOpen(false) }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
-                        <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} />
+                {mentionOpen && mentionList.length > 0 && (
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 10 }}>
+                    {mentionList.map(mem => (
+                      <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
+                        <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={isOnline(mem)} />
                         {mem.full_name || mem.email}
                       </div>
                     ))}
@@ -312,9 +456,31 @@ export default function ChatTab({ standalone = false }) {
       {showNewChannel && <NewChannelDialog members={members.filter(m => m.id !== me?.memberId)} onClose={() => setShowNewChannel(false)} onCreate={createChannel} />}
       {manageId && <ChannelMembersDialog channel={manageChannel} members={members} memberIds={manageMemberIds} onClose={() => setManageId(null)} onToggle={toggleChannelMember} onInvite={inviteExternalToChannel} />}
 
-      <style>{`.chat-row:hover{background:rgba(255,255,255,0.04)} .chat-row:hover .chat-reply{opacity:1}`}</style>
+      {forwardMsg && (
+        <div onClick={() => setForwardMsg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'Barlow' }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(380px,100%)', padding: 16, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 20, fontWeight: 700 }}>Inoltra a…</h3>
+              <button onClick={() => setForwardMsg(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
+            </div>
+            <div style={{ fontSize: 12.5, color: MUTED, borderLeft: '2px solid #7b5bff', paddingLeft: 8, marginBottom: 12 }}>{(forwardMsg.body || '🎤 vocale').slice(0, 100)}</div>
+            {members.filter(m => m.id !== me?.memberId).map(mem => (
+              <div key={mem.id} onClick={() => forwardTo(mem, forwardMsg)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13.5 }}>
+                <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={28} online={isOnline(mem)} />
+                {mem.full_name || mem.email}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`.chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0} .chat-row:hover .chat-actions{opacity:1}`}</style>
     </div>
   )
+}
+
+function ActBtn({ onClick, title, children }) {
+  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#c9c9d6', cursor: 'pointer', fontSize: 14, width: 28, height: 26, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
 }
 
 function TB({ onClick, title, children }) {

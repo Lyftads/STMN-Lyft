@@ -254,6 +254,7 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
     const revenue = s.conversion_value || 0
     const recipients = s.recipients || 0
     return {
+      campaignId: g.campaign_id,
       name: campaignMap[g.campaign_id] || g.campaign_id,
       revenue,
       conversions: s.conversions || 0,

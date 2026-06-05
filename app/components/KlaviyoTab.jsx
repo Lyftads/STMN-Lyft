@@ -48,6 +48,8 @@ const ChartTip = ({ active, payload, label }) => {
 const sectionStyle = { borderRadius: 22, padding: 24, marginBottom: 24 }
 const cardStyle = { borderRadius: 16, padding: 20, minWidth: 0 }
 const panelStyle = { borderRadius: 18, padding: '20px 24px' }
+const thR = { padding: '12px 16px', textAlign: 'right', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase', whiteSpace: 'nowrap' }
+const tdR = { padding: '10px 16px', textAlign: 'right', color: '#9b90aa', fontSize: 12, whiteSpace: 'nowrap' }
 
 function Section({ title, subtitle, color = '#8b5cf6', children, style }) {
   return (
@@ -131,6 +133,14 @@ export default function KlaviyoTab() {
 
   const { account, kpis, campaigns, flows, segments, lists } = data
 
+  // Stat (revenue/OR/CR/conv) per id → fuse nelle sezioni Campagne e Flussi
+  const campStatsMap = {}
+  ;(data.revenueBreakdown?.campaigns?.rows || []).forEach(r => { if (r.campaignId) campStatsMap[r.campaignId] = r })
+  const flowStatsMap = {}
+  ;(data.revenueBreakdown?.flows?.rows || []).forEach(r => { if (r.flowId) flowStatsMap[r.flowId] = r })
+  // Flussi ordinati per revenue (quelli con dati in cima)
+  const flowsSorted = [...(flows || [])].sort((a, b) => (flowStatsMap[b.id]?.revenue || 0) - (flowStatsMap[a.id]?.revenue || 0))
+
   const chartData = (kpis?.received?.dates || []).map((d, i) => ({
     date: d?.slice(5, 10) || '',
     received: kpis?.received?.values?.[i] || 0,
@@ -182,46 +192,6 @@ export default function KlaviyoTab() {
       </Section>
 
       {/* Revenue Breakdown */}
-      {data.revenueBreakdown && (
-        <Section title="Revenue Breakdown — Campagne vs Flussi" color="#22c55e">
-          <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="glass-panel" style={panelStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 900, color: '#ec4899' }}>Campagne</span>
-                <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.campaigns?.total)}</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.campaigns?.totalConversions)} conversioni</div>
-              {(data.revenueBreakdown.campaigns?.rows || []).map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12, gap: 10 }}>
-                  <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
-                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
-                  <span style={{ color: '#9b90aa', fontSize: 10, flexShrink: 0 }}>{fmtN(r.conversions)} conv</span>
-                  <span style={{ color: '#22c55e', fontWeight: 800, flexShrink: 0 }}>{fmtE(r.revenue)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="glass-panel" style={panelStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 900, color: '#f6b73c' }}>Flussi</span>
-                <span style={{ fontSize: 22, fontWeight: 950, color: '#fff' }}>{fmtE(data.revenueBreakdown.flows?.total)}</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#9b90aa', marginBottom: 14 }}>{fmtN(data.revenueBreakdown.flows?.totalConversions)} conversioni</div>
-              {(data.revenueBreakdown.flows?.rows || []).map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12, gap: 10 }}>
-                  <span style={{ color: '#e2dcf0', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>OR {fmtP(r.openRate)}</span>
-                  <span style={{ color: '#776a86', fontSize: 10, flexShrink: 0 }}>CR {fmtP(r.clickRate)}</span>
-                  <span style={{ color: '#9b90aa', fontSize: 10, flexShrink: 0 }}>{fmtN(r.conversions)} conv</span>
-                  <span style={{ color: '#64d2ff', fontSize: 10, flexShrink: 0 }} title="Entrate per destinatario">€{(r.revenuePerRecipient || 0).toFixed(2)}/dest</span>
-                  <span style={{ color: '#22c55e', fontWeight: 800, flexShrink: 0 }}>{fmtE(r.revenue)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-      )}
 
       {/* Trend Giornaliero */}
       <Section title="Trend Giornaliero" color="#8b5cf6">
@@ -296,10 +266,16 @@ export default function KlaviyoTab() {
                 <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Campagna</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Data Invio</th>
+                <th style={thR}>OR</th>
+                <th style={thR}>CR</th>
+                <th style={thR}>Conv</th>
+                <th style={thR}>Entrate</th>
               </tr>
             </thead>
             <tbody>
-              {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => (
+              {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => {
+                const st = campStatsMap[c.id]
+                return (
                 <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{c.name}</td>
                   <td style={{ padding: '10px 16px' }}>
@@ -310,8 +286,12 @@ export default function KlaviyoTab() {
                     }}>{c.status}</span>
                   </td>
                   <td style={{ padding: '10px 16px', color: '#9b90aa', fontSize: 12 }}>{c.sendTime ? new Date(c.sendTime).toLocaleString('it-IT') : '—'}</td>
+                  <td style={tdR}>{st ? fmtP(st.openRate) : '—'}</td>
+                  <td style={tdR}>{st ? fmtP(st.clickRate) : '—'}</td>
+                  <td style={tdR}>{st ? fmtN(st.conversions) : '—'}</td>
+                  <td style={{ ...tdR, color: '#22c55e', fontWeight: 800 }}>{st ? fmtE(st.revenue) : '—'}</td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -319,21 +299,42 @@ export default function KlaviyoTab() {
 
       {/* Flussi */}
       <Section title="Flussi" color="#f6b73c">
-        <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
-          {(flows || []).map((f, i) => (
-            <div key={f.id || i} className="glass-card" style={{ ...cardStyle, padding: '16px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: '#f7f2ff', fontWeight: 800, fontSize: 14 }}>{f.name}</span>
-                <span style={{
-                  fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
-                  background: f.status === 'live' ? '#22c55e22' : '#55555522',
-                  color: f.status === 'live' ? '#22c55e' : '#888',
-                  textTransform: 'uppercase',
-                }}>{f.status}</span>
-              </div>
-              <span style={{ color: '#776a86', fontSize: 11, fontWeight: 700 }}>Trigger: {f.triggerType || '—'}</span>
-            </div>
-          ))}
+        <div className="glass-panel" style={{ ...panelStyle, padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Flusso</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
+                <th style={thR}>OR</th>
+                <th style={thR}>CR</th>
+                <th style={thR}>Conv</th>
+                <th style={thR}>€/dest</th>
+                <th style={thR}>Entrate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flowsSorted.map((f, i) => {
+                const st = flowStatsMap[f.id]
+                return (
+                  <tr key={f.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{f.name}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 6,
+                        background: f.status === 'live' ? '#22c55e22' : '#55555522',
+                        color: f.status === 'live' ? '#22c55e' : '#888', textTransform: 'uppercase',
+                      }}>{f.status}</span>
+                    </td>
+                    <td style={tdR}>{st ? fmtP(st.openRate) : '—'}</td>
+                    <td style={tdR}>{st ? fmtP(st.clickRate) : '—'}</td>
+                    <td style={tdR}>{st ? fmtN(st.conversions) : '—'}</td>
+                    <td style={{ ...tdR, color: '#64d2ff' }}>{st ? `€${(st.revenuePerRecipient || 0).toFixed(2)}` : '—'}</td>
+                    <td style={{ ...tdR, color: '#22c55e', fontWeight: 800 }}>{st ? fmtE(st.revenue) : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </Section>
 

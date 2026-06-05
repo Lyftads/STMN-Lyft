@@ -58,7 +58,7 @@ export default function LandingGlobe() {
       const c = g.controls()
       c.autoRotate = true; c.autoRotateSpeed = 0.6; c.enableZoom = false; c.enablePan = false
     } catch {}
-    try { g.pointOfView({ lat: 25, lng: 6, altitude: 2.1 }, 0) } catch {}
+    try { g.pointOfView({ lat: 25, lng: 6, altitude: 1.7 }, 0) } catch {}
   }, [size.w])
 
   // punti (sessioni live) + archi dalle piattaforme alle destinazioni
@@ -82,9 +82,9 @@ export default function LandingGlobe() {
         atmosphereAltitude={0.3}
         hexPolygonsData={countries.features}
         hexPolygonResolution={3}
-        hexPolygonMargin={0.22}
+        hexPolygonMargin={0.18}
         hexPolygonUseDots
-        hexPolygonColor={() => 'rgba(105,212,255,0.5)'}
+        hexPolygonColor={() => 'rgba(105,212,255,0.7)'}
         pointsData={points}
         pointLat="lat"
         pointLng="lng"

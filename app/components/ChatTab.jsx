@@ -404,7 +404,7 @@ export default function ChatTab({ standalone = false }) {
   return (
     <div style={{ fontFamily: 'Barlow', color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 16px', gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em' }}>Chat</h2>
+        <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
         {!standalone && <a href="/chat" target="_blank" rel="noopener" style={{ ...BTN, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>↗ Apri come app</a>}
       </div>
 

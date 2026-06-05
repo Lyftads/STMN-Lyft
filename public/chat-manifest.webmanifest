@@ -1,7 +1,7 @@
 {
-  "name": "LyftAI Chat",
-  "short_name": "Chat",
-  "description": "Chat del team LyftAI",
+  "name": "LyftTalk",
+  "short_name": "LyftTalk",
+  "description": "LyftTalk — la chat del team LyftAI",
   "start_url": "/chat",
   "scope": "/chat",
   "display": "standalone",

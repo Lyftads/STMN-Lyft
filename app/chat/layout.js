@@ -1,9 +1,9 @@
 export const metadata = {
-  title: 'LyftAI Chat',
+  title: 'LyftTalk',
   manifest: '/chat-manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'LyftAI Chat',
+    title: 'LyftTalk',
     statusBarStyle: 'black-translucent',
   },
   icons: {

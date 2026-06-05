@@ -100,7 +100,7 @@ export default function VendroShell({
       color: '#7b5bff',
       items: [
         { id: 'tasks', label: 'Progetti & Task', icon: '◳' },
-        { id: 'chat', label: 'Chat', icon: '💬' },
+        { id: 'chat', label: 'LyftTalk', icon: '💬' },
       ],
     },
     {

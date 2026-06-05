@@ -5,6 +5,7 @@ import TimeframeSelector from './TimeframeSelector'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
+import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
 
 function getPageTitle(tab) {
@@ -443,6 +444,7 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
               {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
                 <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />

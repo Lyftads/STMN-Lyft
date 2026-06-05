@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
+import { addNotification } from '../../../lib/team/notify'
 
 export async function GET(req) {
   const ws = await resolveWorkspace()
@@ -38,7 +39,7 @@ export async function POST(req) {
   if (!taskId || !body) return NextResponse.json({ ok: false, error: 'task_id o testo mancante' }, { status: 400 })
 
   // verifica che il task sia del workspace
-  const { data: task } = await admin.from('tasks').select('id').eq('id', taskId).eq('workspace_id', ws.workspaceId).maybeSingle()
+  const { data: task } = await admin.from('tasks').select('id, title, assignee_id').eq('id', taskId).eq('workspace_id', ws.workspaceId).maybeSingle()
   if (!task) return NextResponse.json({ ok: false, error: 'Task non trovato' }, { status: 404 })
 
   // nome autore dal team_member corrente
@@ -54,6 +55,10 @@ export async function POST(req) {
       .insert({ task_id: taskId, workspace_id: ws.workspaceId, author_id: ws.memberId, author_name: authorName, body })
       .select('*').single()
     if (error) throw error
+    // notifica l'assegnatario (se diverso dall'autore del commento)
+    if (task.assignee_id && task.assignee_id !== ws.memberId) {
+      await addNotification({ workspaceId: ws.workspaceId, recipientId: task.assignee_id, type: 'comment', title: `Nuovo commento: ${task.title}`, body: body.slice(0, 80), taskId: task.id })
+    }
     return NextResponse.json({ ok: true, comment: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

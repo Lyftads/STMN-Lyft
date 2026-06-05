@@ -2,7 +2,11 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import LogoMark from '../components/LogoMark'
+
+// Globo decorativo dell'hero (three.js) — lazy, niente SSR, non blocca il primo paint
+const LandingGlobe = dynamic(() => import('../components/LandingGlobe'), { ssr: false })
 
 const ACCENT = '#bf5af2'
 const BLUE = '#2997ff'
@@ -62,14 +66,16 @@ const I18N = {
       { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'Generazione AI di ad creative basate sul tuo brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catalogo, ads attive, comparazione prezzi automatica.' },
     ],
-    featuresTitle: { eyebrow: 'Cosa fa per te', title: '6 strumenti che cambiano come gestisci il tuo brand' },
+    featuresTitle: { eyebrow: 'Cosa fa per te', title: 'Tutto il tuo brand in un\'unica piattaforma' },
     features: [
-      { icon: '◎', title: 'Dashboard real-time', desc: 'KPI core (Fatturato, AOV, MER, CAC, LTV) aggiornati live da Shopify e Meta.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'Consulente AI che parla del TUO brand. Risponde coi tuoi numeri.' },
-      { icon: '◐', title: 'Briefing notturno', desc: 'Ogni mattina alle 6 l\'AI ha già scansionato i dati. Apri la chat: lui sa già cosa è successo.' },
-      { icon: '◈', title: 'Competitor Intel', desc: 'Monitoraggio automatico ads attive, prezzi e cataloghi dei tuoi 5 competitor principali.' },
-      { icon: '⚖', title: 'Budget Advisor', desc: 'Analizza Meta Ads e suggerisce dove spostare budget per massimizzare ROAS.' },
-      { icon: '⊛', title: 'Creative Fatigue', desc: 'Identifica le creative sature prima che brucino il budget.' },
+      { icon: '◎', title: 'Dashboard real-time + Live View', desc: 'KPI core (Fatturato, AOV, MER, CAC, LTV) live + globo 3D dei visitatori in tempo reale da GA4.' },
+      { icon: '✦', title: 'Performance Agent AI', desc: 'Consulente AI che parla del TUO brand. Legge Shopify, Meta, GA4 e Search Console: risponde coi tuoi numeri.' },
+      { icon: '€', title: 'Conto Economico (P&L)', desc: 'Conto economico mensile: COGS reali Shopify, fee pagamenti, spedizione, OPEX → fino all\'EBIT, con grafico e variazioni.' },
+      { icon: '⌕', title: 'Suite SEO + AI', desc: 'Audit on-page e multipagina, Google Search Console reale, Keyword AI, AI Visibility (AEO), Editor contenuti, Competitor.' },
+      { icon: '⤳', title: 'User Path', desc: 'Percorso utente pagina→pagina (Sankey) ricostruito da GA4 — capisci come navigano e dove abbandonano.' },
+      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR ed entrate per destinatario di campagne e flussi, in un\'unica vista.' },
+      { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads attive, prezzi e cataloghi competitor + analisi LTV/coorti e attribuzione total impact.' },
+      { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue e Meta Detail ad-level per non bruciare budget.' },
     ],
     demoTitle: { eyebrow: 'Dati in azione', title: 'Esempio di quello che vedi ogni giorno' },
     demoCards: {
@@ -89,9 +95,9 @@ const I18N = {
     pricingTitle: { eyebrow: 'Pricing', title: 'Scegli il piano giusto per la tua crescita' },
     pricingSub: 'Tutti i piani con 14 giorni gratis. Niente carta richiesta. Cancellazione in 1 click.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mese', tagline: 'Per founder che strutturano il primo brand', features: ['Dashboard KPI core', 'Report periodici', 'Integrazione Shopify + Meta + GA4', 'Email support 48h'], cta: 'Inizia con Starter' },
-      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mese', tagline: 'Brand in scaling che cercano leve data-driven', features: ['Tutto di Starter +', 'Klaviyo + Creative Tab Meta Ads', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'POPOLARE' },
-      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mese', tagline: 'Brand 7-8 figure con team dedicato', features: ['Tutto di Growth +', 'Creative Lab AI generation', 'Competitor Intel', 'Performance Agent AI + Simulatore', 'CSM dedicato'], cta: 'Inizia con Scale' },
+      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mese', tagline: 'Per founder che strutturano il primo brand', features: ['Dashboard KPI + Live View globo', 'Conto Economico (P&L) mensile', 'SEO Audit on-page', 'Integrazione Shopify + Meta + GA4', 'Email support 48h'], cta: 'Inizia con Starter' },
+      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mese', tagline: 'Brand in scaling che cercano leve data-driven', features: ['Tutto di Starter +', 'Klaviyo (entrate/destinatario) + Creative Meta', 'Suite SEO + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'POPOLARE' },
+      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mese', tagline: 'Brand 7-8 figure con team dedicato', features: ['Tutto di Growth +', 'Performance Agent AI (legge tutti i dati)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulatore', 'CSM dedicato'], cta: 'Inizia con Scale' },
     ],
     testimonialsTitle: { eyebrow: 'Cosa dicono di noi', title: 'Brand che hanno smesso di scegliere a sentimento' },
     testimonials: [
@@ -177,14 +183,16 @@ const I18N = {
       { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'AI generation of ad creatives based on your brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catalog, active ads, automatic price comparison.' },
     ],
-    featuresTitle: { eyebrow: 'What it does for you', title: '6 tools that change how you manage your brand' },
+    featuresTitle: { eyebrow: 'What it does for you', title: 'Your whole brand in a single platform' },
     features: [
-      { icon: '◎', title: 'Real-time Dashboard', desc: 'Core KPIs (Revenue, AOV, MER, CAC, LTV) updated live from Shopify and Meta.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'AI consultant that speaks YOUR brand. Answers with your real numbers.' },
-      { icon: '◐', title: 'Nightly briefing', desc: 'Every morning at 6 the AI has already scanned the data. Open the chat: it already knows what happened.' },
-      { icon: '◈', title: 'Competitor Intel', desc: 'Automatic monitoring of active ads, prices and catalogs of your 5 main competitors.' },
-      { icon: '⚖', title: 'Budget Advisor', desc: 'Analyzes Meta Ads and suggests where to shift budget to maximize ROAS.' },
-      { icon: '⊛', title: 'Creative Fatigue', desc: 'Identifies saturated creatives before they burn budget.' },
+      { icon: '◎', title: 'Real-time Dashboard + Live View', desc: 'Core KPIs (Revenue, AOV, MER, CAC, LTV) live + 3D globe of real-time visitors from GA4.' },
+      { icon: '✦', title: 'Performance Agent AI', desc: 'AI consultant that speaks YOUR brand. Reads Shopify, Meta, GA4 and Search Console: answers with your numbers.' },
+      { icon: '€', title: 'P&L statement', desc: 'Monthly P&L: real Shopify COGS, payment fees, shipping, OPEX → down to EBIT, with chart and MoM variations.' },
+      { icon: '⌕', title: 'SEO Suite + AI', desc: 'On-page & multi-page audit, real Google Search Console, Keyword AI, AI Visibility (AEO), content Editor, Competitor.' },
+      { icon: '⤳', title: 'User Path', desc: 'Page-to-page user journey (Sankey) rebuilt from GA4 — see how they navigate and where they drop off.' },
+      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR and revenue-per-recipient for campaigns and flows, in one view.' },
+      { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Active ads, prices and competitor catalogs + LTV/cohort analysis and total-impact attribution.' },
+      { icon: '⚖', title: 'Full Meta Ads', desc: 'Creative, Budget Advisor, Creative Fatigue and ad-level Meta Detail so you never burn budget.' },
     ],
     demoTitle: { eyebrow: 'Data in action', title: 'Example of what you see every day' },
     demoCards: {
@@ -204,9 +212,9 @@ const I18N = {
     pricingTitle: { eyebrow: 'Pricing', title: 'Choose the right plan for your growth' },
     pricingSub: 'All plans with 14 days free. No credit card required. 1-click cancellation.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119.99', period: '/month', tagline: 'For founders structuring the first brand', features: ['Core KPI Dashboard', 'Periodic reports', 'Shopify + Meta + GA4 integration', 'Email support 48h'], cta: 'Start with Starter' },
-      { id: 'growth', name: 'Growth', price: '€179.99', period: '/month', tagline: 'Scaling brands seeking data-driven leverage', features: ['Everything in Starter +', 'Klaviyo + Meta Ads Creative Tab', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'POPULAR' },
-      { id: 'scale', name: 'Scale', price: '€349.99', period: '/month', tagline: '7-8 figure brands with dedicated team', features: ['Everything in Growth +', 'Creative Lab AI generation', 'Competitor Intel', 'Performance Agent AI + Simulator', 'Dedicated CSM'], cta: 'Start with Scale' },
+      { id: 'starter', name: 'Starter', price: '€119.99', period: '/month', tagline: 'For founders structuring the first brand', features: ['KPI Dashboard + Live View globe', 'Monthly P&L statement', 'On-page SEO Audit', 'Shopify + Meta + GA4 integration', 'Email support 48h'], cta: 'Start with Starter' },
+      { id: 'growth', name: 'Growth', price: '€179.99', period: '/month', tagline: 'Scaling brands seeking data-driven leverage', features: ['Everything in Starter +', 'Klaviyo (rev/recipient) + Meta Creative', 'SEO Suite + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'POPULAR' },
+      { id: 'scale', name: 'Scale', price: '€349.99', period: '/month', tagline: '7-8 figure brands with dedicated team', features: ['Everything in Growth +', 'Performance Agent AI (reads all your data)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulator', 'Dedicated CSM'], cta: 'Start with Scale' },
     ],
     testimonialsTitle: { eyebrow: 'What they say about us', title: 'Brands that stopped choosing by gut feeling' },
     testimonials: [
@@ -292,14 +300,16 @@ const I18N = {
       { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'Generación IA de creatividades publicitarias basadas en tu brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catálogo, ads activos, comparación de precios automática.' },
     ],
-    featuresTitle: { eyebrow: 'Qué hace por ti', title: '6 herramientas que cambian cómo gestionas tu marca' },
+    featuresTitle: { eyebrow: 'Qué hace por ti', title: 'Toda tu marca en una sola plataforma' },
     features: [
-      { icon: '◎', title: 'Dashboard en tiempo real', desc: 'KPIs core (Revenue, AOV, MER, CAC, LTV) actualizados en vivo desde Shopify y Meta.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'Consultor IA que habla de TU marca. Responde con tus números reales.' },
-      { icon: '◐', title: 'Briefing nocturno', desc: 'Cada mañana a las 6 la IA ya escaneó los datos. Abre el chat: ya sabe qué pasó.' },
-      { icon: '◈', title: 'Competitor Intel', desc: 'Monitoreo automático ads activos, precios y catálogos de tus 5 competidores principales.' },
-      { icon: '⚖', title: 'Budget Advisor', desc: 'Analiza Meta Ads y sugiere dónde mover budget para maximizar ROAS.' },
-      { icon: '⊛', title: 'Creative Fatigue', desc: 'Identifica creatividades saturadas antes de que quemen budget.' },
+      { icon: '◎', title: 'Dashboard en tiempo real + Live View', desc: 'KPIs core (Revenue, AOV, MER, CAC, LTV) en vivo + globo 3D de visitantes en tiempo real desde GA4.' },
+      { icon: '✦', title: 'Performance Agent AI', desc: 'Consultor IA que habla de TU marca. Lee Shopify, Meta, GA4 y Search Console: responde con tus números.' },
+      { icon: '€', title: 'Cuenta de resultados (P&L)', desc: 'P&L mensual: COGS reales de Shopify, comisiones de pago, envío, OPEX → hasta el EBIT, con gráfico y variaciones.' },
+      { icon: '⌕', title: 'Suite SEO + IA', desc: 'Auditoría on-page y multipágina, Google Search Console real, Keyword AI, AI Visibility (AEO), Editor de contenidos, Competidores.' },
+      { icon: '⤳', title: 'User Path', desc: 'Recorrido del usuario página→página (Sankey) reconstruido desde GA4 — entiende cómo navegan y dónde abandonan.' },
+      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR e ingresos por destinatario de campañas y flujos, en una sola vista.' },
+      { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads activos, precios y catálogos de competidores + análisis LTV/cohortes y atribución total impact.' },
+      { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue y Meta Detail a nivel de ad para no quemar budget.' },
     ],
     demoTitle: { eyebrow: 'Datos en acción', title: 'Ejemplo de lo que ves cada día' },
     demoCards: {
@@ -319,9 +329,9 @@ const I18N = {
     pricingTitle: { eyebrow: 'Precios', title: 'Elige el plan adecuado para tu crecimiento' },
     pricingSub: 'Todos los planes con 14 días gratis. Sin tarjeta. Cancelación en 1 click.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mes', tagline: 'Para founders estructurando la primera marca', features: ['Dashboard KPI core', 'Reportes periódicos', 'Integración Shopify + Meta + GA4', 'Email support 48h'], cta: 'Iniciar con Starter' },
-      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mes', tagline: 'Marcas en scaling que buscan palanca data-driven', features: ['Todo de Starter +', 'Klaviyo + Creative Tab Meta Ads', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'POPULAR' },
-      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mes', tagline: 'Marcas 7-8 figuras con equipo dedicado', features: ['Todo de Growth +', 'Creative Lab AI generation', 'Competitor Intel', 'Performance Agent AI + Simulador', 'CSM dedicado'], cta: 'Iniciar con Scale' },
+      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mes', tagline: 'Para founders estructurando la primera marca', features: ['Dashboard KPI + globo Live View', 'Cuenta de resultados (P&L) mensual', 'Auditoría SEO on-page', 'Integración Shopify + Meta + GA4', 'Email support 48h'], cta: 'Iniciar con Starter' },
+      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mes', tagline: 'Marcas en scaling que buscan palanca data-driven', features: ['Todo de Starter +', 'Klaviyo (ingr./destinatario) + Creative Meta', 'Suite SEO + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'POPULAR' },
+      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mes', tagline: 'Marcas 7-8 figuras con equipo dedicado', features: ['Todo de Growth +', 'Performance Agent AI (lee todos tus datos)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulador', 'CSM dedicado'], cta: 'Iniciar con Scale' },
     ],
     testimonialsTitle: { eyebrow: 'Qué dicen de nosotros', title: 'Marcas que dejaron de elegir por intuición' },
     testimonials: [
@@ -418,6 +428,22 @@ function Styles() {
       @keyframes shineFlow { 0% { background-position: 200% 50%; } 100% { background-position: -200% 50%; } }
       @keyframes barRise { from { transform: scaleY(0); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
       @keyframes lineDraw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
+      /* Icone piattaforme che "sparano" sessioni verso il globo */
+      .hero-feeds { position: absolute; left: max(24px, 6vw); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 26px; }
+      .feed-pill { position: relative; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 12px;
+        background: rgba(8,8,15,0.6); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(8px);
+        font-size: 13px; font-weight: 800; color: #fff; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+      .feed-pill b { font-weight: 800; }
+      .feed-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px currentColor; background: currentColor; }
+      .feed-meta { color: #2997ff; } .feed-google { color: #ff6d4d; } .feed-ga4 { color: #ff9f0a; }
+      /* beam animato che parte dalla pill verso destra (il globo) */
+      .feed-beam { position: absolute; left: 100%; top: 50%; width: clamp(60px, 12vw, 220px); height: 2px; transform: translateY(-50%);
+        background: linear-gradient(90deg, currentColor, transparent); border-radius: 2px; overflow: hidden; opacity: 0.7; }
+      .feed-beam::after { content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+        background: linear-gradient(90deg, transparent, #fff, transparent); animation: feedFlow 2.2s linear infinite; }
+      .feed-google .feed-beam::after { animation-delay: 0.7s; } .feed-ga4 .feed-beam::after { animation-delay: 1.4s; }
+      @keyframes feedFlow { from { left: -40%; } to { left: 120%; } }
+      @media (max-width: 900px) { .hero-feeds { display: none; } }
 
       /* Orbs di sfondo che vagano lentamente — effetto futurista */
       @keyframes orbDrift1 {
@@ -679,7 +705,25 @@ function Hero({ t }) {
       minHeight: '95vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '40px 24px 80px', textAlign: 'center', position: 'relative',
     }}>
-      <div className="hero-scale" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Globo Shopify-style di sfondo: visitatori live + sessioni da Meta/Google/GA4 */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -48%)',
+          width: 'min(820px, 96vw)', height: 'min(820px, 96vw)', opacity: 0.5,
+          maskImage: 'radial-gradient(circle, #000 55%, transparent 78%)',
+          WebkitMaskImage: 'radial-gradient(circle, #000 55%, transparent 78%)',
+        }}>
+          <LandingGlobe />
+        </div>
+        {/* Icone piattaforme che alimentano il globo con le sessioni */}
+        <div className="hero-feeds">
+          <span className="feed-pill feed-meta"><b>Meta</b><i className="feed-beam" /></span>
+          <span className="feed-pill feed-google"><b>Google</b><i className="feed-beam" /></span>
+          <span className="feed-pill feed-ga4"><b>GA4</b><i className="feed-beam" /></span>
+        </div>
+      </div>
+
+      <div className="hero-scale" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
         {/* Logo gigante animato in alto */}
         <Reveal variant="zoom">
           <div style={{ marginBottom: 28 }}>

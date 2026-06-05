@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Avatar from './Avatar'
 import ProfileModal from './ProfileModal'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
@@ -49,6 +49,11 @@ export default function ChatTab({ standalone = false }) {
   const [reactFor, setReactFor] = useState(null)
   const [actionsFor, setActionsFor] = useState(null)
   const [forwardMsg, setForwardMsg] = useState(null)
+  const [firstUnreadId, setFirstUnreadId] = useState(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [menuFor, setMenuFor] = useState(null)
+  const [callMenu, setCallMenu] = useState(false)
+  const [savedIds, setSavedIds] = useState([])
   const [threadRoot, setThreadRoot] = useState(null)
   const [threadMsgs, setThreadMsgs] = useState([])
   const [threadText, setThreadText] = useState('')
@@ -97,6 +102,10 @@ export default function ChatTab({ standalone = false }) {
       const msgs = d.messages || []
       msgs.forEach(m => seenRef.current.add(m.id))
       if (msgs.length) lastAtRef.current = msgs[msgs.length - 1].created_at
+      let lastRead = null; try { lastRead = localStorage.getItem('chread_' + active) } catch {}
+      const unread = me?.memberId ? msgs.filter(x => x.author_id !== me.memberId && (!lastRead || x.created_at > lastRead)) : []
+      setUnreadCount(unread.length); setFirstUnreadId(unread.length ? unread[0].id : null)
+      if (msgs.length) { try { localStorage.setItem('chread_' + active, msgs[msgs.length - 1].created_at) } catch {} }
       setMessages(msgs); scrollBottom()
     }).catch(() => {})
   }, [active])
@@ -110,6 +119,7 @@ export default function ChatTab({ standalone = false }) {
         incoming.forEach(m => seenRef.current.add(m.id))
         lastAtRef.current = incoming[incoming.length - 1].created_at
         setMessages(prev => [...prev, ...incoming]); scrollBottom()
+        try { localStorage.setItem('chread_' + active, incoming[incoming.length - 1].created_at) } catch {}
       }
     }).catch(() => {})
   }, [active])
@@ -122,6 +132,7 @@ export default function ChatTab({ standalone = false }) {
   }, [active])
 
   const updateMsg = (msg) => setMessages(prev => prev.map(x => x.id === msg.id ? msg : x))
+  useEffect(() => { try { setSavedIds(JSON.parse(localStorage.getItem('chatsaved') || '[]')) } catch {} }, [])
 
   // polling del thread aperto
   useEffect(() => {
@@ -245,6 +256,24 @@ export default function ChatTab({ standalone = false }) {
   function stopRec() { recCancelRef.current = false; try { recRef.current && recRef.current.stop() } catch {}; setRecording(false) }
   function cancelRec() { recCancelRef.current = true; try { recRef.current && recRef.current.stop() } catch {}; clearInterval(recTimerRef.current); setRecording(false) }
 
+  function copyText(t) { try { navigator.clipboard.writeText(t) } catch {} }
+  function toggleSave(m) {
+    setSavedIds(prev => { const next = prev.includes(m.id) ? prev.filter(x => x !== m.id) : [...prev, m.id]; try { localStorage.setItem('chatsaved', JSON.stringify(next)) } catch {}; return next })
+  }
+  function markUnread(m) {
+    const idx = messages.findIndex(x => x.id === m.id)
+    if (idx < 0) return
+    const unread = messages.slice(idx).filter(x => x.author_id !== me?.memberId)
+    setFirstUnreadId(m.id); setUnreadCount(unread.length)
+    try { localStorage.setItem('chread_' + active, new Date(new Date(m.created_at).getTime() - 1).toISOString()) } catch {}
+  }
+  async function togglePin(m) {
+    const r = await fetch('/api/channel-messages', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: m.id, pin: !m.pinned }) }).then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.message) updateMsg(r.message)
+  }
+  const meetUrl = () => `https://meet.jit.si/LyftAI-${active}`
+  function copyMeetLink() { copyText(meetUrl()) }
+
   async function attachFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''
     if (!f || !active) return
@@ -278,10 +307,9 @@ export default function ChatTab({ standalone = false }) {
 
   function startCall() {
     if (!active) return
-    const room = `LyftAI-${active}-${Date.now().toString(36)}`
-    const url = `https://meet.jit.si/${room}`
+    const url = meetUrl()
     window.open(url, '_blank', 'noopener')
-    pushMessage({ channel_id: active, body: `📹 Videochiamata avviata — entra: ${url}` })
+    pushMessage({ channel_id: active, body: `📹 Incontro avviato — entra: ${url}` })
   }
 
   async function toggleReaction(id, emoji) {
@@ -360,7 +388,7 @@ export default function ChatTab({ standalone = false }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
           {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
-          {m.audio_url && <audio controls src={m.audio_url} style={{ marginTop: 6, height: 36, maxWidth: 240 }} />}
+          {m.audio_url && <AudioMsg src={m.audio_url} />}
           {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
             ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt="" style={{ marginTop: 6, maxWidth: 240, borderRadius: 8, display: 'block' }} /></a>
             : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-block', color: '#7b9cff', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>)}
@@ -438,10 +466,18 @@ export default function ChatTab({ standalone = false }) {
             </div>
             {active && (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <HBtn onClick={() => setSearchOpen(o => !o)} title="Cerca nel canale">🔍</HBtn>
-                <HBtn onClick={toggleMute} title={muted ? 'Notifiche disattivate (clicca per attivare)' : 'Notifiche attive (clicca per disattivare)'}>{muted ? '🔕' : '🔔'}</HBtn>
-                <HBtn onClick={startCall} title="Videochiamata">📹</HBtn>
-                {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri / aggiungi persone">👥</HBtn>}
+                <HBtn onClick={() => setSearchOpen(o => !o)} title="Cerca nel canale"><Icon name="search" size={16} /></HBtn>
+                <HBtn onClick={toggleMute} title={muted ? 'Notifiche disattivate · attiva' : 'Notifiche attive · disattiva'}><Icon name={muted ? 'bellOff' : 'bell'} size={16} /></HBtn>
+                <div style={{ position: 'relative' }}>
+                  <HBtn onClick={() => setCallMenu(o => !o)} title="Incontro: avvia o copia link"><Icon name="headset" size={16} /></HBtn>
+                  {callMenu && (
+                    <div style={{ position: 'absolute', top: 38, right: 0, ...PANEL, padding: 6, width: 240, zIndex: 30 }}>
+                      <MenuItem onClick={() => { startCall(); setCallMenu(false) }}>🎧&nbsp;&nbsp;Avvia incontro</MenuItem>
+                      <MenuItem onClick={() => { copyMeetLink(); setCallMenu(false) }}>🔗&nbsp;&nbsp;Copia link all'incontro</MenuItem>
+                    </div>
+                  )}
+                </div>
+                {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri · aggiungi persone"><Icon name="users" size={16} /></HBtn>}
               </div>
             )}
           </div>
@@ -454,16 +490,23 @@ export default function ChatTab({ standalone = false }) {
           {channelView === 'messages' ? (
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
             {shownMessages.length === 0 && <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>{searchQ ? 'Nessun risultato.' : 'Nessun messaggio. Scrivi il primo!'}</div>}
-            {shownMessages.map(m => {
+            {(() => { let prevDay = null; return shownMessages.map(m => {
               const mem = memberMap[m.author_id]
               const mine = me?.memberId && m.author_id === me.memberId
               const reactions = (m.reactions && typeof m.reactions === 'object') ? m.reactions : {}
+              const day = new Date(m.created_at).toDateString()
+              const showDay = day !== prevDay; prevDay = day
+              const dayLabel = new Date(m.created_at).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
               return (
-                <div key={m.id} className="chat-row" onClick={() => setActionsFor(actionsFor === m.id ? null : m.id)} style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
+                <Fragment key={m.id}>
+                {showDay && <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 8px' }}><span style={{ fontSize: 12, color: '#c9c9d6', background: 'rgba(20,20,30,0.7)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, padding: '3px 14px', fontWeight: 700 }}>{dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}</span></div>}
+                {firstUnreadId === m.id && unreadCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 8px' }}><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /><span style={{ fontSize: 11.5, color: '#ff5a7a', fontWeight: 700, whiteSpace: 'nowrap' }}>{unreadCount} nuovi messaggi</span><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /></div>}
+                <div className="chat-row" onClick={() => setActionsFor(actionsFor === m.id ? null : m.id)} style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
                   <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {m.pinned && <span style={{ marginLeft: 6, color: '#7b5bff', fontWeight: 600 }}>📌 fissato</span>}
                     </div>
                     {m.reply_excerpt && (
                       <div style={{ borderLeft: '2px solid #7b5bff', padding: '2px 8px', margin: '3px 0', color: MUTED, fontSize: 12.5, background: 'rgba(123,91,255,0.07)', borderRadius: '0 6px 6px 0' }}>
@@ -471,7 +514,7 @@ export default function ChatTab({ standalone = false }) {
                       </div>
                     )}
                     {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
-                    {m.audio_url && <audio controls src={m.audio_url} style={{ marginTop: 6, height: 38, maxWidth: 280 }} />}
+                    {m.audio_url && <AudioMsg src={m.audio_url} />}
                     {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
                       ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 10, display: 'block' }} /></a>
                       : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: '#fff', textDecoration: 'none', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>
@@ -492,15 +535,28 @@ export default function ChatTab({ standalone = false }) {
                       </div>
                     )}
                   </div>
-                  <div className={`chat-actions${actionsFor === m.id ? ' show' : ''}`} onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: -10, right: 10, display: 'flex', gap: 2, background: 'rgba(24,24,36,0.97)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: 3, backdropFilter: 'blur(8px)', zIndex: 5 }}>
-                    <ActBtn title="Reazione" onClick={() => setReactFor(reactFor === m.id ? null : m.id)}>😊</ActBtn>
-                    <ActBtn title="Rispondi nella conversazione" onClick={() => openThread(m)}>↩︎</ActBtn>
-                    <ActBtn title="Inoltra" onClick={() => setForwardMsg(m)}>↪︎</ActBtn>
-                    {(mine || me?.isAdmin) && <ActBtn title="Elimina" onClick={() => deleteMessage(m.id)}>🗑</ActBtn>}
+                  <div className={`chat-actions${actionsFor === m.id ? ' show' : ''}`} onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: -10, right: 10, display: 'flex', gap: 1, background: 'rgba(24,24,36,0.98)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: 3, backdropFilter: 'blur(8px)', zIndex: 6 }}>
+                    <ActBtn title="Aggiungi reazione" onClick={() => setReactFor(reactFor === m.id ? null : m.id)}><Icon name="smile" /></ActBtn>
+                    <ActBtn title="Rispondi nella conversazione" onClick={() => openThread(m)}><Icon name="reply" /></ActBtn>
+                    <ActBtn title="Inoltra messaggio" onClick={() => setForwardMsg(m)}><Icon name="forward" /></ActBtn>
+                    <ActBtn title={savedIds.includes(m.id) ? 'Rimuovi dai salvati' : 'Salva messaggio'} onClick={() => toggleSave(m)}><span style={{ color: savedIds.includes(m.id) ? '#7b5bff' : 'inherit' }}><Icon name="bookmark" /></span></ActBtn>
+                    <div style={{ position: 'relative' }}>
+                      <ActBtn title="Altre azioni" onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}><Icon name="more" /></ActBtn>
+                      {menuFor === m.id && (
+                        <div style={{ position: 'absolute', top: 30, right: 0, ...PANEL, padding: 6, width: 240, zIndex: 30 }}>
+                          <MenuItem onClick={() => { markUnread(m); setMenuFor(null) }}>🔵&nbsp;&nbsp;Contrassegna come non letto</MenuItem>
+                          <MenuItem onClick={() => { copyText(m.body || ''); setMenuFor(null) }}>📋&nbsp;&nbsp;Copia messaggio</MenuItem>
+                          <MenuItem onClick={() => { copyText(`${typeof location !== 'undefined' ? location.origin : ''}/chat`); setMenuFor(null) }}>🔗&nbsp;&nbsp;Copia collegamento</MenuItem>
+                          <MenuItem onClick={() => { togglePin(m); setMenuFor(null) }}>📌&nbsp;&nbsp;{m.pinned ? 'Rimuovi dai fissati' : 'Fissa sul canale'}</MenuItem>
+                          {(mine || me?.isAdmin) && <MenuItem danger onClick={() => { deleteMessage(m.id); setMenuFor(null) }}>🗑&nbsp;&nbsp;Elimina messaggio</MenuItem>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+                </Fragment>
               )
-            })}
+            }) })()}
           </div>
           ) : (
             <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
@@ -554,9 +610,9 @@ export default function ChatTab({ standalone = false }) {
                 <TB onClick={() => surround('~~', '~~')} title="Barrato"><s>S</s></TB>
                 <TB onClick={() => surround('`', '`')} title="Codice">{'</>'}</TB>
                 <span style={{ width: 1, height: 16, background: 'var(--border, rgba(255,255,255,0.12))', margin: '0 4px' }} />
-                <TB onClick={() => insertAtCursor('\n- ')} title="Elenco puntato">•</TB>
-                <TB onClick={() => insertAtCursor('\n1. ')} title="Elenco numerato">1.</TB>
-                <TB onClick={openLink} title="Link">🔗</TB>
+                <TB onClick={() => insertAtCursor('\n- ')} title="Elenco puntato"><Icon name="bullet" size={16} /></TB>
+                <TB onClick={() => insertAtCursor('\n1. ')} title="Elenco numerato"><Icon name="number" size={16} /></TB>
+                <TB onClick={openLink} title="Inserisci link"><Icon name="link" size={16} /></TB>
               </div>
               {/* Input con evidenziazione menzioni */}
               <div style={{ position: 'relative' }}>
@@ -573,13 +629,14 @@ export default function ChatTab({ standalone = false }) {
               </div>
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
-                <label title="Allega file" style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                  +<input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
+                <label className="tipwrap" title="" style={{ position: 'relative', cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="plus" size={16} /><span className="tip">Allega file</span>
+                  <input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
                 </label>
-                <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}>{recording ? '⏹' : '🎤'}</TB>
-                <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title="Emoji">😊</TB>
-                <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title="Menziona">@</TB>
-                <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia">➤</button>
+                <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}><Icon name={recording ? 'stop' : 'mic'} size={16} /></TB>
+                <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title="Emoji"><Icon name="smile" size={16} /></TB>
+                <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title="Menziona"><Icon name="at" size={16} /></TB>
+                <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia"><Icon name="send" size={16} /></button>
 
                 {emojiOpen && (
                   <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 8, width: 320, zIndex: 10 }}>
@@ -669,21 +726,76 @@ export default function ChatTab({ standalone = false }) {
         </div>
       )}
 
-      <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}`}</style>
+      <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1}`}</style>
     </div>
   )
 }
 
+function Tip({ children }) {
+  return children ? <span className="tip">{children}</span> : null
+}
+
 function ActBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#c9c9d6', cursor: 'pointer', fontSize: 14, width: 28, height: 26, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function HBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#fff', cursor: 'pointer', fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{children}</button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function TB({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}</button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}<Tip>{title}</Tip></button>
+}
+
+function MenuItem({ onClick, danger, children }) {
+  return <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: danger ? '#ff5a7a' : '#e7e7ef', cursor: 'pointer', fontSize: 13.5, fontFamily: 'Barlow', padding: '8px 10px', borderRadius: 8 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
+}
+
+function Icon({ name, size = 17 }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  switch (name) {
+    case 'smile': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
+    case 'reply': return <svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-3.5A8.5 8.5 0 1 1 21 11.5z" /></svg>
+    case 'forward': return <svg {...p}><polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" /></svg>
+    case 'bookmark': return <svg {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+    case 'more': return <svg {...p}><circle cx="12" cy="5" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="12" cy="19" r="1.3" /></svg>
+    case 'search': return <svg {...p}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+    case 'bell': return <svg {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+    case 'bellOff': return <svg {...p}><path d="M13.7 21a2 2 0 0 1-3.4 0" /><path d="M18 8a6 6 0 0 0-9.3-5" /><path d="M6 8c0 7-3 9-3 9h13" /><line x1="3" y1="3" x2="21" y2="21" /></svg>
+    case 'headset': return <svg {...p}><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><rect x="2" y="14" width="4" height="6" rx="1.5" /><rect x="18" y="14" width="4" height="6" rx="1.5" /></svg>
+    case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+    case 'mic': return <svg {...p}><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
+    case 'stop': return <svg {...p}><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+    case 'plus': return <svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+    case 'at': return <svg {...p}><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.9 7.9" /></svg>
+    case 'send': return <svg {...p}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+    case 'link': return <svg {...p}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+    case 'bullet': return <svg {...p}><line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line x1="9" y1="18" x2="20" y2="18" /><circle cx="4.5" cy="6" r="1.1" /><circle cx="4.5" cy="12" r="1.1" /><circle cx="4.5" cy="18" r="1.1" /></svg>
+    case 'number': return <svg {...p}><line x1="10" y1="6" x2="20" y2="6" /><line x1="10" y1="12" x2="20" y2="12" /><line x1="10" y1="18" x2="20" y2="18" /><path d="M4 6h1.2v4" /><path d="M3.6 10h2" /></svg>
+    case 'play': return <svg {...p} fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4" /></svg>
+    case 'pause': return <svg {...p} fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+    default: return null
+  }
+}
+
+function AudioMsg({ src }) {
+  const ref = useRef(null)
+  const [playing, setPlaying] = useState(false)
+  const [cur, setCur] = useState(0)
+  const [dur, setDur] = useState(0)
+  const fmt = (s) => `${Math.floor((s || 0) / 60)}:${String(Math.floor((s || 0) % 60)).padStart(2, '0')}`
+  const pct = dur ? (cur / dur) * 100 : 0
+  function toggle() { const a = ref.current; if (!a) return; if (a.paused) { a.play(); setPlaying(true) } else { a.pause(); setPlaying(false) } }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, padding: '7px 12px 7px 7px', background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, maxWidth: 300 }}>
+      <audio ref={ref} src={src} preload="metadata" onTimeUpdate={e => setCur(e.target.currentTime)} onLoadedMetadata={e => setDur(e.target.duration || 0)} onEnded={() => { setPlaying(false); setCur(0) }} style={{ display: 'none' }} />
+      <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
+      <div onClick={e => { const a = ref.current; if (!a || !dur) return; const r = e.currentTarget.getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur }} style={{ flex: 1, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.16)', cursor: 'pointer', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', borderRadius: 2 }} />
+      </div>
+      <span style={{ fontSize: 11.5, color: '#b9b9c8', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(cur)} / {fmt(dur)}</span>
+    </div>
+  )
 }
 
 function activeName(ch) { return ch?.name }

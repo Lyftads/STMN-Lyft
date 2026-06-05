@@ -98,6 +98,13 @@ export async function PATCH(req) {
   if (!admin) return NextResponse.json({ ok: false })
   let b = {}
   try { b = await req.json() } catch {}
+  // toggle "fissa sul canale"
+  if (typeof b.pin === 'boolean' && b.id) {
+    try {
+      const { data } = await admin.from('channel_messages').update({ pinned: b.pin }).eq('id', b.id).eq('workspace_id', ws.workspaceId).select('*').single()
+      return NextResponse.json({ ok: true, message: data })
+    } catch (e) { return NextResponse.json({ ok: false, error: e.message }, { status: 200 }) }
+  }
   const { id, emoji } = b
   if (!id || !emoji) return NextResponse.json({ ok: false, error: 'Dati mancanti' }, { status: 400 })
   try {

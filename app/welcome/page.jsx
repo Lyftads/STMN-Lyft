@@ -436,14 +436,15 @@ function Styles() {
       .feed-pill b { font-weight: 800; }
       .feed-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px currentColor; background: currentColor; }
       .feed-meta { color: #2997ff; } .feed-google { color: #ff6d4d; } .feed-ga4 { color: #ff9f0a; }
-      /* beam animato che parte dalla pill verso destra (il globo) */
-      .feed-beam { position: absolute; left: 100%; top: 50%; width: clamp(60px, 12vw, 220px); height: 2px; transform: translateY(-50%);
-        background: linear-gradient(90deg, currentColor, transparent); border-radius: 2px; overflow: hidden; opacity: 0.7; }
-      .feed-beam::after { content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
-        background: linear-gradient(90deg, transparent, #fff, transparent); animation: feedFlow 2.2s linear infinite; }
-      .feed-google .feed-beam::after { animation-delay: 0.7s; } .feed-ga4 .feed-beam::after { animation-delay: 1.4s; }
-      @keyframes feedFlow { from { left: -40%; } to { left: 120%; } }
-      @media (max-width: 900px) { .hero-feeds { display: none; } }
+      /* archi curvi (stile globo) sotto l'headline, con flusso animato */
+      .hero-arcs { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      .hero-arcs .arc { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 16 14; opacity: 0.9;
+        animation: arcFlow 2.6s linear infinite; }
+      .hero-arcs .arc1 { stroke: #2997ff; filter: drop-shadow(0 0 5px #2997ff88); }
+      .hero-arcs .arc2 { stroke: #ff6d4d; filter: drop-shadow(0 0 5px #ff6d4d88); animation-delay: .7s; }
+      .hero-arcs .arc3 { stroke: #ff9f0a; filter: drop-shadow(0 0 5px #ff9f0a88); animation-delay: 1.4s; }
+      @keyframes arcFlow { to { stroke-dashoffset: -300; } }
+      @media (max-width: 900px) { .hero-feeds, .hero-arcs { display: none; } }
 
       /* Orbs di sfondo che vagano lentamente — effetto futurista */
       @keyframes orbDrift1 {
@@ -713,11 +714,18 @@ function Hero({ t }) {
         }}>
           <LandingGlobe />
         </div>
+        {/* Archi curvi (stile globo) che partono da Meta/Google/GA4 e passano
+            sotto l'headline fino al globo, con flusso animato */}
+        <svg className="hero-arcs" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden>
+          <path className="arc arc1" d="M120,300 C430,560 730,540 990,380" />
+          <path className="arc arc2" d="M120,355 C450,600 770,560 990,400" />
+          <path className="arc arc3" d="M120,410 C470,640 810,590 990,430" />
+        </svg>
         {/* Icone piattaforme che alimentano il globo con le sessioni */}
         <div className="hero-feeds">
-          <span className="feed-pill feed-meta"><b>Meta</b><i className="feed-beam" /></span>
-          <span className="feed-pill feed-google"><b>Google</b><i className="feed-beam" /></span>
-          <span className="feed-pill feed-ga4"><b>GA4</b><i className="feed-beam" /></span>
+          <span className="feed-pill feed-meta"><b>Meta</b></span>
+          <span className="feed-pill feed-google"><b>Google</b></span>
+          <span className="feed-pill feed-ga4"><b>GA4</b></span>
         </div>
       </div>
 

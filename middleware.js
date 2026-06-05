@@ -93,7 +93,8 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    // Salta API routes (gestiscono auth da soli) + Next static + image opt
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Salta API routes (gestiscono auth da soli) + Next static + image opt +
+    // asset statici (geojson/json/ico) → es. /geo/*.geojson serve anche da non loggati
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|geojson|json|ico|woff2?)$).*)',
   ],
 }

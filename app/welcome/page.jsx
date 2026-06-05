@@ -429,13 +429,14 @@ function Styles() {
       @keyframes barRise { from { transform: scaleY(0); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
       @keyframes lineDraw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
       /* Icone piattaforme che "sparano" sessioni verso il globo */
-      .hero-feeds { position: absolute; left: max(24px, 6vw); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 26px; }
+      .hero-feeds { position: absolute; left: max(24px, 6vw); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 18px; }
       .feed-pill { position: relative; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 12px;
         background: rgba(8,8,15,0.6); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(8px);
         font-size: 13px; font-weight: 800; color: #fff; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
       .feed-pill b { font-weight: 800; }
       .feed-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px currentColor; background: currentColor; }
       .feed-meta { color: #2997ff; } .feed-google { color: #ff6d4d; } .feed-ga4 { color: #ff9f0a; }
+      .feed-klaviyo { color: #34e7b0; } .feed-gsc { color: #bf5af2; }
       /* archi curvi (stile globo) sotto l'headline, con flusso animato */
       .hero-arcs { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
       .hero-arcs .arc { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 16 14; opacity: 0.9;
@@ -443,6 +444,8 @@ function Styles() {
       .hero-arcs .arc1 { stroke: #2997ff; filter: drop-shadow(0 0 5px #2997ff88); }
       .hero-arcs .arc2 { stroke: #ff6d4d; filter: drop-shadow(0 0 5px #ff6d4d88); animation-delay: .7s; }
       .hero-arcs .arc3 { stroke: #ff9f0a; filter: drop-shadow(0 0 5px #ff9f0a88); animation-delay: 1.4s; }
+      .hero-arcs .arc4 { stroke: #34e7b0; filter: drop-shadow(0 0 5px #34e7b088); animation-delay: 2.1s; }
+      .hero-arcs .arc5 { stroke: #bf5af2; filter: drop-shadow(0 0 5px #bf5af288); animation-delay: 2.8s; }
       @keyframes arcFlow { to { stroke-dashoffset: -300; } }
       @media (max-width: 900px) { .hero-feeds, .hero-arcs { display: none; } }
 
@@ -716,16 +719,20 @@ function Hero({ t }) {
         </div>
         {/* Archi curvi (stile globo) che partono da Meta/Google/GA4 e passano
             sotto l'headline fino al globo, con flusso animato */}
-        <svg className="hero-arcs" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden>
-          <path className="arc arc1" d="M120,300 C430,560 730,540 990,380" />
-          <path className="arc arc2" d="M120,355 C450,600 770,560 990,400" />
-          <path className="arc arc3" d="M120,410 C470,640 810,590 990,430" />
+        <svg className="hero-arcs" viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" aria-hidden>
+          <path className="arc arc1" d="M120,250 C430,560 730,540 990,380" />
+          <path className="arc arc2" d="M120,310 C450,600 770,560 990,395" />
+          <path className="arc arc3" d="M120,370 C470,630 800,580 990,410" />
+          <path className="arc arc4" d="M120,430 C480,660 820,600 990,425" />
+          <path className="arc arc5" d="M120,490 C500,690 840,620 990,440" />
         </svg>
         {/* Icone piattaforme che alimentano il globo con le sessioni */}
         <div className="hero-feeds">
           <span className="feed-pill feed-meta"><b>Meta</b></span>
           <span className="feed-pill feed-google"><b>Google</b></span>
           <span className="feed-pill feed-ga4"><b>GA4</b></span>
+          <span className="feed-pill feed-klaviyo"><b>Klaviyo</b></span>
+          <span className="feed-pill feed-gsc"><b>Search Console</b></span>
         </div>
       </div>
 

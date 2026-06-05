@@ -21,9 +21,11 @@ const DEST = [
 ]
 // "sorgenti" piattaforme
 const SRC = {
-  meta: { lat: 37, lng: -95, color: '#2997ff' },   // US
-  google: { lat: 50, lng: 8, color: '#ff6d4d' },    // EU
-  ga4: { lat: 22, lng: 78, color: '#ff9f0a' },       // Asia
+  meta: { lat: 37, lng: -95, color: '#2997ff' },    // US
+  google: { lat: 50, lng: 8, color: '#ff6d4d' },     // EU
+  ga4: { lat: 22, lng: 78, color: '#ff9f0a' },        // Asia
+  klaviyo: { lat: -15, lng: -50, color: '#34e7b0' },  // Sud America
+  gsc: { lat: 35, lng: 138, color: '#bf5af2' },       // Giappone
 }
 
 export default function LandingGlobe() {

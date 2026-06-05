@@ -54,7 +54,7 @@ export default function NotificationsBell({ onNavigate }) {
         className="btn-glass"
         style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, padding: 0, cursor: 'pointer' }}
       >
-        <span style={{ fontSize: 16 }}>🔔</span>
+        <span style={{ fontSize: 16 }}>📥</span>
         {unread > 0 && (
           <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#ff375f', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread > 99 ? '99+' : unread}</span>
         )}

@@ -93,6 +93,7 @@ function StatusDot({ active }) {
 
 export default function KlaviyoTab() {
   const [data, setData] = useState(null)
+  const [breakdown, setBreakdown] = useState(null)  // revenue/OR/CR per campagna+flusso (caricato a parte)
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
   const [chartTab, setChartTab] = useState('received')
@@ -123,6 +124,18 @@ export default function KlaviyoTab() {
     return () => { active = false }
   }, [days])
 
+  // Revenue breakdown (lento) caricato a parte: la tab è già visibile, le stat
+  // (OR/CR/conv/entrate) si popolano nelle tabelle quando arrivano.
+  useEffect(() => {
+    let active = true
+    setBreakdown(null)
+    fetch(`/api/klaviyo?part=breakdown&days=${days}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { if (active && j?.revenueBreakdown) setBreakdown(j.revenueBreakdown) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [days])
+
   if (loading) {
     return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>Un attimo, sto tirando su i dati da Klaviyo...</div>
   }
@@ -134,10 +147,11 @@ export default function KlaviyoTab() {
   const { account, kpis, campaigns, flows, segments, lists } = data
 
   // Stat (revenue/OR/CR/conv) per id → fuse nelle sezioni Campagne e Flussi
+  // (da `breakdown`, caricato separatamente; "—" finché non arriva)
   const campStatsMap = {}
-  ;(data.revenueBreakdown?.campaigns?.rows || []).forEach(r => { if (r.campaignId) campStatsMap[r.campaignId] = r })
+  ;(breakdown?.campaigns?.rows || []).forEach(r => { if (r.campaignId) campStatsMap[r.campaignId] = r })
   const flowStatsMap = {}
-  ;(data.revenueBreakdown?.flows?.rows || []).forEach(r => { if (r.flowId) flowStatsMap[r.flowId] = r })
+  ;(breakdown?.flows?.rows || []).forEach(r => { if (r.flowId) flowStatsMap[r.flowId] = r })
   // Flussi ordinati per revenue (quelli con dati in cima)
   const flowsSorted = [...(flows || [])].sort((a, b) => (flowStatsMap[b.id]?.revenue || 0) - (flowStatsMap[a.id]?.revenue || 0))
 

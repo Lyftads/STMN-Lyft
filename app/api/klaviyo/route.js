@@ -116,7 +116,7 @@ async function getMetrics() {
   let all = []
   let url = '/metrics'
   let pages = 0
-  while (url && pages < 8) {   // tetto pagine: evita loop lunghissimi
+  while (url && pages < 4) {   // tetto pagine: evita loop lunghissimi
     pages++
     const data = await klaviyoGet(url)
     if (!data) break
@@ -306,13 +306,25 @@ export async function GET(request) {
   const daysParam = searchParams.get('days')
   const days = daysParam != null ? parseInt(daysParam, 10) : 30
 
-  const cacheKey = `${getTenantInfo().userId || 'env'}:${days}`
+  // I value-report (revenue breakdown) sono LENTI → serviti su una chiamata
+  // separata (?part=breakdown) così la tab carica subito i dati veloci.
+  const part = searchParams.get('part') || 'main'
+  const cacheKey = `${getTenantInfo().userId || 'env'}:${days}:${part}`
   if (searchParams.get('force') !== '1') {
     const hit = klaviyoCache.get(cacheKey)
     if (hit && hit.exp > Date.now()) return NextResponse.json(hit.payload)
   }
 
   try {
+    if (part === 'breakdown') {
+      const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])
+      const revenueBreakdown = await getRevenueBreakdown(sent, flows, days, metrics).catch(() => null)
+      const payload = { revenueBreakdown }
+      if (revenueBreakdown) klaviyoCache.set(cacheKey, { payload, exp: Date.now() + KLAVIYO_TTL_MS })
+      return NextResponse.json(payload)
+    }
+
+    // MAIN: solo dati veloci (niente value-report)
     const [account, lists, segments, sent, draft, scheduled, flows, metrics] = await Promise.all([
       getAccount(),
       getLists(),
@@ -323,22 +335,12 @@ export async function GET(request) {
       getFlows(),
       getMetrics(),
     ])
-
-    // KPI e revenue breakdown sono indipendenti → in parallelo
-    const [kpis, revenueBreakdown] = await Promise.all([
-      getEmailKPIs(days, metrics),
-      getRevenueBreakdown(sent, flows, days, metrics).catch(() => null),
-    ])
+    const kpis = await getEmailKPIs(days, metrics)
 
     const payload = {
-      account,
-      lists,
-      segments,
+      account, lists, segments,
       campaigns: { sent, draft, scheduled },
-      flows,
-      metrics,
-      kpis,
-      revenueBreakdown,
+      flows, metrics, kpis,
     }
     klaviyoCache.set(cacheKey, { payload, exp: Date.now() + KLAVIYO_TTL_MS })
     return NextResponse.json(payload)

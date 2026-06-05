@@ -400,6 +400,9 @@ export default function VendroShell({
             alignItems: 'flex-end',
             gap: 24,
             marginBottom: 40,
+            position: 'relative',
+            zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
+                          // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
             <div>
               <h1 className="heading-lg" style={{ marginBottom: 6 }}>

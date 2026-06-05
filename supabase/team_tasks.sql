@@ -45,6 +45,7 @@ create table if not exists tasks (
   assignee_id  uuid,                            -- team_members.id
   due_date     date,
   links        jsonb default '[]'::jsonb,
+  attachments  jsonb default '[]'::jsonb,        -- [{path,name,size,type,uploaded_at}]
   position     int default 0,
   approved_by  uuid,                            -- team_members.id (chi ha approvato)
   approved_at  timestamptz,

@@ -34,6 +34,7 @@ export default function TasksTab() {
   const [activeProject, setActiveProject] = useState('all')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [detailId, setDetailId] = useState(null)
   const [form, setForm] = useState({ title: '', assignee_id: '', priority: 'medium', due_date: '', project_id: '' })
 
   const memberName = useCallback((id) => {
@@ -98,10 +99,37 @@ export default function TasksTab() {
   async function deleteTask(id) {
     if (!confirm('Eliminare il task?')) return
     setTasks(prev => prev.filter(t => t.id !== id))
+    if (detailId === id) setDetailId(null)
     await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' })
   }
 
+  async function uploadFile(taskId, file) {
+    const fd = new FormData()
+    fd.append('taskId', taskId)
+    fd.append('file', file)
+    const r = await fetch('/api/tasks/attachments', { method: 'POST', body: fd })
+      .then(x => x.json()).catch(() => ({ ok: false, error: 'Errore di rete' }))
+    if (r.ok && r.task) setTasks(prev => prev.map(t => t.id === taskId ? r.task : t))
+    else alert(r.error || 'Upload fallito')
+    return r
+  }
+
+  async function downloadAttachment(path) {
+    const r = await fetch(`/api/tasks/attachments?path=${encodeURIComponent(path)}`)
+      .then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.url) window.open(r.url, '_blank')
+    else alert(r.error || 'Download non disponibile')
+  }
+
+  async function deleteAttachment(taskId, path) {
+    if (!confirm('Eliminare il file?')) return
+    const r = await fetch(`/api/tasks/attachments?taskId=${taskId}&path=${encodeURIComponent(path)}`, { method: 'DELETE' })
+      .then(x => x.json()).catch(() => ({}))
+    if (r.ok && r.task) setTasks(prev => prev.map(t => t.id === taskId ? r.task : t))
+  }
+
   const visible = tasks.filter(t => activeProject === 'all' || t.project_id === activeProject)
+  const detailTask = detailId ? tasks.find(t => t.id === detailId) : null
 
   if (loading) {
     return <div style={{ padding: 40, color: '#86868b', fontFamily: 'Barlow' }}>Caricamento board…</div>
@@ -164,29 +192,43 @@ export default function TasksTab() {
                 <span style={{ color: '#86868b', fontSize: 12 }}>{items.length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} />)}
+                {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={() => setDetailId(t.id)} />)}
                 {items.length === 0 && <div style={{ color: '#48484a', fontSize: 12, padding: '8px 2px' }}>—</div>}
               </div>
             </div>
           )
         })}
       </div>
+
+      {detailTask && (
+        <TaskDetail
+          task={detailTask}
+          memberName={memberName}
+          onClose={() => setDetailId(null)}
+          onPatch={patchTask}
+          onUpload={uploadFile}
+          onDownload={downloadAttachment}
+          onDeleteAttachment={deleteAttachment}
+        />
+      )}
     </div>
   )
 }
 
-function TaskCard({ t, memberName, onPatch, onDelete }) {
+function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
   const prio = PRIORITIES.find(p => p.id === (t.priority || 'medium')) || PRIORITIES[1]
   const overdue = t.due_date && t.status !== 'done' && t.status !== 'approved' && new Date(t.due_date) < new Date(new Date().toDateString())
   return (
     <div style={{ ...card, padding: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
+        <div onClick={onOpen} title="Apri dettagli" style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25, cursor: 'pointer' }}>{t.title}</div>
         <button onClick={() => onDelete(t.id)} title="Elimina" style={{ background: 'none', border: 'none', color: '#48484a', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: prio.color, border: `1px solid ${prio.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{prio.label}</span>
         {t.due_date && <span style={{ fontSize: 11, color: overdue ? '#ff375f' : '#86868b' }}>📅 {t.due_date}</span>}
+        {t.description && <span title="Contiene note" style={{ fontSize: 11, color: '#86868b' }}>📝</span>}
+        {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title="Allegati" style={{ fontSize: 11, color: '#86868b' }}>📎 {t.attachments.length}</span>}
       </div>
       <div style={{ fontSize: 12, color: '#86868b', marginTop: 8 }}>👤 {memberName(t.assignee_id)}</div>
       <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
@@ -198,6 +240,77 @@ function TaskCard({ t, memberName, onPatch, onDelete }) {
           <button onClick={() => onPatch(t.id, { status: 'approved' })}
             style={{ background: '#30d158', border: 'none', borderRadius: 7, padding: '6px 10px', color: '#04210f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>✓ Approva</button>
         )}
+      </div>
+    </div>
+  )
+}
+
+function fmtSize(b) {
+  if (!b) return ''
+  if (b < 1024) return `${b} B`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`
+  return `${(b / 1024 / 1024).toFixed(1)} MB`
+}
+
+function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, onDeleteAttachment }) {
+  const [desc, setDesc] = useState(task.description || '')
+  const [uploading, setUploading] = useState(false)
+  useEffect(() => { setDesc(task.description || '') }, [task.id])
+
+  const attachments = Array.isArray(task.attachments) ? task.attachments : []
+
+  async function onPick(e) {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setUploading(true)
+    try { await onUpload(task.id, file) } finally { setUploading(false) }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...card, width: 'min(640px, 100%)', maxWidth: 640 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <input
+            defaultValue={task.title}
+            onBlur={e => { const v = e.target.value.trim(); if (v && v !== task.title) onPatch(task.id, { title: v }) }}
+            style={{ ...input, fontSize: 18, fontWeight: 700, fontFamily: 'Barlow Condensed', border: 'none', padding: '4px 0', background: 'transparent' }}
+          />
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#86868b', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ fontSize: 12, color: '#86868b', marginBottom: 14 }}>Assegnato a {memberName(task.assignee_id)}</div>
+
+        {/* Note / dettagli */}
+        <label style={{ fontSize: 11, color: '#86868b', textTransform: 'uppercase', letterSpacing: '.08em' }}>Note / dettagli</label>
+        <textarea
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          onBlur={() => { if (desc !== (task.description || '')) onPatch(task.id, { description: desc }) }}
+          placeholder="Scrivi qui descrizione, dettagli, istruzioni…"
+          rows={6}
+          style={{ ...input, marginTop: 6, resize: 'vertical', lineHeight: 1.5 }}
+        />
+
+        {/* Allegati */}
+        <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ fontSize: 11, color: '#86868b', textTransform: 'uppercase', letterSpacing: '.08em' }}>Allegati</label>
+          <label style={{ ...btnGhost, cursor: uploading ? 'wait' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? 'Caricamento…' : '+ Allega file'}
+            <input type="file" hidden disabled={uploading} onChange={onPick}
+              accept=".pdf,.csv,.png,.jpg,.jpeg,.webp,.xls,.xlsx,.doc,.docx,.txt" />
+          </label>
+        </div>
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {attachments.length === 0 && <div style={{ color: '#48484a', fontSize: 12 }}>Nessun allegato. PDF, CSV, immagini, Excel, Word (max ~4MB).</div>}
+          {attachments.map(a => (
+            <div key={a.path} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📄 {a.name}</span>
+              <span style={{ fontSize: 11, color: '#86868b' }}>{fmtSize(a.size)}</span>
+              <button onClick={() => onDownload(a.path)} style={{ ...btnGhost, padding: '4px 10px' }}>Scarica</button>
+              <button onClick={() => onDeleteAttachment(task.id, a.path)} title="Elimina" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

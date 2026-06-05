@@ -21,7 +21,8 @@
     "react-globe.gl": "^2.38.0",
     "recharts": "^2.12.7",
     "stripe": "^22.2.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "autoprefixer": "^10.0.1",

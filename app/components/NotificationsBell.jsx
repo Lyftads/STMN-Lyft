@@ -2,8 +2,20 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 
+function urlB64ToUint8Array(base64) {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(b64)
+  const arr = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
+  return arr
+}
+
+const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+
 // Campanella notifiche team: badge non-letti + pannello. Polling 30s.
 export default function NotificationsBell({ onNavigate }) {
+  const [pushOn, setPushOn] = useState(false)
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
   const [unread, setUnread] = useState(0)
@@ -21,6 +33,25 @@ export default function NotificationsBell({ onNavigate }) {
     const t = setInterval(() => { if (!document.hidden) load() }, 30000)
     return () => clearInterval(t)
   }, [load])
+
+  useEffect(() => {
+    if (!pushSupported) return
+    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(s => setPushOn(!!s)).catch(() => {})
+  }, [])
+
+  async function enablePush() {
+    try {
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') { alert('Permesso notifiche negato dal browser.'); return }
+      const { publicKey } = await fetch('/api/push/subscribe', { cache: 'no-store' }).then(r => r.json())
+      if (!publicKey) { alert('Push non ancora configurato (manca la chiave VAPID su Vercel).'); return }
+      const reg = await navigator.serviceWorker.ready
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(publicKey) })
+      await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) })
+      setPushOn(true)
+    } catch (e) { alert('Attivazione push fallita: ' + (e?.message || '')) }
+  }
 
   // chiudi al click fuori
   useEffect(() => {
@@ -66,6 +97,13 @@ export default function NotificationsBell({ onNavigate }) {
             <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: '#fff' }}>Notifiche</span>
             {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Segna tutte lette</button>}
           </div>
+          {pushSupported && (
+            <div style={{ padding: '9px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12 }}>
+              {pushOn
+                ? <span style={{ color: '#30d158' }}>✓ Notifiche push attive su questo dispositivo</span>
+                : <button onClick={enablePush} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}>🔔 Attiva le notifiche push su questo dispositivo</button>}
+            </div>
+          )}
           {items.length === 0 ? (
             <div style={{ padding: 20, color: '#b0b0bd', fontSize: 13 }}>Nessuna notifica.</div>
           ) : items.map(n => (

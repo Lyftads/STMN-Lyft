@@ -5,6 +5,15 @@ import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 
+// Accesso al canale: pubblici sempre; privati solo admin o membri.
+async function canAccess(admin, ws, channelId) {
+  const { data: ch } = await admin.from('channels').select('is_private').eq('id', channelId).eq('workspace_id', ws.workspaceId).maybeSingle()
+  if (!ch) return false
+  if (!ch.is_private || ws.isAdmin) return true
+  const { data: m } = await admin.from('channel_members').select('id').eq('channel_id', channelId).eq('member_id', ws.memberId).maybeSingle()
+  return !!m
+}
+
 export async function GET(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ messages: [] }, { status: 401 })

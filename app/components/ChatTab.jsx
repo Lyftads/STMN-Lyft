@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Avatar from './Avatar'
 import ProfileModal from './ProfileModal'
+import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 
 // Chat interna del team: canali + messaggi. Aggiornamento via polling (5s) per
 // non dipendere dalla config Realtime/RLS di Supabase.
@@ -20,6 +21,9 @@ export default function ChatTab({ standalone = false }) {
   const [members, setMembers] = useState([])
   const [profile, setProfile] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
+  const [showNewChannel, setShowNewChannel] = useState(false)
+  const [manageId, setManageId] = useState(null)
+  const [manageMemberIds, setManageMemberIds] = useState([])
   const [loading, setLoading] = useState(true)
   const scrollRef = useRef(null)
   const lastAtRef = useRef(null)
@@ -101,17 +105,51 @@ export default function ChatTab({ standalone = false }) {
     }
   }
 
-  async function addChannel() {
-    const name = prompt('Nome del canale (es. marketing):')
-    if (!name || !name.trim()) return
-    const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then(x => x.json())
-    if (r.ok && r.channel) {
-      setChannels(prev => prev.some(c => c.id === r.channel.id) ? prev : [...prev, r.channel])
-      setActive(r.channel.id)
+  function reloadMembers() {
+    fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {})
+  }
+
+  async function createChannel({ name, is_private, member_ids, externals }) {
+    const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, is_private, member_ids }) }).then(x => x.json())
+    if (!r.ok || !r.channel) { alert(r.error || 'Errore creazione canale'); return }
+    setChannels(prev => prev.some(c => c.id === r.channel.id) ? prev : [...prev, r.channel])
+    setActive(r.channel.id)
+    setShowNewChannel(false)
+    if (externals && externals.length) {
+      const pwds = []
+      for (const email of externals) {
+        const inv = await fetch('/api/chat-invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, channel_id: r.channel.id }) }).then(x => x.json()).catch(() => ({}))
+        if (inv.ok && inv.tempPassword) pwds.push(`${email}: ${inv.tempPassword}`)
+      }
+      reloadMembers()
+      if (pwds.length) alert('Inviti esterni creati (password temporanea, condividila):\n\n' + pwds.join('\n'))
     }
   }
 
-  const activeName = channels.find(c => c.id === active)?.name
+  async function openManage(channelId) {
+    setManageId(channelId)
+    const d = await fetch(`/api/channel-members?channel_id=${channelId}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({}))
+    setManageMemberIds(d.member_ids || [])
+  }
+
+  async function toggleChannelMember(memberId, add) {
+    setManageMemberIds(prev => add ? [...new Set([...prev, memberId])] : prev.filter(x => x !== memberId))
+    if (add) await fetch('/api/channel-members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel_id: manageId, member_id: memberId }) })
+    else await fetch(`/api/channel-members?channel_id=${manageId}&member_id=${memberId}`, { method: 'DELETE' })
+  }
+
+  async function inviteExternalToChannel(email) {
+    const inv = await fetch('/api/chat-invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, channel_id: manageId }) }).then(x => x.json()).catch(() => ({}))
+    if (inv.ok) {
+      if (inv.member) setManageMemberIds(prev => [...new Set([...prev, inv.member.id])])
+      reloadMembers()
+      alert(inv.emailSent ? `Invito inviato a ${email}` : `Account creato per ${email}. Password temporanea: ${inv.tempPassword || '—'}`)
+    } else alert(inv.error || 'Errore invito')
+  }
+
+  const activeChannel = channels.find(c => c.id === active)
+  const activeName = activeChannel?.name
+  const manageChannel = channels.find(c => c.id === manageId)
   const memberMap = useMemo(() => { const m = {}; members.forEach(x => { m[x.id] = x }); return m }, [members])
   const isOnline = (mem) => !!(mem?.last_seen_at && (Date.now() - new Date(mem.last_seen_at).getTime() < 70000))
 
@@ -131,9 +169,9 @@ export default function ChatTab({ standalone = false }) {
           <div style={{ flex: 1, overflowY: 'auto' }}>
             <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 6px' }}>Canali</div>
             {channels.map(c => (
-              <div key={c.id} onClick={() => setActive(c.id)} style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: active === c.id ? 700 : 500, color: active === c.id ? '#fff' : '#d0d0d8', background: active === c.id ? 'rgba(123,91,255,0.18)' : 'transparent', marginBottom: 2 }}># {c.name}</div>
+              <div key={c.id} onClick={() => setActive(c.id)} style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: active === c.id ? 700 : 500, color: active === c.id ? '#fff' : '#d0d0d8', background: active === c.id ? 'rgba(123,91,255,0.18)' : 'transparent', marginBottom: 2 }}>{c.is_private ? '🔒' : '#'} {c.name}</div>
             ))}
-            <button style={{ background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={addChannel}>+ Nuovo canale</button>
+            <button style={{ background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ Nuovo canale</button>
 
             <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '16px 8px 6px' }}>Persone · {members.filter(isOnline).length} online</div>
             {members.map(mem => (
@@ -155,8 +193,13 @@ export default function ChatTab({ standalone = false }) {
 
         {/* Messaggi */}
         <div style={{ ...PANEL, flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #3d3d4c', fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18 }}>
-            {activeName ? `# ${activeName}` : 'Seleziona un canale'}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #3d3d4c', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18 }}>
+              {activeName ? `${activeChannel?.is_private ? '🔒' : '#'} ${activeName}` : 'Seleziona un canale'}
+            </span>
+            {activeChannel?.is_private && (
+              <button onClick={() => openManage(activeChannel.id)} style={{ background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow' }}>👥 Membri</button>
+            )}
           </div>
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {messages.length === 0 && <div style={{ color: '#48484a', fontSize: 13 }}>Nessun messaggio. Scrivi il primo!</div>}
@@ -189,6 +232,21 @@ export default function ChatTab({ standalone = false }) {
           profile={profile || { email: '' }}
           onClose={() => setShowProfile(false)}
           onSaved={(p) => { setProfile(p); setMembers(prev => prev.map(m => m.id === p.id ? { ...m, full_name: p.full_name, avatar_url: p.avatar_url } : m)) }}
+        />
+      )}
+
+      {showNewChannel && (
+        <NewChannelDialog members={members} onClose={() => setShowNewChannel(false)} onCreate={createChannel} />
+      )}
+
+      {manageId && (
+        <ChannelMembersDialog
+          channel={manageChannel}
+          members={members}
+          memberIds={manageMemberIds}
+          onClose={() => setManageId(null)}
+          onToggle={toggleChannelMember}
+          onInvite={inviteExternalToChannel}
         />
       )}
     </div>

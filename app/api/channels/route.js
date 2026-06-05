@@ -21,8 +21,16 @@ export async function GET() {
   if (!admin) return NextResponse.json({ channels: [] })
   await ensureDefault(admin, ws)
   try {
-    const { data } = await admin.from('channels').select('*').eq('workspace_id', ws.workspaceId).order('created_at', { ascending: true })
-    return NextResponse.json({ channels: data || [], me: { memberId: ws.memberId, isAdmin: ws.isAdmin } })
+    const { data: all } = await admin.from('channels').select('*').eq('workspace_id', ws.workspaceId).order('created_at', { ascending: true })
+    // membership dei canali privati per il membro corrente
+    let memberOf = new Set()
+    try {
+      const { data: cms } = await admin.from('channel_members').select('channel_id').eq('member_id', ws.memberId)
+      memberOf = new Set((cms || []).map(x => x.channel_id))
+    } catch {}
+    // visibili: pubblici + privati di cui sei membro (l'admin vede tutto)
+    const channels = (all || []).filter(c => !c.is_private || ws.isAdmin || memberOf.has(c.id))
+    return NextResponse.json({ channels, me: { memberId: ws.memberId, isAdmin: ws.isAdmin } })
   } catch (e) {
     return NextResponse.json({ channels: [], error: e.message })
   }
@@ -37,12 +45,19 @@ export async function POST(req) {
   try { b = await req.json() } catch {}
   const name = String(b.name || '').trim().toLowerCase().replace(/[^a-z0-9\-_]+/g, '-').replace(/^-+|-+$/g, '')
   if (!name) return NextResponse.json({ ok: false, error: 'Nome non valido' }, { status: 400 })
+  const isPrivate = !!b.is_private
+  const memberIds = Array.isArray(b.member_ids) ? b.member_ids.filter(Boolean) : []
   try {
     const { data, error } = await admin
       .from('channels')
-      .upsert({ workspace_id: ws.workspaceId, name, created_by: ws.memberId }, { onConflict: 'workspace_id,name' })
+      .upsert({ workspace_id: ws.workspaceId, name, is_private: isPrivate, created_by: ws.memberId }, { onConflict: 'workspace_id,name' })
       .select('*').single()
     if (error) throw error
+    if (isPrivate) {
+      const ids = [...new Set([ws.memberId, ...memberIds].filter(Boolean))]
+      const rows = ids.map(id => ({ channel_id: data.id, member_id: id }))
+      if (rows.length) await admin.from('channel_members').upsert(rows, { onConflict: 'channel_id,member_id' })
+    }
     return NextResponse.json({ ok: true, channel: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

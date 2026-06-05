@@ -29,31 +29,30 @@ const buildHeaders = () => {
 async function klaviyoGet(path, retries = 3) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`
   for (let i = 0; i < retries; i++) {
-    const res = await fetch(url, { headers: buildHeaders(), cache: 'no-store' })
-    if (res.status === 429) {
-      await new Promise(r => setTimeout(r, (i + 1) * 2000))
-      continue
-    }
-    if (!res.ok) return null
-    return res.json()
+    try {
+      const res = await fetch(url, { headers: buildHeaders(), cache: 'no-store', signal: AbortSignal.timeout(12000) })
+      if (res.status === 429) { await new Promise(r => setTimeout(r, (i + 1) * 1500)); continue }
+      if (!res.ok) return null
+      return res.json()
+    } catch { return null } // timeout/rete → non bloccare l'intera tab
   }
   return null
 }
 
 async function klaviyoPost(path, body, retries = 3) {
   for (let i = 0; i < retries; i++) {
-    const res = await fetch(`${BASE}${path}`, {
-      method: 'POST',
-      headers: { ...buildHeaders(), 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-      cache: 'no-store',
-    })
-    if (res.status === 429) {
-      await new Promise(r => setTimeout(r, (i + 1) * 2000))
-      continue
-    }
-    if (!res.ok) return null
-    return res.json()
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        method: 'POST',
+        headers: { ...buildHeaders(), 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(20000), // i value-report sono più lenti
+      })
+      if (res.status === 429) { await new Promise(r => setTimeout(r, (i + 1) * 1500)); continue }
+      if (!res.ok) return null
+      return res.json()
+    } catch { return null }
   }
   return null
 }
@@ -116,7 +115,9 @@ async function getFlows() {
 async function getMetrics() {
   let all = []
   let url = '/metrics'
-  while (url) {
+  let pages = 0
+  while (url && pages < 8) {   // tetto pagine: evita loop lunghissimi
+    pages++
     const data = await klaviyoGet(url)
     if (!data) break
     for (const i of (data.data || [])) {

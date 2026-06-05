@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 // Shell condiviso per login / register / reset-password.
 // Stile black glass 3D coerente con la dashboard.
 
@@ -83,7 +85,10 @@ export function AuthShell({ title, subtitle, children }) {
   )
 }
 
-export function AuthInput({ label, hint, ...props }) {
+export function AuthInput({ label, hint, type, ...props }) {
+  const [show, setShow] = useState(false)
+  const isPassword = type === 'password'
+  const inputType = isPassword ? (show ? 'text' : 'password') : type
   return (
     <div>
       <label style={{
@@ -91,27 +96,42 @@ export function AuthInput({ label, hint, ...props }) {
         color: 'var(--text3, #9ca3af)', letterSpacing: '0.12em',
         textTransform: 'uppercase', marginBottom: 6,
       }}>{label}</label>
-      <input {...props} style={{
-        width: '100%',
-        padding: '12px 14px',
-        borderRadius: 10,
-        background: 'rgba(0,0,0,0.4)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        color: '#fff',
-        fontSize: 14,
-        outline: 'none',
-        fontFamily: 'inherit',
-        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-      }}
-      onFocus={e => {
-        e.currentTarget.style.borderColor = 'rgba(191,90,242,0.50)'
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(191,90,242,0.12)'
-      }}
-      onBlur={e => {
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
-        e.currentTarget.style.boxShadow = 'none'
-      }}
-      />
+      <div style={{ position: 'relative' }}>
+        <input type={inputType} {...props} style={{
+          width: '100%',
+          padding: isPassword ? '12px 46px 12px 14px' : '12px 14px',
+          borderRadius: 10,
+          background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          color: '#fff',
+          fontSize: 14,
+          outline: 'none',
+          fontFamily: 'inherit',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+        }}
+        onFocus={e => {
+          e.currentTarget.style.borderColor = 'rgba(191,90,242,0.50)'
+          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(191,90,242,0.12)'
+        }}
+        onBlur={e => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'
+          e.currentTarget.style.boxShadow = 'none'
+        }}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShow(s => !s)}
+            aria-label={show ? 'Nascondi password' : 'Mostra password'}
+            title={show ? 'Nascondi password' : 'Mostra password'}
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 16, lineHeight: 1, padding: 6, opacity: 0.8,
+            }}
+          >{show ? '🙈' : '👁️'}</button>
+        )}
+      </div>
       {hint && (
         <div style={{ fontSize: 11, color: 'var(--text3, #6b7280)', marginTop: 6, lineHeight: 1.4 }}>{hint}</div>
       )}

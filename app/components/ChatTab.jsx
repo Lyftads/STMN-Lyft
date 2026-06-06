@@ -58,6 +58,9 @@ export default function ChatTab({ standalone = false }) {
   const [threadMsgs, setThreadMsgs] = useState([])
   const [threadText, setThreadText] = useState('')
   const [channelView, setChannelView] = useState('messages')
+  const [rail, setRail] = useState('home')
+  const [lastAt, setLastAt] = useState({})
+  const [allFiles, setAllFiles] = useState([])
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
   const [muted, setMuted] = useState(false)
@@ -79,9 +82,25 @@ export default function ChatTab({ standalone = false }) {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
       setChannels(d.channels || [])
       setMe(d.me || null)
+      setLastAt(d.lastAt || {})
       if (d.channels && d.channels.length) setActive(prev => prev || (d.channels.find(c => !c.is_dm)?.id || d.channels[0].id))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
+
+  // aggiorna canali + ultima attività (per i non letti) ogni 30s
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.hidden) return
+      fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => { setChannels(d.channels || []); setLastAt(d.lastAt || {}) }).catch(() => {})
+    }, 30000)
+    return () => clearInterval(t)
+  }, [])
+
+  // file di tutti i canali (rail File)
+  useEffect(() => {
+    if (rail !== 'files') return
+    fetch('/api/chat-files', { cache: 'no-store' }).then(r => r.json()).then(d => setAllFiles(d.files || [])).catch(() => {})
+  }, [rail])
 
   useEffect(() => {
     const loadMembers = () => fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {})
@@ -274,6 +293,10 @@ export default function ChatTab({ standalone = false }) {
   const meetUrl = () => `https://meet.jit.si/LyftAI-${active}`
   function copyMeetLink() { copyText(meetUrl()) }
 
+  function winClose() { try { window.close() } catch {} }
+  function winMin() { try { window.blur() } catch {} }
+  function winFull() { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen() } catch {} }
+
   async function attachFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''
     if (!f || !active) return
@@ -379,6 +402,8 @@ export default function ChatTab({ standalone = false }) {
   const mentionList = mentionPool.filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 8)
   const shownMessages = searchQ.trim() ? messages.filter(m => (m.body || '').toLowerCase().includes(searchQ.trim().toLowerCase())) : messages
   const sharedFiles = messages.filter(m => m.file_url || m.audio_url)
+  const channelUnread = (ch) => { const last = lastAt[ch.id]; if (!last) return false; let read = null; try { read = localStorage.getItem('chread_' + ch.id) } catch {}; return ch.id !== active && (!read || last > read) }
+  const unreadList = channels.filter(channelUnread)
 
   const miniMsg = (m) => {
     const mem = memberMap[m.author_id]
@@ -404,38 +429,99 @@ export default function ChatTab({ standalone = false }) {
   return (
     <div style={{ fontFamily: 'Barlow', color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 16px', gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="tipwrap" style={{ display: 'flex', gap: 8, position: 'relative' }}>
+            <button onClick={winClose} title="Chiudi" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
+            <button onClick={winMin} title="Riduci" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
+            <button onClick={winFull} title="Schermo intero" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
+          </div>
+          <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
+        </div>
         {!standalone && <a href="/chat" target="_blank" rel="noopener" style={{ ...BTN, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>↗ Apri come app</a>}
       </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '70vh' }}>
+        {/* Rail icone (stile Slack) */}
+        <div style={{ ...PANEL, width: 60, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0' }}>
+          <RailBtn active={rail === 'home'} onClick={() => setRail('home')} title="Tutti i canali"><Icon name="hash" size={20} /></RailBtn>
+          <RailBtn active={rail === 'dms'} onClick={() => setRail('dms')} title="Messaggi diretti"><Icon name="dm" size={20} /></RailBtn>
+          <RailBtn active={rail === 'unread'} onClick={() => setRail('unread')} title="Non letti" badge={unreadList.length}><Icon name="inbox" size={20} /></RailBtn>
+          <RailBtn active={rail === 'files'} onClick={() => setRail('files')} title="File condivisi"><Icon name="folder" size={20} /></RailBtn>
+        </div>
         {/* Sidebar */}
         <aside style={{ ...PANEL, width: 248, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Canali</div>
-            {groupChannels.map(c => (
-              <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
-                <span style={{ opacity: 0.6 }}>{c.is_private ? '🔒' : '#'}</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-              </div>
-            ))}
-            <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ Nuovo canale</button>
+            {rail === 'home' && (<>
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Canali</div>
+              {groupChannels.map(c => (
+                <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
+                  <span style={{ opacity: 0.6 }}>{c.is_private ? '🔒' : '#'}</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? '#fff' : undefined }}>{c.name}</span>
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                </div>
+              ))}
+              <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ Nuovo canale</button>
+              {dmChannels.length > 0 && <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Messaggi diretti</div>}
+              {dmChannels.map(c => { const o = dmOther(c); return (
+                <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
+                  <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : undefined }}>{o?.full_name || o?.email || 'Diretto'}</span>
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                </div>
+              ) })}
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Persone · {members.filter(isOnline).length} online</div>
+              {members.filter(m => m.id !== me?.memberId).map(mem => (
+                <div key={mem.id} onClick={() => openDM(mem)} title="Messaggio diretto" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10, cursor: 'pointer' }}>
+                  <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={26} online={isOnline(mem)} />
+                  <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ' · guest' : ''}</span>
+                </div>
+              ))}
+            </>)}
 
-            {dmChannels.length > 0 && <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Messaggi diretti</div>}
-            {dmChannels.map(c => { const o = dmOther(c); return (
-              <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
-                <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o?.full_name || o?.email || 'Diretto'}</span>
-              </div>
-            ) })}
+            {rail === 'dms' && (<>
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Messaggi diretti</div>
+              {dmChannels.map(c => { const o = dmOther(c); return (
+                <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
+                  <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o?.full_name || o?.email || 'Diretto'}</span>
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                </div>
+              ) })}
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Avvia una conversazione</div>
+              {members.filter(m => m.id !== me?.memberId).map(mem => (
+                <div key={mem.id} onClick={() => openDM(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10, cursor: 'pointer' }}>
+                  <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={26} online={isOnline(mem)} />
+                  <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}</span>
+                </div>
+              ))}
+            </>)}
 
-            <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Persone · {members.filter(isOnline).length} online</div>
-            {members.filter(m => m.id !== me?.memberId).map(mem => (
-              <div key={mem.id} onClick={() => openDM(mem)} title="Messaggio diretto" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10, cursor: 'pointer' }}>
-                <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={26} online={isOnline(mem)} />
-                <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ' · guest' : ''}</span>
-              </div>
-            ))}
+            {rail === 'unread' && (<>
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Non letti · {unreadList.length}</div>
+              {unreadList.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Tutto letto 🎉</div> : unreadList.map(c => { const o = c.is_dm ? dmOther(c) : null; return (
+                <div key={c.id} onClick={() => { setActive(c.id); setRail('home') }} style={itemStyle(false)}>
+                  {c.is_dm ? <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} /> : <span style={{ opacity: 0.6 }}>{c.is_private ? '🔒' : '#'}</span>}
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800, color: '#fff' }}>{c.is_dm ? (o?.full_name || o?.email || 'Diretto') : c.name}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />
+                </div>
+              ) })}
+            </>)}
+
+            {rail === 'files' && (<>
+              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>File condivisi</div>
+              {allFiles.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Nessun file.</div> : allFiles.map(f => {
+                const isImg = (/^image\//.test(f.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''))
+                return (
+                  <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, textDecoration: 'none', color: '#fff' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 15 }}>{f.audio_url ? '🎤' : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📎')}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.audio_url ? 'Vocale' : (f.file_name || 'Allegato')}</div>
+                      <div style={{ fontSize: 11, color: MUTED }}>#{f.channel_name} · {f.author_name || ''}</div>
+                    </div>
+                  </a>
+                )
+              })}
+            </>)}
           </div>
 
           <div onClick={() => setShowProfile(true)} title="Modifica profilo" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderTop: '1px solid var(--border, rgba(255,255,255,0.08))', marginTop: 8, cursor: 'pointer' }}>
@@ -751,6 +837,17 @@ function MenuItem({ onClick, danger, children }) {
   return <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: danger ? '#ff5a7a' : '#e7e7ef', cursor: 'pointer', fontSize: 13.5, fontFamily: 'Barlow', padding: '8px 10px', borderRadius: 8 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
 }
 
+function RailBtn({ active, onClick, title, badge, children }) {
+  return (
+    <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
+      {children}
+      {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
+      <span className="tip" style={{ left: 'auto', right: 'calc(100% + 8px)', bottom: 'auto', top: '50%', transform: 'translateY(-50%)' }}>{title}</span>
+    </button>
+  )
+}
+
 function Icon({ name, size = 17 }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
   switch (name) {
@@ -774,6 +871,10 @@ function Icon({ name, size = 17 }) {
     case 'number': return <svg {...p}><line x1="10" y1="6" x2="20" y2="6" /><line x1="10" y1="12" x2="20" y2="12" /><line x1="10" y1="18" x2="20" y2="18" /><path d="M4 6h1.2v4" /><path d="M3.6 10h2" /></svg>
     case 'play': return <svg {...p} fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4" /></svg>
     case 'pause': return <svg {...p} fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+    case 'hash': return <svg {...p}><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg>
+    case 'dm': return <svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-3.5A8.5 8.5 0 1 1 21 11.5z" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /></svg>
+    case 'inbox': return <svg {...p}><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
+    case 'folder': return <svg {...p}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
     default: return null
   }
 }

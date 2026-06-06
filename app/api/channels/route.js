@@ -30,7 +30,13 @@ export async function GET() {
     } catch {}
     // visibili: pubblici + privati di cui sei membro (l'admin vede tutto)
     const channels = (all || []).filter(c => !c.is_private || ws.isAdmin || memberOf.has(c.id))
-    return NextResponse.json({ channels, me: { memberId: ws.memberId, isAdmin: ws.isAdmin } })
+    // ultima attività per canale (per i non letti)
+    let lastAt = {}
+    try {
+      const { data: msgs } = await admin.from('channel_messages').select('channel_id, created_at').eq('workspace_id', ws.workspaceId).order('created_at', { ascending: false }).limit(1000)
+      for (const m of (msgs || [])) { if (!lastAt[m.channel_id]) lastAt[m.channel_id] = m.created_at }
+    } catch {}
+    return NextResponse.json({ channels, me: { memberId: ws.memberId, isAdmin: ws.isAdmin }, lastAt })
   } catch (e) {
     return NextResponse.json({ channels: [], error: e.message })
   }

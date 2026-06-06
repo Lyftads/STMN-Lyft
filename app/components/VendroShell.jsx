@@ -100,6 +100,7 @@ export default function VendroShell({
       color: '#7b5bff',
       items: [
         { id: 'tasks', label: 'Progetti & Task', icon: '◳' },
+        { id: 'timeTracking', label: 'Lyftimer', icon: '⏱' },
         { id: 'chat', label: 'LyftTalk', icon: '💬' },
       ],
     },
@@ -422,7 +423,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab)}

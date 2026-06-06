@@ -23,6 +23,7 @@ import SeoAuditTab from './components/SeoAuditTab'
 import UserPathTab from './components/UserPathTab'
 import PnLTab from './components/PnLTab'
 import TasksTab from './components/TasksTab'
+import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
 import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
@@ -4270,6 +4271,11 @@ export default function App() {
 {/* TEAM · PROGETTI & TASK */}
 {tab === 'tasks' && (
   <TasksTab />
+)}
+
+{/* TEAM · LYFTIMER (time tracking) */}
+{tab === 'timeTracking' && (
+  <TimeTrackingTab />
 )}
 
 {/* TEAM · CHAT */}

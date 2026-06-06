@@ -2,7 +2,25 @@
 
 import { useEffect, Component } from 'react'
 import App from '../page'
-import { demoData } from '../../lib/demo/data'
+import { demoData, demoLocalStorage } from '../../lib/demo/data'
+
+// Shim localStorage SOLO nella demo: fornisce mesi/settimane finti (con la spesa
+// Google Ads, che nell'app è "manuale") come se fossero già in automatico, senza
+// MAI scrivere nello storage reale e senza esporre i dati reali dell'utente.
+let _lsPatched = false
+function installLS() {
+  if (_lsPatched || typeof window === 'undefined') return
+  _lsPatched = true
+  try {
+    const DEMO = demoLocalStorage()
+    const shim = {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(DEMO, k) ? DEMO[k] : null),
+      setItem: () => {}, removeItem: () => {}, clear: () => {}, key: () => null, length: 0,
+    }
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: shim })
+  } catch {}
+}
+installLS()
 
 // Error boundary SOLO per la demo: mostra l'errore invece del white-screen.
 class DemoBoundary extends Component {

@@ -1,6 +1,9 @@
 'use client'
 
 import { Fragment, useEffect, useState, useCallback } from 'react'
+import Avatar from './Avatar'
+
+const PALETTE = ['#7b5bff', '#5b8bff', '#30d158', '#ff9f0a', '#ff375f', '#64d2ff', '#bf5af2', '#ffd60a', '#5ac8fa', '#ff6482']
 
 // Modulo Team → Progetti & Task (Fase 1). Board Kanban + creazione task/progetti,
 // assegnazione, priorità, scadenze, approvazione (aperta a tutti).
@@ -44,6 +47,7 @@ export default function TasksTab() {
   const [showTeam, setShowTeam] = useState(false)
   const [view, setView] = useState('board')
   const [activeProject, setActiveProject] = useState('all')
+  const [personProject, setPersonProject] = useState('all')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [detailId, setDetailId] = useState(null)
@@ -334,6 +338,54 @@ export default function TasksTab() {
                 </div>
               )}
             </div>
+
+            {/* Analisi per persona (filtrabile per progetto) */}
+            {(() => {
+              const ppTasks = personProject === 'all' ? tasks : tasks.filter(t => personProject === 'none' ? !t.project_id : t.project_id === personProject)
+              const peopleRows = [...members.map(m => ({ id: m.id, name: m.full_name || m.email, avatar: m.avatar_url })), { id: 'none', name: 'Non assegnato', avatar: null }]
+                .map(m => {
+                  const ts = ppTasks.filter(t => (m.id === 'none' ? !t.assignee_id : t.assignee_id === m.id))
+                  const done = ts.filter(isDone); const late = done.filter(isLate)
+                  return { ...m, total: ts.length, done: done.length, late: late.length, pct: ts.length ? Math.round(done.length / ts.length * 100) : 0 }
+                }).filter(m => m.total > 0).sort((a, b) => b.total - a.total)
+              const ppDonut = peopleRows.map((m, i) => ({ label: m.name, color: PALETTE[i % PALETTE.length], value: m.total }))
+              return (
+                <div style={{ ...card }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, flex: 1 }}>Analisi per persona</div>
+                    <select style={{ ...input, width: 'auto' }} value={personProject} onChange={e => setPersonProject(e.target.value)}>
+                      <option value="all">Tutti i progetti</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      <option value="none">Senza progetto</option>
+                    </select>
+                  </div>
+                  {peopleRows.length === 0 ? <div style={{ color: '#b0b0bd', fontSize: 13 }}>Nessun task assegnato.</div> : (
+                    <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                      <div style={{ flexShrink: 0 }}>
+                        <div style={{ fontSize: 11.5, color: '#b0b0bd', marginBottom: 8 }}>Distribuzione task per persona</div>
+                        <DonutLegend data={ppDonut} total={ppTasks.length} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {peopleRows.map((m, i) => (
+                          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Avatar name={m.name} url={m.avatar} size={30} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{m.name}</span>
+                                <span style={{ color: '#b0b0bd', fontVariantNumeric: 'tabular-nums' }}>{m.done}/{m.total} · {m.pct}%{m.late > 0 ? ` · ⚠️ ${m.late}` : ''}</span>
+                              </div>
+                              <div style={{ height: 9, background: '#14141d', borderRadius: 5, overflow: 'hidden' }}>
+                                <div style={{ width: `${m.pct}%`, height: '100%', background: PALETTE[i % PALETTE.length] }} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Linea: completamenti cumulativi */}
             <div style={{ ...card }}>

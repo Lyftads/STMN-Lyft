@@ -7,67 +7,17 @@ import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
 import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
+import LanguageSwitcher from './ui/LanguageSwitcher'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
-function getPageTitle(tab) {
-  const map = {
-    dashboard: 'Dashboard',
-    kpiBrain: 'KPI Brain',
-    attribution: 'Attribuzione',
-    ltvCohorts: 'LTV & Coorti',
-    monthly: 'Monthly',
-    weekly: 'Weekly',
-    quarter: 'Quarter',
-    year: 'Year',
-    simulator: 'Simulatore',
-    metaDetail: 'Meta Detail',
-    metaKpi: 'Meta KPI',
-    lighthouse: 'Lighthouse',
-    forecast: 'Forecast',
-    scheduledReports: 'Scheduled Reports',
-    creative: 'Creative',
-    creativeFatigue: 'Creative Fatigue',
-    budgetAdvisor: 'Budget Advisor',
-    performanceAgent: 'Performance Agent',
-    klaviyo: 'Klaviyo',
-    competitorIntel: 'Competitor Intel',
-    priceComparison: 'Prezzi vs Competitor',
-    integrations: 'Integrazioni',
-    brandIdentity: 'Brand Identity',
-    settings: 'Settings',
-    cro: 'CRO',
-    webScanner: 'AI Website Scanner',
-    creativeLab: 'Creative Lab',
-  }
-  return map[tab] || 'Dashboard'
+// Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
+function getPageTitle(tab, t) {
+  if (tab === 'scheduledReports') return t('title.scheduledReports')
+  return t('tab.' + tab, null, t('tab.dashboard'))
 }
 
-function getPageSubtitle(tab) {
-  const map = {
-    kpiBrain: 'Your business intelligence at a glance',
-    attribution: 'Total Impact · paid vs organico · contributo per canale · MER blended',
-    ltvCohorts: 'Retention per coorte · repeat rate · tempo al 2° ordine · curva LTV',
-    creative: 'Analisi creative Meta Ads',
-    creativeFatigue: 'Creative da rinfrescare · frequency, CTR, CPA',
-    budgetAdvisor: 'Riallocazione budget campagne attive · forecast ROAS',
-    metaDetail: 'Dettaglio performance Meta',
-    metaKpi: 'KPI completi Meta Ads · Spend, ROAS, CPO, CTR, CPM, Frequency, Reach',
-    lighthouse: 'Alert center · Anomalie CPM · CTR · ROAS · CPO · Frequenza',
-    forecast: 'Proiezione revenue · spesa · MER · 30/60/90 giorni',
-    scheduledReports: 'Digest automatici via email · Weekly · Monthly',
-    performanceAgent: 'Consulente AI · Performance · CMO · CRO · Ads',
-    klaviyo: 'Email Marketing · Campagne · Flussi · Segmenti',
-    competitorIntel: 'Creative attive · Catalogo · Prezzi · Promozioni',
-    priceComparison: 'Confronto prezzi per categoria',
-    integrations: 'Collega e gestisci tutte le piattaforme',
-    brandIdentity: 'Identita\' del brand · Tone of voice · Visual · Competitor',
-    settings: 'Subscription · Piani · Fatturazione',
-    cro: 'Funnel · Top Pages · Flusso Traffico',
-    webScanner: 'Scanner CRO con AI Vision · Heuristic evaluation · Quick wins',
-    creativeLab: 'Genera ad creative con AI',
-    simulator: 'LTV:CAC · Scenari Advertising · Forecasting · Strategia CMO + CFO',
-    dashboard: 'Panoramica completa del business',
-  }
-  return map[tab] || 'Panoramica completa del business'
+function getPageSubtitle(tab, t) {
+  return t('subtitle.' + tab, null, t('subtitle.default'))
 }
 
 const PRESETS = [
@@ -94,6 +44,7 @@ export default function VendroShell({
   allowedTabs,
   children,
 }) {
+  const { t } = useI18n()
   const navGroups = [
     {
       title: 'Team',
@@ -329,7 +280,7 @@ export default function VendroShell({
                   boxShadow: `0 0 6px ${group.color}`,
                   opacity: isOpen || hasActive ? 1 : 0.5,
                 }} />
-                <span style={{ flex: 1, textAlign: 'left' }}>{group.title}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>{t('group.' + group.title.toLowerCase(), null, group.title)}</span>
                 {!isOpen && hasActive && (
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
@@ -386,7 +337,7 @@ export default function VendroShell({
                       }}>
                         {item.icon}
                       </span>
-                      <span>{item.label}</span>
+                      <span>{t('tab.' + item.id, null, item.label)}</span>
                     </button>
                   )
                 })}
@@ -426,7 +377,7 @@ export default function VendroShell({
             {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
-                  {getPageTitle(tab)}
+                  {getPageTitle(tab, t)}
                 </h1>
                 <p style={{
                   margin: 0,
@@ -434,7 +385,7 @@ export default function VendroShell({
                   fontSize: 14,
                   fontWeight: 400,
                 }}>
-                  {getPageSubtitle(tab)}
+                  {getPageSubtitle(tab, t)}
                 </p>
               </div>
             ) : <div />}
@@ -445,6 +396,7 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
               {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
@@ -470,11 +422,11 @@ export default function VendroShell({
                     display: 'inline-block',
                     animation: loading ? 'spin 1s linear infinite' : 'none',
                   }}>↻</span>
-                  {loading ? 'Carico…' : 'Aggiorna'}
+                  {loading ? t('shell.refreshing') : t('shell.refresh')}
                 </button>
               )}
               {['monthly', 'quarter', 'year', 'attribution'].includes(tab) && (
-                <DownloadReportButton tab={getPageTitle(tab)} preset={preset} />
+                <DownloadReportButton tab={getPageTitle(tab, t)} preset={preset} />
               )}
             </div>
           </header>

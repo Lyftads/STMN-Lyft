@@ -40,6 +40,7 @@ const btnGhost = { background: 'transparent', border: '1px solid var(--border)',
 export default function TasksTab() {
   const [projects, setProjects] = useState([])
   const [members, setMembers] = useState([])
+  const [seats, setSeats] = useState(null)
   const [tasks, setTasks] = useState([])
   const [me, setMe] = useState(null)
   const [rolesCatalog, setRolesCatalog] = useState([])
@@ -68,6 +69,7 @@ export default function TasksTab() {
       ])
       setProjects(p.projects || [])
       setMembers(mem.members || [])
+      setSeats(mem.seats || null)
       setRolesCatalog(mem.roles || [])
       setRoleLabels(mem.roleLabels || {})
       setMe(t.me || mem.me || null)
@@ -415,6 +417,7 @@ export default function TasksTab() {
           roleLabels={roleLabels}
           ownerUserId={me?.userId}
           onClose={() => setShowTeam(false)}
+          seats={seats}
           onInvite={inviteMember}
           onUpdateRoles={updateMemberRoles}
           onRemove={removeMember}
@@ -598,7 +601,8 @@ const STATUS_BADGE = {
   disabled: { label: 'Disattivato', color: '#b0b0bd' },
 }
 
-function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, onInvite, onUpdateRoles, onRemove }) {
+function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onClose, onInvite, onUpdateRoles, onRemove }) {
+  const atLimit = seats && seats.limit != null && seats.used >= seats.limit
   const [email, setEmail] = useState('')
   const [roles, setRoles] = useState([])
   const [sending, setSending] = useState(false)
@@ -628,10 +632,18 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
         </div>
 
+        {/* Contatore posti del piano */}
+        {seats && (
+          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 10, border: `1px solid ${atLimit ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`, background: atLimit ? 'rgba(255,55,95,0.08)' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+            <span style={{ fontWeight: 700 }}>Utenti del team: {seats.used}{seats.limit != null ? ` / ${seats.limit}` : ''}</span>
+            <span style={{ color: '#b0b0bd' }}>{seats.limit == null ? 'illimitati nel tuo piano' : atLimit ? '· limite raggiunto, fai upgrade per aggiungerne altri' : `· piano ${seats.plan || ''}`}</span>
+          </div>
+        )}
+
         {/* Invita */}
-        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10, opacity: atLimit ? 0.55 : 1 }}>
           <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Invita un collaboratore</div>
-          <input style={input} placeholder="email@esempio.com" value={email} onChange={e => setEmail(e.target.value)} />
+          <input style={input} placeholder="email@esempio.com" value={email} onChange={e => setEmail(e.target.value)} disabled={atLimit} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
             {rolesCatalog.map(r => (
               <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? '#5b8bff' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
@@ -641,8 +653,8 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, onClose, on
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-            <button style={{ ...btn, opacity: sending ? 0.6 : 1 }} disabled={sending} onClick={submit}>
-              {sending ? 'Creo accesso…' : '✉ Crea accesso & invita'}
+            <button style={{ ...btn, opacity: (sending || atLimit) ? 0.6 : 1 }} disabled={sending || atLimit} onClick={submit}>
+              {sending ? 'Creo accesso…' : atLimit ? 'Limite del piano raggiunto' : '✉ Crea accesso & invita'}
             </button>
           </div>
 

@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto'
 import { getAdminSupabase, getServerSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
+import { seatLimit } from '../../../lib/team/seats'
 
 // Ruoli validi del modulo Team (oltre ad 'admin' = owner).
 const ROLES = [
@@ -140,10 +141,15 @@ export async function GET() {
       .from('team_members').select('*')
       .eq('workspace_id', ws.workspaceId)
       .order('created_at', { ascending: true })
+    let plan = null
+    try { const { data: comp } = await admin.from('companies').select('plan').eq('user_id', ws.workspaceId).maybeSingle(); plan = comp?.plan || null } catch {}
+    const limit = seatLimit(plan)
+    const used = (data || []).filter(m => ['active', 'invited'].includes(m.status)).length
     return NextResponse.json({
       members: data || [],
       roles: ROLES,
       roleLabels: ROLE_LABELS,
+      seats: { plan, limit: limit === Infinity ? null : limit, used },
       me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin, isMember: ws.workspaceId !== ws.userId },
     })
   } catch (e) {
@@ -166,6 +172,19 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, error: 'Email non valida' }, { status: 400 })
   }
   const roles = Array.isArray(b.roles) ? b.roles.filter(r => ROLES.includes(r)) : []
+
+  // 0) limite posti del piano (conta owner + membri attivi/invitati)
+  try {
+    const { data: comp } = await admin.from('companies').select('plan').eq('user_id', ws.workspaceId).maybeSingle()
+    const limit = seatLimit(comp?.plan)
+    if (limit !== Infinity) {
+      const { data: seats } = await admin.from('team_members').select('email').eq('workspace_id', ws.workspaceId).in('status', ['active', 'invited'])
+      const already = (seats || []).some(m => (m.email || '').toLowerCase() === email)
+      if (!already && (seats || []).length >= limit) {
+        return NextResponse.json({ ok: false, error: `Limite del piano raggiunto: ${limit} utenti del team. Passa a un piano superiore per aggiungerne altri.` }, { status: 200 })
+      }
+    }
+  } catch {}
 
   // 1) account auth GIÀ confermato con password temporanea (no email Supabase)
   let auth

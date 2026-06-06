@@ -22,6 +22,7 @@ import WebsiteScannerTab from './components/WebsiteScannerTab'
 import SeoAuditTab from './components/SeoAuditTab'
 import PnLTab from './components/PnLTab'
 import OnboardingTab from './components/OnboardingTab'
+import PlanUsageBanner from './components/PlanUsageBanner'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
@@ -2722,6 +2723,7 @@ export default function App() {
     onRefresh={() => fetchLive(true)}
   >
     {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}
+    <PlanUsageBanner onGoSettings={() => setTab('settings')} />
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
 

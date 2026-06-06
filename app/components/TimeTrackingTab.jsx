@@ -194,7 +194,7 @@ export default function TimeTrackingTab({ standalone = false }) {
   const projColor = (id) => projects.find(p => p.id === id)?.color || '#7b5bff'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1000 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: standalone ? 'none' : 1000, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8, marginRight: 4 }}>
           <button onClick={winClose} title="Chiudi" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
@@ -569,6 +569,30 @@ export default function TimeTrackingTab({ standalone = false }) {
                     </div>
                   ))}
                 </div>
+
+                {/* Tempo di lavoro per persona (sempre visibile) */}
+                {(() => {
+                  const people = reportGroups(report, 'person')
+                  const ptot = people.reduce((s, x) => s + x.sec, 0)
+                  return (
+                    <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>Tempo di lavoro per persona</div>
+                      {people.map((g, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < people.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                          <Avatar name={g.label} size={32} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</div>
+                            <div style={{ height: 6, background: '#14141d', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
+                              <div style={{ width: `${ptot ? Math.round(g.sec / ptot * 100) : 0}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                            </div>
+                          </div>
+                          <span style={{ color: MUTED, fontSize: 13 }}>{g.count} voci</span>
+                          <span style={{ width: 80, textAlign: 'right', fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(g.sec)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
               </>
             )}
           </div>

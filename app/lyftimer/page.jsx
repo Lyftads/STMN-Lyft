@@ -8,12 +8,10 @@ export default function LyftimerAppPage() {
   return (
     <div style={{
       minHeight: '100dvh',
-      padding: '18px 18px 40px',
+      padding: '18px 24px 40px',
       background: 'radial-gradient(1100px 760px at 12% -10%, rgba(123,91,255,0.20), transparent 60%), radial-gradient(1000px 720px at 100% 110%, rgba(91,139,255,0.16), transparent 60%), #07070e',
     }}>
-      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-        <TimeTrackingTab standalone />
-      </div>
+      <TimeTrackingTab standalone />
     </div>
   )
 }

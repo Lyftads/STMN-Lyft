@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import CROAgent from './CROAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -111,12 +112,13 @@ function KpiCard({ label, value, accent = '#fff', curr, prev, delay = 0, isLower
 }
 
 function FunnelChart({ funnel, delay = 0 }) {
+  const { t } = useI18n()
   const steps = [
-    { name: 'Visitatori unici', value: funnel.visitors },
-    { name: 'Visualizza prodotto', value: Math.round(funnel.visitors * 0.65) },
-    { name: 'Aggiungi al carrello', value: funnel.addToCart },
+    { name: t('cro.stepVisitors', null, 'Visitatori unici'), value: funnel.visitors },
+    { name: t('cro.stepViewProduct', null, 'Visualizza prodotto'), value: Math.round(funnel.visitors * 0.65) },
+    { name: t('cro.stepAddToCart', null, 'Aggiungi al carrello'), value: funnel.addToCart },
     { name: 'Checkout', value: funnel.checkout },
-    { name: 'Acquista', value: funnel.purchase },
+    { name: t('cro.stepPurchase', null, 'Acquista'), value: funnel.purchase },
   ]
   const maxVal = steps[0].value || 1
 
@@ -128,7 +130,7 @@ function FunnelChart({ funnel, delay = 0 }) {
             Purchase Journey
           </h2>
           <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
-            Funnel di conversione · dai visitatori all'acquisto
+            {t('cro.funnelSubtitle', null, "Funnel di conversione · dai visitatori all'acquisto")}
           </p>
         </div>
         <span style={{
@@ -198,7 +200,7 @@ function FunnelChart({ funnel, delay = 0 }) {
           const dropPct = steps[i - 1].value > 0 ? (drop / steps[i - 1].value) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Abbandono</div>
+              <div style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{t('cro.dropoff', null, 'Abbandono')}</div>
               <div style={{
                 fontSize: 12.5,
                 fontWeight: 900,
@@ -216,6 +218,7 @@ function FunnelChart({ funnel, delay = 0 }) {
 }
 
 export default function CROTab({ data = [], live, onRefresh, loading }) {
+  const { t } = useI18n()
   const [tf, setTf] = useState('this_month')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -253,26 +256,26 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
   const prevCro = p.ses > 0 && p.ord > 0 ? (p.ord / p.ses) * 100 : null
 
-  const funnel = { visitors: c.ses, addToCart: c.atc, checkout: c.chk, purchase: c.ord, source: 'Shopify · mensile' }
+  const funnel = { visitors: c.ses, addToCart: c.atc, checkout: c.chk, purchase: c.ord, source: t('cro.sourceMonthly', null, 'Shopify · mensile') }
 
   const insights = useMemo(() => {
     const ins = []
-    if (c.cro != null && c.cro < 1) ins.push(`Conversion rate al ${fmtP(c.cro)} — sotto il benchmark (1%). Un +1% genererebbe ~${fmtN(Math.round(c.ses * 0.01))} ordini in più.`)
-    else if (c.cro != null && c.cro >= 2) ins.push(`Conversion rate al ${fmtP(c.cro)} — sopra la media e-commerce. Ottimo risultato.`)
+    if (c.cro != null && c.cro < 1) ins.push(t('cro.insLowCvr', { cro: fmtP(c.cro), n: fmtN(Math.round(c.ses * 0.01)) }, `Conversion rate al ${fmtP(c.cro)} — sotto il benchmark (1%). Un +1% genererebbe ~${fmtN(Math.round(c.ses * 0.01))} ordini in più.`))
+    else if (c.cro != null && c.cro >= 2) ins.push(t('cro.insHighCvr', { cro: fmtP(c.cro) }, `Conversion rate al ${fmtP(c.cro)} — sopra la media e-commerce. Ottimo risultato.`))
     if (c.cro != null && prevCro != null) {
       const d = c.cro - prevCro
-      if (d > 0.3) ins.push(`CRO in miglioramento di +${d.toFixed(2)}pp rispetto al periodo precedente.`)
-      if (d < -0.3) ins.push(`CRO in calo di ${Math.abs(d).toFixed(2)}pp. Verificare UX, velocità sito e offerta.`)
+      if (d > 0.3) ins.push(t('cro.insCroUp', { d: d.toFixed(2) }, `CRO in miglioramento di +${d.toFixed(2)}pp rispetto al periodo precedente.`))
+      if (d < -0.3) ins.push(t('cro.insCroDown', { d: Math.abs(d).toFixed(2) }, `CRO in calo di ${Math.abs(d).toFixed(2)}pp. Verificare UX, velocità sito e offerta.`))
     }
-    if (c.aov && c.aov < 50) ins.push(`AOV a ${fmtE(c.aov)}: sotto i €50. Considerare upsell, bundle o soglia spedizione gratuita.`)
-    if (c.ses > 0 && c.ses < 500) ins.push(`Traffico basso (${fmtN(c.ses)} sessioni). Il CRO è limitato dal volume — priorità: aumentare traffico qualificato.`)
+    if (c.aov && c.aov < 50) ins.push(t('cro.insLowAov', { aov: fmtE(c.aov) }, `AOV a ${fmtE(c.aov)}: sotto i €50. Considerare upsell, bundle o soglia spedizione gratuita.`))
+    if (c.ses > 0 && c.ses < 500) ins.push(t('cro.insLowTraffic', { ses: fmtN(c.ses) }, `Traffico basso (${fmtN(c.ses)} sessioni). Il CRO è limitato dal volume — priorità: aumentare traffico qualificato.`))
     if (c.nc > 0 && c.rc > 0) {
       const retRate = (c.rc / (c.nc + c.rc)) * 100
-      if (retRate > 25) ins.push(`Retention rate al ${fmtP(retRate)}: buona fidelizzazione. I clienti ritornano.`)
-      if (retRate < 10) ins.push(`Retention rate al ${fmtP(retRate)}: pochi clienti ritornano. Lavorare su email post-acquisto e programmi fedeltà.`)
+      if (retRate > 25) ins.push(t('cro.insGoodRet', { ret: fmtP(retRate) }, `Retention rate al ${fmtP(retRate)}: buona fidelizzazione. I clienti ritornano.`))
+      if (retRate < 10) ins.push(t('cro.insLowRet', { ret: fmtP(retRate) }, `Retention rate al ${fmtP(retRate)}: pochi clienti ritornano. Lavorare su email post-acquisto e programmi fedeltà.`))
     }
     return ins
-  }, [c, p, prevCro])
+  }, [c, p, prevCro, t])
 
   return (
     <div>
@@ -295,8 +298,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         {[
-          { id: 'this_month', l: 'Questo mese' },
-          { id: 'last_month', l: 'Mese precedente' },
+          { id: 'this_month', l: t('cro.tfThisMonth', null, 'Questo mese') },
+          { id: 'last_month', l: t('cro.tfLastMonth', null, 'Mese precedente') },
           { id: 'custom', l: 'Custom' },
         ].map(b => {
           const active = tf === b.id
@@ -321,7 +324,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         })}
         {tf === 'custom' && (
           <>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>Da:</span>
+            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>{t('cro.from', null, 'Da:')}</span>
             <select
               value={customSince}
               onChange={e => setCustomSince(e.target.value)}
@@ -335,11 +338,11 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
                 outline: 'none',
               }}
             >
-              <option value="">Seleziona</option>
+              <option value="">{t('cro.select', null, 'Seleziona')}</option>
               {availableMonths.map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
             <span style={{ color: 'var(--text3)' }}>→</span>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>A:</span>
+            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>{t('cro.to', null, 'A:')}</span>
             <select
               value={customUntil}
               onChange={e => setCustomUntil(e.target.value)}
@@ -353,7 +356,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
                 outline: 'none',
               }}
             >
-              <option value="">Seleziona</option>
+              <option value="">{t('cro.select', null, 'Seleziona')}</option>
               {availableMonths.filter(m => !customSince || m.month >= customSince).map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
             </select>
           </>
@@ -371,7 +374,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
             }}
           >
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Aggiorno…' : 'Aggiorna'}
+            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
         )}
         <span style={{ fontSize: 11, color: 'var(--text3)' }}>{tfLabel}</span>
@@ -379,8 +382,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 14, marginBottom: 18 }}>
-        <KpiCard label="Sessioni" value={fmtN(c.ses)} accent="#a78bfa" curr={c.ses} prev={p.ses} delay={0} />
-        <KpiCard label="Ordini" value={fmtN(c.ord)} accent="#22c55e" curr={c.ord} prev={p.ord} delay={0.3} />
+        <KpiCard label={t('cro.sessions', null, 'Sessioni')} value={fmtN(c.ses)} accent="#a78bfa" curr={c.ses} prev={p.ses} delay={0} />
+        <KpiCard label={t('kpi.orders', null, 'Ordini')} value={fmtN(c.ord)} accent="#22c55e" curr={c.ord} prev={p.ord} delay={0.3} />
         <KpiCard
           label="CRO"
           value={fmtP(c.cro)}
@@ -389,9 +392,9 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
           prev={prevCro}
           delay={0.6}
         />
-        <KpiCard label="Fatturato" value={fmtE(c.fat)} accent="#22c55e" curr={c.fat} prev={p.fat} delay={0.9} />
+        <KpiCard label={t('kpi.revenue', null, 'Fatturato')} value={fmtE(c.fat)} accent="#22c55e" curr={c.fat} prev={p.fat} delay={0.9} />
         <KpiCard label="AOV" value={fmtE(c.aov)} accent="#f97316" curr={c.aov} prev={p.aov} delay={1.2} />
-        <KpiCard label="Nuovi Clienti" value={fmtN(c.nc)} accent={ACCENT_GLOW} curr={c.nc} prev={p.nc} delay={1.5} />
+        <KpiCard label={t('kpi.newCustomers', null, 'Nuovi Clienti')} value={fmtN(c.nc)} accent={ACCENT_GLOW} curr={c.nc} prev={p.nc} delay={1.5} />
       </div>
 
       {/* Funnel */}
@@ -405,7 +408,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         <div style={{ marginBottom: 18 }}>
           <GlassCard padding={40} delay={1.8}>
             <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
-              Nessun dato sessioni per il periodo selezionato. Prova un periodo diverso o clicca Aggiorna.
+              {t('cro.emptyState', null, 'Nessun dato sessioni per il periodo selezionato. Prova un periodo diverso o clicca Aggiorna.')}
             </div>
           </GlassCard>
         </div>
@@ -419,7 +422,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
               CRO Insights
             </h2>
             <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
-              Letture automatiche su conversion rate, AOV, retention e funnel
+              {t('cro.insightsSubtitle', null, 'Letture automatiche su conversion rate, AOV, retention e funnel')}
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

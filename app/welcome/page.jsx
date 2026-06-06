@@ -123,7 +123,7 @@ const I18N = {
       briefingItems: [
         { icon: '⚠', color: '#f87171', txt: 'ROAS Meta crollato a 1.4x (vs 2.8x media 7gg)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV in calo da 4 giorni: 78€ → 71€' },
-        { icon: '◆', color: BLUE, txt: 'Top product cambia: Paracalli Premium scala' },
+        { icon: '◆', color: BLUE, txt: 'Top product cambia: il nuovo bestseller scala' },
         { icon: 'ⓘ', color: GREEN, txt: 'Settimana record: 142 ordini (best del mese)' },
       ],
       chatTitle: 'Performance Agent — chat',
@@ -140,7 +140,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'Cosa dicono di noi', title: 'Brand che hanno smesso di scegliere a sentimento' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, STMN Fitness', text: 'Prima dovevo aprire 4 dashboard ogni mattina. Adesso apro la chat e mi dice: ROAS Meta in calo, AOV stabile, top product cambia. In 2 minuti so cosa fare.', avatar: 'MC' },
+      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Prima dovevo aprire 4 dashboard ogni mattina. Adesso apro la chat e mi dice: ROAS Meta in calo, AOV stabile, top product cambia. In 2 minuti so cosa fare.', avatar: 'MC' },
       { name: 'Andrea R.', role: 'Head of Growth, brand DTC', text: 'Il Creative Fatigue mi ha salvato. Avevo 6 ads sopra frequency 4 e bruciavo €800/day per niente. LyftAI me l\'ha detto al terzo giorno.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'Il Performance Agent ricorda tutto. Gli ho detto una volta che il MER target è 2.5x — non glielo devo più ripetere. Mi avvisa quando scendiamo sotto.', avatar: 'SM' },
     ],
@@ -269,7 +269,7 @@ const I18N = {
       briefingItems: [
         { icon: '⚠', color: '#f87171', txt: 'Meta ROAS collapsed to 1.4x (vs 2.8x 7d avg)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV declining for 4 days: 78€ → 71€' },
-        { icon: '◆', color: BLUE, txt: 'Top product changes: Premium Grips scaling' },
+        { icon: '◆', color: BLUE, txt: 'Top product changes: the new bestseller is scaling' },
         { icon: 'ⓘ', color: GREEN, txt: 'Record week: 142 orders (best of month)' },
       ],
       chatTitle: 'Performance Agent — chat',
@@ -286,7 +286,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'What they say about us', title: 'Brands that stopped choosing by gut feeling' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, STMN Fitness', text: 'Before I had to open 4 dashboards every morning. Now I open the chat and it tells me: Meta ROAS down, AOV stable, top product changing. In 2 minutes I know what to do.', avatar: 'MC' },
+      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Before I had to open 4 dashboards every morning. Now I open the chat and it tells me: Meta ROAS down, AOV stable, top product changing. In 2 minutes I know what to do.', avatar: 'MC' },
       { name: 'Andrea R.', role: 'Head of Growth, DTC brand', text: 'Creative Fatigue saved me. I had 6 ads above frequency 4 and was burning €800/day for nothing. LyftAI told me on day 3.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'The Performance Agent remembers everything. I told it once that MER target is 2.5x — never had to repeat it. It alerts me when we drop below.', avatar: 'SM' },
     ],
@@ -415,7 +415,7 @@ const I18N = {
       briefingItems: [
         { icon: '⚠', color: '#f87171', txt: 'ROAS Meta colapsó a 1.4x (vs 2.8x media 7d)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV bajando desde 4 días: 78€ → 71€' },
-        { icon: '◆', color: BLUE, txt: 'Top product cambia: Premium Grips escala' },
+        { icon: '◆', color: BLUE, txt: 'Top product cambia: el nuevo bestseller escala' },
         { icon: 'ⓘ', color: GREEN, txt: 'Semana récord: 142 pedidos (mejor del mes)' },
       ],
       chatTitle: 'Performance Agent — chat',
@@ -432,7 +432,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'Qué dicen de nosotros', title: 'Marcas que dejaron de elegir por intuición' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, STMN Fitness', text: 'Antes tenía que abrir 4 dashboards cada mañana. Ahora abro el chat y me dice: ROAS Meta cayendo, AOV estable, top product cambiando. En 2 minutos sé qué hacer.', avatar: 'MC' },
+      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Antes tenía que abrir 4 dashboards cada mañana. Ahora abro el chat y me dice: ROAS Meta cayendo, AOV estable, top product cambiando. En 2 minutos sé qué hacer.', avatar: 'MC' },
       { name: 'Andrea R.', role: 'Head of Growth, marca DTC', text: 'El Creative Fatigue me salvó. Tenía 6 ads sobre frequency 4 y quemaba €800/día por nada. LyftAI me lo dijo al tercer día.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'El Performance Agent recuerda todo. Le dije una vez que el MER target es 2.5x — no se lo tengo que repetir. Me avisa cuando bajamos.', avatar: 'SM' },
     ],

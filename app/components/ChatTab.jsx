@@ -9,7 +9,7 @@ import { renderMarkdown } from './chatMarkdown'
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
 const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none', resize: 'none' }
-const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const MUTED = '#8b8b9a'
 const EMOJIS = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😋', '😎', '🤩',
@@ -293,9 +293,9 @@ export default function ChatTab({ standalone = false }) {
   const meetUrl = () => `https://meet.jit.si/LyftAI-${active}`
   function copyMeetLink() { copyText(meetUrl()) }
 
-  function winClose() { try { window.close() } catch {} }
-  function winMin() { try { window.blur() } catch {} }
-  function winFull() { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen() } catch {} }
+  function winClose() { try { window.close() } catch {}; try { if (!window.closed) window.location.href = '/' } catch {} }
+  function winMin() { try { if (document.fullscreenElement) document.exitFullscreen() } catch {} }
+  function winFull() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen() } catch {} }
 
   async function attachFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''
@@ -432,7 +432,7 @@ export default function ChatTab({ standalone = false }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="tipwrap" style={{ display: 'flex', gap: 8, position: 'relative' }}>
             <button onClick={winClose} title="Chiudi" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
-            <button onClick={winMin} title="Riduci" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
+            <button onClick={winMin} title="Riduci (esci da schermo intero)" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
             <button onClick={winFull} title="Schermo intero" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
           </div>
           <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
@@ -763,7 +763,7 @@ export default function ChatTab({ standalone = false }) {
             </div>
             <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
               <input style={FIELD} placeholder="Rispondi…" value={threadText} onChange={e => setThreadText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendThread() } }} />
-              <button onClick={sendThread} style={{ ...BTN, width: 40, padding: 0 }}>➤</button>
+              <button onClick={sendThread} style={{ ...BTN, width: 40, padding: 0 }}><Icon name="send" size={16} /></button>
             </div>
           </div>
         )}
@@ -843,7 +843,7 @@ function RailBtn({ active, onClick, title, badge, children }) {
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
       {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
-      <span className="tip" style={{ left: 'auto', right: 'calc(100% + 8px)', bottom: 'auto', top: '50%', transform: 'translateY(-50%)' }}>{title}</span>
+      <span className="tip" style={{ left: 'calc(100% + 10px)', right: 'auto', bottom: 'auto', top: '50%', transform: 'translateY(-50%)' }}>{title}</span>
     </button>
   )
 }

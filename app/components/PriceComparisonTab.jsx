@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const CATEGORIES = [
-  { id: 'grips', label: 'Paracalli', icon: '🧤' },
-  { id: 'ropes', label: 'Corde', icon: '🪢' },
-  { id: 'knee_sleeves', label: 'Ginocchiere', icon: '🦵' },
-  { id: 'men_apparel', label: 'Abb. Uomo', icon: '👕' },
-  { id: 'women_apparel', label: 'Abb. Donna', icon: '👚' },
-  { id: 'bags', label: 'Zaini / Borsoni', icon: '🎒' },
+  { id: 'grips', label: 'Paracalli', labelKey: 'price.catGrips', icon: '🧤' },
+  { id: 'ropes', label: 'Corde', labelKey: 'price.catRopes', icon: '🪢' },
+  { id: 'knee_sleeves', label: 'Ginocchiere', labelKey: 'price.catKneeSleeves', icon: '🦵' },
+  { id: 'men_apparel', label: 'Abb. Uomo', labelKey: 'price.catMenApparel', icon: '👕' },
+  { id: 'women_apparel', label: 'Abb. Donna', labelKey: 'price.catWomenApparel', icon: '👚' },
+  { id: 'bags', label: 'Zaini / Borsoni', labelKey: 'price.catBags', icon: '🎒' },
 ]
 
 const CURRENCY_SYMBOLS = { EUR: '€', AUD: 'A$', USD: '$', GBP: '£' }
@@ -23,6 +24,7 @@ function money(v, currency = 'EUR') {
 }
 
 function ProductCard({ product }) {
+  const { t } = useI18n()
   return (
     <div className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', width: 170, flexShrink: 0 }}>
       <div style={{
@@ -34,7 +36,7 @@ function ProductCard({ product }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={e => { e.target.style.display = 'none' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--text3)', fontSize: 11 }}>No image</div>
+          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'var(--text3)', fontSize: 11 }}>{t('price.noImage', null, 'No image')}</div>
         )}
       </div>
       <div style={{ padding: '8px 10px' }}>
@@ -59,6 +61,7 @@ function ProductCard({ product }) {
 }
 
 function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const products = brandData.products || []
   const cur = brandData.currency || 'EUR'
@@ -85,7 +88,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {products.length > 0 && <span style={{ color: 'var(--text3)', fontSize: 11, width: 12 }}>{expanded ? '▾' : '▸'}</span>}
           <span style={{ fontSize: 13, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)' }}>{brandName}</span>
-          {isOwn && <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: 'rgba(41,151,255,0.14)', color: 'var(--accent)' }}>NOI</span>}
+          {isOwn && <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: 'rgba(41,151,255,0.14)', color: 'var(--accent)' }}>{t('price.usBadge', null, 'NOI')}</span>}
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textAlign: 'right' }}>{brandData.count}</div>
         <div style={{ fontSize: 15, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)', textAlign: 'right', fontFamily: 'Barlow' }}>{money(brandData.avg, cur)}</div>
@@ -114,6 +117,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
 }
 
 export default function PriceComparisonTab() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -170,6 +174,7 @@ export default function PriceComparisonTab() {
     for (const cat of comparison) {
       const catMeta = CATEGORIES.find(c => c.id === cat.id)
       if (cat.own.count === 0) continue
+      const catLabel = t(catMeta?.labelKey, null, catMeta?.label || cat.label)
 
       const eurComps = Object.entries(cat.competitors).filter(([, v]) => v.currency === 'EUR')
 
@@ -178,17 +183,18 @@ export default function PriceComparisonTab() {
         const cheaper = v.deltaEuro < 0
         const absDelta = Math.abs(v.deltaEuro)
         const absPct = Math.abs(v.deltaPct)
+        const vars = { comp: compName, cat: catLabel, own: cat.own.avg.toFixed(2), avg: v.avg.toFixed(2), pct: absPct.toFixed(1), delta: absDelta.toFixed(2) }
 
         if (absPct > 15) {
           items.push({
             severity: cheaper ? 'positive' : 'warning',
-            category: catMeta?.label || cat.label,
+            category: catLabel,
             title: cheaper
-              ? `Siamo più economici di ${compName} sui ${catMeta?.label}`
-              : `Siamo più cari di ${compName} sui ${catMeta?.label}`,
+              ? t('price.titleCheaper', vars, `Siamo più economici di ${compName} sui ${catLabel}`)
+              : t('price.titleExpensive', vars, `Siamo più cari di ${compName} sui ${catLabel}`),
             body: cheaper
-              ? `Il nostro prezzo medio (€${cat.own.avg.toFixed(2)}) è inferiore del ${absPct.toFixed(1)}% rispetto a ${compName} (€${v.avg.toFixed(2)}), con un vantaggio di €${absDelta.toFixed(2)} per prodotto. Questo è un punto di forza da evidenziare nelle ads e nelle landing page.`
-              : `Il nostro prezzo medio (€${cat.own.avg.toFixed(2)}) è superiore del ${absPct.toFixed(1)}% rispetto a ${compName} (€${v.avg.toFixed(2)}), con €${absDelta.toFixed(2)} in più per prodotto. Valutare se il posizionamento premium è intenzionale o se c'è margine per un adeguamento.`,
+              ? t('price.bodyCheaper', vars, `Il nostro prezzo medio (€${cat.own.avg.toFixed(2)}) è inferiore del ${absPct.toFixed(1)}% rispetto a ${compName} (€${v.avg.toFixed(2)}), con un vantaggio di €${absDelta.toFixed(2)} per prodotto. Questo è un punto di forza da evidenziare nelle ads e nelle landing page.`)
+              : t('price.bodyExpensive', vars, `Il nostro prezzo medio (€${cat.own.avg.toFixed(2)}) è superiore del ${absPct.toFixed(1)}% rispetto a ${compName} (€${v.avg.toFixed(2)}), con €${absDelta.toFixed(2)} in più per prodotto. Valutare se il posizionamento premium è intenzionale o se c'è margine per un adeguamento.`),
           })
         }
       }
@@ -199,17 +205,17 @@ export default function PriceComparisonTab() {
         const ownVsMarket = ((cat.own.avg - marketAvg) / marketAvg) * 100
 
         if (Math.abs(ownVsMarket) > 10) {
+          const below = ownVsMarket < 0
+          const extra = below ? t('price.marketExtraAdv', null, 'Abbiamo un vantaggio competitivo di prezzo che possiamo sfruttare nella comunicazione.') : t('price.marketExtraDis', null, 'Il prezzo più alto deve essere giustificato da qualità, brand perception o servizio superiore.')
+          const dir = below ? t('price.dirLower', null, 'inferiore') : t('price.dirHigher', null, 'superiore')
           items.push({
-            severity: ownVsMarket < 0 ? 'positive' : 'neutral',
-            category: catMeta?.label || cat.label,
-            title: ownVsMarket < 0
-              ? `${catMeta?.label}: sotto la media di mercato`
-              : `${catMeta?.label}: sopra la media di mercato`,
-            body: `Il nostro prezzo medio per ${catMeta?.label} (€${cat.own.avg.toFixed(2)}) è ${Math.abs(ownVsMarket).toFixed(1)}% ${ownVsMarket < 0 ? 'inferiore' : 'superiore'} alla media dei competitor EUR (€${marketAvg.toFixed(2)}). ${
-              ownVsMarket < 0
-                ? 'Abbiamo un vantaggio competitivo di prezzo che possiamo sfruttare nella comunicazione.'
-                : 'Il prezzo più alto deve essere giustificato da qualità, brand perception o servizio superiore.'
-            }`,
+            severity: below ? 'positive' : 'neutral',
+            category: catLabel,
+            title: below
+              ? t('price.titleBelowMarket', { cat: catLabel }, `${catLabel}: sotto la media di mercato`)
+              : t('price.titleAboveMarket', { cat: catLabel }, `${catLabel}: sopra la media di mercato`),
+            body: t('price.bodyMarket', { cat: catLabel, own: cat.own.avg.toFixed(2), pct: Math.abs(ownVsMarket).toFixed(1), dir, market: marketAvg.toFixed(2), extra },
+              `Il nostro prezzo medio per ${catLabel} (€${cat.own.avg.toFixed(2)}) è ${Math.abs(ownVsMarket).toFixed(1)}% ${dir} alla media dei competitor EUR (€${marketAvg.toFixed(2)}). ${extra}`),
           })
         }
       }
@@ -220,9 +226,9 @@ export default function PriceComparisonTab() {
         if (salePct > 30) {
           items.push({
             severity: 'warning',
-            category: catMeta?.label || cat.label,
-            title: `${catMeta?.label}: ${salePct}% dei prodotti in saldo`,
-            body: `${ownOnSale.length} prodotti su ${cat.own.count} sono attualmente in saldo. Una percentuale così alta può erodere la percezione del brand e i margini. Considerare di ridurre le promozioni o limitarle a prodotti specifici.`,
+            category: catLabel,
+            title: t('price.titleSale', { cat: catLabel, pct: salePct }, `${catLabel}: ${salePct}% dei prodotti in saldo`),
+            body: t('price.bodySale', { n: ownOnSale.length, total: cat.own.count }, `${ownOnSale.length} prodotti su ${cat.own.count} sono attualmente in saldo. Una percentuale così alta può erodere la percezione del brand e i margini. Considerare di ridurre le promozioni o limitarle a prodotti specifici.`),
           })
         }
       }
@@ -232,19 +238,19 @@ export default function PriceComparisonTab() {
       const order = { warning: 0, neutral: 1, positive: 2 }
       return (order[a.severity] || 1) - (order[b.severity] || 1)
     })
-  }, [comparison])
+  }, [comparison, t])
 
   if (loading) {
-    return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>Carico comparazione prezzi…</div>
+    return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>{t('price.loading', null, 'Carico comparazione prezzi…')}</div>
   }
 
   if (!comparison.length) {
-    return <div style={{ color: 'var(--text3)', padding: 40, fontSize: 14 }}>Nessun dato disponibile.</div>
+    return <div style={{ color: 'var(--text3)', padding: 40, fontSize: 14 }}>{t('kpi.noDataAvailable', null, 'Nessun dato disponibile.')}</div>
   }
 
   const sevColor = s => ({ positive: 'var(--green)', warning: 'var(--red)', neutral: 'var(--accent)' }[s] || 'var(--text2)')
   const sevBg = s => ({ positive: 'rgba(48,209,88,0.13)', warning: 'rgba(255,69,58,0.13)', neutral: 'rgba(41,151,255,0.13)' }[s] || 'var(--glass2)')
-  const sevLabel = s => ({ positive: 'VANTAGGIO', warning: 'ATTENZIONE', neutral: 'INSIGHT' }[s] || 'INFO')
+  const sevLabel = s => ({ positive: t('price.sevAdvantage', null, 'VANTAGGIO'), warning: t('price.sevWarning', null, 'ATTENZIONE'), neutral: t('price.sevInsight', null, 'INSIGHT') }[s] || t('price.sevInfo', null, 'INFO'))
 
   const colHeader = {
     fontSize: 9, fontWeight: 800, color: 'var(--text3)',
@@ -258,33 +264,33 @@ export default function PriceComparisonTab() {
       {summary && (
         <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
           <div className="glass-card" style={{ padding: '18px 20px' }}>
-            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Nostri prodotti</div>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('price.ourProducts', null, 'Nostri prodotti')}</div>
             <div className="metric-value" style={{ color: 'var(--accent)' }}><AnimatedNumber value={summary.countOwn} /></div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>in {summary.catCount} categorie</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{t('price.inCategories', { n: summary.catCount }, `in ${summary.catCount} categorie`)}</div>
           </div>
 
           <div className="glass-card" style={{ padding: '18px 20px' }}>
-            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Prezzo medio nostro</div>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('price.ourAvgPrice', null, 'Prezzo medio nostro')}</div>
             <div className="metric-value"><AnimatedNumber value={summary.avgOwn} format={n => `€${n.toFixed(2)}`} /></div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>vs competitor €{summary.avgComp.toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{t('price.vsCompetitor', { x: summary.avgComp.toFixed(2) }, `vs competitor €${summary.avgComp.toFixed(2)}`)}</div>
           </div>
 
           <div className="glass-card" style={{ padding: '18px 20px' }}>
-            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Più economici</div>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('price.cheaper', null, 'Più economici')}</div>
             <div className="metric-value" style={{ color: 'var(--green)' }}><AnimatedNumber value={summary.cheaperCount} /></div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>su {summary.totalComparisons} confronti</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{t('price.outOfComparisons', { n: summary.totalComparisons }, `su ${summary.totalComparisons} confronti`)}</div>
           </div>
 
           <div className="glass-card" style={{ padding: '18px 20px' }}>
-            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Più cari</div>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('price.moreExpensive', null, 'Più cari')}</div>
             <div className="metric-value" style={{ color: summary.moreExpensiveCount > 0 ? 'var(--red)' : 'var(--text2)' }}><AnimatedNumber value={summary.moreExpensiveCount} /></div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>su {summary.totalComparisons} confronti</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{t('price.outOfComparisons', { n: summary.totalComparisons }, `su ${summary.totalComparisons} confronti`)}</div>
           </div>
 
           <div className="glass-card" style={{ padding: '18px 20px' }}>
-            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Posizionamento prezzo</div>
+            <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('price.pricePosition', null, 'Posizionamento prezzo')}</div>
             <div className="metric-value" style={{ color: summary.positionPct >= 50 ? 'var(--green)' : 'var(--accent)' }}><AnimatedNumber value={summary.positionPct} format={n => `${Math.round(n)}%`} /></div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>categorie più economici</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{t('price.categoriesCheaper', null, 'categorie più economici')}</div>
           </div>
         </div>
       )}
@@ -296,11 +302,11 @@ export default function PriceComparisonTab() {
           marginBottom: 20, padding: '10px 16px', borderRadius: 12,
         }}>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-            Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
-            {data.cached && <span style={{ marginLeft: 8, color: 'var(--text2)' }}>(cache)</span>}
+            {t('price.lastUpdate', null, 'Ultimo aggiornamento:')} {new Date(data.fetchedAt).toLocaleString('it-IT')}
+            {data.cached && <span style={{ marginLeft: 8, color: 'var(--text2)' }}>{t('price.cache', null, '(cache)')}</span>}
           </div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>
-            Aggiornamento automatico ogni 2 giorni
+            {t('price.autoUpdate', null, 'Aggiornamento automatico ogni 2 giorni')}
           </div>
         </div>
       )}
@@ -324,9 +330,9 @@ export default function PriceComparisonTab() {
             }}>
               <span style={{ fontSize: 22 }}>{catMeta.icon}</span>
               <div>
-                <div className="heading-sm" style={{ fontSize: 18 }}>{catMeta.label}</div>
+                <div className="heading-sm" style={{ fontSize: 18 }}>{t(catMeta.labelKey, null, catMeta.label)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
-                  {cat.own.count} nostri · {compEntries.reduce((s, [, v]) => s + v.count, 0)} competitor
+                  {t('price.oursVsComp', { n: cat.own.count, m: compEntries.reduce((s, [, v]) => s + v.count, 0) }, `${cat.own.count} nostri · ${compEntries.reduce((s, [, v]) => s + v.count, 0)} competitor`)}
                 </div>
               </div>
             </div>
@@ -336,11 +342,11 @@ export default function PriceComparisonTab() {
                 display: 'grid', gridTemplateColumns: '1fr 55px 95px 75px 75px 85px 75px',
                 padding: '0 16px 6px', gap: 6,
               }}>
-                <div style={{ ...colHeader, textAlign: 'left' }}>Brand</div>
-                <div style={colHeader}>Prodotti</div>
-                <div style={colHeader}>Media</div>
-                <div style={colHeader}>Min</div>
-                <div style={colHeader}>Max</div>
+                <div style={{ ...colHeader, textAlign: 'left' }}>{t('price.brand', null, 'Brand')}</div>
+                <div style={colHeader}>{t('price.products', null, 'Prodotti')}</div>
+                <div style={colHeader}>{t('price.avg', null, 'Media')}</div>
+                <div style={colHeader}>{t('price.min', null, 'Min')}</div>
+                <div style={colHeader}>{t('price.max', null, 'Max')}</div>
                 <div style={colHeader}>Delta €</div>
                 <div style={colHeader}>Delta %</div>
               </div>
@@ -365,9 +371,9 @@ export default function PriceComparisonTab() {
             background: 'linear-gradient(135deg, rgba(191,90,242,0.08), transparent)',
             position: 'relative', zIndex: 2,
           }}>
-            <div className="heading-sm" style={{ fontSize: 18 }}>Report analisi prezzi</div>
+            <div className="heading-sm" style={{ fontSize: 18 }}>{t('price.reportsTitle', null, 'Report analisi prezzi')}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-              {reports.length} osservazioni basate sulla comparazione corrente
+              {t('price.reportsSub', { n: reports.length }, `${reports.length} osservazioni basate sulla comparazione corrente`)}
             </div>
           </div>
 

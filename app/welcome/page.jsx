@@ -1318,7 +1318,7 @@ function ProductShowcase({ t }) {
     return () => obs.disconnect()
   }, [])
   return (
-    <section style={{ maxWidth: 1160, margin: '0 auto', padding: '80px 24px 40px' }}>
+    <section style={{ maxWidth: 1680, margin: '0 auto', padding: '80px 32px 40px' }}>
       <Reveal><SectionHeader eyebrow={ia.eyebrow} title={ia.title} /></Reveal>
       <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 660, margin: '14px auto 0' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>È il software reale: cliccaci dentro ed esploralo →</span></p></Reveal>
 
@@ -1332,7 +1332,7 @@ function ProductShowcase({ t }) {
             <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.45)' }}>app.lyftai.io · demo</div>
           </div>
           {/* Software reale embeddato */}
-          <div style={{ position: 'relative', width: '100%', height: 640, background: '#07070e' }}>
+          <div style={{ position: 'relative', width: '100%', height: 'min(82vh, 860px)', background: '#07070e' }}>
             {load ? (
               <iframe src="/demo" title="Demo LyftAI" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} />
             ) : (

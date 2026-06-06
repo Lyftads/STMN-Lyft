@@ -31,10 +31,60 @@ function installPatch() {
 // figli vengono già intercettate al mount.
 installPatch()
 
+// Sostituzioni testuali ATTIVE SOLO NELLA DEMO (non tocca il software reale):
+// nasconde nome personale, STMN e competitor reali dal DOM renderizzato.
+const REPL = [
+  [/Marino Catasta/g, 'il titolare'],
+  [/Ehi Marino,/g, 'Ehi,'],
+  [/Guarda Marino/g, 'Guarda'],
+  [/ Marino\./g, '!'],
+  [/ Marino,/g, ','],
+  [/ Marino —/g, ' —'],
+  [/ Marino /g, ' '],
+  [/Marino/g, 'Acme'],
+  [/STMN Fitness/g, 'Acme Store'],
+  [/STMN/g, 'Acme Store'],
+  [/Velites/g, 'Competitor A'],
+  [/Picsil/g, 'Competitor B'],
+  [/Frog Grips/g, 'Competitor C'],
+]
+function scrub(root) {
+  if (!root) return
+  try {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    const nodes = []
+    let n; while ((n = walker.nextNode())) nodes.push(n)
+    for (const node of nodes) {
+      let v = node.nodeValue
+      if (!v) continue
+      let nv = v
+      for (const [re, rep] of REPL) nv = nv.replace(re, rep)
+      if (nv !== v) node.nodeValue = nv
+    }
+    root.querySelectorAll && root.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+      let v = el.getAttribute('placeholder'); if (!v) return
+      let nv = v; for (const [re, rep] of REPL) nv = nv.replace(re, rep)
+      if (nv !== v) el.setAttribute('placeholder', nv)
+    })
+  } catch {}
+}
+
 export default function DemoApp() {
   useEffect(() => {
     installPatch()
     return () => { if (_orig) { window.fetch = _orig; _orig = null } }
+  }, [])
+
+  // Pulizia nomi: SOLO nella demo. Passata iniziale + osserva i render async.
+  useEffect(() => {
+    let raf = 0
+    const run = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => scrub(document.body)) }
+    run()
+    const obs = new MutationObserver(run)
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true })
+    const iv = setInterval(run, 1500)
+    setTimeout(() => clearInterval(iv), 12000)
+    return () => { obs.disconnect(); clearInterval(iv); cancelAnimationFrame(raf) }
   }, [])
 
   return (

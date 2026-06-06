@@ -1371,7 +1371,7 @@ function ProductShowcase({ t }) {
           ))}
         </div>
         <div style={{ textAlign: 'center', marginTop: 26 }}>
-          <a href="/demo" target="_blank" rel="noopener" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>▶ Apri la demo interattiva — provala tu stesso</a>
+          <Link href="/demo" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>▶ Apri la demo interattiva — provala tu stesso</Link>
         </div>
       </Reveal>
     </section>

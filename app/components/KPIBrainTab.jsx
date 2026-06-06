@@ -21,11 +21,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     const spr = live?.shopifyPrevRange
     const mpr = live?.metaPrevRange
 
-    const compute = (s, m) => {
+    const compute = (s, m, googSpend = 0) => {
       const fat = asNum(s?.revenue), ord = asNum(s?.orders)
       const nc = asNum(s?.nc), rc = asNum(s?.rc)
       const ses = asNum(s?.sessions)
-      const meta = asNum(m?.spend), goog = 0
+      const meta = asNum(m?.spend), goog = asNum(googSpend)
       const spend = meta + goog
       const impr = asNum(m?.impressions), clicks = asNum(m?.clicks)
       const aov = safeDiv(fat, ord), roas = safeDiv(fat, meta), mer = safeDiv(fat, spend)
@@ -49,7 +49,19 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       ? data.filter(m => m.month >= sinceM && m.month <= untilM)
       : []
 
-    return { current: compute(sr, mr), previous: compute(spr, mpr), label, currentMonths: cur }
+    // Google Ads spend per il periodo: somma googleSpend dei mesi del range
+    // (il dato arriva automatico dal collegamento, iniettato nelle righe `data`
+    // in page.js; coerente con come la Dashboard tratta Google).
+    const sumGoog = rows => rows.reduce((s, m) => s + asNum(m.googleSpend), 0)
+    const googCur = sumGoog(cur)
+    const prevSinceM = prevRange?.since?.slice(0, 7)
+    const prevUntilM = prevRange?.until?.slice(0, 7)
+    const prevMonths = (prevSinceM && prevUntilM)
+      ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
+      : []
+    const googPrev = sumGoog(prevMonths)
+
+    return { current: compute(sr, mr, googCur), previous: compute(spr, mpr, googPrev), label, currentMonths: cur }
   }, [data, live, cfg])
 
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)

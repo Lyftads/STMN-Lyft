@@ -2188,6 +2188,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
   const [ltvAuto, setLtvAuto] = useState(null)  // LTV calcolato dai dati (coorti 24m)
+  const [googleAuto, setGoogleAuto] = useState({ configured: false, byMonth: {} }) // spesa Google Ads automatica dal collegamento (/api/google)
   const [showCfg, setShowCfg] = useState(false)
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
@@ -2227,6 +2228,20 @@ export default function App() {
   useEffect(() => {
     let alive = true
     fetch('/api/ltv-auto?months=24').then(r => r.json()).then(j => { if (alive && j?.enoughData) setLtvAuto(j) }).catch(() => {})
+    return () => { alive = false }
+  }, [])
+
+  // Spesa Google Ads automatica dal collegamento (/api/google) — una volta.
+  // Se il collegamento è attivo costruiamo una mappa mese→spesa; altrimenti
+  // (non configurato / errore / token Test) resta vuota e si usa il manuale.
+  useEffect(() => {
+    let alive = true
+    fetch('/api/google').then(r => r.json()).then(j => {
+      if (!alive || !j?.configured || !Array.isArray(j.monthly)) return
+      const byMonth = {}
+      for (const m of j.monthly) { if (m?.month) byMonth[m.month] = Number(m.spend) || 0 }
+      setGoogleAuto({ configured: true, byMonth })
+    }).catch(() => {})
     return () => { alive = false }
   }, [])
 
@@ -2567,7 +2582,11 @@ export default function App() {
 
       const sessioni = asNum(row.sessioni)
       const metaSpend = asNum(row.metaSpend)
-      const googleSpend = asNum(manual.googleSpend)
+      // Google Ads: automatico dal collegamento se disponibile per il mese,
+      // altrimenti fallback al valore manuale inserito a mano.
+      const googleSpend = (googleAuto.configured && googleAuto.byMonth[row.month] != null)
+        ? asNum(googleAuto.byMonth[row.month])
+        : asNum(manual.googleSpend)
       const totalSpend = metaSpend + googleSpend
 
       const aov = safeDiv(fatturato, ordini)

@@ -8,8 +8,10 @@ import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
 import TimeframeSelector from './TimeframeSelector'
 import DownloadReportButton from './DownloadReportButton'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
+  const { t } = useI18n()
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const safeDiv = (a, b) => b > 0 ? a / b : null
@@ -97,11 +99,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   })
 
   const metrics = [
-    { group:'Shopify', title:'Fatturato', value:shortMoney(c.fat), color:'#22c55e', sparkKey:'fatturato', curr:c.fat, prev:p.fat },
-    { group:'Shopify', title:'Ordini', value:int0(c.ord), color:'#22c55e', sparkKey:'ordini', curr:c.ord, prev:p.ord },
+    { group:'Shopify', title:t('kpi.revenue', null, 'Fatturato'), value:shortMoney(c.fat), color:'#22c55e', sparkKey:'fatturato', curr:c.fat, prev:p.fat },
+    { group:'Shopify', title:t('kpi.orders', null, 'Ordini'), value:int0(c.ord), color:'#22c55e', sparkKey:'ordini', curr:c.ord, prev:p.ord },
     { group:'Shopify', title:'AOV', value:money2(c.aov), color:'#f59e0b', sparkKey:'aov', curr:c.aov, prev:p.aov },
-    { group:'Shopify', title:'Nuovi Clienti', value:int0(c.nc), color:'#06b6d4', sparkKey:'nc', curr:c.nc, prev:p.nc },
-    { group:'Shopify', title:'Clienti Ritorno', value:int0(c.rc), color:'#a78bfa', sparkKey:'rc', curr:c.rc, prev:p.rc },
+    { group:'Shopify', title:t('kpi.newCustomers', null, 'Nuovi Clienti'), value:int0(c.nc), color:'#06b6d4', sparkKey:'nc', curr:c.nc, prev:p.nc },
+    { group:'Shopify', title:t('kpi.returningCustomers', null, 'Clienti Ritorno'), value:int0(c.rc), color:'#a78bfa', sparkKey:'rc', curr:c.rc, prev:p.rc },
     { group:'Shopify', title:'Repeat Rate', value:pct(c.repeatRate), color:'#0ea5e9', sparkKey:'repeatRate', curr:c.repeatRate, prev:p.repeatRate },
     { group:'Shopify', title:'LTV', value:money2(c.ltv), color:'#0ea5e9', sparkKey:'ltv' },
     { group:'Meta Ads', title:'Spend', value:shortMoney(c.meta), color:'#3b82f6', sparkKey:'metaSpend', curr:c.meta, prev:p.meta },
@@ -305,7 +307,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:color,borderRadius:999}} />
         </div>
       </div>
-    )) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato.</div>
+    )) : <div style={{color:'var(--text3)',fontSize:13}}>{t('kpi.noData', null, 'Nessun dato.')}</div>
   }
 
   return (
@@ -317,7 +319,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           <button onClick={onRefresh} disabled={loading} className="btn-glass" style={{
             marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
             cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
-          }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?'Aggiorno…':'Aggiorna'}</button>
+          }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?t('shell.updating', null, 'Aggiorno…'):t('shell.refresh', null, 'Aggiorna')}</button>
         )}
         <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
         <DownloadReportButton tab="KPI Brain" preset={preset} style={{ marginLeft: onRefresh ? 0 : 'auto' }} />
@@ -325,7 +327,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
       {/* Key Metrics */}
       <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>Key Metrics</div>
+        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
         <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads · {tfLabel}</div>
         <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Shopify</div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
@@ -340,12 +342,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
       {/* Breakdowns */}
       <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Breakdowns</div>
+        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>{t('kpi.breakdowns', null, 'Breakdowns')}</div>
 
         {/* Row 1: Top Products + Day Breakdown (affiancati) */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={panel}>
-            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Top 10 prodotti per revenue</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.top10Products', null, 'Top 10 prodotti per revenue')}</div>
             <div style={{display:'grid',gap:10}}>
               {topProducts.length > 0 ? topProducts.slice(0,10).map((row,i) => {
                 const max = topProducts[0]?.value || 1
@@ -356,7 +358,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                         : <div style={{width:36,height:36,borderRadius:8,background:'var(--surface)',display:'grid',placeItems:'center',fontSize:12,color:'var(--text3)',flexShrink:0}}>{i+1}</div>}
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:12,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</div>
-                        <div style={{fontSize:11,color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders?` · ${int0(row.orders)} ordini`:''}</div>
+                        <div style={{fontSize:11,color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders?` · ${int0(row.orders)} ${t('kpi.ordersWord', null, 'ordini')}`:''}</div>
                       </div>
                     </div>
                     <div style={{height:6,background:'var(--surface)',borderRadius:999,overflow:'hidden'}}>
@@ -364,13 +366,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                     </div>
                   </div>
                 )
-              }) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato disponibile.</div>}
+              }) : <div style={{color:'var(--text3)',fontSize:13}}>{t('kpi.noDataAvailable', null, 'Nessun dato disponibile.')}</div>}
             </div>
           </div>
 
           {/* Day breakdown (affiancato) */}
           <div style={panel}>
-            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Vendite per giorno della settimana</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.salesByWeekday', null, 'Vendite per giorno della settimana')}</div>
             <div style={{display:'grid',gap:10}}>
               {dayBreakdown.length > 0 ? dayBreakdown.map(row => {
                 const max = Math.max(...dayBreakdown.map(r => r.value), 1)
@@ -378,14 +380,14 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                   <div key={row.label}>
                     <div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}>
                       <span style={{color:'var(--text)'}}>{row.label}</span>
-                      <span style={{color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders ? ` · ${int0(row.orders)} ordini` : ''}</span>
+                      <span style={{color:'var(--text2)',fontWeight:800}}>{money(row.value)}{row.orders ? ` · ${int0(row.orders)} ${t('kpi.ordersWord', null, 'ordini')}` : ''}</span>
                     </div>
                     <div style={{height:8,background:'var(--surface)',borderRadius:999,overflow:'hidden'}}>
                       <div style={{width:`${Math.max(4,(row.value/max)*100)}%`,height:'100%',background:'#14b8a6',borderRadius:999}} />
                     </div>
                   </div>
                 )
-              }) : <div style={{color:'var(--text3)',fontSize:13}}>Nessun dato.</div>}
+              }) : <div style={{color:'var(--text3)',fontSize:13}}>{t('kpi.noData', null, 'Nessun dato.')}</div>}
             </div>
           </div>
         </div>
@@ -393,12 +395,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         {/* Row 2: Spesa marketing + New vs Returning (sotto) */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           <div style={panel}>
-            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>Spesa marketing per canale</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.marketingSpendByChannel', null, 'Spesa marketing per canale')}</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
           </div>
 
           <div style={panel}>
-            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>New vs Returning</div>
+            <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.newVsReturning', null, 'New vs Returning')}</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={customerBreakdown} color="#f97316" format={int0} /></div>
           </div>
         </div>
@@ -407,7 +409,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       {/* Top Performers */}
       {topProducts.length > 0 && (
         <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-          <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>Top Performers</div>
+          <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>{t('kpi.topPerformers', null, 'Top Performers')}</div>
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
             {topProducts.slice(0,4).map((item,i) => (
               <div key={item.label} className="glass-card" style={{...card,display:'flex',flexDirection:'column',gap:12}}>
@@ -471,13 +473,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 boxShadow:'0 0 24px rgba(14,165,233,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
               }}>🌍</div>
               <div>
-                <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>Paesi di fatturazione</div>
+                <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{t('kpi.billingCountries', null, 'Paesi di fatturazione')}</div>
                 <div style={{color:'var(--text3)',fontSize:12,marginTop:2}}>
                   {countriesLoading
-                    ? 'Caricamento ordini Shopify…'
+                    ? t('kpi.loadingShopifyOrders', null, 'Caricamento ordini Shopify…')
                     : countriesError
                       ? <span style={{color:'#fca5a5'}}>{countriesError}</span>
-                      : `${countries.length} ${countries.length === 1 ? 'paese' : 'paesi'} nel periodo · ${tfLabel}`}
+                      : `${countries.length} ${countries.length === 1 ? t('kpi.country', null, 'paese') : t('kpi.countries', null, 'paesi')} ${t('kpi.inPeriod', null, 'nel periodo')} · ${tfLabel}`}
                 </div>
               </div>
             </div>
@@ -486,13 +488,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           {countriesLoading && (
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 20px',gap:12,color:'var(--text3)'}}>
               <div style={{width:24,height:24,border:'3px solid rgba(255,255,255,0.1)',borderTopColor:'#0ea5e9',borderRadius:999,animation:'spin 1s linear infinite'}} />
-              <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}}>Caricamento…</div>
+              <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}}>{t('kpi.loading', null, 'Caricamento…')}</div>
             </div>
           )}
 
           {(!countriesLoading && !countriesError && countries.length === 0) && (
             <div style={{padding:18,border:'1px solid #f59e0b44',background:'#f59e0b10',borderRadius:12,color:'#fcd34d',fontWeight:700,fontSize:13}}>
-              Nessun ordine nel periodo selezionato.
+              {t('kpi.noOrdersInPeriod', null, 'Nessun ordine nel periodo selezionato.')}
             </div>
           )}
 
@@ -571,7 +573,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                         <div style={{fontSize:10,fontWeight:800,color:topDeltaColor,opacity:0.85,marginTop:2}}>
                           {isNew ? money(row.revenue) : (deltaRev !== 0 ? (deltaRev > 0 ? `+€${Math.round(deltaRev).toLocaleString('it-IT')}` : `-€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT')}`) : '€0')}
                         </div>
-                        <div style={{fontSize:8.5,color:topDeltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>vs precedente</div>
+                        <div style={{fontSize:8.5,color:topDeltaColor,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>{t('kpi.vsPrevious', null, 'vs precedente')}</div>
                       </div>
                       <div style={{
                         textAlign:'right',
@@ -583,7 +585,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                         boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
                       }}>
                         <div style={{fontSize:13,fontWeight:900,color:'#86efac'}}>{int0(row.orders)}</div>
-                        <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.75,marginTop:1}}>ordini</div>
+                        <div style={{fontSize:9,color:'#86efac',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.75,marginTop:1}}>{t('kpi.ordersWord', null, 'ordini')}</div>
                       </div>
                       <div style={{
                         width:32,height:32,borderRadius:8,
@@ -599,7 +601,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                     {hasSegmentData && (
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                         <SegmentBlock
-                          title="Nuovi clienti"
+                          title={t('kpi.segNew', null, 'Nuovi clienti')}
                           accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
                           ordersCurr={row.ncOrders}
                           ordersPrev={prev.ncOrders}
@@ -612,7 +614,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                           deltaColor={deltaColor}
                         />
                         <SegmentBlock
-                          title="Clienti di ritorno"
+                          title={t('kpi.segReturning', null, 'Clienti di ritorno')}
                           accent={{ text:'#d8b4fe', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
                           ordersCurr={row.rcOrders}
                           ordersPrev={prev.rcOrders}
@@ -639,8 +641,8 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
           <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:16}}>✦</div>
           <div>
-            <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>Insight & Riepilogo</div>
-            <div style={{color:'var(--text2)',fontSize:12}}>{insights.length} osservazioni sul periodo</div>
+            <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>{t('kpi.insightsTitle', null, 'Insight & Riepilogo')}</div>
+            <div style={{color:'var(--text2)',fontSize:12}}>{insights.length} {t('kpi.observations', null, 'osservazioni sul periodo')}</div>
           </div>
         </div>
         <div style={{display:'grid',gap:12}}>
@@ -650,7 +652,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             </div>
           )) : (
             <div style={{border:'1px solid #22c55e44',background:'#22c55e10',borderRadius:12,padding:18,color:'#22c55e',fontWeight:800}}>
-              Nessuna criticità rilevata.
+              {t('kpi.noIssues', null, 'Nessuna criticità rilevata.')}
             </div>
           )}
         </div>
@@ -677,11 +679,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
 // ── SegmentBlock: card per ogni dato NC/RC sotto la riga country ──
 function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev, money, int0, fmtDeltaPct, fmtDeltaEur, deltaColor }) {
+  const { t } = useI18n()
   const dPct = fmtDeltaPct(revCurr, revPrev)
   const dEur = revPrev > 0 ? fmtDeltaEur(revCurr, revPrev) : (revCurr > 0 ? `+${money(revCurr)}` : '€0')
   const dColor = deltaColor(revCurr, revPrev)
   const cards = [
-    { label: 'Ordini', value: int0(ordersCurr), color: '#fff' },
+    { label: t('kpi.orders', null, 'Ordini'), value: int0(ordersCurr), color: '#fff' },
     { label: 'Revenue', value: money(revCurr), color: '#fff' },
     { label: 'Delta %', value: dPct || '—', color: dColor },
     { label: 'Delta €', value: dEur, color: dColor },
@@ -739,6 +742,7 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
 
 // ── CountryDetailModal: popup con pie + area chart + breakdown ─────
 function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaPct, fmtDeltaEur, deltaColor, tfLabel }) {
+  const { t } = useI18n()
   const [daily, setDaily] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -817,9 +821,9 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
             <div style={{display:'flex', alignItems:'center', gap:16}}>
               <div style={{fontSize:54, lineHeight:1, filter:'drop-shadow(0 6px 12px rgba(0,0,0,0.5))'}}>{countryFlag(row.country_code)}</div>
               <div>
-                <div style={{fontSize:9.5, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.16em', textTransform:'uppercase'}}>Paese · {tfLabel}</div>
+                <div style={{fontSize:9.5, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.16em', textTransform:'uppercase'}}>{t('kpi.countryCap', null, 'Paese')} · {tfLabel}</div>
                 <div style={{fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-0.02em', marginTop:4}}>{row.country}</div>
-                <div style={{fontSize:13, color:'var(--text3)', marginTop:6}}>{money(row.revenue)} fatturato · {int0(row.orders)} ordini</div>
+                <div style={{fontSize:13, color:'var(--text3)', marginTop:6}}>{money(row.revenue)} {t('kpi.revenueWord', null, 'fatturato')} · {int0(row.orders)} {t('kpi.ordersWord', null, 'ordini')}</div>
               </div>
             </div>
             <button onClick={onClose} style={{
@@ -850,7 +854,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               position:'relative', overflow:'hidden',
             }}>
               <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(6,182,212,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />
-              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>Composizione fatturato</div>
+              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.revenueComposition', null, 'Composizione fatturato')}</div>
               {hasPie ? (
                 <>
                   <ResponsiveContainer width="100%" height={220}>
@@ -894,16 +898,16 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                   <div style={{display:'flex', justifyContent:'space-around', marginTop:6, fontSize:11.5}}>
                     <div style={{display:'flex', alignItems:'center', gap:6, color:'#67e8f9', fontWeight:800}}>
                       <div style={{width:11, height:11, borderRadius:3, background:'linear-gradient(180deg, #22d3ee, #0e7490)', boxShadow:'0 0 10px rgba(6,182,212,0.7)'}} />
-                      Nuovi {money(row.ncRevenue)}
+                      {t('kpi.new', null, 'Nuovi')} {money(row.ncRevenue)}
                     </div>
                     <div style={{display:'flex', alignItems:'center', gap:6, color:'#d8b4fe', fontWeight:800}}>
                       <div style={{width:11, height:11, borderRadius:3, background:'linear-gradient(180deg, #c084fc, #6b21a8)', boxShadow:'0 0 10px rgba(168,85,247,0.7)'}} />
-                      Ritorno {money(row.rcRevenue)}
+                      {t('kpi.returning', null, 'Ritorno')} {money(row.rcRevenue)}
                     </div>
                   </div>
                 </>
               ) : (
-                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>Nessun fatturato classificato (tutti guest)</div>
+                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>{t('kpi.noClassifiedRevenue', null, 'Nessun fatturato classificato (tutti guest)')}</div>
               )}
             </div>
 
@@ -917,14 +921,14 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               position:'relative', overflow:'hidden',
             }}>
               <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(14,165,233,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />
-              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>Trend giornaliero fatturato</div>
+              <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.dailyRevenueTrend', null, 'Trend giornaliero fatturato')}</div>
               {loading ? (
                 <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:240, gap:12, color:'var(--text3)'}}>
                   <div style={{width:24, height:24, border:'3px solid rgba(255,255,255,0.1)', borderTopColor:'#0ea5e9', borderRadius:999, animation:'spin 1s linear infinite'}} />
-                  <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase'}}>Caricamento</div>
+                  <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase'}}>{t('kpi.loadingShort', null, 'Caricamento')}</div>
                 </div>
               ) : daily.length === 0 ? (
-                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>Nessun dato giornaliero nel periodo</div>
+                <div style={{height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text3)', fontSize:12}}>{t('kpi.noDailyData', null, 'Nessun dato giornaliero nel periodo')}</div>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <AreaChart data={daily} margin={{top:8,right:8,left:-8,bottom:0}}>
@@ -947,7 +951,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                     <Tooltip
                       contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid rgba(255,255,255,0.10)', borderRadius:8, fontSize:12, fontWeight:700}}
                       labelStyle={{color:'#0ea5e9'}}
-                      formatter={(v, n) => [money(v), n === 'revenue' ? 'Totale' : n === 'ncRevenue' ? 'Nuovi' : 'Ritorno']}
+                      formatter={(v, n) => [money(v), n === 'revenue' ? t('kpi.total', null, 'Totale') : n === 'ncRevenue' ? t('kpi.new', null, 'Nuovi') : t('kpi.returning', null, 'Ritorno')]}
                       cursor={{stroke:'rgba(14,165,233,0.4)', strokeWidth:1, strokeDasharray:'3 3'}}
                     />
                     <Area type="monotone" dataKey="ncRevenue" stackId="seg" stroke="#22d3ee" strokeWidth={1.5} fill={`url(#areaNC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
@@ -962,7 +966,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           {/* NC + RC segment detail */}
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
             <SegmentBlock
-              title="Nuovi clienti"
+              title={t('kpi.segNew', null, 'Nuovi clienti')}
               accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
               ordersCurr={row.ncOrders} ordersPrev={prev.ncOrders}
               revCurr={row.ncRevenue} revPrev={prev.ncRevenue}
@@ -970,7 +974,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               fmtDeltaPct={fmtDeltaPct} fmtDeltaEur={fmtDeltaEur} deltaColor={deltaColor}
             />
             <SegmentBlock
-              title="Clienti di ritorno"
+              title={t('kpi.segReturning', null, 'Clienti di ritorno')}
               accent={{ text:'#d8b4fe', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
               ordersCurr={row.rcOrders} ordersPrev={prev.rcOrders}
               revCurr={row.rcRevenue} revPrev={prev.rcRevenue}

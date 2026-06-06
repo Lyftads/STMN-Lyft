@@ -114,6 +114,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads attive, prezzi e cataloghi competitor + analisi LTV/coorti e attribuzione total impact.' },
       { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue e Meta Detail ad-level per non bruciare budget.' },
     ],
+    inAction: { eyebrow: 'Demo', title: 'Vedi LyftAI in azione', sub: 'Ecco cosa trovi appena entri nel tuo account: tutti i dati del tuo brand già pronti, in un\'unica dashboard.' },
     demoTitle: { eyebrow: 'Dati in azione', title: 'Esempio di quello che vedi ogni giorno' },
     demoCards: {
       revenue: { eyebrow: 'Fatturato 30gg', value: '€84.250', delta: '+24% vs periodo precedente' },
@@ -259,6 +260,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Active ads, prices and competitor catalogs + LTV/cohort analysis and total-impact attribution.' },
       { icon: '⚖', title: 'Full Meta Ads', desc: 'Creative, Budget Advisor, Creative Fatigue and ad-level Meta Detail so you never burn budget.' },
     ],
+    inAction: { eyebrow: 'Demo', title: 'See LyftAI in action', sub: 'Here\'s what you find the moment you log in: all your brand\'s data, ready to go, in one dashboard.' },
     demoTitle: { eyebrow: 'Data in action', title: 'Example of what you see every day' },
     demoCards: {
       revenue: { eyebrow: '30d Revenue', value: '€84,250', delta: '+24% vs previous period' },
@@ -404,6 +406,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads activos, precios y catálogos de competidores + análisis LTV/cohortes y atribución total impact.' },
       { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue y Meta Detail a nivel de ad para no quemar budget.' },
     ],
+    inAction: { eyebrow: 'Demo', title: 'Mira LyftAI en acción', sub: 'Esto es lo que encuentras al entrar en tu cuenta: todos los datos de tu marca listos, en un solo dashboard.' },
     demoTitle: { eyebrow: 'Datos en acción', title: 'Ejemplo de lo que ves cada día' },
     demoCards: {
       revenue: { eyebrow: 'Revenue 30d', value: '€84.250', delta: '+24% vs período anterior' },
@@ -499,6 +502,7 @@ export default function WelcomePage() {
         <TrustBar t={t} />
         <ProblemSolution t={t} />
         <StatsRow t={t} />
+        <DemoInAction t={t} />
         <TabsTour t={t} />
         <FeaturesGrid t={t} />
         <DemoCharts t={t} />
@@ -1293,6 +1297,188 @@ function Pricing({ t }) {
           )
         })}
       </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Demo "in azione" — mockup dell'app come la vede il cliente
+// ─────────────────────────────────────────────────────────────
+function DemoInAction({ t }) {
+  const ia = t.inAction
+  const dc = t.demoCards
+  const [active, setActive] = useState('dashboard')
+  const nav = [
+    { g: 'TEAM', items: [['🚀', 'Onboarding', 'onboarding'], ['◳', 'Progetti & Task', 'tasks'], ['⏱', 'Lyftimer', 'timeTracking'], ['💬', 'LyftTalk', 'chat']] },
+    { g: 'COMMERCE', items: [['⌁', 'Dashboard', 'dashboard'], ['↗', 'KPI Brain', 'kpiBrain'], ['⌖', 'Attribuzione', 'attribution'], ['✉', 'Klaviyo', 'klaviyo']] },
+    { g: 'META', items: [['◉', 'Meta Detail', 'metaDetail'], ['▧', 'Creative', 'creative']] },
+  ]
+  const TITLES = {
+    onboarding: ['Onboarding', 'Collega le tue piattaforme'],
+    tasks: ['Progetti & Task', 'Board del team'],
+    timeTracking: ['Lyftimer', 'Time tracking del team'],
+    chat: ['LyftTalk', 'Chat del team'],
+    dashboard: ['Dashboard', 'Panoramica · ultimi 30 giorni'],
+    kpiBrain: ['KPI Brain', 'Top prodotti, sorgenti, paesi'],
+    attribution: ['Attribuzione', 'Contributo per canale · MER blended'],
+    klaviyo: ['Klaviyo', 'Email · campagne e flussi'],
+    metaDetail: ['Meta Detail', 'Performance per campagna'],
+    creative: ['Creative', 'Analisi ad creative'],
+  }
+  const box = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 14 }
+  const muted = 'rgba(255,255,255,0.5)'
+  const hd = { fontSize: 12, color: muted, fontWeight: 700, marginBottom: 12 }
+
+  const Row = ({ a, b, c, color }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 12.5 }}>
+      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a}</span>
+      {b != null && <span style={{ color: muted, width: 70, textAlign: 'right' }}>{b}</span>}
+      {c != null && <span style={{ fontWeight: 800, width: 64, textAlign: 'right', color: color || '#fff' }}>{c}</span>}
+    </div>
+  )
+  const Bar = ({ label, pct, val, color }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9, fontSize: 12.5 }}>
+      <span style={{ width: 88 }}>{label}</span>
+      <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: color || `linear-gradient(90deg,${ACCENT},${BLUE})` }} /></div>
+      <span style={{ width: 52, textAlign: 'right', color: muted }}>{val}</span>
+    </div>
+  )
+
+  function View() {
+    switch (active) {
+      case 'dashboard': {
+        const kpis = [['Fatturato', dc.revenue.value, '+24%', GREEN], ['Ordini', dc.orders.value, '+18%', ACCENT], ['AOV', '€71', '−4%', '#fbbf24'], ['ROAS (MER)', '2,6x', '+0,3', BLUE]]
+        const bars = [42, 58, 50, 71, 64, 80, 95]
+        return (<>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            {kpis.map(([l, v, d, c]) => (
+              <div key={l} style={box}><div style={{ fontSize: 10.5, color: muted, fontWeight: 700, textTransform: 'uppercase' }}>{l}</div><div style={{ fontSize: 22, fontWeight: 900, margin: '4px 0 2px' }}>{v}</div><div style={{ fontSize: 11, fontWeight: 700, color: c }}>{d}</div></div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 12 }}>
+            <div style={box}><div style={hd}>Fatturato per giorno</div><div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120 }}>{bars.map((h, i) => <div key={i} style={{ flex: 1, height: `${h}%`, borderRadius: '4px 4px 0 0', background: `linear-gradient(180deg,${ACCENT},${BLUE})`, opacity: 0.45 + i * 0.08 }} />)}</div></div>
+            <div style={box}><div style={hd}>{dc.briefingTitle}</div>{dc.briefingItems.slice(0, 4).map((b, i) => <div key={i} style={{ display: 'flex', gap: 9, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4, marginBottom: 9 }}><span style={{ color: b.color }}>{b.icon}</span>{b.txt}</div>)}</div>
+          </div>
+        </>)
+      }
+      case 'kpiBrain':
+        return (<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={box}><div style={hd}>Top prodotti</div>{[['Paracalli Premium', '€18.420'], ['Plantari Sport', '€12.110'], ['Kit Recovery', '€9.870'], ['Fascia Plantare', '€6.240']].map(([a, b]) => <Row key={a} a={a} c={b} color={GREEN} />)}</div>
+          <div style={box}><div style={hd}>Sorgenti marketing</div>{[['Meta Ads', '38%'], ['Organico', '24%'], ['Google', '21%'], ['Email', '12%']].map(([a, b]) => <Row key={a} a={a} c={b} color={BLUE} />)}</div>
+          <div style={box}><div style={hd}>Paesi</div>{[['🇮🇹 Italia', '64%'], ['🇩🇪 Germania', '14%'], ['🇫🇷 Francia', '11%'], ['🇪🇸 Spagna', '7%']].map(([a, b]) => <Row key={a} a={a} c={b} />)}</div>
+        </div>)
+      case 'attribution':
+        return (<div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
+          <div style={box}><div style={hd}>Contributo per canale</div>
+            <Bar label="Meta Ads" pct={38} val="€32k" /><Bar label="Google Ads" pct={22} val="€18k" color="#fbbf24" /><Bar label="Organico" pct={18} val="€15k" color={GREEN} /><Bar label="Email" pct={14} val="€11k" color={ACCENT} /><Bar label="Direct" pct={8} val="€6k" color="#64d2ff" />
+          </div>
+          <div style={box}><div style={hd}>MER blended</div><div style={{ fontSize: 40, fontWeight: 900 }}>2,6x</div><div style={{ fontSize: 12, color: GREEN, fontWeight: 700, marginBottom: 14 }}>sopra target (2,5x)</div><div style={{ fontSize: 12, color: muted, lineHeight: 1.6 }}>Paid 60% · Organico 40%. CAC blended €21,40, in calo del 12% sul mese.</div></div>
+        </div>)
+      case 'klaviyo':
+        return (<div style={box}><div style={hd}>Campagne & flussi</div>
+          <Row a="Campagna / Flusso" b="Open rate" c="Revenue" color={muted} />
+          {[['Welcome Flow', '62%', '€8.240'], ['Black Week', '48%', '€21.900'], ['Abandoned Cart', '55%', '€12.470'], ['Win-back 90d', '34%', '€3.110'], ['Newsletter #42', '41%', '€2.680']].map(([a, b, c]) => <Row key={a} a={a} b={b} c={c} color={GREEN} />)}
+        </div>)
+      case 'metaDetail':
+        return (<div style={box}><div style={hd}>Campagne Meta</div>
+          <Row a="Campagna" b="Spesa" c="ROAS" color={muted} />
+          {[['Prospecting BroadAI', '€4.120', '2,1x', '#fbbf24'], ['Retargeting 7d', '€1.980', '4,3x', GREEN], ['Lookalike 3%', '€2.640', '2,8x', GREEN], ['Advantage+ Shop', '€3.310', '1,6x', '#ff6b6b']].map(([a, b, c, col]) => <Row key={a} a={a} b={b} c={c} color={col} />)}
+        </div>)
+      case 'creative':
+        return (<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {[['Reel UGC #3', '3,8%', '4,1x', GREEN], ['Statico Promo', '1,9%', '2,2x', '#fbbf24'], ['Carosello Bundle', '2,6%', '3,0x', GREEN], ['Video Hook 6s', '4,2%', '3,7x', GREEN], ['Testimonial', '2,1%', '1,8x', '#ff6b6b'], ['Before/After', '3,3%', '2,9x', GREEN]].map(([n, ctr, roas, c]) => (
+            <div key={n} style={box}><div style={{ height: 70, borderRadius: 8, background: `linear-gradient(135deg,${ACCENT}33,${BLUE}33)`, marginBottom: 10, display: 'grid', placeItems: 'center', fontSize: 22 }}>▧</div><div style={{ fontSize: 12.5, fontWeight: 700 }}>{n}</div><div style={{ fontSize: 11, color: muted, marginTop: 3 }}>CTR {ctr} · <b style={{ color: c }}>ROAS {roas}</b></div></div>
+          ))}
+        </div>)
+      case 'tasks': {
+        const cols = [['Da fare', ['Brief campagna estate', 'Aggiornare schede prodotto']], ['In corso', ['Setup retargeting', 'Audit SEO blog']], ['Fatto', ['Report mensile', 'A/B test checkout']]]
+        const cc = ['#b0b0bd', '#0a84ff', '#30d158']
+        return (<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {cols.map(([title, cards], i) => (
+            <div key={title} style={box}><div style={{ ...hd, color: cc[i] }}>{title}</div>{cards.map(c => <div key={c} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '9px 11px', marginBottom: 8, fontSize: 12.5 }}>{c}</div>)}</div>
+          ))}
+        </div>)
+      }
+      case 'timeTracking':
+        return (<>
+          <div style={{ ...box, display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}><span style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg,${ACCENT},${BLUE})`, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 13 }}>MC</span><span style={{ fontSize: 30, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>02:14:33</span><span style={{ flex: 1, color: muted, fontSize: 12.5 }}>Setup campagna · Acme Store</span><span style={{ background: 'linear-gradient(135deg,#ff375f,#ff5f7a)', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700 }}>■ Ferma</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={box}><div style={hd}>Oggi</div>{[['Mario · Ads', '3h 12m'], ['Sara · SEO', '2h 40m'], ['Luca · Creative', '1h 55m']].map(([a, b]) => <Row key={a} a={a} c={b} />)}</div>
+            <div style={box}><div style={hd}>Per progetto (settimana)</div><Bar label="Ads" pct={70} val="14h" /><Bar label="SEO" pct={45} val="9h" color={GREEN} /><Bar label="Creative" pct={30} val="6h" color={ACCENT} /></div>
+          </div>
+        </>)
+      case 'chat':
+        return (<div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 12, minHeight: 280 }}>
+          <div style={box}><div style={hd}>Canali</div>{['# generale', '# marketing', '# dev', '🔒 founders'].map((c, i) => <div key={c} style={{ padding: '7px 9px', borderRadius: 7, marginBottom: 3, fontSize: 12.5, background: i === 0 ? 'rgba(123,91,255,0.18)' : 'transparent', fontWeight: i === 0 ? 700 : 500 }}>{c}</div>)}</div>
+          <div style={box}><div style={hd}># generale</div>
+            {[['SM', 'Il ROAS Meta è risalito a 2.8x 🚀', ACCENT], ['MC', 'Top, allora scaliamo il retargeting', BLUE], ['LR', 'Preparo le nuove creative per domani', GREEN]].map(([ini, msg, c], i) => (
+              <div key={i} style={{ display: 'flex', gap: 9, marginBottom: 11 }}><span style={{ width: 26, height: 26, borderRadius: '50%', background: c, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{ini}</span><div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '8px 12px', fontSize: 12.5 }}>{msg}</div></div>
+            ))}
+          </div>
+        </div>)
+      case 'onboarding': {
+        const steps = [['Shopify', true], ['Meta Ads', true], ['Google (GA4/Ads)', true], ['Klaviyo', false], ['Brand Identity', false]]
+        return (<div style={box}><div style={hd}>Collega le tue piattaforme · 3/5</div>{steps.map(([s, done]) => (
+          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 13 }}><span style={{ width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, background: done ? '#30d158' : 'transparent', border: done ? 'none' : '1.5px solid rgba(255,255,255,0.3)', color: done ? '#fff' : muted }}>{done ? '✓' : ''}</span><span style={{ flex: 1, fontWeight: done ? 600 : 500 }}>{s}</span><span style={{ fontSize: 11.5, color: done ? GREEN : muted }}>{done ? 'Collegato' : 'Da fare'}</span></div>
+        ))}</div>)
+      }
+      default: return null
+    }
+  }
+
+  const [tTitle, tSub] = TITLES[active] || ['Dashboard', '']
+  return (
+    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 40px' }}>
+      <Reveal><SectionHeader eyebrow={ia.eyebrow} title={ia.title} /></Reveal>
+      <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 640, margin: '14px auto 0' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>Clicca le voci del menu per esplorare →</span></p></Reveal>
+
+      <Reveal>
+        <div style={{ marginTop: 44, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 40px 120px rgba(0,0,0,0.7), 0 0 80px rgba(123,91,255,0.12)', background: '#0b0b14' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57' }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e' }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840' }} />
+            <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.4)' }}>app.lyftai.io/{active}</div>
+          </div>
+          <div style={{ display: 'flex', minHeight: 460, overflowX: 'auto' }}>
+            <aside style={{ width: 188, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px', background: 'rgba(255,255,255,0.015)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, paddingLeft: 4 }}>
+                <span style={{ width: 22, height: 22, borderRadius: 7, background: `linear-gradient(135deg,${ACCENT},${BLUE})` }} />
+                <span style={{ fontSize: 14, fontWeight: 900 }}>LyftAI</span>
+              </div>
+              {nav.map(grp => (
+                <div key={grp.g} style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.3)', padding: '0 6px 6px' }}>{grp.g}</div>
+                  {grp.items.map(([ic, lb, id]) => {
+                    const act = active === id
+                    return (
+                      <button key={id} onClick={() => setActive(id)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', padding: '7px 8px', borderRadius: 7, marginBottom: 2, fontSize: 12.5, fontFamily: 'inherit', fontWeight: act ? 700 : 500, color: act ? '#fff' : 'rgba(255,255,255,0.62)', background: act ? 'rgba(123,91,255,0.18)' : 'transparent' }}
+                        onMouseEnter={e => { if (!act) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }} onMouseLeave={e => { if (!act) e.currentTarget.style.background = 'transparent' }}>
+                        <span style={{ width: 16, textAlign: 'center', opacity: 0.85 }}>{ic}</span>{lb}
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
+            </aside>
+
+            <div style={{ flex: 1, minWidth: 480, padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 19, fontWeight: 800 }}>{tTitle}</div>
+                  <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)' }}>{tSub}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 12.5, fontWeight: 700 }}>Acme Store <span style={{ fontSize: 8, opacity: 0.6 }}>▾</span></div>
+                  <span style={{ fontSize: 15 }}>🔔</span>
+                  <span style={{ width: 30, height: 30, borderRadius: '50%', background: `linear-gradient(135deg,${ACCENT},${BLUE})`, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>AC</span>
+                </div>
+              </div>
+              <View />
+            </div>
+          </div>
+        </div>
+      </Reveal>
     </section>
   )
 }

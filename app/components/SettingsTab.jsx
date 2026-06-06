@@ -9,95 +9,107 @@ import { useState, useEffect, useCallback } from 'react'
 const ACCENT = '#bf5af2'
 
 // ── Plans definition ──────────────────────────────────────────────
+// Modello landing: TUTTI i tool inclusi in ogni piano. Il prezzo cresce con
+// il volume ordini (non con le funzioni). 4 piani, Enterprise su misura.
 const PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 119.99,
-    priceLabel: '€119,99',
-    period: '/month',
-    tagline: 'Per founder che stanno strutturando il primo brand DTC',
+    price: 69,
+    priceLabel: '€69',
+    period: '/mese',
+    tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.',
     accent: '#0ea5e9',
     accentBg: 'rgba(14,165,233,0.12)',
     accentBorder: 'rgba(14,165,233,0.30)',
+    cta: 'Passa a Starter',
     features: [
-      'Dashboard KPI core (Fatturato · Ordini · AOV · NC · RC)',
-      'KPI Brain con paesi di fatturazione',
-      'Report Weekly / Monthly / Quarter / Year',
-      'Confronto period-over-period su ogni KPI',
-      'Integrazione Shopify + Meta Ads + GA4',
-      'Esportazione CSV illimitata',
-      'Storico dati 12 mesi',
-      'Email support entro 48h',
+      '✨ Tutti i tool inclusi',
+      'Fino a 500 ordini/mese',
+      'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)',
+      '2 utenti del team',
+      'Email support 48h',
     ],
   },
   {
     id: 'growth',
     name: 'Growth',
-    price: 179.99,
-    priceLabel: '€179,99',
-    period: '/month',
-    tagline: 'Brand in scaling che cercano leve di crescita data-driven',
+    price: 149,
+    priceLabel: '€149',
+    period: '/mese',
+    tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.',
     accent: '#bf5af2',
     accentBg: 'rgba(191,90,242,0.12)',
     accentBorder: 'rgba(191,90,242,0.35)',
-    badge: 'POPOLARE',
+    badge: 'PIÙ SCELTO',
+    cta: 'Passa a Growth',
     features: [
-      'Tutto di Starter +',
-      'Klaviyo (Email Marketing · Flussi · Segmenti)',
-      'CRO Tab (Funnel · Top Pages · Flusso traffico)',
-      'AI Website Scanner — audit CRO via GPT-4o Vision',
-      'Creative Tab Meta Ads + analisi RSA',
-      'Meta Detail per ad-level performance',
-      'Storico dati 24 mesi',
-      'Priority support entro 12h',
+      '✨ Tutti i tool inclusi',
+      '500 – 2.000 ordini/mese',
+      '5 utenti del team',
+      'Crediti Creative Lab (AI) estesi',
+      'Priority support 12h',
     ],
   },
   {
     id: 'scale',
     name: 'Scale',
-    price: 349.99,
-    priceLabel: '€349,99',
-    period: '/month',
-    tagline: 'Brand 7-8 figure con team marketing dedicato',
+    price: 299,
+    priceLabel: '€299',
+    period: '/mese',
+    tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.',
     accent: '#22c55e',
     accentBg: 'rgba(34,197,94,0.12)',
     accentBorder: 'rgba(34,197,94,0.30)',
+    cta: 'Passa a Scale',
     features: [
-      'Tutto di Growth +',
-      'Creative Lab — generazione AI di ad creative',
-      'Competitor Intel — creative & catalogo competitor',
-      'Performance Agent AI (CMO · CFO · CRO advisor)',
-      'Simulatore LTV:CAC + scenari adv',
-      'Multi-store (fino a 5 brand sotto stesso account)',
-      'White-label opzionale (logo + dominio custom)',
-      'Storico dati illimitato',
-      'CSM dedicato + onboarding personalizzato',
+      '✨ Tutti i tool inclusi',
+      '2.000 – 7.000 ordini/mese',
+      'Utenti del team illimitati',
+      'Crediti Creative Lab (AI) massimi',
+      'CSM dedicato',
+    ],
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: null,
+    priceLabel: 'Su misura',
+    period: '',
+    tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.',
+    accent: '#f59e0b',
+    accentBg: 'rgba(245,158,11,0.12)',
+    accentBorder: 'rgba(245,158,11,0.30)',
+    contact: true,
+    contactHref: 'mailto:info@lyftads.agency?subject=Richiesta%20piano%20Enterprise%20LyftAI',
+    cta: 'Contattaci',
+    features: [
+      '✨ Tutti i tool inclusi',
+      '7.000+ ordini/mese',
+      'SLA e onboarding dedicato',
+      'Integrazioni custom',
+      'Account manager dedicato',
     ],
   },
 ]
 
-// Feature matrix per la tabella comparativa
+// Feature matrix per la tabella comparativa — modello "tutti i tool inclusi":
+// i tool sono ✓ ovunque; i piani differiscono per volume, team, crediti AI, support.
 const FEATURE_MATRIX = [
-  { feature: 'Dashboard KPI core', starter: true, growth: true, scale: true },
-  { feature: 'KPI Brain', starter: true, growth: true, scale: true },
-  { feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true },
-  { feature: 'Esportazione CSV', starter: true, growth: true, scale: true },
-  { feature: 'Integrazione Shopify + Meta + GA4', starter: true, growth: true, scale: true },
-  { feature: 'Paesi di fatturazione', starter: true, growth: true, scale: true },
-  { feature: 'Klaviyo (Email & Flussi)', starter: false, growth: true, scale: true },
-  { feature: 'CRO Tab (Funnel · Top Pages)', starter: false, growth: true, scale: true },
-  { feature: 'AI Website Scanner', starter: false, growth: true, scale: true },
-  { feature: 'Creative Tab Meta Ads', starter: false, growth: true, scale: true },
-  { feature: 'Meta Detail ad-level', starter: false, growth: true, scale: true },
-  { feature: 'Creative Lab AI generation', starter: false, growth: false, scale: true },
-  { feature: 'Competitor Intel', starter: false, growth: false, scale: true },
-  { feature: 'Performance Agent AI', starter: false, growth: false, scale: true },
-  { feature: 'Simulatore LTV:CAC', starter: false, growth: false, scale: true },
-  { feature: 'Multi-store (max 5 brand)', starter: false, growth: false, scale: true },
-  { feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: true },
-  { feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato' },
-  { feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato' },
+  { feature: 'Dashboard · KPI Brain · Attribuzione', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Klaviyo · CRO · AI Website Scanner', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Creative · Meta Detail · Meta KPI', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Creative Lab AI · Competitor Intel', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Performance Agent AI · Simulatore LTV:CAC', starter: true, growth: true, scale: true, enterprise: true },
+  { feature: 'Integrazioni (Shopify, Meta, Google, Klaviyo)', starter: true, growth: true, scale: true, enterprise: 'Custom' },
+  { feature: 'Ordini/mese inclusi', starter: 'Fino a 500', growth: '500 – 2.000', scale: '2.000 – 7.000', enterprise: '7.000+' },
+  { feature: 'Utenti del team', starter: '2', growth: '5', scale: 'Illimitati', enterprise: 'Illimitati' },
+  { feature: 'Crediti Creative Lab (AI)', starter: 'Base', growth: 'Estesi', scale: 'Massimi', enterprise: 'Massimi' },
+  { feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato', enterprise: 'Illimitato' },
+  { feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: 'Opzionale', enterprise: true },
+  { feature: 'SLA e onboarding dedicato', starter: false, growth: false, scale: false, enterprise: true },
+  { feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato', enterprise: 'Account manager' },
 ]
 
 
@@ -203,115 +215,123 @@ function brandLabel(brand) {
 function PlanCard({ plan, isCurrent }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const hot = !!plan.badge
+  const baseShadow = hot
+    ? `0 30px 80px rgba(0,0,0,0.80), 0 0 70px ${plan.accent}22, inset 0 1.5px 0 ${plan.accent}88`
+    : `0 24px 64px rgba(0,0,0,0.55), inset 0 1.5px 0 rgba(255,255,255,0.06)`
   return (
     <div
+      className="glass-card-static"
       style={{
         position: 'relative',
-        padding: 26,
-        borderRadius: 20,
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.30))',
-        border: `1.5px solid ${plan.accentBorder}`,
-        borderTopColor: plan.accent + 'AA',
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55), 0 0 36px ${plan.accent}22`,
+        padding: 28,
+        borderRadius: 22,
+        borderTop: `2px solid ${plan.accent}`,
+        boxShadow: baseShadow,
         transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease',
-        display: 'flex', flexDirection: 'column', gap: 18,
-        minHeight: 580,
+        display: 'flex', flexDirection: 'column', gap: 16,
+        height: '100%', minHeight: 560,
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translateY(-6px)'
-        e.currentTarget.style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.7), 0 0 60px ${plan.accent}44`
+        e.currentTarget.style.boxShadow = `0 36px 90px rgba(0,0,0,0.72), 0 0 70px ${plan.accent}44, inset 0 1.5px 0 rgba(255,255,255,0.08)`
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55), 0 0 36px ${plan.accent}22`
+        e.currentTarget.style.boxShadow = baseShadow
       }}
     >
       {plan.badge && (
         <div style={{
-          position: 'absolute', top: -10, right: 20,
-          padding: '4px 12px', borderRadius: 999,
-          background: `linear-gradient(135deg, ${plan.accent}, ${plan.accent}88)`,
-          color: '#fff', fontSize: 9, fontWeight: 900,
-          letterSpacing: '0.16em', textTransform: 'uppercase',
+          position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
+          padding: '4px 14px', borderRadius: 999, whiteSpace: 'nowrap',
+          background: plan.accent, color: '#fff',
+          fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
           boxShadow: `0 8px 20px ${plan.accent}66`,
         }}>
           {plan.badge}
         </div>
       )}
 
-      <div>
-        <div style={{
-          fontSize: 26, fontWeight: 900, color: '#fff',
-          letterSpacing: '-0.02em', marginBottom: 6,
-        }}>{plan.name}</div>
-        <div style={{
-          fontSize: 12, color: 'var(--text3)',
-          lineHeight: 1.5, minHeight: 36,
-        }}>{plan.tagline}</div>
+      <div style={{ fontSize: 12, color: plan.accent, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        {plan.name}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span style={{ fontSize: 42, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
+        <span style={{ fontSize: 40, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
           {plan.priceLabel}
         </span>
-        <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>
-          {plan.period}
-        </span>
+        {plan.period && (
+          <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{plan.period}</span>
+        )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
+      <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5, minHeight: 38, marginTop: -6 }}>
+        {plan.tagline}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1, marginTop: 6 }}>
         {plan.features.map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-            <div style={{
-              flexShrink: 0,
-              width: 18, height: 18, borderRadius: 5,
-              background: plan.accentBg,
-              border: `1px solid ${plan.accentBorder}`,
-              display: 'grid', placeItems: 'center',
-              color: plan.accent, fontSize: 11, fontWeight: 900,
-              marginTop: 1,
-            }}>✓</div>
-            <span style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>{f}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ color: plan.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>✓</span>
+            <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>{f}</span>
           </div>
         ))}
       </div>
 
-      <button
-        type="button"
-        disabled={isCurrent || loading}
-        onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading })}
-        style={{
-          width: '100%',
-          padding: '13px 16px',
-          borderRadius: 12,
-          border: 'none',
-          cursor: isCurrent ? 'default' : loading ? 'wait' : 'pointer',
-          background: isCurrent
-            ? 'rgba(255,255,255,0.05)'
-            : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
-          color: isCurrent ? 'var(--text3)' : '#fff',
-          fontSize: 13.5, fontWeight: 800,
-          letterSpacing: '0.04em',
-          boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
-          textTransform: 'uppercase',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        }}
-        onMouseEnter={e => { if (!isCurrent && !loading) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
-        onMouseLeave={e => { e.currentTarget.style.transform = '' }}
-      >
-        {loading ? (
-          <>
-            <span style={{
-              display: 'inline-block', width: 14, height: 14,
-              border: '2px solid rgba(255,255,255,0.4)',
-              borderTopColor: '#fff', borderRadius: 999,
-              animation: 'spin 1s linear infinite',
-            }} />
-            Redirect a Stripe…
-          </>
-        ) : isCurrent ? '✓ Piano attuale' : '↑ Passa a ' + plan.name}
-      </button>
+      {plan.contact ? (
+        <a
+          href={plan.contactHref}
+          style={{
+            width: '100%', boxSizing: 'border-box', textAlign: 'center', textDecoration: 'none',
+            padding: '13px 16px', borderRadius: 12,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+            color: '#fff', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
+            transition: 'transform 0.2s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = '' }}
+        >
+          {plan.cta}
+        </a>
+      ) : (
+        <button
+          type="button"
+          disabled={isCurrent || loading}
+          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading })}
+          style={{
+            width: '100%',
+            padding: '13px 16px',
+            borderRadius: 12,
+            border: 'none',
+            cursor: isCurrent ? 'default' : loading ? 'wait' : 'pointer',
+            background: isCurrent
+              ? 'rgba(255,255,255,0.05)'
+              : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
+            color: isCurrent ? 'var(--text3)' : '#fff',
+            fontSize: 13.5, fontWeight: 800,
+            letterSpacing: '0.04em',
+            boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+            textTransform: 'uppercase',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+          onMouseEnter={e => { if (!isCurrent && !loading) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
+          onMouseLeave={e => { e.currentTarget.style.transform = '' }}
+        >
+          {loading ? (
+            <>
+              <span style={{
+                display: 'inline-block', width: 14, height: 14,
+                border: '2px solid rgba(255,255,255,0.4)',
+                borderTopColor: '#fff', borderRadius: 999,
+                animation: 'spin 1s linear infinite',
+              }} />
+              Redirect a Stripe…
+            </>
+          ) : isCurrent ? '✓ Piano attuale' : (plan.cta || ('↑ Passa a ' + plan.name))}
+        </button>
+      )}
       {error && (
         <div style={{
           marginTop: -6, padding: '8px 12px', borderRadius: 8,
@@ -341,9 +361,9 @@ function ComparisonTable() {
               letterSpacing: '0.14em', textTransform: 'uppercase',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}>Feature</th>
-            {['Starter','Growth','Scale'].map((p, i) => (
+            {['Starter','Growth','Scale','Enterprise'].map((p, i) => (
               <th key={p} style={{
-                textAlign: 'center', padding: '14px 16px', minWidth: 100,
+                textAlign: 'center', padding: '14px 16px', minWidth: 96,
                 fontSize: 11, fontWeight: 900, color: '#fff',
                 letterSpacing: '0.10em', textTransform: 'uppercase',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -363,7 +383,7 @@ function ComparisonTable() {
                 fontSize: 12.5, color: 'var(--text)',
                 borderBottom: '1px solid rgba(255,255,255,0.03)',
               }}>{row.feature}</td>
-              {['starter','growth','scale'].map((tier, j) => {
+              {['starter','growth','scale','enterprise'].map((tier, j) => {
                 const v = row[tier]
                 return (
                   <td key={tier} style={{
@@ -969,7 +989,7 @@ export default function SettingsTab() {
         </div>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))',
           gap: 16,
         }}>
           {PLANS.map(p => (

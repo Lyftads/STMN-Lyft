@@ -15,9 +15,46 @@ const GREEN = '#22c55e'
 // ─────────────────────────────────────────────────────────────
 //  i18n — IT / EN / ES (no library, dictionary lookup)
 // ─────────────────────────────────────────────────────────────
+// Mega-menu "Soluzioni": colonne (titoli localizzati via t.solMenu) + voci
+// (nomi prodotto neutri, validi in tutte le lingue).
+const SOLUTIONS = [
+  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
+  { key: 'ads', items: ['Meta Detail & KPI', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
+  { key: 'website', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
+  { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF automatici'] },
+  { key: 'team', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
+]
+
 const I18N = {
   it: {
-    nav: { features: 'Funzionalità', pricing: 'Prezzi', contact: 'Contatti', login: 'Accedi', cta: 'Prova gratis' },
+    nav: { features: 'Funzionalità', pricing: 'Prezzi', contact: 'Contatti', login: 'Accedi', cta: 'Prova gratis', solutions: 'Soluzioni' },
+    solMenu: { commerce: 'Commerce & Analytics', ads: 'Advertising', website: 'Sito & SEO', ai: 'AI & Creative', team: 'Team & Operations', all: 'Esplora tutto il software →' },
+    bundle: {
+      eyebrow: 'Un solo abbonamento',
+      title: 'Tutti i tool in un\'unica piattaforma',
+      sub: 'Quello che di solito paghi con 10+ abbonamenti separati, qui è già tutto incluso in un solo prezzo.',
+      allinoneLabel: 'LyftAI · piano Full',
+      allinoneNote: 'Tutto incluso, un unico accesso, un unico prezzo.',
+      separateLabel: 'Gli stessi tool, separati',
+      separateNote: 'Stima media di mercato per categoria (€/mese).',
+      items: [
+        { name: 'Dashboard & BI analytics', price: 99 },
+        { name: 'Connettori dati multi-piattaforma', price: 120 },
+        { name: 'Analytics ads multi-canale', price: 89 },
+        { name: 'Email marketing analytics', price: 70 },
+        { name: 'Suite SEO (audit, keyword, GSC)', price: 99 },
+        { name: 'Assistente AI marketing', price: 60 },
+        { name: 'Generatore creative AI', price: 49 },
+        { name: 'Competitor & price intelligence', price: 99 },
+        { name: 'Project management', price: 39 },
+        { name: 'Time tracking', price: 29 },
+        { name: 'Team chat', price: 25 },
+      ],
+      totalLabel: 'Totale separati',
+      perMonth: '/mese',
+      saveLabel: 'Risparmi',
+      saveSuffix: 'al mese con LyftAI',
+    },
     hero: {
       badge: 'Prova gratuita · 14 giorni',
       title1: 'Il consulente AI',
@@ -92,12 +129,12 @@ const I18N = {
       chatUser: 'Com\'è andata la settimana?',
       chatAi: 'Allora, MER a {strong}2,6x{/strong} — sopra il target che tieni a 2,5x. Settimana solida. AOV in linea, ma il {strong}CTR Meta cala da 3 giorni{/strong}. Lo guardo?',
     },
-    pricingTitle: { eyebrow: 'Pricing', title: 'Scegli il piano giusto per la tua crescita' },
+    pricingTitle: { eyebrow: 'Pricing', title: 'Un prezzo per tutto. Niente tool sparsi.' },
     pricingSub: 'Tutti i piani con 14 giorni gratis. Niente carta richiesta. Cancellazione in 1 click.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mese', tagline: 'Per founder che strutturano il primo brand', features: ['Dashboard KPI + Live View globo', 'Conto Economico (P&L) mensile', 'SEO Audit on-page', 'Integrazione Shopify + Meta + GA4', 'Email support 48h'], cta: 'Inizia con Starter' },
-      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mese', tagline: 'Brand in scaling che cercano leve data-driven', features: ['Tutto di Starter +', 'Klaviyo (entrate/destinatario) + Creative Meta', 'Suite SEO + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'POPOLARE' },
-      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mese', tagline: 'Brand 7-8 figure con team dedicato', features: ['Tutto di Growth +', 'Performance Agent AI (legge tutti i dati)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulatore', 'CSM dedicato'], cta: 'Inizia con Scale' },
+      { id: 'starter', name: 'Base', price: '€69', period: '/mese', tagline: 'Per brand che vogliono finalmente i numeri in ordine, senza spendere una fortuna.', features: ['Dashboard KPI live + Live View globo', 'Conto Economico (P&L) mensile', 'SEO Audit on-page', 'Integrazioni Shopify + Meta + GA4 + Klaviyo', 'Progetti & Task + LyftTalk (chat team)', 'Email support 48h'], cta: 'Inizia con Base' },
+      { id: 'growth', name: 'Pro', price: '€149', period: '/mese', tagline: 'Per brand in scaling che vogliono leve data-driven su ads, SEO e CRO.', features: ['Tutto di Base +', 'Suite SEO completa + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Meta completo: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Coorti + Attribuzione', 'Lyftimer (time tracking) + Report avanzati', 'Priority support 12h'], cta: 'Inizia con Pro', popular: true, popularLabel: 'PIÙ SCELTO' },
+      { id: 'scale', name: 'Full', price: '€299', period: '/mese', tagline: 'Tutto il software, senza limiti. L\'intero reparto marketing in un abbonamento.', features: ['Tutto di Pro +', 'Performance Agent AI (legge tutti i tuoi dati)', 'Creative Lab (generazione ad AI)', 'Competitor Intel + Confronto prezzi', 'Simulatore scenari + AI Visibility (AEO)', 'Onboarding guidato + CSM dedicato', 'Tutti i tool inclusi, nessun extra'], cta: 'Passa a Full', best: true, bestLabel: 'TUTTO INCLUSO' },
     ],
     testimonialsTitle: { eyebrow: 'Cosa dicono di noi', title: 'Brand che hanno smesso di scegliere a sentimento' },
     testimonials: [
@@ -134,7 +171,34 @@ const I18N = {
     footer: { tagline: 'AI consultant per brand DTC' },
   },
   en: {
-    nav: { features: 'Features', pricing: 'Pricing', contact: 'Contact', login: 'Sign in', cta: 'Free trial' },
+    nav: { features: 'Features', pricing: 'Pricing', contact: 'Contact', login: 'Sign in', cta: 'Free trial', solutions: 'Solutions' },
+    solMenu: { commerce: 'Commerce & Analytics', ads: 'Advertising', website: 'Website & SEO', ai: 'AI & Creative', team: 'Team & Operations', all: 'Explore the whole platform →' },
+    bundle: {
+      eyebrow: 'One single subscription',
+      title: 'Every tool in one platform',
+      sub: 'What you usually pay across 10+ separate subscriptions is already included here, for one price.',
+      allinoneLabel: 'LyftAI · Full plan',
+      allinoneNote: 'Everything included, one login, one price.',
+      separateLabel: 'The same tools, separately',
+      separateNote: 'Average market estimate per category (€/month).',
+      items: [
+        { name: 'Dashboard & BI analytics', price: 99 },
+        { name: 'Multi-platform data connectors', price: 120 },
+        { name: 'Multi-channel ad analytics', price: 89 },
+        { name: 'Email marketing analytics', price: 70 },
+        { name: 'SEO suite (audit, keyword, GSC)', price: 99 },
+        { name: 'AI marketing assistant', price: 60 },
+        { name: 'AI creative generator', price: 49 },
+        { name: 'Competitor & price intelligence', price: 99 },
+        { name: 'Project management', price: 39 },
+        { name: 'Time tracking', price: 29 },
+        { name: 'Team chat', price: 25 },
+      ],
+      totalLabel: 'Separate total',
+      perMonth: '/month',
+      saveLabel: 'You save',
+      saveSuffix: 'per month with LyftAI',
+    },
     hero: {
       badge: 'Free trial · 14 days',
       title1: 'The AI consultant',
@@ -209,12 +273,12 @@ const I18N = {
       chatUser: 'How was the week?',
       chatAi: 'So, MER at {strong}2.6x{/strong} — above the 2.5x target you keep. Solid week. AOV in line, but {strong}Meta CTR is dropping for 3 days{/strong}. Should I look into it?',
     },
-    pricingTitle: { eyebrow: 'Pricing', title: 'Choose the right plan for your growth' },
+    pricingTitle: { eyebrow: 'Pricing', title: 'One price for everything. No scattered tools.' },
     pricingSub: 'All plans with 14 days free. No credit card required. 1-click cancellation.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119.99', period: '/month', tagline: 'For founders structuring the first brand', features: ['KPI Dashboard + Live View globe', 'Monthly P&L statement', 'On-page SEO Audit', 'Shopify + Meta + GA4 integration', 'Email support 48h'], cta: 'Start with Starter' },
-      { id: 'growth', name: 'Growth', price: '€179.99', period: '/month', tagline: 'Scaling brands seeking data-driven leverage', features: ['Everything in Starter +', 'Klaviyo (rev/recipient) + Meta Creative', 'SEO Suite + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'POPULAR' },
-      { id: 'scale', name: 'Scale', price: '€349.99', period: '/month', tagline: '7-8 figure brands with dedicated team', features: ['Everything in Growth +', 'Performance Agent AI (reads all your data)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulator', 'Dedicated CSM'], cta: 'Start with Scale' },
+      { id: 'starter', name: 'Base', price: '€69', period: '/month', tagline: 'For brands that finally want their numbers in order, without spending a fortune.', features: ['Live KPI Dashboard + Live View globe', 'Monthly P&L statement', 'On-page SEO Audit', 'Shopify + Meta + GA4 + Klaviyo integrations', 'Projects & Tasks + LyftTalk (team chat)', 'Email support 48h'], cta: 'Start with Base' },
+      { id: 'growth', name: 'Pro', price: '€149', period: '/month', tagline: 'For scaling brands seeking data-driven leverage on ads, SEO and CRO.', features: ['Everything in Base +', 'Full SEO Suite + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Full Meta: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Cohorts + Attribution', 'Lyftimer (time tracking) + advanced reports', 'Priority support 12h'], cta: 'Start with Pro', popular: true, popularLabel: 'MOST CHOSEN' },
+      { id: 'scale', name: 'Full', price: '€299', period: '/month', tagline: 'The entire software, no limits. A whole marketing department in one subscription.', features: ['Everything in Pro +', 'Performance Agent AI (reads all your data)', 'Creative Lab (AI ad generation)', 'Competitor Intel + price comparison', 'Scenario simulator + AI Visibility (AEO)', 'Guided onboarding + dedicated CSM', 'All tools included, no extras'], cta: 'Go Full', best: true, bestLabel: 'ALL INCLUDED' },
     ],
     testimonialsTitle: { eyebrow: 'What they say about us', title: 'Brands that stopped choosing by gut feeling' },
     testimonials: [
@@ -251,7 +315,34 @@ const I18N = {
     footer: { tagline: 'AI consultant for DTC brands' },
   },
   es: {
-    nav: { features: 'Funciones', pricing: 'Precios', contact: 'Contacto', login: 'Acceder', cta: 'Prueba gratis' },
+    nav: { features: 'Funciones', pricing: 'Precios', contact: 'Contacto', login: 'Acceder', cta: 'Prueba gratis', solutions: 'Soluciones' },
+    solMenu: { commerce: 'Commerce & Analytics', ads: 'Publicidad', website: 'Web & SEO', ai: 'IA & Creative', team: 'Equipo & Operaciones', all: 'Explora todo el software →' },
+    bundle: {
+      eyebrow: 'Una sola suscripción',
+      title: 'Todas las herramientas en una plataforma',
+      sub: 'Lo que normalmente pagas con más de 10 suscripciones separadas, aquí ya está incluido en un único precio.',
+      allinoneLabel: 'LyftAI · plan Full',
+      allinoneNote: 'Todo incluido, un único acceso, un único precio.',
+      separateLabel: 'Las mismas herramientas, por separado',
+      separateNote: 'Estimación media de mercado por categoría (€/mes).',
+      items: [
+        { name: 'Dashboard & BI analytics', price: 99 },
+        { name: 'Conectores de datos multiplataforma', price: 120 },
+        { name: 'Analytics de ads multicanal', price: 89 },
+        { name: 'Analytics de email marketing', price: 70 },
+        { name: 'Suite SEO (audit, keyword, GSC)', price: 99 },
+        { name: 'Asistente IA de marketing', price: 60 },
+        { name: 'Generador de creatividades IA', price: 49 },
+        { name: 'Competitor & price intelligence', price: 99 },
+        { name: 'Project management', price: 39 },
+        { name: 'Time tracking', price: 29 },
+        { name: 'Chat de equipo', price: 25 },
+      ],
+      totalLabel: 'Total por separado',
+      perMonth: '/mes',
+      saveLabel: 'Ahorras',
+      saveSuffix: 'al mes con LyftAI',
+    },
     hero: {
       badge: 'Prueba gratuita · 14 días',
       title1: 'El consultor de IA',
@@ -326,12 +417,12 @@ const I18N = {
       chatUser: '¿Cómo fue la semana?',
       chatAi: 'Entonces, MER en {strong}2,6x{/strong} — por encima del target 2,5x que tienes. Semana sólida. AOV en línea, pero el {strong}CTR Meta baja desde 3 días{/strong}. ¿Lo reviso?',
     },
-    pricingTitle: { eyebrow: 'Precios', title: 'Elige el plan adecuado para tu crecimiento' },
+    pricingTitle: { eyebrow: 'Precios', title: 'Un precio para todo. Sin herramientas dispersas.' },
     pricingSub: 'Todos los planes con 14 días gratis. Sin tarjeta. Cancelación en 1 click.',
     plans: [
-      { id: 'starter', name: 'Starter', price: '€119,99', period: '/mes', tagline: 'Para founders estructurando la primera marca', features: ['Dashboard KPI + globo Live View', 'Cuenta de resultados (P&L) mensual', 'Auditoría SEO on-page', 'Integración Shopify + Meta + GA4', 'Email support 48h'], cta: 'Iniciar con Starter' },
-      { id: 'growth', name: 'Growth', price: '€179,99', period: '/mes', tagline: 'Marcas en scaling que buscan palanca data-driven', features: ['Todo de Starter +', 'Klaviyo (ingr./destinatario) + Creative Meta', 'Suite SEO + Google Search Console', 'AI Website Scanner (CRO)', 'Meta Detail ad-level', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'POPULAR' },
-      { id: 'scale', name: 'Scale', price: '€349,99', period: '/mes', tagline: 'Marcas 7-8 figuras con equipo dedicado', features: ['Todo de Growth +', 'Performance Agent AI (lee todos tus datos)', 'User Path (GA4/BigQuery) + AI Visibility', 'Creative Lab + Competitor Intel + Simulador', 'CSM dedicado'], cta: 'Iniciar con Scale' },
+      { id: 'starter', name: 'Base', price: '€69', period: '/mes', tagline: 'Para marcas que por fin quieren sus números en orden, sin gastar una fortuna.', features: ['Dashboard KPI en vivo + globo Live View', 'Cuenta de resultados (P&L) mensual', 'Auditoría SEO on-page', 'Integraciones Shopify + Meta + GA4 + Klaviyo', 'Proyectos & Tareas + LyftTalk (chat de equipo)', 'Email support 48h'], cta: 'Iniciar con Base' },
+      { id: 'growth', name: 'Pro', price: '€149', period: '/mes', tagline: 'Para marcas en scaling que buscan palanca data-driven en ads, SEO y CRO.', features: ['Todo de Base +', 'Suite SEO completa + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Meta completo: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Cohortes + Atribución', 'Lyftimer (time tracking) + informes avanzados', 'Priority support 12h'], cta: 'Iniciar con Pro', popular: true, popularLabel: 'MÁS ELEGIDO' },
+      { id: 'scale', name: 'Full', price: '€299', period: '/mes', tagline: 'Todo el software, sin límites. Un departamento de marketing completo en una suscripción.', features: ['Todo de Pro +', 'Performance Agent AI (lee todos tus datos)', 'Creative Lab (generación de ads con IA)', 'Competitor Intel + comparación de precios', 'Simulador de escenarios + AI Visibility (AEO)', 'Onboarding guiado + CSM dedicado', 'Todas las herramientas incluidas, sin extras'], cta: 'Pasar a Full', best: true, bestLabel: 'TODO INCLUIDO' },
     ],
     testimonialsTitle: { eyebrow: 'Qué dicen de nosotros', title: 'Marcas que dejaron de elegir por intuición' },
     testimonials: [
@@ -408,6 +499,7 @@ export default function WelcomePage() {
         <TabsTour t={t} />
         <FeaturesGrid t={t} />
         <DemoCharts t={t} />
+        <BundleCompare t={t} />
         <Pricing t={t} />
         <Testimonials t={t} />
         <Faq t={t} />
@@ -606,6 +698,7 @@ function Reveal({ children, delay = 0, style, variant = '' }) {
 // ─────────────────────────────────────────────────────────────
 function Nav({ t, lang, setLang }) {
   const [openLang, setOpenLang] = useState(false)
+  const [openSol, setOpenSol] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
     const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpenLang(false) }
@@ -628,6 +721,9 @@ function Nav({ t, lang, setLang }) {
           <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: '-0.02em', color: '#fff' }}>LyftAI</span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button onClick={() => setOpenSol(o => !o)} style={{ ...navLinkStyle, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', color: openSol ? '#fff' : navLinkStyle.color }}>
+            {t.nav.solutions} <span style={{ fontSize: 8, opacity: 0.6, transform: openSol ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
+          </button>
           <a href="#features" style={navLinkStyle}>{t.nav.features}</a>
           <a href="#pricing" style={navLinkStyle}>{t.nav.pricing}</a>
           <a href="#contact" style={navLinkStyle}>{t.nav.contact}</a>
@@ -675,6 +771,35 @@ function Nav({ t, lang, setLang }) {
           }}>{t.nav.cta}</Link>
         </div>
       </div>
+
+      {/* Mega-menu Soluzioni */}
+      {openSol && (
+        <>
+          <div onClick={() => setOpenSol(false)} style={{ position: 'fixed', inset: 0, top: 64, zIndex: 80 }} />
+          <div onMouseLeave={() => setOpenSol(false)} style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 101,
+            background: 'rgba(8,8,16,0.98)', backdropFilter: 'blur(24px)',
+            borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 30px 80px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 24px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 26 }}>
+              {SOLUTIONS.map(col => (
+                <div key={col.key}>
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{t.solMenu?.[col.key] || col.key}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    {col.items.map(it => (
+                      <Link key={it} href="/register" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.78)', textDecoration: 'none', fontWeight: 500 }} className="sol-item">{it}</Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 22px' }}>
+              <a href="#features" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, fontWeight: 800, color: BLUE, textDecoration: 'none' }}>{t.solMenu?.all || 'Explore →'}</a>
+            </div>
+          </div>
+        </>
+      )}
     </header>
   )
 }
@@ -1116,22 +1241,25 @@ function Pricing({ t }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
         gap: 20, maxWidth: 1000, margin: '50px auto 0',
       }}>
-        {t.plans.map((p, i) => (
+        {t.plans.map((p, i) => {
+          const hot = p.popular || p.best
+          const hotLabel = p.popularLabel || p.bestLabel
+          return (
           <Reveal key={p.id} delay={i * 120}>
             <div className="glass-card-static" style={{
               padding: 30, position: 'relative', height: '100%',
-              ...(p.popular && {
+              ...(hot && {
                 borderTop: `2px solid ${planAccents[i]}`,
                 boxShadow: `0 30px 80px rgba(0,0,0,0.80), 0 0 80px ${planAccents[i]}22, inset 0 1.5px 0 ${planAccents[i]}88`,
               }),
             }}>
-              {p.popular && (
+              {hot && (
                 <div style={{
                   position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                  padding: '4px 14px', borderRadius: 999,
+                  padding: '4px 14px', borderRadius: 999, whiteSpace: 'nowrap',
                   background: planAccents[i], color: '#fff',
                   fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
-                }}>{p.popularLabel}</div>
+                }}>{hotLabel}</div>
               )}
               <div style={{ fontSize: 12, color: planAccents[i], fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 {p.name}
@@ -1152,15 +1280,90 @@ function Pricing({ t }) {
               <Link href="/register" className="cta-btn" style={{
                 display: 'block', textAlign: 'center',
                 padding: '13px 18px', borderRadius: 999,
-                background: p.popular ? `linear-gradient(135deg, ${ACCENT}, ${BLUE})` : 'rgba(255,255,255,0.06)',
-                border: p.popular ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                background: hot ? `linear-gradient(135deg, ${ACCENT}, ${BLUE})` : 'rgba(255,255,255,0.06)',
+                border: hot ? 'none' : '1px solid rgba(255,255,255,0.12)',
                 color: '#fff', textDecoration: 'none',
                 fontSize: 13.5, fontWeight: 800, letterSpacing: '-0.01em',
               }}>{p.cta}</Link>
             </div>
           </Reveal>
-        ))}
+          )
+        })}
       </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Bundle / Comparison — un abbonamento vs N tool separati
+// ─────────────────────────────────────────────────────────────
+function BundleCompare({ t }) {
+  const b = t.bundle
+  if (!b) return null
+  const total = b.items.reduce((s, i) => s + i.price, 0)
+  const full = 299 // prezzo piano Full
+  const save = total - full
+  const euro = (n) => '€' + n.toLocaleString('it-IT')
+  return (
+    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 40px' }}>
+      <Reveal><SectionHeader eyebrow={b.eyebrow} title={b.title} /></Reveal>
+      <Reveal>
+        <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>{b.sub}</p>
+      </Reveal>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginTop: 50, alignItems: 'stretch' }}>
+        {/* All-in-one */}
+        <Reveal>
+          <div className="glass-card-static" style={{ padding: 30, height: '100%', borderTop: `2px solid ${GREEN}`, boxShadow: `0 30px 80px rgba(0,0,0,0.8), 0 0 80px ${GREEN}22, inset 0 1.5px 0 ${GREEN}88`, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 12, color: GREEN, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{b.allinoneLabel}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
+              <span style={{ fontSize: 52, fontWeight: 900, letterSpacing: '-0.03em' }}>{euro(full)}</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{b.perMonth}</span>
+            </div>
+            <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginTop: 10, marginBottom: 20 }}>{b.allinoneNote}</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flex: 1 }}>
+              {b.items.map(it => (
+                <li key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                  <span style={{ color: GREEN, fontWeight: 800 }}>✓</span>{it.name}
+                  <span style={{ marginLeft: 'auto', color: GREEN, fontSize: 12, fontWeight: 700 }}>incluso</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Reveal>
+        {/* Separate */}
+        <Reveal delay={120}>
+          <div className="glass-card-static" style={{ padding: 30, height: '100%', opacity: 0.92, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{b.separateLabel}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
+              <span style={{ fontSize: 52, fontWeight: 900, letterSpacing: '-0.03em', color: '#ff6b6b', textDecoration: 'line-through', textDecorationColor: 'rgba(255,107,107,0.4)' }}>{euro(total)}</span>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{b.perMonth}</span>
+            </div>
+            <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginTop: 10, marginBottom: 20 }}>{b.separateNote}</div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flex: 1 }}>
+              {b.items.map(it => (
+                <li key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.3)' }}>•</span>{it.name}
+                  <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{euro(it.price)}</span>
+                </li>
+              ))}
+            </ul>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 12, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{b.totalLabel}</span>
+              <span style={{ fontSize: 22, fontWeight: 900, color: '#ff6b6b', fontVariantNumeric: 'tabular-nums' }}>{euro(total)}{b.perMonth}</span>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+      {/* Savings banner */}
+      <Reveal>
+        <div style={{ textAlign: 'center', marginTop: 32 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, padding: '16px 28px', borderRadius: 999, background: `linear-gradient(135deg, ${GREEN}22, ${BLUE}22)`, border: `1px solid ${GREEN}55` }}>
+            <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>{b.saveLabel}</span>
+            <span style={{ fontSize: 30, fontWeight: 900, color: GREEN, letterSpacing: '-0.02em' }}>{euro(save)}</span>
+            <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>{b.saveSuffix} · −{Math.round(save / total * 100)}%</span>
+          </div>
+        </div>
+      </Reveal>
     </section>
   )
 }

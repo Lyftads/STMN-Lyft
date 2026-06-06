@@ -1,8 +1,28 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Component } from 'react'
 import App from '../page'
 import { demoData } from '../../lib/demo/data'
+
+// Error boundary SOLO per la demo: mostra l'errore invece del white-screen.
+class DemoBoundary extends Component {
+  constructor(p) { super(p); this.state = { err: null } }
+  static getDerivedStateFromError(err) { return { err } }
+  componentDidCatch(err, info) { try { console.error('[demo]', err, info) } catch {} }
+  render() {
+    if (this.state.err) {
+      const e = this.state.err
+      return (
+        <div style={{ padding: '60px 24px', textAlign: 'center', color: '#fff', fontFamily: 'system-ui' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Errore nella demo</div>
+          <div style={{ fontSize: 13, color: '#ff8095', fontFamily: 'monospace', maxWidth: 760, margin: '0 auto 8px', wordBreak: 'break-word' }}>{String(e && (e.message || e))}</div>
+          <pre style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', maxWidth: 820, margin: '0 auto', textAlign: 'left', whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto' }}>{String(e && e.stack || '').slice(0, 1200)}</pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // Monta il SOFTWARE REALE (app/page.js) ma intercetta le chiamate /api/* e
 // risponde con dati demo inventati. Non tocca nulla del software reale: la
@@ -101,7 +121,9 @@ export default function DemoApp() {
         <a href="/welcome" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>← Torna al sito</a>
       </div>
       <div style={{ paddingTop: 34 }}>
-        <App />
+        <DemoBoundary>
+          <App />
+        </DemoBoundary>
       </div>
     </>
   )

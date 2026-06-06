@@ -50,6 +50,11 @@ export default function TimeTrackingTab({ standalone = false }) {
   const mondayOf = (d) => { const x = new Date(d); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); x.setHours(0, 0, 0, 0); return x }
   const [approveWeek, setApproveWeek] = useState(() => { const x = new Date(); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x.toISOString().slice(0, 10) })
   const [approvals, setApprovals] = useState({ rows: [], loaded: false })
+  const [attDay, setAttDay] = useState(() => new Date().toISOString().slice(0, 10))
+  const [attendance, setAttendance] = useState({ rows: [], loaded: false })
+  const [timeoff, setTimeoff] = useState([])
+  const [showOff, setShowOff] = useState(false)
+  const [offForm, setOffForm] = useState({ type: 'ferie', start_date: '', end_date: '', note: '', member_id: '' })
   const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) }
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const [range, setRange] = useState({ from: monthStart(), to: todayStr() })
@@ -180,6 +185,42 @@ export default function TimeTrackingTab({ standalone = false }) {
   function shiftWeek(delta) {
     const d = new Date(approveWeek + 'T00:00:00'); d.setDate(d.getDate() + delta * 7)
     setApproveWeek(d.toISOString().slice(0, 10))
+  }
+
+  // Presenze (dal timer) + ferie/permessi
+  const loadAttendance = useCallback(async () => {
+    const from = `${attDay}T00:00:00`, to = `${attDay}T23:59:59`
+    const [e, off] = await Promise.all([
+      fetch(`/api/time-entries?from=${from}&to=${to}&scope=all`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+      fetch('/api/time-off', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+    ])
+    const agg = {}
+    for (const x of (e.entries || [])) {
+      const k = x.member_id; if (!k) continue
+      if (!agg[k]) agg[k] = { name: x.member_name || '—', avatar: x.member_avatar, firstIn: x.started_at, lastOut: x.ended_at, sec: 0, running: false }
+      if (x.started_at < agg[k].firstIn) agg[k].firstIn = x.started_at
+      if (!x.ended_at) agg[k].running = true
+      else if (!agg[k].lastOut || x.ended_at > agg[k].lastOut) agg[k].lastOut = x.ended_at
+      agg[k].sec += x.duration_seconds || 0
+    }
+    setAttendance({ rows: Object.values(agg).sort((a, b) => b.sec - a.sec), loaded: true })
+    setTimeoff(off.requests || [])
+  }, [attDay])
+  useEffect(() => { if (section === 'attendance') loadAttendance() }, [section, loadAttendance])
+
+  async function submitTimeOff() {
+    if (!offForm.start_date || !offForm.end_date) return
+    const r = await fetch('/api/time-off', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(offForm) }).then(r => r.json()).catch(() => ({}))
+    if (r.ok) { setShowOff(false); setOffForm({ type: 'ferie', start_date: '', end_date: '', note: '', member_id: '' }); loadAttendance() }
+  }
+  async function setOffStatus(id, status) {
+    await fetch('/api/time-off', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) })
+    loadAttendance()
+  }
+  async function delTimeOff(id) {
+    if (!confirm('Eliminare la richiesta?')) return
+    await fetch(`/api/time-off?id=${id}`, { method: 'DELETE' })
+    loadAttendance()
   }
 
   // Controlli finestra (come LyftTalk)
@@ -789,6 +830,104 @@ export default function TimeTrackingTab({ standalone = false }) {
         )
       })()}
 
+      {/* Presenze & ferie */}
+      {section === 'attendance' && (() => {
+        const isAdmin = !!me?.isAdmin
+        const tBadge = t => t === 'permesso' ? { c: '#bf5af2', t: 'Permesso' } : t === 'malattia' ? { c: '#ff9f0a', t: 'Malattia' } : { c: '#5b8bff', t: 'Ferie' }
+        const sBadge = s => s === 'approved' ? { c: '#30d158', t: 'Approvato' } : s === 'rejected' ? { c: '#ff375f', t: 'Rifiutato' } : { c: '#ff9f0a', t: 'In attesa' }
+        const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Presenze del giorno */}
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>Presenze</span>
+                <input type="date" value={attDay} onChange={e => setAttDay(e.target.value)} style={{ ...input, width: 'auto', padding: '6px 9px' }} />
+              </div>
+              {!attendance.loaded ? <div style={{ padding: 20, color: MUTED }}>Caricamento…</div>
+                : attendance.rows.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessuna presenza registrata in questa data.</div>
+                : attendance.rows.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <Avatar name={r.name} url={r.avatar} size={34} online={r.running ? true : undefined} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                      <div style={{ color: MUTED, fontSize: 12 }}>ingresso {timeOf(r.firstIn)} · uscita {r.running ? <span style={{ color: '#30d158' }}>in corso</span> : (r.lastOut ? timeOf(r.lastOut) : '—')}</div>
+                    </div>
+                    <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(r.sec)}</span>
+                  </div>
+                ))}
+            </div>
+
+            {/* Ferie & permessi */}
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>Ferie & permessi</span>
+                <button style={{ ...btn, padding: '7px 14px', fontSize: 13 }} onClick={() => setShowOff(true)}>+ Richiedi assenza</button>
+              </div>
+              {timeoff.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessuna richiesta.</div>
+                : timeoff.map(o => {
+                  const tb = tBadge(o.type), sb = sBadge(o.status)
+                  return (
+                    <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: tb.c, background: tb.c + '22', padding: '4px 10px', borderRadius: 20 }}>{tb.t}</span>
+                      <div style={{ flex: 1, minWidth: 140 }}>
+                        {isAdmin && <div style={{ fontWeight: 600, fontSize: 13 }}>{o.member_name || '—'}</div>}
+                        <div style={{ fontSize: 13 }}>{fmtD(o.start_date)} → {fmtD(o.end_date)}</div>
+                        {o.note && <div style={{ color: MUTED, fontSize: 12 }}>{o.note}</div>}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: sb.c, background: sb.c + '22', padding: '4px 10px', borderRadius: 20 }}>{sb.t}</span>
+                      {isAdmin && o.status !== 'approved' && <button style={{ ...btn, padding: '6px 11px', fontSize: 12, background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setOffStatus(o.id, 'approved')}>✓</button>}
+                      {isAdmin && o.status !== 'rejected' && <button style={{ ...btnGhost, padding: '6px 11px', fontSize: 12, color: '#ff8095' }} onClick={() => setOffStatus(o.id, 'rejected')}>✕</button>}
+                      <button style={{ ...btnGhost, padding: '6px 9px', fontSize: 12 }} onClick={() => delTimeOff(o.id)}>🗑</button>
+                    </div>
+                  )
+                })}
+            </div>
+
+            {/* Modal richiesta */}
+            {showOff && (
+              <div onClick={() => setShowOff(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px,100%)', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 16, padding: 22 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, flex: 1 }}>Richiedi assenza</h3>
+                    <button onClick={() => setShowOff(false)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
+                  </div>
+                  {isAdmin && (
+                    <>
+                      <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>Membro</label>
+                      <select style={{ ...input, marginTop: 6, marginBottom: 12 }} value={offForm.member_id} onChange={e => setOffForm({ ...offForm, member_id: e.target.value })}>
+                        <option value="">— Io —</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
+                      </select>
+                    </>
+                  )}
+                  <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>Tipo</label>
+                  <select style={{ ...input, marginTop: 6, marginBottom: 12 }} value={offForm.type} onChange={e => setOffForm({ ...offForm, type: e.target.value })}>
+                    <option value="ferie">Ferie</option><option value="permesso">Permesso</option><option value="malattia">Malattia</option>
+                  </select>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>Dal</label>
+                      <input type="date" style={{ ...input, marginTop: 6 }} value={offForm.start_date} onChange={e => setOffForm({ ...offForm, start_date: e.target.value, end_date: offForm.end_date || e.target.value })} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>al</label>
+                      <input type="date" style={{ ...input, marginTop: 6 }} value={offForm.end_date} onChange={e => setOffForm({ ...offForm, end_date: e.target.value })} />
+                    </div>
+                  </div>
+                  <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>Note (opzionale)</label>
+                  <textarea style={{ ...input, marginTop: 6, minHeight: 70, resize: 'vertical' }} value={offForm.note} onChange={e => setOffForm({ ...offForm, note: e.target.value })} />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+                    <button style={btnGhost} onClick={() => setShowOff(false)}>Annulla</button>
+                    <button style={btn} onClick={submitTimeOff}>Invia richiesta</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
         </div>
       </div>
 
@@ -805,6 +944,7 @@ function LyftSidebar({ section, setSection }) {
     ['activity', 'Attività', 'chart'],
     ['report', 'Report', 'report'],
     ['approvals', 'Approvazioni', 'check'],
+    ['attendance', 'Presenze & ferie', 'calendar'],
     ['budget', 'Budget & costi', 'budget'],
     ['people', 'Persone', 'people'],
     ['projects', 'Progetti', 'folder'],
@@ -843,6 +983,7 @@ function SideIcon({ name, active }) {
     case 'folder': return <svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
     case 'budget': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2 0 0 1 9.5 15" /><path d="M12 6v1.5M12 16.5V18" /></svg>
     case 'check': return <svg {...p}><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+    case 'calendar': return <svg {...p}><rect x="3" y="4.5" width="18" height="16" rx="2" /><path d="M3 9h18M8 2.5v4M16 2.5v4" /></svg>
     default: return <svg {...p}><circle cx="12" cy="12" r="9" /></svg>
   }
 }

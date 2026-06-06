@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { getServerSupabase, getAdminSupabase } from '../../../../../lib/supabase/server'
+import { invalidateTenantCache } from '../../../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Google OAuth — Callback
@@ -101,6 +102,10 @@ export async function GET(req) {
     console.log('[oauth/google] DB update error:', updError.message)
     return redirectWithError(origin, 'db_save_failed')
   }
+
+  // Invalida la cache creds del tenant → il nuovo refresh token (con lo scope
+  // Ads) viene usato subito, senza aspettare la scadenza TTL.
+  try { invalidateTenantCache(user.id) } catch {}
 
   // Successo: redirect a /onboarding con flag (per evidenziare lo step GA4 completato)
   return NextResponse.redirect(`${origin}/onboarding?gaConnected=1`)

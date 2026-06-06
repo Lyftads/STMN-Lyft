@@ -49,6 +49,25 @@ export async function GET(req) {
   try {
     const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
 
+    // Debug scope: ?debug=scopes → mostra gli scope effettivi del refresh token
+    // in uso (NON espone il token). Serve a capire se manca 'adwords'.
+    if (req.nextUrl?.searchParams?.get('debug') === 'scopes') {
+      try {
+        const ti = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(accessToken)).then(r => r.json())
+        const scopes = (ti.scope || '').split(' ').filter(Boolean)
+        return NextResponse.json({
+          debug: 'scopes',
+          email: ti.email || null,
+          hasAdwords: scopes.includes('https://www.googleapis.com/auth/adwords'),
+          scopes,
+          customerId: CUSTOMER_ID ? `***${String(CUSTOMER_ID).slice(-4)}` : null,
+          mccSet: !!MCC_ID,
+        })
+      } catch (e) {
+        return NextResponse.json({ debug: 'scopes', error: String(e?.message || e) })
+      }
+    }
+
     const { GoogleAdsServiceClient } = await import('google-ads-node')
 
     const grpc = await import('@grpc/grpc-js')

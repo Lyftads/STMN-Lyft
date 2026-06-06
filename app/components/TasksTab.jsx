@@ -193,6 +193,10 @@ export default function TasksTab() {
           <div style={{ color: '#b0b0bd', fontSize: 13 }}>Assegna, scadenze, revisione e approvazione del team</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
+            <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: view !== 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view !== 'overview' ? 700 : 400 }}>Board</button>
+            <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view === 'overview' ? 700 : 400 }}>📊 Grafici</button>
+          </div>
           {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}>👥 Gestione team</button>}
         </div>
       </div>
@@ -258,6 +262,87 @@ export default function TasksTab() {
           </div>
         </div>
       )}
+
+      {view === 'overview' && (() => {
+        const isDone = t => t.status === 'done' || t.status === 'approved'
+        const compDate = t => t.approved_at || t.updated_at || t.created_at
+        const isLate = t => isDone(t) && t.due_date && new Date(compDate(t)) > new Date(t.due_date + 'T23:59:59')
+        // distribuzione per stato
+        const byStatus = COLUMNS.map(c => ({ label: c.label, color: c.color, value: tasks.filter(t => t.status === c.id).length }))
+        const totalTasks = tasks.length
+        const doneTasks = tasks.filter(isDone)
+        const lateTasks = doneTasks.filter(isLate)
+        const onTime = doneTasks.length - lateTasks.length
+        const openTasks = totalTasks - doneTasks.length
+        const punct = [
+          { label: 'In tempo', color: '#30d158', value: onTime },
+          { label: 'In ritardo', color: '#ff375f', value: lateTasks.length },
+          { label: 'Ancora aperti', color: '#5b6b7b', value: openTasks },
+        ]
+        // progetti
+        const projRows = [...projects.map(p => ({ id: p.id, name: p.name, color: p.color || '#7b5bff' })), { id: 'none', name: 'Senza progetto', color: '#5b6b7b' }]
+          .map(p => {
+            const ts = tasks.filter(t => (p.id === 'none' ? !t.project_id : t.project_id === p.id))
+            const done = ts.filter(isDone)
+            const late = done.some(isLate)
+            return { ...p, total: ts.length, done: done.length, pct: ts.length ? Math.round(done.length / ts.length * 100) : 0, completed: ts.length > 0 && done.length === ts.length, late }
+          }).filter(p => p.total > 0)
+        const projDone = projRows.filter(p => p.completed)
+        const projLate = projDone.filter(p => p.late)
+        const pctOf = (n, d) => d ? Math.round(n / d * 100) : 0
+        // completamenti nel tempo (ultimi 14 giorni, cumulativo)
+        const days = []
+        for (let i = 13; i >= 0; i--) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i); days.push({ d, label: `${d.getDate()}/${d.getMonth() + 1}`, value: 0 }) }
+        for (const t of doneTasks) { const cd = new Date(compDate(t)); cd.setHours(0, 0, 0, 0); for (const day of days) if (cd <= day.d) day.value++ }
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Stat cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+              <MiniStat label="Progetti totali" value={projRows.length} />
+              <MiniStat label="Progetti completati" value={projDone.length} sub={`${pctOf(projDone.length, projRows.length)}% del totale`} color="#30d158" />
+              <MiniStat label="Completati in ritardo" value={projLate.length} sub={`${pctOf(projLate.length, projDone.length)}% dei completati`} color="#ff375f" />
+              <MiniStat label="Task completati" value={doneTasks.length} sub={`${pctOf(doneTasks.length, totalTasks)}% di ${totalTasks}`} color="#5b8bff" />
+            </div>
+
+            {/* Donut: stato task + puntualità */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+              <div style={{ ...card }}>
+                <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 12 }}>Task per stato</div>
+                <DonutLegend data={byStatus} total={totalTasks} />
+              </div>
+              <div style={{ ...card }}>
+                <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 12 }}>Puntualità completamento</div>
+                <DonutLegend data={punct} total={totalTasks} />
+              </div>
+            </div>
+
+            {/* Avanzamento progetti */}
+            <div style={{ ...card }}>
+              <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 14 }}>Avanzamento progetti</div>
+              {projRows.length === 0 ? <div style={{ color: '#b0b0bd', fontSize: 13 }}>Nessun task.</div> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {projRows.map(p => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                      <span style={{ width: 150, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}{p.completed && <span title={p.late ? 'Completato in ritardo' : 'Completato'} style={{ marginLeft: 5 }}>{p.late ? '⚠️' : '✅'}</span>}</span>
+                      <div style={{ flex: 1, height: 14, background: '#14141d', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ width: `${p.pct}%`, height: '100%', background: p.late && p.completed ? 'linear-gradient(90deg,#ff9f0a,#ff375f)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                      </div>
+                      <span style={{ width: 96, textAlign: 'right', fontSize: 12.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{p.pct}% · {p.done}/{p.total}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Linea: completamenti cumulativi */}
+            <div style={{ ...card }}>
+              <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 6 }}>Task completati nel tempo <span style={{ fontWeight: 400 }}>· ultimi 14 giorni (cumulativo)</span></div>
+              <LineChart days={days} />
+            </div>
+          </div>
+        )
+      })()}
 
       {detailTask && (
         <TaskDetail
@@ -601,6 +686,81 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
       )}
       <div onClick={onAdd} style={{ ...card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0bd', border: '1px dashed var(--border)', minHeight: 90 }}>+ Nuovo progetto</div>
     </div>
+  )
+}
+
+// Card statistica compatta (numero grande + sottotitolo).
+function MiniStat({ label, value, sub, color = '#fff' }) {
+  return (
+    <div style={{ ...card }}>
+      <div style={{ fontSize: 11.5, color: '#b0b0bd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: '#b0b0bd' }}>{sub}</div>}
+    </div>
+  )
+}
+
+// Donut + legenda con % e numero per ciascuna voce.
+function DonutLegend({ data = [], total = 0, size = 150 }) {
+  const sum = data.reduce((s, d) => s + d.value, 0) || 0
+  const r = size / 2 - 12, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+      <svg width={size} height={size} style={{ flexShrink: 0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#14141d" strokeWidth="14" />
+        {sum > 0 && data.map((d, i) => {
+          if (!d.value) return null
+          const frac = d.value / sum, len = frac * C, off = acc * C
+          acc += frac
+          return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth="14" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} transform={`rotate(-90 ${cx} ${cy})`} />
+        })}
+        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">{sum}</text>
+        <text x={cx} y={cy + 15} textAnchor="middle" fontSize="10" fill="#b0b0bd">totale</text>
+      </svg>
+      <div style={{ flex: 1, minWidth: 150, display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
+            <span style={{ flex: 1, color: '#d0d0d8' }}>{d.label}</span>
+            <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.value}</span>
+            <span style={{ color: '#b0b0bd', width: 42, textAlign: 'right' }}>{sum ? Math.round(d.value / sum * 100) : 0}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Grafico lineare (area + linea) su una serie di {label, value}.
+function LineChart({ days = [], h = 150 }) {
+  if (!days || days.length < 2) return <div style={{ color: '#b0b0bd', fontSize: 13 }}>Dati insufficienti.</div>
+  const w = 680, padL = 28, padB = 20, padT = 8
+  const max = Math.max(1, ...days.map(d => d.value))
+  const innerW = w - padL, innerH = h - padB - padT
+  const x = i => padL + (innerW * i) / (days.length - 1)
+  const y = v => padT + innerH - (v / max) * innerH
+  const line = days.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(d.value).toFixed(1)}`).join(' ')
+  const area = `${line} L${x(days.length - 1).toFixed(1)} ${padT + innerH} L${padL} ${padT + innerH} Z`
+  const ticks = [0, Math.ceil(max / 2), max]
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="tk-line" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5b8bff" stopOpacity="0.35" /><stop offset="1" stopColor="#5b8bff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {ticks.map((tk, i) => (
+        <g key={i}>
+          <line x1={padL} y1={y(tk)} x2={w} y2={y(tk)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+          <text x={2} y={y(tk) + 3} fontSize="9" fill="#8e8e9e">{tk}</text>
+        </g>
+      ))}
+      <path d={area} fill="url(#tk-line)" />
+      <path d={line} fill="none" stroke="#5b8bff" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+      {days.map((d, i) => (i % 2 === 0 || i === days.length - 1) ? <text key={i} x={x(i)} y={h - 5} fontSize="9" fill="#8e8e9e" textAnchor="middle">{d.label}</text> : null)}
+      <circle cx={x(days.length - 1)} cy={y(days[days.length - 1].value)} r="3" fill="#5b8bff" />
+    </svg>
   )
 }
 

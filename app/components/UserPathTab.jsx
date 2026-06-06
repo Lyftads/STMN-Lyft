@@ -15,8 +15,17 @@ function PathNode({ x, y, width, height, payload, containerWidth }) {
   )
 }
 
-function Setup({ reason }) {
+function Setup({ reason, detail }) {
+  const REASON_LABEL = {
+    'no-config': 'Env BigQuery mancanti (GA4_BQ_PROJECT / GA4_BQ_DATASET)',
+    'no-creds': 'Credenziali Google assenti (client id / refresh token)',
+    'scope': 'Token senza scope bigquery.readonly o permessi BigQuery insufficienti',
+    'oauth': 'Errore OAuth Google (refresh token non valido)',
+    'api': 'Errore BigQuery',
+    'not-ready': 'Export GA4→BigQuery non ancora popolato',
+  }
   const steps = {
+    'no-creds': ['Collega Google dalla tab Integrazioni (con i 3 scope) oppure imposta GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN su Vercel → Redeploy.'],
     'no-config': [
       'GA4 → Amministrazione → Collegamenti dei prodotti → BigQuery → collega un progetto GCP (export giornaliero). Attendi 24–48h che si popoli.',
       'Abilita la BigQuery API nel progetto GCP.',
@@ -37,6 +46,11 @@ function Setup({ reason }) {
   return (
     <div className="glass-card" style={{ padding: 24 }}>
       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Collega BigQuery per il percorso utente</div>
+      {/* Diagnostica: motivo preciso + messaggio API */}
+      <div style={{ background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 13 }}>
+        <div><b>Stato:</b> {REASON_LABEL[reason] || reason || 'configurazione mancante'}</div>
+        {detail && <div style={{ marginTop: 6, fontFamily: 'monospace', fontSize: 12, opacity: 0.85, wordBreak: 'break-word' }}>{detail}</div>}
+      </div>
       <div style={{ fontSize: 13.5, opacity: 0.8, lineHeight: 1.7 }}>
         Il Path Exploration pagina→pagina (come in GA4) si ricostruisce dai dati event-level esportati in BigQuery:
         <ol style={{ margin: '12px 0', paddingLeft: 20 }}>{list.map((s, i) => <li key={i} style={{ marginBottom: 6 }}>{s}</li>)}</ol>
@@ -53,7 +67,7 @@ export default function UserPathTab() {
   useEffect(() => {
     let alive = true
     setState({ loading: true })
-    fetch(`/api/ga4-path?days=${days}`).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
+    fetch(`/api/ga4-path?days=${days}&debug=1`).then(r => r.json()).then(j => alive && setState({ loading: false, ...j }))
       .catch(() => alive && setState({ loading: false, configured: false, reason: 'api' }))
     return () => { alive = false }
   }, [days])
@@ -69,7 +83,7 @@ export default function UserPathTab() {
       </div>
 
       {state.loading && <div style={{ opacity: 0.5, fontSize: 13 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Interrogo BigQuery…</div>}
-      {!state.loading && !state.configured && <Setup reason={state.reason} />}
+      {!state.loading && !state.configured && <Setup reason={state.reason} detail={state.error || state.oauthError} />}
       {!state.loading && state.configured && state.empty && <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>Nessun dato di percorso nel periodo (l'export BigQuery potrebbe non essersi ancora popolato).</div>}
       {!state.loading && state.configured && !state.empty && state.nodes?.length > 0 && (
         <div className="glass-card" style={{ padding: 24 }}>

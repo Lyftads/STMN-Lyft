@@ -20,7 +20,6 @@ import BrandIdentityPanel from './components/BrandIdentityPanel'
 import CROTab from './components/CROTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
 import SeoAuditTab from './components/SeoAuditTab'
-import UserPathTab from './components/UserPathTab'
 import PnLTab from './components/PnLTab'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
@@ -4258,10 +4257,6 @@ export default function App() {
 
 {tab === 'seoAudit' && (
   <SeoAuditTab />
-)}
-
-{tab === 'userPath' && (
-  <UserPathTab />
 )}
 
 {tab === 'pnl' && (

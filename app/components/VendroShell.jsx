@@ -423,7 +423,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab)}

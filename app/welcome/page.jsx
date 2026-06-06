@@ -140,7 +140,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'Cosa dicono di noi', title: 'Brand che hanno smesso di scegliere a sentimento' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Prima dovevo aprire 4 dashboard ogni mattina. Adesso apro la chat e mi dice: ROAS Meta in calo, AOV stabile, top product cambia. In 2 minuti so cosa fare.', avatar: 'MC' },
+      { name: 'Andrea M.', role: 'Founder, brand fitness DTC', text: 'Prima dovevo aprire 4 dashboard ogni mattina. Adesso apro la chat e mi dice: ROAS Meta in calo, AOV stabile, top product cambia. In 2 minuti so cosa fare.', avatar: 'AM' },
       { name: 'Andrea R.', role: 'Head of Growth, brand DTC', text: 'Il Creative Fatigue mi ha salvato. Avevo 6 ads sopra frequency 4 e bruciavo €800/day per niente. LyftAI me l\'ha detto al terzo giorno.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'Il Performance Agent ricorda tutto. Gli ho detto una volta che il MER target è 2.5x — non glielo devo più ripetere. Mi avvisa quando scendiamo sotto.', avatar: 'SM' },
     ],
@@ -167,7 +167,7 @@ const I18N = {
       sending: 'Invio in corso…',
       donesubtitle: 'Ti ricontattiamo entro 24h via email.',
       doneTitle: 'Messaggio inviato!',
-      disclaimer: 'Premendo invii i dati a Marino Catasta. Nessuna newsletter, nessuno spam.',
+      disclaimer: 'Premendo invii i dati a LYFT SRL. Nessuna newsletter, nessuno spam.',
     },
     finalCta: { title: 'Smetti di scegliere a sentimento.', sub: 'Connetti il tuo store e in 5 minuti hai un\'AI che conosce i tuoi dati meglio di te.', btn: 'Inizia la prova gratuita →' },
     footer: { tagline: 'AI consultant per brand DTC' },
@@ -286,7 +286,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'What they say about us', title: 'Brands that stopped choosing by gut feeling' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Before I had to open 4 dashboards every morning. Now I open the chat and it tells me: Meta ROAS down, AOV stable, top product changing. In 2 minutes I know what to do.', avatar: 'MC' },
+      { name: 'Andrea M.', role: 'Founder, brand fitness DTC', text: 'Before I had to open 4 dashboards every morning. Now I open the chat and it tells me: Meta ROAS down, AOV stable, top product changing. In 2 minutes I know what to do.', avatar: 'AM' },
       { name: 'Andrea R.', role: 'Head of Growth, DTC brand', text: 'Creative Fatigue saved me. I had 6 ads above frequency 4 and was burning €800/day for nothing. LyftAI told me on day 3.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'The Performance Agent remembers everything. I told it once that MER target is 2.5x — never had to repeat it. It alerts me when we drop below.', avatar: 'SM' },
     ],
@@ -313,7 +313,7 @@ const I18N = {
       sending: 'Sending…',
       doneTitle: 'Message sent!',
       donesubtitle: 'We\'ll contact you within 24h via email.',
-      disclaimer: 'By submitting you send the data to Marino Catasta. No newsletter, no spam.',
+      disclaimer: 'By submitting you send the data to LYFT SRL. No newsletter, no spam.',
     },
     finalCta: { title: 'Stop choosing by gut feeling.', sub: 'Connect your store and in 5 minutes you have an AI that knows your data better than you.', btn: 'Start free trial →' },
     footer: { tagline: 'AI consultant for DTC brands' },
@@ -432,7 +432,7 @@ const I18N = {
     ],
     testimonialsTitle: { eyebrow: 'Qué dicen de nosotros', title: 'Marcas que dejaron de elegir por intuición' },
     testimonials: [
-      { name: 'Marino C.', role: 'Founder, brand fitness DTC', text: 'Antes tenía que abrir 4 dashboards cada mañana. Ahora abro el chat y me dice: ROAS Meta cayendo, AOV estable, top product cambiando. En 2 minutos sé qué hacer.', avatar: 'MC' },
+      { name: 'Andrea M.', role: 'Founder, brand fitness DTC', text: 'Antes tenía que abrir 4 dashboards cada mañana. Ahora abro el chat y me dice: ROAS Meta cayendo, AOV estable, top product cambiando. En 2 minutos sé qué hacer.', avatar: 'AM' },
       { name: 'Andrea R.', role: 'Head of Growth, marca DTC', text: 'El Creative Fatigue me salvó. Tenía 6 ads sobre frequency 4 y quemaba €800/día por nada. LyftAI me lo dijo al tercer día.', avatar: 'AR' },
       { name: 'Sara M.', role: 'CMO, fashion D2C', text: 'El Performance Agent recuerda todo. Le dije una vez que el MER target es 2.5x — no se lo tengo que repetir. Me avisa cuando bajamos.', avatar: 'SM' },
     ],
@@ -459,7 +459,7 @@ const I18N = {
       sending: 'Enviando…',
       doneTitle: '¡Mensaje enviado!',
       donesubtitle: 'Te contactaremos en 24h vía email.',
-      disclaimer: 'Al enviar mandas los datos a Marino Catasta. Sin newsletter, sin spam.',
+      disclaimer: 'Al enviar mandas los datos a LYFT SRL. Sin newsletter, sin spam.',
     },
     finalCta: { title: 'Deja de elegir por intuición.', sub: 'Conecta tu store y en 5 minutos tienes una IA que conoce tus datos mejor que tú.', btn: 'Iniciar prueba gratuita →' },
     footer: { tagline: 'AI consultant para marcas DTC' },
@@ -1303,75 +1303,51 @@ function Pricing({ t }) {
 
 
 // ─────────────────────────────────────────────────────────────
-//  Product showcase — tour video-like con screenshot REALI del software
-//  (metti i PNG in /public/demo/<id>.png — vedi SHOWCASE_SLIDES)
+//  Product showcase — il SOFTWARE REALE embeddato (iframe /demo)
+//  dentro la cornice del PC, navigabile senza lasciare la landing.
 // ─────────────────────────────────────────────────────────────
-const SHOWCASE_SLIDES = [
-  { id: 'dashboard', label: 'Dashboard', cap: 'KPI live, globo visitatori in tempo reale e briefing AI ogni mattina' },
-  { id: 'kpibrain', label: 'KPI Brain', cap: 'Top prodotti, sorgenti marketing e paesi di fatturazione' },
-  { id: 'metadetail', label: 'Meta Ads', cap: 'Performance ad-level, ROAS per campagna, creative e budget' },
-  { id: 'pnl', label: 'Conto Economico', cap: 'P&L con COGS reali, fee pagamenti, spedizione e OPEX fino all\'EBIT' },
-  { id: 'seoaudit', label: 'SEO Suite', cap: 'Audit on-page, Google Search Console, Keyword AI e AEO' },
-  { id: 'performanceagent', label: 'Performance Agent', cap: 'Il consulente AI che conosce il tuo brand e i tuoi numeri' },
-  { id: 'tasks', label: 'Progetti & Task', cap: 'Board del team, assegnazioni, scadenze e approvazioni' },
-  { id: 'lyftimer', label: 'Lyftimer', cap: 'Time tracking del team con report, budget e costi' },
-]
-
 function ProductShowcase({ t }) {
   const ia = t.inAction
-  const [idx, setIdx] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const [broken, setBroken] = useState({})
-  const slides = SHOWCASE_SLIDES
+  const ref = useRef(null)
+  const [load, setLoad] = useState(false)
   useEffect(() => {
-    if (paused) return
-    const id = setInterval(() => setIdx(i => (i + 1) % slides.length), 4200)
-    return () => clearInterval(id)
-  }, [paused, slides.length])
-  const s = slides[idx]
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setLoad(true); obs.disconnect() } }, { rootMargin: '300px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
   return (
-    <section style={{ maxWidth: 1120, margin: '0 auto', padding: '80px 24px 40px' }}>
+    <section style={{ maxWidth: 1160, margin: '0 auto', padding: '80px 24px 40px' }}>
       <Reveal><SectionHeader eyebrow={ia.eyebrow} title={ia.title} /></Reveal>
-      <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 640, margin: '14px auto 0' }}>{ia.sub}</p></Reveal>
+      <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 660, margin: '14px auto 0' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>È il software reale: cliccaci dentro ed esploralo →</span></p></Reveal>
 
       <Reveal>
-        <div
-          onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
-          style={{ marginTop: 40, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 40px 120px rgba(0,0,0,0.7), 0 0 90px rgba(123,91,255,0.14)', background: '#0b0b14' }}>
+        <div ref={ref} style={{ marginTop: 40, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 40px 120px rgba(0,0,0,0.7), 0 0 90px rgba(123,91,255,0.14)', background: '#0b0b14' }}>
+          {/* Barra finestra */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57' }} />
             <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e' }} />
             <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840' }} />
-            <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.45)' }}>app.lyftai.io/{s.id}</div>
+            <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.45)' }}>app.lyftai.io · demo</div>
           </div>
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: 'radial-gradient(800px 500px at 20% 0%, rgba(123,91,255,0.10), transparent), #07070e', overflow: 'hidden' }}>
-            {broken[s.id] ? (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'rgba(255,255,255,0.6)' }}>
-                <span style={{ width: 46, height: 46, borderRadius: 12, background: `linear-gradient(135deg,${ACCENT},${BLUE})` }} />
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{s.label}</div>
-                <div style={{ fontSize: 12.5 }}>Screenshot in arrivo · <code>/public/demo/{s.id}.png</code></div>
-              </div>
+          {/* Software reale embeddato */}
+          <div style={{ position: 'relative', width: '100%', height: 640, background: '#07070e' }}>
+            {load ? (
+              <iframe src="/demo" title="Demo LyftAI" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} />
             ) : (
-              <img src={`/demo/${s.id}.png`} alt={s.label} onError={() => setBroken(b => ({ ...b, [s.id]: true }))}
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'rgba(255,255,255,0.5)' }}>
+                <span style={{ width: 46, height: 46, borderRadius: 12, background: `linear-gradient(135deg,${ACCENT},${BLUE})` }} />
+                <div style={{ fontSize: 13 }}>Carico la demo…</div>
+              </div>
             )}
-            <div style={{ position: 'absolute', left: 16, bottom: 16, padding: '6px 14px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)', fontSize: 12.5, fontWeight: 800 }}>{s.label}</div>
           </div>
         </div>
       </Reveal>
 
       <Reveal>
-        <div style={{ textAlign: 'center', marginTop: 18, fontSize: 14, color: 'rgba(255,255,255,0.75)', minHeight: 22 }}>{s.cap}</div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-          {slides.map((sl, i) => (
-            <button key={sl.id} onClick={() => setIdx(i)} title={sl.label} style={{
-              height: 6, width: i === idx ? 26 : 6, borderRadius: 999, border: 'none', cursor: 'pointer', padding: 0,
-              background: i === idx ? `linear-gradient(90deg,${ACCENT},${BLUE})` : 'rgba(255,255,255,0.2)', transition: 'width .3s',
-            }} />
-          ))}
-        </div>
         <div style={{ textAlign: 'center', marginTop: 26 }}>
-          <Link href="/demo" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>▶ Apri la demo interattiva — provala tu stesso</Link>
+          <Link href="/demo" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>▶ Apri la demo a schermo intero</Link>
         </div>
       </Reveal>
     </section>

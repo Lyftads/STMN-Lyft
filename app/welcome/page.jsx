@@ -1458,6 +1458,8 @@ function Footer({ t }) {
             <a href="#contact" style={footerLinkStyle}>{t.nav.contact}</a>
             <Link href="/login" style={footerLinkStyle}>{t.nav.login}</Link>
             <Link href="/register" style={footerLinkStyle}>{t.nav.cta}</Link>
+            <Link href="/privacy" style={footerLinkStyle}>Privacy Policy</Link>
+            <Link href="/terms" style={footerLinkStyle}>Termini di Servizio</Link>
           </div>
         </div>
       </div>

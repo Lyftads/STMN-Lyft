@@ -87,6 +87,7 @@ const REPL = [
   [/stmnfitness\.com/g, 'acme.store'],
   [/stmn-?fitness\d*/gi, 'acme-store'],
   [/tape-adesivo-nero/g, 'best-seller'],
+  [/es\. grips, jump rope, knee sleeves…?/g, 'es. scarpe running, integratori, leggings…'],
   [/STMN/g, 'Acme Store'],
   [/Velites/g, 'Competitor A'],
   [/Picsil/g, 'Competitor B'],

@@ -956,7 +956,7 @@ function TrustBar({ t }) {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.20em', textTransform: 'uppercase' }}>
           {t.trust.label}
         </div>
-        {['Shopify', 'Meta Ads', 'Klaviyo', 'GA4', 'Stripe'].map(name => (
+        {['Shopify', 'Meta Ads', 'Google Ads', 'GA4', 'Klaviyo', 'Search Console'].map(name => (
           <div key={name} style={{
             padding: '8px 16px', borderRadius: 8,
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',

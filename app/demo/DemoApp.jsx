@@ -6,9 +6,9 @@ import { demoData } from '../../lib/demo/data'
 
 // Error boundary SOLO per la demo: mostra l'errore invece del white-screen.
 class DemoBoundary extends Component {
-  constructor(p) { super(p); this.state = { err: null } }
+  constructor(p) { super(p); this.state = { err: null, cs: '' } }
   static getDerivedStateFromError(err) { return { err } }
-  componentDidCatch(err, info) { try { console.error('[demo]', err, info) } catch {} }
+  componentDidCatch(err, info) { try { console.error('[demo]', err, info) } catch {}; this.setState({ cs: (info && info.componentStack) || '' }) }
   render() {
     if (this.state.err) {
       const e = this.state.err
@@ -16,7 +16,10 @@ class DemoBoundary extends Component {
         <div style={{ padding: '60px 24px', textAlign: 'center', color: '#fff', fontFamily: 'system-ui' }}>
           <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Errore nella demo</div>
           <div style={{ fontSize: 13, color: '#ff8095', fontFamily: 'monospace', maxWidth: 760, margin: '0 auto 8px', wordBreak: 'break-word' }}>{String(e && (e.message || e))}</div>
-          <pre style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', maxWidth: 820, margin: '0 auto', textAlign: 'left', whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto' }}>{String(e && e.stack || '').slice(0, 1200)}</pre>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', maxWidth: 820, margin: '0 auto', textAlign: 'left' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Componente:</div>
+            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 260, overflow: 'auto' }}>{String(this.state.cs || '').slice(0, 1400)}</pre>
+          </div>
         </div>
       )
     }

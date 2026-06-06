@@ -21,6 +21,7 @@ import CROTab from './components/CROTab'
 import WebsiteScannerTab from './components/WebsiteScannerTab'
 import SeoAuditTab from './components/SeoAuditTab'
 import PnLTab from './components/PnLTab'
+import OnboardingTab from './components/OnboardingTab'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
@@ -4261,6 +4262,11 @@ export default function App() {
 
 {tab === 'pnl' && (
   <PnLTab data={data} />
+)}
+
+{/* ONBOARDING */}
+{tab === 'onboarding' && (
+  <OnboardingTab />
 )}
 
 {/* TEAM · PROGETTI & TASK */}

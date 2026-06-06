@@ -108,6 +108,7 @@ export default function VendroShell({
       title: 'Commerce',
       color: '#ff375f',
       items: [
+        { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
         { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
         { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
         { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
@@ -422,7 +423,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab)}

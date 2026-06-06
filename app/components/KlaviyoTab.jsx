@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,24 +12,25 @@ const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT') : '
 const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
 const fmtP = n => n != null ? `${n.toFixed(1)}%` : '—'
 
-function greetMarino() {
+function greetMarino(t) {
   const h = new Date().getHours()
-  if (h < 12) return 'Buongiorno Marino — ecco come vanno le email'
-  if (h < 18) return 'Ciao Marino — il punto su Klaviyo'
-  return 'Sera Marino — riepilogo Klaviyo'
+  if (h < 12) return t('klaviyo.greetMorning', null, 'Buongiorno Marino — ecco come vanno le email')
+  if (h < 18) return t('klaviyo.greetAfternoon', null, 'Ciao Marino — il punto su Klaviyo')
+  return t('klaviyo.greetEvening', null, 'Sera Marino — riepilogo Klaviyo')
 }
 
-function kpiComment(kpis) {
+function kpiComment(kpis, t) {
   if (!kpis) return ''
   const { openRate, clickRate, revenue } = kpis
   const parts = []
-  if (openRate > 50) parts.push(`Open rate al ${openRate.toFixed(1)}% — i subject stanno spaccando 🔥`)
-  else if (openRate > 30) parts.push(`Open rate al ${openRate.toFixed(1)}%, nella media. Possiamo testare nuovi subject?`)
-  else if (openRate > 0) parts.push(`Open rate al ${openRate.toFixed(1)}%... rivediamo i subject?`)
-  if (revenue?.total > 10000) parts.push(`${fmtE(revenue.total)} di revenue — mica male! 💪`)
-  else if (revenue?.total > 0) parts.push(`${fmtE(revenue.total)} di revenue, ci stiamo muovendo.`)
-  if (clickRate < 2 && clickRate > 0) parts.push('Click rate un po\' basso — le CTA vanno ripensate?')
-  return parts.join(' · ') || 'Tutto nella norma!'
+  const x = openRate?.toFixed(1)
+  if (openRate > 50) parts.push(t('klaviyo.openHigh', { x }, `Open rate al ${x}% — i subject stanno spaccando 🔥`))
+  else if (openRate > 30) parts.push(t('klaviyo.openMid', { x }, `Open rate al ${x}%, nella media. Possiamo testare nuovi subject?`))
+  else if (openRate > 0) parts.push(t('klaviyo.openLow', { x }, `Open rate al ${x}%... rivediamo i subject?`))
+  if (revenue?.total > 10000) parts.push(t('klaviyo.revHigh', { e: fmtE(revenue.total) }, `${fmtE(revenue.total)} di revenue — mica male! 💪`))
+  else if (revenue?.total > 0) parts.push(t('klaviyo.revOk', { e: fmtE(revenue.total) }, `${fmtE(revenue.total)} di revenue, ci stiamo muovendo.`))
+  if (clickRate < 2 && clickRate > 0) parts.push(t('klaviyo.clickLow', null, "Click rate un po' basso — le CTA vanno ripensate?"))
+  return parts.join(' · ') || t('klaviyo.allNormal', null, 'Tutto nella norma!')
 }
 
 const ChartTip = ({ active, payload, label }) => {
@@ -92,6 +94,7 @@ function StatusDot({ active }) {
 }
 
 export default function KlaviyoTab() {
+  const { t: tr } = useI18n()
   const [data, setData] = useState(null)
   const [breakdown, setBreakdown] = useState(null)  // revenue/OR/CR per campagna+flusso (caricato a parte)
   const [loading, setLoading] = useState(true)
@@ -137,11 +140,11 @@ export default function KlaviyoTab() {
   }, [days])
 
   if (loading) {
-    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>Un attimo, sto tirando su i dati da Klaviyo...</div>
+    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>{tr('klaviyo.loading', null, 'Un attimo, sto tirando su i dati da Klaviyo...')}</div>
   }
 
   if (!data || data.error) {
-    return <div style={{ color: '#ef4444', padding: 40 }}>Errore: {data?.error || 'Connessione Klaviyo fallita'}</div>
+    return <div style={{ color: '#ef4444', padding: 40 }}>{tr('klaviyo.errorPrefix', null, 'Errore:')} {data?.error || tr('klaviyo.connFailed', null, 'Connessione Klaviyo fallita')}</div>
   }
 
   const { account, kpis, campaigns, flows, segments, lists } = data
@@ -167,9 +170,9 @@ export default function KlaviyoTab() {
     <div>
       {/* Header: saluto + selettore giorni */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <p style={{ color: '#9f93ad', fontSize: 13, margin: 0 }}>{greetMarino()}</p>
+        <p style={{ color: '#9f93ad', fontSize: 13, margin: 0 }}>{greetMarino(tr)}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          {[{ d: 0, label: 'Oggi' }, { d: 7, label: '7g' }, { d: 14, label: '14g' }, { d: 30, label: '30g' }, { d: 60, label: '60g' }, { d: 90, label: '90g' }].map(o => (
+          {[{ d: 0, label: tr('klaviyo.today', null, 'Oggi') }, { d: 7, label: '7g' }, { d: 14, label: '14g' }, { d: 30, label: '30g' }, { d: 60, label: '60g' }, { d: 90, label: '90g' }].map(o => (
             <button key={o.d} onClick={() => setDays(o.d)} className="btn-glass" style={{
               border: days === o.d ? '1px solid #8b5cf6' : '1px solid var(--border)',
               background: days === o.d ? '#8b5cf622' : 'var(--glass)',
@@ -181,19 +184,19 @@ export default function KlaviyoTab() {
       </div>
 
       {/* Panoramica Email */}
-      <Section title="Panoramica Email" subtitle={`Klaviyo · ${days === 0 ? 'oggi' : `ultimi ${days} giorni`}`} color="#8b5cf6">
+      <Section title={tr('klaviyo.overview', null, 'Panoramica Email')} subtitle={`Klaviyo · ${days === 0 ? tr('klaviyo.todayLower', null, 'oggi') : tr('klaviyo.lastDays', { n: days }, `ultimi ${days} giorni`)}`} color="#8b5cf6">
         <div className="reveal" style={{
           background: 'linear-gradient(90deg, rgba(139,92,246,0.12), transparent)',
           border: '1px solid var(--border)', borderRadius: 12,
           padding: '12px 18px', marginBottom: 20, color: '#c4b5fd', fontSize: 13, fontWeight: 600,
         }}>
-          {kpiComment(kpis)}
+          {kpiComment(kpis, tr)}
         </div>
 
         <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 14 }}>
-          <Card title="Email Ricevute" value={fmtN(kpis?.received?.total)} badge="Klaviyo" color="#8b5cf6" />
-          <Card title="Aperte" value={fmtN(kpis?.opened?.total)} badge="Open" color="#3b82f6" />
-          <Card title="Cliccate" value={fmtN(kpis?.clicked?.total)} badge="Click" color="#06b6d4" />
+          <Card title={tr('klaviyo.received', null, 'Email Ricevute')} value={fmtN(kpis?.received?.total)} badge="Klaviyo" color="#8b5cf6" />
+          <Card title={tr('klaviyo.opened', null, 'Aperte')} value={fmtN(kpis?.opened?.total)} badge="Open" color="#3b82f6" />
+          <Card title={tr('klaviyo.clicked', null, 'Cliccate')} value={fmtN(kpis?.clicked?.total)} badge="Click" color="#06b6d4" />
           <Card title="Open Rate" value={fmtP(kpis?.openRate)} badge="Rate" color="#22c55e" />
           <Card title="Click Rate" value={fmtP(kpis?.clickRate)} badge="Rate" color="#22c55e" />
           <Card title="CTOR" value={fmtP(kpis?.ctor)} badge="Rate" color="#f59e0b" />
@@ -208,12 +211,12 @@ export default function KlaviyoTab() {
       {/* Revenue Breakdown */}
 
       {/* Trend Giornaliero */}
-      <Section title="Trend Giornaliero" color="#8b5cf6">
+      <Section title={tr('klaviyo.dailyTrend', null, 'Trend Giornaliero')} color="#8b5cf6">
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {[
-            { id: 'received', label: 'Ricevute' },
-            { id: 'opened', label: 'Aperte' },
-            { id: 'clicked', label: 'Cliccate' },
+            { id: 'received', label: tr('klaviyo.chartReceived', null, 'Ricevute') },
+            { id: 'opened', label: tr('klaviyo.opened', null, 'Aperte') },
+            { id: 'clicked', label: tr('klaviyo.clicked', null, 'Cliccate') },
             { id: 'revenue', label: 'Revenue' },
           ].map(t => (
             <button key={t.id} onClick={() => setChartTab(t.id)} className="btn-glass" style={{
@@ -257,12 +260,12 @@ export default function KlaviyoTab() {
       </Section>
 
       {/* Campagne */}
-      <Section title="Campagne" color="#ec4899">
+      <Section title={tr('klaviyo.campaigns', null, 'Campagne')} color="#ec4899">
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {[
-            { id: 'sent', label: `Inviate (${campaigns?.sent?.length || 0})` },
-            { id: 'draft', label: `Bozze (${campaigns?.draft?.length || 0})` },
-            { id: 'scheduled', label: `Programmate (${campaigns?.scheduled?.length || 0})` },
+            { id: 'sent', label: `${tr('klaviyo.sent', null, 'Inviate')} (${campaigns?.sent?.length || 0})` },
+            { id: 'draft', label: `${tr('klaviyo.draft', null, 'Bozze')} (${campaigns?.draft?.length || 0})` },
+            { id: 'scheduled', label: `${tr('klaviyo.scheduled', null, 'Programmate')} (${campaigns?.scheduled?.length || 0})` },
           ].map(t => (
             <button key={t.id} onClick={() => setCampTab(t.id)} className="btn-glass" style={{
               border: campTab === t.id ? '1px solid #ec4899' : '1px solid var(--border)',
@@ -277,13 +280,13 @@ export default function KlaviyoTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Campagna</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>{tr('klaviyo.campaign', null, 'Campagna')}</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Data Invio</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>{tr('klaviyo.sendDate', null, 'Data Invio')}</th>
                 <th style={thR}>OR</th>
                 <th style={thR}>CR</th>
                 <th style={thR}>Conv</th>
-                <th style={thR}>Entrate</th>
+                <th style={thR}>{tr('klaviyo.revenueCol', null, 'Entrate')}</th>
               </tr>
             </thead>
             <tbody>
@@ -312,18 +315,18 @@ export default function KlaviyoTab() {
       </Section>
 
       {/* Flussi */}
-      <Section title="Flussi" color="#f6b73c">
+      <Section title={tr('klaviyo.flows', null, 'Flussi')} color="#f6b73c">
         <div className="glass-panel" style={{ ...panelStyle, padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Flusso</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>{tr('klaviyo.flow', null, 'Flusso')}</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', color: '#776a86', fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}>Status</th>
                 <th style={thR}>OR</th>
                 <th style={thR}>CR</th>
                 <th style={thR}>Conv</th>
                 <th style={thR}>€/dest</th>
-                <th style={thR}>Entrate</th>
+                <th style={thR}>{tr('klaviyo.revenueCol', null, 'Entrate')}</th>
               </tr>
             </thead>
             <tbody>
@@ -354,7 +357,7 @@ export default function KlaviyoTab() {
 
       {/* Segmenti & Liste */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        <Section title="Segmenti" color="#06b6d4" style={{ marginBottom: 0 }}>
+        <Section title={tr('klaviyo.segments', null, 'Segmenti')} color="#06b6d4" style={{ marginBottom: 0 }}>
           <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
             {(segments || []).map((s, i) => (
               <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center' }}>
@@ -364,7 +367,7 @@ export default function KlaviyoTab() {
             ))}
           </div>
         </Section>
-        <Section title="Liste" color="#a855f7" style={{ marginBottom: 0 }}>
+        <Section title={tr('klaviyo.lists', null, 'Liste')} color="#a855f7" style={{ marginBottom: 0 }}>
           <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
             {(lists || []).map((l, i) => (
               <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid var(--border)' : 'none' }}>

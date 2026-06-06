@@ -6,7 +6,6 @@ import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
 import NotificationsBell from './NotificationsBell'
-import { minPlanForTab, PLAN_LABEL } from '../../lib/team/planTabs'
 import LogoMark from './LogoMark'
 
 function getPageTitle(tab) {
@@ -93,7 +92,6 @@ export default function VendroShell({
   loading,
   onRefresh,
   allowedTabs,
-  lockedTabs,
   children,
 }) {
   const navGroups = [
@@ -352,29 +350,6 @@ export default function VendroShell({
               <div style={{ display: 'grid', gap: 1, padding: '4px 8px 0' }}>
                 {group.items.map((item) => {
                   const active = tab === item.id
-                  const locked = lockedTabs && lockedTabs.has(item.id)
-                  if (locked) {
-                    const plan = PLAN_LABEL[minPlanForTab(item.id)] || 'superiore'
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled
-                        aria-disabled="true"
-                        title={`Disponibile nel piano ${plan} — fai upgrade per sbloccarla`}
-                        style={{
-                          width: '100%', border: 0, borderRadius: 8, padding: '9px 12px',
-                          display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-                          cursor: 'not-allowed', color: '#6b6b76', background: 'transparent',
-                          fontSize: 13, fontWeight: 500, outline: 'none',
-                        }}
-                      >
-                        <span style={{ width: 20, fontSize: 14, display: 'inline-flex', justifyContent: 'center', opacity: 0.5 }}>{item.icon}</span>
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                        <span style={{ fontSize: 11, opacity: 0.7 }}>🔒</span>
-                      </button>
-                    )
-                  }
                   return (
                     <button
                       key={item.id}

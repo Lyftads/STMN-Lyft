@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { allowedTabsFor } from '../lib/team/roleTabs'
-import { lockedTabsForPlan } from '../lib/team/planTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import VendroShell from './components/VendroShell'
 import dynamicImport from 'next/dynamic'
@@ -2184,7 +2183,6 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 export default function App() {
   const [tab, setTab] = useState('dashboard')
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
-  const [lockedTabs, setLockedTabs] = useState(null)   // Set di tab bloccate dal piano
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
@@ -2216,30 +2214,6 @@ export default function App() {
   useEffect(() => {
     if (allowedTabs && !allowedTabs.has(tab)) setTab('tasks')
   }, [allowedTabs, tab])
-
-  // Gating per PIANO: calcola le tab bloccate in base all'abbonamento Stripe.
-  // Anteprima per test: ?previewPlan=base|pro|full forza i lucchetti di quel piano.
-  useEffect(() => {
-    let active = true
-    try {
-      const pv = new URLSearchParams(window.location.search).get('previewPlan')
-      if (pv) {
-        const map = { base: 'starter', pro: 'growth', full: 'scale' }
-        setLockedTabs(lockedTabsForPlan(map[pv] || 'scale', 'active'))
-        return () => { active = false }
-      }
-    } catch {}
-    fetch('/api/stripe/subscription', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(d => { if (active) setLockedTabs(lockedTabsForPlan(d?.subscription?.planId, d?.subscription?.status)) })
-      .catch(() => {})
-    return () => { active = false }
-  }, [])
-
-  // Se la tab attiva è bloccata dal piano, riportala alla Dashboard.
-  useEffect(() => {
-    if (lockedTabs && lockedTabs.has(tab)) setTab('dashboard')
-  }, [lockedTabs, tab])
 
   useEffect(() => {
     const s = load()
@@ -2745,7 +2719,6 @@ export default function App() {
     setPreset={setPreset}
     loading={loading}
     allowedTabs={allowedTabs}
-    lockedTabs={lockedTabs}
     onRefresh={() => fetchLive(true)}
   >
     {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}

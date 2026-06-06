@@ -33,7 +33,7 @@ const I18N = {
       eyebrow: 'Un solo abbonamento',
       title: 'Tutti i tool in un\'unica piattaforma',
       sub: 'Quello che di solito paghi con 10+ abbonamenti separati, qui è già tutto incluso in un solo prezzo.',
-      allinoneLabel: 'LyftAI · piano Full',
+      allinoneLabel: 'LyftAI · tutto incluso',
       allinoneNote: 'Tutto incluso, un unico accesso, un unico prezzo.',
       separateLabel: 'Gli stessi tool, separati',
       separateNote: 'Stima media di mercato per categoria (€/mese).',
@@ -129,12 +129,13 @@ const I18N = {
       chatUser: 'Com\'è andata la settimana?',
       chatAi: 'Allora, MER a {strong}2,6x{/strong} — sopra il target che tieni a 2,5x. Settimana solida. AOV in linea, ma il {strong}CTR Meta cala da 3 giorni{/strong}. Lo guardo?',
     },
-    pricingTitle: { eyebrow: 'Pricing', title: 'Un prezzo per tutto. Niente tool sparsi.' },
-    pricingSub: 'Tutti i piani con 14 giorni gratis. Niente carta richiesta. Cancellazione in 1 click.',
+    pricingTitle: { eyebrow: 'Pricing', title: 'Paghi in base alla tua dimensione. I tool sono sempre tutti.' },
+    pricingSub: 'Tutti i tool inclusi in ogni piano. Il prezzo cresce con i tuoi ordini, mai con le funzioni. 14 giorni gratis, niente carta, cancelli in 1 click.',
     plans: [
-      { id: 'starter', name: 'Base', price: '€69', period: '/mese', tagline: 'Per brand che vogliono finalmente i numeri in ordine, senza spendere una fortuna.', features: ['Dashboard KPI live + Live View globo', 'Conto Economico (P&L) mensile', 'SEO Audit on-page', 'Integrazioni Shopify + Meta + GA4 + Klaviyo', 'Progetti & Task + LyftTalk (chat team)', 'Email support 48h'], cta: 'Inizia con Base' },
-      { id: 'growth', name: 'Pro', price: '€149', period: '/mese', tagline: 'Per brand in scaling che vogliono leve data-driven su ads, SEO e CRO.', features: ['Tutto di Base +', 'Suite SEO completa + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Meta completo: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Coorti + Attribuzione', 'Lyftimer (time tracking) + Report avanzati', 'Priority support 12h'], cta: 'Inizia con Pro', popular: true, popularLabel: 'PIÙ SCELTO' },
-      { id: 'scale', name: 'Full', price: '€299', period: '/mese', tagline: 'Tutto il software, senza limiti. L\'intero reparto marketing in un abbonamento.', features: ['Tutto di Pro +', 'Performance Agent AI (legge tutti i tuoi dati)', 'Creative Lab (generazione ad AI)', 'Competitor Intel + Confronto prezzi', 'Simulatore scenari + AI Visibility (AEO)', 'Onboarding guidato + CSM dedicato', 'Tutti i tool inclusi, nessun extra'], cta: 'Passa a Full', best: true, bestLabel: 'TUTTO INCLUSO' },
+      { id: 'starter', name: 'Starter', price: '€69', period: '/mese', tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', features: ['✨ Tutti i tool inclusi', 'Fino a 500 ordini/mese', 'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)', '2 utenti del team', 'Email support 48h'], cta: 'Inizia con Starter' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/mese', tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', features: ['✨ Tutti i tool inclusi', '500 – 2.000 ordini/mese', '5 utenti del team', 'Crediti Creative Lab (AI) estesi', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'PIÙ SCELTO' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/mese', tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.', features: ['✨ Tutti i tool inclusi', '2.000 – 7.000 ordini/mese', 'Utenti del team illimitati', 'Crediti Creative Lab (AI) massimi', 'CSM dedicato'], cta: 'Inizia con Scale' },
+      { id: 'enterprise', name: 'Enterprise', price: 'Su misura', period: '', tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', features: ['✨ Tutti i tool inclusi', '7.000+ ordini/mese', 'SLA e onboarding dedicato', 'Integrazioni custom', 'Account manager dedicato'], cta: 'Contattaci', href: '#contact' },
     ],
     testimonialsTitle: { eyebrow: 'Cosa dicono di noi', title: 'Brand che hanno smesso di scegliere a sentimento' },
     testimonials: [
@@ -177,7 +178,7 @@ const I18N = {
       eyebrow: 'One single subscription',
       title: 'Every tool in one platform',
       sub: 'What you usually pay across 10+ separate subscriptions is already included here, for one price.',
-      allinoneLabel: 'LyftAI · Full plan',
+      allinoneLabel: 'LyftAI · all included',
       allinoneNote: 'Everything included, one login, one price.',
       separateLabel: 'The same tools, separately',
       separateNote: 'Average market estimate per category (€/month).',
@@ -273,12 +274,13 @@ const I18N = {
       chatUser: 'How was the week?',
       chatAi: 'So, MER at {strong}2.6x{/strong} — above the 2.5x target you keep. Solid week. AOV in line, but {strong}Meta CTR is dropping for 3 days{/strong}. Should I look into it?',
     },
-    pricingTitle: { eyebrow: 'Pricing', title: 'One price for everything. No scattered tools.' },
-    pricingSub: 'All plans with 14 days free. No credit card required. 1-click cancellation.',
+    pricingTitle: { eyebrow: 'Pricing', title: 'You pay by your size. The tools are always all of them.' },
+    pricingSub: 'Every tool included in every plan. The price grows with your orders, never with features. 14 days free, no card, 1-click cancellation.',
     plans: [
-      { id: 'starter', name: 'Base', price: '€69', period: '/month', tagline: 'For brands that finally want their numbers in order, without spending a fortune.', features: ['Live KPI Dashboard + Live View globe', 'Monthly P&L statement', 'On-page SEO Audit', 'Shopify + Meta + GA4 + Klaviyo integrations', 'Projects & Tasks + LyftTalk (team chat)', 'Email support 48h'], cta: 'Start with Base' },
-      { id: 'growth', name: 'Pro', price: '€149', period: '/month', tagline: 'For scaling brands seeking data-driven leverage on ads, SEO and CRO.', features: ['Everything in Base +', 'Full SEO Suite + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Full Meta: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Cohorts + Attribution', 'Lyftimer (time tracking) + advanced reports', 'Priority support 12h'], cta: 'Start with Pro', popular: true, popularLabel: 'MOST CHOSEN' },
-      { id: 'scale', name: 'Full', price: '€299', period: '/month', tagline: 'The entire software, no limits. A whole marketing department in one subscription.', features: ['Everything in Pro +', 'Performance Agent AI (reads all your data)', 'Creative Lab (AI ad generation)', 'Competitor Intel + price comparison', 'Scenario simulator + AI Visibility (AEO)', 'Guided onboarding + dedicated CSM', 'All tools included, no extras'], cta: 'Go Full', best: true, bestLabel: 'ALL INCLUDED' },
+      { id: 'starter', name: 'Starter', price: '€69', period: '/month', tagline: 'Up to 500 orders/month. Perfect to start, with everything already included.', features: ['✨ All tools included', 'Up to 500 orders/month', 'All integrations (Shopify, Meta, Google, Klaviyo)', '2 team users', 'Email support 48h'], cta: 'Start with Starter' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/month', tagline: '500 to 2,000 orders/month. For growing brands.', features: ['✨ All tools included', '500 – 2,000 orders/month', '5 team users', 'Extended Creative Lab (AI) credits', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'MOST CHOSEN' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/month', tagline: '2,000 to 7,000 orders/month. For structured brands.', features: ['✨ All tools included', '2,000 – 7,000 orders/month', 'Unlimited team users', 'Maximum Creative Lab (AI) credits', 'Dedicated CSM'], cta: 'Start with Scale' },
+      { id: 'enterprise', name: 'Enterprise', price: 'Custom', period: '', tagline: 'Over 7,000 orders/month. High volume and custom needs.', features: ['✨ All tools included', '7,000+ orders/month', 'Dedicated SLA & onboarding', 'Custom integrations', 'Dedicated account manager'], cta: 'Contact us', href: '#contact' },
     ],
     testimonialsTitle: { eyebrow: 'What they say about us', title: 'Brands that stopped choosing by gut feeling' },
     testimonials: [
@@ -321,7 +323,7 @@ const I18N = {
       eyebrow: 'Una sola suscripción',
       title: 'Todas las herramientas en una plataforma',
       sub: 'Lo que normalmente pagas con más de 10 suscripciones separadas, aquí ya está incluido en un único precio.',
-      allinoneLabel: 'LyftAI · plan Full',
+      allinoneLabel: 'LyftAI · todo incluido',
       allinoneNote: 'Todo incluido, un único acceso, un único precio.',
       separateLabel: 'Las mismas herramientas, por separado',
       separateNote: 'Estimación media de mercado por categoría (€/mes).',
@@ -417,12 +419,13 @@ const I18N = {
       chatUser: '¿Cómo fue la semana?',
       chatAi: 'Entonces, MER en {strong}2,6x{/strong} — por encima del target 2,5x que tienes. Semana sólida. AOV en línea, pero el {strong}CTR Meta baja desde 3 días{/strong}. ¿Lo reviso?',
     },
-    pricingTitle: { eyebrow: 'Precios', title: 'Un precio para todo. Sin herramientas dispersas.' },
-    pricingSub: 'Todos los planes con 14 días gratis. Sin tarjeta. Cancelación en 1 click.',
+    pricingTitle: { eyebrow: 'Precios', title: 'Pagas según tu tamaño. Las herramientas son siempre todas.' },
+    pricingSub: 'Todas las herramientas incluidas en cada plan. El precio crece con tus pedidos, nunca con las funciones. 14 días gratis, sin tarjeta, cancelas en 1 click.',
     plans: [
-      { id: 'starter', name: 'Base', price: '€69', period: '/mes', tagline: 'Para marcas que por fin quieren sus números en orden, sin gastar una fortuna.', features: ['Dashboard KPI en vivo + globo Live View', 'Cuenta de resultados (P&L) mensual', 'Auditoría SEO on-page', 'Integraciones Shopify + Meta + GA4 + Klaviyo', 'Proyectos & Tareas + LyftTalk (chat de equipo)', 'Email support 48h'], cta: 'Iniciar con Base' },
-      { id: 'growth', name: 'Pro', price: '€149', period: '/mes', tagline: 'Para marcas en scaling que buscan palanca data-driven en ads, SEO y CRO.', features: ['Todo de Base +', 'Suite SEO completa + Google Search Console', 'AI Website Scanner (CRO) + Funnel', 'Meta completo: Detail, Creative, Budget Advisor, Fatigue', 'LTV & Cohortes + Atribución', 'Lyftimer (time tracking) + informes avanzados', 'Priority support 12h'], cta: 'Iniciar con Pro', popular: true, popularLabel: 'MÁS ELEGIDO' },
-      { id: 'scale', name: 'Full', price: '€299', period: '/mes', tagline: 'Todo el software, sin límites. Un departamento de marketing completo en una suscripción.', features: ['Todo de Pro +', 'Performance Agent AI (lee todos tus datos)', 'Creative Lab (generación de ads con IA)', 'Competitor Intel + comparación de precios', 'Simulador de escenarios + AI Visibility (AEO)', 'Onboarding guiado + CSM dedicado', 'Todas las herramientas incluidas, sin extras'], cta: 'Pasar a Full', best: true, bestLabel: 'TODO INCLUIDO' },
+      { id: 'starter', name: 'Starter', price: '€69', period: '/mes', tagline: 'Hasta 500 pedidos/mes. Perfecto para empezar, con todo ya incluido.', features: ['✨ Todas las herramientas incluidas', 'Hasta 500 pedidos/mes', 'Todas las integraciones (Shopify, Meta, Google, Klaviyo)', '2 usuarios del equipo', 'Email support 48h'], cta: 'Iniciar con Starter' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/mes', tagline: 'De 500 a 2.000 pedidos/mes. Para marcas en crecimiento.', features: ['✨ Todas las herramientas incluidas', '500 – 2.000 pedidos/mes', '5 usuarios del equipo', 'Créditos Creative Lab (IA) ampliados', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'MÁS ELEGIDO' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/mes', tagline: 'De 2.000 a 7.000 pedidos/mes. Para marcas estructuradas.', features: ['✨ Todas las herramientas incluidas', '2.000 – 7.000 pedidos/mes', 'Usuarios del equipo ilimitados', 'Créditos Creative Lab (IA) máximos', 'CSM dedicado'], cta: 'Iniciar con Scale' },
+      { id: 'enterprise', name: 'Enterprise', price: 'A medida', period: '', tagline: 'Más de 7.000 pedidos/mes. Alto volumen y necesidades custom.', features: ['✨ Todas las herramientas incluidas', '7.000+ pedidos/mes', 'SLA y onboarding dedicado', 'Integraciones custom', 'Account manager dedicado'], cta: 'Contáctanos', href: '#contact' },
     ],
     testimonialsTitle: { eyebrow: 'Qué dicen de nosotros', title: 'Marcas que dejaron de elegir por intuición' },
     testimonials: [
@@ -1228,18 +1231,18 @@ function MockBarChart() {
 }
 
 function Pricing({ t }) {
-  const planAccents = ['#0ea5e9', ACCENT, GREEN]
+  const planAccents = ['#0ea5e9', ACCENT, GREEN, '#f59e0b']
   return (
     <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
       <Reveal>
         <SectionHeader eyebrow={t.pricingTitle.eyebrow} title={t.pricingTitle.title} />
-        <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14 }}>
+        <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
           {t.pricingSub}
         </p>
       </Reveal>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
-        gap: 20, maxWidth: 1000, margin: '50px auto 0',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: 18, maxWidth: 1180, margin: '50px auto 0',
       }}>
         {t.plans.map((p, i) => {
           const hot = p.popular || p.best
@@ -1277,7 +1280,7 @@ function Pricing({ t }) {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="cta-btn" style={{
+              <Link href={p.href || '/register'} className="cta-btn" style={{
                 display: 'block', textAlign: 'center',
                 padding: '13px 18px', borderRadius: 999,
                 background: hot ? `linear-gradient(135deg, ${ACCENT}, ${BLUE})` : 'rgba(255,255,255,0.06)',
@@ -1301,7 +1304,7 @@ function BundleCompare({ t }) {
   const b = t.bundle
   if (!b) return null
   const total = b.items.reduce((s, i) => s + i.price, 0)
-  const full = 299 // prezzo piano Full
+  const full = 69 // prezzo d'ingresso: tutti i tool inclusi "da" questo prezzo
   const save = total - full
   const euro = (n) => '€' + n.toLocaleString('it-IT')
   return (
@@ -1316,6 +1319,7 @@ function BundleCompare({ t }) {
           <div className="glass-card-static" style={{ padding: 30, height: '100%', borderTop: `2px solid ${GREEN}`, boxShadow: `0 30px 80px rgba(0,0,0,0.8), 0 0 80px ${GREEN}22, inset 0 1.5px 0 ${GREEN}88`, display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 12, color: GREEN, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{b.allinoneLabel}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>da</span>
               <span style={{ fontSize: 52, fontWeight: 900, letterSpacing: '-0.03em' }}>{euro(full)}</span>
               <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{b.perMonth}</span>
             </div>

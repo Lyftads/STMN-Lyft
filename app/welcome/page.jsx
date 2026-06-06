@@ -114,7 +114,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads attive, prezzi e cataloghi competitor + analisi LTV/coorti e attribuzione total impact.' },
       { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue e Meta Detail ad-level per non bruciare budget.' },
     ],
-    inAction: { eyebrow: 'Demo', title: 'Vedi LyftAI in azione', sub: 'Ecco cosa trovi appena entri nel tuo account: tutti i dati del tuo brand già pronti, in un\'unica dashboard.' },
+    inAction: { eyebrow: 'Demo', title: 'Vedi LyftAI in azione', sub: 'Ecco cosa trovi appena entri nel tuo account: tutti i dati del tuo brand già pronti, in un\'unica dashboard.', explore: 'È il software reale: cliccaci dentro ed esploralo →', openFull: '▶ Apri la demo a schermo intero', loading: 'Carico la demo…' },
     demoTitle: { eyebrow: 'Dati in azione', title: 'Esempio di quello che vedi ogni giorno' },
     demoCards: {
       revenue: { eyebrow: 'Fatturato 30gg', value: '€84.250', delta: '+24% vs periodo precedente' },
@@ -260,7 +260,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Active ads, prices and competitor catalogs + LTV/cohort analysis and total-impact attribution.' },
       { icon: '⚖', title: 'Full Meta Ads', desc: 'Creative, Budget Advisor, Creative Fatigue and ad-level Meta Detail so you never burn budget.' },
     ],
-    inAction: { eyebrow: 'Demo', title: 'See LyftAI in action', sub: 'Here\'s what you find the moment you log in: all your brand\'s data, ready to go, in one dashboard.' },
+    inAction: { eyebrow: 'Demo', title: 'See LyftAI in action', sub: 'Here\'s what you find the moment you log in: all your brand\'s data, ready to go, in one dashboard.', explore: 'It\'s the real software: click inside and explore →', openFull: '▶ Open the demo full screen', loading: 'Loading the demo…' },
     demoTitle: { eyebrow: 'Data in action', title: 'Example of what you see every day' },
     demoCards: {
       revenue: { eyebrow: '30d Revenue', value: '€84,250', delta: '+24% vs previous period' },
@@ -406,7 +406,7 @@ const I18N = {
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads activos, precios y catálogos de competidores + análisis LTV/cohortes y atribución total impact.' },
       { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue y Meta Detail a nivel de ad para no quemar budget.' },
     ],
-    inAction: { eyebrow: 'Demo', title: 'Mira LyftAI en acción', sub: 'Esto es lo que encuentras al entrar en tu cuenta: todos los datos de tu marca listos, en un solo dashboard.' },
+    inAction: { eyebrow: 'Demo', title: 'Mira LyftAI en acción', sub: 'Esto es lo que encuentras al entrar en tu cuenta: todos los datos de tu marca listos, en un solo dashboard.', explore: 'Es el software real: haz clic dentro y explóralo →', openFull: '▶ Abrir la demo a pantalla completa', loading: 'Cargando la demo…' },
     demoTitle: { eyebrow: 'Datos en acción', title: 'Ejemplo de lo que ves cada día' },
     demoCards: {
       revenue: { eyebrow: 'Revenue 30d', value: '€84.250', delta: '+24% vs período anterior' },
@@ -1318,9 +1318,9 @@ function ProductShowcase({ t }) {
     return () => obs.disconnect()
   }, [])
   return (
-    <section style={{ maxWidth: 1680, margin: '0 auto', padding: '80px 32px 40px' }}>
+    <section style={{ maxWidth: 1680, margin: '0 auto', padding: '64px clamp(12px,4vw,32px) 40px' }}>
       <Reveal><SectionHeader eyebrow={ia.eyebrow} title={ia.title} /></Reveal>
-      <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 660, margin: '14px auto 0' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>È il software reale: cliccaci dentro ed esploralo →</span></p></Reveal>
+      <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 660, margin: '14px auto 0', padding: '0 12px' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>{ia.explore}</span></p></Reveal>
 
       <Reveal>
         <div ref={ref} style={{ marginTop: 40, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 40px 120px rgba(0,0,0,0.7), 0 0 90px rgba(123,91,255,0.14)', background: '#0b0b14' }}>
@@ -1332,13 +1332,13 @@ function ProductShowcase({ t }) {
             <div style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.45)' }}>app.lyftai.io · demo</div>
           </div>
           {/* Software reale embeddato */}
-          <div style={{ position: 'relative', width: '100%', height: 'min(82vh, 860px)', background: '#07070e' }}>
+          <div style={{ position: 'relative', width: '100%', height: 'clamp(460px, 78vh, 860px)', background: '#07070e' }}>
             {load ? (
               <iframe src="/demo" title="Demo LyftAI" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} />
             ) : (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'rgba(255,255,255,0.5)' }}>
                 <span style={{ width: 46, height: 46, borderRadius: 12, background: `linear-gradient(135deg,${ACCENT},${BLUE})` }} />
-                <div style={{ fontSize: 13 }}>Carico la demo…</div>
+                <div style={{ fontSize: 13 }}>{ia.loading}</div>
               </div>
             )}
           </div>
@@ -1347,7 +1347,7 @@ function ProductShowcase({ t }) {
 
       <Reveal>
         <div style={{ textAlign: 'center', marginTop: 26 }}>
-          <Link href="/demo" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>▶ Apri la demo a schermo intero</Link>
+          <Link href="/demo" className="cta-btn" style={{ display: 'inline-block', padding: '14px 28px', borderRadius: 999, background: `linear-gradient(135deg,${ACCENT},${BLUE})`, color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 800, boxShadow: '0 12px 40px rgba(123,91,255,0.3)' }}>{ia.openFull}</Link>
         </div>
       </Reveal>
     </section>

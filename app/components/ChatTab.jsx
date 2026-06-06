@@ -736,7 +736,7 @@ export default function ChatTab({ standalone = false }) {
                 <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia"><Icon name="send" size={16} /></button>
 
                 {emojiOpen && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 8, width: 320, zIndex: 10 }}>
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 8, width: 320, zIndex: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, color: MUTED }}>Emoji</span>
                       <button onClick={() => setEmojiOpen(false)} title="Chiudi" style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
@@ -850,11 +850,10 @@ function MenuItem({ onClick, danger, children }) {
 
 function RailBtn({ active, onClick, title, badge, children }) {
   return (
-    <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
+    <button type="button" onClick={onClick} aria-label={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
       {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
-      <Tip right>{title}</Tip>
     </button>
   )
 }

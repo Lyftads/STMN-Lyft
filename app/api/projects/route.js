@@ -65,6 +65,8 @@ export async function PATCH(req) {
   if (b.description !== undefined) patch.description = b.description || null
   if (b.color !== undefined) patch.color = b.color || null
   if (b.archived !== undefined) patch.archived = !!b.archived
+  if (b.budget_hours !== undefined) patch.budget_hours = (b.budget_hours === '' || b.budget_hours === null) ? null : Number(b.budget_hours)
+  if (b.budget_amount !== undefined) patch.budget_amount = (b.budget_amount === '' || b.budget_amount === null) ? null : Number(b.budget_amount)
   try {
     await admin.from('projects').update(patch).eq('id', b.id).eq('workspace_id', ws.workspaceId)
     return NextResponse.json({ ok: true })

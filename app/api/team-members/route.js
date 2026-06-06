@@ -210,8 +210,15 @@ export async function PATCH(req) {
   if (b.full_name !== undefined) patch.full_name = b.full_name || null
   if (b.status !== undefined && ['invited', 'active', 'disabled'].includes(b.status)) patch.status = b.status
   try {
-    // non declassare l'owner
-    await admin.from('team_members').update(patch).eq('id', b.id).eq('workspace_id', ws.workspaceId).neq('user_id', ws.workspaceId)
+    // non declassare l'owner (ruoli/stato/nome)
+    if (Object.keys(patch).length) {
+      await admin.from('team_members').update(patch).eq('id', b.id).eq('workspace_id', ws.workspaceId).neq('user_id', ws.workspaceId)
+    }
+    // la tariffa oraria si può impostare su chiunque, owner incluso
+    if (b.hourly_rate !== undefined) {
+      const rate = (b.hourly_rate === '' || b.hourly_rate === null) ? null : Number(b.hourly_rate)
+      await admin.from('team_members').update({ hourly_rate: rate }).eq('id', b.id).eq('workspace_id', ws.workspaceId)
+    }
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

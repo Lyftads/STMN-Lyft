@@ -54,19 +54,23 @@ export default function TimeTrackingTab({ standalone = false }) {
   const [report, setReport] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ project_id: '', task_input: '', description: '' })
+  const [form, setForm] = useState({ project_id: '', task_input: '', description: '', billable: true })
   const [showStart, setShowStart] = useState(false)
+  const [budget, setBudget] = useState({ entries: [], loaded: false })
+  const [members, setMembers] = useState([])
   const [now, setNow] = useState(Date.now())
   const tick = useRef(null)
 
   const load = useCallback(async () => {
     try {
-      const [p, t, e] = await Promise.all([
+      const [p, t, e, mem] = await Promise.all([
         fetch('/api/projects', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
         fetch('/api/tasks', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
         fetch(`/api/time-entries?period=${period}&scope=${scope}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+        fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
       ])
       setProjects(p.projects || [])
+      setMembers(mem.members || [])
       setTasks(t.tasks || [])
       setEntries(e.entries || [])
       setRunning(e.running || null)
@@ -95,9 +99,9 @@ export default function TimeTrackingTab({ standalone = false }) {
     }
     const r = await fetch('/api/time-entries', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project_id: form.project_id || null, task_id, task_name, description: form.description }),
+      body: JSON.stringify({ project_id: form.project_id || null, task_id, task_name, description: form.description, billable: form.billable !== false }),
     }).then(r => r.json()).catch(() => ({}))
-    if (r.ok) { setForm({ project_id: '', task_input: '', description: '' }); setShowStart(false); load() }
+    if (r.ok) { setForm({ project_id: '', task_input: '', description: '', billable: true }); setShowStart(false); load() }
   }
   async function stop() {
     await fetch('/api/time-entries', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stop: true }) })
@@ -119,6 +123,22 @@ export default function TimeTrackingTab({ standalone = false }) {
     } finally { setReportLoading(false) }
   }, [range, scope])
   useEffect(() => { if (section === 'report') loadReport() }, [section, loadReport])
+
+  // Budget: tutte le voci (costo = ore × tariffa membro, lato API)
+  const loadBudget = useCallback(async () => {
+    const r = await fetch('/api/time-entries?from=2000-01-01T00:00:00&scope=all', { cache: 'no-store' }).then(r => r.json()).catch(() => ({}))
+    setBudget({ entries: r.entries || [], loaded: true })
+  }, [])
+  useEffect(() => { if (section === 'budget') loadBudget() }, [section, loadBudget])
+
+  async function saveProjectBudget(id, patch) {
+    await fetch('/api/projects', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...patch }) })
+    fetch('/api/projects', { cache: 'no-store' }).then(r => r.json()).then(d => setProjects(d.projects || [])).catch(() => {})
+  }
+  async function saveMemberRate(id, hourly_rate) {
+    await fetch('/api/team-members', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hourly_rate }) })
+    loadBudget()
+  }
 
   // Controlli finestra (come LyftTalk)
   function winClose() { try { window.close() } catch {}; try { if (!window.closed) window.location.href = '/' } catch {} }
@@ -268,6 +288,11 @@ export default function TimeTrackingTab({ standalone = false }) {
             <datalist id="lt-tasks">
               {tasksForProject.map(t => <option key={t.id} value={t.title} />)}
             </datalist>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14, cursor: 'pointer' }}>
+              <input type="checkbox" checked={form.billable !== false} onChange={e => setForm({ ...form, billable: e.target.checked })} style={{ width: 16, height: 16, accentColor: '#7b5bff' }} />
+              Fatturabile <span style={{ color: MUTED, fontSize: 12 }}>(conta nel costo/fatturazione)</span>
+            </label>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button style={btnGhost} onClick={() => setShowStart(false)}>Annulla</button>
@@ -599,6 +624,82 @@ export default function TimeTrackingTab({ standalone = false }) {
         )
       })()}
 
+      {/* Budget & costi progetto */}
+      {section === 'budget' && (() => {
+        const isAdmin = !!me?.isAdmin
+        const spent = {}
+        for (const e of budget.entries) {
+          const k = e.project_id || '__none'
+          if (!spent[k]) spent[k] = { sec: 0, cost: 0, bsec: 0, anyRate: false }
+          spent[k].sec += e.duration_seconds || 0
+          if (e.cost != null) { spent[k].cost += e.cost; spent[k].anyRate = true }
+          if (e.billable !== false) spent[k].bsec += e.duration_seconds || 0
+        }
+        const rows = projects.map(p => ({ ...p, ...(spent[p.id] || { sec: 0, cost: 0, bsec: 0, anyRate: false }) }))
+        const totCost = rows.reduce((s, r) => s + (r.cost || 0), 0)
+        const totSec = rows.reduce((s, r) => s + (r.sec || 0), 0)
+        const euro = n => '€' + (Math.round((n || 0) * 100) / 100).toLocaleString('it-IT')
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              <StatCard label="Ore totali tracciate" value={fmtDur(totSec)} accent="#5b8bff" spark={[]} />
+              <StatCard label="Costo totale" value={euro(totCost)} sub="ore × tariffa oraria" accent="#30d158" spark={[]} />
+            </div>
+
+            {/* Budget per progetto */}
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>Budget per progetto {!isAdmin && <span style={{ color: MUTED, fontWeight: 400, fontSize: 12 }}>· solo l'Admin può modificare</span>}</div>
+              {rows.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessun progetto. Creali in Progetti & Task.</div> : rows.map(r => {
+                const spentH = (r.sec || 0) / 3600
+                const pct = r.budget_hours ? Math.min(100, Math.round(spentH / r.budget_hours * 100))
+                  : r.budget_amount && r.cost ? Math.min(100, Math.round(r.cost / r.budget_amount * 100)) : 0
+                const over = (r.budget_hours && spentH > r.budget_hours) || (r.budget_amount && r.cost > r.budget_amount)
+                return (
+                  <div key={r.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color || '#7b5bff', flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700, fontSize: 14, flex: 1, minWidth: 120 }}>{r.name}</span>
+                      <span style={{ fontSize: 13, color: MUTED }}>speso <b style={{ color: '#fff' }}>{fmtDur(r.sec)}</b>{r.anyRate ? ` · ${euro(r.cost)}` : ''}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                        budget
+                        {isAdmin ? <input key={'h' + r.id} type="number" min="0" defaultValue={r.budget_hours ?? ''} placeholder="ore" onBlur={e => saveProjectBudget(r.id, { budget_hours: e.target.value })} style={{ ...input, width: 64, padding: '5px 7px' }} /> : <b>{r.budget_hours ?? '—'}</b>}h
+                        {isAdmin ? <input key={'a' + r.id} type="number" min="0" defaultValue={r.budget_amount ?? ''} placeholder="€" onBlur={e => saveProjectBudget(r.id, { budget_amount: e.target.value })} style={{ ...input, width: 80, padding: '5px 7px' }} /> : <b>{r.budget_amount != null ? euro(r.budget_amount) : '—'}</b>}
+                      </span>
+                    </div>
+                    {(r.budget_hours || r.budget_amount) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                        <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: over ? 'linear-gradient(90deg,#ff375f,#ff5f7a)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: over ? '#ff5f7a' : MUTED, fontWeight: 700, width: 90, textAlign: 'right' }}>{pct}%{over ? ' · sforato' : ''}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Tariffe orarie membri */}
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>Tariffe orarie {!isAdmin && <span style={{ color: MUTED, fontWeight: 400, fontSize: 12 }}>· solo l'Admin può modificare</span>}</div>
+              {members.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessun membro.</div> : members.map(m => (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Avatar name={m.full_name || m.email} url={m.avatar_url} size={32} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.full_name || m.email}</div>
+                  </div>
+                  {isAdmin ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>€
+                      <input key={m.id + (m.hourly_rate ?? '')} type="number" min="0" defaultValue={m.hourly_rate ?? ''} placeholder="0" onBlur={e => saveMemberRate(m.id, e.target.value)} style={{ ...input, width: 80, padding: '5px 7px' }} />/h
+                    </div>
+                  ) : <span style={{ fontSize: 14, fontWeight: 700 }}>{m.hourly_rate != null ? `€${m.hourly_rate}/h` : '—'}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
         </div>
       </div>
 
@@ -614,6 +715,7 @@ function LyftSidebar({ section, setSection }) {
     ['timesheets', 'Timesheets', 'clock'],
     ['activity', 'Attività', 'chart'],
     ['report', 'Report', 'report'],
+    ['budget', 'Budget & costi', 'budget'],
     ['people', 'Persone', 'people'],
     ['projects', 'Progetti', 'folder'],
   ]
@@ -649,6 +751,7 @@ function SideIcon({ name, active }) {
     case 'report': return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 17v-3M12 17v-5M16 17v-2" /></svg>
     case 'people': return <svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" /><path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" /></svg>
     case 'folder': return <svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+    case 'budget': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2 0 0 1 9.5 15" /><path d="M12 6v1.5M12 16.5V18" /></svg>
     default: return <svg {...p}><circle cx="12" cy="12" r="9" /></svg>
   }
 }

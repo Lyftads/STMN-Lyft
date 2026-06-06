@@ -124,7 +124,10 @@ export default function DemoApp() {
       }}>
         <span>🔎 Demo interattiva di LyftAI — dati di esempio, account "Acme Store"</span>
         <a href="/register" style={{ color: '#fff', textDecoration: 'underline', fontWeight: 800 }}>Inizia gratis →</a>
-        <a href="/welcome" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>← Torna al sito</a>
+        {/* "Torna al sito" solo se a schermo intero (NON nell'iframe della landing) */}
+        {typeof window !== 'undefined' && window.self === window.top && (
+          <a href="/welcome" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>← Torna al sito</a>
+        )}
       </div>
       <div style={{ paddingTop: 34 }}>
         <DemoBoundary>

@@ -297,6 +297,16 @@ export default function ChatTab({ standalone = false }) {
   function winMin() { try { if (document.fullscreenElement) document.exitFullscreen() } catch {} }
   function winFull() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen() } catch {} }
 
+  function selectRail(r) {
+    setRail(r)
+    const isUnread = (c) => { const last = lastAt[c.id]; if (!last) return false; let read = null; try { read = localStorage.getItem('chread_' + c.id) } catch {}; return !read || last > read }
+    let target = null
+    if (r === 'home') target = channels.find(c => !c.is_dm) || channels[0]
+    else if (r === 'dms') target = channels.find(c => c.is_dm)
+    else if (r === 'unread') target = channels.find(isUnread)
+    if (target) setActive(target.id)
+  }
+
   async function attachFile(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''
     if (!f || !active) return
@@ -443,10 +453,10 @@ export default function ChatTab({ standalone = false }) {
       <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '70vh' }}>
         {/* Rail icone (stile Slack) */}
         <div style={{ ...PANEL, width: 60, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0' }}>
-          <RailBtn active={rail === 'home'} onClick={() => setRail('home')} title="Tutti i canali"><Icon name="hash" size={20} /></RailBtn>
-          <RailBtn active={rail === 'dms'} onClick={() => setRail('dms')} title="Messaggi diretti"><Icon name="dm" size={20} /></RailBtn>
-          <RailBtn active={rail === 'unread'} onClick={() => setRail('unread')} title="Non letti" badge={unreadList.length}><Icon name="inbox" size={20} /></RailBtn>
-          <RailBtn active={rail === 'files'} onClick={() => setRail('files')} title="File condivisi"><Icon name="folder" size={20} /></RailBtn>
+          <RailBtn active={rail === 'home'} onClick={() => selectRail('home')} title="Tutti i canali"><Icon name="hash" size={20} /></RailBtn>
+          <RailBtn active={rail === 'dms'} onClick={() => selectRail('dms')} title="Messaggi diretti"><Icon name="dm" size={20} /></RailBtn>
+          <RailBtn active={rail === 'unread'} onClick={() => selectRail('unread')} title="Non letti" badge={unreadList.length}><Icon name="inbox" size={20} /></RailBtn>
+          <RailBtn active={rail === 'files'} onClick={() => selectRail('files')} title="File condivisi"><Icon name="folder" size={20} /></RailBtn>
         </div>
         {/* Sidebar */}
         <aside style={{ ...PANEL, width: 248, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
@@ -715,8 +725,8 @@ export default function ChatTab({ standalone = false }) {
               </div>
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
-                <label className="tipwrap" title="" style={{ position: 'relative', cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="plus" size={16} /><span className="tip">Allega file</span>
+                <label title="Allega file" style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="plus" size={16} />
                   <input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
                 </label>
                 <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}><Icon name={recording ? 'stop' : 'mic'} size={16} /></TB>
@@ -822,15 +832,15 @@ function Tip({ children }) {
 }
 
 function ActBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}</button>
 }
 
 function HBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} title={title} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}</button>
 }
 
 function TB({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}</button>
 }
 
 function MenuItem({ onClick, danger, children }) {
@@ -839,11 +849,10 @@ function MenuItem({ onClick, danger, children }) {
 
 function RailBtn({ active, onClick, title, badge, children }) {
   return (
-    <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
+    <button type="button" onClick={onClick} title={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
       {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
-      <span className="tip" style={{ left: 'calc(100% + 10px)', right: 'auto', bottom: 'auto', top: '50%', transform: 'translateY(-50%)' }}>{title}</span>
     </button>
   )
 }

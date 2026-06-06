@@ -60,6 +60,7 @@ export async function GET(req) {
           email: ti.email || null,
           hasAdwords: scopes.includes('https://www.googleapis.com/auth/adwords'),
           scopes,
+          projectNumber: CLIENT_ID ? String(CLIENT_ID).split('-')[0] : null,
           customerId: CUSTOMER_ID ? `***${String(CUSTOMER_ID).slice(-4)}` : null,
           mccSet: !!MCC_ID,
         })

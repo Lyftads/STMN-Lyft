@@ -725,10 +725,12 @@ export default function ChatTab({ standalone = false }) {
               </div>
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
-                <label title="Allega file" style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Tip label="Allega file">
+                <label style={{ cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="plus" size={16} />
                   <input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
                 </label>
+                </Tip>
                 <TB onClick={recording ? stopRec : startRec} title={recording ? 'Ferma e invia vocale' : 'Messaggio vocale'}><Icon name={recording ? 'stop' : 'mic'} size={16} /></TB>
                 <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title="Emoji"><Icon name="smile" size={16} /></TB>
                 <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title="Menziona"><Icon name="at" size={16} /></TB>
@@ -827,20 +829,38 @@ export default function ChatTab({ standalone = false }) {
   )
 }
 
-function Tip({ children }) {
-  return children ? <span className="tip">{children}</span> : null
+function Tip({ label, children }) {
+  const [t, setT] = useState(null)
+  const onEnter = (e) => {
+    if (!label) return
+    const r = e.currentTarget.getBoundingClientRect()
+    const w = Math.min(280, label.length * 6.6 + 18)
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+    let left = r.left + r.width / 2 - w / 2
+    left = Math.max(8, Math.min(left, vw - w - 8))
+    let top = r.bottom + 8
+    if (top > vh - 36) top = r.top - 30
+    setT({ left, top, w })
+  }
+  return (
+    <span onMouseEnter={onEnter} onMouseLeave={() => setT(null)} style={{ display: 'inline-flex' }}>
+      {children}
+      {t && <span style={{ position: 'fixed', left: t.left, top: t.top, width: t.w, background: '#14141d', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 7, textAlign: 'center', zIndex: 9999, pointerEvents: 'none', boxShadow: '0 8px 22px rgba(0,0,0,0.55)' }}>{label}</span>}
+    </span>
+  )
 }
 
 function ActBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}</button>
+  return <Tip label={title}><button type="button" onClick={onClick} style={{ background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}</button></Tip>
 }
 
 function HBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}</button>
+  return <Tip label={title}><button type="button" onClick={onClick} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}</button></Tip>
 }
 
 function TB({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} title={title} style={{ background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}</button>
+  return <Tip label={title}><button type="button" onClick={onClick} style={{ background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}</button></Tip>
 }
 
 function MenuItem({ onClick, danger, children }) {
@@ -849,11 +869,13 @@ function MenuItem({ onClick, danger, children }) {
 
 function RailBtn({ active, onClick, title, badge, children }) {
   return (
-    <button type="button" onClick={onClick} title={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
+    <Tip label={title}>
+    <button type="button" onClick={onClick} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
       {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
     </button>
+    </Tip>
   )
 }
 

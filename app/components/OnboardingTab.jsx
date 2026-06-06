@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
 import NangoConnectButton from './NangoConnectButton'
+import BrandIdentityPanel from './BrandIdentityPanel'
 
 // Onboarding guidato: l'utente segue gli step in ordine per collegare le
 // piattaforme. Ogni step ha una descrizione dettagliata di cosa fa e come
@@ -61,11 +62,23 @@ const STEPS = [
       'Nessun token da copiare: la connessione è gestita in automatico.',
     ],
   },
+  {
+    id: 'brand', label: 'Brand Identity', icon: '◉', kind: 'brand',
+    short: 'Definisci il tuo brand: tono, valori, target, competitor.',
+    what: 'La Brand Identity è il contesto che gli assistenti AI e gli strumenti creativi di LyftAI usano per capire il tuo brand: nome, tono di voce, valori, target, prodotti, posizionamento e competitor. Più è completa, più i report, le raccomandazioni e le creative generate saranno calibrate sul tuo brand.',
+    how: [
+      'Compila i campi qui sotto: nome azienda, descrizione, tono di voce, target, USP, competitor.',
+      'Puoi caricare anche asset (logo, palette, immagini di riferimento).',
+      'Le modifiche si salvano automaticamente: alimentano subito agenti AI, Creative Lab e i report.',
+      'Non è un collegamento esterno: è il profilo del tuo brand dentro LyftAI.',
+    ],
+  },
 ]
 
 export default function OnboardingTab() {
   const [status, setStatus] = useState({ connected: [], googleConnected: false })
   const [onb, setOnb] = useState({ steps: {}, completed: false })
+  const [brandDone, setBrandDone] = useState(false)
   const [current, setCurrent] = useState(0)
   const [skipped, setSkipped] = useState(() => {
     if (typeof window === 'undefined') return new Set()
@@ -76,12 +89,14 @@ export default function OnboardingTab() {
   const poll = useRef(null)
 
   const load = useCallback(async () => {
-    const [s, o] = await Promise.all([
+    const [s, o, b] = await Promise.all([
       fetch('/api/integrations/status', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
       fetch('/api/onboarding', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+      fetch('/api/brand-identity', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
     ])
     setStatus(s || {})
     setOnb(o || { steps: {} })
+    setBrandDone(!!(b?.identity && Object.keys(b.identity).length > 0))
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -99,6 +114,7 @@ export default function OnboardingTab() {
     if (id === 'meta') return c.includes('facebook') || !!onb.steps?.meta
     if (id === 'ga4') return !!status.googleConnected || !!onb.steps?.ga4
     if (id === 'klaviyo') return c.includes('klaviyo-oauth') || c.includes('klaviyo') || !!onb.steps?.klaviyo
+    if (id === 'brand') return brandDone
     return false
   }
   const isSkipped = (id) => skipped.has(id)
@@ -214,6 +230,11 @@ export default function OnboardingTab() {
               </div>
             )}
             {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}>✓ Klaviyo collegato.</div> : <NangoConnectButton integrationId="klaviyo-oauth" label="Collega Klaviyo" />)}
+            {step.kind === 'brand' && (
+              <div style={{ margin: '-22px -22px 0', padding: '0 4px' }}>
+                <BrandIdentityPanel />
+              </div>
+            )}
           </div>
 
           {/* Navigazione */}

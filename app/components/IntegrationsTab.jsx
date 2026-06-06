@@ -194,18 +194,6 @@ function AvailableCard({ integration, onConnect }) {
   )
 }
 
-const COMING_SOON = [
-  { name: 'Gmail', description: 'Sync emails and message data', domain: 'gmail.com', scope: 'user' },
-  { name: 'Google Calendar', description: 'Sync calendar events and schedules', domain: 'calendar.google.com', scope: 'user' },
-  { name: 'Google Drive', description: 'Shared Drive files with domain-wide access', domain: 'drive.google.com', scope: 'user' },
-  { name: 'QuickBooks', description: 'Sync invoices and financial data', domain: 'quickbooks.intuit.com', scope: 'workspace' },
-  { name: 'Stripe', description: 'Payment processing and revenue data', domain: 'stripe.com', scope: 'workspace' },
-  { name: 'Hotjar', description: 'Heatmaps, recordings, and user feedback', domain: 'hotjar.com', scope: 'workspace' },
-  { name: 'Slack', description: 'Team notifications and alerts', domain: 'slack.com', scope: 'workspace' },
-  { name: 'Notion', description: 'Docs, wikis, and project management', domain: 'notion.so', scope: 'workspace' },
-  { name: 'Zapier', description: 'Connect with 5000+ apps via automations', domain: 'zapier.com', scope: 'workspace' },
-]
-
 function ConnectModal({ integration, onClose }) {
   if (!integration) return null
   const { name, domain, setupUrl, envVars, description } = integration
@@ -427,36 +415,6 @@ export default function IntegrationsTab() {
           </div>
         </div>
       )}
-
-      <div style={{ marginBottom: 36 }}>
-        {sectionHeader('Coming soon', COMING_SOON.length, '#776a86')}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
-          {COMING_SOON.map(cs => (
-            <div key={cs.name} style={{
-              background: 'var(--glass)',
-              border: '1px solid var(--border)',
-              borderRadius: 16,
-              padding: '18px 22px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              opacity: 0.6,
-            }}>
-              <BrandLogo domain={cs.domain} size={38} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{cs.name}</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{cs.description}</div>
-              </div>
-              <span style={{
-                fontSize: 10, fontWeight: 800, color: '#776a86',
-                padding: '3px 10px', borderRadius: 6, background: 'var(--glass)',
-              }}>
-                Soon
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <ConnectModal integration={selected} onClose={() => setSelected(null)} />
     </div>

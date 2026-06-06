@@ -56,9 +56,12 @@ export async function GET(req) {
     let q = admin.from('time_entries').select('*').eq('workspace_id', ws.workspaceId)
     // I membri non-admin vedono solo le proprie voci. L'admin può scegliere.
     if (!ws.isAdmin || scope === 'me') q = q.eq('member_id', me.id)
-    const from = periodStart(period)
-    if (from) q = q.gte('started_at', from)
-    q = q.order('started_at', { ascending: false }).limit(1000)
+    // Range esplicito (report) oppure preset periodo (timesheet/dashboard)
+    const fromParam = searchParams.get('from'), toParam = searchParams.get('to')
+    if (fromParam) q = q.gte('started_at', fromParam)
+    else { const from = periodStart(period); if (from) q = q.gte('started_at', from) }
+    if (toParam) q = q.lte('started_at', toParam)
+    q = q.order('started_at', { ascending: false }).limit(5000)
     const { data } = await q
 
     const entries = (data || []).map(e => ({

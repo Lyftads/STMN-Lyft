@@ -47,6 +47,12 @@ export default function TimeTrackingTab({ standalone = false }) {
   const [period, setPeriod] = useState('week')
   const [scope, setScope] = useState('me')
   const [section, setSection] = useState('dashboard')
+  const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) }
+  const todayStr = () => new Date().toISOString().slice(0, 10)
+  const [range, setRange] = useState({ from: monthStart(), to: todayStr() })
+  const [groupBy, setGroupBy] = useState('project')
+  const [report, setReport] = useState([])
+  const [reportLoading, setReportLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ project_id: '', task_input: '', description: '' })
   const [showStart, setShowStart] = useState(false)
@@ -103,6 +109,47 @@ export default function TimeTrackingTab({ standalone = false }) {
     load()
   }
 
+  // Report: carica le voci nel range (fine giornata inclusa)
+  const loadReport = useCallback(async () => {
+    setReportLoading(true)
+    try {
+      const to = `${range.to}T23:59:59`
+      const r = await fetch(`/api/time-entries?from=${range.from}T00:00:00&to=${to}&scope=${scope}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({}))
+      setReport(r.entries || [])
+    } finally { setReportLoading(false) }
+  }, [range, scope])
+  useEffect(() => { if (section === 'report') loadReport() }, [section, loadReport])
+
+  // Controlli finestra (come LyftTalk)
+  function winClose() { try { window.close() } catch {}; try { if (!window.closed) window.location.href = '/' } catch {} }
+  function winMin() { try { if (document.fullscreenElement) document.exitFullscreen() } catch {} }
+  function winFull() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen() } catch {} }
+
+  function exportCSV() {
+    const head = ['Data', 'Inizio', 'Fine', 'Durata (h)', 'Persona', 'Progetto', 'Task', 'Descrizione']
+    const rows = [head]
+    for (const e of report) rows.push([
+      new Date(e.started_at).toLocaleDateString('it-IT'), timeOf(e.started_at), e.ended_at ? timeOf(e.ended_at) : '',
+      ((e.duration_seconds || 0) / 3600).toFixed(2), e.member_name || '', e.project_name || '', e.task_title || '', (e.description || '').replace(/\s+/g, ' '),
+    ])
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `lyftimer_${range.from}_${range.to}.csv`; a.click()
+  }
+  function exportPDF() {
+    const groups = reportGroups(report, groupBy)
+    const tot = groups.reduce((s, g) => s + g.sec, 0)
+    const esc = s => String(s || '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))
+    const body = groups.map(g => `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${g.color};margin-right:6px"></span>${esc(g.label)}</td><td style="text-align:right">${g.count}</td><td style="text-align:right">${fmtDur(g.sec)}</td><td style="text-align:right">${tot ? Math.round(g.sec / tot * 100) : 0}%</td></tr>`).join('')
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Lyftimer Report</title>
+      <style>body{font-family:Arial,Helvetica,sans-serif;color:#1a1a2e;padding:32px}h1{margin:0 0 4px}.sub{color:#777;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 10px;border-bottom:1px solid #e6e6ee;text-align:left}th{color:#888;font-size:12px;text-transform:uppercase}tfoot td{font-weight:700;border-top:2px solid #333}</style></head>
+      <body><h1>Lyftimer — Report</h1><div class="sub">${range.from} → ${range.to} · raggruppato per ${groupBy === 'project' ? 'progetto' : groupBy === 'person' ? 'persona' : 'task'}</div>
+      <table><thead><tr><th>${groupBy === 'project' ? 'Progetto' : groupBy === 'person' ? 'Persona' : 'Task'}</th><th style="text-align:right">Voci</th><th style="text-align:right">Tempo</th><th style="text-align:right">%</th></tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td>Totale</td><td style="text-align:right">${report.length}</td><td style="text-align:right">${fmtDur(tot)}</td><td style="text-align:right">100%</td></tr></tfoot></table></body></html>`
+    const w = window.open('', '_blank'); if (!w) return
+    w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 350)
+  }
+
   const runningSec = running ? (now - new Date(running.started_at).getTime()) / 1000 : 0
   const tasksForProject = form.project_id ? tasks.filter(t => t.project_id === form.project_id) : tasks
 
@@ -149,6 +196,11 @@ export default function TimeTrackingTab({ standalone = false }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1000 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginRight: 4 }}>
+          <button onClick={winClose} title="Chiudi" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
+          <button onClick={winMin} title="Riduci (esci da schermo intero)" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
+          <button onClick={winFull} title="Schermo intero" style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
+        </div>
         <LyftimerLogo size={34} />
         <div>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Lyftimer</h2>
@@ -451,6 +503,78 @@ export default function TimeTrackingTab({ standalone = false }) {
         </div>
       )}
 
+      {/* Report con grafici + export */}
+      {section === 'report' && (() => {
+        const groups = reportGroups(report, groupBy)
+        const daily = reportDaily(report, range.from, range.to)
+        const tot = groups.reduce((s, g) => s + g.sec, 0)
+        const grpLabel = groupBy === 'project' ? 'Progetto' : groupBy === 'person' ? 'Persona' : 'Task'
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Controlli range + export */}
+            <div style={{ ...card, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+              <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>Dal</label>
+              <input type="date" value={range.from} onChange={e => setRange({ ...range, from: e.target.value })} style={{ ...input, width: 'auto' }} />
+              <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>al</label>
+              <input type="date" value={range.to} onChange={e => setRange({ ...range, to: e.target.value })} style={{ ...input, width: 'auto' }} />
+              <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
+                {[['project', 'Progetto'], ['person', 'Persona'], ['task', 'Task']].map(([id, lbl]) => (
+                  <button key={id} onClick={() => setGroupBy(id)} style={{ ...btnGhost, border: 'none', background: groupBy === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: groupBy === id ? 700 : 400 }}>{lbl}</button>
+                ))}
+              </div>
+              <div style={{ flex: 1 }} />
+              <button style={btnGhost} onClick={exportCSV}>⬇ CSV</button>
+              <button style={btn} onClick={exportPDF}>⬇ PDF</button>
+            </div>
+
+            {reportLoading ? (
+              <div style={{ color: MUTED }}>Caricamento…</div>
+            ) : report.length === 0 ? (
+              <div style={{ ...card, textAlign: 'center', color: MUTED, padding: 40 }}>Nessuna registrazione nel periodo selezionato.</div>
+            ) : (
+              <>
+                {/* Totale + Donut + barre giornaliere */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                  <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 18 }}>
+                    <Donut data={groups} size={140} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: MUTED, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Totale {range.from} → {range.to}</div>
+                      <div style={{ fontSize: 30, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginBottom: 8 }}>{fmtDur(tot)}</div>
+                      {groups.slice(0, 5).map((g, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 3 }}>
+                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</span>
+                          <span style={{ color: MUTED, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(g.sec)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ ...card }}>
+                    <div style={{ fontSize: 13, color: MUTED, marginBottom: 12, fontWeight: 700 }}>Ore per giorno</div>
+                    <DailyBars days={daily} />
+                  </div>
+                </div>
+
+                {/* Tabella raggruppata */}
+                <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 90px 60px', padding: '10px 16px', borderBottom: '1px solid var(--border)', color: MUTED, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
+                    <span>{grpLabel}</span><span style={{ textAlign: 'right' }}>Voci</span><span style={{ textAlign: 'right' }}>Tempo</span><span style={{ textAlign: 'right' }}>%</span>
+                  </div>
+                  {groups.map((g, i) => (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 90px 60px', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: g.color, flexShrink: 0 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</span></span>
+                      <span style={{ textAlign: 'right', color: MUTED, fontSize: 13 }}>{g.count}</span>
+                      <span style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(g.sec)}</span>
+                      <span style={{ textAlign: 'right', color: MUTED, fontSize: 13 }}>{tot ? Math.round(g.sec / tot * 100) : 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })()}
+
         </div>
       </div>
 
@@ -465,6 +589,7 @@ function LyftSidebar({ section, setSection }) {
     ['dashboard', 'Dashboard', 'grid'],
     ['timesheets', 'Timesheets', 'clock'],
     ['activity', 'Attività', 'chart'],
+    ['report', 'Report', 'report'],
     ['people', 'Persone', 'people'],
     ['projects', 'Progetti', 'folder'],
   ]
@@ -497,10 +622,70 @@ function SideIcon({ name, active }) {
     case 'grid': return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
     case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
     case 'chart': return <svg {...p}><path d="M3 3v18h18" /><path d="M7 14l3-3 3 3 4-5" /></svg>
+    case 'report': return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 17v-3M12 17v-5M16 17v-2" /></svg>
     case 'people': return <svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" /><path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" /></svg>
     case 'folder': return <svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
     default: return <svg {...p}><circle cx="12" cy="12" r="9" /></svg>
   }
+}
+
+// Aggregazioni report
+function reportGroups(entries, groupBy) {
+  const m = {}
+  for (const e of entries) {
+    const label = groupBy === 'project' ? (e.project_name || 'Senza progetto') : groupBy === 'person' ? (e.member_name || '—') : (e.task_title || 'Senza task')
+    const color = groupBy === 'project' ? (e.project_color || '#7b5bff') : '#7b5bff'
+    if (!m[label]) m[label] = { label, color, sec: 0, count: 0 }
+    m[label].sec += (e.duration_seconds || 0); m[label].count++
+  }
+  return Object.values(m).sort((a, b) => b.sec - a.sec)
+}
+function reportDaily(entries, from, to) {
+  const days = []; const d0 = new Date(from + 'T00:00:00'); const d1 = new Date(to + 'T00:00:00')
+  let guard = 0
+  for (let d = new Date(d0); d <= d1 && guard < 200; d.setDate(d.getDate() + 1), guard++) days.push({ key: d.toDateString(), label: `${d.getDate()}/${d.getMonth() + 1}`, sec: 0 })
+  const idx = {}; days.forEach((x, i) => { idx[x.key] = i })
+  for (const e of entries) { const k = new Date(e.started_at).toDateString(); if (idx[k] !== undefined) days[idx[k]].sec += (e.duration_seconds || 0) }
+  return days
+}
+
+// Donut: distribuzione tempo per gruppo.
+function Donut({ data = [], size = 140 }) {
+  const total = data.reduce((s, d) => s + d.sec, 0)
+  const r = size / 2 - 12, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <svg width={size} height={size} style={{ flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#14141d" strokeWidth="14" />
+      {total > 0 && data.map((d, i) => {
+        const frac = d.sec / total, len = frac * C, off = acc * C
+        acc += frac
+        return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth="14"
+          strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off}
+          transform={`rotate(-90 ${cx} ${cy})`} />
+      })}
+      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">{fmtDur(total)}</text>
+      <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10" fill="#8e8e9e">totale</text>
+    </svg>
+  )
+}
+
+// Barre verticali ore/giorno.
+function DailyBars({ days = [] }) {
+  const max = Math.max(1, ...days.map(d => d.sec))
+  const show = days.length > 31 ? days.filter((_, i) => i % Math.ceil(days.length / 31) === 0) : days
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: show.length > 20 ? 2 : 5, height: 130 }}>
+      {show.map((d, i) => (
+        <div key={i} title={`${d.label}: ${fmtDur(d.sec)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <div style={{ width: '100%', height: 100, display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ width: '100%', height: `${Math.round((d.sec / max) * 100)}%`, minHeight: d.sec > 0 ? 3 : 0, background: 'linear-gradient(180deg,#7b5bff,#5b8bff)', borderRadius: '3px 3px 0 0' }} />
+          </div>
+          {show.length <= 16 && <span style={{ fontSize: 9, color: '#8e8e9e', whiteSpace: 'nowrap' }}>{d.label}</span>}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // Card riepilogo: etichetta, valore grande, sparkline.

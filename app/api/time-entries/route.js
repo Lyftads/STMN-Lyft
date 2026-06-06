@@ -79,7 +79,48 @@ export async function GET(req) {
       if (r) running = { ...r, project_name: r.project_id ? (pMap[r.project_id]?.name || '') : '', project_color: r.project_id ? (pMap[r.project_id]?.color || null) : null, task_title: r.task_id ? (tMap[r.task_id] || r.task_name || '') : (r.task_name || '') }
     } catch {}
 
-    return NextResponse.json({ entries, running, me: { memberId: me.id, name: me.name, avatar: me.avatar_url, isAdmin: ws.isAdmin } })
+    // Summary ultimi 7 giorni (indipendente dal filtro periodo) per le card + sparkline
+    let summary = null
+    try {
+      const since = new Date(); since.setDate(since.getDate() - 6); since.setHours(0, 0, 0, 0)
+      let sq = admin.from('time_entries').select('started_at, duration_seconds, project_id, member_id')
+        .eq('workspace_id', ws.workspaceId).gte('started_at', since.toISOString())
+      if (!ws.isAdmin || scope === 'me') sq = sq.eq('member_id', me.id)
+      const { data: sd } = await sq
+
+      const days = []
+      for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0, 0, 0, 0); days.push({ key: d.toDateString(), label: d.toLocaleDateString('it-IT', { weekday: 'short' }), sec: 0 }) }
+      const dayIdx = {}; days.forEach((d, i) => { dayIdx[d.key] = i })
+      const today0 = new Date(); today0.setHours(0, 0, 0, 0); const todayKey = today0.toDateString()
+      const wkStart = new Date(); const dow = (wkStart.getDay() + 6) % 7; wkStart.setDate(wkStart.getDate() - dow); wkStart.setHours(0, 0, 0, 0)
+
+      let todaySec = 0, weekSec = 0, total7 = 0
+      const memAgg = {}, projAgg = {}
+      for (const e of (sd || [])) {
+        const sec = e.duration_seconds || 0
+        const dt = new Date(e.started_at), dk = dt.toDateString()
+        if (dayIdx[dk] !== undefined) days[dayIdx[dk]].sec += sec
+        total7 += sec
+        if (dk === todayKey) todaySec += sec
+        if (dt >= wkStart) weekSec += sec
+        const mk = e.member_id || '__me'
+        if (!memAgg[mk]) memAgg[mk] = { name: (mMap[e.member_id]?.name) || me.name, avatar: mMap[e.member_id]?.avatar_url || null, todaySec: 0, weekSec: 0 }
+        if (dk === todayKey) memAgg[mk].todaySec += sec
+        if (dt >= wkStart) memAgg[mk].weekSec += sec
+        const pk = e.project_id || '__none'
+        if (!projAgg[pk]) projAgg[pk] = { name: e.project_id ? (pMap[e.project_id]?.name || '—') : 'Senza progetto', color: e.project_id ? (pMap[e.project_id]?.color || null) : null, sec: 0 }
+        projAgg[pk].sec += sec
+      }
+      summary = {
+        spark: days.map(d => d.sec),
+        days: days.map(d => ({ label: d.label, sec: d.sec })),
+        todaySec, weekSec, total7,
+        members: Object.values(memAgg).sort((a, b) => b.weekSec - a.weekSec),
+        projects: Object.values(projAgg).sort((a, b) => b.sec - a.sec),
+      }
+    } catch {}
+
+    return NextResponse.json({ entries, running, summary, me: { memberId: me.id, name: me.name, avatar: me.avatar_url, isAdmin: ws.isAdmin } })
   } catch (e) {
     return NextResponse.json({ entries: [], error: e.message })
   }

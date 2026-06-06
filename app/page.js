@@ -2218,8 +2218,17 @@ export default function App() {
   }, [allowedTabs, tab])
 
   // Gating per PIANO: calcola le tab bloccate in base all'abbonamento Stripe.
+  // Anteprima per test: ?previewPlan=base|pro|full forza i lucchetti di quel piano.
   useEffect(() => {
     let active = true
+    try {
+      const pv = new URLSearchParams(window.location.search).get('previewPlan')
+      if (pv) {
+        const map = { base: 'starter', pro: 'growth', full: 'scale' }
+        setLockedTabs(lockedTabsForPlan(map[pv] || 'scale', 'active'))
+        return () => { active = false }
+      }
+    } catch {}
     fetch('/api/stripe/subscription', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => { if (active) setLockedTabs(lockedTabsForPlan(d?.subscription?.planId, d?.subscription?.status)) })

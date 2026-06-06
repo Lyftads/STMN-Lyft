@@ -47,6 +47,9 @@ export default function TimeTrackingTab({ standalone = false }) {
   const [period, setPeriod] = useState('week')
   const [scope, setScope] = useState('me')
   const [section, setSection] = useState('dashboard')
+  const mondayOf = (d) => { const x = new Date(d); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); x.setHours(0, 0, 0, 0); return x }
+  const [approveWeek, setApproveWeek] = useState(() => { const x = new Date(); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x.toISOString().slice(0, 10) })
+  const [approvals, setApprovals] = useState({ rows: [], loaded: false })
   const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) }
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const [range, setRange] = useState({ from: monthStart(), to: todayStr() })
@@ -138,6 +141,45 @@ export default function TimeTrackingTab({ standalone = false }) {
   async function saveMemberRate(id, hourly_rate) {
     await fetch('/api/team-members', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hourly_rate }) })
     loadBudget()
+  }
+
+  // Approvazione ore: aggrega le ore della settimana per membro + stato approvazione
+  const loadApprovals = useCallback(async () => {
+    const from = `${approveWeek}T00:00:00`
+    const end = new Date(approveWeek + 'T00:00:00'); end.setDate(end.getDate() + 6)
+    const to = `${end.toISOString().slice(0, 10)}T23:59:59`
+    const [e, a] = await Promise.all([
+      fetch(`/api/time-entries?from=${from}&to=${to}&scope=all`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+      fetch(`/api/time-approvals?week=${approveWeek}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+    ])
+    const agg = {}
+    for (const x of (e.entries || [])) {
+      const k = x.member_id; if (!k) continue
+      if (!agg[k]) agg[k] = { sec: 0, cost: 0 }
+      agg[k].sec += x.duration_seconds || 0; if (x.cost != null) agg[k].cost += x.cost
+    }
+    const appMap = {}; (a.approvals || []).forEach(x => { appMap[x.member_id] = x })
+    const base = members.length ? members.map(m => ({ id: m.id, name: m.full_name || m.email, avatar: m.avatar_url })) : []
+    // includi anche eventuali membri presenti solo nelle voci
+    for (const k of Object.keys(agg)) if (!base.find(b => b.id === k)) base.push({ id: k, name: '—', avatar: null })
+    const rows = base.map(m => ({ ...m, sec: agg[m.id]?.sec || 0, cost: agg[m.id]?.cost || 0, approval: appMap[m.id] || null }))
+      .filter(r => me?.isAdmin || r.id === a.me?.memberId)
+      .sort((x, y) => y.sec - x.sec)
+    setApprovals({ rows, loaded: true })
+  }, [approveWeek, members, me])
+  useEffect(() => { if (section === 'approvals') loadApprovals() }, [section, loadApprovals])
+
+  async function setApproval(member_id, status, sec) {
+    await fetch('/api/time-approvals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member_id, week_start: approveWeek, status, total_seconds: sec }) })
+    loadApprovals()
+  }
+  async function resetApproval(member_id) {
+    await fetch(`/api/time-approvals?member_id=${member_id}&week=${approveWeek}`, { method: 'DELETE' })
+    loadApprovals()
+  }
+  function shiftWeek(delta) {
+    const d = new Date(approveWeek + 'T00:00:00'); d.setDate(d.getDate() + delta * 7)
+    setApproveWeek(d.toISOString().slice(0, 10))
   }
 
   // Controlli finestra (come LyftTalk)
@@ -700,6 +742,53 @@ export default function TimeTrackingTab({ standalone = false }) {
         )
       })()}
 
+      {/* Approvazione ore */}
+      {section === 'approvals' && (() => {
+        const wEnd = new Date(approveWeek + 'T00:00:00'); wEnd.setDate(wEnd.getDate() + 6)
+        const fmtD = d => d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+        const badge = (st) => st === 'approved' ? { t: 'Approvato', c: '#30d158' } : st === 'rejected' ? { t: 'Rifiutato', c: '#ff375f' } : { t: 'In attesa', c: '#ff9f0a' }
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button style={btnGhost} onClick={() => shiftWeek(-1)}>←</button>
+              <div style={{ flex: 1, textAlign: 'center', fontWeight: 700 }}>Settimana {fmtD(new Date(approveWeek + 'T00:00:00'))} – {fmtD(wEnd)}</div>
+              <button style={btnGhost} onClick={() => shiftWeek(1)}>→</button>
+            </div>
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>
+                Ore da approvare {!me?.isAdmin && <span style={{ color: MUTED, fontWeight: 400, fontSize: 12 }}>· solo l'Admin approva</span>}
+              </div>
+              {!approvals.loaded ? <div style={{ padding: 20, color: MUTED }}>Caricamento…</div>
+                : approvals.rows.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessun membro.</div>
+                : approvals.rows.map(r => {
+                  const st = r.approval?.status || null
+                  const bd = badge(st)
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap' }}>
+                      <Avatar name={r.name} url={r.avatar} size={36} />
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{r.name}</div>
+                        <div style={{ color: MUTED, fontSize: 12 }}>{fmtDur(r.sec)}{r.cost ? ` · €${Math.round(r.cost)}` : ''}</div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: bd.c, background: bd.c + '22', padding: '4px 10px', borderRadius: 20 }}>{bd.t}</span>
+                      {me?.isAdmin && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {st === 'approved'
+                            ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ Annulla</button>
+                            : <button style={{ ...btn, padding: '7px 12px', background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setApproval(r.id, 'approved', r.sec)}>✓ Approva</button>}
+                          {st === 'rejected'
+                            ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ Annulla</button>
+                            : <button style={{ ...btnGhost, color: '#ff8095', borderColor: 'rgba(255,55,95,0.4)' }} onClick={() => setApproval(r.id, 'rejected', r.sec)}>✕ Rifiuta</button>}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )
+      })()}
+
         </div>
       </div>
 
@@ -715,6 +804,7 @@ function LyftSidebar({ section, setSection }) {
     ['timesheets', 'Timesheets', 'clock'],
     ['activity', 'Attività', 'chart'],
     ['report', 'Report', 'report'],
+    ['approvals', 'Approvazioni', 'check'],
     ['budget', 'Budget & costi', 'budget'],
     ['people', 'Persone', 'people'],
     ['projects', 'Progetti', 'folder'],
@@ -752,6 +842,7 @@ function SideIcon({ name, active }) {
     case 'people': return <svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9" /><path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" /></svg>
     case 'folder': return <svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
     case 'budget': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2 0 0 1 9.5 15" /><path d="M12 6v1.5M12 16.5V18" /></svg>
+    case 'check': return <svg {...p}><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
     default: return <svg {...p}><circle cx="12" cy="12" r="9" /></svg>
   }
 }

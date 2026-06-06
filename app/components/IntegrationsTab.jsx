@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import NangoConnectButton from './NangoConnectButton'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Provider collegabili via Nango OAuth (integration id = unique key su Nango).
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
 const NANGO_PROVIDERS = [
-  { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche' },
-  { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights' },
+  { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche', descKey: 'integrations.descKlaviyo' },
+  { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights', descKey: 'integrations.descMeta' },
 ]
 
 const LOGO_MAP = {
@@ -83,13 +84,14 @@ function BrandLogo({ domain, size = 40 }) {
 }
 
 function ScopeBadge({ scope }) {
+  const { t } = useI18n()
   return (
     <span style={{
       fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
       background: '#8b5cf615', color: '#c4b5fd',
       textTransform: 'uppercase', letterSpacing: '.04em',
     }}>
-      {scope === 'workspace' ? 'Workspace-level' : 'User-level'}
+      {scope === 'workspace' ? t('integrations.scopeWorkspace', null, 'Workspace-level') : t('integrations.scopeUser', null, 'User-level')}
     </span>
   )
 }
@@ -115,6 +117,7 @@ function CategoryBadge({ category }) {
 }
 
 function ConnectedCard({ integration }) {
+  const { t } = useI18n()
   const { name, description, domain, category, scope } = integration
   return (
     <div style={{
@@ -150,7 +153,7 @@ function ConnectedCard({ integration }) {
           marginLeft: 'auto',
         }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-          Connected
+          {t('integrations.connected', null, 'Connected')}
         </span>
       </div>
     </div>
@@ -195,6 +198,7 @@ function AvailableCard({ integration, onConnect }) {
 }
 
 function ConnectModal({ integration, onClose }) {
+  const { t } = useI18n()
   if (!integration) return null
   const { name, domain, setupUrl, envVars, description } = integration
 
@@ -260,9 +264,9 @@ function ConnectModal({ integration, onClose }) {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Connect with OAuth</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t('integrations.connectWithOauth', null, 'Connect with OAuth')}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 2 }}>
-              Secure, one-click authentication
+              {t('integrations.oauthSub', null, 'Secure, one-click authentication')}
             </div>
           </div>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 4 }}>
@@ -276,7 +280,7 @@ function ConnectModal({ integration, onClose }) {
             background: 'var(--glass)', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
           }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: '#776a86', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
-              Environment variables (Vercel)
+              {t('integrations.envVars', null, 'Environment variables (Vercel)')}
             </div>
             {envVars.map(v => (
               <div key={v} style={{
@@ -294,7 +298,7 @@ function ConnectModal({ integration, onClose }) {
             <circle cx="6" cy="6" r="5" stroke="#776a86" strokeWidth="1"/>
             <path d="M6 4v2.5M6 8h.005" stroke="#776a86" strokeWidth="1" strokeLinecap="round"/>
           </svg>
-          Ensure popups are enabled in your browser for authentication
+          {t('integrations.popupHint', null, 'Ensure popups are enabled in your browser for authentication')}
         </div>
       </div>
     </div>
@@ -302,6 +306,7 @@ function ConnectModal({ integration, onClose }) {
 }
 
 export default function IntegrationsTab() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -315,11 +320,11 @@ export default function IntegrationsTab() {
   }, [])
 
   if (loading) {
-    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>Loading integrations...</div>
+    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>{t('integrations.loading', null, 'Loading integrations...')}</div>
   }
 
   if (!data) {
-    return <div style={{ color: '#ef4444', padding: 40 }}>Error loading integrations</div>
+    return <div style={{ color: '#ef4444', padding: 40 }}>{t('integrations.error', null, 'Error loading integrations')}</div>
   }
 
   const { active, available } = data
@@ -346,7 +351,7 @@ export default function IntegrationsTab() {
     <div>
       {NANGO_PROVIDERS.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader('Collega via OAuth', NANGO_PROVIDERS.length + 2, '#2997ff')}
+          {sectionHeader(t('integrations.connectViaOauth', null, 'Collega via OAuth'), NANGO_PROVIDERS.length + 2, '#2997ff')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {NANGO_PROVIDERS.map(p => (
               <div key={p.integrationId} style={{
@@ -357,11 +362,11 @@ export default function IntegrationsTab() {
                   <BrandLogo domain={p.domain} size={38} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{p.desc}</div>
+                    <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t(p.descKey, null, p.desc)}</div>
                   </div>
                   {p.integrationId === 'facebook'
                     ? <MetaConnectButton />
-                    : <NangoConnectButton integrationId={p.integrationId} label="Collega" />}
+                    : <NangoConnectButton integrationId={p.integrationId} label={t('integrations.connectBtn', null, 'Collega')} />}
                 </div>
               </div>
             ))}
@@ -374,7 +379,7 @@ export default function IntegrationsTab() {
               <BrandLogo domain="analytics.google.com" size={38} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Analytics 4</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>Sessioni, conversioni, sorgenti di traffico</div>
+                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.ga4Desc', null, 'Sessioni, conversioni, sorgenti di traffico')}</div>
               </div>
               <GoogleConnectButton service="ga4" />
             </div>
@@ -386,7 +391,7 @@ export default function IntegrationsTab() {
               <BrandLogo domain="ads.google.com" size={38} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Ads</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>Spesa, conversioni, campagne</div>
+                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.adsDesc', null, 'Spesa, conversioni, campagne')}</div>
               </div>
               <GoogleConnectButton service="ads" />
             </div>
@@ -396,7 +401,7 @@ export default function IntegrationsTab() {
 
       {active.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader('Connected', active.length, '#22c55e')}
+          {sectionHeader(t('integrations.connected', null, 'Connected'), active.length, '#22c55e')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {active.map(i => (
               <ConnectedCard key={i.id} integration={i} />
@@ -407,7 +412,7 @@ export default function IntegrationsTab() {
 
       {available.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader('Available', available.length, '#8b5cf6')}
+          {sectionHeader(t('integrations.available', null, 'Available'), available.length, '#8b5cf6')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
             {available.map(i => (
               <AvailableCard key={i.id} integration={i} onConnect={setSelected} />

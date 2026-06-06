@@ -10,13 +10,13 @@ import { resolveWorkspace } from '../../../lib/team/workspace'
 async function resolveMember(admin, ws) {
   try {
     if (ws.memberId) {
-      const { data } = await admin.from('team_members').select('id, full_name, email').eq('id', ws.memberId).maybeSingle()
-      return { id: ws.memberId, name: data?.full_name || data?.email || 'Utente' }
+      const { data } = await admin.from('team_members').select('id, full_name, email, avatar_url').eq('id', ws.memberId).maybeSingle()
+      return { id: ws.memberId, name: data?.full_name || data?.email || 'Utente', avatar_url: data?.avatar_url || null }
     }
-    const { data } = await admin.from('team_members').select('id, full_name, email').eq('user_id', ws.userId).maybeSingle()
-    if (data) return { id: data.id, name: data.full_name || data.email || 'Owner' }
+    const { data } = await admin.from('team_members').select('id, full_name, email, avatar_url').eq('user_id', ws.userId).maybeSingle()
+    if (data) return { id: data.id, name: data.full_name || data.email || 'Owner', avatar_url: data.avatar_url || null }
   } catch {}
-  return { id: ws.memberId || null, name: 'Owner' }
+  return { id: ws.memberId || null, name: 'Owner', avatar_url: null }
 }
 
 function periodStart(period) {
@@ -44,12 +44,14 @@ export async function GET(req) {
 
   try {
     // Mappe nomi per arricchire le voci
-    const [{ data: projs }, { data: tks }] = await Promise.all([
+    const [{ data: projs }, { data: tks }, { data: mems }] = await Promise.all([
       admin.from('projects').select('id, name, color').eq('workspace_id', ws.workspaceId),
       admin.from('tasks').select('id, title').eq('workspace_id', ws.workspaceId),
+      admin.from('team_members').select('id, full_name, email, avatar_url').eq('workspace_id', ws.workspaceId),
     ])
     const pMap = {}; (projs || []).forEach(p => { pMap[p.id] = p })
     const tMap = {}; (tks || []).forEach(t => { tMap[t.id] = t.title })
+    const mMap = {}; (mems || []).forEach(m => { mMap[m.id] = { name: m.full_name || m.email, avatar_url: m.avatar_url || null } })
 
     let q = admin.from('time_entries').select('*').eq('workspace_id', ws.workspaceId)
     // I membri non-admin vedono solo le proprie voci. L'admin può scegliere.
@@ -63,7 +65,9 @@ export async function GET(req) {
       ...e,
       project_name: e.project_id ? (pMap[e.project_id]?.name || '') : '',
       project_color: e.project_id ? (pMap[e.project_id]?.color || null) : null,
-      task_title: e.task_id ? (tMap[e.task_id] || '') : '',
+      task_title: e.task_id ? (tMap[e.task_id] || e.task_name || '') : (e.task_name || ''),
+      member_name: (e.member_id && mMap[e.member_id]?.name) || e.member_name || '',
+      member_avatar: e.member_id ? (mMap[e.member_id]?.avatar_url || null) : null,
     }))
 
     // Timer in corso del membro corrente (sopravvive al refresh)
@@ -72,10 +76,10 @@ export async function GET(req) {
       const { data: r } = await admin.from('time_entries').select('*')
         .eq('workspace_id', ws.workspaceId).eq('member_id', me.id).is('ended_at', null)
         .order('started_at', { ascending: false }).limit(1).maybeSingle()
-      if (r) running = { ...r, project_name: r.project_id ? (pMap[r.project_id]?.name || '') : '', project_color: r.project_id ? (pMap[r.project_id]?.color || null) : null, task_title: r.task_id ? (tMap[r.task_id] || '') : '' }
+      if (r) running = { ...r, project_name: r.project_id ? (pMap[r.project_id]?.name || '') : '', project_color: r.project_id ? (pMap[r.project_id]?.color || null) : null, task_title: r.task_id ? (tMap[r.task_id] || r.task_name || '') : (r.task_name || '') }
     } catch {}
 
-    return NextResponse.json({ entries, running, me: { memberId: me.id, name: me.name, isAdmin: ws.isAdmin } })
+    return NextResponse.json({ entries, running, me: { memberId: me.id, name: me.name, avatar: me.avatar_url, isAdmin: ws.isAdmin } })
   } catch (e) {
     return NextResponse.json({ entries: [], error: e.message })
   }
@@ -106,7 +110,8 @@ export async function POST(req) {
       member_name: me.name,
       project_id: b.project_id || null,
       task_id: b.task_id || null,
-      description: b.description ? String(b.description).slice(0, 500) : null,
+      task_name: (!b.task_id && b.task_name) ? String(b.task_name).slice(0, 200) : null,
+      description: b.description ? String(b.description).slice(0, 1000) : null,
       started_at: new Date().toISOString(),
     }
     const { data, error } = await admin.from('time_entries').insert(row).select('*').single()
@@ -147,9 +152,10 @@ export async function PATCH(req) {
     // Modifica voce
     if (!b.id) return NextResponse.json({ ok: false, error: 'id mancante' }, { status: 400 })
     const patch = {}
-    if (b.description !== undefined) patch.description = b.description ? String(b.description).slice(0, 500) : null
+    if (b.description !== undefined) patch.description = b.description ? String(b.description).slice(0, 1000) : null
     if (b.project_id !== undefined) patch.project_id = b.project_id || null
-    if (b.task_id !== undefined) patch.task_id = b.task_id || null
+    if (b.task_id !== undefined) { patch.task_id = b.task_id || null; if (b.task_id) patch.task_name = null }
+    if (b.task_name !== undefined && !b.task_id) patch.task_name = b.task_name ? String(b.task_name).slice(0, 200) : null
     await admin.from('time_entries').update(patch).eq('id', b.id).eq('workspace_id', ws.workspaceId)
     return NextResponse.json({ ok: true })
   } catch (e) {

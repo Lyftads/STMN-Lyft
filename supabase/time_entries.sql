@@ -19,6 +19,9 @@ create table if not exists time_entries (
   created_at       timestamptz default now()
 );
 
+-- Task manuale (testo libero) quando non collegato a un task della board.
+alter table time_entries add column if not exists task_name text;
+
 create index if not exists idx_time_entries_workspace on time_entries(workspace_id);
 create index if not exists idx_time_entries_member     on time_entries(member_id);
 create index if not exists idx_time_entries_running    on time_entries(workspace_id, member_id) where ended_at is null;

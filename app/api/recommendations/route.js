@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
 import { buildBrandContext } from '../../../lib/tenant/brand'
 import { recall } from '../../../lib/tenant/agentMemory'
@@ -148,6 +149,7 @@ Se i dati non bastano per raccomandazioni significative: { "recommendations": []
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: sysPrompt },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: userPayload },
         ],
         response_format: { type: 'json_object' },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -75,7 +76,7 @@ export default function MensileAgent({ data, selectedMonth, previousMonth, prese
       const r = await fetch('/api/mensile-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, data, selectedMonth, previousMonth, metrics }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, data, selectedMonth, previousMonth, metrics }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

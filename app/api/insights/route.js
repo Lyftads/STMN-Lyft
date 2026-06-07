@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -102,6 +103,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".' },
           { role: 'user', content: `Periodo: ${preset}\n\nDATI:\n${safeJson(context)}` },
         ],

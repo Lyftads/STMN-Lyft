@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -68,7 +69,7 @@ export default function ScannerAgent({ scan }) {
       const r = await fetch('/api/scanner-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, scan }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, scan }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

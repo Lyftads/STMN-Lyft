@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 export const dynamic = 'force-dynamic'
@@ -128,6 +129,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `DATI MENSILI — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero e OGNI nome di mese che scrivi sia letteralmente presente nel JSON DATI MENSILI. Se manca, scrivi "Non ho questo dato" invece di inventare.' },

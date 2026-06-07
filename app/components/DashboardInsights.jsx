@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 
 const SECTION_ICONS = {
@@ -109,7 +110,7 @@ export default function DashboardInsights({ preset }) {
         const r = await fetch('/api/insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ preset, metrics, metaDetail }),
+          body: JSON.stringify({ locale: getClientLocale(), preset, metrics, metaDetail }),
           signal: ac.signal,
         })
 

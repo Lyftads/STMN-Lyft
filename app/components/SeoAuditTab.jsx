@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 import SeoAgent from './SeoAgent'
@@ -44,7 +45,7 @@ export default function SeoAuditTab() {
       const endpoint = mode === 'site' ? '/api/seo-audit/site' : '/api/seo-audit'
       const r = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, targetKeyword: keyword, limit }),
+        body: JSON.stringify({ locale: getClientLocale(), url, targetKeyword: keyword, limit }),
       })
       const data = await r.json()
       if (data.error) setError(data.error)
@@ -317,7 +318,7 @@ function KeywordAIPanel() {
   const run = async () => {
     if (!kw.trim() || loading) return
     setLoading(true); setError(null); setD(null)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'keyword', keyword: kw }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
+    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'keyword', keyword: kw }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
     catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
   }
   return (
@@ -352,7 +353,7 @@ function EditorPanel() {
     if (!kw.trim() || loading) return
     setLoading(true); setError(null); setD(null)
     const competitorUrls = comp.split('\n').map(s => s.trim()).filter(Boolean)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'editor', keyword: kw, competitorUrls }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
+    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'editor', keyword: kw, competitorUrls }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
     catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
   }
   return (
@@ -443,7 +444,7 @@ function AeoPanel() {
     const list = prompts.split('\n').map(s => s.trim()).filter(Boolean)
     if (!brand.trim() || !list.length || loading) { if (!brand.trim() || !list.length) setError(t('seo.brandPromptReq', null, 'Inserisci brand e almeno un prompt.')); return }
     setLoading(true); setError(null); setD(null)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'aeo', brand, site, prompts: list }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
+    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'aeo', brand, site, prompts: list }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
     catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
   }
   return (

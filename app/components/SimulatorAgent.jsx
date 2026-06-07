@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -70,7 +71,7 @@ export default function SimulatorAgent({ ltvInputs, ltvOutputs, scenarios, cashF
       const r = await fetch('/api/simulator-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, ltvInputs, ltvOutputs, scenarios, cashFlowAnalysis }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, ltvInputs, ltvOutputs, scenarios, cashFlowAnalysis }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

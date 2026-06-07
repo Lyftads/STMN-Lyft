@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'competitor'
@@ -147,6 +148,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: ogni numero/prodotto/prezzo/ad che citi deve essere nel JSON COMPETITOR DATA. Se ads=0 o prodotti mancanti, dillo. Rispetta il BRAND GUARD del CONTESTO BRAND. Comparazioni con numeri esatti, mosse concrete. Bold limitato. Niente intestazioni markdown.' },

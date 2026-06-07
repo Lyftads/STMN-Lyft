@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 
 const ACCENT = '#bf5af2'
@@ -40,7 +41,7 @@ export default function RecommendationsFeed({ metrics, preset }) {
       const res = await fetch('/api/recommendations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metrics, preset }),
+        body: JSON.stringify({ locale: getClientLocale(), metrics, preset }),
       })
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)

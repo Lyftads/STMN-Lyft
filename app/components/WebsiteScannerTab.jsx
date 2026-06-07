@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import ScannerAgent from './ScannerAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -195,7 +196,7 @@ export default function WebsiteScannerTab() {
       const r = await fetch('/api/website-scanner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, viewport }),
+        body: JSON.stringify({ locale: getClientLocale(), url, viewport }),
       })
       const json = await r.json()
       // Set data anche se c'è un parse-error → cosi' mostra comunque

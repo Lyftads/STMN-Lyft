@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -69,7 +70,7 @@ export default function CreativeAgent({ rows, summary, prevSummary, preset }) {
       const r = await fetch('/api/creative-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, rows, summary, prevSummary, preset }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, rows, summary, prevSummary, preset }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

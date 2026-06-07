@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -107,7 +108,7 @@ ${pageContent}`
         model: MODEL,
         temperature: 0.3,
         response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
       }),
     })
 

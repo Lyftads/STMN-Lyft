@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -68,7 +69,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
       const r = await fetch('/api/cro-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, current, previous, funnel, insights, tfLabel }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, current, previous, funnel, insights, tfLabel }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

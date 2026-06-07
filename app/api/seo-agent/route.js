@@ -3,6 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -75,6 +76,7 @@ export async function POST(req) {
         top_p: 0.9,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           ...(auditBlock ? [{ role: 'system', content: `Contesto — usa questi dati per ogni risposta:\n${auditBlock}` }] : []),
           ...messages,
         ],

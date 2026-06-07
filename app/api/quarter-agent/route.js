@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'quarter'
@@ -130,6 +131,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `DATI TRIMESTRALI — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero e OGNI nome di trimestre che scrivi sia letteralmente presente nel JSON DATI TRIMESTRALI. Se manca, scrivi "Non ho questo dato" invece di inventare.' },

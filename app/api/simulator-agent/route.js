@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'simulator'
@@ -146,6 +147,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `SIMULATOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: verifica che OGNI numero, nome scenario, percentuale citata sia letteralmente nel JSON SIMULATOR DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Per piani/strategie/roadmap sei creativo MA ancorato ai dati reali.' },

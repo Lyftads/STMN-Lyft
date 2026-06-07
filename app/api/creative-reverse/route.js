@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -81,6 +82,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: `Inserzione attiva da riadattare on-brand per STMN:\n\n${adText}` },
         ],
       }),

@@ -3,18 +3,20 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 const UA = 'Mozilla/5.0 (compatible; LyftAI-SEO/1.0; +https://lyftai.io)'
 
-async function chat(system, user) {
+async function chat(system, user, locale) {
+  const langMsg = aiLangSystemMessage(locale)
   const r = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: MODEL, temperature: 0.5, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }, ...(langMsg ? [langMsg] : [])],
     }),
   })
   if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`)
@@ -49,7 +51,8 @@ export async function POST(request) {
       const data = await chat(
         `Sei un keyword strategist SEO senior (e-commerce). Italiano. Per una keyword restituisci SOLO JSON:
 {"keyword":"...","intent":"informativo|commerciale|transazionale|navigazionale","intentNote":"breve","difficulty":{"level":"bassa|media|alta","note":"perché"},"volumeHint":"stima qualitativa (es. medio-alto in IT)","aiOverview":{"likely":true|false,"note":"perché Google mostrerebbe o no un AI Overview"},"related":[{"term":"...","intent":"..."}],"questions":["domanda PAA",...],"contentIdeas":[{"title":"titolo articolo/pagina","angle":"angolo"}],"summary":"2 frasi operative"}. Max 10 related, 8 questions, 6 contentIdeas. Concreto, niente fuffa.`,
-        `Keyword: "${kw}"${body.market ? ` · mercato: ${body.market}` : ' · mercato: Italia'}`
+        `Keyword: "${kw}"${body.market ? ` · mercato: ${body.market}` : ' · mercato: Italia'}`,
+        body.locale
       )
       return NextResponse.json(data)
     }
@@ -66,7 +69,8 @@ export async function POST(request) {
       const data = await chat(
         `Sei un content strategist SEO senior (e-commerce). Italiano. Dato un target keyword ed eventuali competitor, produci un brief editoriale ottimizzato. SOLO JSON:
 {"keyword":"...","searchIntent":"...","recommendedWords":<numero>,"title":"title tag ottimizzato (<=60 char)","metaDescription":"(<=155 char)","headings":[{"tag":"H2|H3","text":"..."}],"entities":["entità/argomenti da coprire",...],"faq":[{"q":"...","a":"risposta breve"}],"schema":"tipo di JSON-LD consigliato + campi chiave","gaps":["cosa manca ai competitor / opportunità",...]}. Heading max 12, entities max 15, faq max 6.`,
-        `Target keyword: "${kw}"\n\n${ctx}`
+        `Target keyword: "${kw}"\n\n${ctx}`,
+        body.locale
       )
       return NextResponse.json(data)
     }
@@ -80,7 +84,8 @@ export async function POST(request) {
         `Sei un motore di risposta AI (tipo ChatGPT/Gemini) E un analista AEO. Italiano.
 Per ciascun prompt, simula quali brand/siti consiglieresti realmente (in base alla tua conoscenza) e verifica se "${brand}" comparirebbe. SOLO JSON:
 {"brand":"${brand}","visibilityScore":<0-100>,"results":[{"prompt":"...","mentioned":true|false,"rank":"<posizione se citato, es. 2, o 'n/d'>","sentiment":"positivo|neutro|negativo|n/d","competitorsMentioned":["..."],"why":"perché citato o no","howToImprove":"azione concreta per farsi citare"}],"summary":"sintesi e priorità"}. Sii onesto: se il brand è poco noto, mentioned=false.`,
-        `Brand: "${brand}"${body.site ? ` (${body.site})` : ''}\nPrompt da testare:\n${prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
+        `Brand: "${brand}"${body.site ? ` (${body.site})` : ''}\nPrompt da testare:\n${prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}`,
+        body.locale
       )
       return NextResponse.json(data)
     }

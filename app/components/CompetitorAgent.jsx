@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -68,7 +69,7 @@ export default function CompetitorAgent({ data, country }) {
       const r = await fetch('/api/competitor-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, data, country }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, data, country }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

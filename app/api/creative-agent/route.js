@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -146,6 +147,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `CREATIVE DATA — usa SOLO questi numeri/nomi per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero, nome inserzione, copy, headline che CITI sia letteralmente presente nel JSON CREATIVE DATA. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende). Se stai GENERANDO nuovi angoli/copy/script puoi essere creativo, ma resta brand-coherent e basa il lavoro sui pattern dei winners reali del JSON.' },

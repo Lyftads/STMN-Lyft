@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -75,7 +76,7 @@ export default function KpiBrainAgent({ tf, preset }) {
       const r = await fetch('/api/kpi-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, metrics, tf }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, metrics, tf }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

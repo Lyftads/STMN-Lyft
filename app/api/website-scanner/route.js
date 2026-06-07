@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -389,6 +390,7 @@ export async function POST(req) {
         max_tokens: 4000,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           {
             role: 'user',
             content: [

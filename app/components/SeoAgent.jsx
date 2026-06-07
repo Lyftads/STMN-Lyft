@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -85,7 +86,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
       const r = await fetch('/api/seo-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, context: ctx, audit }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, context: ctx, audit }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

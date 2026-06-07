@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -89,6 +90,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          locale: getClientLocale(),
           messages: next,
           preset,
           cfg: cfg || null,

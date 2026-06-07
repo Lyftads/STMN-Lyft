@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { presetToRange } from '../lib/reportRange'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 
 // Bottone "Scarica report PDF" — genera il report del periodo selezionato.
 // Props:
@@ -20,6 +21,7 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
       const qs = new URLSearchParams({ tab, label, since, until, prevSince, prevUntil })
       if (preset && !custom) qs.set('preset', preset)
       if (campaignId) qs.set('campaignId', campaignId)
+      qs.set('locale', getClientLocale())
       const res = await fetch(`/api/report?${qs.toString()}`)
       const ct = res.headers.get('content-type') || ''
       const blob = await res.blob()

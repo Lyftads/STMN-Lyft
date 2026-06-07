@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 const AGENT_ID = 'performance'
 
@@ -454,6 +455,7 @@ export async function POST(req) {
         content: `DATI LIVE (periodo: ${preset}):\n${safeJson(context)}`,
       },
       ...cleanMessages,
+      ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
     ],
   }
 

@@ -3,6 +3,7 @@ export const maxDuration = 60
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { auditPage, discoverUrls } from '../../../../lib/seo/audit'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../../lib/tenant/credentials'
@@ -70,6 +71,7 @@ export async function POST(request) {
           messages: [
             { role: 'system', content: 'Sei un consulente SEO senior e-commerce. Italiano. Dati i problemi SEO ricorrenti su un sito (con n. pagine colpite), restituisci JSON {"recommendations":[{"priority":"alta|media|bassa","title":"...","action":"..."}]}. Max 6, per impatto sul sito intero.' },
             { role: 'user', content: `Sito: ${new URL(pages[0].url).origin}\nPagine analizzate: ${pages.length}\nScore medio: ${avgScore}\n\nProblemi ricorrenti:\n${top}` },
+            ...(aiLangSystemMessage(body.locale) ? [aiLangSystemMessage(body.locale)] : []),
           ],
         }),
       })

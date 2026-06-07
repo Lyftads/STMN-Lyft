@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
@@ -83,7 +84,7 @@ export default function MetaAdsAgent({ data, preset, config }) {
       const r = await fetch(cfg.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, data, preset }),
+        body: JSON.stringify({ locale: getClientLocale(), messages: next, data, preset }),
       })
       const json = await r.json()
       if (!r.ok || json.error) {

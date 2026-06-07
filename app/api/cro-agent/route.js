@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'cro'
@@ -110,6 +111,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `CRO DATA — usa SOLO questi numeri per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: ogni numero/metrica che citi deve essere nel JSON CRO DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Quick wins concreti con stima impatto. Bold limitato. Niente intestazioni markdown.' },

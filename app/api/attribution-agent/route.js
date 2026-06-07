@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'attribution'
@@ -111,6 +112,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `ATTRIBUTION DATA — usa SOLO questi numeri per CITAZIONI, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: ogni numero citato deve essere nel JSON ATTRIBUTION DATA. Usa il MER blended come bussola, non il ROAS di piattaforma. STMN vende accessori CrossFit, mai integratori.' },

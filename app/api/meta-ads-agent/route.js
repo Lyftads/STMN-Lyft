@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'meta-ads'
@@ -206,6 +207,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `META DATA — usa SOLO questi numeri/nomi per CITAZIONI, mai inventare:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero, nome campagna/adset/ad citato sia letteralmente nel JSON META DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Per nuovi setup campagna / framework / strategie sei creativo MA prescrittivo e basato sui pattern dei winners reali del JSON. Esponi gli effetti Andromeda quando rilevante.' },

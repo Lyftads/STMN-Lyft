@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -102,7 +103,7 @@ function AdCard({ ad, index }) {
     try {
       const r = await fetch('/api/creative-reverse', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ad: { pageName: ad.pageName, title, bodies: ad.bodies, body } }),
+        body: JSON.stringify({ locale: getClientLocale(), ad: { pageName: ad.pageName, title, bodies: ad.bodies, body } }),
       })
       const j = await r.json()
       if (j.error) setReError(j.error)
@@ -117,7 +118,7 @@ function AdCard({ ad, index }) {
     try {
       const r = await fetch('/api/creative-reverse', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ generateImage: true, imagePrompt: brief.imagePrompt }),
+        body: JSON.stringify({ locale: getClientLocale(), generateImage: true, imagePrompt: brief.imagePrompt }),
       })
       const j = await r.json()
       if (j.imageUrl) setGenImg(j.imageUrl)

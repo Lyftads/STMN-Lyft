@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'scanner'
@@ -112,6 +113,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `SCAN DATA — l'analisi CRO di riferimento per ogni domanda:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.' },

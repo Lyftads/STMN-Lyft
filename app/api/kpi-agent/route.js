@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
 
@@ -167,6 +168,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           ...skillBlocks,
           ...(context ? [{ role: 'system', content: `DATI LIVE — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` }] : []),
           ...clean,

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 
 const AGENT_ID = 'weekly'
@@ -125,6 +126,7 @@ export async function POST(req) {
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `DATI SETTIMANALI — usa SOLO questi numeri:\n${safeJson(context)}` },
           ...clean,
           { role: 'system', content: 'REMINDER: ogni numero/label che scrivi deve essere letteralmente nel JSON. Se manca, scrivi "Non ho questo dato".' },

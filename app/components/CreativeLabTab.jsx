@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -393,7 +394,7 @@ export default function CreativeLabTab() {
       const res = await fetch('/api/creative-lab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ locale: getClientLocale(),
           products: selectedProducts.map((p) => ({
             title: p.title, price: p.price, description: p.description,
             productType: p.productType, tags: p.tags?.slice(0, 5),
@@ -432,7 +433,7 @@ export default function CreativeLabTab() {
       const res = await fetch('/api/creative-lab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ locale: getClientLocale(),
           products: [product ? {
             title: product.title, price: product.price, description: product.description,
             productType: product.productType, tags: product.tags?.slice(0, 5),

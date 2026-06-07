@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -485,6 +486,7 @@ Rispondi con un JSON valido: { "creatives": [...] }`
               'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.',
           },
           { role: 'user', content: copyPrompt },
+          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
         ],
         response_format: { type: 'json_object' },
       }),

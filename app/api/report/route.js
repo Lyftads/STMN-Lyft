@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 
 const META_TOKEN = process.env.META_ACCESS_TOKEN
 const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
@@ -155,9 +156,10 @@ async function listCampaigns() {
 }
 
 // ── Narrativa AI (descrizione + insight + to-do) ──
-async function aiNarrative(context) {
+async function aiNarrative(context, locale) {
   if (!OPENAI_KEY) return null
   try {
+    const langMsg = aiLangSystemMessage(locale)
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
@@ -165,6 +167,7 @@ async function aiNarrative(context) {
         messages: [
           { role: 'system', content: 'Sei un analista marketing di STMN Fitness (accessori CrossFit, no integratori). Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.' },
           { role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` },
+          ...(langMsg ? [langMsg] : []),
         ],
       }), signal: AbortSignal.timeout(40000),
     })
@@ -445,7 +448,7 @@ export async function GET(req) {
     return NextResponse.json({ tab, preset, metricsOk, isMeta, range, kpis: kpis.map(k => ({ label: k.label, value: k.value, prev: k.prevValue })), dailyPoints: daily.length })
   }
 
-  const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null })
+  const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null }, searchParams.get('locale'))
 
   const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts })
   if (searchParams.get('format') === 'html') {

@@ -3,6 +3,97 @@
 import { useEffect, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
+
+// Composer: descrivi una campagna in linguaggio naturale → l'AI prepara una
+// bozza → la accodi (create_campaign) per l'approvazione. Non crea nulla da solo.
+function LaunchComposer({ t, onQueued }) {
+  const [open, setOpen] = useState(false)
+  const [prompt, setPrompt] = useState('')
+  const [drafting, setDrafting] = useState(false)
+  const [draft, setDraft] = useState(null)
+  const [err, setErr] = useState(null)
+  const [queuing, setQueuing] = useState(false)
+
+  const generate = async () => {
+    if (!prompt.trim()) return
+    setDrafting(true); setErr(null); setDraft(null)
+    try {
+      const r = await fetch('/api/actions/draft-campaign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, locale: getClientLocale() }),
+      })
+      const j = await r.json()
+      if (j.ok) setDraft(j.draft); else setErr(j.error || 'Errore')
+    } catch (e) { setErr(e.message) }
+    setDrafting(false)
+  }
+
+  const enqueue = async () => {
+    if (!draft) return
+    setQueuing(true)
+    try {
+      await fetch('/api/actions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: 'meta', source: 'launch', type: 'create_campaign',
+          target_name: draft.name,
+          payload: draft,
+          summary: draft.summary,
+        }),
+      })
+      setDraft(null); setPrompt(''); setOpen(false)
+      onQueued && onQueued()
+    } catch {}
+    setQueuing(false)
+  }
+
+  const row = (label, value) => (
+    <div style={{ display: 'flex', gap: 10, fontSize: 12.5, padding: '4px 0' }}>
+      <span style={{ color: 'var(--text3)', minWidth: 110, flexShrink: 0 }}>{label}</span>
+      <span style={{ color: 'var(--text)', fontWeight: 600 }}>{value}</span>
+    </div>
+  )
+
+  return (
+    <div className="glass-card-static" style={{ padding: 16, borderRadius: 14, marginBottom: 16, border: '1px solid rgba(123,91,255,0.3)' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0 }}>
+        <span style={{ color: '#7b5bff', display: 'inline-flex' }}><Icon name="rocket" size={18} /></span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>{t('aq.launch.title')}</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--text3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 8 }}>{t('aq.launch.hint')}</div>
+          <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('aq.launch.placeholder')} rows={3}
+            style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <button onClick={generate} disabled={drafting || !prompt.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', cursor: drafting ? 'wait' : 'pointer', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', fontSize: 12.5, fontWeight: 800 }}>
+              <Icon name="sparkle" size={13} /> {drafting ? t('aq.launch.generating') : t('aq.launch.generate')}
+            </button>
+          </div>
+          {err && <div style={{ marginTop: 10, fontSize: 12, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="warning" size={13} /> {err}</div>}
+
+          {draft && (
+            <div className="glass-panel" style={{ marginTop: 12, padding: 14, borderRadius: 12, borderLeft: '3px solid #7b5bff' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{draft.name}</div>
+              {row(t('aq.launch.objective'), draft.objective)}
+              {row(t('aq.launch.budget'), `€${draft.daily_budget_eur}`)}
+              {row(t('aq.launch.audience'), draft.audience || '—')}
+              {row(t('aq.launch.goal'), draft.optimization_goal)}
+              <div style={{ marginTop: 12 }}>
+                <button onClick={enqueue} disabled={queuing} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', cursor: queuing ? 'wait' : 'pointer', background: '#30d158', color: '#04210f', fontSize: 12.5, fontWeight: 800 }}>
+                  <Icon name="bolt" size={13} /> {t('aq.launch.enqueue')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Coda Azioni (Fase 1): raccomandazioni accodate da Budget Advisor / Creative
 // Fatigue / agente → workflow di approvazione umana. L'esecuzione è manuale
@@ -81,6 +172,8 @@ export default function ActionQueueTab() {
           <Icon name="scan" size={13} /> {loading ? t('aq.refreshing') : t('aq.refresh')}
         </button>
       </div>
+
+      <LaunchComposer t={t} onQueued={load} />
 
       {/* Filtri */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

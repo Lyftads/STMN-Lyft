@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
 const ACCENT = '#bf5af2'
@@ -13,13 +14,29 @@ const PRIORITY_CONFIG = {
   low:    { color: '#86868b', bg: 'rgba(134,134,139,0.08)', border: 'rgba(134,134,139,0.20)', label: 'LOW',    icon: '·' },
 }
 
-const CATEGORY_LABELS = {
-  meta_ads: 'Meta Ads', shopify_product: 'Prodotto', pricing: 'Pricing',
-  creative: 'Creative', audience: 'Audience', klaviyo: 'Klaviyo',
-  cro: 'CRO', other: 'Altro',
+// categoria della raccomandazione → canale della Coda Azioni
+const CAT_CHANNEL = {
+  meta_ads: 'meta', creative: 'meta', audience: 'meta', klaviyo: 'klaviyo',
+  pricing: 'shopify', shopify_product: 'shopify', cro: 'other', other: 'other',
+}
+
+function ApplyButton({ qstate, onClick }) {
+  const { t } = useI18n()
+  if (qstate === 'queued') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#86efac', flexShrink: 0 }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
+  return (
+    <button onClick={onClick} disabled={qstate === 'busy'} title={t('aq.applyTitle')} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+      padding: '6px 11px', borderRadius: 8, cursor: qstate === 'busy' ? 'wait' : 'pointer',
+      background: 'rgba(123,91,255,0.16)', border: '1px solid rgba(123,91,255,0.4)',
+      color: '#c4b5fd', fontSize: 11, fontWeight: 800,
+    }}>
+      <Icon name="bolt" size={12} /> {qstate === 'busy' ? '…' : qstate === 'err' ? t('aq.retry') : t('aq.apply')}
+    </button>
+  )
 }
 
 export default function RecommendationsFeed({ metrics, preset }) {
+  const { t, intlLocale } = useI18n()
   const [recs, setRecs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -79,16 +96,16 @@ export default function RecommendationsFeed({ metrics, preset }) {
         }}><Icon name="sparkle" size={20} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            Raccomandazioni proattive
+            {t('rec.eyebrow')}
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 3, letterSpacing: '-0.01em' }}>
-            {loading ? 'Sto analizzando i dati…'
-              : visibleRecs.length === 0 ? 'Nessuna raccomandazione attiva'
-              : `${visibleRecs.length} azione${visibleRecs.length === 1 ? '' : 'i'} suggerit${visibleRecs.length === 1 ? 'a' : 'e'}${urgentCount > 0 ? ` · ${urgentCount} urgent` : ''}`}
+            {loading ? t('rec.analyzing')
+              : visibleRecs.length === 0 ? t('rec.none')
+              : (visibleRecs.length === 1 ? t('rec.countOne', { n: visibleRecs.length }) : t('rec.countMany', { n: visibleRecs.length })) + (urgentCount > 0 ? t('rec.urgentSuffix', { n: urgentCount }) : '')}
           </div>
           {generatedAt && (
             <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 4 }}>
-              Aggiornato {generatedAt.toLocaleString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+              {t('rec.updated', { time: generatedAt.toLocaleString(intlLocale, { hour: '2-digit', minute: '2-digit' }) })}
             </div>
           )}
         </div>
@@ -117,7 +134,7 @@ export default function RecommendationsFeed({ metrics, preset }) {
             cursor: 'pointer',
           }}
         >
-          {collapsed ? 'Mostra' : 'Nascondi'}
+          {collapsed ? t('rec.show') : t('rec.hide')}
         </button>
       </div>
 
@@ -149,8 +166,27 @@ export default function RecommendationsFeed({ metrics, preset }) {
 }
 
 function RecCard({ rec, onDismiss }) {
+  const { t } = useI18n()
+  const [q, setQ] = useState(null)
   const cfg = PRIORITY_CONFIG[rec.priority] || PRIORITY_CONFIG.medium
-  const catLabel = CATEGORY_LABELS[rec.category] || rec.category
+  const catLabel = t('reccat.' + rec.category, null, rec.category)
+
+  const apply = async () => {
+    setQ('busy')
+    try {
+      const r = await fetch('/api/actions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: CAT_CHANNEL[rec.category] || 'other', source: 'recommendations', type: 'custom',
+          target_name: rec.title,
+          payload: { priority: rec.priority, category: rec.category, why: rec.why || null, expected_impact: rec.expected_impact || null },
+          summary: rec.action || rec.title,
+        }),
+      })
+      const j = await r.json()
+      setQ(j.ok ? 'queued' : 'err')
+    } catch { setQ('err') }
+  }
 
   return (
     <div className="glass-panel" style={{
@@ -191,22 +227,25 @@ function RecCard({ rec, onDismiss }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 10, fontSize: 11 }}>
               {rec.why && (
                 <div style={{ color: 'var(--text3)' }}>
-                  <span style={{ color: 'var(--text4, #666)', fontWeight: 700 }}>Perché: </span>{rec.why}
+                  <span style={{ color: 'var(--text4, #666)', fontWeight: 700 }}>{t('rec.why')} </span>{rec.why}
                 </div>
               )}
               {rec.expected_impact && (
                 <div style={{ color: '#86efac' }}>
-                  <span style={{ color: 'rgba(134,239,172,0.7)', fontWeight: 700 }}>Impatto: </span>{rec.expected_impact}
+                  <span style={{ color: 'rgba(134,239,172,0.7)', fontWeight: 700 }}>{t('rec.impact')} </span>{rec.expected_impact}
                 </div>
               )}
             </div>
           )}
+          <div style={{ marginTop: 12 }}>
+            <ApplyButton qstate={q} onClick={apply} />
+          </div>
         </div>
 
         <button
           type="button"
           onClick={onDismiss}
-          title="Ignora questa raccomandazione (riapparirà al prossimo refresh)"
+          title={t('rec.dismissTitle')}
           style={{
             padding: '4px 8px', borderRadius: 6,
             background: 'transparent', border: 'none',

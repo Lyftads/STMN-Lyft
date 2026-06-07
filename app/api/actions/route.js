@@ -8,7 +8,7 @@ import { resolveWorkspace } from '../../../lib/team/workspace'
 // Coda Azioni (Fase 1). Workspace-scoped, service-role + filtro workspace_id.
 // Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
 
-const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google']
+const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google', 'shopify', 'other']
 const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'custom']
 const STATUSES = ['pending', 'approved', 'executed', 'rejected', 'failed']
 

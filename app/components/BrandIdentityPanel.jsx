@@ -2,6 +2,21 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AgentMemoryInspector from './AgentMemoryInspector'
+import { useI18n } from '../../lib/i18n/I18nProvider'
+
+// Mappe per tradurre valori canonici (memorizzati in IT) → chiave i18n.
+const TONE_KEYS = {
+  'Professionale': 'bi.tone.professionale', 'Casual': 'bi.tone.casual', 'Energico': 'bi.tone.energico',
+  'Aspirazionale': 'bi.tone.aspirazionale', 'Diretto': 'bi.tone.diretto', 'Ironico': 'bi.tone.ironico',
+  'Empatico': 'bi.tone.empatico', 'Tecnico': 'bi.tone.tecnico', 'Educativo': 'bi.tone.educativo',
+  'Provocatorio': 'bi.tone.provocatorio', 'Premium': 'bi.tone.premium', 'Accessibile': 'bi.tone.accessibile',
+  'Sportivo': 'bi.tone.sportivo', 'Lifestyle': 'bi.tone.lifestyle', 'Storytelling': 'bi.tone.storytelling',
+}
+const LANG_KEYS = {
+  'Formale': 'bi.lang.formale', 'Informale': 'bi.lang.informale', 'Misto formale/informale': 'bi.lang.misto',
+  'Tecnico/Specialistico': 'bi.lang.tecnico', 'Pop & accessibile': 'bi.lang.pop',
+}
+const ASSET_LABEL_KEYS = { logo_png: 'bi.logoPng', logo_svg: 'bi.logoSvg', photo_ref: 'bi.photoRef', mood_board: 'bi.moodBoard' }
 
 // ─────────────────────────────────────────────────────────────
 //  BrandIdentityPanel — sezione di SettingsTab.
@@ -43,6 +58,7 @@ const DEFAULT_IDENTITY = {
 }
 
 export default function BrandIdentityPanel() {
+  const { t } = useI18n()
   const [identity, setIdentity] = useState(DEFAULT_IDENTITY)
   const [assets, setAssets] = useState([])
   const [companyName, setCompanyName] = useState('')
@@ -91,7 +107,7 @@ export default function BrandIdentityPanel() {
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
       setSavedAt(new Date())
     } catch (e) {
-      setError(e?.message || 'Errore salvataggio')
+      setError(e?.message || t('bi.saveError', null, 'Errore salvataggio'))
     } finally {
       setSaving(false)
     }
@@ -100,7 +116,7 @@ export default function BrandIdentityPanel() {
   if (loading) {
     return (
       <GlassCard>
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '40px 0' }}>Caricamento brand identity…</div>
+        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '40px 0' }}>{t('bi.loading', null, 'Caricamento brand identity…')}</div>
       </GlassCard>
     )
   }
@@ -111,8 +127,8 @@ export default function BrandIdentityPanel() {
         <SectionHeader
           icon="◉"
           eyebrow="Brand Identity"
-          title={companyName ? `Identita' brand di ${companyName}` : 'Identita\' brand'}
-          subtitle="Questi dati alimentano gli AI agent (KPI, CRO, Creative) e il Creative Lab. Piu' dettagli inserisci, piu' i suggerimenti AI saranno verticali sul tuo brand."
+          title={companyName ? t('bi.titleWith', { name: companyName }, `Identita' brand di ${companyName}`) : t('bi.titleDefault', null, "Identita' brand")}
+          subtitle={t('bi.headerSub', null, "Questi dati alimentano gli AI agent (KPI, CRO, Creative) e il Creative Lab. Piu' dettagli inserisci, piu' i suggerimenti AI saranno verticali sul tuo brand.")}
         />
       </GlassCard>
 
@@ -120,24 +136,24 @@ export default function BrandIdentityPanel() {
         open={open.identity}
         onToggle={() => setOpen(o => ({ ...o, identity: !o.identity }))}
         icon="①"
-        title="Identita' & posizionamento"
-        subtitle="Chi sei e cosa rappresenti"
+        title={t('bi.s1Title', null, "Identita' & posizionamento")}
+        subtitle={t('bi.s1Sub', null, 'Chi sei e cosa rappresenti')}
       >
         <FieldRow>
-          <Field label="Tagline / claim breve" hint="2-7 parole max">
-            <Input value={identity.tagline} onChange={v => setField('tagline', v)} placeholder="Es: Strumenti per atleti veri" />
+          <Field label={t('bi.taglineLabel', null, 'Tagline / claim breve')} hint={t('bi.taglineHint', null, '2-7 parole max')}>
+            <Input value={identity.tagline} onChange={v => setField('tagline', v)} placeholder={t('bi.taglinePh', null, 'Es: Strumenti per atleti veri')} />
           </Field>
-          <Field label="Anno fondazione">
+          <Field label={t('bi.foundedLabel', null, 'Anno fondazione')}>
             <Input value={identity.founded} onChange={v => setField('founded', v)} placeholder="2020" maxLength={4} />
           </Field>
         </FieldRow>
-        <Field label="Descrizione brand" hint="2-3 frasi: chi sei, cosa fai, per chi">
-          <Textarea value={identity.description} onChange={v => setField('description', v)} rows={3} placeholder="Es: Stamina Fitness produce accessori CrossFit di alta qualita' per atleti che..." />
+        <Field label={t('bi.descLabel', null, 'Descrizione brand')} hint={t('bi.descHint', null, '2-3 frasi: chi sei, cosa fai, per chi')}>
+          <Textarea value={identity.description} onChange={v => setField('description', v)} rows={3} placeholder={t('bi.descPh', null, "Es: Stamina Fitness produce accessori CrossFit di alta qualita' per atleti che...")} />
         </Field>
-        <Field label="Mission statement" hint="La promessa che fai al cliente">
-          <Textarea value={identity.mission} onChange={v => setField('mission', v)} rows={2} placeholder="Es: Aiutare gli atleti a performare al massimo con strumenti durevoli e progettati per il box" />
+        <Field label={t('bi.missionLabel', null, 'Mission statement')} hint={t('bi.missionHint', null, 'La promessa che fai al cliente')}>
+          <Textarea value={identity.mission} onChange={v => setField('mission', v)} rows={2} placeholder={t('bi.missionPh', null, 'Es: Aiutare gli atleti a performare al massimo con strumenti durevoli e progettati per il box')} />
         </Field>
-        <Field label="Sito web ufficiale">
+        <Field label={t('bi.websiteLabel', null, 'Sito web ufficiale')}>
           <Input value={identity.website} onChange={v => setField('website', v)} placeholder="https://staminafitness.it" />
         </Field>
       </SectionBlock>
@@ -146,32 +162,32 @@ export default function BrandIdentityPanel() {
         open={open.products}
         onToggle={() => setOpen(o => ({ ...o, products: !o.products }))}
         icon="②"
-        title="Prodotti & mercato"
-        subtitle="Cosa vendi, a chi, dove"
+        title={t('bi.s2Title', null, 'Prodotti & mercato')}
+        subtitle={t('bi.s2Sub', null, 'Cosa vendi, a chi, dove')}
       >
         <FieldRow>
-          <Field label="Categoria principale">
+          <Field label={t('bi.categoryLabel', null, 'Categoria principale')}>
             <Select value={identity.category} onChange={v => setField('category', v)} options={CATEGORIES} />
           </Field>
-          <Field label="Sotto-categorie / tag" hint="Es: CrossFit, Accessori, Functional">
-            <TagInput tags={identity.subcategories} onChange={v => setField('subcategories', v)} placeholder="Aggiungi tag + Invio" />
+          <Field label={t('bi.subcatLabel', null, 'Sotto-categorie / tag')} hint={t('bi.subcatHint', null, 'Es: CrossFit, Accessori, Functional')}>
+            <TagInput tags={identity.subcategories} onChange={v => setField('subcategories', v)} placeholder={t('bi.subcatPh', null, 'Aggiungi tag + Invio')} />
           </Field>
         </FieldRow>
-        <Field label="Prodotti principali" hint="Uno per riga">
+        <Field label={t('bi.productsLabel', null, 'Prodotti principali')} hint={t('bi.productsHint', null, 'Uno per riga')}>
           <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n').map(s => s.trim()).filter(Boolean))} rows={4} placeholder="Paracalli (Tape adesivo)\nCorde da salto\nCinturoni" />
         </Field>
-        <Field label="Cosa NON vendi / brand guard" hint="Questi prodotti/contenuti NON sono consentiti negli AI agent (es: 'mai integratori', 'no nutrizione')">
-          <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder="Es: mai supplementi/integratori/nutrizione" />
+        <Field label={t('bi.notSellingLabel', null, 'Cosa NON vendi / brand guard')} hint={t('bi.notSellingHint', null, "Questi prodotti/contenuti NON sono consentiti negli AI agent (es: 'mai integratori', 'no nutrizione')")}>
+          <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder={t('bi.notSellingPh', null, 'Es: mai supplementi/integratori/nutrizione')} />
         </Field>
-        <Field label="Target audience" hint="Descrizione cliente ideale: eta', genere, livello, dolori, desideri">
-          <Textarea value={identity.targetAudience} onChange={v => setField('targetAudience', v)} rows={3} placeholder="Es: Atleti CrossFit 25-45 anni, intermedio/avanzato, frequentatori di box, alla ricerca di durabilita' e performance" />
+        <Field label={t('bi.audienceLabel', null, 'Target audience')} hint={t('bi.audienceHint', null, "Descrizione cliente ideale: eta', genere, livello, dolori, desideri")}>
+          <Textarea value={identity.targetAudience} onChange={v => setField('targetAudience', v)} rows={3} placeholder={t('bi.audiencePh', null, "Es: Atleti CrossFit 25-45 anni, intermedio/avanzato, frequentatori di box, alla ricerca di durabilita' e performance")} />
         </Field>
         <FieldRow>
-          <Field label="Mercati principali" hint="Country codes (IT, EU, US, ...)">
-            <TagInput tags={identity.markets} onChange={v => setField('markets', v)} placeholder="Es: IT, EU, US" />
+          <Field label={t('bi.marketsLabel', null, 'Mercati principali')} hint={t('bi.marketsHint', null, 'Country codes (IT, EU, US, ...)')}>
+            <TagInput tags={identity.markets} onChange={v => setField('markets', v)} placeholder={t('bi.marketsPh', null, 'Es: IT, EU, US')} />
           </Field>
-          <Field label="Lingue supportate" hint="Codici lingua (it, en, es, ...)">
-            <TagInput tags={identity.languages} onChange={v => setField('languages', v)} placeholder="Es: it, en" />
+          <Field label={t('bi.langsLabel', null, 'Lingue supportate')} hint={t('bi.langsHint', null, 'Codici lingua (it, en, es, ...)')}>
+            <TagInput tags={identity.languages} onChange={v => setField('languages', v)} placeholder={t('bi.langsPh', null, 'Es: it, en')} />
           </Field>
         </FieldRow>
       </SectionBlock>
@@ -180,28 +196,28 @@ export default function BrandIdentityPanel() {
         open={open.tone}
         onToggle={() => setOpen(o => ({ ...o, tone: !o.tone }))}
         icon="③"
-        title="Tone of voice & stile"
-        subtitle="Come parla il brand"
+        title={t('bi.s3Title', null, 'Tone of voice & stile')}
+        subtitle={t('bi.s3Sub', null, 'Come parla il brand')}
       >
-        <Field label="Tono (multi-select)" hint="I 3-5 aggettivi che descrivono la tua voce">
+        <Field label={t('bi.toneLabel', null, 'Tono (multi-select)')} hint={t('bi.toneHint', null, 'I 3-5 aggettivi che descrivono la tua voce')}>
           <ToneChips selected={identity.toneTags || []} onToggle={v => toggleArrayValue('toneTags', v)} />
         </Field>
-        <Field label="Linguaggio">
-          <Select value={identity.languageStyle} onChange={v => setField('languageStyle', v)} options={['Formale', 'Informale', 'Misto formale/informale', 'Tecnico/Specialistico', 'Pop & accessibile']} />
+        <Field label={t('bi.languageLabel', null, 'Linguaggio')}>
+          <Select value={identity.languageStyle} onChange={v => setField('languageStyle', v)} options={['Formale', 'Informale', 'Misto formale/informale', 'Tecnico/Specialistico', 'Pop & accessibile']} labelKeys={LANG_KEYS} />
         </Field>
         <FieldRow>
-          <Field label="Parole brand" hint="Lessico ricorrente">
-            <TagInput tags={identity.brandWords} onChange={v => setField('brandWords', v)} placeholder="performance, durabilita', box" />
+          <Field label={t('bi.brandWordsLabel', null, 'Parole brand')} hint={t('bi.brandWordsHint', null, 'Lessico ricorrente')}>
+            <TagInput tags={identity.brandWords} onChange={v => setField('brandWords', v)} placeholder={t('bi.brandWordsPh', null, "performance, durabilita', box")} />
           </Field>
-          <Field label="Parole vietate" hint="Mai usare">
-            <TagInput tags={identity.forbiddenWords} onChange={v => setField('forbiddenWords', v)} placeholder="cheap, basic" />
+          <Field label={t('bi.forbiddenLabel', null, 'Parole vietate')} hint={t('bi.forbiddenHint', null, 'Mai usare')}>
+            <TagInput tags={identity.forbiddenWords} onChange={v => setField('forbiddenWords', v)} placeholder={t('bi.forbiddenPh', null, 'cheap, basic')} />
           </Field>
         </FieldRow>
-        <Field label="Esempi di copy che ti piacciono" hint="3-5 esempi (uno per riga)">
-          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n').map(s => s.trim()).filter(Boolean))} rows={4} placeholder="Es: 'Costruiti per chi non molla mai'" />
+        <Field label={t('bi.copyLabel', null, 'Esempi di copy che ti piacciono')} hint={t('bi.copyHint', null, '3-5 esempi (uno per riga)')}>
+          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n').map(s => s.trim()).filter(Boolean))} rows={4} placeholder={t('bi.copyPh', null, "Es: 'Costruiti per chi non molla mai'")} />
         </Field>
-        <Field label="Brand persona" hint="Se il brand fosse una persona, chi sarebbe?">
-          <Textarea value={identity.brandPersona} onChange={v => setField('brandPersona', v)} rows={3} placeholder="Es: Coach pragmatico, ex-atleta, parla schietto e tecnico, niente fronzoli" />
+        <Field label={t('bi.personaLabel', null, 'Brand persona')} hint={t('bi.personaHint', null, 'Se il brand fosse una persona, chi sarebbe?')}>
+          <Textarea value={identity.brandPersona} onChange={v => setField('brandPersona', v)} rows={3} placeholder={t('bi.personaPh', null, 'Es: Coach pragmatico, ex-atleta, parla schietto e tecnico, niente fronzoli')} />
         </Field>
       </SectionBlock>
 
@@ -209,25 +225,25 @@ export default function BrandIdentityPanel() {
         open={open.visual}
         onToggle={() => setOpen(o => ({ ...o, visual: !o.visual }))}
         icon="④"
-        title="Visual Identity"
-        subtitle="Aspetto del brand (per Creative Lab + ads)"
+        title={t('bi.s4Title', null, 'Visual Identity')}
+        subtitle={t('bi.s4Sub', null, 'Aspetto del brand (per Creative Lab + ads)')}
       >
         <FieldRow>
-          <Field label="Font primario">
-            <Input value={identity.primaryFont} onChange={v => setField('primaryFont', v)} placeholder="Es: Inter" />
+          <Field label={t('bi.fontPrimaryLabel', null, 'Font primario')}>
+            <Input value={identity.primaryFont} onChange={v => setField('primaryFont', v)} placeholder={t('bi.fontPrimaryPh', null, 'Es: Inter')} />
           </Field>
-          <Field label="Font secondario">
-            <Input value={identity.secondaryFont} onChange={v => setField('secondaryFont', v)} placeholder="Es: Bebas Neue" />
+          <Field label={t('bi.fontSecondaryLabel', null, 'Font secondario')}>
+            <Input value={identity.secondaryFont} onChange={v => setField('secondaryFont', v)} placeholder={t('bi.fontSecondaryPh', null, 'Es: Bebas Neue')} />
           </Field>
         </FieldRow>
-        <Field label="Palette colori" hint="Hex code, max 6">
+        <Field label={t('bi.paletteLabel', null, 'Palette colori')} hint={t('bi.paletteHint', null, 'Hex code, max 6')}>
           <ColorPicker colors={identity.colors || []} onChange={v => setField('colors', v)} />
         </Field>
-        <Field label="Stile fotografico" hint="Descrivi come devono apparire le foto">
-          <Textarea value={identity.photoStyle} onChange={v => setField('photoStyle', v)} rows={3} placeholder="Es: Lifestyle outdoor, alto contrasto, persone reali, no models, no studio" />
+        <Field label={t('bi.photoLabel', null, 'Stile fotografico')} hint={t('bi.photoHint', null, 'Descrivi come devono apparire le foto')}>
+          <Textarea value={identity.photoStyle} onChange={v => setField('photoStyle', v)} rows={3} placeholder={t('bi.photoPh', null, 'Es: Lifestyle outdoor, alto contrasto, persone reali, no models, no studio')} />
         </Field>
-        <Field label="Stile creative ads" hint="Tipologia di creativita' che converte per il tuo brand">
-          <Textarea value={identity.adStyle} onChange={v => setField('adStyle', v)} rows={3} placeholder="Es: UGC raw, dimostrazione prodotto in uso, prima/dopo, framing dinamico" />
+        <Field label={t('bi.adStyleLabel', null, 'Stile creative ads')} hint={t('bi.adStyleHint', null, "Tipologia di creativita' che converte per il tuo brand")}>
+          <Textarea value={identity.adStyle} onChange={v => setField('adStyle', v)} rows={3} placeholder={t('bi.adStylePh', null, 'Es: UGC raw, dimostrazione prodotto in uso, prima/dopo, framing dinamico')} />
         </Field>
 
         <AssetsManager assets={assets} onChange={setAssets} />
@@ -237,8 +253,8 @@ export default function BrandIdentityPanel() {
         open={open.competitor}
         onToggle={() => setOpen(o => ({ ...o, competitor: !o.competitor }))}
         icon="⑤"
-        title="Competitor"
-        subtitle="Brand che monitoriamo nella tab Competitor Intel"
+        title={t('bi.s5Title', null, 'Competitor')}
+        subtitle={t('bi.s5Sub', null, 'Brand che monitoriamo nella tab Competitor Intel')}
       >
         <CompetitorList
           competitors={identity.competitors || []}
@@ -263,8 +279,8 @@ export default function BrandIdentityPanel() {
           {error
             ? <span style={{ color: '#f87171' }}>⚠ {error}</span>
             : savedAt
-              ? <span style={{ color: '#86efac' }}>✓ Salvato — {savedAt.toLocaleTimeString()}</span>
-              : 'Le modifiche non vengono salvate finche\' non clicchi "Salva".'}
+              ? <span style={{ color: '#86efac' }}>{t('bi.savedAt', { time: savedAt.toLocaleTimeString() }, `✓ Salvato — ${savedAt.toLocaleTimeString()}`)}</span>
+              : t('bi.saveHint', null, 'Le modifiche non vengono salvate finche\' non clicchi "Salva".')}
         </div>
         <button
           type="button"
@@ -277,7 +293,7 @@ export default function BrandIdentityPanel() {
             opacity: saving ? 0.6 : 1,
           }}
         >
-          {saving ? 'Salvataggio…' : 'Salva modifiche'}
+          {saving ? t('bi.saving', null, 'Salvataggio…') : t('bi.saveBtn', null, 'Salva modifiche')}
         </button>
       </div>
     </div>
@@ -423,15 +439,16 @@ function Textarea({ value, onChange, placeholder, rows = 3 }) {
   )
 }
 
-function Select({ value, onChange, options }) {
+function Select({ value, onChange, options, labelKeys }) {
+  const { t } = useI18n()
   return (
     <select
       value={value || ''}
       onChange={e => onChange(e.target.value)}
       style={{ ...inputBase, cursor: 'pointer' }}
     >
-      <option value="">— Seleziona —</option>
-      {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      <option value="">{t('bi.selectPlaceholder', null, '— Seleziona —')}</option>
+      {options.map(opt => <option key={opt} value={opt}>{labelKeys ? t(labelKeys[opt], null, opt) : opt}</option>)}
     </select>
   )
 }
@@ -483,6 +500,7 @@ function TagInput({ tags = [], onChange, placeholder }) {
 }
 
 function ToneChips({ selected, onToggle }) {
+  const { t } = useI18n()
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {TONE_TAGS.map(tag => {
@@ -498,7 +516,7 @@ function ToneChips({ selected, onToggle }) {
               color: isSelected ? '#fff' : 'var(--text3)',
               fontSize: 12, fontWeight: 600, transition: 'all .15s',
             }}
-          >{tag}</button>
+          >{t(TONE_KEYS[tag], null, tag)}</button>
         )
       })}
     </div>
@@ -506,6 +524,7 @@ function ToneChips({ selected, onToggle }) {
 }
 
 function ColorPicker({ colors = [], onChange }) {
+  const { t } = useI18n()
   const [draft, setDraft] = useState('#000000')
   const addColor = () => {
     if (!/^#[0-9a-fA-F]{6}$/.test(draft)) return
@@ -542,7 +561,7 @@ function ColorPicker({ colors = [], onChange }) {
             padding: '8px 12px', borderRadius: 10, background: `${ACCENT}33`,
             border: `1px solid ${ACCENT}`, color: '#fff', cursor: 'pointer',
             fontSize: 12, fontWeight: 700,
-          }}>+ Aggiungi</button>
+          }}>{t('bi.colorAdd', null, '+ Aggiungi')}</button>
         </div>
       )}
     </div>
@@ -561,6 +580,7 @@ const ASSET_TYPES = [
 ]
 
 function AssetsManager({ assets, onChange }) {
+  const { t } = useI18n()
   const [uploadingType, setUploadingType] = useState(null)
   const [error, setError] = useState(null)
   const inputRefs = useRef({})
@@ -577,21 +597,21 @@ function AssetsManager({ assets, onChange }) {
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
       onChange(j.assets || [])
     } catch (e) {
-      setError(e?.message || 'Upload fallito')
+      setError(e?.message || t('bi.uploadFailed', null, 'Upload fallito'))
     } finally {
       setUploadingType(null)
     }
   }
 
   const deleteAsset = async (path) => {
-    if (!confirm('Eliminare questo file?')) return
+    if (!confirm(t('bi.deleteFileConfirm', null, 'Eliminare questo file?'))) return
     try {
       const res = await fetch(`/api/brand-identity/upload?path=${encodeURIComponent(path)}`, { method: 'DELETE' })
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
       onChange(j.assets || [])
     } catch (e) {
-      setError(e?.message || 'Eliminazione fallita')
+      setError(e?.message || t('bi.deleteFailed', null, 'Eliminazione fallita'))
     }
   }
 
@@ -604,7 +624,7 @@ function AssetsManager({ assets, onChange }) {
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 10, letterSpacing: '0.02em' }}>
-        Asset upload <span style={{ color: 'var(--text4, #555)', fontWeight: 500, marginLeft: 8 }}>· Max 10MB/file</span>
+        {t('bi.assetUpload', null, 'Asset upload')} <span style={{ color: 'var(--text4, #555)', fontWeight: 500, marginLeft: 8 }}>{t('bi.assetMax', null, '· Max 10MB/file')}</span>
       </div>
 
       {error && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 10 }}>⚠ {error}</div>}
@@ -622,7 +642,7 @@ function AssetsManager({ assets, onChange }) {
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{at.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{t(ASSET_LABEL_KEYS[at.id], null, at.label)}</span>
                 <button
                   type="button"
                   onClick={() => inputRefs.current[at.id]?.click()}
@@ -633,7 +653,7 @@ function AssetsManager({ assets, onChange }) {
                     color: '#fff', cursor: isUploading ? 'wait' : 'pointer',
                   }}
                 >
-                  {isUploading ? '…' : '+ Carica'}
+                  {isUploading ? '…' : t('bi.assetAdd', null, '+ Carica')}
                 </button>
                 <input
                   ref={el => { inputRefs.current[at.id] = el }}
@@ -649,7 +669,7 @@ function AssetsManager({ assets, onChange }) {
 
               {list.length === 0 ? (
                 <div style={{ fontSize: 11, color: 'var(--text4, #555)', textAlign: 'center', padding: '12px 0' }}>
-                  Nessun file
+                  {t('bi.noFile', null, 'Nessun file')}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -687,6 +707,7 @@ function AssetsManager({ assets, onChange }) {
 // ─────────────────────────────────────────────────────────────
 
 function CompetitorList({ competitors, onChange }) {
+  const { t } = useI18n()
   const addCompetitor = () => {
     onChange([...competitors, { name: '', website: '', instagram: '', facebook: '', pageId: '' }])
   }
@@ -694,20 +715,19 @@ function CompetitorList({ competitors, onChange }) {
     onChange(competitors.map((c, i) => i === idx ? { ...c, ...patch } : c))
   }
   const removeAt = (idx) => {
-    if (!confirm('Eliminare questo competitor?')) return
+    if (!confirm(t('bi.deleteCompConfirm', null, 'Eliminare questo competitor?'))) return
     onChange(competitors.filter((_, i) => i !== idx))
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: -4 }}>
-        Aggiungi competitor con nome brand, sito ufficiale e link ai loro profili Instagram/Facebook.
-        Verranno usati automaticamente dalla tab Competitor Intel per scrape ads e prodotti.
+        {t('bi.compIntro', null, 'Aggiungi competitor con nome brand, sito ufficiale e link ai loro profili Instagram/Facebook. Verranno usati automaticamente dalla tab Competitor Intel per scrape ads e prodotti.')}
       </div>
 
       {competitors.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--text4, #555)', textAlign: 'center', padding: '20px 0' }}>
-          Nessun competitor configurato
+          {t('bi.noComp', null, 'Nessun competitor configurato')}
         </div>
       )}
 
@@ -728,14 +748,14 @@ function CompetitorList({ competitors, onChange }) {
             <input
               type="text" value={c.name || ''}
               onChange={e => updateAt(idx, { name: e.target.value })}
-              placeholder="Nome brand (es: Velites)"
+              placeholder={t('bi.compNamePh', null, 'Nome brand (es: Velites)')}
               style={{ ...inputBase, flex: 1, fontWeight: 700 }}
             />
             <button type="button" onClick={() => removeAt(idx)} style={{
               background: 'transparent', border: '1px solid rgba(248,113,113,0.4)',
               color: '#f87171', cursor: 'pointer', fontSize: 11, fontWeight: 700,
               borderRadius: 8, padding: '6px 10px',
-            }}>Rimuovi</button>
+            }}>{t('bi.compRemove', null, 'Rimuovi')}</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
             <input
@@ -747,24 +767,24 @@ function CompetitorList({ competitors, onChange }) {
             <input
               type="text" value={c.instagram || ''}
               onChange={e => updateAt(idx, { instagram: e.target.value })}
-              placeholder="@username o URL Instagram"
+              placeholder={t('bi.compIgPh', null, '@username o URL Instagram')}
               style={inputBase}
             />
             <input
               type="text" value={c.facebook || ''}
               onChange={e => updateAt(idx, { facebook: e.target.value })}
-              placeholder="URL pagina Facebook"
+              placeholder={t('bi.compFbPh', null, 'URL pagina Facebook')}
               style={inputBase}
             />
           </div>
           <div>
             <div style={{ fontSize: 10.5, color: 'var(--text4, #666)', marginBottom: 4 }}>
-              ID pagina Facebook (per fetch automatico ads — opzionale)
+              {t('bi.compPageIdLabel', null, 'ID pagina Facebook (per fetch automatico ads — opzionale)')}
             </div>
             <input
               type="text" value={c.pageId || ''}
               onChange={e => updateAt(idx, { pageId: e.target.value })}
-              placeholder="Es: 234280280078173 (lascia vuoto se non lo conosci)"
+              placeholder={t('bi.compPageIdPh', null, 'Es: 234280280078173 (lascia vuoto se non lo conosci)')}
               style={{ ...inputBase, fontFamily: 'monospace', fontSize: 12 }}
             />
           </div>
@@ -780,7 +800,7 @@ function CompetitorList({ competitors, onChange }) {
           color: '#fff', fontSize: 13, fontWeight: 700,
         }}
       >
-        + Aggiungi competitor
+        {t('bi.compAdd', null, '+ Aggiungi competitor')}
       </button>
     </div>
   )

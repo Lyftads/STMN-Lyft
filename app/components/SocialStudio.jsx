@@ -9,6 +9,7 @@ import { getBrowserSupabase } from '../../lib/supabase/client'
 import { openDrivePicker, drivePickerConfigured } from '../../lib/social/drivePicker'
 import SocialMockup from './social/SocialMockup'
 import MediaCropper from './social/MediaCropper'
+import VideoTrimmer from './social/VideoTrimmer'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -129,6 +130,13 @@ export default function SocialStudio() {
     setCropBusy(false)
   }
 
+  // Trim video (metadati inizio/fine — taglio applicato alla pubblicazione)
+  const [trimIdx, setTrimIdx] = useState(null)
+  const applyTrim = ({ trimStart, trimEnd }) => {
+    setMedia(m => m.map((mm, i) => i === trimIdx ? { ...mm, trimStart, trimEnd } : mm))
+    setTrimIdx(null)
+  }
+
   const loadPlanned = useCallback(async () => {
     try {
       const r = await fetch('/api/actions')
@@ -172,6 +180,14 @@ export default function SocialStudio() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {trimIdx != null && (media[trimIdx]?.previewUrl || media[trimIdx]?.url) && (
+        <VideoTrimmer
+          src={media[trimIdx].previewUrl || media[trimIdx].url}
+          initial={media[trimIdx]}
+          onCancel={() => setTrimIdx(null)}
+          onApply={applyTrim}
+        />
+      )}
       {cropIdx != null && (media[cropIdx]?.file || media[cropIdx]?.previewUrl) && (
         <MediaCropper
           src={media[cropIdx].file ? URL.createObjectURL(media[cropIdx].file) : media[cropIdx].previewUrl}
@@ -227,7 +243,9 @@ export default function SocialStudio() {
                     : <img src={m.previewUrl || m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />)
                 : <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name={m.kind === 'drive' ? 'image' : 'link'} size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>}
               <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
-              {m.type.startsWith('video') && m.kind === 'file' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
+              {(m.type || '').startsWith('video') && (m.previewUrl || m.url) && (
+                <button onClick={() => setTrimIdx(i)} title={t('social.trimTitle')} style={{ position: 'absolute', bottom: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: m.trimStart != null ? '#7b5bff' : 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="scan" size={11} /></button>
+              )}
               {!(m.type || '').startsWith('video') && (m.file || m.previewUrl) && (
                 <button onClick={() => setCropIdx(i)} title={t('social.edit')} style={{ position: 'absolute', bottom: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="edit" size={11} /></button>
               )}
@@ -321,7 +339,7 @@ export default function SocialStudio() {
               <EnqueueButton onDone={() => { loadPlanned(); setMedia([]); setMusic(null) }} build={() => ({
                 channel: platform, source: 'social_studio', type: 'create_post',
                 target_name: draft.hook || draft.format,
-                payload: { ...draft, scheduled_for: scheduleDate || null, music: music ? { title: music.title, artist: music.artist, artwork: music.artwork || null } : null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name, kind: m.kind })) },
+                payload: { ...draft, scheduled_for: scheduleDate || null, music: music ? { title: music.title, artist: music.artist, artwork: music.artwork || null } : null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name, kind: m.kind, trimStart: m.trimStart ?? null, trimEnd: m.trimEnd ?? null })) },
                 summary: t('aq.sum.createPost', { platform: platLabel, hook: draft.hook || draft.format }),
               })} label={t('aq.launch.enqueue')} />
               <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>

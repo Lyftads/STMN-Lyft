@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Icon from '../ui/Icon'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 
@@ -10,10 +10,25 @@ import { useI18n } from '../../../lib/i18n/I18nProvider'
 const src = (m) => m?.previewUrl || m?.url
 const isVid = (m) => (m?.type || '').startsWith('video')
 
+function TrimVideo({ m }) {
+  const ref = useRef(null)
+  const ts = m.trimStart, te = m.trimEnd
+  const hasTrim = ts != null && te != null && te > ts
+  useEffect(() => {
+    const v = ref.current; if (!v || !hasTrim) return
+    const onMeta = () => { try { v.currentTime = ts } catch {} }
+    const onT = () => { if (v.currentTime >= te) { try { v.currentTime = ts } catch {} } }
+    v.addEventListener('loadedmetadata', onMeta)
+    v.addEventListener('timeupdate', onT)
+    return () => { v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('timeupdate', onT) }
+  }, [ts, te, hasTrim])
+  return <video ref={ref} src={src(m)} muted loop={!hasTrim} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+}
+
 function Media({ m }) {
   if (!m || (!src(m))) return null
   return isVid(m)
-    ? <video src={src(m)} muted loop autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    ? <TrimVideo m={m} />
     : <img src={src(m)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
 }
 

@@ -1,0 +1,151 @@
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+import { NextResponse } from 'next/server'
+import { getAdminSupabase } from '../../../lib/supabase/server'
+import { resolveWorkspace } from '../../../lib/team/workspace'
+
+// Coda Azioni (Fase 1). Workspace-scoped, service-role + filtro workspace_id.
+// Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
+
+const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google']
+const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'custom']
+const STATUSES = ['pending', 'approved', 'executed', 'rejected', 'failed']
+
+export async function GET(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ actions: [] }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ actions: [] })
+
+  const { searchParams } = new URL(req.url)
+  const status = searchParams.get('status')
+  try {
+    let q = admin
+      .from('action_queue')
+      .select('*')
+      .eq('workspace_id', ws.workspaceId)
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (status && STATUSES.includes(status)) q = q.eq('status', status)
+    const { data, error } = await q
+    if (error) throw error
+    const counts = { pending: 0, approved: 0, executed: 0, rejected: 0, failed: 0 }
+    for (const a of data || []) if (counts[a.status] != null) counts[a.status]++
+    return NextResponse.json({
+      actions: data || [],
+      counts,
+      me: { memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin },
+    })
+  } catch (e) {
+    return NextResponse.json({ actions: [], error: e.message })
+  }
+}
+
+export async function POST(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' })
+
+  let b = {}
+  try { b = await req.json() } catch {}
+  const channel = String(b.channel || '').trim()
+  const type = String(b.type || '').trim()
+  const summary = String(b.summary || '').trim()
+  if (!CHANNELS.includes(channel)) return NextResponse.json({ ok: false, error: 'Canale non valido' }, { status: 400 })
+  if (!TYPES.includes(type)) return NextResponse.json({ ok: false, error: 'Tipo azione non valido' }, { status: 400 })
+  if (!summary) return NextResponse.json({ ok: false, error: 'Descrizione mancante' }, { status: 400 })
+
+  const row = {
+    workspace_id: ws.workspaceId,
+    channel,
+    type,
+    target_ref: b.target_ref ? String(b.target_ref) : null,
+    target_name: b.target_name ? String(b.target_name) : null,
+    payload: (b.payload && typeof b.payload === 'object') ? b.payload : {},
+    summary,
+    source: b.source ? String(b.source) : 'manual',
+    status: 'pending',
+    requested_by: ws.memberId || ws.userId || null,
+  }
+
+  try {
+    const { data, error } = await admin.from('action_queue').insert(row).select().single()
+    if (error) throw error
+    return NextResponse.json({ ok: true, action: data })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message })
+  }
+}
+
+export async function PATCH(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può gestire le azioni' }, { status: 403 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' })
+
+  let b = {}
+  try { b = await req.json() } catch {}
+  const id = b.id
+  const op = String(b.op || '').trim()   // approve | reject | execute | reopen
+  if (!id) return NextResponse.json({ ok: false, error: 'ID mancante' }, { status: 400 })
+
+  const patch = { updated_at: new Date().toISOString() }
+  if (b.note != null) patch.note = String(b.note)
+  if (op === 'approve') {
+    patch.status = 'approved'
+    patch.approved_by = ws.memberId || ws.userId || null
+  } else if (op === 'reject') {
+    patch.status = 'rejected'
+    patch.approved_by = ws.memberId || ws.userId || null
+  } else if (op === 'execute') {
+    // Fase 1: esecuzione manuale ("segna come eseguita"). In Fase 2 lo farà l'executor.
+    patch.status = 'executed'
+    patch.executed_at = new Date().toISOString()
+  } else if (op === 'reopen') {
+    patch.status = 'pending'
+    patch.approved_by = null
+    patch.executed_at = null
+  } else {
+    return NextResponse.json({ ok: false, error: 'Operazione non valida' }, { status: 400 })
+  }
+
+  try {
+    const { data, error } = await admin
+      .from('action_queue')
+      .update(patch)
+      .eq('workspace_id', ws.workspaceId)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return NextResponse.json({ ok: true, action: data })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message })
+  }
+}
+
+export async function DELETE(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può eliminare le azioni' }, { status: 403 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' })
+
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ ok: false, error: 'ID mancante' }, { status: 400 })
+  try {
+    const { error } = await admin
+      .from('action_queue')
+      .delete()
+      .eq('workspace_id', ws.workspaceId)
+      .eq('id', id)
+    if (error) throw error
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message })
+  }
+}

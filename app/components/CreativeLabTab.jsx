@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { PlatformBadges } from './PlatformIcon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const STYLES = [
-  { id: 'performance', label: 'Performance', desc: 'Direct response, CTA forte' },
-  { id: 'ugc', label: 'UGC', desc: 'Tono autentico, da atleta' },
-  { id: 'lifestyle', label: 'Lifestyle', desc: 'Aspirazionale, mood' },
-  { id: 'comparison', label: 'Comparison', desc: 'Noi vs competitor' },
+  { id: 'performance', label: 'Performance', desc: 'Direct response, CTA forte', descKey: 'cl.stylePerformance' },
+  { id: 'ugc', label: 'UGC', desc: 'Tono autentico, da atleta', descKey: 'cl.styleUgc' },
+  { id: 'lifestyle', label: 'Lifestyle', desc: 'Aspirazionale, mood', descKey: 'cl.styleLifestyle' },
+  { id: 'comparison', label: 'Comparison', desc: 'Noi vs competitor', descKey: 'cl.styleComparison' },
 ]
 
 const FUNNEL_STAGES = [
-  { id: 'tofu', label: 'TOFU', fullLabel: 'Top of Funnel', color: '#3b82f6', desc: 'Fredda — Awareness. Cattura chi non ti conosce.' },
-  { id: 'mofu', label: 'MOFU', fullLabel: 'Middle of Funnel', color: '#f59e0b', desc: 'Tiepida — Considerazione. Mostra la soluzione.' },
-  { id: 'bofu', label: 'BOFU', fullLabel: 'Bottom of Funnel', color: '#22c55e', desc: 'Calda — Conversione. Spingi all\'acquisto.' },
-  { id: 'retargeting', label: 'Retargeting', fullLabel: 'Retargeting', color: '#ec4899', desc: 'Recupero — Chi ha già visitato o abbandonato.' },
+  { id: 'tofu', label: 'TOFU', fullLabel: 'Top of Funnel', color: '#3b82f6', desc: 'Fredda — Awareness. Cattura chi non ti conosce.', descKey: 'cl.funnelTofu' },
+  { id: 'mofu', label: 'MOFU', fullLabel: 'Middle of Funnel', color: '#f59e0b', desc: 'Tiepida — Considerazione. Mostra la soluzione.', descKey: 'cl.funnelMofu' },
+  { id: 'bofu', label: 'BOFU', fullLabel: 'Bottom of Funnel', color: '#22c55e', desc: 'Calda — Conversione. Spingi all\'acquisto.', descKey: 'cl.funnelBofu' },
+  { id: 'retargeting', label: 'Retargeting', fullLabel: 'Retargeting', color: '#ec4899', desc: 'Recupero — Chi ha già visitato o abbandonato.', descKey: 'cl.funnelRetargeting' },
 ]
 
 const FORMATS = [
@@ -86,6 +87,7 @@ function Pagination({ page, totalPages, onPageChange }) {
 }
 
 function PreviewCard({ creative, productImage, format, onAccept, onReject, accepted, rejecting }) {
+  const { t } = useI18n()
   return (
     <div
       style={{
@@ -107,7 +109,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             fontSize: 11, fontWeight: 900,
           }}
         >
-          ACCETTATA ✓
+          {t('cl.accepted', null, 'ACCETTATA ✓')}
         </div>
       )}
 
@@ -133,14 +135,14 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
         ) : creative.imageError ? (
           <div style={{ padding: 24, textAlign: 'center' }}>
             <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-              Generazione immagine fallita
+              {t('cl.imgGenFailed', null, 'Generazione immagine fallita')}
             </div>
             <div style={{ color: '#6b6580', fontSize: 11, lineHeight: 1.5 }}>
               {creative.imageError}
             </div>
           </div>
         ) : (
-          <div style={{ color: '#4a4060', fontSize: 12 }}>Generazione in corso…</div>
+          <div style={{ color: '#4a4060', fontSize: 12 }}>{t('cl.generating', null, 'Generazione in corso…')}</div>
         )}
 
         {creative.imageModel && creative.generatedImage && (
@@ -168,7 +170,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}
           >
-            {creative.angle || 'Creative'}
+            {creative.angle || t('cl.creativeBadge', null, 'Creative')}
           </span>
           {creative.funnelStage && (
             <span
@@ -222,7 +224,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             background: '#8b5cf6', color: '#fff', fontSize: 12, fontWeight: 800,
           }}
         >
-          {creative.cta || 'Acquista ora'}
+          {creative.cta || t('cl.buyNow', null, 'Acquista ora')}
         </div>
 
         {creative.reasoning && (
@@ -233,7 +235,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             }}
           >
             <div style={{ color: '#6b6580', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>
-              Perché funziona
+              {t('cl.whyItWorks', null, 'Perché funziona')}
             </div>
             <div style={{ color: '#8b8aa0', fontSize: 11, lineHeight: 1.5 }}>
               {creative.reasoning}
@@ -251,7 +253,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
                 background: '#22c55e15', color: '#22c55e', fontSize: 13, fontWeight: 800, cursor: 'pointer',
               }}
             >
-              ✓ Accetta
+              {t('cl.accept', null, '✓ Accetta')}
             </button>
             <button
               onClick={onReject}
@@ -262,7 +264,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
                 fontSize: 13, fontWeight: 800, cursor: rejecting ? 'wait' : 'pointer',
               }}
             >
-              {rejecting ? '…' : '↻ Rigenera'}
+              {rejecting ? '…' : t('cl.regenerate', null, '↻ Rigenera')}
             </button>
           </div>
         )}
@@ -278,7 +280,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
               color: '#c8c0d6', fontSize: 12, fontWeight: 700, textDecoration: 'none',
             }}
           >
-            Scarica immagine ↓
+            {t('cl.downloadImage', null, 'Scarica immagine ↓')}
           </a>
         )}
       </div>
@@ -287,6 +289,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
 }
 
 export default function CreativeLabTab() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -460,7 +463,7 @@ export default function CreativeLabTab() {
     <div>
       {loading && !data && (
         <div style={{ textAlign: 'center', padding: 80, color: '#6b6580' }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Carico dati prodotti e performance…</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>{t('cl.loadingData', null, 'Carico dati prodotti e performance…')}</div>
         </div>
       )}
 
@@ -471,7 +474,7 @@ export default function CreativeLabTab() {
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>
-                  Top ads per ROAS (ultimi 28g)
+                  {t('cl.topAdsRoas', null, 'Top ads per ROAS (ultimi 28g)')}
                 </div>
                 <PlatformBadges sources={['meta']} size={14} />
               </div>
@@ -479,7 +482,7 @@ export default function CreativeLabTab() {
                 {bestAds.slice(0, 6).map((ad, i) => (
                   <div key={i} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, minWidth: 200 }}>
                     <div style={{ color: '#fff', fontSize: 12, fontWeight: 800, marginBottom: 6, lineHeight: 1.3, maxHeight: 30, overflow: 'hidden' }}>
-                      {ad.name || 'Ad'}
+                      {ad.name || t('cl.adFallback', null, 'Ad')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11 }}>
                       <div><span style={{ color: '#6b6580' }}>ROAS </span><span style={{ color: '#22c55e', fontWeight: 900 }}>{(ad.roas || 0).toFixed(2)}</span></div>
@@ -495,13 +498,13 @@ export default function CreativeLabTab() {
           <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 22, padding: 24, marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
-                <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>Seleziona prodotti</h2>
+                <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>{t('cl.selectProducts', null, 'Seleziona prodotti')}</h2>
                 <p style={{ margin: '6px 0 0', color: '#6b6580', fontSize: 12 }}>
-                  {data.totalProducts} prodotti totali · Ordinati per vendite · Pagina {data.page}/{data.totalPages}
+                  {t('cl.productsMeta', { total: data.totalProducts, page: data.page, totalPages: data.totalPages }, `${data.totalProducts} prodotti totali · Ordinati per vendite · Pagina ${data.page}/${data.totalPages}`)}
                 </p>
               </div>
               <span style={{ color: '#8b8aa0', fontSize: 13, fontWeight: 800 }}>
-                {selected.length}/4 selezionati
+                {t('cl.selectedN', { n: selected.length }, `${selected.length}/4 selezionati`)}
               </span>
             </div>
 
@@ -513,7 +516,7 @@ export default function CreativeLabTab() {
                 clearTimeout(window.__clSearchTimer)
                 window.__clSearchTimer = setTimeout(() => loadData(1, e.target.value), 400)
               }}
-              placeholder="Cerca prodotto per nome…"
+              placeholder={t('cl.searchProduct', null, 'Cerca prodotto per nome…')}
               style={{
                 width: '100%',
                 padding: '12px 18px',
@@ -546,7 +549,7 @@ export default function CreativeLabTab() {
                       {p.image ? (
                         <img src={p.image} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4060', fontSize: 11 }}>No img</div>
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a4060', fontSize: 11 }}>{t('cl.noImg', null, 'No img')}</div>
                       )}
                       {isSel && (
                         <div style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 999, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</div>
@@ -581,10 +584,10 @@ export default function CreativeLabTab() {
               }}
             >
               <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
-                Foto reference prodotto (opzionale)
+                {t('cl.refPhotos', null, 'Foto reference prodotto (opzionale)')}
               </div>
               <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
-                Carica fino a 3 foto per prodotto — l&apos;AI analizzerà colori, materiali e dettagli per generare immagini più fedeli
+                {t('cl.refPhotosDesc', null, "Carica fino a 3 foto per prodotto — l'AI analizzerà colori, materiali e dettagli per generare immagini più fedeli")}
               </div>
 
               {selected.map((handle) => {
@@ -677,21 +680,21 @@ export default function CreativeLabTab() {
               }}
             >
               <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>
-                Brief manuale (opzionale)
+                {t('cl.manualBrief', null, 'Brief manuale (opzionale)')}
               </div>
               <div style={{ fontSize: 11, color: '#4a4060', marginBottom: 16 }}>
-                Aggiungi dettagli che l&apos;AI deve considerare nella generazione
+                {t('cl.manualBriefDesc', null, "Aggiungi dettagli che l'AI deve considerare nella generazione")}
               </div>
 
               <div style={{ display: 'grid', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
-                    Contesto / Ambientazione
+                    {t('cl.context', null, 'Contesto / Ambientazione')}
                   </label>
                   <textarea
                     value={manualBrief.context}
                     onChange={(e) => setManualBrief((p) => ({ ...p, context: e.target.value }))}
-                    placeholder="Es: Ambientazione in un box CrossFit durante un WOD, atmosfera intensa con luci al neon..."
+                    placeholder={t('cl.contextPh', null, 'Es: Ambientazione in un box CrossFit durante un WOD, atmosfera intensa con luci al neon...')}
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
@@ -704,12 +707,12 @@ export default function CreativeLabTab() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
-                    Buyer Persona target
+                    {t('cl.persona', null, 'Buyer Persona target')}
                   </label>
                   <textarea
                     value={manualBrief.persona}
                     onChange={(e) => setManualBrief((p) => ({ ...p, persona: e.target.value }))}
-                    placeholder="Es: Donna 28-35, fa HYROX, corre 3x/settimana + functional 2x, primo acquisto di paracalli..."
+                    placeholder={t('cl.personaPh', null, 'Es: Donna 28-35, fa HYROX, corre 3x/settimana + functional 2x, primo acquisto di paracalli...')}
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
@@ -722,12 +725,12 @@ export default function CreativeLabTab() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, color: '#6b6580', fontWeight: 700, marginBottom: 6 }}>
-                    Caratteristiche prodotto da evidenziare
+                    {t('cl.features', null, 'Caratteristiche prodotto da evidenziare')}
                   </label>
                   <textarea
                     value={manualBrief.productFeatures}
                     onChange={(e) => setManualBrief((p) => ({ ...p, productFeatures: e.target.value }))}
-                    placeholder="Es: Zero magnesite, grip ultra-sottile 2mm, cuciture rinforzate, pelle vegana, colorazione nera/rossa..."
+                    placeholder={t('cl.featuresPh', null, 'Es: Zero magnesite, grip ultra-sottile 2mm, cuciture rinforzate, pelle vegana, colorazione nera/rossa...')}
                     rows={2}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
@@ -752,7 +755,7 @@ export default function CreativeLabTab() {
             }}
           >
             <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 12 }}>
-              Fase del Funnel — Andromeda Variance
+              {t('cl.funnelStage', null, 'Fase del Funnel — Andromeda Variance')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
               {FUNNEL_STAGES.map((f) => (
@@ -774,7 +777,7 @@ export default function CreativeLabTab() {
                     <span style={{ color: '#6b6580', fontSize: 10, fontWeight: 700 }}>{f.fullLabel}</span>
                   </div>
                   <div style={{ color: funnelStage === f.id ? '#c8c0d6' : '#4a4060', fontSize: 11, lineHeight: 1.4, fontWeight: 600 }}>
-                    {f.desc}
+                    {t(f.descKey, null, f.desc)}
                   </div>
                 </button>
               ))}
@@ -785,10 +788,10 @@ export default function CreativeLabTab() {
           <div style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap', marginBottom: 28 }}>
             {/* Style */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Stile</div>
+              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>{t('cl.style', null, 'Stile')}</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {STYLES.map((s) => (
-                  <button key={s.id} onClick={() => setStyle(s.id)} title={s.desc}
+                  <button key={s.id} onClick={() => setStyle(s.id)} title={t(s.descKey, null, s.desc)}
                     style={{
                       padding: '9px 16px', borderRadius: 10,
                       border: `1px solid ${style === s.id ? '#8b5cf6' : 'var(--border)'}`,
@@ -803,7 +806,7 @@ export default function CreativeLabTab() {
 
             {/* Format */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Formato</div>
+              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>{t('cl.format', null, 'Formato')}</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {FORMATS.map((f) => (
                   <button key={f.id} onClick={() => setFormat(f.id)}
@@ -821,7 +824,7 @@ export default function CreativeLabTab() {
 
             {/* Image Model */}
             <div>
-              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>Modello immagine</div>
+              <div style={{ fontSize: 10, color: '#8b8aa0', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>{t('cl.imageModel', null, 'Modello immagine')}</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(models.length > 0 ? models : [
                   { id: 'gpt-image-1', name: 'GPT Image', ready: true },
@@ -838,7 +841,7 @@ export default function CreativeLabTab() {
                       cursor: m.ready ? 'pointer' : 'not-allowed',
                       opacity: m.ready ? 1 : 0.6,
                     }}
-                    title={m.ready ? m.name : `${m.name} — API key non configurata`}
+                    title={m.ready ? m.name : t('cl.apiKeyMissing', { name: m.name }, `${m.name} — API key non configurata`)}
                   >
                     {m.name}{!m.ready && ' 🔒'}
                   </button>
@@ -859,7 +862,7 @@ export default function CreativeLabTab() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {generating ? 'Generazione…' : `Genera ${selected.length > 0 ? selected.length * 3 : 0} Creative`}
+              {generating ? t('cl.generatingShort', null, 'Generazione…') : t('cl.generateN', { n: selected.length > 0 ? selected.length * 3 : 0 }, `Genera ${selected.length > 0 ? selected.length * 3 : 0} Creative`)}
             </button>
           </div>
 
@@ -868,17 +871,17 @@ export default function CreativeLabTab() {
             <div style={{ textAlign: 'center', padding: 50, color: '#8b8aa0' }}>
               <div style={{ fontSize: 18, marginBottom: 10 }}>✧</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd' }}>
-                L&apos;AI sta generando copy e immagini…
+                {t('cl.aiGenerating', null, "L'AI sta generando copy e immagini…")}
               </div>
               <div style={{ fontSize: 12, marginTop: 6, color: '#6b6580' }}>
-                GPT-4o per il copy + {imageModel === 'gpt-image-1' ? 'GPT Image' : imageModel === 'gemini' ? 'Gemini' : 'DALL-E 3'} per le immagini · 20-40 secondi
+                {t('cl.aiGeneratingDesc', { model: imageModel === 'gpt-image-1' ? 'GPT Image' : imageModel === 'gemini' ? 'Gemini' : 'DALL-E 3' }, `GPT-4o per il copy + ${imageModel === 'gpt-image-1' ? 'GPT Image' : imageModel === 'gemini' ? 'Gemini' : 'DALL-E 3'} per le immagini · 20-40 secondi`)}
               </div>
             </div>
           )}
 
           {genError && (
             <div style={{ padding: 18, borderRadius: 14, background: '#ef444415', border: '1px solid #ef444430', color: '#ef4444', fontSize: 13, marginBottom: 20 }}>
-              <strong>Errore:</strong> {genError}
+              <strong>{t('cl.errorLabel', null, 'Errore:')}</strong> {genError}
             </div>
           )}
 
@@ -887,13 +890,13 @@ export default function CreativeLabTab() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <div>
-                  <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 950 }}>Preview Creative</h2>
+                  <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 950 }}>{t('cl.previewCreative', null, 'Preview Creative')}</h2>
                   <p style={{ margin: '6px 0 0', color: '#6b6580', fontSize: 12 }}>
-                    {creatives.length} varianti · Accetta quelle che ti piacciono, rigenera le altre
+                    {t('cl.variantsDesc', { n: creatives.length }, `${creatives.length} varianti · Accetta quelle che ti piacciono, rigenera le altre`)}
                   </p>
                 </div>
                 <span style={{ color: '#22c55e', fontSize: 13, fontWeight: 800 }}>
-                  {Object.keys(accepted).length} accettate
+                  {t('cl.acceptedN', { n: Object.keys(accepted).length }, `${Object.keys(accepted).length} accettate`)}
                 </span>
               </div>
 

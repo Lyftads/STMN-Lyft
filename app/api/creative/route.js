@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const maxDuration = 60
 
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v20.0'
-
-const ACCESS_TOKEN =
-  process.env.META_ACCESS_TOKEN ||
-  process.env.FACEBOOK_ACCESS_TOKEN ||
-  process.env.FB_ACCESS_TOKEN ||
-  ''
 
 const CREATIVE_IMAGE_SIZE = Number(process.env.META_CREATIVE_IMAGE_SIZE || 1080)
 
@@ -36,13 +31,16 @@ function cleanAccountId(id) {
 }
 
 function getAccountIds() {
-  const raw =
+  const envChain =
     process.env.META_AD_ACCOUNT_IDS ||
     process.env.META_AD_ACCOUNT_ID ||
     process.env.META_ACCOUNT_IDS ||
     process.env.META_ACCOUNTS ||
     process.env.META_ACCOUNT_ID ||
     ''
+  // env-only (STMN): catena env identica a prima. Multi-tenant: l'account del
+  // tenant (resolver) ha precedenza, env come fallback.
+  const raw = process.env.LYFT_MULTI_TENANT === 'true' ? (getMeta().adAccountId || envChain) : envChain
 
   return raw
     .split(',')
@@ -164,6 +162,7 @@ function getRange(preset) {
 }
 
 async function metaGet(path, params = {}) {
+  const ACCESS_TOKEN = getMeta().accessToken
   if (!ACCESS_TOKEN) {
     throw new Error('META_ACCESS_TOKEN mancante nelle Environment Variables di Vercel.')
   }
@@ -809,6 +808,7 @@ async function fetchDailySeries(accounts, range) {
 }
 
 export async function GET(req) {
+  return withTenantContext(req, async () => {
   try {
     const { searchParams } = new URL(req.url)
 
@@ -1007,4 +1007,5 @@ export async function GET(req) {
       500
     )
   }
+  })
 }

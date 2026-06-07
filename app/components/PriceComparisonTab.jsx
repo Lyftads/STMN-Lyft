@@ -5,6 +5,7 @@ import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import EnqueueButton from './ui/EnqueueButton'
 
 const CATEGORIES = [
   { id: 'grips', label: 'Paracalli', labelKey: 'price.catGrips', icon: <Icon name="tag" size={20} /> },
@@ -394,6 +395,15 @@ export default function PriceComparisonTab() {
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>{r.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>{r.body}</div>
+                {r.severity === 'warning' && (
+                  <div style={{ marginTop: 10 }}>
+                    <EnqueueButton compact build={() => ({
+                      channel: 'shopify', source: 'price_intel', type: 'custom', target_name: r.category,
+                      payload: { category: r.category, note: r.body },
+                      summary: t('aq.sum.priceAdjust', { cat: r.category }),
+                    })} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

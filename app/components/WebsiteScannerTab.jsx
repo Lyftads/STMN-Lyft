@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+import EnqueueButton from './ui/EnqueueButton'
 import ScannerAgent from './ScannerAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -597,6 +598,13 @@ export default function WebsiteScannerTab() {
                               ⌁ {t('ws.expectedImpact', null, 'Impatto atteso:')} {it.expectedImpact}
                             </div>
                           )}
+                          <div style={{ marginTop: 12 }}>
+                            <EnqueueButton compact build={() => ({
+                              channel: 'other', source: 'cro', type: 'custom', target_name: it.title,
+                              payload: { priority: it.priority, suggestion: it.suggestion || null, expectedImpact: it.expectedImpact || null },
+                              summary: t('aq.sum.croFix', { title: it.title }),
+                            })} />
+                          </div>
                         </InnerCard>
                       ))}
                     </div>

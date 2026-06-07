@@ -1,10 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 
-const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL || 'stamina-fitness3.myshopify.com'
-
-export async function GET() {
+export async function GET(req) {
+  return withTenantContext(req, async () => {
+  const SHOPIFY_STORE = getShopify().storeUrl
+  if (!SHOPIFY_STORE) return NextResponse.json({})
   try {
     const res = await fetch(`https://${SHOPIFY_STORE}/products.json?limit=250`, {
       headers: {
@@ -49,4 +51,5 @@ export async function GET() {
   } catch {
     return NextResponse.json({})
   }
+  })
 }

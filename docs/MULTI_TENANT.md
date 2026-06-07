@@ -33,7 +33,7 @@ Sono segreti dell'app, uguali per tutti i tenant:
 | `app/api/creative-lab/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ⏳ |
 | `app/api/cro/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN, GA4_PROPERTY_ID, GOOGLE_REFRESH_TOKEN (const modulo) | ⏳ (Google già via resolver, Shopify/GA4 no) |
 | `app/api/adlibrary-page/route.js` | META token | ⏳ (dati ad library semi-pubblici, ma usa il token) |
-| `app/api/product-images/route.js` | SHOPIFY_STORE_URL (+ fallback hardcoded!) | ⏳ |
+| `app/api/product-images/route.js` | SHOPIFY_STORE_URL (+ fallback hardcoded!) | ✅ **migrata** (rimosso fallback STMN) |
 | `app/api/google/route.js` | GOOGLE_ADS_CUSTOMER_ID / MCC_ID | ⏳ (verifica: per-tenant) |
 | `app/api/debug/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ⏳ (o limitare al solo beta) |
 
@@ -75,5 +75,5 @@ Regole:
 
 ## Stato
 - Fondamenta resolver: ✅ pronte.
-- Route migrate: `product-costs` ✅ — restanti ⚠️ da fare.
+- Route migrate: `product-costs` ✅, `product-images` ✅ — restanti ⚠️ da fare (le più grandi — report/creative/creative-lab/cro — vanno migrate con test a runtime dedicato, non in blocco alla cieca).
 - Flag in produzione: **OFF** (env-only, STMN invariato).

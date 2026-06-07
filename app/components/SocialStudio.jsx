@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { getBrowserSupabase } from '../../lib/supabase/client'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -24,6 +25,28 @@ export default function SocialStudio() {
   const [copied, setCopied] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
   const [planned, setPlanned] = useState([])
+  const [media, setMedia] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
+
+  // Upload DIRETTO su Supabase Storage (signed URL) → file pesanti, full quality.
+  const uploadFiles = async (files) => {
+    if (!files?.length) return
+    setUploading(true); setErr(null)
+    const sb = getBrowserSupabase()
+    for (const file of files) {
+      try {
+        const r = await fetch('/api/social/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
+        const j = await r.json()
+        if (!j.ok) { setErr(j.error || 'Upload error'); continue }
+        const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, file)
+        if (error) { setErr(error.message); continue }
+        setMedia(m => [...m, { url: j.publicUrl, type: file.type || '', name: file.name }])
+      } catch (e) { setErr(e.message) }
+    }
+    setUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   const loadPlanned = useCallback(async () => {
     try {
@@ -65,17 +88,7 @@ export default function SocialStudio() {
   const platLabel = PLATFORMS.find(p => p.id === platform)?.label || platform
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        <span style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(225,48,108,0.16)', color: '#e1306c', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-          <Icon name="image" size={20} />
-        </span>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('tab.social', null, 'Social Studio')}</div>
-          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 2 }}>{t('social.subtitle')}</div>
-        </div>
-      </div>
-
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 16, alignItems: 'start' }}>
       <div className="glass-card-static" style={{ padding: 18, borderRadius: 14 }}>
         {/* Piattaforma */}
         <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.platform')}</div>
@@ -95,6 +108,25 @@ export default function SocialStudio() {
         <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.schedule')}</div>
         <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
           style={{ marginBottom: 14, borderRadius: 9, padding: '8px 10px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 12.5, fontFamily: 'inherit' }} />
+
+        {/* Contenuti da pubblicare — upload immagini/video (full quality) */}
+        <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.media')}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
+          {media.map((m, i) => (
+            <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#000' }}>
+              {m.type.startsWith('video')
+                ? <video src={m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
+              {m.type.startsWith('video') && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
+            </div>
+          ))}
+          <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text3)', cursor: uploading ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 300 }}>
+            {uploading ? '…' : '+'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={e => uploadFiles(Array.from(e.target.files || []))} />
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginBottom: 14 }}>{uploading ? t('social.uploading') : t('social.upload')}</div>
 
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('social.brief')} rows={3}
           style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />
@@ -123,10 +155,10 @@ export default function SocialStudio() {
             )}
             <Field label={t('social.cta')} value={draft.cta} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-              <EnqueueButton onDone={loadPlanned} build={() => ({
+              <EnqueueButton onDone={() => { loadPlanned(); setMedia([]) }} build={() => ({
                 channel: platform, source: 'social_studio', type: 'create_post',
                 target_name: draft.hook || draft.format,
-                payload: { ...draft, scheduled_for: scheduleDate || null },
+                payload: { ...draft, scheduled_for: scheduleDate || null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name })) },
                 summary: t('aq.sum.createPost', { platform: platLabel, hook: draft.hook || draft.format }),
               })} label={t('aq.launch.enqueue')} />
               <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
@@ -138,7 +170,7 @@ export default function SocialStudio() {
       </div>
 
       {/* In programma (calendario editoriale) */}
-      <div className="glass-card-static" style={{ padding: 18, borderRadius: 14, marginTop: 16 }}>
+      <div className="glass-card-static" style={{ padding: 18, borderRadius: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', flex: 1 }}>{t('social.planned')}</div>
           <div style={{ display: 'inline-flex', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden' }}>

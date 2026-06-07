@@ -161,30 +161,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #ff7a45, #ec4899, #8b5cf6)',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 900,
-              color: '#fff',
-            }}
-          >
-            <Icon name="sparkle" size={20} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 900, color: palette.text, fontSize: 16 }}>
-              Performance Agent
-            </div>
-            <div style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
-              {t('agent.subtitle', null, 'Performance · CMO · CRO · Ads · Klaviyo · usa i dati live di Shopify + Meta + Email')}
-            </div>
-          </div>
-        </div>
+        <div />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {messages.length > 0 && (

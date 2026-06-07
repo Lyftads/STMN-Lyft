@@ -348,14 +348,7 @@ export default function ActionQueueTab({ metrics }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        <span style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(123,91,255,0.18)', color: '#7b5bff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-          <Icon name="bolt" size={20} />
-        </span>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('tab.actionQueue', null, 'Coda Azioni')}</div>
-          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 2 }}>{t('aq.subtitle')}</div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
         <button onClick={load} disabled={loading} style={ghostBtn}>
           <Icon name="scan" size={13} /> {loading ? t('aq.refreshing') : t('aq.refresh')}
         </button>

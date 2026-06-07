@@ -1435,6 +1435,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
 // ── WeeklyTab ─────────────────────────────────────────────────
 function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, preset: presetProp, weeklyTF, setWeeklyTF, weeklyCustom, setWeeklyCustom, onRefresh, loading: loadingProp }) {
+  const { t } = useI18n()
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
 
@@ -1796,16 +1797,16 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
   const ratioColor2 = r => r==null?'#555':r<1?'#ef4444':r<3?'#f59e0b':'#22c55e'
   const fr2 = n => n!=null ? `${Number(n).toFixed(2).replace('.',',')}` : '—'
   const kpiCards = [
-    { label:'Fatturato', val:tf.fat, prev:tfP.fat, fmt:money0, color:'var(--green)', key:'fat', sources:['shopify'] },
-    { label:'Ordini', val:tf.ord, prev:tfP.ord, fmt:int0, color:'var(--accent)', key:'ord', sources:['shopify'] },
+    { label:t('dash.revenue', null, 'Fatturato'), val:tf.fat, prev:tfP.fat, fmt:money0, color:'var(--green)', key:'fat', sources:['shopify'] },
+    { label:t('dash.orders', null, 'Ordini'), val:tf.ord, prev:tfP.ord, fmt:int0, color:'var(--accent)', key:'ord', sources:['shopify'] },
     { label:'AOV', val:tf.aov, prev:tfP.aov, fmt:money2, color:'var(--orange)', key:'aov', sources:['shopify'] },
-    { label:'Nuovi Clienti', val:tf.nc, prev:tfP.nc, fmt:int0, color:'var(--cyan)', key:'nc', sources:['shopify'] },
-    { label:'Clienti Ritorno', val:tf.rc, prev:tfP.rc, fmt:int0, color:'var(--purple)', key:'rc', sources:['shopify'] },
+    { label:t('dash.newCustomersShort', null, 'Nuovi Clienti'), val:tf.nc, prev:tfP.nc, fmt:int0, color:'var(--cyan)', key:'nc', sources:['shopify'] },
+    { label:t('dash.returningShort', null, 'Clienti Ritorno'), val:tf.rc, prev:tfP.rc, fmt:int0, color:'var(--purple)', key:'rc', sources:['shopify'] },
     { label:'MER', val:tf.mer, prev:tfP.mer, fmt:v=>v!=null?`${fr2(v)}×`:'—', color:tf.mer!=null?(tf.mer>=3?'var(--green)':tf.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', key:'mer', sources:['shopify','meta'] },
     { label:'CAC', val:tf.cac, prev:tfP.cac, fmt:money2, color:'var(--text)', key:'cac', lower:true, sources:['shopify','meta','google'] },
-    { label:'Ratio LTV:CAC', val:tf.ratio, prev:tfP.ratio, fmt:v=>v!=null?`${fr2(v)}:1`:'—', color:ratioColor2(tf.ratio), key:'ratio', sources:['shopify','meta'] },
-    { label:'Meta Spend', val:tf.meta, prev:tfP.meta, fmt:money0, color:'var(--accent)', key:'meta', sources:['meta'] },
-    { label:'Google Spend', val:tf.google, prev:tfP.google, fmt:v=>v>0?money0(v):'—', color:'var(--yellow)', key:'google', sources:['google'] },
+    { label:t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC'), val:tf.ratio, prev:tfP.ratio, fmt:v=>v!=null?`${fr2(v)}:1`:'—', color:ratioColor2(tf.ratio), key:'ratio', sources:['shopify','meta'] },
+    { label:t('dash.metaSpendLabel', null, 'Meta Spend'), val:tf.meta, prev:tfP.meta, fmt:money0, color:'var(--accent)', key:'meta', sources:['meta'] },
+    { label:t('dash.googleSpend', null, 'Google Spend'), val:tf.google, prev:tfP.google, fmt:v=>v>0?money0(v):'—', color:'var(--yellow)', key:'google', sources:['google'] },
   ]
 
   return (
@@ -1813,9 +1814,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
       {/* Timeframe selector */}
       <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
         {[
-          { id:'this_week', l:'Questa settimana' },
-          { id:'last_week', l:'Settimana precedente' },
-          { id:'custom', l:'Custom' },
+          { id:'this_week', l:t('dash.thisWeek', null, 'Questa settimana') },
+          { id:'last_week', l:t('dash.lastWeek', null, 'Settimana precedente') },
+          { id:'custom', l:t('dash.custom', null, 'Custom') },
         ].map(b => (
           <button key={b.id} onClick={()=>setWeeklyTF(b.id)} style={{
             fontSize:12, padding:'6px 14px', borderRadius:6, cursor:'pointer',
@@ -1827,17 +1828,17 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
         ))}
         {weeklyTF==='custom' && (
           <>
-            <span style={{fontSize:11,color:'var(--text3)'}}>Da:</span>
+            <span style={{fontSize:11,color:'var(--text3)'}}>{t('dash.from', null, 'Da:')}</span>
             <select value={weeklyCustom.since} onChange={e=>setWeeklyCustom(p=>({...p,since:e.target.value}))}
               style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-              <option value="">Seleziona settimana</option>
+              <option value="">{t('dash.selectWeek', null, 'Seleziona settimana')}</option>
               {availableWeeks.map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
             </select>
             <span style={{color:'#555'}}>→</span>
-            <span style={{fontSize:11,color:'var(--text3)'}}>A:</span>
+            <span style={{fontSize:11,color:'var(--text3)'}}>{t('dash.to', null, 'A:')}</span>
             <select value={weeklyCustom.until} onChange={e=>setWeeklyCustom(p=>({...p,until:e.target.value}))}
               style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
-              <option value="">Seleziona settimana</option>
+              <option value="">{t('dash.selectWeek', null, 'Seleziona settimana')}</option>
               {availableWeeks.filter(w => !weeklyCustom.since || w.key >= weeklyCustom.since).map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
             </select>
           </>
@@ -1850,7 +1851,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
             display:'flex', alignItems:'center', gap:6,
           }}>
             <span style={{animation:loadingProp?'spin 1s linear infinite':'none'}}>↻</span>
-            {loadingProp?'Aggiorno…':'Aggiorna'}
+            {loadingProp?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
           </button>
         )}
         <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
@@ -1879,22 +1880,22 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
       </div>
 
       {/* Data entry table */}
-      <FxChartCard title="Dati settimanali" glowColor="#22c55e" subtitle="Shopify + Meta automatici · Google manuale">
+      <FxChartCard title={t('dash.weeklyData', null, 'Dati settimanali')} glowColor="#22c55e" subtitle={t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
         <div style={tableWrap}>
           <table style={{ width: '100%', minWidth: 1450, borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {[
-                  'Settimana',
-                  'Fatturato €',
-                  'Fatt. NC €',
-                  'Fatt. RC €',
-                  'Meta ADS €',
-                  'Google ADS €',
-                  'Tot Ordini',
+                  t('dash.thWeek', null, 'Settimana'),
+                  t('dash.thRevenue', null, 'Fatturato €'),
+                  t('dash.thRevNC', null, 'Fatt. NC €'),
+                  t('dash.thRevRC', null, 'Fatt. RC €'),
+                  t('dash.thMetaAds', null, 'Meta ADS €'),
+                  t('dash.thGoogleAds', null, 'Google ADS €'),
+                  t('dash.thTotOrders', null, 'Tot Ordini'),
                   'NC #',
                   'RC #',
-                  'Visitatori online',
+                  t('dash.thVisitors', null, 'Visitatori online'),
                 ].map(h => (
                   <th key={h} style={TH}>{h}</th>
                 ))}
@@ -1961,7 +1962,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
                 <td style={{
                   ...TD, color: '#94a3b8', fontWeight: 900, fontSize: 10,
                   textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Barlow Condensed',
-                }}>Totale</td>
+                }}>{t('dash.total', null, 'Totale')}</td>
                 <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
                 <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
                 <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
@@ -1979,16 +1980,16 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
       </FxChartCard>
 
       {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 0 && (
-        <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
+        <FxChartCard title={t('dash.kpiCalc', null, 'KPI calcolati')} glowColor="#a78bfa">
           <div style={tableWrap}>
             <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   {[
-                    'Sett.',
-                    'Fatturato',
-                    'Fatt. NC',
-                    'Fatt. RC',
+                    t('dash.thWeekShort', null, 'Sett.'),
+                    t('dash.revenue', null, 'Fatturato'),
+                    t('dash.thRevNCShort', null, 'Fatt. NC'),
+                    t('dash.thRevRCShort', null, 'Fatt. RC'),
                     'ADV',
                     'MER',
                     'aMER',
@@ -2044,7 +2045,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 
                 {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 1 && (
                 <tr style={{ background: 'var(--glass)', borderTop: '1px solid var(--border)' }}>
-                  <td style={{ ...TD, color:'var(--text2)', fontWeight:900, fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', fontFamily:'Barlow Condensed' }}>Media / Totale</td>
+                  <td style={{ ...TD, color:'var(--text2)', fontWeight:900, fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', fontFamily:'Barlow Condensed' }}>{t('dash.avgTotal', null, 'Media / Totale')}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
                   <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
@@ -2071,7 +2072,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
       {filled.length > 0 && (
         <>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+            <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
                   <defs>
@@ -2101,7 +2102,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
               </ResponsiveContainer>
             </FxChartCard>
 
-            <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+            <FxChartCard title={t("dash.chartNewReturning", null, "Nuovi clienti e clienti di ritorno")} glowColor="#06b6d4">
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
                   <defs>
@@ -2152,7 +2153,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
               </ResponsiveContainer>
             </FxChartCard>
 
-            <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+            <FxChartCard title={t("dash.ratioLtvCacLabel", null, "Ratio LTV:CAC")} glowColor="#a78bfa">
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
                   <defs>
@@ -3069,7 +3070,7 @@ export default function App() {
               cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
             }}>
               <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
-              {loading?'Aggiorno…':'Aggiorna'}
+              {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
             </button>
             <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
           </div>
@@ -3094,12 +3095,12 @@ export default function App() {
           </div>
 
           {/* Data Entry Table */}
-          <FxChartCard title="Dati mensili" glowColor="#22c55e" subtitle="Shopify + Meta automatici · Google manuale">
+          <FxChartCard title={t("dash.monthlyData", null, "Dati mensili")} glowColor="#22c55e" subtitle={t("dash.weeklyDataSub", null, "Shopify + Meta automatici · Google manuale")}>
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
               <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    {['Mese','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                    {[t('dash.thMonth', null, 'Mese'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
                       <th key={h} style={mTH}>{h}</th>
                     ))}
                   </tr>
@@ -3132,12 +3133,12 @@ export default function App() {
 
           {/* KPI Calcolati Table */}
           {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 0 && (
-          <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
+          <FxChartCard title={t('dash.kpiCalc', null, 'KPI calcolati')} glowColor="#a78bfa">
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
               <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
                 <thead>
                   <tr>
-                    {['Mese','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                    {[t('dash.thMonth', null, 'Mese'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
                       <th key={h} style={mTH}>{h}</th>
                     ))}
                   </tr>
@@ -3176,7 +3177,7 @@ export default function App() {
           {filled.length > 0 && (
           <>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-              <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+              <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                 <ResponsiveContainer width="100%" height={240}>
                   <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
                     <defs>
@@ -3206,7 +3207,7 @@ export default function App() {
                 </ResponsiveContainer>
               </FxChartCard>
 
-              <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+              <FxChartCard title={t("dash.chartNewReturning", null, "Nuovi clienti e clienti di ritorno")} glowColor="#06b6d4">
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
                     <defs>
@@ -3257,7 +3258,7 @@ export default function App() {
                 </ResponsiveContainer>
               </FxChartCard>
 
-              <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+              <FxChartCard title={t("dash.ratioLtvCacLabel", null, "Ratio LTV:CAC")} glowColor="#a78bfa">
                 <ResponsiveContainer width="100%" height={240}>
                   <AreaChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
                     <defs>
@@ -3511,16 +3512,16 @@ export default function App() {
         }
 
         const kpiCards = [
-          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
-          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
+          { label:t('dash.revenue', null, 'Fatturato'), val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
+          { label:t('dash.orders', null, 'Ordini'), val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
           { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', key:'aov', sources:['shopify'] },
-          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
-          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
+          { label:t('dash.newCustomersShort', null, 'Nuovi Clienti'), val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
+          { label:t('dash.returningShort', null, 'Clienti Ritorno'), val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
           { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', key:'mer', sources:['shopify','meta'] },
           { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', key:'cac', lower:true, sources:['shopify','meta','google'] },
-          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
-          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
-          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
+          { label:t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC'), val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
+          { label:t('dash.metaSpendLabel', null, 'Meta Spend'), val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
+          { label:t('dash.googleSpend', null, 'Google Spend'), val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
         ]
 
         return (
@@ -3538,7 +3539,7 @@ export default function App() {
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
                 <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
-                {loading?'Aggiorno…':'Aggiorna'}
+                {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
               </button>
               <span style={{fontSize:11,color:'var(--text3)'}}>{quarterLabel(q0)} vs {quarterLabel(q1)}</span>
             </div>
@@ -3563,7 +3564,7 @@ export default function App() {
             </div>
 
             {/* Dati trimestrali table */}
-            <FxChartCard title="Dati trimestrali" glowColor="#22c55e" subtitle="Aggregato da dati mensili">
+            <FxChartCard title={t("dash.quarterData", null, "Dati trimestrali")} glowColor="#22c55e" subtitle={t("dash.aggMonthly", null, "Aggregato da dati mensili")}>
               <div style={{overflow:'auto',maxHeight:'72vh'}}>
                 <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                   <thead>
@@ -3640,7 +3641,7 @@ export default function App() {
             {quarterChartData.length > 0 && (
               <>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-                  <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+                  <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
                         <defs>
@@ -3670,7 +3671,7 @@ export default function App() {
                     </ResponsiveContainer>
                   </FxChartCard>
 
-                  <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+                  <FxChartCard title={t("dash.chartNewReturning", null, "Nuovi clienti e clienti di ritorno")} glowColor="#06b6d4">
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
                         <defs>
@@ -3721,7 +3722,7 @@ export default function App() {
                     </ResponsiveContainer>
                   </FxChartCard>
 
-                  <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+                  <FxChartCard title={t("dash.ratioLtvCacLabel", null, "Ratio LTV:CAC")} glowColor="#a78bfa">
                     <ResponsiveContainer width="100%" height={240}>
                       <AreaChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
                         <defs>
@@ -3956,16 +3957,16 @@ export default function App() {
         }
 
         const kpiCards = [
-          { label:'Fatturato', val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
-          { label:'Ordini', val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
+          { label:t('dash.revenue', null, 'Fatturato'), val:cur.fatturato, prev:prev.fatturato, fmt:f0, color:'var(--green)', key:'fatturato', sources:['shopify'] },
+          { label:t('dash.orders', null, 'Ordini'), val:cur.ordini, prev:prev.ordini, fmt:fn, color:'var(--accent)', key:'ordini', sources:['shopify'] },
           { label:'AOV', val:cur.aov, prev:prev.aov, fmt:f2, color:'var(--orange)', key:'aov', sources:['shopify'] },
-          { label:'Nuovi Clienti', val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
-          { label:'Clienti Ritorno', val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
+          { label:t('dash.newCustomersShort', null, 'Nuovi Clienti'), val:cur.nc, prev:prev.nc, fmt:fn, color:'var(--cyan)', key:'nc', sources:['shopify'] },
+          { label:t('dash.returningShort', null, 'Clienti Ritorno'), val:cur.rc, prev:prev.rc, fmt:fn, color:'var(--purple)', key:'rc', sources:['shopify'] },
           { label:'MER', val:cur.mer, prev:prev.mer, fmt:v=>v!=null?`${fr(v)}×`:'—', color:cur.mer!=null?(cur.mer>=3?'var(--green)':cur.mer>=2?'var(--orange)':'var(--red)'):'var(--text3)', key:'mer', sources:['shopify','meta'] },
           { label:'CAC', val:cur.cac, prev:prev.cac, fmt:f2, color:'var(--text)', key:'cac', lower:true, sources:['shopify','meta','google'] },
-          { label:'Ratio LTV:CAC', val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
-          { label:'Meta Spend', val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
-          { label:'Google Spend', val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
+          { label:t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC'), val:cur.ratio, prev:prev.ratio, fmt:v=>v!=null?`${fr(v)}:1`:'—', color:ratioColor(cur.ratio), key:'ratio', sources:['shopify','meta'] },
+          { label:t('dash.metaSpendLabel', null, 'Meta Spend'), val:cur.metaSpend, prev:prev.metaSpend, fmt:f0, color:'var(--accent)', key:'metaSpend', sources:['meta'] },
+          { label:t('dash.googleSpend', null, 'Google Spend'), val:cur.googleSpend, prev:prev.googleSpend, fmt:v=>v>0?f0(v):'—', color:'var(--yellow)', key:'googleSpend', sources:['google'] },
         ]
 
         return (
@@ -3983,7 +3984,7 @@ export default function App() {
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
                 <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
-                {loading?'Aggiorno…':'Aggiorna'}
+                {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
               </button>
               <span style={{fontSize:11,color:'var(--text3)'}}>{yearLabel(y0)} vs {yearLabel(y1)}</span>
             </div>
@@ -4008,7 +4009,7 @@ export default function App() {
             </div>
 
             {/* Dati annuali table */}
-            <FxChartCard title="Dati annuali" glowColor="#22c55e" subtitle="Aggregato da dati mensili">
+            <FxChartCard title={t("dash.yearData", null, "Dati annuali")} glowColor="#22c55e" subtitle={t("dash.aggMonthly", null, "Aggregato da dati mensili")}>
               <div style={{overflow:'auto',maxHeight:'72vh'}}>
                 <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                   <thead>
@@ -4085,7 +4086,7 @@ export default function App() {
             {yearChartData.length > 0 && (
               <>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-                  <FxChartCard title="Fatturato, Spesa e MER" glowColor="#22c55e">
+                  <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
                         <defs>
@@ -4115,7 +4116,7 @@ export default function App() {
                     </ResponsiveContainer>
                   </FxChartCard>
 
-                  <FxChartCard title="Nuovi clienti e clienti di ritorno" glowColor="#06b6d4">
+                  <FxChartCard title={t("dash.chartNewReturning", null, "Nuovi clienti e clienti di ritorno")} glowColor="#06b6d4">
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}} barGap={8}>
                         <defs>
@@ -4166,7 +4167,7 @@ export default function App() {
                     </ResponsiveContainer>
                   </FxChartCard>
 
-                  <FxChartCard title="Ratio LTV:CAC" glowColor="#a78bfa">
+                  <FxChartCard title={t("dash.ratioLtvCacLabel", null, "Ratio LTV:CAC")} glowColor="#a78bfa">
                     <ResponsiveContainer width="100%" height={240}>
                       <AreaChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
                         <defs>

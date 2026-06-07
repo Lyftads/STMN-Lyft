@@ -73,13 +73,13 @@ export default function ScannerAgent({ scan }) {
       const json = await r.json()
       if (!r.ok || json.error) {
         setError(json?.error || `Errore ${r.status}`)
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${json?.error || `Errore ${r.status}`}`, isError: true }])
+        setMessages(prev => [...prev, { role: 'assistant', content: `${json?.error || `Errore ${r.status}`}`, isError: true }])
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: json.reply || '(vuoto)' }])
       }
     } catch (e) {
       setError(e?.message || 'Errore di rete')
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${e?.message || 'Errore di rete'}`, isError: true }])
+      setMessages(prev => [...prev, { role: 'assistant', content: `${e?.message || 'Errore di rete'}`, isError: true }])
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Icon from './ui/Icon'
 
 // ─────────────────────────────────────────────────────────────
 //  AgentMemoryInspector — vista delle memorie agent.
@@ -30,9 +31,9 @@ const AGENT_LABELS = {
 }
 
 const ROLE_TAGS = {
-  preference: { label: 'Preferenza', icon: '⚙️', color: '#2997ff' },
-  fact:       { label: 'Fatto',       icon: '📌', color: '#22c55e' },
-  insight:    { label: 'Insight',     icon: '💡', color: '#f59e0b' },
+  preference: { label: 'Preferenza', icon: <Icon name="gear" size={11} />, color: '#2997ff' },
+  fact:       { label: 'Fatto',       icon: <Icon name="pin" size={11} />,  color: '#22c55e' },
+  insight:    { label: 'Insight',     icon: <Icon name="bulb" size={11} />, color: '#f59e0b' },
   observation:{ label: 'Osservazione',icon: '·',  color: '#86868b' },
 }
 

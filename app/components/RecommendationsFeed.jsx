@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Icon from './ui/Icon'
 
 const ACCENT = '#bf5af2'
 
 const PRIORITY_CONFIG = {
-  urgent: { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', label: 'URGENT', icon: '⚠' },
+  urgent: { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', label: 'URGENT', icon: <Icon name="warning" size={11} /> },
   high:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', label: 'HIGH',   icon: '▲' },
   medium: { color: '#2997ff', bg: 'rgba(41,151,255,0.10)', border: 'rgba(41,151,255,0.25)', label: 'MEDIUM', icon: '◆' },
   low:    { color: '#86868b', bg: 'rgba(134,134,139,0.08)', border: 'rgba(134,134,139,0.20)', label: 'LOW',    icon: '·' },
@@ -74,7 +75,7 @@ export default function RecommendationsFeed({ metrics, preset }) {
           background: `${ACCENT}20`, color: ACCENT,
           display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
           flexShrink: 0,
-        }}>✦</span>
+        }}><Icon name="sparkle" size={20} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
             Raccomandazioni proattive
@@ -127,8 +128,9 @@ export default function RecommendationsFeed({ metrics, preset }) {
               background: 'rgba(248,113,113,0.10)',
               border: '1px solid rgba(248,113,113,0.30)',
               color: '#fca5a5', fontSize: 12,
+              display: 'flex', alignItems: 'center', gap: 7,
             }}>
-              ⚠ {error}
+              <Icon name="warning" size={13} /> {error}
             </div>
           )}
 

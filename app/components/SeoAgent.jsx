@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
 // ─────────────────────────────────────────────────────────────
@@ -89,13 +90,13 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
       const json = await r.json()
       if (!r.ok || json.error) {
         setError(json?.error || `Errore ${r.status}`)
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${json?.error || `Errore ${r.status}`}`, isError: true }])
+        setMessages(prev => [...prev, { role: 'assistant', content: `${json?.error || `Errore ${r.status}`}`, isError: true }])
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: json.reply || '(vuoto)' }])
       }
     } catch (e) {
       setError(e?.message || 'Errore di rete')
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${e?.message || 'Errore di rete'}`, isError: true }])
+      setMessages(prev => [...prev, { role: 'assistant', content: `${e?.message || 'Errore di rete'}`, isError: true }])
     } finally {
       setLoading(false)
     }
@@ -140,7 +141,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          ✦
+          <Icon name="sparkle" size={20} />
           <span style={{
             position: 'absolute',
             bottom: 2,
@@ -196,7 +197,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
               background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
               display: 'grid', placeItems: 'center',
               fontSize: 16, fontWeight: 900, color: '#fff',
-            }}>✦</div>
+            }}><Icon name="sparkle" size={18} /></div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Esperto SEO</div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

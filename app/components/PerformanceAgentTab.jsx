@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const SUGGESTIONS = [
@@ -103,7 +104,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
           ...prev,
           {
             role: 'assistant',
-            content: `⚠️ ${json?.error || t('agent.errorN', { n: r.status }, `Errore ${r.status}`)}`,
+            content: `${json?.error || t('agent.errorN', { n: r.status }, `Errore ${r.status}`)}`,
             isError: true,
           },
         ])
@@ -120,7 +121,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ ${err?.message || t('agent.netError', null, 'Errore di rete')}`,
+          content: `${err?.message || t('agent.netError', null, 'Errore di rete')}`,
           isError: true,
         },
       ])
@@ -171,7 +172,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               color: '#fff',
             }}
           >
-            ✦
+            <Icon name="sparkle" size={20} />
           </div>
           <div>
             <div style={{ fontWeight: 900, color: palette.text, fontSize: 16 }}>

@@ -6,6 +6,23 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import FxCard from './ui/FxCard'
 import TimeframeSelector from './TimeframeSelector'
 import { PlatformBadges } from './PlatformIcon'
+import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
+
+function ApplyButton({ qstate, onClick }) {
+  const { t } = useI18n()
+  if (qstate === 'queued') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: 'var(--green)', flexShrink: 0 }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
+  return (
+    <button onClick={onClick} disabled={qstate === 'busy'} title={t('aq.applyTitle')} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+      padding: '7px 12px', borderRadius: 9, cursor: qstate === 'busy' ? 'wait' : 'pointer',
+      background: 'rgba(123,91,255,0.16)', border: '1px solid rgba(123,91,255,0.4)',
+      color: '#c4b5fd', fontSize: 11.5, fontWeight: 800,
+    }}>
+      <Icon name="bolt" size={13} /> {qstate === 'busy' ? '…' : qstate === 'err' ? t('aq.retry') : t('aq.apply')}
+    </button>
+  )
+}
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -23,12 +40,23 @@ const money = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT'
 const nf = (n) => Number(n || 0).toLocaleString('it-IT')
 
 export default function CreativeFatiguePanel() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
   const [preset, setPreset] = useState('last_28d')
+  const [queued, setQueued] = useState({})
+
+  const enqueue = async (key, body) => {
+    setQueued(q => ({ ...q, [key]: 'busy' }))
+    try {
+      const r = await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const j = await r.json()
+      setQueued(q => ({ ...q, [key]: j.ok ? 'queued' : 'err' }))
+    } catch { setQueued(q => ({ ...q, [key]: 'err' })) }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -143,6 +171,14 @@ export default function CreativeFatiguePanel() {
                       <Metric label="CPA" value={money(a.cpa)} tone={cpaTone(a.cpa)} />
                       <Metric label="Spesa" value={money(a.spend)} />
                     </div>
+                    {a.severity === 'high' && (
+                      <ApplyButton qstate={queued[a.adId]} onClick={() => enqueue(a.adId, {
+                        channel: 'meta', source: 'creative_fatigue', type: 'refresh_creative',
+                        target_ref: a.adId, target_name: a.name,
+                        payload: { frequency: a.frequency, ctr: a.ctr, cpa: a.cpa, score: a.score, campaign: a.campaign },
+                        summary: t('aq.sum.refresh', { name: a.name, freq: a.frequency, ctr: a.ctr }),
+                      })} />
+                    )}
                   </div>
                 )
               })}

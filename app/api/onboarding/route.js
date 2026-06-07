@@ -3,6 +3,7 @@ export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
+import { invalidateTenantCache } from '../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Onboarding API
@@ -107,6 +108,9 @@ export async function POST(req) {
     .eq('user_id', userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Le nuove credenziali devono valere SUBITO (no stale fino al TTL cache).
+  invalidateTenantCache(userId)
 
   return NextResponse.json({ ok: true, step, saved: Object.keys(updates) })
 }

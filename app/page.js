@@ -4232,7 +4232,7 @@ export default function App() {
 )}
 
 {tab === 'actionQueue' && (
-  <ActionQueueTab />
+  <ActionQueueTab metrics={live} />
 )}
 
 {tab === 'budgetAdvisor' && (

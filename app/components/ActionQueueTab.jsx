@@ -114,7 +114,91 @@ const TYPE_ICON = {
 
 const FILTER_IDS = ['all', 'pending', 'approved', 'executed', 'rejected']
 
-export default function ActionQueueTab() {
+const PRIO_COLOR = { urgent: '#f87171', high: '#fbbf24', medium: '#2997ff', low: '#86868b' }
+
+// Orchestratore: l'AI legge i dati e propone azioni cross-canale → un clic accoda.
+function SuggestPanel({ t, metrics, onQueued }) {
+  const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState(null)
+  const [err, setErr] = useState(null)
+  const [q, setQ] = useState({})
+
+  const run = async () => {
+    setLoading(true); setErr(null)
+    try {
+      const r = await fetch('/api/actions/suggest', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metrics, locale: getClientLocale() }),
+      })
+      const j = await r.json()
+      if (j.ok) setItems(j.suggestions || []); else setErr(j.error || 'Errore')
+    } catch (e) { setErr(e.message) }
+    setLoading(false)
+  }
+
+  const add = async (idx, s) => {
+    setQ(p => ({ ...p, [idx]: 'busy' }))
+    try {
+      const r = await fetch('/api/actions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: s.channel, source: 'orchestrator', type: s.type,
+          target_name: s.target_name || null,
+          payload: { priority: s.priority, why: s.why || null },
+          summary: s.summary,
+        }),
+      })
+      const j = await r.json()
+      setQ(p => ({ ...p, [idx]: j.ok ? 'queued' : 'err' }))
+      if (j.ok) onQueued && onQueued()
+    } catch { setQ(p => ({ ...p, [idx]: 'err' })) }
+  }
+
+  return (
+    <div className="glass-card-static" style={{ padding: 16, borderRadius: 14, marginBottom: 16, border: '1px solid rgba(100,210,255,0.28)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ color: '#64d2ff', display: 'inline-flex' }}><Icon name="sparkle" size={18} /></span>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('aq.suggest.title')}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('aq.suggest.hint')}</div>
+        </div>
+        <button onClick={run} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg,#2997ff,#64d2ff)', color: '#04210f', fontSize: 12.5, fontWeight: 800 }}>
+          <Icon name="sparkle" size={13} /> {loading ? t('aq.suggest.generating') : t('aq.suggest.btn')}
+        </button>
+      </div>
+
+      {err && <div style={{ marginTop: 10, fontSize: 12, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="warning" size={13} /> {err}</div>}
+
+      {items && items.length === 0 && <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text3)' }}>{t('aq.suggest.none')}</div>}
+
+      {items && items.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+          {items.map((s, idx) => (
+            <div key={idx} className="glass-panel" style={{ borderRadius: 12, padding: 12, borderLeft: `3px solid ${PRIO_COLOR[s.priority] || '#2997ff'}` }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{s.summary}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 5, fontSize: 11, color: 'var(--text3)' }}>
+                    <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, color: '#a78bfa' }}>{s.channel}</span>
+                    <span style={{ color: PRIO_COLOR[s.priority] || '#2997ff', fontWeight: 700 }}>· {s.priority}</span>
+                  </div>
+                  {s.why && <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 5 }}>{s.why}</div>}
+                </div>
+                {q[idx] === 'queued'
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#86efac', flexShrink: 0 }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
+                  : <button onClick={() => add(idx, s)} disabled={q[idx] === 'busy'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: '6px 11px', borderRadius: 8, cursor: q[idx] === 'busy' ? 'wait' : 'pointer', background: 'rgba(123,91,255,0.16)', border: '1px solid rgba(123,91,255,0.4)', color: '#c4b5fd', fontSize: 11, fontWeight: 800 }}>
+                      <Icon name="bolt" size={12} /> {q[idx] === 'busy' ? '…' : q[idx] === 'err' ? t('aq.retry') : t('aq.suggest.add')}
+                    </button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ActionQueueTab({ metrics }) {
   const { t } = useI18n()
   const [actions, setActions] = useState([])
   const [counts, setCounts] = useState({})
@@ -173,6 +257,7 @@ export default function ActionQueueTab() {
         </button>
       </div>
 
+      <SuggestPanel t={t} metrics={metrics} onQueued={load} />
       <LaunchComposer t={t} onQueued={load} />
 
       {/* Filtri */}

@@ -333,6 +333,8 @@ async function ingestCourse({ test, start, limit }) {
 
     if (meta.n && meta.n < startAt) {
       log(`[lez ${meta.n}] < start ${startAt}, salto`)
+    } else if (!FORCE && await alreadyDone(`lez:${meta.n || idx}`)) {
+      log(`[lez ${meta.n || idx}] già fatto, salto`)
     } else {
       processed++
       log(`[lez ${meta.n || idx}/${meta.total || '?'}] ${meta.title}`)
@@ -411,6 +413,7 @@ function opt(name, def) { const i = rest.indexOf(`--${name}`); return i >= 0 ? r
       log(`Totale video da processare: ${urls.length}`)
       await ingestYouTube(urls)
     } else if (cmd === 'course') {
+      FORCE = flag('force')
       await ingestCourse({ test: flag('test'), start: Number(opt('start')) || null, limit: Number(opt('limit')) || null })
     } else {
       console.log('Uso: node scripts/ingest-knowledge.mjs <course|youtube> [opzioni]')

@@ -72,23 +72,24 @@ async function whisper(audioPath) {
 }
 
 const DISTILL_SYSTEM = `Sei un senior advertising/marketing strategist. Ti do la trascrizione (o gli appunti) di una lezione.
-Estrai la CONOSCENZA OPERATIVA in note atomiche, riutilizzabili come METODO da un AI advisor: framework, regole, criteri di decisione, checklist, soglie/benchmark, errori comuni e come evitarli.
-REGOLE FERREE:
+Estrai TUTTA la conoscenza operativa in note atomiche, riutilizzabili come METODO da un AI advisor: framework, regole, criteri di decisione, checklist, soglie/benchmark, numeri, step procedurali, esempi operativi, errori comuni e come evitarli.
+ESAUSTIVITÀ (requisito #1): NON riassumere e NON tralasciare NULLA di utile. Se la lezione spiega 10 cose, voglio 10+ note. Cattura ogni concetto distinto, ogni numero/soglia citato, ogni passaggio. Meglio troppe note che perderne una. Quante ne servono (tipicamente 12-40 per lezione densa).
+ALTRE REGOLE FERREE:
 - ANONIMIZZA TUTTO: NON includere MAI nomi di persone, brand del docente, canali YouTube, nomi di corsi/community, o riferimenti tipo "in questo video", "il docente dice". Scrivi i principi come verità di metodo.
-- NIENTE trascrizione verbatim: riformula in concetti/azioni. Ogni nota deve poter stare da sola.
-- Concreta e densa: numeri, soglie, step. Niente fuffa, niente preamboli.
+- NIENTE trascrizione verbatim: riformula in concetti/azioni. Ogni nota atomica e autosufficiente (comprensibile da sola, fuori contesto).
+- Densa e concreta: numeri, soglie, step. Niente fuffa, niente preamboli, niente meta-commenti.
 - Italiano.
-Rispondi SOLO con JSON: {"topic":"<slug-macro-argomento, es. meta-scaling | creative-testing | budget-allocation>","notes":["nota 1","nota 2", ...]}. 5-15 note per lezione.`
+Rispondi SOLO con JSON: {"topic":"<slug-macro-argomento, es. meta-scaling | creative-testing | budget-allocation | targeting | funnel | copywriting>","notes":["nota 1","nota 2", ...]}.`
 
-async function distill(rawText) {
+async function distillChunk(rawText) {
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${OPENAI}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: OPENAI_MODEL, temperature: 0.3, response_format: { type: 'json_object' },
+      model: OPENAI_MODEL, temperature: 0.2, response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: DISTILL_SYSTEM },
-        { role: 'user', content: String(rawText).slice(0, 24000) },
+        { role: 'user', content: rawText },
       ],
     }),
   })
@@ -97,12 +98,40 @@ async function distill(rawText) {
   return { topic: j.topic || null, notes: Array.isArray(j.notes) ? j.notes.filter(Boolean) : [] }
 }
 
+// Distillazione ESAUSTIVA: per non perdere nulla sui video lunghi, spezzo la
+// trascrizione in finestre (~14k char, con overlap) e distillo ognuna, unendo
+// le note. Dedup leggero per evitare ripetizioni tra finestre adiacenti.
+async function distill(rawText) {
+  const text = String(rawText)
+  const WIN = 14000, OVER = 1000
+  const chunks = []
+  if (text.length <= WIN) chunks.push(text)
+  else for (let i = 0; i < text.length; i += (WIN - OVER)) chunks.push(text.slice(i, i + WIN))
+  let topic = null
+  const all = []
+  for (const c of chunks) {
+    const { topic: t, notes } = await distillChunk(c)
+    if (!topic && t) topic = t
+    all.push(...notes)
+  }
+  // dedup: scarta note quasi identiche (stesso inizio normalizzato)
+  const seen = new Set(); const notes = []
+  for (const no of all) {
+    const k = String(no).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60)
+    if (seen.has(k)) continue; seen.add(k); notes.push(no)
+  }
+  return { topic, notes }
+}
+
 // Filtro di sicurezza: scarta note che (per errore del modello) contengono
 // pattern di attribuzione tipici. Best-effort.
 const ATTRIB = /\b(in questo video|il docente|il corso|youtuber|canale youtube|community)\b/i
 function clean(note) { return ATTRIB.test(note) ? note.replace(ATTRIB, '').trim() : note }
 
 async function saveNotes(notes, { topic, source, sourceRef, importance = 5 }) {
+  // Idempotenza: se rilancio la stessa lezione/video, rimpiazzo le sue note
+  // (cancello le precedenti con lo stesso source_ref) invece di duplicarle.
+  if (sourceRef) { try { await sb.from('knowledge_base').delete().eq('source_ref', sourceRef) } catch {} }
   let n = 0
   for (const raw of notes) {
     const content = clean(String(raw).trim())
@@ -189,14 +218,26 @@ async function ingestCourse({ test, start, limit }) {
   const ctx = await browser.newContext()
   const page = await ctx.newPage()
 
-  // login
-  log('Login Circle…')
   const origin = new URL(FIRST).origin
-  await page.goto(`${origin}/sign_in`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[type="email"]', EMAIL)
-  await page.fill('input[type="password"]', PASS)
-  await page.click('button[type="submit"]')
-  await page.waitForLoadState('networkidle').catch(() => {})
+
+  // login Circle (2 step). Riusabile per il re-login su scadenza sessione.
+  async function doLogin() {
+    await page.goto(`${origin}/users/sign_in`, { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(1500)
+    try { await page.getByText(/Accedi con e-?mail/i).click({ timeout: 8000 }) } catch {}
+    await page.waitForSelector('#user_email', { timeout: 15000 })
+    await page.fill('#user_email', EMAIL)
+    await page.fill('#user_password', PASS)
+    await Promise.all([
+      page.waitForLoadState('networkidle').catch(() => {}),
+      page.getByRole('button', { name: /^Accedi$/i }).click().catch(() => page.click('button[type="submit"]')),
+    ])
+    await page.waitForTimeout(2000)
+    return !/sign_in/.test(page.url())
+  }
+
+  log('Login Circle…')
+  if (await doLogin()) log('Login ok.'); else warn('Login forse fallito — controlla email/password.')
 
   let url = FIRST
   let idx = 0, saved = 0
@@ -212,11 +253,17 @@ async function ingestCourse({ test, start, limit }) {
     page.on('request', onReq)
 
     await page.goto(url, { waitUntil: 'domcontentloaded' })
+    // resilienza: se la sessione è scaduta (redirect a sign_in), re-login e ritorno alla lezione
+    if (/sign_in/.test(page.url())) {
+      warn('  sessione scaduta → re-login')
+      await doLogin()
+      await page.goto(url, { waitUntil: 'domcontentloaded' })
+    }
     // numero lezione + titolo + descrizione
     const meta = await page.evaluate(() => {
       const t = document.body.innerText
-      const m = t.match(/Lesson\s+(\d+)\s+of\s+(\d+)/i)
-      const h = document.querySelector('h1,h2')?.innerText || ''
+      const m = t.match(/(?:Lesson|Lezione)\s+(\d+)\s+(?:of|di)\s+(\d+)/i)
+      const h = document.querySelector('h1, h2')?.innerText?.trim() || ''
       return { n: m ? +m[1] : null, total: m ? +m[2] : null, title: h, bodyText: t.slice(0, 4000) }
     })
 

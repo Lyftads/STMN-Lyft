@@ -130,6 +130,7 @@ export default function VendroShell({
       items: [
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
         { id: 'creativeLab', label: 'Creative Lab', icon: <Icon name="sparkles" /> },
+        { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },
         { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },

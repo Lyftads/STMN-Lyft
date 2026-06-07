@@ -14,7 +14,7 @@ const META_EXECUTOR_ON = process.env.ACTIONS_META_EXECUTOR === 'true' || process
 // Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
 
 const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google', 'shopify', 'other']
-const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'custom']
+const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'create_post', 'reply_comment', 'custom']
 const STATUSES = ['pending', 'approved', 'executed', 'rejected', 'failed']
 
 export async function GET(req) {

@@ -220,9 +220,21 @@ async function ingestCourse({ test, start, limit }) {
 
   const origin = new URL(FIRST).origin
 
+  // goto resiliente: ritenta sui buchi di rete (DNS/timeout) invece di morire.
+  async function gotoRetry(u, tries = 6) {
+    for (let i = 1; i <= tries; i++) {
+      try { await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 35000 }); return true }
+      catch (e) {
+        warn(`  rete (${i}/${tries}): ${e.message.split('\n')[0].slice(0, 80)} — ritento tra 8s`)
+        await page.waitForTimeout(8000)
+      }
+    }
+    return false
+  }
+
   // login Circle (2 step). Riusabile per il re-login su scadenza sessione.
   async function doLogin() {
-    await page.goto(`${origin}/users/sign_in`, { waitUntil: 'domcontentloaded' })
+    await gotoRetry(`${origin}/users/sign_in`)
     await page.waitForTimeout(1500)
     try { await page.getByText(/Accedi con e-?mail/i).click({ timeout: 8000 }) } catch {}
     await page.waitForSelector('#user_email', { timeout: 15000 })
@@ -252,12 +264,13 @@ async function ingestCourse({ test, start, limit }) {
     const onReq = (req) => { const u = req.url(); if (!m3u8 && /\.m3u8(\?|$)/i.test(u)) m3u8 = u }
     page.on('request', onReq)
 
-    await page.goto(url, { waitUntil: 'domcontentloaded' })
+    const ok = await gotoRetry(url)
+    if (!ok) { warn(`  lezione non caricata dopo i retry, salto: ${url}`); page.off('request', onReq); break }
     // resilienza: se la sessione è scaduta (redirect a sign_in), re-login e ritorno alla lezione
     if (/sign_in/.test(page.url())) {
       warn('  sessione scaduta → re-login')
       await doLogin()
-      await page.goto(url, { waitUntil: 'domcontentloaded' })
+      await gotoRetry(url)
     }
     // numero lezione + titolo + descrizione
     const meta = await page.evaluate(() => {
@@ -265,7 +278,7 @@ async function ingestCourse({ test, start, limit }) {
       const m = t.match(/(?:Lesson|Lezione)\s+(\d+)\s+(?:of|di)\s+(\d+)/i)
       const h = document.querySelector('h1, h2')?.innerText?.trim() || ''
       return { n: m ? +m[1] : null, total: m ? +m[2] : null, title: h, bodyText: t.slice(0, 4000) }
-    })
+    }).catch(() => ({ n: null, total: null, title: '', bodyText: '' }))
 
     if (meta.n && meta.n < startAt) {
       log(`[lez ${meta.n}] < start ${startAt}, salto`)

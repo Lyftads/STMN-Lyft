@@ -136,7 +136,7 @@ function SuggestPanel({ t, metrics, onQueued }) {
     setLoading(false)
   }
 
-  const add = async (idx, s) => {
+  const add = async (idx, s, skipReload) => {
     setQ(p => ({ ...p, [idx]: 'busy' }))
     try {
       const r = await fetch('/api/actions', {
@@ -150,9 +150,22 @@ function SuggestPanel({ t, metrics, onQueued }) {
       })
       const j = await r.json()
       setQ(p => ({ ...p, [idx]: j.ok ? 'queued' : 'err' }))
-      if (j.ok) onQueued && onQueued()
-    } catch { setQ(p => ({ ...p, [idx]: 'err' })) }
+      if (j.ok && !skipReload) onQueued && onQueued()
+      return j.ok
+    } catch { setQ(p => ({ ...p, [idx]: 'err' })); return false }
   }
+
+  const addAll = async () => {
+    if (!items) return
+    let any = false
+    for (let idx = 0; idx < items.length; idx++) {
+      if (q[idx] === 'queued') continue
+      const ok = await add(idx, items[idx], true)
+      any = any || ok
+    }
+    if (any) onQueued && onQueued()
+  }
+  const remaining = items ? items.filter((_, idx) => q[idx] !== 'queued').length : 0
 
   return (
     <div className="glass-card-static" style={{ padding: 16, borderRadius: 14, marginBottom: 16, border: '1px solid rgba(100,210,255,0.28)' }}>
@@ -170,6 +183,14 @@ function SuggestPanel({ t, metrics, onQueued }) {
       {err && <div style={{ marginTop: 10, fontSize: 12, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="warning" size={13} /> {err}</div>}
 
       {items && items.length === 0 && <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text3)' }}>{t('aq.suggest.none')}</div>}
+
+      {items && items.length > 1 && remaining > 0 && (
+        <div style={{ marginTop: 12, textAlign: 'right' }}>
+          <button onClick={addAll} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(123,91,255,0.45)', background: 'rgba(123,91,255,0.16)', color: '#c4b5fd', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>
+            <Icon name="bolt" size={12} /> {t('aq.suggest.addAll', { n: remaining })}
+          </button>
+        </div>
+      )}
 
       {items && items.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>

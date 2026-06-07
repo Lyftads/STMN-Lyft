@@ -46,6 +46,20 @@ export default function VendroShell({
   children,
 }) {
   const { t } = useI18n()
+
+  // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
+  const [pendingActions, setPendingActions] = useState(0)
+  useEffect(() => {
+    let alive = true
+    const load = () => fetch('/api/actions?status=pending')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (alive && j) setPendingActions((j.actions || []).length) })
+      .catch(() => {})
+    load()
+    const id = setInterval(load, 60_000)
+    return () => { alive = false; clearInterval(id) }
+  }, [tab])
+
   const navGroups = [
     {
       title: 'Team',
@@ -339,7 +353,14 @@ export default function VendroShell({
                       }}>
                         {item.icon}
                       </span>
-                      <span>{t('tab.' + item.id, null, item.label)}</span>
+                      <span style={{ flex: 1 }}>{t('tab.' + item.id, null, item.label)}</span>
+                      {item.id === 'actionQueue' && pendingActions > 0 && (
+                        <span style={{
+                          minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                          background: '#fbbf24', color: '#1a1400', fontSize: 11, fontWeight: 800,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{pendingActions > 99 ? '99+' : pendingActions}</span>
+                      )}
                     </button>
                   )
                 })}

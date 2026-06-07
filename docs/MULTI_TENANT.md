@@ -30,7 +30,7 @@ Sono segreti dell'app, uguali per tutti i tenant:
 | `app/api/product-costs/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ✅ **migrata (template)** |
 | `app/api/report/route.js` | META_ACCESS_TOKEN, META_AD_ACCOUNT_ID | ✅ **migrata** (getMeta nelle 3 fn + GET wrappato) |
 | `app/api/creative/route.js` | META token + account(s) | ⏳ |
-| `app/api/creative-lab/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ⏳ |
+| `app/api/creative-lab/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ✅ **migrata** (GET+POST wrappati, getShopify in fetchShopifyProducts) |
 | `app/api/cro/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN, GA4_PROPERTY_ID, GOOGLE_REFRESH_TOKEN (const modulo) | ⏳ (Google già via resolver, Shopify/GA4 no) |
 | `app/api/adlibrary-page/route.js` | META token | ✅ **migrata** |
 | `app/api/product-images/route.js` | SHOPIFY_STORE_URL (+ fallback hardcoded!) | ✅ **migrata** (rimosso fallback STMN) |

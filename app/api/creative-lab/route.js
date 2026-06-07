@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -7,8 +8,6 @@ export const maxDuration = 300
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const GEMINI_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
-const SHOPIFY_STORE = process.env.SHOPIFY_STORE_URL
-const SHOPIFY_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
 
 function json(data, status = 200) {
   return NextResponse.json(data, { status })
@@ -25,6 +24,7 @@ async function safeFetch(url, opts = {}) {
 }
 
 async function fetchShopifyProducts() {
+  const { storeUrl: SHOPIFY_STORE, adminToken: SHOPIFY_TOKEN } = getShopify()
   if (!SHOPIFY_STORE || !SHOPIFY_TOKEN) return []
   try {
     const res = await fetch(
@@ -176,6 +176,7 @@ async function generateImage(prompt, model, format) {
 }
 
 export async function GET(request) {
+  return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
   const perPage = Math.min(50, Math.max(1, parseInt(searchParams.get('perPage') || '20')))
@@ -272,9 +273,11 @@ export async function GET(request) {
     perPage,
     availableModels,
   })
+  })
 }
 
 export async function POST(request) {
+  return withTenantContext(request, async () => {
   if (!OPENAI_KEY) {
     return json({ error: 'OPENAI_API_KEY non configurata' }, 500)
   }
@@ -547,4 +550,5 @@ Rispondi con un JSON valido: { "creatives": [...] }`
   } catch (e) {
     return json({ error: e.message }, 500)
   }
+  })
 }

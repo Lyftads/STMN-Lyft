@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import LogoMark from '../components/LogoMark'
+import { browserToLocale } from '../../lib/i18n/geoLocale'
 
 // Globo decorativo dell'hero (three.js) — lazy, niente SSR, non blocca il primo paint
 const LandingGlobe = dynamic(() => import('../components/LandingGlobe'), { ssr: false })
@@ -761,17 +762,39 @@ const LANG_LABELS = { it: 'IT', en: 'EN', es: 'ES', fr: 'FR', de: 'DE' }
 export default function WelcomePage() {
   const [lang, setLang] = useState('it')
 
-  // Persisti scelta lingua in localStorage
+  // Lingua: 1) scelta salvata su questo device 2) auto-rilevamento
+  // (lingua del browser → poi paese dell'IP) 3) default 'it'.
+  const langChosen = useRef(false)
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const saved = localStorage.getItem('lyftai_lang')
-    if (saved && I18N[saved]) setLang(saved)
+    let alive = true
+    try {
+      const saved = localStorage.getItem('lyftai_lang')
+      if (saved && I18N[saved]) { langChosen.current = true; setLang(saved); return }
+    } catch {}
+
+    // Nessuna scelta salvata → auto-rileva. Visitatore EN/ES/FR/DE vede subito
+    // la landing nella sua lingua, senza dover cliccare il selettore.
+    const browser = browserToLocale(navigator.language || (navigator.languages && navigator.languages[0]))
+    if (browser && I18N[browser]) { setLang(browser); return }
+    fetch('/api/geo')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!alive || langChosen.current) return
+        const s = j?.suggested
+        if (s && I18N[s]) setLang(s)
+      })
+      .catch(() => {})
+    return () => { alive = false }
   }, [])
   useEffect(() => {
     if (typeof window === 'undefined') return
     localStorage.setItem('lyftai_lang', lang)
     document.documentElement.lang = lang
   }, [lang])
+
+  // Scelta manuale dal selettore → vince sull'auto-rilevamento async.
+  const chooseLang = (code) => { langChosen.current = true; setLang(code) }
 
   const t = I18N[lang]
 
@@ -784,7 +807,7 @@ export default function WelcomePage() {
       <Styles />
       <BgFx />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <Nav t={t} lang={lang} setLang={setLang} />
+        <Nav t={t} lang={lang} setLang={chooseLang} />
         <Hero t={t} />
         <TrustBar t={t} />
         <ProblemSolution t={t} />

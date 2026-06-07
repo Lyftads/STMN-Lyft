@@ -219,6 +219,79 @@ function SuggestPanel({ t, metrics, onQueued }) {
   )
 }
 
+// Loop di apprendimento: misura cosa è stato effettivamente eseguito (dai dati
+// già in coda). Tasso di azione = eseguite / (eseguite + rifiutate).
+function RecapPanel({ t, actions }) {
+  const [open, setOpen] = useState(false)
+  const history = actions.filter(a => a.status !== 'pending')
+  if (history.length === 0) return null
+
+  const executed = actions.filter(a => a.status === 'executed')
+  const rejected = actions.filter(a => a.status === 'rejected').length
+  const now = new Date()
+  const exMonth = executed.filter(a => {
+    const d = new Date(a.executed_at || a.created_at)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
+  const rate = (executed.length + rejected) > 0 ? Math.round(executed.length / (executed.length + rejected) * 100) : null
+
+  const tally = (key) => {
+    const m = {}
+    for (const a of executed) { const k = a[key] || '—'; m[k] = (m[k] || 0) + 1 }
+    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  }
+  const bySource = tally('source')
+  const byChannel = tally('channel')
+  const max = Math.max(1, ...bySource.map(([, n]) => n), ...byChannel.map(([, n]) => n))
+
+  const stat = (label, value, sub) => (
+    <div className="glass-panel" style={{ borderRadius: 10, padding: '10px 14px', flex: 1, minWidth: 120 }}>
+      <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 3 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>{sub}</div>}
+    </div>
+  )
+  const breakdown = (label, rows) => rows.length > 0 && (
+    <div style={{ flex: 1, minWidth: 200 }}>
+      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {rows.map(([k, n]) => (
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ minWidth: 96, color: 'var(--text2)', textTransform: 'capitalize' }}>{String(k).replace(/_/g, ' ')}</span>
+            <span style={{ flex: 1, height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+              <span style={{ display: 'block', width: `${Math.max(8, n / max * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#64d2ff)' }} />
+            </span>
+            <span style={{ color: 'var(--text3)', fontWeight: 700, minWidth: 18, textAlign: 'right' }}>{n}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="glass-card-static" style={{ padding: 16, borderRadius: 14, marginBottom: 16 }}>
+      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 0 }}>
+        <span style={{ color: '#64d2ff', display: 'inline-flex' }}><Icon name="chart-bar" size={18} /></span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>{t('aq.recap.title')}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)', fontWeight: 700 }}>{executed.length} · {t('aq.recap.executed').toLowerCase()}</span>
+        <span style={{ color: 'var(--text3)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>›</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+            {stat(t('aq.recap.executed'), executed.length, `${exMonth} ${t('aq.recap.thisMonth')}`)}
+            {rate != null && <div title={t('aq.recap.rateHint')} style={{ flex: 1, minWidth: 120 }}>{stat(t('aq.recap.actionRate'), `${rate}%`)}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            {breakdown(t('aq.recap.bySource'), bySource)}
+            {breakdown(t('aq.recap.byChannel'), byChannel)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ActionQueueTab({ metrics }) {
   const { t } = useI18n()
   const [actions, setActions] = useState([])
@@ -278,6 +351,7 @@ export default function ActionQueueTab({ metrics }) {
         </button>
       </div>
 
+      <RecapPanel t={t} actions={actions} />
       <SuggestPanel t={t} metrics={metrics} onQueued={load} />
       <LaunchComposer t={t} onQueued={load} />
 

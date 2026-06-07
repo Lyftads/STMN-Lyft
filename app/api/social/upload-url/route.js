@@ -22,13 +22,22 @@ export async function POST(req) {
   const filename = String(b.filename || 'file')
   const ext = (filename.toLowerCase().match(/\.([a-z0-9]+)$/) || [, 'bin'])[1]
 
-  // Bucket pubblico con limite file alto (i video full-quality possono pesare).
-  try { await admin.storage.createBucket(BUCKET, { public: true, fileSizeLimit: '1024MB' }) } catch {}
-
+  // Assicura il bucket pubblico. NB: NON forziamo fileSizeLimit: se supera il
+  // limite globale del progetto (Settings → Storage), createBucket fallisce e
+  // il bucket non viene creato → signed URL "resource does not exist". Lasciamo
+  // il limite globale del progetto (alzalo nel dashboard per video pesanti).
   const path = `${ws.workspaceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  async function sign() {
+    return admin.storage.from(BUCKET).createSignedUploadUrl(path)
+  }
   try {
-    const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path)
-    if (error) throw error
+    let { data, error } = await sign()
+    if (error) {
+      // Bucket probabilmente assente → crealo e riprova una volta.
+      await admin.storage.createBucket(BUCKET, { public: true }).catch(() => {})
+      ;({ data, error } = await sign())
+      if (error) throw error
+    }
     const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path)
     return NextResponse.json({ ok: true, bucket: BUCKET, path: data.path, token: data.token, publicUrl: pub.publicUrl })
   } catch (e) {

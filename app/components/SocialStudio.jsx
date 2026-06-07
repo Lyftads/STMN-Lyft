@@ -90,7 +90,7 @@ export default function SocialStudio() {
   const platLabel = PLATFORMS.find(p => p.id === platform)?.label || platform
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 16, alignItems: 'start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="glass-card-static" style={{ padding: 18, borderRadius: 14 }}>
         {/* Piattaforma */}
         <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.platform')}</div>

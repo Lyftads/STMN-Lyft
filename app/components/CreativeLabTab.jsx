@@ -90,6 +90,24 @@ function Pagination({ page, totalPages, onPageChange }) {
 
 function PreviewCard({ creative, productImage, format, onAccept, onReject, accepted, rejecting }) {
   const { t } = useI18n()
+  const [pub, setPub] = useState(null)
+  const publishAsAd = async () => {
+    setPub('busy')
+    try {
+      const name = creative.headline || creative.angle || 'Creative'
+      const r = await fetch('/api/actions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: 'meta', source: 'creative_lab', type: 'create_ad',
+          target_name: name,
+          payload: { headline: creative.headline, primaryText: creative.primaryText, cta: creative.cta, image: creative.generatedImage, angle: creative.angle, persona: creative.persona, funnelStage: creative.funnelStage },
+          summary: t('aq.sum.createAd', { name }),
+        }),
+      })
+      const j = await r.json()
+      setPub(j.ok ? 'queued' : 'err')
+    } catch { setPub('err') }
+  }
   return (
     <div
       style={{
@@ -272,18 +290,31 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
         )}
 
         {accepted && creative.generatedImage && (
-          <a
-            href={creative.generatedImage}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block', marginTop: 12, padding: '8px 16px',
-              borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)',
-              color: '#c8c0d6', fontSize: 12, fontWeight: 700, textDecoration: 'none',
-            }}
-          >
-            {t('cl.downloadImage', null, 'Scarica immagine ↓')}
-          </a>
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <a
+              href={creative.generatedImage}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block', padding: '8px 16px',
+                borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)',
+                color: '#c8c0d6', fontSize: 12, fontWeight: 700, textDecoration: 'none',
+              }}
+            >
+              {t('cl.downloadImage', null, 'Scarica immagine ↓')}
+            </a>
+            {pub === 'queued' ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, color: '#22c55e' }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
+            ) : (
+              <button onClick={publishAsAd} disabled={pub === 'busy'} title={t('aq.applyTitle')} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
+                background: 'rgba(123,91,255,0.16)', border: '1px solid rgba(123,91,255,0.4)',
+                color: '#c4b5fd', fontSize: 12, fontWeight: 800, cursor: pub === 'busy' ? 'wait' : 'pointer',
+              }}>
+                <Icon name="bolt" size={13} /> {pub === 'busy' ? '…' : pub === 'err' ? t('aq.retry') : t('aq.publishAd')}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

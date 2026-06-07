@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
+import { addNotification } from '../../../lib/team/notify'
 
 // Coda Azioni (Fase 1). Workspace-scoped, service-role + filtro workspace_id.
 // Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
@@ -121,6 +122,19 @@ export async function PATCH(req) {
       .select()
       .single()
     if (error) throw error
+
+    // Notifica l'autore della richiesta quando un admin diverso da lui decide.
+    const approver = ws.memberId || ws.userId || null
+    if (['approve', 'reject', 'execute'].includes(op) && data?.requested_by && data.requested_by !== approver) {
+      addNotification({
+        workspaceId: ws.workspaceId,
+        recipientId: data.requested_by,
+        type: 'action_' + op,
+        title: data.summary,
+        tab: 'actionQueue',
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ ok: true, action: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message })

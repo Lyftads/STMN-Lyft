@@ -117,7 +117,7 @@ const FILTER_IDS = ['all', 'pending', 'approved', 'executed', 'rejected']
 const PRIO_COLOR = { urgent: '#f87171', high: '#fbbf24', medium: '#2997ff', low: '#86868b' }
 
 // Orchestratore: l'AI legge i dati e propone azioni cross-canale → un clic accoda.
-function SuggestPanel({ t, metrics, onQueued }) {
+function SuggestPanel({ t, metrics, existing, onQueued }) {
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState(null)
   const [err, setErr] = useState(null)
@@ -128,7 +128,7 @@ function SuggestPanel({ t, metrics, onQueued }) {
     try {
       const r = await fetch('/api/actions/suggest', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metrics, locale: getClientLocale() }),
+        body: JSON.stringify({ metrics, locale: getClientLocale(), exclude: existing || [] }),
       })
       const j = await r.json()
       if (j.ok) setItems(j.suggestions || []); else setErr(j.error || 'Errore')
@@ -362,7 +362,7 @@ export default function ActionQueueTab({ metrics }) {
       </div>
 
       <RecapPanel t={t} actions={actions} />
-      <SuggestPanel t={t} metrics={metrics} onQueued={load} />
+      <SuggestPanel t={t} metrics={metrics} existing={actions.filter(a => a.status === 'pending' || a.status === 'approved').map(a => a.summary)} onQueued={load} />
       <LaunchComposer t={t} onQueued={load} />
 
       {/* Filtri */}

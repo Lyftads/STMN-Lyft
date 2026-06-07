@@ -68,6 +68,9 @@ export async function POST(req) {
           { role: 'system', content: SYSTEM_PROMPT },
           ...(langMsg ? [langMsg] : []),
           ...(brand ? [{ role: 'system', content: `BRAND:\n${String(brand).slice(0, 2000)}` }] : []),
+          ...(Array.isArray(b.exclude) && b.exclude.length
+            ? [{ role: 'system', content: `Azioni GIÀ in coda — NON riproporle né suggerirne di equivalenti:\n- ${b.exclude.slice(0, 30).map(String).join('\n- ').slice(0, 2000)}` }]
+            : []),
           { role: 'user', content: `DATI LIVE (usa SOLO questi numeri):\n${JSON.stringify(metrics).slice(0, 6000)}` },
         ],
       }),

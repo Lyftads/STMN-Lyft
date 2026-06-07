@@ -9,16 +9,48 @@ const BUCKET = 'avatars'
 const ALLOWED = ['png', 'jpg', 'jpeg', 'webp', 'gif']
 function extOf(n) { const m = String(n || '').toLowerCase().match(/\.([a-z0-9]+)$/); return m ? m[1] : '' }
 
+const LOCALES = ['it', 'en', 'es', 'fr', 'de']
+
 export async function GET() {
   const ws = await resolveWorkspace()
-  if (!ws) return NextResponse.json({ profile: null }, { status: 401 })
+  if (!ws) return NextResponse.json({ profile: null, language: null }, { status: 401 })
   const admin = getAdminSupabase()
-  if (!admin || !ws.memberId) return NextResponse.json({ profile: null })
+  if (!admin) return NextResponse.json({ profile: null, language: null })
+
+  // Lingua per-cliente: legata alla company (PK = user_id dell'owner del workspace).
+  let language = null
   try {
-    const { data } = await admin.from('team_members').select('id, full_name, email, avatar_url, roles').eq('workspace_id', ws.workspaceId).eq('id', ws.memberId).maybeSingle()
-    return NextResponse.json({ profile: data || null })
+    const { data: comp } = await admin.from('companies').select('language').eq('user_id', ws.workspaceId).maybeSingle()
+    if (comp?.language && LOCALES.includes(comp.language)) language = comp.language
+  } catch {}
+
+  let profile = null
+  if (ws.memberId) {
+    try {
+      const { data } = await admin.from('team_members').select('id, full_name, email, avatar_url, roles').eq('workspace_id', ws.workspaceId).eq('id', ws.memberId).maybeSingle()
+      profile = data || null
+    } catch (e) {
+      return NextResponse.json({ profile: null, language, error: e.message })
+    }
+  }
+  return NextResponse.json({ profile, language })
+}
+
+// PATCH: persiste la lingua UI scelta dal cliente sulla company (binding per-cliente).
+export async function PATCH(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false })
+  let body = {}
+  try { body = await req.json() } catch {}
+  const language = String(body?.language || '').trim()
+  if (!LOCALES.includes(language)) return NextResponse.json({ ok: false, error: 'Lingua non valida' }, { status: 400 })
+  try {
+    await admin.from('companies').update({ language }).eq('user_id', ws.workspaceId)
+    return NextResponse.json({ ok: true, language })
   } catch (e) {
-    return NextResponse.json({ profile: null, error: e.message })
+    return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
   }
 }
 

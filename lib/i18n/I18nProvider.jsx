@@ -12,7 +12,7 @@
 //    localStorage, e (best-effort) sul profilo per il binding "per cliente".
 // ============================================================================
 
-import { createContext, useContext, useCallback, useEffect, useState } from 'react'
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
 import { LOCALES, DEFAULT_LOCALE, LOCALE_INTL } from './locales'
 import it from './dictionaries/it'
 import en from './dictionaries/en'
@@ -36,17 +36,40 @@ export function I18nProvider({ children, initialLocale }) {
     initialLocale && LOCALES.includes(initialLocale) ? initialLocale : DEFAULT_LOCALE
   )
 
-  // Dopo il mount: se non forzato da prop, leggi la preferenza salvata.
+  // Se l'utente cambia lingua manualmente, la scelta di sessione vince sul
+  // valore che arriva (async) dal DB — evita di "riscrivergli" la lingua sotto.
+  const userChosen = useRef(false)
+
+  // Dopo il mount: se non forzato da prop, leggi la preferenza salvata in locale,
+  // poi (autorevole, per-cliente) la lingua legata alla company sul DB.
   useEffect(() => {
     if (initialLocale) return
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved && LOCALES.includes(saved)) setLocaleState(saved)
     } catch {}
+
+    // Binding per-cliente: la company sul DB è la fonte di verità. Su un device
+    // nuovo (localStorage vuoto) il cliente parte comunque nella sua lingua.
+    let alive = true
+    fetch('/api/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!alive || userChosen.current) return
+        const lang = j?.language
+        if (lang && LOCALES.includes(lang)) {
+          setLocaleState(lang)
+          try { localStorage.setItem(STORAGE_KEY, lang) } catch {}
+          if (typeof document !== 'undefined') { try { document.documentElement.lang = lang } catch {} }
+        }
+      })
+      .catch(() => {})
+    return () => { alive = false }
   }, [initialLocale])
 
   const setLocale = useCallback((next) => {
     if (!LOCALES.includes(next)) return
+    userChosen.current = true
     setLocaleState(next)
     try { localStorage.setItem(STORAGE_KEY, next) } catch {}
     // Persisti sul profilo (per-cliente) — best effort, non blocca nulla.

@@ -5,15 +5,16 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
 import { PlatformBadges } from './PlatformIcon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const PRESETS = [
-  { id: 'today', label: 'Oggi' },
-  { id: 'yesterday', label: 'Ieri' },
-  { id: 'last_7d', label: 'Ultimi 7g' },
-  { id: 'last_14d', label: 'Ultimi 14g' },
-  { id: 'last_28d', label: 'Ultimi 28g' },
-  { id: 'this_month', label: 'Mese corrente' },
-  { id: 'last_month', label: 'Mese scorso' },
+  { id: 'today', label: 'Oggi', labelKey: 'meta.today' },
+  { id: 'yesterday', label: 'Ieri', labelKey: 'meta.yesterday' },
+  { id: 'last_7d', label: 'Ultimi 7g', labelKey: 'meta.last7' },
+  { id: 'last_14d', label: 'Ultimi 14g', labelKey: 'meta.last14' },
+  { id: 'last_28d', label: 'Ultimi 28g', labelKey: 'meta.last28' },
+  { id: 'this_month', label: 'Mese corrente', labelKey: 'meta.thisMonth' },
+  { id: 'last_month', label: 'Mese scorso', labelKey: 'meta.lastMonth' },
   { id: 'custom', label: 'Custom' },
 ]
 
@@ -70,8 +71,8 @@ function indent(level) {
 }
 
 function levelBadge(level) {
-  if (level === 'campaign') return { label: 'Campagna', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' }
-  if (level === 'adset') return { label: 'Ad set', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
+  if (level === 'campaign') return { label: 'Campagna', labelKey: 'meta.levelCampaign', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' }
+  if (level === 'adset') return { label: 'Ad set', labelKey: 'meta.levelAdset', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
   return { label: 'Ad', color: '#bf5af2', bg: 'rgba(191,90,242,0.15)' }
 }
 
@@ -377,6 +378,7 @@ function Thumb({ url, products, isDpa }) {
 }
 
 function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
+  const { t } = useI18n()
   const canOpen = row.level !== 'ad'
   const badge = levelBadge(row.level)
 
@@ -412,13 +414,13 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
                 background: badge.bg, color: badge.color,
                 fontSize: 9, fontWeight: 900, letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-              }}>{badge.label}</span>
+              }}>{t(badge.labelKey, null, badge.label)}</span>
               <PerfDot roas={row.roas} />
             </div>
             <div style={{
               color: '#fff', fontWeight: 800, fontSize: 13.5,
               lineHeight: 1.35, marginBottom: 3,
-            }}>{row.name || 'Senza nome'}</div>
+            }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
             </div>
@@ -462,6 +464,7 @@ const cell = {
 const cellMuted = { color: 'var(--text3)' }
 
 export default function MetaDetailTab() {
+  const { t } = useI18n()
   const [preset, setPreset] = useState('last_28d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -516,7 +519,7 @@ export default function MetaDetailTab() {
         fetcher: async () => {
           const res = await fetch(`/api/meta-detail?${queryString}`, { cache: 'no-store' })
           const j = await res.json()
-          if (!j.ok) throw new Error(j.error || 'Errore caricamento Meta')
+          if (!j.ok) throw new Error(j.error || t('meta.errMeta', null, 'Errore caricamento Meta'))
           return j
         },
         onUpdate: (fresh) => setData(fresh),
@@ -549,7 +552,7 @@ export default function MetaDetailTab() {
     try {
       const res = await fetch(`/api/meta-detail?${qs({ level: 'adsets', campaign_id: campaign.id })}`, { cache: 'no-store' })
       const json = await res.json()
-      if (!json.ok) throw new Error(json.error || 'Errore caricamento ad set')
+      if (!json.ok) throw new Error(json.error || t('meta.errAdset', null, 'Errore caricamento ad set'))
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
       setOpenCampaigns(prev => ({ ...prev, [campaign.id]: true }))
     } catch (e) {
@@ -574,7 +577,7 @@ export default function MetaDetailTab() {
     try {
       const res = await fetch(`/api/meta-detail?${qs({ level: 'ads', adset_id: adset.id })}`, { cache: 'no-store' })
       const json = await res.json()
-      if (!json.ok) throw new Error(json.error || 'Errore caricamento ads')
+      if (!json.ok) throw new Error(json.error || t('meta.errAds', null, 'Errore caricamento ads'))
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
       setOpenAdsets(prev => ({ ...prev, [adset.id]: true }))
     } catch (e) {
@@ -682,7 +685,7 @@ export default function MetaDetailTab() {
                   transition: 'all .15s',
                   boxShadow: active ? '0 0 14px rgba(91,44,255,0.25)' : 'none',
                 }}
-              >{p.label}</button>
+              >{t(p.labelKey, null, p.label)}</button>
             )
           })}
 
@@ -698,7 +701,7 @@ export default function MetaDetailTab() {
             }}
           >
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Aggiorno…' : 'Aggiorna'}
+            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
 
           <DownloadReportButton
@@ -765,12 +768,12 @@ export default function MetaDetailTab() {
         gap: 14,
         marginBottom: 18,
       }}>
-        <KpiCard label="Importo speso" value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" delay={0} />
+        <KpiCard label={t('meta.amountSpent', null, 'Importo speso')} value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" delay={0} />
         <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" delay={0.3} />
-        <KpiCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" delay={0.6} />
-        <KpiCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" delay={0.9} />
-        <KpiCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" delay={1.2} />
-        <KpiCard label="Frequenza" value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" delay={1.5} />
+        <KpiCard label={t('meta.costPerResult', null, 'Costo risultato')} value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" delay={0.6} />
+        <KpiCard label={t('meta.purchases', null, 'Acquisti')} value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" delay={0.9} />
+        <KpiCard label={t('meta.ctrLink', null, 'CTR link')} value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" delay={1.2} />
+        <KpiCard label={t('meta.frequency', null, 'Frequenza')} value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" delay={1.5} />
       </div>
 
       {/* Comparazione + Insight */}
@@ -781,7 +784,7 @@ export default function MetaDetailTab() {
         marginBottom: 18,
       }}>
         <FxCard
-          title="Confronto vs periodo precedente"
+          title={t('meta.compareTitle', null, 'Confronto vs periodo precedente')}
           subtitle={`${data?.previousRange?.since || '—'} → ${data?.previousRange?.until || '—'}`}
           glow={ACCENT_GLOW}
           delay={0}
@@ -792,7 +795,7 @@ export default function MetaDetailTab() {
             gap: 10,
           }}>
             {[
-              { label: 'Spesa', value: cmp.spend, inverse: false },
+              { label: t('meta.spend', null, 'Spesa'), value: cmp.spend, inverse: false },
               { label: 'ROAS', value: cmp.roas, inverse: false },
               { label: 'CPA', value: cmp.cpa, inverse: true },
               { label: 'CTR', value: cmp.ctr, inverse: false },
@@ -824,7 +827,7 @@ export default function MetaDetailTab() {
           </div>
         </FxCard>
 
-        <FxCard title="Insight automatico" glow={ACCENT_GLOW} delay={0.4}>
+        <FxCard title={t('meta.autoInsight', null, 'Insight automatico')} glow={ACCENT_GLOW} delay={0.4}>
           <p style={{
             color: 'var(--text)',
             fontSize: 14,
@@ -837,7 +840,7 @@ export default function MetaDetailTab() {
 
       {/* To-do */}
       <div style={{ marginBottom: 18 }}>
-        <FxCard delay={0.8} title="To-do consigliate" subtitle="Azioni prioritarie suggerite dall'analisi" glow={ACCENT_GLOW}>
+        <FxCard delay={0.8} title={t('meta.todosTitle', null, 'To-do consigliate')} subtitle={t('meta.todosSub', null, "Azioni prioritarie suggerite dall'analisi")} glow={ACCENT_GLOW}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(data?.todos || []).map((todo, i) => (
               <div key={i} style={{
@@ -863,7 +866,7 @@ export default function MetaDetailTab() {
               </div>
             ))}
             {(!data?.todos || data.todos.length === 0) && (
-              <div style={{ color: 'var(--text3)', fontSize: 13, padding: 14 }}>Nessuna to-do per ora.</div>
+              <div style={{ color: 'var(--text3)', fontSize: 13, padding: 14 }}>{t('meta.noTodos', null, 'Nessuna to-do per ora.')}</div>
             )}
           </div>
         </FxCard>
@@ -888,7 +891,7 @@ export default function MetaDetailTab() {
       }}>
         <input
           type="text"
-          placeholder="Cerca campagna per nome o ID…"
+          placeholder={t('meta.searchPlaceholder', null, 'Cerca campagna per nome o ID…')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
@@ -907,8 +910,8 @@ export default function MetaDetailTab() {
           <span style={{
             fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
             letterSpacing: '0.12em', fontWeight: 800,
-          }}>Account</span>
-          {[{ id: '', label: 'Tutti' }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a }))].map(opt => {
+          }}>{t('meta.account', null, 'Account')}</span>
+          {[{ id: '', label: t('meta.all', null, 'Tutti') }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a }))].map(opt => {
             const active = accountFilter === opt.id
             return (
               <button
@@ -948,14 +951,14 @@ export default function MetaDetailTab() {
               fontWeight: 800,
               cursor: 'pointer',
             }}
-          >Reset filtri</button>
+          >{t('meta.resetFilters', null, 'Reset filtri')}</button>
         )}
       </div>
 
       {/* Tabella gerarchica */}
       <FxCard
-        title="Gerarchia Meta"
-        subtitle={`${visibleRows.filter(r => r.level === 'campaign').length} campagne · Click campagna → ad set · Click ad set → ads`}
+        title={t('meta.hierarchyTitle', null, 'Gerarchia Meta')}
+        subtitle={t('meta.hierarchySub', { n: visibleRows.filter(r => r.level === 'campaign').length }, `${visibleRows.filter(r => r.level === 'campaign').length} campagne · Click campagna → ad set · Click ad set → ads`)}
         glow={ACCENT_GLOW}
         padding={0}
         delay={1.6}
@@ -964,7 +967,7 @@ export default function MetaDetailTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
             <thead>
               <tr>
-                {['Livello', 'Anteprima', 'Impression', 'Copertura', 'Freq.', 'CPM', 'CTR link', 'CPC link', 'Click link', 'Speso', 'Costo risultato', 'ROAS', 'Acquisti', 'Conv. acq.', 'CRO', 'AOV'].map(h => (
+                {[t('meta.level', null, 'Livello'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
                   <th key={h} style={{
                     position: 'sticky', top: 0, zIndex: 20,
                     padding: '14px 16px',
@@ -1008,7 +1011,7 @@ export default function MetaDetailTab() {
                     fontSize: 14,
                     textAlign: 'center',
                   }}>
-                    {loading ? 'Sto caricando le campagne…' : 'Nessuna campagna attiva nel periodo selezionato.'}
+                    {loading ? t('meta.loadingCampaigns', null, 'Sto caricando le campagne…') : t('meta.noActiveCampaigns', null, 'Nessuna campagna attiva nel periodo selezionato.')}
                   </td>
                 </tr>
               )}

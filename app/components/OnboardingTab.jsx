@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Icon from './ui/Icon'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
 import NangoConnectButton from './NangoConnectButton'
@@ -20,7 +21,7 @@ const SKIP_KEY = 'lyft_onb_skipped'
 
 const STEPS = [
   {
-    id: 'shopify', label: 'Shopify', icon: '🛍', kind: 'shopify',
+    id: 'shopify', label: 'Shopify', icon: <Icon name="bag" size={20} />, kind: 'shopify',
     short: 'Lo store: ordini, prodotti, clienti, vendite.',
     what: 'È la fonte principale dei dati commerciali. Da Shopify LyftAI legge — in sola lettura — ordini, prodotti, clienti (in forma aggregata), inventario, sconti ed evasioni. Servono per fatturato, AOV, LTV, coorti, attribuzione e tutte le metriche di vendita.',
     how: [
@@ -53,7 +54,7 @@ const STEPS = [
     ],
   },
   {
-    id: 'klaviyo', label: 'Klaviyo', icon: '✉', kind: 'klaviyo',
+    id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" size={20} />, kind: 'klaviyo',
     short: 'Email marketing: campagne, flussi, segmenti.',
     what: 'Collega Klaviyo per analizzare campagne, flussi automatici, segmenti e metriche email (aperture, click, revenue attribuito). Alimenta la tab Klaviyo e il contributo email all\'attribuzione.',
     how: [
@@ -153,7 +154,7 @@ export default function OnboardingTab() {
     <div style={{ color: '#fff', fontFamily: 'Barlow', maxWidth: 1040 }}>
       {/* Header + progress */}
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>🚀 Onboarding</h2>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}><Icon name="rocket" size={22} /> Onboarding</h2>
         <div style={{ color: MUTED, fontSize: 14, marginTop: 2 }}>Segui gli step per collegare le tue piattaforme. Puoi saltare quelle che non usi.</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
           <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}>
@@ -168,7 +169,7 @@ export default function OnboardingTab() {
         <aside style={{ ...card, width: 250, flexShrink: 0, padding: 10 }}>
           {STEPS.map((s, i) => {
             const conn = isConnected(s.id), sk = isSkipped(s.id), active = i === current
-            const mark = conn ? '✓' : sk ? '⏭' : active ? '●' : (i + 1)
+            const mark = conn ? <Icon name="check" size={13} /> : sk ? '⏭' : active ? '●' : (i + 1)
             const markColor = conn ? '#30d158' : sk ? MUTED : active ? '#7b5bff' : MUTED
             return (
               <button key={s.id} onClick={() => setCurrent(i)} style={{
@@ -185,7 +186,7 @@ export default function OnboardingTab() {
             )
           })}
           {allHandled && !onb.completed && (
-            <button style={{ ...btn, width: '100%', marginTop: 8 }} onClick={completeOnboarding}>✓ Completa onboarding</button>
+            <button style={{ ...btn, width: '100%', marginTop: 8 }} onClick={completeOnboarding}><Icon name="check" size={13} /> Completa onboarding</button>
           )}
           {onb.completed && <div style={{ textAlign: 'center', color: '#30d158', fontSize: 12, fontWeight: 700, marginTop: 10 }}>Onboarding completato</div>}
         </aside>
@@ -198,7 +199,7 @@ export default function OnboardingTab() {
               <div style={{ fontSize: 20, fontWeight: 800 }}>{step.label}</div>
               <div style={{ color: MUTED, fontSize: 13 }}>Step {current + 1} di {STEPS.length} · {step.short}</div>
             </div>
-            {isConnected(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}>✓ Collegato</span>}
+            {isConnected(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}><Icon name="check" size={13} /> Collegato</span>}
             {!isConnected(step.id) && isSkipped(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, background: '#3d3d4c55', padding: '5px 12px', borderRadius: 20 }}>Saltato</span>}
           </div>
 
@@ -213,7 +214,7 @@ export default function OnboardingTab() {
           <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
             {step.kind === 'shopify' && (
               isConnected('shopify') ? (
-                <div style={{ color: '#30d158', fontSize: 14 }}>✓ Store collegato. Puoi aggiornare il token rifacendo questo step.</div>
+                <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Store collegato. Puoi aggiornare il token rifacendo questo step.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
                   <input style={input} placeholder="mio-store.myshopify.com" value={shopForm.shopify_store_url} onChange={e => setShopForm(f => ({ ...f, shopify_store_url: e.target.value }))} />
@@ -222,14 +223,14 @@ export default function OnboardingTab() {
                 </div>
               )
             )}
-            {step.kind === 'meta' && (isConnected('meta') ? <div style={{ color: '#30d158', fontSize: 14 }}>✓ Meta collegato.</div> : <MetaConnectButton />)}
+            {step.kind === 'meta' && (isConnected('meta') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Meta collegato.</div> : <MetaConnectButton />)}
             {step.kind === 'google' && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <GoogleConnectButton service="ga4" />
-                {isConnected('ga4') && <span style={{ color: '#30d158', fontSize: 13 }}>✓ Google collegato</span>}
+                {isConnected('ga4') && <span style={{ color: '#30d158', fontSize: 13 }}><Icon name="check" size={13} /> Google collegato</span>}
               </div>
             )}
-            {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}>✓ Klaviyo collegato.</div> : <NangoConnectButton integrationId="klaviyo-oauth" label="Collega Klaviyo" />)}
+            {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Klaviyo collegato.</div> : <NangoConnectButton integrationId="klaviyo-oauth" label="Collega Klaviyo" />)}
             {step.kind === 'brand' && (
               <div style={{ margin: '-22px -22px 0', padding: '0 4px' }}>
                 <BrandIdentityPanel />
@@ -247,7 +248,7 @@ export default function OnboardingTab() {
             {current < STEPS.length - 1
               ? <button style={btn} onClick={next}>Avanti →</button>
               : (allHandled
-                ? <button style={btn} onClick={completeOnboarding}>✓ Completa</button>
+                ? <button style={btn} onClick={completeOnboarding}><Icon name="check" size={13} /> Completa</button>
                 : <button style={btnGhost} onClick={next} disabled>Avanti →</button>)}
           </div>
         </div>

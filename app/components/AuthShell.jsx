@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Icon from './ui/Icon'
 
 // Shell condiviso per login / register / reset-password.
 // Stile black glass 3D coerente con la dashboard.
@@ -129,7 +130,7 @@ export function AuthInput({ label, hint, type, ...props }) {
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 16, lineHeight: 1, padding: 6, opacity: 0.8,
             }}
-          >{show ? '🙈' : '👁️'}</button>
+          >{show ? <Icon name="eye-off" size={17} /> : <Icon name="eye" size={17} />}</button>
         )}
       </div>
       {hint && (

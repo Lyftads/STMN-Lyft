@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Icon from './ui/Icon'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 import SeoAgent from './SeoAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -121,7 +122,7 @@ export default function SeoAuditTab() {
           <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()}
             placeholder={t('seo.phKeywordTarget', null, 'Keyword target (opzionale) — es. accessori crossfit')} style={{ ...inputStyle, marginBottom: 24 }} />
 
-          {error && <div className="glass-card" style={{ padding: 18, color: '#ff375f', marginBottom: 20 }}>⚠ {error}</div>}
+          {error && <div className="glass-card" style={{ padding: 18, color: '#ff375f', marginBottom: 20 }}><Icon name="warning" size={13} /> {error}</div>}
 
           {compare && <CompareView compare={compare} />}
           {!compare && res && (
@@ -462,7 +463,7 @@ function AeoPanel() {
           {(d.results || []).map((r, i) => (
             <div key={i} className="glass-card" style={{ padding: 16, marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ color: r.mentioned ? '#30d158' : '#ff375f', fontWeight: 700 }}>{r.mentioned ? `✓ ${t('seo.cited', null, 'Citato')}${r.rank && r.rank !== 'n/d' ? ` (#${r.rank})` : ''}` : `× ${t('seo.notCited', null, 'Non citato')}`}</span>
+                <span style={{ color: r.mentioned ? '#30d158' : '#ff375f', fontWeight: 700 }}>{r.mentioned ? `${t('seo.cited', null, 'Citato')}${r.rank && r.rank !== 'n/d' ? ` (#${r.rank})` : ''}` : `× ${t('seo.notCited', null, 'Non citato')}`}</span>
                 <span style={{ fontSize: 14, opacity: 0.9 }}>{r.prompt}</span>
               </div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>{r.why}</div>
@@ -496,7 +497,7 @@ function SetupGSC() {
             <code style={{ fontSize: 12 }}>https://www.googleapis.com/auth/webmasters.readonly</code></li>
           <li dangerouslySetInnerHTML={{ __html: t('seo.gscStep3', null, 'Aggiorna <b>GOOGLE_REFRESH_TOKEN</b> su Vercel (Production) → Redeploy.') }} />
         </ol>
-        {t('seo.gscSetupWarn', null, '⚠️ Includi entrambi gli scope, così GA4 (globo) continua a funzionare e si attiva anche GSC.')}
+        {t('seo.gscSetupWarn', null, 'Includi entrambi gli scope, così GA4 (globo) continua a funzionare e si attiva anche GSC.')}
       </div>
     </div>
   )
@@ -645,14 +646,14 @@ function GSCPanel() {
 
           {/* Opportunità */}
           {data.opportunities.nearFirstPage.length > 0 && (
-            <Block title={t('seo.oppNearFirst', null, '⚡ Opportunità — quasi in prima pagina (pos. 11–20)')}>
+            <Block title={t('seo.oppNearFirst', null, 'Opportunità — quasi in prima pagina (pos. 11–20)')}>
               {data.opportunities.nearFirstPage.map((q, i) => (
                 <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>pos {q.position.toFixed(1)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
               ))}
             </Block>
           )}
           {data.opportunities.lowCtr.length > 0 && (
-            <Block title={t('seo.oppLowCtr', null, '⚡ Opportunità — alto traffico, CTR basso (migliora title/meta)')}>
+            <Block title={t('seo.oppLowCtr', null, 'Opportunità — alto traffico, CTR basso (migliora title/meta)')}>
               {data.opportunities.lowCtr.map((q, i) => (
                 <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>CTR {pct(q.ctr)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
               ))}
@@ -676,7 +677,7 @@ function GSCPanel() {
 
 /* ---------- micro-helper condivisi dai pannelli ---------- */
 function Row({ children }) { return <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{children}</div> }
-function Err({ children }) { return <div className="glass-card" style={{ padding: 16, color: '#ff375f', marginTop: 16 }}>⚠ {children}</div> }
+function Err({ children }) { return <div className="glass-card" style={{ padding: 16, color: '#ff375f', marginTop: 16 }}><Icon name="warning" size={13} /> {children}</div> }
 function Block({ title, children }) { return <div className="glass-card" style={{ padding: 20, marginBottom: 14 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, opacity: 0.85 }}>{title}</div>{children}</div> }
 function Mini({ label, value, note }) { return <div className="glass-card" style={{ padding: 16, flex: 1, minWidth: 160 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 17, fontWeight: 700, textTransform: 'capitalize' }}>{value || '—'}</div>{note && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{note}</div>}</div> }
 function Chips({ list }) { return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(list || []).map((t, i) => <span key={i} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>{t}</span>)}</div> }
@@ -737,7 +738,7 @@ function Recommendations({ recs }) {
   if (!recs?.length) return null
   return (
     <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
-      <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 15 }}>{t('seo.recActions', null, '✦ Azioni consigliate (AI)')}</div>
+      <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 15 }}>{t('seo.recActions', null, 'Azioni consigliate (AI)')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {recs.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
@@ -184,7 +185,7 @@ export default function LtvCohortsTab() {
             </div>
 
             {data?.truncated && (
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}>⚠ Dataset ampio: analisi sui clienti più recenti del periodo (troncato per performance).</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}><Icon name="warning" size={12} /> Dataset ampio: analisi sui clienti più recenti del periodo (troncato per performance).</div>
             )}
 
             {/* Spiegazione dinamica (cambia col timeframe selezionato) */}
@@ -201,7 +202,7 @@ export default function LtvCohortsTab() {
                   <li><strong style={{ color: 'var(--text)' }}>Distribuzione per n° ordini</strong> — quanti clienti si fermano a 1, 2, 3 o 4+ ordini: la "scala" della fedeltà.</li>
                 </ul>
                 <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', color: 'var(--text3)' }}>
-                  ⚠ <strong style={{ color: 'var(--text2)' }}>Effetto maturità</strong>: le coorti più recenti (in alto) hanno repeat rate e LTV <em>fisiologicamente più bassi</em> perché hanno avuto meno tempo per riacquistare. Per il potenziale reale guarda le coorti più vecchie. {months <= 6
+                  <Icon name="warning" size={12} /> <strong style={{ color: 'var(--text2)' }}>Effetto maturità</strong>: le coorti più recenti (in alto) hanno repeat rate e LTV <em>fisiologicamente più bassi</em> perché hanno avuto meno tempo per riacquistare. Per il potenziale reale guarda le coorti più vecchie. {months <= 6
                     ? `Con una finestra di ${months} mesi vedi soprattutto l'acquisizione recente: allarga a 12–24 mesi per valutare la retention matura.`
                     : `Con ${months} mesi includi anche coorti mature: confronta le righe vecchie (LTV/repeat consolidati) con le recenti per stimare dove arriveranno.`}
                   {s.repeatRate < 15

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
 // Google (GA4 + Ads): flusso OAuth NATIVO (/api/google/auth/start → refresh_token
@@ -22,7 +23,7 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
   return (
     <>
       <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-        {connected && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}>✓ Collegato</span>}
+        {connected && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}><Icon name="check" size={11} /> Collegato</span>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={btn}>
             {connected ? 'Ricollega' : 'Collega'}
@@ -122,7 +123,7 @@ function Ga4PropertyModal({ onClose }) {
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
             {saving ? 'Salvo…' : 'Salva'}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>✓ salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>

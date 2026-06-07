@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 
 // Selettore (multi) degli ad account Meta per il tenant corrente.
 // Legge gli account raggiungibili dal token (/meta-adaccounts) e salva la
@@ -85,7 +86,7 @@ export default function MetaAccountSelector() {
         <button onClick={save} disabled={saving} className="btn-glass" style={{ padding: '7px 16px', fontWeight: 800, fontSize: 12, cursor: saving ? 'wait' : 'pointer' }}>
           {saving ? 'Salvo…' : 'Salva selezione'}
         </button>
-        {saved && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>✓ salvato</span>}
+        {saved && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
         {err && <span style={{ fontSize: 11, color: 'var(--red)' }}>{err}</span>}
       </div>
     </div>

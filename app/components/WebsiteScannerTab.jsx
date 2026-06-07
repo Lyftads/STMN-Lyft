@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Icon from './ui/Icon'
 import ScannerAgent from './ScannerAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -295,8 +296,8 @@ export default function WebsiteScannerTab() {
                 gap: 2,
               }}>
                 {[
-                  { id: 'desktop', label: t('ws.desktop', null, '🖥 Desktop') },
-                  { id: 'mobile', label: t('ws.mobile', null, '📱 Mobile') },
+                  { id: 'desktop', label: t('ws.desktop', null, 'Desktop') },
+                  { id: 'mobile', label: t('ws.mobile', null, 'Mobile') },
                 ].map(opt => {
                   const active = viewport === opt.id
                   return (
@@ -373,7 +374,7 @@ export default function WebsiteScannerTab() {
                     background: 'rgba(99,102,241,0.18)',
                     color: '#a5b4fc',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
-                  }}>{data.viewport === 'mobile' ? '📱 mobile' : '🖥 desktop'}</span>
+                  }}>{data.viewport === 'mobile' ? 'mobile' : 'desktop'}</span>
                 )}
               </div>
               {finalScreenshotUrl && (
@@ -397,7 +398,7 @@ export default function WebsiteScannerTab() {
                 fontWeight: 600,
               }}>
                 {data.fallbackErrors.map((e, i) => (
-                  <div key={i}>⚠ {e.provider}: {e.error}</div>
+                  <div key={i}><Icon name="warning" size={12} /> {e.provider}: {e.error}</div>
                 ))}
               </div>
             )}
@@ -539,7 +540,7 @@ export default function WebsiteScannerTab() {
                       {analysis.works.map((w, i) => (
                         <InnerCard key={i} accent="#22c55e">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-                            <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800 }}>✓ {w.title}</div>
+                            <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800 }}><Icon name="check" size={13} /> {w.title}</div>
                             <ImpactPill impact={w.impact} />
                           </div>
                           <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55 }}>{w.details}</div>
@@ -612,7 +613,7 @@ export default function WebsiteScannerTab() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {analysis.remove.map((r, i) => (
                         <InnerCard key={i} accent="#ef4444">
-                          <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}>✕ {r.title}</div>
+                          <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}><Icon name="close" size={13} /> {r.title}</div>
                           <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55, marginBottom: r.alternative ? 8 : 0 }}>{r.reason}</div>
                           {r.alternative && (
                             <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginTop: 6 }}>
@@ -685,7 +686,7 @@ export default function WebsiteScannerTab() {
                         <div style={{ marginBottom: 12 }}>
                           <div style={{ fontSize: 11, color: '#86efac', fontWeight: 800, marginBottom: 6 }}>{t('ws.present', null, 'Presenti')}</div>
                           {analysis.trustSignals.present.map((t, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text)', padding: '3px 0' }}>✓ {t}</div>
+                            <div key={i} style={{ fontSize: 12, color: 'var(--text)', padding: '3px 0' }}><Icon name="check" size={12} /> {t}</div>
                           ))}
                         </div>
                       )}
@@ -693,7 +694,7 @@ export default function WebsiteScannerTab() {
                         <div>
                           <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 800, marginBottom: 6 }}>{t('ws.missing', null, 'Mancanti')}</div>
                           {analysis.trustSignals.missing.map((t, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text2)', padding: '3px 0' }}>✕ {t}</div>
+                            <div key={i} style={{ fontSize: 12, color: 'var(--text2)', padding: '3px 0' }}><Icon name="close" size={12} /> {t}</div>
                           ))}
                         </div>
                       )}
@@ -726,7 +727,7 @@ export default function WebsiteScannerTab() {
             <div style={{
               fontSize: 64, marginBottom: 18,
               filter: `drop-shadow(0 0 24px ${ACCENT_GLOW}55)`,
-            }}>🔍</div>
+            }}><Icon name="search" size={22} /></div>
             <h2 style={{ margin: 0, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 10 }}>
               {t('ws.emptyTitle', null, 'Analizza qualsiasi landing page')}
             </h2>

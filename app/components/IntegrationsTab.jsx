@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import NangoConnectButton from './NangoConnectButton'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
@@ -237,7 +238,7 @@ function ConnectModal({ integration, onClose }) {
               display: 'grid', placeItems: 'center',
             }}
           >
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </div>
 

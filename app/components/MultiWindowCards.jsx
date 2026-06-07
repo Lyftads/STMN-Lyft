@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
+import Icon from './ui/Icon'
 
 // ─────────────────────────────────────────────────────────────
 //  MultiWindowCards — comparativa rolling-windows in stile Madgicx.
@@ -20,11 +21,11 @@ const WINDOWS = [
 ]
 
 const METRICS = [
-  { id: 'revenue',  label: 'Fatturato', icon: '💰', color: '#22c55e',
+  { id: 'revenue',  label: 'Fatturato', icon: <Icon name="money" size={15} />, color: '#22c55e',
     extract: m => m?.shopifyRange?.revenue || 0,
     format: v => v > 0 ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—',
   },
-  { id: 'orders',   label: 'Ordini', icon: '🛒', color: '#2997ff',
+  { id: 'orders',   label: 'Ordini', icon: <Icon name="cart" size={15} />, color: '#2997ff',
     extract: m => m?.shopifyRange?.orders || 0,
     format: v => v > 0 ? Number(v).toLocaleString('it-IT') : '—',
   },
@@ -34,7 +35,7 @@ const METRICS = [
     extract: m => m?.metaRange?.spend || 0,
     format: v => v > 0 ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—',
   },
-  { id: 'roas', label: 'ROAS', icon: '📈', color: '#fbbf24',
+  { id: 'roas', label: 'ROAS', icon: <Icon name="chart-line" size={15} />, color: '#fbbf24',
     extract: m => {
       const rev = m?.shopifyRange?.revenue || 0
       const spend = m?.metaRange?.spend || 0
@@ -133,7 +134,7 @@ function MetricRow({ metric, data, loading }) {
         background: 'rgba(255,255,255,0.02)', borderRadius: 10,
         fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
       }}>
-        <span style={{ fontSize: 14 }}>{metric.icon}</span>
+        <span style={{ color: metric.color, display: 'inline-flex' }}>{metric.icon}</span>
         {metric.label}
       </div>
       {WINDOWS.map((w, idx) => {

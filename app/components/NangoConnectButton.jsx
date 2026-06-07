@@ -79,7 +79,7 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
           ...style,
         }}
       >
-        {done ? '✓ Collegato' : loading ? 'Collegamento…' : label}
+        {done ? 'Collegato' : loading ? 'Collegamento…' : label}
       </button>
       {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
     </div>

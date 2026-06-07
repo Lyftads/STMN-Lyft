@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
 
 // Meta: pulsante Collega (OAuth Nango) → al termine apre un POP-UP per
@@ -70,7 +71,7 @@ export default function MetaConnectButton() {
     <>
       <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
         {connected && (
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}>✓ Collegato</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}><Icon name="check" size={11} /> Collegato</span>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={openConnect} disabled={connecting} style={btn}>
@@ -180,7 +181,7 @@ function AdAccountModal({ onClose }) {
           <button onClick={save} disabled={saving || !accounts.length} style={{ ...btn, opacity: saving || !accounts.length ? 0.5 : 1 }}>
             {saving ? 'Salvo…' : `Salva (${sel.size})`}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>✓ salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>

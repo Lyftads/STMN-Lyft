@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import {
   LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -194,7 +195,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
       </div>
 
       {error && (
-        <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}>⚠ {error}</div>
+        <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}><Icon name="warning" size={13} /> {error}</div>
       )}
 
       {loading && !data && (

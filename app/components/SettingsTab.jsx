@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
@@ -300,7 +301,7 @@ function PlanCard({ plan, isCurrent }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1, marginTop: 6 }}>
         {plan.features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <span style={{ color: plan.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>✓</span>
+            <span style={{ color: plan.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}><Icon name="check" size={13} /></span>
             <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>{t(plan.featureKeys?.[i], null, f)}</span>
           </div>
         ))}
@@ -356,7 +357,7 @@ function PlanCard({ plan, isCurrent }) {
               }} />
               {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
             </>
-          ) : isCurrent ? t('settings.currentPlan', null, '✓ Piano attuale') : (t(plan.ctaKey, null, plan.cta) || ('↑ Passa a ' + plan.name))}
+          ) : isCurrent ? t('settings.currentPlan', null, 'Piano attuale') : (t(plan.ctaKey, null, plan.cta) || ('↑ Passa a ' + plan.name))}
         </button>
       )}
       {error && (
@@ -423,7 +424,7 @@ function ComparisonTable() {
                     background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent',
                   }}>
                     {typeof v === 'boolean'
-                      ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}>✓</span>
+                      ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}><Icon name="check" size={14} /></span>
                            : <span style={{ color: 'var(--text3)', opacity: 0.5 }}>—</span>)
                       : <span style={{ color: '#fff' }}>{t(FM_VALUE_KEYS[v], null, v)}</span>}
                   </td>
@@ -499,7 +500,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
                 display: 'grid', placeItems: 'center',
                 fontSize: 20, color: '#fff',
                 boxShadow: `0 0 24px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
-              }}>♛</div>
+              }}><Icon name="crown" size={20} /></div>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
@@ -542,7 +543,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
               background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
               color: '#fcd34d', fontSize: 12,
             }}>
-              {t('settings.cancelScheduled', null, '⚠ Cancellazione programmata: la subscription terminerà alla fine del periodo corrente.')}
+              {t('settings.cancelScheduled', null, 'Cancellazione programmata: la subscription terminerà alla fine del periodo corrente.')}
             </div>
           )}
         </>

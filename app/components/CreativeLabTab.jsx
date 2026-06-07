@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -109,7 +110,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
             fontSize: 11, fontWeight: 900,
           }}
         >
-          {t('cl.accepted', null, 'ACCETTATA ✓')}
+          {t('cl.accepted', null, 'ACCETTATA')}
         </div>
       )}
 
@@ -253,7 +254,7 @@ function PreviewCard({ creative, productImage, format, onAccept, onReject, accep
                 background: '#22c55e15', color: '#22c55e', fontSize: 13, fontWeight: 800, cursor: 'pointer',
               }}
             >
-              {t('cl.accept', null, '✓ Accetta')}
+              {t('cl.accept', null, 'Accetta')}
             </button>
             <button
               onClick={onReject}
@@ -843,7 +844,7 @@ export default function CreativeLabTab() {
                     }}
                     title={m.ready ? m.name : t('cl.apiKeyMissing', { name: m.name }, `${m.name} — API key non configurata`)}
                   >
-                    {m.name}{!m.ready && ' 🔒'}
+                    {m.name}{!m.ready && <Icon name="lock" size={12} style={{ marginLeft: 4 }} />}
                   </button>
                 ))}
               </div>
@@ -869,7 +870,7 @@ export default function CreativeLabTab() {
           {/* Generating */}
           {generating && (
             <div style={{ textAlign: 'center', padding: 50, color: '#8b8aa0' }}>
-              <div style={{ fontSize: 18, marginBottom: 10 }}>✧</div>
+              <div style={{ fontSize: 18, marginBottom: 10 }}><Icon name="sparkles" size={18} /></div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd' }}>
                 {t('cl.aiGenerating', null, "L'AI sta generando copy e immagini…")}
               </div>

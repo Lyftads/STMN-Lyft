@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 
@@ -69,7 +70,7 @@ export default function LighthouseTab() {
           width: 42, height: 42, borderRadius: 11,
           background: 'rgba(251,191,36,0.14)', color: '#fbbf24',
           display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 800,
-        }}>⚠</span>
+        }}><Icon name="warning" size={14} /></span>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 9.5, color: '#fbbf24', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
@@ -118,7 +119,7 @@ export default function LighthouseTab() {
             letterSpacing: '0.12em', textTransform: 'uppercase',
             marginTop: 6,
           }}>
-            ✦ Cosa fare adesso
+            <Icon name="sparkle" size={14} /> Cosa fare adesso
           </div>
           {proposals.map(p => <ProposalCard key={p.id} proposal={p} />)}
         </div>
@@ -136,7 +137,7 @@ export default function LighthouseTab() {
           label="Bassa" count={summary.low} color={SEVERITY_COLORS.low.stripe} />
       </div>
 
-      {error && <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}>⚠ {error}</div>}
+      {error && <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}><Icon name="warning" size={13} /> {error}</div>}
       {data?.warning && <div className="glass-card-static" style={{ padding: 18, color: '#fbbf24', fontSize: 13 }}>{data.warning}</div>}
 
       {loading && !data && (
@@ -147,7 +148,7 @@ export default function LighthouseTab() {
 
       {filtered.length === 0 && data && !loading && (
         <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>✓</div>
+          <div style={{ fontSize: 24, marginBottom: 12 }}><Icon name="check" size={24} /></div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Nessuna anomalia in questo filtro</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>L'account è sotto controllo nel periodo selezionato.</div>
         </div>

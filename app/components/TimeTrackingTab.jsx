@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import Icon from './ui/Icon'
 import Avatar from './Avatar'
 
 // Lyftimer — time tracking stile Hubstaff. Ogni membro avvia un timer scegliendo
@@ -816,10 +817,10 @@ export default function TimeTrackingTab({ standalone = false }) {
                         <div style={{ display: 'flex', gap: 6 }}>
                           {st === 'approved'
                             ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ Annulla</button>
-                            : <button style={{ ...btn, padding: '7px 12px', background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setApproval(r.id, 'approved', r.sec)}>✓ Approva</button>}
+                            : <button style={{ ...btn, padding: '7px 12px', background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setApproval(r.id, 'approved', r.sec)}><Icon name="check" size={13} /> Approva</button>}
                           {st === 'rejected'
                             ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ Annulla</button>
-                            : <button style={{ ...btnGhost, color: '#ff8095', borderColor: 'rgba(255,55,95,0.4)' }} onClick={() => setApproval(r.id, 'rejected', r.sec)}>✕ Rifiuta</button>}
+                            : <button style={{ ...btnGhost, color: '#ff8095', borderColor: 'rgba(255,55,95,0.4)' }} onClick={() => setApproval(r.id, 'rejected', r.sec)}><Icon name="close" size={13} /> Rifiuta</button>}
                         </div>
                       )}
                     </div>
@@ -876,9 +877,9 @@ export default function TimeTrackingTab({ standalone = false }) {
                         {o.note && <div style={{ color: MUTED, fontSize: 12 }}>{o.note}</div>}
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 700, color: sb.c, background: sb.c + '22', padding: '4px 10px', borderRadius: 20 }}>{sb.t}</span>
-                      {isAdmin && o.status !== 'approved' && <button style={{ ...btn, padding: '6px 11px', fontSize: 12, background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setOffStatus(o.id, 'approved')}>✓</button>}
-                      {isAdmin && o.status !== 'rejected' && <button style={{ ...btnGhost, padding: '6px 11px', fontSize: 12, color: '#ff8095' }} onClick={() => setOffStatus(o.id, 'rejected')}>✕</button>}
-                      <button style={{ ...btnGhost, padding: '6px 9px', fontSize: 12 }} onClick={() => delTimeOff(o.id)}>🗑</button>
+                      {isAdmin && o.status !== 'approved' && <button style={{ ...btn, padding: '6px 11px', fontSize: 12, background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setOffStatus(o.id, 'approved')}><Icon name="check" size={13} /></button>}
+                      {isAdmin && o.status !== 'rejected' && <button style={{ ...btnGhost, padding: '6px 11px', fontSize: 12, color: '#ff8095' }} onClick={() => setOffStatus(o.id, 'rejected')}><Icon name="close" size={13} /></button>}
+                      <button style={{ ...btnGhost, padding: '6px 9px', fontSize: 12 }} onClick={() => delTimeOff(o.id)}><Icon name="trash" size={13} /></button>
                     </div>
                   )
                 })}

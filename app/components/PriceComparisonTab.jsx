@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Icon from './ui/Icon'
 
 const CATEGORIES = [
-  { id: 'grips', label: 'Paracalli', labelKey: 'price.catGrips', icon: '🧤' },
-  { id: 'ropes', label: 'Corde', labelKey: 'price.catRopes', icon: '🪢' },
-  { id: 'knee_sleeves', label: 'Ginocchiere', labelKey: 'price.catKneeSleeves', icon: '🦵' },
-  { id: 'men_apparel', label: 'Abb. Uomo', labelKey: 'price.catMenApparel', icon: '👕' },
-  { id: 'women_apparel', label: 'Abb. Donna', labelKey: 'price.catWomenApparel', icon: '👚' },
-  { id: 'bags', label: 'Zaini / Borsoni', labelKey: 'price.catBags', icon: '🎒' },
+  { id: 'grips', label: 'Paracalli', labelKey: 'price.catGrips', icon: <Icon name="tag" size={20} /> },
+  { id: 'ropes', label: 'Corde', labelKey: 'price.catRopes', icon: <Icon name="tag" size={20} /> },
+  { id: 'knee_sleeves', label: 'Ginocchiere', labelKey: 'price.catKneeSleeves', icon: <Icon name="tag" size={20} /> },
+  { id: 'men_apparel', label: 'Abb. Uomo', labelKey: 'price.catMenApparel', icon: <Icon name="shirt" size={20} /> },
+  { id: 'women_apparel', label: 'Abb. Donna', labelKey: 'price.catWomenApparel', icon: <Icon name="shirt" size={20} /> },
+  { id: 'bags', label: 'Zaini / Borsoni', labelKey: 'price.catBags', icon: <Icon name="bag" size={20} /> },
 ]
 
 const CURRENCY_SYMBOLS = { EUR: '€', AUD: 'A$', USD: '$', GBP: '£' }
@@ -313,7 +314,7 @@ export default function PriceComparisonTab() {
 
       {/* ── CATEGORY SECTIONS ── */}
       {comparison.map(cat => {
-        const catMeta = CATEGORIES.find(c => c.id === cat.id) || { label: cat.label, icon: '📦' }
+        const catMeta = CATEGORIES.find(c => c.id === cat.id) || { label: cat.label, icon: <Icon name="box" size={20} /> }
         const compEntries = Object.entries(cat.competitors)
         if (cat.own.count === 0 && compEntries.every(([, v]) => v.count === 0)) return null
 

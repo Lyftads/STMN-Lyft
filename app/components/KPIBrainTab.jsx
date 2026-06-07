@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Sparkline from './Sparkline'
+import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
 import TimeframeSelector from './TimeframeSelector'
@@ -469,9 +470,9 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 width:42,height:42,borderRadius:11,
                 background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',
                 display:'grid',placeItems:'center',
-                fontSize:20,color:'#fff',
+                color:'#fff',
                 boxShadow:'0 0 24px rgba(14,165,233,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-              }}>🌍</div>
+              }}><Icon name="globe" size={22} /></div>
               <div>
                 <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{t('kpi.billingCountries', null, 'Paesi di fatturazione')}</div>
                 <div style={{color:'var(--text3)',fontSize:12,marginTop:2}}>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Icon from './ui/Icon'
 
 const SECTION_ICONS = {
   overview: '◆',
@@ -171,7 +172,7 @@ export default function DashboardInsights({ preset }) {
 
       {error && !data && (
         <div className="glass-card" style={{ padding: 20, color: 'var(--red)', fontSize: 13 }}>
-          ⚠️ {error}
+          <Icon name="warning" size={13} /> {error}
         </div>
       )}
 

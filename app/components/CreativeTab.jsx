@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import CreativeAgent from './CreativeAgent'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Icon from './ui/Icon'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'cr.presetToday' },
@@ -307,8 +308,8 @@ function CreativeCard({ row, index, onClick }) {
               background: 'rgba(91,44,255,0.25)',
               border: '1px solid rgba(91,44,255,0.5)',
               display: 'grid', placeItems: 'center',
-              fontSize: 26,
-            }}>📦</div>
+              color: '#a78bfa',
+            }}><Icon name="image" size={26} /></div>
             <div style={{
               padding: '4px 10px', borderRadius: 999,
               background: 'rgba(91,44,255,0.85)', color: '#fff',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Icon from './ui/Icon'
 import AgentMemoryInspector from './AgentMemoryInspector'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -277,9 +278,9 @@ export default function BrandIdentityPanel() {
       }}>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>
           {error
-            ? <span style={{ color: '#f87171' }}>⚠ {error}</span>
+            ? <span style={{ color: '#f87171' }}><Icon name="warning" size={12} /> {error}</span>
             : savedAt
-              ? <span style={{ color: '#86efac' }}>{t('bi.savedAt', { time: savedAt.toLocaleTimeString() }, `✓ Salvato — ${savedAt.toLocaleTimeString()}`)}</span>
+              ? <span style={{ color: '#86efac' }}>{t('bi.savedAt', { time: savedAt.toLocaleTimeString() }, `Salvato — ${savedAt.toLocaleTimeString()}`)}</span>
               : t('bi.saveHint', null, 'Le modifiche non vengono salvate finche\' non clicchi "Salva".')}
         </div>
         <button
@@ -627,7 +628,7 @@ function AssetsManager({ assets, onChange }) {
         {t('bi.assetUpload', null, 'Asset upload')} <span style={{ color: 'var(--text4, #555)', fontWeight: 500, marginLeft: 8 }}>{t('bi.assetMax', null, '· Max 10MB/file')}</span>
       </div>
 
-      {error && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 10 }}>⚠ {error}</div>}
+      {error && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 10 }}><Icon name="warning" size={12} /> {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {ASSET_TYPES.map(at => {

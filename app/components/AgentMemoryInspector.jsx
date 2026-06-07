@@ -301,7 +301,7 @@ function ExportImportButtons({ onImported }) {
       setMsg(`✓ Importate ${j.imported} memorie`)
       onImported?.()
     } catch (e) {
-      setMsg(`⚠ ${e?.message || 'Errore import'}`)
+      setMsg(`${e?.message || 'Errore import'}`)
     } finally {
       setImporting(false)
       setTimeout(() => setMsg(null), 5000)

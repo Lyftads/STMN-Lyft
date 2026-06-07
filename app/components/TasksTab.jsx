@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useState, useCallback } from 'react'
+import Icon from './ui/Icon'
 import Avatar from './Avatar'
 
 const PALETTE = ['#7b5bff', '#5b8bff', '#30d158', '#ff9f0a', '#ff375f', '#64d2ff', '#bf5af2', '#ffd60a', '#5ac8fa', '#ff6482']
@@ -201,9 +202,9 @@ export default function TasksTab() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
             <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: view !== 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view !== 'overview' ? 700 : 400 }}>Board</button>
-            <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view === 'overview' ? 700 : 400 }}>📊 Grafici</button>
+            <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view === 'overview' ? 700 : 400 }}><Icon name="chart-bar" size={14} /> Grafici</button>
           </div>
-          {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}>👥 Gestione team</button>}
+          {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}><Icon name="users" size={14} /> Gestione team</button>}
         </div>
       </div>
 
@@ -330,7 +331,7 @@ export default function TasksTab() {
                   {projRows.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-                      <span style={{ width: 150, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}{p.completed && <span title={p.late ? 'Completato in ritardo' : 'Completato'} style={{ marginLeft: 5 }}>{p.late ? '⚠️' : '✅'}</span>}</span>
+                      <span style={{ width: 150, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}{p.completed && <span title={p.late ? 'Completato in ritardo' : 'Completato'} style={{ marginLeft: 5 }}>{p.late ? <Icon name="warning" size={12} /> : <Icon name="check-circle" size={12} />}</span>}</span>
                       <div style={{ flex: 1, height: 14, background: '#14141d', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
                         <div style={{ width: `${p.pct}%`, height: '100%', background: p.late && p.completed ? 'linear-gradient(90deg,#ff9f0a,#ff375f)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
                       </div>
@@ -374,7 +375,7 @@ export default function TasksTab() {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{m.name}</span>
-                                <span style={{ color: '#b0b0bd', fontVariantNumeric: 'tabular-nums' }}>{m.done}/{m.total} · {m.pct}%{m.late > 0 ? ` · ⚠️ ${m.late}` : ''}</span>
+                                <span style={{ color: '#b0b0bd', fontVariantNumeric: 'tabular-nums' }}>{m.done}/{m.total} · {m.pct}%{m.late > 0 ? ` · {m.late}` : ''}</span>
                               </div>
                               <div style={{ height: 9, background: '#14141d', borderRadius: 5, overflow: 'hidden' }}>
                                 <div style={{ width: `${m.pct}%`, height: '100%', background: PALETTE[i % PALETTE.length] }} />
@@ -438,11 +439,11 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: prio.color, border: `1px solid ${prio.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{prio.label}</span>
-        {t.due_date && <span style={{ fontSize: 11, color: overdue ? '#ff375f' : '#b0b0bd' }}>📅 {t.due_date}</span>}
-        {t.description && <span title="Contiene note" style={{ fontSize: 11, color: '#b0b0bd' }}>📝</span>}
-        {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title="Allegati" style={{ fontSize: 11, color: '#b0b0bd' }}>📎 {t.attachments.length}</span>}
+        {t.due_date && <span style={{ fontSize: 11, color: overdue ? '#ff375f' : '#b0b0bd' }}><Icon name="calendar" size={12} /> {t.due_date}</span>}
+        {t.description && <span title="Contiene note" style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="file" size={12} /></span>}
+        {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title="Allegati" style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="paperclip" size={12} /> {t.attachments.length}</span>}
       </div>
-      <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>👤 {memberName(t.assignee_id)}</div>
+      <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}><Icon name="user" size={12} /> {memberName(t.assignee_id)}</div>
       <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
         <select value={t.status || 'todo'} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); onPatch(t.id, { status: e.target.value }) }}
           style={{ ...input, width: 'auto', flex: 1, padding: '5px 8px', fontSize: 12 }}>
@@ -450,10 +451,10 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
         </select>
         {t.status === 'in_review' && (
           <button onClick={(e) => { e.stopPropagation(); onPatch(t.id, { status: 'approved' }) }}
-            style={{ background: '#30d158', border: 'none', borderRadius: 7, padding: '6px 10px', color: '#04210f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>✓ Approva</button>
+            style={{ background: '#30d158', border: 'none', borderRadius: 7, padding: '6px 10px', color: '#04210f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}><Icon name="check" size={13} /> Approva</button>
         )}
       </div>
-      <div style={{ marginTop: 8, fontSize: 11, color: '#7b5bff', fontWeight: 600 }}>📝 Apri per note &amp; allegati</div>
+      <div style={{ marginTop: 8, fontSize: 11, color: '#7b5bff', fontWeight: 600 }}><Icon name="file" size={12} /> Apri per note &amp; allegati</div>
     </div>
   )
 }
@@ -555,7 +556,7 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
           {attachments.length === 0 && <div style={{ color: '#48484a', fontSize: 12 }}>Nessun allegato. PDF, CSV, immagini, Excel, Word (max ~4MB).</div>}
           {attachments.map(a => (
             <div key={a.path} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
-              <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📄 {a.name}</span>
+              <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Icon name="file" size={13} /> {a.name}</span>
               <span style={{ fontSize: 11, color: '#b0b0bd' }}>{fmtSize(a.size)}</span>
               <button onClick={() => onDownload(a.path)} style={{ ...btnGhost, padding: '4px 10px' }}>Scarica</button>
               <button onClick={() => onDeleteAttachment(task.id, a.path)} title="Elimina" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>
@@ -588,7 +589,7 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
         </div>{/* fine corpo scrollabile */}
         <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 18px', borderTop: '1px solid var(--border)', background: '#15151f' }}>
           <button onClick={onClose} style={btnGhost}>Chiudi</button>
-          <button onClick={saveAndClose} style={btn}>✓ Salva e chiudi</button>
+          <button onClick={saveAndClose} style={btn}><Icon name="check" size={13} /> Salva e chiudi</button>
         </div>
       </div>
     </div>
@@ -654,13 +655,13 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onCl
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
             <button style={{ ...btn, opacity: (sending || atLimit) ? 0.6 : 1 }} disabled={sending || atLimit} onClick={submit}>
-              {sending ? 'Creo accesso…' : atLimit ? 'Limite del piano raggiunto' : '✉ Crea accesso & invita'}
+              {sending ? 'Creo accesso…' : atLimit ? 'Limite del piano raggiunto' : 'Crea accesso & invita'}
             </button>
           </div>
 
           {created && (
             <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
-              <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}>✓ Accesso pronto per {created.email}</div>
+              <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}><Icon name="check" size={13} /> Accesso pronto per {created.email}</div>
               <div style={{ fontSize: 14 }}>Password temporanea: <b style={{ fontFamily: 'monospace', userSelect: 'all', background: '#0d0d16', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
               <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
                 {created.emailSent ? 'Inviata anche via email. ' : 'Email non inviata: comunica tu queste credenziali. '}
@@ -688,7 +689,7 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onCl
                       }}
                       title="Rigenera e reinvia la password"
                       style={{ ...btnGhost, padding: '4px 10px', fontSize: 11 }}
-                    >🔑 Reinvia accesso</button>
+                    ><Icon name="key" size={12} /> Reinvia accesso</button>
                   )}
                   {!isOwner && <button onClick={() => onRemove(m.id)} title="Rimuovi" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>}
                 </div>

@@ -6,6 +6,7 @@ import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Icon from './ui/Icon'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'meta.today' },
@@ -350,8 +351,8 @@ function Thumb({ url, products, isDpa }) {
         border: '1px solid rgba(91,44,255,0.4)',
         background: 'linear-gradient(135deg, rgba(91,44,255,0.22), rgba(0,0,0,0.4))',
         display: 'grid', placeItems: 'center',
-        fontSize: 18,
-      }}>📦</div>
+        color: '#a78bfa',
+      }}><Icon name="image" size={20} /></div>
     )
   }
 

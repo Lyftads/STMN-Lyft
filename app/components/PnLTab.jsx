@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Icon from './ui/Icon'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
@@ -174,7 +175,7 @@ export default function PnLTab({ data = [] }) {
           <option value="12">{t('pnl.view12', null, '12 mesi')}</option>
           <option value="24">{t('pnl.view24', null, '24 mesi')}</option>
         </select>
-        <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>{t('pnl.costsSettings', null, '⚙ Costi & impostazioni')}</button>
+        <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="gear" size={13} /> {t('pnl.costsSettings', null, 'Costi & impostazioni')}</button>
         <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
       </div>
 
@@ -206,7 +207,7 @@ export default function PnLTab({ data = [] }) {
       )}
 
       {state.loading && <div style={{ opacity: 0.5, fontSize: 13 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('pnl.computing', null, 'Calcolo il conto economico…')}</div>}
-      {!state.loading && !state.configured && <div className="glass-card" style={{ padding: 20, fontSize: 13, color: '#ff375f' }}>⚠ {state.error || t('pnl.notConfigured', null, 'Shopify non configurato.')}</div>}
+      {!state.loading && !state.configured && <div className="glass-card" style={{ padding: 20, fontSize: 13, color: '#ff375f' }}><Icon name="warning" size={13} /> {state.error || t('pnl.notConfigured', null, 'Shopify non configurato.')}</div>}
       {!state.loading && state.configured && rows.length === 0 && <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>{t('pnl.noDataPeriod', null, 'Nessun dato nel periodo.')}</div>}
 
       {!state.loading && asc.length > 1 && (

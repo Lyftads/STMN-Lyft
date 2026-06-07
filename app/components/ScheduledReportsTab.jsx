@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 
 // ─────────────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ export default function ScheduledReportsTab() {
           width: 42, height: 42, borderRadius: 11,
           background: 'rgba(34,197,94,0.14)', color: '#22c55e',
           display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
-        }}>✉</span>
+        }}><Icon name="mail" size={16} /></span>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 9.5, color: '#22c55e', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
@@ -165,7 +166,7 @@ function ReportCard({ title, subtitle, description, nextRun, onSend, sending, fe
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
       >
-        {sending ? 'Invio…' : '✓ Invia digest ora (test)'}
+        {sending ? 'Invio…' : 'Invia digest ora (test)'}
       </button>
       {feedback && (
         <div style={{

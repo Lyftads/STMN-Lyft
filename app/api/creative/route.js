@@ -38,10 +38,12 @@ function getAccountIds() {
     process.env.META_ACCOUNTS ||
     process.env.META_ACCOUNT_ID ||
     ''
-  // env-only (STMN, flag off): catena env identica a prima. Multi-tenant: SOLO
-  // l'account risolto dal resolver (envT lo limita all'owner) — NIENTE fallback
-  // a process.env, altrimenti un altro tenant vedrebbe gli account di STMN.
-  const raw = process.env.LYFT_MULTI_TENANT === 'true' ? (getMeta().adAccountId || '') : envChain
+  // Isolamento multi-tenant: la catena env Meta (multi-account STMN) e'
+  // usabile SOLO quando il context lo consente (owner/cron → allowEnv=true).
+  // Un tenant non-owner usa SOLO il proprio account; se non ne ha → '' (mai
+  // gli account di STMN). Vale per entrambe le modalita' del flag.
+  const m = getMeta()
+  const raw = m.allowEnv ? envChain : (m.adAccountId || '')
 
   return raw
     .split(',')

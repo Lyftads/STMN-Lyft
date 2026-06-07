@@ -49,8 +49,21 @@ if (!OPENAI) { console.error('Manca OPENAI_API_KEY'); process.exit(1) }
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } })
 
 // ── OpenAI: embedding, whisper, distill ──────────────────────────────────────
+// fetch con retry su 429 (rate limit) e 5xx, backoff esponenziale.
+async function oaiFetch(url, init, tries = 6) {
+  for (let i = 1; i <= tries; i++) {
+    const r = await fetch(url, init)
+    if (r.ok) return r
+    if ((r.status === 429 || r.status >= 500) && i < tries) {
+      const wait = Math.min(2000 * 2 ** (i - 1), 30000)
+      await new Promise(s => setTimeout(s, wait)); continue
+    }
+    return r
+  }
+}
+
 async function embed(text) {
-  const r = await fetch('https://api.openai.com/v1/embeddings', {
+  const r = await oaiFetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: { Authorization: `Bearer ${OPENAI}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'text-embedding-3-small', input: String(text).slice(0, 8000) }),
@@ -64,7 +77,7 @@ async function whisper(audioPath) {
   fd.append('file', new Blob([fs.readFileSync(audioPath)]), path.basename(audioPath))
   fd.append('model', 'whisper-1')
   fd.append('response_format', 'text')
-  const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const r = await oaiFetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI}` }, body: fd,
   })
   if (!r.ok) throw new Error(`whisper ${r.status}: ${(await r.text()).slice(0, 200)}`)
@@ -82,7 +95,7 @@ ALTRE REGOLE FERREE:
 Rispondi SOLO con JSON: {"topic":"<slug-macro-argomento, es. meta-scaling | creative-testing | budget-allocation | targeting | funnel | copywriting>","notes":["nota 1","nota 2", ...]}.`
 
 async function distillChunk(rawText) {
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+  const r = await oaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${OPENAI}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -190,17 +203,53 @@ async function ytAudio(url, tag) {
   return out
 }
 
+function videoId(url) {
+  const m = String(url).match(/[?&]v=([\w-]{11})/) || String(url).match(/youtu\.be\/([\w-]{11})/) || String(url).match(/\/shorts\/([\w-]{11})/)
+  return m ? m[1] : String(url).slice(-11)
+}
+
+// Espande i canali (@handle) in URL di video: ultimi N video + ultime M live.
+// Gli URL singoli /watch passano invariati. Niente shorts.
+async function expandSources(rawList, { maxVideos, maxLives }) {
+  const out = []
+  for (const item of rawList) {
+    if (/youtube\.com\/@/.test(item) && !/\/watch/.test(item)) {
+      const base = item.replace(/\/(videos|streams|shorts).*$/, '')
+      // ultimi N video
+      try {
+        const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(maxVideos), `${base}/videos`], { maxBuffer: 1 << 26 })
+        const vids = stdout.split('\n').map(s => s.trim()).filter(Boolean)
+        out.push(...vids); log(`  ${base}/videos → ${vids.length} video`)
+      } catch (e) { warn(`  no videos ${base}: ${e.message.slice(0,60)}`) }
+      // ultime M live
+      if (maxLives > 0) {
+        try {
+          const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(maxLives), `${base}/streams`], { maxBuffer: 1 << 26 })
+          const lives = stdout.split('\n').map(s => s.trim()).filter(Boolean)
+          out.push(...lives); log(`  ${base}/streams → ${lives.length} live`)
+        } catch (e) { warn(`  no streams ${base}: ${e.message.slice(0,60)}`) }
+      }
+    } else if (/youtube\.com\/watch|youtu\.be\//.test(item)) {
+      out.push(item)
+    }
+  }
+  // dedup per video id
+  const seen = new Set(); const uniq = []
+  for (const u of out) { const id = videoId(u); if (seen.has(id)) continue; seen.add(id); uniq.push(u) }
+  return uniq
+}
+
 async function ingestYouTube(urls) {
   let total = 0
   for (let i = 0; i < urls.length; i++) {
-    const url = urls[i]; const tag = `yt${i}`
+    const url = urls[i]; const id = videoId(url); const tag = `yt_${id}`
     log(`[YT ${i + 1}/${urls.length}] ${url}`)
     try {
       let text = await ytSubtitles(url, tag)
       if (text) log('  sottotitoli ok'); else { log('  niente sub → audio+Whisper'); text = await transcribeInput(await ytAudio(url, tag), tag) }
       if (!text || text.length < 80) { warn('  testo insufficiente, skip'); continue }
       const { topic, notes } = await distill(text)
-      const n = await saveNotes(notes, { topic, source: 'youtube', sourceRef: `yt:${i}` })
+      const n = await saveNotes(notes, { topic, source: 'youtube', sourceRef: `yt:${id}` })
       log(`  ✓ ${n} note (topic: ${topic})`); total += n
     } catch (e) { warn('  errore:', e.message) }
   }
@@ -348,10 +397,15 @@ function opt(name, def) { const i = rest.indexOf(`--${name}`); return i >= 0 ? r
 ;(async () => {
   try {
     if (cmd === 'youtube') {
-      let urls = rest.filter(a => /^https?:\/\//.test(a))
+      let raw = rest.filter(a => /^https?:\/\//.test(a))
       const file = opt('file')
-      if (file) urls = urls.concat(fs.readFileSync(file, 'utf8').split('\n').map(s => s.trim()).filter(s => /^https?:\/\//.test(s)))
-      if (!urls.length) { console.error('Nessun URL. Passa gli URL o --file urls.txt'); process.exit(1) }
+      if (file) raw = raw.concat(fs.readFileSync(file, 'utf8').split('\n').map(s => s.trim()).filter(s => /^https?:\/\//.test(s)))
+      if (!raw.length) { console.error('Nessun URL/canale. Passa URL o --file urls.txt'); process.exit(1) }
+      const maxVideos = Number(opt('max-videos', 60))
+      const maxLives = Number(opt('max-lives', 10))
+      log(`Espando canali (ultimi ${maxVideos} video + ${maxLives} live per canale)…`)
+      const urls = await expandSources(raw, { maxVideos, maxLives })
+      log(`Totale video da processare: ${urls.length}`)
       await ingestYouTube(urls)
     } else if (cmd === 'course') {
       await ingestCourse({ test: flag('test'), start: Number(opt('start')) || null, limit: Number(opt('limit')) || null })

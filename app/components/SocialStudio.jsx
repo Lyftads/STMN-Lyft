@@ -13,11 +13,13 @@ const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', color: '#e1306c' },
   { id: 'tiktok', label: 'TikTok', color: '#25f4ee' },
 ]
+const POST_TYPES = ['post', 'reel', 'story', 'carousel']
 
 export default function SocialStudio() {
   const { t, intlLocale } = useI18n()
   const [view, setView] = useState('calendar')
   const [platform, setPlatform] = useState('instagram')
+  const [postType, setPostType] = useState('post')
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [draft, setDraft] = useState(null)
@@ -71,7 +73,7 @@ export default function SocialStudio() {
     try {
       const r = await fetch('/api/social/draft-post', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, platform, locale: getClientLocale() }),
+        body: JSON.stringify({ prompt, platform, postType, locale: getClientLocale() }),
       })
       const j = await r.json()
       if (j.ok) setDraft(j.draft); else setErr(j.error || 'Errore')
@@ -101,6 +103,21 @@ export default function SocialStudio() {
                 border: on ? `1px solid ${p.color}` : '1px solid var(--border)',
                 background: on ? `${p.color}22` : 'transparent', color: on ? '#fff' : 'var(--text3)',
               }}>{p.label}</button>
+            )
+          })}
+        </div>
+
+        {/* Tipo: post / reel / story / carosello */}
+        <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.type')}</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {POST_TYPES.map(ty => {
+            const on = postType === ty
+            return (
+              <button key={ty} onClick={() => { setPostType(ty); setDraft(null) }} style={{
+                padding: '6px 13px', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 800,
+                border: on ? '1px solid #7b5bff' : '1px solid var(--border)',
+                background: on ? 'rgba(123,91,255,0.18)' : 'transparent', color: on ? '#fff' : 'var(--text3)',
+              }}>{t('social.type.' + ty)}</button>
             )
           })}
         </div>
@@ -196,7 +213,8 @@ export default function SocialStudio() {
                     {date ? new Date(date + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : t('social.noDate')}
                   </span>
                   <span style={{ fontSize: 10.5, fontWeight: 800, color: pf?.color || '#888', textTransform: 'uppercase', letterSpacing: '.04em', minWidth: 66 }}>{pf?.label || a.channel}</span>
-                  <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.payload?.hook || a.target_name || a.summary}</span>
+                  {a.payload?.postType && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', padding: '1px 7px', borderRadius: 999, background: 'rgba(255,255,255,0.05)' }}>{t('social.type.' + a.payload.postType)}</span>}
+                  <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.payload?.hook || a.target_name || a.summary}</span>
                   <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--text3)' }}>{t('aq.status.' + a.status)}</span>
                 </div>
               )

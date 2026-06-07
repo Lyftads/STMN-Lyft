@@ -15,10 +15,20 @@ const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const PLATFORMS = ['instagram', 'tiktok']
+const POST_TYPES = ['post', 'reel', 'story', 'carousel']
 
-function systemPrompt(platform) {
+const TYPE_HINT = {
+  post: 'Formato: post statico (1 immagine/video). Caption completa.',
+  reel: "Formato: REEL/video verticale. L'hook è la prima scena/frase nei primi 2 secondi; suggerisci un mini-script per scene nella caption se utile.",
+  story: 'Formato: STORY verticale effimera. Testo molto breve e diretto, 1 frase + CTA con sticker/swipe-up.',
+  carousel: 'Formato: CAROSELLO multi-slide. Nella caption proponi 3-6 slide numerate (Slide 1, Slide 2…) con il testo di ciascuna, più la caption finale.',
+}
+
+function systemPrompt(platform, postType) {
   const p = platform === 'tiktok' ? 'TikTok' : 'Instagram'
-  return `Sei un social media manager esperto di ${p} per brand DTC. Trasforma il brief in una bozza di post ${p} pronta, coerente col brand.
+  const typeHint = TYPE_HINT[postType] || TYPE_HINT.post
+  return `Sei un social media manager esperto di ${p} per brand DTC. Trasforma il brief in una bozza di ${postType} ${p} pronta, coerente col brand.
+${typeHint}
 Rispondi SOLO con JSON con ESATTAMENTE queste chiavi:
 {
   "platform": "${platform}",
@@ -40,6 +50,7 @@ export async function POST(req) {
   try { b = await req.json() } catch {}
   const prompt = String(b.prompt || '').trim()
   const platform = PLATFORMS.includes(b.platform) ? b.platform : 'instagram'
+  const postType = POST_TYPES.includes(b.postType) ? b.postType : 'post'
   if (!prompt) return NextResponse.json({ ok: false, error: 'Brief mancante' }, { status: 400 })
 
   let brand = ''
@@ -55,7 +66,7 @@ export async function POST(req) {
         temperature: 0.6,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: systemPrompt(platform) },
+          { role: 'system', content: systemPrompt(platform, postType) },
           ...(langMsg ? [langMsg] : []),
           ...(brand ? [{ role: 'system', content: `BRAND:\n${String(brand).slice(0, 2000)}` }] : []),
           { role: 'user', content: prompt },
@@ -70,6 +81,7 @@ export async function POST(req) {
     const tags = Array.isArray(d.hashtags) ? d.hashtags.map(x => String(x).replace(/^#?/, '#').replace(/\s+/g, '')).slice(0, 12) : []
     const out = {
       platform,
+      postType,
       hook: String(d.hook || '').slice(0, 200),
       caption: String(d.caption || '').slice(0, 2000),
       hashtags: tags,

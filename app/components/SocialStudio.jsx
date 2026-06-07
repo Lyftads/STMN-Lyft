@@ -6,6 +6,7 @@ import EnqueueButton from './ui/EnqueueButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { getBrowserSupabase } from '../../lib/supabase/client'
+import { openDrivePicker, drivePickerConfigured } from '../../lib/social/drivePicker'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -39,6 +40,19 @@ export default function SocialStudio() {
     setMedia(m => [...m, { url, type: isVid ? 'video/link' : '', name: (url.split('/').pop() || 'link').split('?')[0].slice(0, 40), kind: 'link' }])
     setLinkInput('')
   }
+
+  const pickFromDrive = async () => {
+    setErr(null)
+    try {
+      await openDrivePicker((files) => {
+        setMedia(m => [...m, ...files.map(f => ({
+          url: f.url, type: (f.mimeType || '').startsWith('video') ? 'video/drive' : '',
+          name: (f.name || 'Drive').slice(0, 40), kind: 'drive', driveId: f.id, thumbnail: f.thumbnail || null,
+        }))])
+      })
+    } catch (e) { setErr(e.message) }
+  }
+  const driveOn = drivePickerConfigured()
 
   // Upload DIRETTO su Supabase Storage (signed URL) → file pesanti, full quality.
   const uploadFiles = async (files) => {
@@ -140,18 +154,23 @@ export default function SocialStudio() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
           {media.map((m, i) => (
             <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#000', display: 'grid', placeItems: 'center' }}>
-              {m.kind === 'link'
-                ? <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name="link" size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>
+              {(m.kind === 'link' || m.kind === 'drive')
+                ? <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name={m.kind === 'drive' ? 'image' : 'link'} size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>
                 : m.type.startsWith('video')
                   ? <video src={m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
-              {m.type.startsWith('video') && m.kind !== 'link' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
+              {m.type.startsWith('video') && m.kind === 'file' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
             </div>
           ))}
           <button onClick={() => fileRef.current?.click()} disabled={uploading} title={t('social.upload')} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text3)', cursor: uploading ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 300 }}>
             {uploading ? '…' : '+'}
           </button>
+          {driveOn && (
+            <button onClick={pickFromDrive} title={t('social.fromDrive')} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed rgba(66,133,244,0.5)', background: 'rgba(66,133,244,0.06)', color: '#8ab4f8', cursor: 'pointer', display: 'grid', placeItems: 'center', gap: 4, fontSize: 9, fontWeight: 700 }}>
+              <Icon name="image" size={16} /> Drive
+            </button>
+          )}
           <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={e => uploadFiles(Array.from(e.target.files || []))} />
         </div>
         {/* Incolla link pubblico (Drive/Dropbox/URL) — file pesanti senza limiti */}

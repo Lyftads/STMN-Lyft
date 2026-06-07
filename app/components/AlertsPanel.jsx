@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import Icon from './ui/Icon'
 
 // ── Motore di alert / anomaly detection ──────────────────────────
 // Additivo: legge i dati `live` (range corrente vs precedente) e segnala
@@ -111,8 +112,8 @@ export default function AlertsPanel({ live }) {
         </div>
 
         {alerts.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--text2)' }}>
-            ✓ Nessuna anomalia rilevata nel periodo selezionato — metriche nei range.
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text2)' }}>
+            <Icon name="check" size={14} /> Nessuna anomalia rilevata nel periodo selezionato — metriche nei range.
           </div>
         ) : (
           <div style={{ display: 'grid', gap: 10 }}>

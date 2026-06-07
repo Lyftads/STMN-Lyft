@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Icon from './ui/Icon'
 
 // Banner di upgrade: se gli ordini/mese superano la fascia del piano corrente,
 // invita a passare alla fascia consigliata. Dismissibile per mese (localStorage).
@@ -28,7 +29,7 @@ export default function PlanUsageBanner({ onGoSettings }) {
       background: 'linear-gradient(135deg, rgba(255,159,10,0.12), rgba(255,55,95,0.12))',
       border: '1px solid rgba(255,159,10,0.4)',
     }}>
-      <span style={{ fontSize: 20 }}>📈</span>
+      <span style={{ color: '#ff9f0a', display: 'inline-flex' }}><Icon name="chart-line" size={20} /></span>
       <div style={{ flex: 1, minWidth: 240, fontSize: 13.5, lineHeight: 1.5 }}>
         <b>Sei sopra la tua fascia.</b> Hai registrato <b>{data.orders.toLocaleString('it-IT')} ordini</b> negli ultimi 30 giorni
         {data.current ? <> — oltre il limite del piano <b>{data.current.label}</b>{data.current.max ? ` (${data.current.max.toLocaleString('it-IT')} ordini/mese)` : ''}</> : ''}.

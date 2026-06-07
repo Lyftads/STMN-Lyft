@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Icon from './ui/Icon'
 
 const ACCENT = '#bf5af2'
 
 const SEV_CFG = {
-  urgent:  { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', icon: '⚠' },
+  urgent:  { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', icon: <Icon name="warning" size={13} /> },
   warning: { color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', icon: '▲' },
   info:    { color: '#2997ff', bg: 'rgba(41,151,255,0.10)', border: 'rgba(41,151,255,0.25)', icon: 'ⓘ' },
 }
@@ -73,7 +74,7 @@ export default function AlertsBell() {
           transition: 'all .15s',
         }}
       >
-        🔔
+        <Icon name="bell" size={18} />
         {totalBadge > 0 && (
           <span style={{
             position: 'absolute', top: -3, right: -3,

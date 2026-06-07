@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import Icon from './ui/Icon'
 
 function urlB64ToUint8Array(base64) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -85,7 +86,7 @@ export default function NotificationsBell({ onNavigate }) {
         className="btn-glass"
         style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, padding: 0, cursor: 'pointer' }}
       >
-        <span style={{ fontSize: 16 }}>📥</span>
+        <Icon name="bell" size={18} />
         {unread > 0 && (
           <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#ff375f', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread > 99 ? '99+' : unread}</span>
         )}
@@ -100,8 +101,8 @@ export default function NotificationsBell({ onNavigate }) {
           {pushSupported && (
             <div style={{ padding: '9px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12 }}>
               {pushOn
-                ? <span style={{ color: '#30d158' }}>✓ Notifiche push attive su questo dispositivo</span>
-                : <button onClick={enablePush} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}>🔔 Attiva le notifiche push su questo dispositivo</button>}
+                ? <span style={{ color: '#30d158', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> Notifiche push attive su questo dispositivo</span>
+                : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> Attiva le notifiche push su questo dispositivo</button>}
             </div>
           )}
           {items.length === 0 ? (

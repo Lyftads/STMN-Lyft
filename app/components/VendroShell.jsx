@@ -8,6 +8,7 @@ import AlertsBell from './AlertsBell'
 import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
 import LanguageSwitcher from './ui/LanguageSwitcher'
+import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
@@ -50,80 +51,80 @@ export default function VendroShell({
       title: 'Team',
       color: '#7b5bff',
       items: [
-        { id: 'tasks', label: 'Progetti & Task', icon: '◳' },
-        { id: 'timeTracking', label: 'Lyftimer', icon: '⏱' },
-        { id: 'chat', label: 'LyftTalk', icon: '💬' },
+        { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
+        { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
+        { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
       ],
     },
     {
       title: 'Commerce',
       color: '#ff375f',
       items: [
-        { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
-        { id: 'dashboard', label: 'Dashboard', icon: '⌁' },
-        { id: 'kpiBrain', label: 'KPI Brain', icon: '↗' },
-        { id: 'attribution', label: 'Attribuzione', icon: '⌖' },
-        { id: 'ltvCohorts', label: 'LTV & Coorti', icon: '⧗' },
-        { id: 'klaviyo', label: 'Klaviyo', icon: '✉' },
+        { id: 'onboarding', label: 'Onboarding', icon: <Icon name="rocket" /> },
+        { id: 'dashboard', label: 'Dashboard', icon: <Icon name="grid" /> },
+        { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
+        { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
+        { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
+        { id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" /> },
       ],
     },
     {
       title: 'Website',
       color: '#ff9f0a',
       items: [
-        { id: 'cro', label: 'CRO', icon: '⊘' },
-        { id: 'webScanner', label: 'AI Website Scanner', icon: '◌' },
-        { id: 'seoAudit', label: 'SEO Audit', icon: '⌕' },
+        { id: 'cro', label: 'CRO', icon: <Icon name="funnel" /> },
+        { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
+        { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
       ],
     },
     {
       title: 'Meta',
       color: '#0866FF',
       items: [
-        { id: 'creative', label: 'Creative', icon: '▧' },
-        { id: 'metaDetail', label: 'Meta Detail', icon: '◉' },
-        { id: 'metaKpi', label: 'Meta KPI', icon: '◎' },
-        { id: 'lighthouse', label: 'Lighthouse', icon: '⚠' },
-        { id: 'creativeFatigue', label: 'Creative Fatigue', icon: '◍' },
-        { id: 'budgetAdvisor', label: 'Budget Advisor', icon: '⊞' },
+        { id: 'creative', label: 'Creative', icon: <Icon name="image" /> },
+        { id: 'metaDetail', label: 'Meta Detail', icon: <Icon name="list" /> },
+        { id: 'metaKpi', label: 'Meta KPI', icon: <Icon name="gauge" /> },
+        { id: 'lighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
+        { id: 'creativeFatigue', label: 'Creative Fatigue', icon: <Icon name="pulse" /> },
+        { id: 'budgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
       ],
     },
     {
       title: 'Reports',
       color: '#30d158',
       items: [
-        { id: 'pnl', label: 'Conto Economico', icon: '€' },
-        { id: 'scheduledReports', label: 'Scheduled', icon: '✉' },
-        { id: 'weekly', label: 'Weekly', icon: '⟳' },
-        { id: 'monthly', label: 'Monthly', icon: '▦' },
-        { id: 'quarter', label: 'Quarter', icon: '◧' },
-        { id: 'year', label: 'Year', icon: '◎' },
-        { id: 'simulator', label: 'Simulatore', icon: '⊞' },
+        { id: 'pnl', label: 'Conto Economico', icon: <Icon name="euro" /> },
+        { id: 'scheduledReports', label: 'Scheduled', icon: <Icon name="send" /> },
+        { id: 'weekly', label: 'Weekly', icon: <Icon name="calendar" /> },
+        { id: 'monthly', label: 'Monthly', icon: <Icon name="chart-bar" /> },
+        { id: 'quarter', label: 'Quarter', icon: <Icon name="chart-line" /> },
+        { id: 'year', label: 'Year', icon: <Icon name="pulse" /> },
+        { id: 'simulator', label: 'Simulatore', icon: <Icon name="gauge" /> },
       ],
     },
     {
       title: 'Intelligence',
       color: '#64d2ff',
       items: [
-        { id: 'competitorIntel', label: 'Competitor Intel', icon: '◈' },
-        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: '⚖' },
+        { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
+        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
       ],
     },
     {
       title: 'AI',
       color: '#bf5af2',
       items: [
-        { id: 'performanceAgent', label: 'Performance Agent', icon: '✦' },
-        { id: 'creativeLab', label: 'Creative Lab', icon: '✧' },
+        { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
+        { id: 'creativeLab', label: 'Creative Lab', icon: <Icon name="sparkles" /> },
       ],
     },
     {
       title: 'System',
       color: '#86868b',
       items: [
-        { id: 'integrations', label: 'Integrazioni', icon: '⚙' },
-        { id: 'brandIdentity', label: 'Brand Identity', icon: '◉' },
-        { id: 'settings', label: 'Settings', icon: '✦' },
+        { id: 'integrations', label: 'Integrazioni', icon: <Icon name="gear" /> },
+        { id: 'brandIdentity', label: 'Brand Identity', icon: <Icon name="star" /> },
+        { id: 'settings', label: 'Settings', icon: <Icon name="gear" /> },
       ],
     },
   ]

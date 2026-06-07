@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -21,6 +21,25 @@ export default function SocialStudio() {
   const [draft, setDraft] = useState(null)
   const [err, setErr] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [planned, setPlanned] = useState([])
+
+  const loadPlanned = useCallback(async () => {
+    try {
+      const r = await fetch('/api/actions')
+      const j = await r.json()
+      const posts = (j.actions || []).filter(a => a.type === 'create_post')
+      posts.sort((a, b) => {
+        const da = a.payload?.scheduled_for || '', db = b.payload?.scheduled_for || ''
+        if (da && db) return da.localeCompare(db)
+        if (da) return -1
+        if (db) return 1
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+      setPlanned(posts)
+    } catch {}
+  }, [])
+  useEffect(() => { loadPlanned() }, [loadPlanned])
 
   const generate = async () => {
     if (!prompt.trim()) return
@@ -72,6 +91,10 @@ export default function SocialStudio() {
           })}
         </div>
 
+        <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.schedule')}</div>
+        <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
+          style={{ marginBottom: 14, borderRadius: 9, padding: '8px 10px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 12.5, fontFamily: 'inherit' }} />
+
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('social.brief')} rows={3}
           style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />
         <div style={{ marginTop: 10 }}>
@@ -99,16 +122,41 @@ export default function SocialStudio() {
             )}
             <Field label={t('social.cta')} value={draft.cta} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-              <EnqueueButton build={() => ({
+              <EnqueueButton onDone={loadPlanned} build={() => ({
                 channel: platform, source: 'social_studio', type: 'create_post',
                 target_name: draft.hook || draft.format,
-                payload: draft,
+                payload: { ...draft, scheduled_for: scheduleDate || null },
                 summary: t('aq.sum.createPost', { platform: platLabel, hook: draft.hook || draft.format }),
               })} label={t('aq.launch.enqueue')} />
               <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                 <Icon name={copied ? 'check' : 'clipboard'} size={13} /> {copied ? t('social.copied') : t('social.copy')}
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* In programma (calendario editoriale) */}
+      <div className="glass-card-static" style={{ padding: 18, borderRadius: 14, marginTop: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>{t('social.planned')}</div>
+        {planned.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('social.noPlanned')}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {planned.map(a => {
+              const date = a.payload?.scheduled_for
+              const pf = PLATFORMS.find(p => p.id === a.channel)
+              return (
+                <div key={a.id} className="glass-panel" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ minWidth: 88, fontSize: 12, fontWeight: 800, color: date ? 'var(--text)' : 'var(--text3)' }}>
+                    {date ? new Date(date + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : t('social.noDate')}
+                  </span>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: pf?.color || '#888', textTransform: 'uppercase', letterSpacing: '.04em', minWidth: 66 }}>{pf?.label || a.channel}</span>
+                  <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.payload?.hook || a.target_name || a.summary}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--text3)' }}>{t('aq.status.' + a.status)}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

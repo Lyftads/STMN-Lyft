@@ -7,7 +7,7 @@ import { useI18n } from '../../../lib/i18n/I18nProvider'
 // Bottone riutilizzabile: accoda un'azione nella Coda Azioni (Fase 1).
 // `build` è una funzione che ritorna il body dell'azione { channel, type, ... }.
 // `label` opzionale (default "Applica"). Gestisce stati busy/queued/err.
-export default function EnqueueButton({ build, label, compact, style }) {
+export default function EnqueueButton({ build, label, compact, style, onDone }) {
   const { t } = useI18n()
   const [q, setQ] = useState(null)
 
@@ -20,6 +20,7 @@ export default function EnqueueButton({ build, label, compact, style }) {
       })
       const j = await r.json()
       setQ(j.ok ? 'queued' : 'err')
+      if (j.ok && onDone) onDone()
     } catch { setQ('err') }
   }
 

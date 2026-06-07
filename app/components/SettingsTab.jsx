@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
 // non piu' localStorage. L'API /api/stripe/subscription lo risolve in automatico
@@ -213,6 +214,7 @@ function brandLabel(brand) {
 }
 
 function PlanCard({ plan, isCurrent }) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const hot = !!plan.badge
@@ -327,9 +329,9 @@ function PlanCard({ plan, isCurrent }) {
                 borderTopColor: '#fff', borderRadius: 999,
                 animation: 'spin 1s linear infinite',
               }} />
-              Redirect a Stripe…
+              {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
             </>
-          ) : isCurrent ? '✓ Piano attuale' : (plan.cta || ('↑ Passa a ' + plan.name))}
+          ) : isCurrent ? t('settings.currentPlan', null, '✓ Piano attuale') : (plan.cta || ('↑ Passa a ' + plan.name))}
         </button>
       )}
       {error && (
@@ -344,6 +346,7 @@ function PlanCard({ plan, isCurrent }) {
 }
 
 function ComparisonTable() {
+  const { t } = useI18n()
   return (
     <div style={{
       borderRadius: 16,
@@ -360,7 +363,7 @@ function ComparisonTable() {
               fontSize: 10.5, fontWeight: 800, color: 'var(--text3)',
               letterSpacing: '0.14em', textTransform: 'uppercase',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}>Feature</th>
+            }}>{t('settings.feature', null, 'Feature')}</th>
             {['Starter','Growth','Scale','Enterprise'].map((p, i) => (
               <th key={p} style={{
                 textAlign: 'center', padding: '14px 16px', minWidth: 96,
@@ -410,6 +413,7 @@ function ComparisonTable() {
 }
 
 function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
+  const { t } = useI18n()
   const plan = subscription?.planId ? PLANS.find(p => p.id === subscription.planId) : null
   const hasActive = !!plan && (subscription?.status === 'active' || subscription?.status === 'trialing')
   const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
@@ -438,13 +442,13 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
           display: 'grid', placeItems: 'center',
           fontSize: 14, color: 'var(--text2)',
         }}>◧</span>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Subscription Status</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.subStatus', null, 'Subscription Status')}</div>
       </div>
 
       {loading && (
         <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.15)', borderTopColor:'#fff', borderRadius:999, animation:'spin 1s linear infinite' }} />
-          Caricamento subscription…
+          {t('settings.loadingSub', null, 'Caricamento subscription…')}
         </div>
       )}
 
@@ -455,8 +459,8 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
           color: 'var(--text2)', fontSize: 13, lineHeight: 1.5,
         }}>
           {customerId
-            ? <>Nessuna subscription attiva. Scegli un piano qui sotto per attivarla.</>
-            : <>Nessun account Stripe collegato. Completa un checkout per attivare una subscription.</>}
+            ? <>{t('settings.noSubActive', null, 'Nessuna subscription attiva. Scegli un piano qui sotto per attivarla.')}</>
+            : <>{t('settings.noStripe', null, 'Nessun account Stripe collegato. Completa un checkout per attivare una subscription.')}</>}
         </div>
       )}
 
@@ -475,8 +479,8 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                   {subscription?.amount != null
-                    ? `€${(subscription.amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? 'mese' : subscription.interval || 'periodo'}`
-                    : 'Subscription attiva'}
+                    ? `€${(subscription.amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? t('settings.intervalMonth', null, 'mese') : subscription.interval || 'periodo'}`
+                    : t('settings.subActiveLabel', null, 'Subscription attiva')}
                 </div>
               </div>
             </div>
@@ -491,7 +495,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
             <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
-                Periodo corrente
+                {t('settings.currentPeriod', null, 'Periodo corrente')}
               </div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
                 {fmtDate(subscription.currentPeriodStart)} → {fmtDate(subscription.currentPeriodEnd)}
@@ -499,10 +503,10 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
             </div>
             <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
-                {subscription.cancelAtPeriodEnd ? 'Termina il' : 'Prossimo rinnovo'}
+                {subscription.cancelAtPeriodEnd ? t('settings.endsOn', null, 'Termina il') : t('settings.nextRenewal', null, 'Prossimo rinnovo')}
               </div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
-                {fmtDate(subscription.currentPeriodEnd)} {daysLeft != null && <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>({daysLeft} giorni)</span>}
+                {fmtDate(subscription.currentPeriodEnd)} {daysLeft != null && <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>{t('settings.daysLeft', { n: daysLeft }, `(${daysLeft} giorni)`)}</span>}
               </div>
             </div>
           </div>
@@ -513,7 +517,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
               background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
               color: '#fcd34d', fontSize: 12,
             }}>
-              ⚠ Cancellazione programmata: la subscription terminerà alla fine del periodo corrente.
+              {t('settings.cancelScheduled', null, '⚠ Cancellazione programmata: la subscription terminerà alla fine del periodo corrente.')}
             </div>
           )}
         </>
@@ -535,7 +539,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
             display: 'inline-flex', alignItems: 'center', gap: 8,
           }}
         >
-          Gestisci abbonamento ↗
+          {t('settings.manageSub', null, 'Gestisci abbonamento ↗')}
         </button>
       )}
     </GlassCard>
@@ -630,6 +634,7 @@ const PAYMENT_ICONS = [
 ]
 
 function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCustomer }) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   // Adatta il pm formato API → struttura interna usata dal display
@@ -651,9 +656,9 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
             fontSize: 13, color: '#fcd34d',
           }}>▭</span>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Metodo di pagamento</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.paymentMethod', null, 'Metodo di pagamento')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
-              Salva la carta per gli addebiti automatici. Tokenizzata in modo sicuro.
+              {t('settings.paymentSub', null, 'Salva la carta per gli addebiti automatici. Tokenizzata in modo sicuro.')}
             </div>
           </div>
         </div>
@@ -675,9 +680,9 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
             fontSize: 24, color: 'var(--text3)',
           }}>▭</div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Nessun metodo di pagamento</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{t('settings.noPaymentMethod', null, 'Nessun metodo di pagamento')}</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, maxWidth: 420, lineHeight: 1.5 }}>
-              Aggiungi una carta per abilitare la fatturazione automatica. Gestione sicura via Stripe (PCI-DSS).
+              {t('settings.noPaymentDesc', null, 'Aggiungi una carta per abilitare la fatturazione automatica. Gestione sicura via Stripe (PCI-DSS).')}
             </div>
           </div>
           <button
@@ -703,10 +708,10 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
                   borderTopColor: '#fff', borderRadius: 999,
                   animation: 'spin 1s linear infinite',
                 }} />
-                Redirect a Stripe…
+                {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
               </>
             ) : (
-              <>+ Aggiungi metodo di pagamento</>
+              <>{t('settings.addPaymentMethod', null, '+ Aggiungi metodo di pagamento')}</>
             )}
           </button>
           {error && (
@@ -742,7 +747,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
                 •••• •••• •••• {savedCard.last4}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                {savedCard.name} · scad. {savedCard.exp}
+                {savedCard.name} · {t('settings.cardExpiry', null, 'scad.')} {savedCard.exp}
               </div>
             </div>
           </div>
@@ -757,7 +762,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
               color: 'var(--text2)', fontSize: 11.5, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer',
             }}
-          >{loading ? 'Apertura…' : 'Gestisci ↗'}</button>
+          >{loading ? t('settings.opening', null, 'Apertura…') : t('settings.manage', null, 'Gestisci ↗')}</button>
         </div>
       )}
 
@@ -767,7 +772,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
           fontSize: 9.5, color: 'var(--text3)', fontWeight: 800,
           letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12,
           textAlign: 'center',
-        }}>Metodi accettati</div>
+        }}>{t('settings.acceptedMethods', null, 'Metodi accettati')}</div>
         <div style={{
           display: 'flex',
           gap: 10,
@@ -806,6 +811,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
 }
 
 function InvoiceHistory({ invoices, loading }) {
+  const { t } = useI18n()
   const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
   const fmtMoney = (amount, currency) => {
     if (amount == null) return '—'
@@ -832,11 +838,11 @@ function InvoiceHistory({ invoices, loading }) {
           display: 'grid', placeItems: 'center',
           fontSize: 13, color: '#86efac',
         }}>⌗</span>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Invoice History</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.invoiceHistory', null, 'Invoice History')}</div>
       </div>
 
       {loading && (
-        <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13 }}>Caricamento fatture…</div>
+        <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13 }}>{t('settings.loadingInvoices', null, 'Caricamento fatture…')}</div>
       )}
 
       {!loading && list.length === 0 && (
@@ -845,7 +851,7 @@ function InvoiceHistory({ invoices, loading }) {
           background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.10)',
           color: 'var(--text3)', fontSize: 13, textAlign: 'center',
         }}>
-          Nessuna fattura. Apparirà qui dopo il primo addebito.
+          {t('settings.noInvoices', null, 'Nessuna fattura. Apparirà qui dopo il primo addebito.')}
         </div>
       )}
 
@@ -858,7 +864,7 @@ function InvoiceHistory({ invoices, loading }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
-                {['Data','Importo','Status','Fattura'].map(h => (
+                {[t('settings.colDate', null, 'Data'), t('settings.colAmount', null, 'Importo'), t('settings.colStatus', null, 'Status'), t('settings.colInvoice', null, 'Fattura')].map(h => (
                   <th key={h} style={{
                     textAlign: 'left', padding: '12px 16px',
                     fontSize: 10, fontWeight: 800, color: 'var(--text3)',
@@ -889,7 +895,7 @@ function InvoiceHistory({ invoices, loading }) {
                       {inv.pdfUrl
                         ? <a href={inv.pdfUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>PDF ↗</a>
                         : inv.hostedUrl
-                          ? <a href={inv.hostedUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>Apri ↗</a>
+                          ? <a href={inv.hostedUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>{t('settings.openLink', null, 'Apri ↗')}</a>
                           : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}
                     </td>
                   </tr>
@@ -904,6 +910,7 @@ function InvoiceHistory({ invoices, loading }) {
 }
 
 export default function SettingsTab() {
+  const { t } = useI18n()
   const [customerId, setCustomerId] = useState(null)
   const [data, setData] = useState(null) // { subscription, paymentMethod, invoices, email, name }
   const [dataLoading, setDataLoading] = useState(true)
@@ -980,10 +987,10 @@ export default function SettingsTab() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-              {subActive ? 'Change Plan' : 'Scegli un piano'}
+              {subActive ? t('settings.changePlan', null, 'Change Plan') : t('settings.choosePlan', null, 'Scegli un piano')}
             </div>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
-              {subActive ? 'Cambia il piano della tua subscription' : 'Scegli il piano giusto per la tua crescita'}
+              {subActive ? t('settings.changePlanTitle', null, 'Cambia il piano della tua subscription') : t('settings.choosePlanTitle', null, 'Scegli il piano giusto per la tua crescita')}
             </div>
           </div>
         </div>
@@ -1008,7 +1015,7 @@ export default function SettingsTab() {
             fontSize: 13, color: ACCENT,
           }}>▦</span>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
-            Comparativa piani
+            {t('settings.comparePlans', null, 'Comparativa piani')}
           </div>
         </div>
         <ComparisonTable />
@@ -1021,11 +1028,12 @@ export default function SettingsTab() {
 
 // Banner colorato in cima dopo redirect checkout/portal
 function CheckoutBanner({ banner, onClose }) {
+  const { t } = useI18n()
   const config = {
-    'success':         { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: '✓ Pagamento completato. Subscription attivata.' },
-    'cancelled':       { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: 'Checkout annullato. Nessun addebito.' },
-    'setup-success':   { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: '✓ Metodo di pagamento salvato.' },
-    'setup-cancelled': { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: 'Aggiunta carta annullata.' },
+    'success':         { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: t('settings.bannerSuccess', null, '✓ Pagamento completato. Subscription attivata.') },
+    'cancelled':       { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: t('settings.bannerCancelled', null, 'Checkout annullato. Nessun addebito.') },
+    'setup-success':   { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', text: t('settings.bannerSetupSuccess', null, '✓ Metodo di pagamento salvato.') },
+    'setup-cancelled': { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', text: t('settings.bannerSetupCancelled', null, 'Aggiunta carta annullata.') },
   }[banner]
   if (!config) return null
   return (

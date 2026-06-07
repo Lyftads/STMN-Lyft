@@ -380,7 +380,12 @@ function CalendarMonth({ posts, locale, noneText }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {items.slice(0, 3).map((p, j) => {
                   const pf = PLATFORMS.find(x => x.id === p.channel)
-                  return <div key={j} title={p.payload?.hook || p.target_name} style={{ fontSize: 9, lineHeight: 1.25, padding: '2px 4px', borderRadius: 4, background: `${pf?.color || '#888'}22`, color: pf?.color || '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(p.payload?.hook || p.target_name || '').slice(0, 18)}</div>
+                  const m0 = (p.payload?.media || [])[0]
+                  const imgThumb = m0 && m0.kind === 'file' && !(m0.type || '').startsWith('video') && m0.url
+                  const title = p.payload?.hook || p.target_name || ''
+                  return imgThumb
+                    ? <img key={j} src={m0.url} alt="" title={title} style={{ width: '100%', height: 28, objectFit: 'cover', borderRadius: 4, display: 'block', border: `1px solid ${pf?.color || '#888'}` }} />
+                    : <div key={j} title={title} style={{ fontSize: 9, lineHeight: 1.25, padding: '2px 4px', borderRadius: 4, background: `${pf?.color || '#888'}22`, color: pf?.color || '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{((m0 && (m0.type || '').startsWith('video')) ? '▶ ' : '') + title.slice(0, 16)}</div>
                 })}
                 {items.length > 3 && <div style={{ fontSize: 9, color: 'var(--text3)' }}>+{items.length - 3}</div>}
               </div>

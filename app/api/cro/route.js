@@ -2,11 +2,10 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
-
-const STORE = process.env.SHOPIFY_STORE_URL
-const TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
+import { withTenantContext, getShopify, getGoogle } from '../../../lib/tenant/credentials'
 
 async function shopifyRest(path) {
+  const { storeUrl: STORE, adminToken: TOKEN } = getShopify()
   try {
     const res = await fetch(`https://${STORE}/admin/api/2026-04/${path}`, {
       headers: { 'X-Shopify-Access-Token': TOKEN },
@@ -22,14 +21,15 @@ function daysAgo(n) {
 }
 
 async function getGoogleToken() {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_REFRESH_TOKEN) return null
+  const { clientId, clientSecret, refreshToken } = getGoogle()
+  if (!clientId || !refreshToken) return null
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
   })
@@ -63,7 +63,7 @@ function getMetricVal(report, metric) {
 }
 
 async function getGA4Data(days) {
-  const propertyId = process.env.GA4_PROPERTY_ID
+  const propertyId = getGoogle().ga4PropertyId
   if (!propertyId) return null
   const token = await getGoogleToken()
   if (!token) return null
@@ -143,6 +143,8 @@ async function getAllOrders(since) {
 }
 
 export async function GET(request) {
+  return withTenantContext(request, async () => {
+  const { storeUrl: STORE, adminToken: TOKEN } = getShopify()
   if (!STORE || !TOKEN) return NextResponse.json({ error: 'Shopify not configured' }, { status: 500 })
 
   const { searchParams } = new URL(request.url)
@@ -317,4 +319,5 @@ export async function GET(request) {
       totalRevenue:0, totalOrders:0, days, hasGA4: false,
     })
   }
+  })
 }

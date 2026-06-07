@@ -289,18 +289,19 @@ function RatioWidget({ ratio, mer }) {
 
 // ── Settings modal ────────────────────────────────────────────
 function Settings({ cfg, onSave, onClose }) {
+  const { t } = useI18n()
   const [f, setF] = useState({...cfg})
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(3,5,15,0.92)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:28,width:340}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-          <span style={{fontWeight:600,fontSize:15}}>Parametri LTV</span>
+          <span style={{fontWeight:600,fontSize:15}}>{t('sim.ltvParams', null, 'Parametri LTV')}</span>
           <button onClick={onClose} style={{color:'#555',background:'none',border:'none',fontSize:18,cursor:'pointer'}}>✕</button>
         </div>
         {[
-          {k:'freq',  l:'Frequenza acquisti / anno', s:'0.01', u:'×/anno'},
-          {k:'life',  l:'Vita media cliente',         s:'0.01', u:'anni'},
-          {k:'margin',l:'Margine lordo',               s:'1',    u:'%'},
+          {k:'freq',  l:t('sim.freqYear', null, 'Frequenza acquisti / anno'), s:'0.01', u:'×/anno'},
+          {k:'life',  l:t('sim.avgLife', null, 'Vita media cliente'),         s:'0.01', u:'anni'},
+          {k:'margin',l:t('sim.grossMargin', null, 'Margine lordo'),               s:'1',    u:'%'},
         ].map(({k,l,s,u}) => (
           <div key={k} style={{marginBottom:16}}>
             <label style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.07em',display:'block',marginBottom:6}}>{l}</label>
@@ -313,8 +314,8 @@ function Settings({ cfg, onSave, onClose }) {
           </div>
         ))}
         <div style={{display:'flex',gap:10,marginTop:24}}>
-          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid var(--border)',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>Annulla</button>
-          <button onClick={()=>{saveC(f);onSave(f);onClose()}} style={{flex:1,padding:'8px',border:'none',borderRadius:6,background:'#22c55e',color:'#000',fontWeight:700,cursor:'pointer',fontSize:13}}>Salva</button>
+          <button onClick={onClose} style={{flex:1,padding:'8px',border:'1px solid var(--border)',borderRadius:6,background:'none',color:'#888',cursor:'pointer',fontSize:13}}>{t('sim.cancel', null, 'Annulla')}</button>
+          <button onClick={()=>{saveC(f);onSave(f);onClose()}} style={{flex:1,padding:'8px',border:'none',borderRadius:6,background:'#22c55e',color:'#000',fontWeight:700,cursor:'pointer',fontSize:13}}>{t('sim.save', null, 'Salva')}</button>
         </div>
       </div>
     </div>
@@ -323,6 +324,7 @@ function Settings({ cfg, onSave, onClose }) {
 
 // ── Simulatore ────────────────────────────────────────────────
 function Simulator({ cfg }) {
+  const { t } = useI18n()
   const [s, setS] = useState({aov:85, freq:cfg.freq||1.69, life:cfg.life||1.57, margin:cfg.margin||30, cac:35})
   const set = (k,v) => setS(x=>({...x,[k]:v}))
   const ltv   = s.aov * s.freq * s.life * s.margin/100
@@ -333,9 +335,9 @@ function Simulator({ cfg }) {
 
   const defaultScenario = { name:'', spend:3000, roas:3, aov:75, cogs:38 }
   const [scenarios, setScenarios] = useState([
-    { ...defaultScenario, name:'Conservativo', spend:2000, roas:2.5, cogs:38 },
-    { ...defaultScenario, name:'Base', spend:4000, roas:3.5, cogs:38 },
-    { ...defaultScenario, name:'Aggressivo', spend:8000, roas:4, cogs:38 },
+    { ...defaultScenario, name:t('sim.scenConservative', null, 'Conservativo'), spend:2000, roas:2.5, cogs:38 },
+    { ...defaultScenario, name:t('sim.scenBase', null, 'Base'), spend:4000, roas:3.5, cogs:38 },
+    { ...defaultScenario, name:t('sim.scenAggressive', null, 'Aggressivo'), spend:8000, roas:4, cogs:38 },
   ])
   const setSc = (i,k,v) => setScenarios(prev => { const n=[...prev]; n[i]={...n[i],[k]:v}; return n })
 
@@ -490,18 +492,18 @@ function Simulator({ cfg }) {
           <>
             <div style={{ marginBottom: 18 }}>
               <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
-                Simulatore LTV:CAC
+                {t('sim.title', null, 'Simulatore LTV:CAC')}
               </h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
-                Trascina gli slider per simulare lo scenario unit economics
+                {t('sim.subtitle', null, 'Trascina gli slider per simulare lo scenario unit economics')}
               </p>
             </div>
 
             {[
               {k:'aov',   l:'AOV',                  min:20, max:250, step:1,    fmt:v=>`€${v}`},
-              {k:'freq',  l:'Frequenza / anno',     min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
-              {k:'life',  l:'Vita media (anni)',    min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`},
-              {k:'margin',l:'Margine %',            min:5,  max:80,  step:1,    fmt:v=>`${v}%`},
+              {k:'freq',  l:t('sim.freqYearShort', null, 'Frequenza / anno'),     min:1,  max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}×`},
+              {k:'life',  l:t('sim.avgLifeYears', null, 'Vita media (anni)'),    min:0.5,max:6,   step:0.01, fmt:v=>`${v.toFixed(2)}`},
+              {k:'margin',l:t('dash.marginPct', null, 'Margine %'),            min:5,  max:80,  step:1,    fmt:v=>`${v}%`},
               {k:'cac',   l:'CAC',                  min:5,  max:300, step:1,    fmt:v=>`€${v}`},
             ].map(({k,l,min,max,step,fmt}) => {
               const pct = ((s[k] - min) / (max - min)) * 100
@@ -537,16 +539,16 @@ function Simulator({ cfg }) {
             <>
               <div style={{ marginBottom: 18 }}>
                 <h2 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 900 }}>
-                  Per raggiungere 3:1
+                  {t('sim.toReach3', null, 'Per raggiungere 3:1')}
                 </h2>
                 <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12 }}>
-                  Cosa devi cambiare per arrivare al ratio target
+                  {t('sim.toReach3Sub', null, 'Cosa devi cambiare per arrivare al ratio target')}
                 </p>
               </div>
 
               {[
-                {l:'CAC target',    v:`€${Math.round(cacFor3)}`,  sub:`attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`},
-                {l:'AOV necessario', v:`€${Math.round(aovFor3)}`, sub:`attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`},
+                {l:t('sim.cacTarget', null, 'CAC target'),    v:`€${Math.round(cacFor3)}`,  sub:t('sim.currentCac', { cac: s.cac, sign: (cacFor3<s.cac?'−':'+'), pct: Math.abs(Math.round((s.cac-cacFor3)/s.cac*100)) }, `attuale €${s.cac} (${cacFor3<s.cac?'−':'+'} ${Math.abs(Math.round((s.cac-cacFor3)/s.cac*100))}%)`)},
+                {l:t('sim.aovNeeded', null, 'AOV necessario'), v:`€${Math.round(aovFor3)}`, sub:t('sim.currentAov', { aov: s.aov, pct: Math.round((aovFor3-s.aov)/s.aov*100) }, `attuale €${s.aov} (+${Math.round((aovFor3-s.aov)/s.aov*100)}%)`)},
               ].map(({l,v,sub}) => (
                 <div key={l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -658,7 +660,7 @@ function Simulator({ cfg }) {
 
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 6 }}>
-                  Spesa ADV mensile
+                  {t('sim.monthlyAdSpend', null, 'Spesa ADV mensile')}
                 </div>
                 <input type="number" value={sc.spend} min={0} step={100}
                   onChange={e=>setSc(i,'spend',Math.max(0,parseFloat(e.target.value)||0))}
@@ -679,8 +681,8 @@ function Simulator({ cfg }) {
               </div>
 
               {[
-                {k:'roas',l:'ROAS target',min:0.5,max:10,step:0.1,fmt:v=>`${v.toFixed(1)}×`},
-                {k:'aov',l:'AOV medio (IVA inclusa)',min:20,max:300,step:1,fmt:v=>`€${v}`},
+                {k:'roas',l:t('sim.roasTarget', null, 'ROAS target'),min:0.5,max:10,step:0.1,fmt:v=>`${v.toFixed(1)}×`},
+                {k:'aov',l:t('sim.aovAvgVat', null, 'AOV medio (IVA inclusa)'),min:20,max:300,step:1,fmt:v=>`€${v}`},
                 {k:'cogs',l:'COGS %',min:5,max:80,step:1,fmt:v=>`${v}%`},
               ].map(({k,l,min,max,step,fmt})=>{
                 const pct = ((sc[k] - min) / (max - min)) * 100
@@ -769,7 +771,7 @@ function Simulator({ cfg }) {
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr>
-              <th style={{padding:'14px 18px',textAlign:'left',color:'var(--text3)',fontWeight:800,fontSize:10.5,textTransform:'uppercase',letterSpacing:'0.12em',borderBottom:'1.5px solid rgba(255,255,255,0.08)'}}>Metrica</th>
+              <th style={{padding:'14px 18px',textAlign:'left',color:'var(--text3)',fontWeight:800,fontSize:10.5,textTransform:'uppercase',letterSpacing:'0.12em',borderBottom:'1.5px solid rgba(255,255,255,0.08)'}}>{t('sim.metric', null, 'Metrica')}</th>
               {scenarios.map((sc,i)=>(
                 <th key={i} style={{padding:'14px 18px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:13,borderBottom:'1.5px solid rgba(255,255,255,0.08)',fontFamily:'Inter',letterSpacing:'-0.01em'}}>{sc.name||`Scenario ${i+1}`}</th>
               ))}
@@ -777,24 +779,24 @@ function Simulator({ cfg }) {
           </thead>
           <tbody>
             {[
-              {l:'Fatturato IVA inclusa', f:c=>sm0(c.revenueIvaInclusa), bold:true},
-              {l:'IVA 22% (da scorporare)', f:c=>`-${sm0(c.iva)}`, muted:true},
-              {l:'Fatturato netto (senza IVA)', f:c=>sm0(c.revenue), bold:true},
-              {l:'Spesa ADV', f:(c,sc)=>sm0(sc.spend), muted:true},
-              {l:'Ordini', f:c=>si0(c.orders)},
-              {l:'AOV netto', f:c=>sm2(c.aovNetto)},
+              {l:t('sim.revVatIncl', null, 'Fatturato IVA inclusa'), f:c=>sm0(c.revenueIvaInclusa), bold:true},
+              {l:t('sim.vat22', null, 'IVA 22% (da scorporare)'), f:c=>`-${sm0(c.iva)}`, muted:true},
+              {l:t('sim.revNet', null, 'Fatturato netto (senza IVA)'), f:c=>sm0(c.revenue), bold:true},
+              {l:t('sim.adSpend', null, 'Spesa ADV'), f:(c,sc)=>sm0(sc.spend), muted:true},
+              {l:t('dash.orders', null, 'Ordini'), f:c=>si0(c.orders)},
+              {l:t('sim.aovNet', null, 'AOV netto'), f:c=>sm2(c.aovNetto)},
               {l:'ROAS', f:(c,sc)=>`${sc.roas.toFixed(1)}×`, bold:true},
               {l:'CPO', f:c=>sm2(c.cpo)},
               {l:'', sep:true},
               {l:'COGS', f:(c,sc)=>`${sc.cogs}%`, muted:true},
-              {l:'COGS totale', f:c=>sm0(c.cogsAmount), bold:true, muted:true},
-              {l:'Margine per ordine', f:c=>sm2(c.marginePerOrdine)},
-              {l:'Margine %', f:c=>sp1(c.marginePct)},
+              {l:t('sim.cogsTotal', null, 'COGS totale'), f:c=>sm0(c.cogsAmount), bold:true, muted:true},
+              {l:t('sim.marginPerOrder', null, 'Margine per ordine'), f:c=>sm2(c.marginePerOrdine)},
+              {l:t('dash.marginPct', null, 'Margine %'), f:c=>sp1(c.marginePct)},
               {l:'', sep:true},
-              {l:'Profitto lordo (post COGS)', f:c=>sm0(c.profittoLordo), bold:true},
-              {l:'Profitto netto (post ADV)', f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#30d158':'#ff453a'},
-              {l:'Net margin % (su lordo)', f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#30d158':'#ff453a'},
-              {l:'Break-even ROAS', f:c=>`${c.breakEvenRoas.toFixed(2)}×`, muted:true},
+              {l:t('sim.grossProfit', null, 'Profitto lordo (post COGS)'), f:c=>sm0(c.profittoLordo), bold:true},
+              {l:t('sim.netProfit', null, 'Profitto netto (post ADV)'), f:c=>sm0(c.profittoNetto), bold:true, color:c=>c.profittoNetto>=0?'#30d158':'#ff453a'},
+              {l:t('sim.netMarginPct', null, 'Net margin % (su lordo)'), f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#30d158':'#ff453a'},
+              {l:t('sim.breakEvenRoas', null, 'Break-even ROAS'), f:c=>`${c.breakEvenRoas.toFixed(2)}×`, muted:true},
             ].map((row,ri) => {
               if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:12,borderBottom:'1px solid rgba(255,255,255,0.04)'}} /></tr>
               return (
@@ -867,7 +869,7 @@ function Simulator({ cfg }) {
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>Fatturato vs Profitto netto</p>
+            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>{t('sim.revVsNetProfit', null, 'Fatturato vs Profitto netto')}</p>
             <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:10, color:'var(--text3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em' }}>
               <span style={{ width:6, height:6, borderRadius:999, background:'#30d158', boxShadow:'0 0 10px #30d158', animation:'card-pulse 2s ease-in-out infinite' }} />
               Live
@@ -899,7 +901,7 @@ function Simulator({ cfg }) {
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} iconType="circle" />
               <Bar
                 dataKey="netto"
-                name="Fatt. netto"
+                name={t('sim.netRevShort', null, 'Fatt. netto')}
                 fill="url(#sim-bar-netto)"
                 radius={[10,10,0,0]}
                 animationDuration={1400}
@@ -908,7 +910,7 @@ function Simulator({ cfg }) {
               />
               <Bar
                 dataKey="profitto"
-                name="Profitto netto"
+                name={t('sim.netProfitShort', null, 'Profitto netto')}
                 fill="url(#sim-bar-profitto)"
                 radius={[10,10,0,0]}
                 animationDuration={1400}
@@ -968,7 +970,7 @@ function Simulator({ cfg }) {
           }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>Breakdown costi</p>
+            <p style={{fontSize:10.5,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.14em',margin:0,fontWeight:800}}>{t('sim.costBreakdown', null, 'Breakdown costi')}</p>
             <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:10, color:'var(--text3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em' }}>
               <span style={{ width:6, height:6, borderRadius:999, background:'#2997ff', boxShadow:'0 0 10px #2997ff', animation:'card-pulse 2s ease-in-out infinite' }} />
               Live
@@ -1022,7 +1024,7 @@ function Simulator({ cfg }) {
               />
               <Bar
                 dataKey="adv"
-                name="Spesa ADV"
+                name={t('sim.adSpend', null, 'Spesa ADV')}
                 fill="url(#sim-bar-adv)"
                 stackId="c"
                 radius={[0,0,10,10]}
@@ -1110,17 +1112,17 @@ function Simulator({ cfg }) {
 
             <div style={{ marginBottom: 22 }}>
               <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em' }}>
-                Analisi strategica CMO + CFO
+                {t('sim.strategicAnalysis', null, 'Analisi strategica CMO + CFO')}
               </h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
-                Lettura combinata marketing + finanza per ogni scenario
+                {t('sim.strategicAnalysisSub', null, 'Lettura combinata marketing + finanza per ogni scenario')}
               </p>
             </div>
 
             {/* P&L Summary */}
             <div style={{ marginBottom: 22 }}>
               <p style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 12 }}>
-                P&L mensile per scenario
+                {t('sim.plMonthly', null, 'P&L mensile per scenario')}
               </p>
               {cashFlowAnalysis.map((r,i) => (
                 <div key={i} style={{
@@ -1140,12 +1142,12 @@ function Simulator({ cfg }) {
                     <span style={{
                       color:r.profittoNetto>=0?'#22c55e':'#ef4444',
                       fontWeight:900, fontSize:19, fontFamily:'Barlow',
-                    }}>{sm0(r.profittoNetto)}<span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginLeft: 4 }}>/mese</span></span>
+                    }}>{sm0(r.profittoNetto)}<span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginLeft: 4 }}>{t('sim.perMonth', null, '/mese')}</span></span>
                   </div>
                   <div style={{display:'flex',gap:14,flexWrap:'wrap',fontSize:11.5,color:'var(--text3)',fontWeight:600}}>
-                    <span>Fatt. lordo: <span style={{ color: 'var(--text2)' }}>{sm0(r.revenueIvaInclusa)}</span></span>
+                    <span>{t('sim.grossRev', null, 'Fatt. lordo:')} <span style={{ color: 'var(--text2)' }}>{sm0(r.revenueIvaInclusa)}</span></span>
                     <span>IVA: <span style={{ color: 'var(--text2)' }}>-{sm0(r.iva)}</span></span>
-                    <span>Fatt. netto: <span style={{ color: 'var(--text2)' }}>{sm0(r.revenue)}</span></span>
+                    <span>{t('sim.netRev', null, 'Fatt. netto:')} <span style={{ color: 'var(--text2)' }}>{sm0(r.revenue)}</span></span>
                     <span>COGS ({r.cogs}%): <span style={{ color: 'var(--text2)' }}>-{sm0(r.cogsAmount)}</span></span>
                     <span>ADV: <span style={{ color: 'var(--text2)' }}>-{sm0(r.spend)}</span></span>
                     <span>ADV/Revenue: <span style={{ color: 'var(--text2)' }}>{sp1(r.advAsRevenueShare)}</span></span>
@@ -1156,7 +1158,7 @@ function Simulator({ cfg }) {
 
             {/* Cash Flow */}
             <div style={{marginBottom:22}}>
-              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Flusso di cassa e sostenibilità</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>{t('sim.cashFlow', null, 'Flusso di cassa e sostenibilità')}</p>
               <div style={{
                 fontSize: 13,
                 color: 'var(--text)',
@@ -1178,11 +1180,11 @@ function Simulator({ cfg }) {
                   return (
                     <div key={i} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid var(--border)'}}>
                       <span style={{color:scenarioColors[i],fontWeight:900}}>{r.name}:</span>{' '}
-                      {isLosing && <span style={{color:'#ef4444'}}>In perdita di <strong>{sm0(Math.abs(r.profittoNetto))}/mese</strong>. Servono {sm0(r.runway)} di cassa extra ogni mese per sostenerlo. Non scalabile — stai finanziando la crescita di tasca tua. </span>}
-                      {isTight && <span style={{color:'#f59e0b'}}>Margine netto solo al <strong>{sp1(r.netMarginPct)}</strong> — tecnicamente in profitto ma senza cuscinetto. Un calo del ROAS del 10% ti manda in perdita. Troppo rischioso per scalare. </span>}
-                      {isOk && !isSafe && <span>Margine netto al <strong style={{color:'#22c55e'}}>{sp1(r.netMarginPct)}</strong> — sufficiente per scalare con cautela. Cash flow positivo di {sm0(r.profittoNetto)}/mese ({sm0(r.annualProfit)}/anno). </span>}
-                      {isSafe && <span>Margine netto solido al <strong style={{color:'#22c55e'}}>{sp1(r.netMarginPct)}</strong>. Cash flow di {sm0(r.profittoNetto)}/mese = <strong>{sm0(r.annualProfit)}/anno</strong>. Puoi reinvestire il profitto per scalare senza rischio. </span>}
-                      <span style={{color:'var(--text3)'}}>Cash in/out ratio: {r.cashRatio.toFixed(2)}× — per ogni €1 che esci, ne entrano €{r.cashRatio.toFixed(2)}. {r.cashRatio < 1.1 ? 'Troppo tirato.' : r.cashRatio < 1.3 ? 'Margine sottile.' : 'Sano.'}</span>
+                      {isLosing && <span style={{color:'#ef4444'}}>{t('sim.cfLosing', { loss: sm0(Math.abs(r.profittoNetto)), runway: sm0(r.runway) }, `In perdita di ${sm0(Math.abs(r.profittoNetto))}/mese. Servono ${sm0(r.runway)} di cassa extra ogni mese per sostenerlo. Non scalabile — stai finanziando la crescita di tasca tua. `)}</span>}
+                      {isTight && <span style={{color:'#f59e0b'}}>{t('sim.cfTight', { margin: sp1(r.netMarginPct) }, `Margine netto solo al ${sp1(r.netMarginPct)} — tecnicamente in profitto ma senza cuscinetto. Un calo del ROAS del 10% ti manda in perdita. Troppo rischioso per scalare. `)}</span>}
+                      {isOk && !isSafe && <span>{t('sim.cfOk', { margin: sp1(r.netMarginPct), monthly: sm0(r.profittoNetto), annual: sm0(r.annualProfit) }, `Margine netto al ${sp1(r.netMarginPct)} — sufficiente per scalare con cautela. Cash flow positivo di ${sm0(r.profittoNetto)}/mese (${sm0(r.annualProfit)}/anno). `)}</span>}
+                      {isSafe && <span>{t('sim.cfSafe', { margin: sp1(r.netMarginPct), monthly: sm0(r.profittoNetto), annual: sm0(r.annualProfit) }, `Margine netto solido al ${sp1(r.netMarginPct)}. Cash flow di ${sm0(r.profittoNetto)}/mese = ${sm0(r.annualProfit)}/anno. Puoi reinvestire il profitto per scalare senza rischio. `)}</span>}
+                      <span style={{color:'var(--text3)'}}>{t('sim.cfRatio', { ratio: r.cashRatio.toFixed(2) }, `Cash in/out ratio: ${r.cashRatio.toFixed(2)}× — per ogni €1 che esci, ne entrano €${r.cashRatio.toFixed(2)}.`)} {r.cashRatio < 1.1 ? t('sim.cfTooTight', null, 'Troppo tirato.') : r.cashRatio < 1.3 ? t('sim.cfThinMargin', null, 'Margine sottile.') : t('sim.cfHealthy', null, 'Sano.')}</span>
                     </div>
                   )
                 })}
@@ -1191,7 +1193,7 @@ function Simulator({ cfg }) {
 
             {/* Strategia di scaling */}
             <div style={{marginBottom:22}}>
-              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Strategia di scaling raccomandata</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>{t('sim.scalingStrategy', null, 'Strategia di scaling raccomandata')}</p>
               <div style={{
                 fontSize: 13,
                 color: 'var(--text)',
@@ -1207,21 +1209,21 @@ function Simulator({ cfg }) {
               }}>
                 {scalable.length > 0 ? (
                   <>
-                    <p style={{marginBottom:8}}>Lo scenario migliore per scalare è <strong style={{color:'#fff'}}>"{scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}"</strong> — genera {sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del {sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).</p>
-                    <p style={{marginBottom:8}}>Con COGS al {scalable[0].cogs}% e ADV che pesa il {sp1(scalable[0].advAsRevenueShare)} del fatturato lordo, la struttura dei costi è {scalable[0].advAsRevenueShare < 25 ? 'sana — c\'è margine per aumentare la spesa ADV se il ROAS tiene' : scalable[0].advAsRevenueShare < 35 ? 'nella media — monitora attentamente il ROAS, non c\'è molto margine di errore' : 'alta — l\'ADV pesa troppo sul fatturato, prima di scalare devi migliorare il ROAS o l\'AOV'}.</p>
-                    {scalable[0].monthsToRecover && <p style={{marginBottom:8}}>Ogni mese di ADV si ripaga in <strong>{scalable[0].monthsToRecover < 1 ? 'meno di un mese' : `${scalable[0].monthsToRecover.toFixed(1)} mesi`}</strong> — {scalable[0].monthsToRecover < 1 ? 'ciclo di cassa velocissimo, ideale per scalare' : scalable[0].monthsToRecover < 3 ? 'ciclo ragionevole' : 'ciclo lungo, attenzione alla liquidità'}.</p>}
+                    <p style={{marginBottom:8}}>{t('sim.scaleBest', { name: scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name, profit: sm0(scalable[0].annualProfit), margin: sp1(scalable[0].netMarginPct) }, `Lo scenario migliore per scalare è "${scalable.sort((a,b)=>b.annualProfit-a.annualProfit)[0].name}" — genera ${sm0(scalable[0].annualProfit)} di profitto annuo con un margine netto del ${sp1(scalable[0].netMarginPct)} che lascia spazio per imprevisti (calo ROAS stagionale, aumento CPM, resi).`)}</p>
+                    <p style={{marginBottom:8}}>{t('sim.scaleCosts', { cogs: scalable[0].cogs, adv: sp1(scalable[0].advAsRevenueShare) }, `Con COGS al ${scalable[0].cogs}% e ADV che pesa il ${sp1(scalable[0].advAsRevenueShare)} del fatturato lordo, la struttura dei costi è`)} {scalable[0].advAsRevenueShare < 25 ? t('sim.costHealthy', null, 'sana — c\'è margine per aumentare la spesa ADV se il ROAS tiene') : scalable[0].advAsRevenueShare < 35 ? t('sim.costAvg', null, 'nella media — monitora attentamente il ROAS, non c\'è molto margine di errore') : t('sim.costHigh', null, 'alta — l\'ADV pesa troppo sul fatturato, prima di scalare devi migliorare il ROAS o l\'AOV')}.</p>
+                    {scalable[0].monthsToRecover && <p style={{marginBottom:8}}>{t('sim.scalePayback', null, 'Ogni mese di ADV si ripaga in')} <strong>{scalable[0].monthsToRecover < 1 ? t('sim.lessThanMonth', null, 'meno di un mese') : t('sim.nMonths', { n: scalable[0].monthsToRecover.toFixed(1) }, `${scalable[0].monthsToRecover.toFixed(1)} mesi`)}</strong> — {scalable[0].monthsToRecover < 1 ? t('sim.cycleFast', null, 'ciclo di cassa velocissimo, ideale per scalare') : scalable[0].monthsToRecover < 3 ? t('sim.cycleReasonable', null, 'ciclo ragionevole') : t('sim.cycleLong', null, 'ciclo lungo, attenzione alla liquidità')}.</p>}
                   </>
                 ) : risky.length > 0 ? (
-                  <p style={{color:'var(--text2)'}}>Nessuno scenario ha margini sufficienti per scalare in sicurezza. <strong style={{color:'#fff'}}>"{risky[0].name}"</strong> è in profitto ma con margini troppo sottili ({sp1(risky[0].netMarginPct)}). Prima di scalare: lavora sull'AOV (bundle, upsell), riduci i COGS (negozia fornitori, packaging), o migliora il ROAS (creative testing, audience optimization).</p>
+                  <p style={{color:'var(--text2)'}}>{t('sim.scaleRisky', { name: risky[0].name, margin: sp1(risky[0].netMarginPct) }, `Nessuno scenario ha margini sufficienti per scalare in sicurezza. "${risky[0].name}" è in profitto ma con margini troppo sottili (${sp1(risky[0].netMarginPct)}). Prima di scalare: lavora sull'AOV (bundle, upsell), riduci i COGS (negozia fornitori, packaging), o migliora il ROAS (creative testing, audience optimization).`)}</p>
                 ) : (
-                  <p style={{color:'var(--text2)'}}>Tutti gli scenari sono in perdita. Non scalare la spesa ADV finché non raggiungi almeno il break-even. Concentrati su: migliorare il ROAS (creative, targeting), alzare l'AOV (bundle, cross-sell), ridurre i COGS, o valutare se il canale paid è sostenibile per il tuo modello di business.</p>
+                  <p style={{color:'var(--text2)'}}>{t('sim.scaleLosing', null, "Tutti gli scenari sono in perdita. Non scalare la spesa ADV finché non raggiungi almeno il break-even. Concentrati su: migliorare il ROAS (creative, targeting), alzare l'AOV (bundle, cross-sell), ridurre i COGS, o valutare se il canale paid è sostenibile per il tuo modello di business.")}</p>
                 )}
               </div>
             </div>
 
             {/* Visione a 12 mesi */}
             <div style={{marginBottom:18}}>
-              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>Proiezione 12 mesi</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>{t('sim.projection12', null, 'Proiezione 12 mesi')}</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
                   <div key={i} style={{
@@ -1234,16 +1236,16 @@ function Simulator({ cfg }) {
                     padding: '16px 18px',
                     boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
                   }}>
-                    <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12.5,marginBottom:10}}>{r.name} — 12 mesi</div>
+                    <div style={{color:scenarioColors[i],fontWeight:900,fontSize:12.5,marginBottom:10}}>{r.name} — {t('sim.months12', null, '12 mesi')}</div>
                     <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.8}}>
-                      <div>Fatturato annuo: <strong style={{color:'var(--text)'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
-                      <div>Spesa ADV annua: <strong style={{color:'var(--text)'}}>{sm0(r.spend * 12)}</strong></div>
-                      <div>COGS annuo: <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
-                      <div>IVA annua: <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
+                      <div>{t('sim.annualRev', null, 'Fatturato annuo:')} <strong style={{color:'var(--text)'}}>{sm0(r.revenueIvaInclusa * 12)}</strong></div>
+                      <div>{t('sim.annualAdv', null, 'Spesa ADV annua:')} <strong style={{color:'var(--text)'}}>{sm0(r.spend * 12)}</strong></div>
+                      <div>{t('sim.annualCogs', null, 'COGS annuo:')} <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
+                      <div>{t('sim.annualVat', null, 'IVA annua:')} <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
                       <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:8,paddingTop:8}}>
-                        Profitto netto annuo: <strong style={{color:r.annualProfit>=0?'#30d158':'#ff453a',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
+                        {t('sim.annualNetProfit', null, 'Profitto netto annuo:')} <strong style={{color:r.annualProfit>=0?'#30d158':'#ff453a',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
                       </div>
-                      <div>Ordini annui: <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
+                      <div>{t('sim.annualOrders', null, 'Ordini annui:')} <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
                     </div>
                   </div>
                 ))}
@@ -1262,11 +1264,11 @@ function Simulator({ cfg }) {
               padding: '18px 22px',
               boxShadow: '0 14px 32px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.18)',
             }}>
-              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>Bottom line</p>
+              <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:10}}>{t('sim.bottomLine', null, 'Bottom line')}</p>
               <div style={{fontSize:13,color:'var(--text)',lineHeight:1.65,fontWeight:500}}>
-                Break-even ROAS: {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
-                <br/>Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.
-                {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'var(--text2)'}}>La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.</span></>}
+                {t('sim.breakEvenRoasLabel', null, 'Break-even ROAS:')} {cashFlowAnalysis.map(r=><span key={r.name}><strong style={{color:scenarioColors[results.indexOf(r)]}}>{r.name}</strong> = {r.breakEvenRoas.toFixed(2)}× · </span>)}
+                <br/>{t('sim.belowAbove', null, 'Sotto questi valori perdi soldi. Sopra, ogni punto di ROAS in più è margine puro.')}
+                {cashFlowAnalysis.some(r=>r.advAsRevenueShare>30) && <><br/><span style={{color:'var(--text2)'}}>{t('sim.advOver30', null, 'La spesa ADV supera il 30% del fatturato in alcuni scenari — valuta di diversificare i canali (email, organic, referral) per ridurre la dipendenza dal paid.')}</span></>}
               </div>
             </div>
           </div>

@@ -46,6 +46,7 @@ import QuarterAgent from './components/QuarterAgent'
 import YearAgent from './components/YearAgent'
 import SimulatorAgent from './components/SimulatorAgent'
 import { PlatformBadges } from './components/PlatformIcon'
+import { useI18n } from '../lib/i18n/I18nProvider'
 
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
@@ -244,8 +245,9 @@ function Stat({ label, value, sub, color='var(--text)', mono, dim, sparkData, sp
 
 // ── Ratio widget ──────────────────────────────────────────────
 function RatioWidget({ ratio, mer }) {
+  const { t } = useI18n()
   const col  = ratioColor(ratio)
-  const lbl  = ratioLabel(ratio)
+  const lbl  = t('dash.ratioStatus.' + ratioStatus(ratio), null, ratioLabel(ratio))
   return (
     <div style={{
       border:`1px solid ${col}33`,
@@ -258,7 +260,7 @@ function RatioWidget({ ratio, mer }) {
       alignItems:'center',
     }}>
       <div>
-        <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Ratio LTV : CAC</div>
+        <div style={{fontSize:11,color:'#555',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{t('dash.ratioLtvCacShort', null, 'Ratio LTV : CAC')}</div>
         <div style={{fontSize:64,fontWeight:800,color:col,fontFamily:'Barlow',lineHeight:1,letterSpacing:'-0.04em'}}>
           {ratio!=null ? `${fr(ratio)}:1` : '—'}
         </div>
@@ -279,7 +281,7 @@ function RatioWidget({ ratio, mer }) {
         <div style={{fontSize:36,fontWeight:700,color:'#e8e8e8',fontFamily:'Barlow',letterSpacing:'-0.03em'}}>
           {mer!=null ? `${fr(mer)}x` : '—'}
         </div>
-        <div style={{fontSize:11,color:'#444',marginTop:6}}>Fatturato ÷ Spesa Ads</div>
+        <div style={{fontSize:11,color:'#444',marginTop:6}}>{t('dash.revenueDivSpend', null, 'Fatturato ÷ Spesa Ads')}</div>
       </div>
     </div>
   )
@@ -2182,6 +2184,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
+  const { t } = useI18n()
   const [tab, setTab] = useState('dashboard')
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   const [live, setLive] = useState(null)
@@ -2762,47 +2765,47 @@ export default function App() {
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
-            <Stat label="Fatturato" value={totFat>0?f0(totFat):'—'} sources={['shopify']}
+            <Stat label={t('dash.revenue', null, 'Fatturato')} value={totFat>0?f0(totFat):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={totFat} previous={prevTotals.revenue} />
-            <Stat label="Ordini" value={totOrd>0?fn(totOrd):'—'} sources={['shopify']}
+            <Stat label={t('dash.orders', null, 'Ordini')} value={totOrd>0?fn(totOrd):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.ordini)} sparkColor="var(--accent)"
               current={totOrd} previous={prevTotals.orders} />
-            <Stat label="AOV medio" value={avgAOV ? f2(avgAOV) : '—'} sources={['shopify']}
+            <Stat label={t('dash.avgAov', null, 'AOV medio')} value={avgAOV ? f2(avgAOV) : '—'} sources={['shopify']}
               sparkData={swCurrent.map(w=> w.ordini > 0 ? w.fatturato/w.ordini : 0)}
               current={avgAOV} previous={prevTotals.orders > 0 ? prevTotals.revenue/prevTotals.orders : null} />
-            <Stat label="Nuovi clienti" value={totNC>0?fn(totNC):'—'} sources={['shopify']}
+            <Stat label={t('dash.newCustomers', null, 'Nuovi clienti')} value={totNC>0?fn(totNC):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.nc)} sparkColor="var(--cyan)"
               current={totNC} previous={prevTotals.nc} />
-            <Stat label="Clienti di ritorno" value={totRC>0?fn(totRC):'—'} sources={['shopify']}
+            <Stat label={t('dash.returningCustomers', null, 'Clienti di ritorno')} value={totRC>0?fn(totRC):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.rc)} sparkColor="var(--purple)"
               current={totRC} previous={prevTotals.rc} />
           </div>
 
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(6, minmax(0, 1fr))',gap:14,marginBottom:20}}>
-            <Stat label="MER blended" value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
+            <Stat label={t('dash.merBlended', null, 'MER blended')} value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
               current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
-            <Stat label="LTV lordo" value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m` : `${cfg.freq}× · ${cfg.life}a`} />
-            <Stat label="LTV netto" value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={ltvFromData ? `${lifeOrders} ord. · ${cfg.margin}% margine · dati ${ltvAuto.months}m` : `${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
+            <Stat label={t('dash.ltvGross', null, 'LTV lordo')} value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvSubData', { orders: lifeOrders, months: ltvAuto.months }, `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a`} />
+            <Stat label={t('dash.ltvNet', null, 'LTV netto')} value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvNetSubData', { orders: lifeOrders, margin: cfg.margin, months: ltvAuto.months }, `${lifeOrders} ord. · ${cfg.margin}% margine · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}
               current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
-            <Stat label="Spesa Meta" value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
+            <Stat label={t('dash.metaSpend', null, 'Spesa Meta')} value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
-            <Stat label="Spesa totale" value={totSpend>0?f0(totSpend):'—'} sources={['meta','google']} sub="Meta + Google" />
+            <Stat label={t('dash.totalSpend', null, 'Spesa totale')} value={totSpend>0?f0(totSpend):'—'} sources={['meta','google']} sub="Meta + Google" />
           </div>
 
           {totResi > 0 && (
             <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
-              <Stat label="Resi totali" value={f0(totResi)} sources={['shopify']} />
-              <Stat label="Resi nuovi clienti" value={totResiNC>0?f0(totResiNC):'—'} sources={['shopify']} dim />
-              <Stat label="Resi clienti ritorno" value={totResiRC>0?f0(totResiRC):'—'} sources={['shopify']} dim />
+              <Stat label={t('dash.returnsTotal', null, 'Resi totali')} value={f0(totResi)} sources={['shopify']} />
+              <Stat label={t('dash.returnsNew', null, 'Resi nuovi clienti')} value={totResiNC>0?f0(totResiNC):'—'} sources={['shopify']} dim />
+              <Stat label={t('dash.returnsReturning', null, 'Resi clienti ritorno')} value={totResiRC>0?f0(totResiRC):'—'} sources={['shopify']} dim />
             </div>
           )}
 
           <div className="reveal-zoom glass-section" style={{padding:28}}>
             <p className="label" style={{marginBottom:18}}>
-              Ratio LTV:CAC mensile
+              {t('dash.ratioLtvCac', null, 'Ratio LTV:CAC mensile')}
             </p>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data} margin={{top:4,right:16,left:0,bottom:4}}>

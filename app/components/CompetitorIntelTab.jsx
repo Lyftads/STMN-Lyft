@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const COMPETITOR_META = {
   velites: {
@@ -29,12 +30,12 @@ const COMPETITOR_META = {
 }
 
 const COUNTRIES = [
-  { id: 'IT', label: 'Italia' },
-  { id: 'ES', label: 'Spagna' },
-  { id: 'US', label: 'USA' },
-  { id: 'AU', label: 'Australia' },
-  { id: 'GB', label: 'UK' },
-  { id: 'ALL', label: 'Tutti' },
+  { id: 'IT', label: 'Italia', labelKey: 'ci.countryIT' },
+  { id: 'ES', label: 'Spagna', labelKey: 'ci.countryES' },
+  { id: 'US', label: 'USA', labelKey: 'ci.countryUS' },
+  { id: 'AU', label: 'Australia', labelKey: 'ci.countryAU' },
+  { id: 'GB', label: 'UK', labelKey: 'ci.countryGB' },
+  { id: 'ALL', label: 'Tutti', labelKey: 'ci.countryALL' },
 ]
 
 function money(v) {
@@ -80,6 +81,7 @@ function PlatformBadge({ platform }) {
 }
 
 function AdCard({ ad, index }) {
+  const { t } = useI18n()
   const body = ad.bodies?.[0] || ''
   const title = ad.titles?.[0] || ''
   const caption = ad.captions?.[0] || ''
@@ -105,7 +107,7 @@ function AdCard({ ad, index }) {
       const j = await r.json()
       if (j.error) setReError(j.error)
       else setBrief(j.brief)
-    } catch (e) { setReError(e?.message || 'Errore di rete') }
+    } catch (e) { setReError(e?.message || t('ci.networkError', null, 'Errore di rete')) }
     finally { setReLoading(false) }
   }
 
@@ -119,8 +121,8 @@ function AdCard({ ad, index }) {
       })
       const j = await r.json()
       if (j.imageUrl) setGenImg(j.imageUrl)
-      else setReError(j.error || 'Generazione immagine fallita')
-    } catch (e) { setReError(e?.message || 'Errore di rete') }
+      else setReError(j.error || t('ci.imgGenFailed', null, 'Generazione immagine fallita'))
+    } catch (e) { setReError(e?.message || t('ci.networkError', null, 'Errore di rete')) }
     finally { setGenLoading(false) }
   }
   const startDate = ad.startDate
@@ -246,7 +248,7 @@ function AdCard({ ad, index }) {
               fontSize: 11, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none',
             }}
           >
-            Vedi su Ad Library
+            {t('ci.seeOnAdLibrary', null, 'Vedi su Ad Library')}
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M4 2h6v6M10 2L2 10" stroke="#2997ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -259,7 +261,7 @@ function AdCard({ ad, index }) {
             className="btn-glass"
             style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}
           >
-            ✨ Reverse-engineer on-brand
+            {t('ci.reverseBtn', null, '✨ Reverse-engineer on-brand')}
           </button>
         )}
       </div>
@@ -276,22 +278,22 @@ function AdCard({ ad, index }) {
           >
             <div style={{ position: 'relative', zIndex: 2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div className="heading-sm" style={{ fontSize: 16 }}>✨ Variante on-brand STMN</div>
+                <div className="heading-sm" style={{ fontSize: 16 }}>{t('ci.variantTitle', null, '✨ Variante on-brand STMN')}</div>
                 <button onClick={() => setReOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}>×</button>
               </div>
 
-              {reLoading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '20px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo l'inserzione e creo la variante…</div>}
+              {reLoading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '20px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('ci.analyzingAd', null, "Analizzo l'inserzione e creo la variante…")}</div>}
               {reError && <div style={{ color: 'var(--red)', fontSize: 13 }}>{reError}</div>}
 
               {brief && (
                 <div style={{ display: 'grid', gap: 14, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
-                  <Field label="Perché funziona l'originale" value={brief.whyItWorks} />
-                  <Field label="Prodotto STMN" value={brief.stmnProduct} />
-                  <Field label="Angolo on-brand" value={brief.angle} />
-                  <Field label="Hook" value={brief.hook} accent />
+                  <Field label={t('ci.fieldWhyWorks', null, "Perché funziona l'originale")} value={brief.whyItWorks} />
+                  <Field label={t('ci.fieldStmnProduct', null, 'Prodotto STMN')} value={brief.stmnProduct} />
+                  <Field label={t('ci.fieldAngle', null, 'Angolo on-brand')} value={brief.angle} />
+                  <Field label={t('ci.fieldHook', null, 'Hook')} value={brief.hook} accent />
                   {Array.isArray(brief.primaryTexts) && brief.primaryTexts.length > 0 && (
                     <div>
-                      <div className="label" style={{ marginBottom: 6 }}>Copy (varianti)</div>
+                      <div className="label" style={{ marginBottom: 6 }}>{t('ci.fieldCopyVariants', null, 'Copy (varianti)')}</div>
                       <div style={{ display: 'grid', gap: 8 }}>
                         {brief.primaryTexts.map((t, i) => (
                           <div key={i} className="glass-card-static" style={{ padding: '10px 12px', borderRadius: 10, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>{t}</div>
@@ -299,14 +301,14 @@ function AdCard({ ad, index }) {
                       </div>
                     </div>
                   )}
-                  <Field label="Headline" value={brief.headline} />
-                  <Field label="Direzione visiva" value={brief.visualBrief} />
+                  <Field label={t('ci.fieldHeadline', null, 'Headline')} value={brief.headline} />
+                  <Field label={t('ci.fieldVisual', null, 'Direzione visiva')} value={brief.visualBrief} />
 
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                     {!genImg && (
                       <button onClick={runImage} disabled={genLoading} className="btn-glass" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: genLoading ? 'wait' : 'pointer' }}>
                         <span style={{ display: 'inline-block', animation: genLoading ? 'spin 1s linear infinite' : 'none' }}>◍</span>
-                        {genLoading ? 'Genero immagine…' : 'Genera immagine on-brand'}
+                        {genLoading ? t('ci.genImgLoading', null, 'Genero immagine…') : t('ci.genImgBtn', null, 'Genera immagine on-brand')}
                       </button>
                     )}
                     {genImg && (
@@ -334,6 +336,7 @@ function Field({ label, value, accent }) {
 }
 
 function ProductCard({ product }) {
+  const { t } = useI18n()
   return (
     <div
       className="glass-card-static"
@@ -378,7 +381,7 @@ function ProductCard({ product }) {
             border: '1px solid rgba(255,69,58,0.30)',
           }}
         >
-          ESAURITO
+          {t('ci.soldOut', null, 'ESAURITO')}
         </div>
       )}
 
@@ -405,7 +408,7 @@ function ProductCard({ product }) {
             }}
           />
         ) : (
-          <div style={{ color: 'var(--text3)', fontSize: 12 }}>No image</div>
+          <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('ci.noImage', null, 'No image')}</div>
         )}
       </div>
 
@@ -489,6 +492,7 @@ function PromoTag({ promo }) {
 }
 
 function CompetitorSection({ competitor, meta, country = 'IT' }) {
+  const { t } = useI18n()
   const [section, setSection] = useState('ads')
   const [showAllProducts, setShowAllProducts] = useState(false)
   const [productSearch, setProductSearch] = useState('')
@@ -550,14 +554,14 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const nfmt = (n) => Number(n).toLocaleString('it-IT')
   const realTotal = apiAds.length > 0 ? (adLibrary?.count || null) : pageTotal
   const headerAdsLabel =
-    realTotal != null && realTotal >= ads.length ? `${nfmt(realTotal)} ads attive`
-    : (pageCapped || ads.length >= 60) ? `${nfmt(ads.length)}+ ads attive`
-    : ads.length > 0 ? `${nfmt(ads.length)} ads attive`
-    : '— ads attive'
+    realTotal != null && realTotal >= ads.length ? t('ci.adsActive', { n: nfmt(realTotal) }, `${nfmt(realTotal)} ads attive`)
+    : (pageCapped || ads.length >= 60) ? t('ci.adsActivePlus', { n: nfmt(ads.length) }, `${nfmt(ads.length)}+ ads attive`)
+    : ads.length > 0 ? t('ci.adsActive', { n: nfmt(ads.length) }, `${nfmt(ads.length)} ads attive`)
+    : t('ci.adsActiveNone', null, '— ads attive')
   const sectionAdsLabel =
-    realTotal != null && realTotal > ads.length ? `${nfmt(ads.length)} mostrate · ${nfmt(realTotal)} attive in totale`
-    : (pageCapped || ads.length >= 60) ? `${nfmt(ads.length)} mostrate · ${nfmt(ads.length)}+ attive`
-    : `${nfmt(ads.length)} creative attive`
+    realTotal != null && realTotal > ads.length ? t('ci.shownTotal', { shown: nfmt(ads.length), total: nfmt(realTotal) }, `${nfmt(ads.length)} mostrate · ${nfmt(realTotal)} attive in totale`)
+    : (pageCapped || ads.length >= 60) ? t('ci.shownPlus', { shown: nfmt(ads.length) }, `${nfmt(ads.length)} mostrate · ${nfmt(ads.length)}+ attive`)
+    : t('ci.creativeActive', { n: nfmt(ads.length) }, `${nfmt(ads.length)} creative attive`)
 
   const sortedProducts = useMemo(() => {
     return [...products]
@@ -663,7 +667,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
               fontWeight: 800,
             }}
           >
-            {products.length} prodotti
+            {products.length} {t('ci.products', null, 'prodotti')}
           </span>
           {websiteData?.isShopify && (
             <span
@@ -694,27 +698,27 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
         }}
       >
         {[
-          { id: 'ads', label: 'Creative Attive', icon: '▧' },
-          { id: 'products', label: 'Catalogo & Prezzi', icon: '◎' },
-        ].map((t) => (
+          { id: 'ads', label: t('ci.tabAds', null, 'Creative Attive'), icon: '▧' },
+          { id: 'products', label: t('ci.tabProducts', null, 'Catalogo & Prezzi'), icon: '◎' },
+        ].map((tab) => (
           <button
-            key={t.id}
-            onClick={() => setSection(t.id)}
+            key={tab.id}
+            onClick={() => setSection(tab.id)}
             style={{
               flex: 1,
               padding: '14px 20px',
               border: 'none',
-              borderBottom: section === t.id ? `2px solid ${meta.color}` : '2px solid transparent',
-              background: section === t.id ? `${meta.color}08` : 'transparent',
-              color: section === t.id ? 'var(--text)' : 'var(--text3)',
+              borderBottom: section === tab.id ? `2px solid ${meta.color}` : '2px solid transparent',
+              background: section === tab.id ? `${meta.color}08` : 'transparent',
+              color: section === tab.id ? 'var(--text)' : 'var(--text3)',
               fontSize: 13,
               fontWeight: 800,
               cursor: 'pointer',
               transition: 'all .15s',
             }}
           >
-            <span style={{ marginRight: 8 }}>{t.icon}</span>
-            {t.label}
+            <span style={{ marginRight: 8 }}>{tab.icon}</span>
+            {tab.label}
           </button>
         ))}
       </div>
@@ -736,12 +740,12 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                   {sectionAdsLabel}
                   {adLibrary?.source === 'scrape' && (
                     <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
-                      via Ad Library scrape
+                      {t('ci.viaScrape', null, 'via Ad Library scrape')}
                     </span>
                   )}
                   {adLibrary?.source === 'api' && (
                     <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--accent)', fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(41,151,255,0.10)' }}>
-                      via Meta API
+                      {t('ci.viaApi', null, 'via Meta API')}
                     </span>
                   )}
                 </span>
@@ -756,7 +760,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                     textDecoration: 'none',
                   }}
                 >
-                  Vedi tutto su Ad Library ↗
+                  {t('ci.seeAllAdLibrary', null, 'Vedi tutto su Ad Library ↗')}
                 </a>
               </div>
             )}
@@ -780,7 +784,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
             {ads.length === 0 && pageAdsLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '28px 4px', color: 'var(--text3)', fontSize: 13 }}>
                 <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span>
-                Carico le creative attive di {meta.name} dalla Ad Library…
+                {t('ci.loadingCreatives', { name: meta.name }, `Carico le creative attive di ${meta.name} dalla Ad Library…`)}
               </div>
             )}
 
@@ -812,10 +816,10 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
-                      Apri Ad Library di {meta.name}
+                      {t('ci.openAdLibraryOf', { name: meta.name }, `Apri Ad Library di ${meta.name}`)}
                     </div>
                     <div style={{ color: 'var(--text2)', fontSize: 12, lineHeight: 1.5 }}>
-                      Visualizza tutte le inserzioni attive con immagini, video e copy
+                      {t('ci.viewAllActiveAds', null, 'Visualizza tutte le inserzioni attive con immagini, video e copy')}
                     </div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
@@ -835,10 +839,9 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                     animation: 'pulse 2s ease-in-out infinite',
                   }} />
                   <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
-                    <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>In attesa di approvazione</strong>
+                    <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>{t('ci.awaitingApproval', null, 'In attesa di approvazione')}</strong>
                     {' — '}
-                    La richiesta di accesso <span style={{ color: 'var(--text)', fontWeight: 700 }}>Page Public Content Access</span> è in review da Meta.
-                    Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.
+                    {t('ci.approvalMsgPre', null, 'La richiesta di accesso')} <span style={{ color: 'var(--text)', fontWeight: 700 }}>Page Public Content Access</span> {t('ci.approvalMsgPost', null, 'è in review da Meta. Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.')}
                   </div>
                 </div>
               </div>
@@ -869,7 +872,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                   type="text"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder="Cerca un prodotto…"
+                  placeholder={t('ci.searchProduct', null, 'Cerca un prodotto…')}
                   className="btn-glass"
                   style={{
                     width: '100%',
@@ -882,7 +885,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 {productSearch && (
                   <button
                     onClick={() => setProductSearch('')}
-                    aria-label="Pulisci ricerca"
+                    aria-label={t('ci.clearSearch', null, 'Pulisci ricerca')}
                     style={{
                       position: 'absolute',
                       right: 10,
@@ -914,32 +917,32 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 }}
               >
                 <StatMini
-                  label="Prodotti"
+                  label={t('ci.statProducts', null, 'Prodotti')}
                   value={stats.totalProducts}
                   tone="#fff"
                 />
                 <StatMini
-                  label="Prezzo medio"
+                  label={t('ci.statAvgPrice', null, 'Prezzo medio')}
                   value={money(stats.avgPrice)}
                   tone="var(--accent)"
                 />
                 <StatMini
-                  label="Min"
+                  label={t('ci.statMin', null, 'Min')}
                   value={money(stats.minPrice)}
                   tone="#8b8aa0"
                 />
                 <StatMini
-                  label="Max"
+                  label={t('ci.statMax', null, 'Max')}
                   value={money(stats.maxPrice)}
                   tone="var(--text2)"
                 />
                 <StatMini
-                  label="In saldo"
+                  label={t('ci.statOnSale', null, 'In saldo')}
                   value={`${stats.onSaleCount} (${stats.onSalePct}%)`}
                   tone="var(--red)"
                 />
                 <StatMini
-                  label="Sconto medio"
+                  label={t('ci.statAvgDiscount', null, 'Sconto medio')}
                   value={stats.avgDiscount > 0 ? `−${stats.avgDiscount}%` : '—'}
                   tone="var(--red)"
                 />
@@ -959,7 +962,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                     marginBottom: 10,
                   }}
                 >
-                  Categorie
+                  {t('ci.categories', null, 'Categorie')}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {stats.categories.map(([cat, count]) => (
@@ -996,7 +999,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                     marginBottom: 10,
                   }}
                 >
-                  Promozioni rilevate
+                  {t('ci.promosDetected', null, 'Promozioni rilevate')}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {promos.map((p, i) => (
@@ -1009,7 +1012,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
             {/* Conteggio risultati ricerca */}
             {query && (
               <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 14, fontWeight: 600 }}>
-                {filteredProducts.length} risultat{filteredProducts.length === 1 ? 'o' : 'i'} per “{productSearch.trim()}”
+                {t('ci.resultsFor', { n: filteredProducts.length, q: productSearch.trim() }, `${filteredProducts.length} risultat${filteredProducts.length === 1 ? 'o' : 'i'} per “${productSearch.trim()}”`)}
               </div>
             )}
 
@@ -1044,7 +1047,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                       className="btn-glass"
                       style={{ padding: '10px 28px', cursor: 'pointer' }}
                     >
-                      Mostra tutti ({filteredProducts.length} prodotti)
+                      {t('ci.showAll', { n: filteredProducts.length }, `Mostra tutti (${filteredProducts.length} prodotti)`)}
                     </button>
                   </div>
                 )}
@@ -1056,7 +1059,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                       className="btn-glass"
                       style={{ padding: '10px 28px', cursor: 'pointer' }}
                     >
-                      Mostra meno
+                      {t('ci.showLess', null, 'Mostra meno')}
                     </button>
                   </div>
                 )}
@@ -1072,10 +1075,10 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 }}
               >
                 {query
-                  ? `Nessun prodotto corrisponde a “${productSearch.trim()}”.`
+                  ? t('ci.noProductMatch', { q: productSearch.trim() }, `Nessun prodotto corrisponde a “${productSearch.trim()}”.`)
                   : websiteData?.error
-                    ? `Errore nello scraping: ${websiteData.error}`
-                    : 'Nessun prodotto trovato. Il sito potrebbe non essere Shopify o potrebbe bloccare le richieste.'}
+                    ? t('ci.scrapeError', { err: websiteData.error }, `Errore nello scraping: ${websiteData.error}`)
+                    : t('ci.noProductFound', null, 'Nessun prodotto trovato. Il sito potrebbe non essere Shopify o potrebbe bloccare le richieste.')}
               </div>
             )}
           </>
@@ -1086,6 +1089,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
 }
 
 export default function CompetitorIntelTab() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [country, setCountry] = useState('IT')
@@ -1137,7 +1141,7 @@ export default function CompetitorIntelTab() {
       setAdCapped(!!j?.capped)
       if (j?.error && !(j?.ads?.length)) setAdError(j.error)
     } catch (e) {
-      setAdError(e?.message || 'Errore di rete')
+      setAdError(e?.message || t('ci.networkError', null, 'Errore di rete'))
       setAdResults([])
     } finally {
       setAdLoading(false)
@@ -1160,14 +1164,14 @@ export default function CompetitorIntelTab() {
         <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
           {data?.fetchedAt && (
             <>
-              Ultimo aggiornamento: {new Date(data.fetchedAt).toLocaleString('it-IT')}
-              {data?.cached && ' (cache)'}
+              {t('ci.lastUpdate', null, 'Ultimo aggiornamento:')} {new Date(data.fetchedAt).toLocaleString('it-IT')}
+              {data?.cached && ` ${t('ci.cacheParen', null, '(cache)')}`}
               <br />
             </>
           )}
           <span style={{ color: 'var(--text3)' }}>
-            Aggiornamento automatico ogni lunedì alle 06:00
-            {data?.nextRefresh && ` · Prossimo: ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
+            {t('ci.autoUpdate', null, 'Aggiornamento automatico ogni lunedì alle 06:00')}
+            {data?.nextRefresh && ` · ${t('ci.next', null, 'Prossimo:')} ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
           </span>
         </div>
 
@@ -1180,7 +1184,7 @@ export default function CompetitorIntelTab() {
           >
             {COUNTRIES.map((c) => (
               <option key={c.id} value={c.id} style={{ background: 'var(--surface)' }}>
-                {c.label}
+                {t(c.labelKey, null, c.label)}
               </option>
             ))}
           </select>
@@ -1198,7 +1202,7 @@ export default function CompetitorIntelTab() {
             }}
           >
             <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Analisi…' : 'Aggiorna'}
+            {loading ? t('ci.analyzingBtn', null, 'Analisi…') : t('ci.refresh', null, 'Aggiorna')}
           </button>
         </div>
       </div>
@@ -1222,10 +1226,10 @@ export default function CompetitorIntelTab() {
             ◎
           </div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Analizzo i competitor…
+            {t('ci.analyzingCompetitors', null, 'Analizzo i competitor…')}
           </div>
           <div style={{ fontSize: 12, marginTop: 8, color: 'var(--text3)' }}>
-            Scraping siti web e interrogazione Meta Ad Library
+            {t('ci.scrapingDesc', null, 'Scraping siti web e interrogazione Meta Ad Library')}
           </div>
         </div>
       )}
@@ -1239,9 +1243,9 @@ export default function CompetitorIntelTab() {
         }}
       >
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <div className="heading-sm" style={{ fontSize: 16, marginBottom: 4 }}>Ricerca Ad Library</div>
+          <div className="heading-sm" style={{ fontSize: 16, marginBottom: 4 }}>{t('ci.adLibrarySearch', null, 'Ricerca Ad Library')}</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>
-            Cerca creative attive su Meta per parola chiave, in tutto il mondo — non solo i competitor monitorati.
+            {t('ci.adLibrarySearchDesc', null, 'Cerca creative attive su Meta per parola chiave, in tutto il mondo — non solo i competitor monitorati.')}
           </div>
 
           <form
@@ -1254,7 +1258,7 @@ export default function CompetitorIntelTab() {
                 type="text"
                 value={adInput}
                 onChange={(e) => setAdInput(e.target.value)}
-                placeholder="es. grips, jump rope, knee sleeves…"
+                placeholder={t('ci.searchPlaceholder', null, 'es. grips, jump rope, knee sleeves…')}
                 className="btn-glass"
                 style={{ width: '100%', padding: '11px 14px 11px 38px', fontWeight: 600, color: 'var(--text)', outline: 'none' }}
               />
@@ -1266,14 +1270,14 @@ export default function CompetitorIntelTab() {
               style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: adLoading || !adInput.trim() ? 'not-allowed' : 'pointer', opacity: adLoading || !adInput.trim() ? 0.6 : 1 }}
             >
               <span style={{ display: 'inline-block', animation: adLoading ? 'spin 1s linear infinite' : 'none' }}>⌕</span>
-              {adLoading ? 'Cerco…' : 'Cerca'}
+              {adLoading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}
             </button>
           </form>
 
           {adError && (
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12 }}>
-              Nessun risultato leggibile per “{adQuery}”. {adLibraryUrl && (
-                <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Apri su Ad Library ↗</a>
+              {t('ci.noReadableResult', { q: adQuery }, `Nessun risultato leggibile per “${adQuery}”.`)} {adLibraryUrl && (
+                <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>{t('ci.openOnAdLibrary', null, 'Apri su Ad Library ↗')}</a>
               )}
             </div>
           )}
@@ -1283,10 +1287,10 @@ export default function CompetitorIntelTab() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                   {adTotal != null && adTotal > adResults.length
-                    ? `${adResults.length} mostrate · ${adTotal.toLocaleString('it-IT')} attive per “${adQuery}” · worldwide`
+                    ? t('ci.searchShownTotal', { shown: adResults.length, total: adTotal.toLocaleString('it-IT'), q: adQuery }, `${adResults.length} mostrate · ${adTotal.toLocaleString('it-IT')} attive per “${adQuery}” · worldwide`)
                     : (adCapped || adResults.length >= 60)
-                      ? `${adResults.length} mostrate · ${adResults.length}+ per “${adQuery}” · worldwide`
-                      : `${adResults.length} creative attive per “${adQuery}” · worldwide`}
+                      ? t('ci.searchShownPlus', { shown: adResults.length, q: adQuery }, `${adResults.length} mostrate · ${adResults.length}+ per “${adQuery}” · worldwide`)
+                      : t('ci.searchActive', { shown: adResults.length, q: adQuery }, `${adResults.length} creative attive per “${adQuery}” · worldwide`)}
                 </span>
                 {adLibraryUrl && (
                   <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
@@ -1301,7 +1305,7 @@ export default function CompetitorIntelTab() {
                   ))}
                 </div>
               ) : (
-                <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna creative trovata.</div>
+                <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('ci.noCreativeFound', null, 'Nessuna creative trovata.')}</div>
               )}
             </>
           )}
@@ -1355,23 +1359,23 @@ export default function CompetitorIntelTab() {
                   }}
                 >
                   <div>
-                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Ads attive</div>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>{t('ci.ovAdsActive', null, 'Ads attive')}</div>
                     <div className="metric-value-sm" style={{ color: al.count > 0 ? 'var(--text)' : 'var(--text3)' }}>
                       <AnimatedNumber value={al.count || 0} />
                     </div>
                   </div>
                   <div>
-                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Prodotti</div>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>{t('ci.statProducts', null, 'Prodotti')}</div>
                     <div className="metric-value-sm" style={{ color: s.totalProducts > 0 ? 'var(--text)' : 'var(--text3)' }}>
                       <AnimatedNumber value={s.totalProducts || 0} />
                     </div>
                   </div>
                   <div>
-                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>Prezzo medio</div>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>{t('ci.statAvgPrice', null, 'Prezzo medio')}</div>
                     <div className="metric-value-sm" style={{ color: 'var(--accent)' }}>{money(s.avgPrice)}</div>
                   </div>
                   <div>
-                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>In saldo</div>
+                    <div className="label" style={{ fontSize: 9, marginBottom: 6 }}>{t('ci.statOnSale', null, 'In saldo')}</div>
                     <div className="metric-value-sm" style={{ color: s.onSaleCount > 0 ? 'var(--red)' : 'var(--text3)' }}>
                       {s.onSaleCount > 0 ? `${s.onSaleCount} (${s.onSalePct}%)` : '—'}
                     </div>

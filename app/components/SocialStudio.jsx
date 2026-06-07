@@ -7,6 +7,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { openDrivePicker, drivePickerConfigured } from '../../lib/social/drivePicker'
+import SocialMockup from './social/SocialMockup'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -44,11 +45,21 @@ export default function SocialStudio() {
   const pickFromDrive = async () => {
     setErr(null)
     try {
-      await openDrivePicker((files) => {
-        setMedia(m => [...m, ...files.map(f => ({
-          url: f.url, type: (f.mimeType || '').startsWith('video') ? 'video/drive' : '',
-          name: (f.name || 'Drive').slice(0, 40), kind: 'drive', driveId: f.id, thumbnail: f.thumbnail || null,
-        }))])
+      await openDrivePicker(async (files, token) => {
+        for (const f of files) {
+          const isVideo = (f.mimeType || '').startsWith('video')
+          // Scarica il file via token per l'anteprima locale (i link Drive non
+          // sono URL pubblici diretti → l'<img>/<video> da solo non li mostra).
+          let previewUrl = null
+          try {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, { headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) previewUrl = URL.createObjectURL(await res.blob())
+          } catch {}
+          setMedia(m => [...m, {
+            url: f.url, previewUrl, type: isVideo ? 'video/drive' : 'image/drive',
+            name: (f.name || 'Drive').slice(0, 40), kind: 'drive', driveId: f.id,
+          }])
+        }
       })
     } catch (e) { setErr(e.message) }
   }
@@ -154,11 +165,11 @@ export default function SocialStudio() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
           {media.map((m, i) => (
             <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#000', display: 'grid', placeItems: 'center' }}>
-              {(m.kind === 'link' || m.kind === 'drive')
-                ? <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name={m.kind === 'drive' ? 'image' : 'link'} size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>
-                : m.type.startsWith('video')
-                  ? <video src={m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              {(m.previewUrl || m.kind === 'file')
+                ? (m.type.startsWith('video')
+                    ? <video src={m.previewUrl || m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <img src={m.previewUrl || m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />)
+                : <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name={m.kind === 'drive' ? 'image' : 'link'} size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>}
               <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
               {m.type.startsWith('video') && m.kind === 'file' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
             </div>
@@ -189,6 +200,16 @@ export default function SocialStudio() {
           </button>
         </div>
         {err && <div style={{ marginTop: 10, fontSize: 12, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="warning" size={13} /> {err}</div>}
+
+        {/* Anteprima mockup IG/TikTok (media + caption, in base al tipo) */}
+        {(media.length > 0 || draft) && (
+          <div style={{ marginTop: 18 }}>
+            <div style={lab}>{t('social.preview')}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+              <SocialMockup platform={platform} postType={postType} media={media} caption={draft?.caption || ''} hashtags={draft?.hashtags || []} />
+            </div>
+          </div>
+        )}
 
         {draft && (
           <div className="glass-panel" style={{ marginTop: 14, padding: 16, borderRadius: 12, borderLeft: '3px solid #e1306c' }}>

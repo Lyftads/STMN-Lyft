@@ -14,6 +14,7 @@
 
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
 import { LOCALES, DEFAULT_LOCALE, LOCALE_INTL } from './locales'
+import { browserToLocale } from './geoLocale'
 import it from './dictionaries/it'
 import en from './dictionaries/en'
 import es from './dictionaries/es'
@@ -40,30 +41,52 @@ export function I18nProvider({ children, initialLocale }) {
   // valore che arriva (async) dal DB — evita di "riscrivergli" la lingua sotto.
   const userChosen = useRef(false)
 
-  // Dopo il mount: se non forzato da prop, leggi la preferenza salvata in locale,
-  // poi (autorevole, per-cliente) la lingua legata alla company sul DB.
+  // Catena di priorità al mount (se non forzato da prop):
+  //   1. scelta esplicita per-cliente sul DB (companies.language) → autorevole
+  //   2. cache di device (localStorage)
+  //   3. auto-rilevamento: lingua del browser → poi paese dell'IP
+  //   4. default 'it'
   useEffect(() => {
     if (initialLocale) return
+    let alive = true
+
+    const apply = (lang, persist = true) => {
+      if (!alive || userChosen.current || !LOCALES.includes(lang)) return
+      setLocaleState(lang)
+      if (persist) { try { localStorage.setItem(STORAGE_KEY, lang) } catch {} }
+      if (typeof document !== 'undefined') { try { document.documentElement.lang = lang } catch {} }
+    }
+
+    // 2) cache di device — applicata subito per evitare flash.
+    let hadLocal = false
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved && LOCALES.includes(saved)) setLocaleState(saved)
+      if (saved && LOCALES.includes(saved)) { hadLocal = true; setLocaleState(saved) }
     } catch {}
 
-    // Binding per-cliente: la company sul DB è la fonte di verità. Su un device
-    // nuovo (localStorage vuoto) il cliente parte comunque nella sua lingua.
-    let alive = true
-    fetch('/api/profile')
-      .then(r => r.ok ? r.json() : null)
-      .then(j => {
-        if (!alive || userChosen.current) return
-        const lang = j?.language
-        if (lang && LOCALES.includes(lang)) {
-          setLocaleState(lang)
-          try { localStorage.setItem(STORAGE_KEY, lang) } catch {}
-          if (typeof document !== 'undefined') { try { document.documentElement.lang = lang } catch {} }
-        }
-      })
-      .catch(() => {})
+    ;(async () => {
+      // 1) lingua esplicita per-cliente dal DB (vince su tutto il resto).
+      let dbLang = null
+      try {
+        const r = await fetch('/api/profile')
+        if (r.ok) { const j = await r.json(); if (j?.language && LOCALES.includes(j.language)) dbLang = j.language }
+      } catch {}
+      if (!alive || userChosen.current) return
+      if (dbLang) { apply(dbLang); return }
+      if (hadLocal) return  // device cache già applicata → rispettala
+
+      // 3) auto-rilevamento (solo cliente nuovo, nessuna scelta salvata).
+      let auto = null
+      try { auto = browserToLocale(navigator.language || (navigator.languages && navigator.languages[0])) } catch {}
+      if (!auto) {
+        try {
+          const r = await fetch('/api/geo')
+          if (r.ok) { const j = await r.json(); if (j?.suggested && LOCALES.includes(j.suggested)) auto = j.suggested }
+        } catch {}
+      }
+      if (auto) apply(auto)
+    })()
+
     return () => { alive = false }
   }, [initialLocale])
 

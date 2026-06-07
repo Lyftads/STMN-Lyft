@@ -18,12 +18,12 @@ const PLANS = [
     name: 'Starter',
     price: 69,
     priceLabel: '€69',
-    period: '/mese',
-    tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.',
+    period: '/mese', periodKey: 'settings.perMonth',
+    tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', taglineKey: 'settings.plan.starter.tagline',
     accent: '#0ea5e9',
     accentBg: 'rgba(14,165,233,0.12)',
     accentBorder: 'rgba(14,165,233,0.30)',
-    cta: 'Passa a Starter',
+    cta: 'Passa a Starter', ctaKey: 'settings.plan.starter.cta',
     features: [
       '✨ Tutti i tool inclusi',
       'Fino a 500 ordini/mese',
@@ -31,19 +31,20 @@ const PLANS = [
       '2 utenti del team',
       'Email support 48h',
     ],
+    featureKeys: ['settings.plan.allTools', 'settings.plan.starter.f2', 'settings.plan.starter.f3', 'settings.plan.starter.f4', 'settings.plan.starter.f5'],
   },
   {
     id: 'growth',
     name: 'Growth',
     price: 149,
     priceLabel: '€149',
-    period: '/mese',
-    tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.',
+    period: '/mese', periodKey: 'settings.perMonth',
+    tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', taglineKey: 'settings.plan.growth.tagline',
     accent: '#bf5af2',
     accentBg: 'rgba(191,90,242,0.12)',
     accentBorder: 'rgba(191,90,242,0.35)',
-    badge: 'PIÙ SCELTO',
-    cta: 'Passa a Growth',
+    badge: 'PIÙ SCELTO', badgeKey: 'settings.plan.growth.badge',
+    cta: 'Passa a Growth', ctaKey: 'settings.plan.growth.cta',
     features: [
       '✨ Tutti i tool inclusi',
       '500 – 2.000 ordini/mese',
@@ -51,18 +52,19 @@ const PLANS = [
       'Crediti Creative Lab (AI) estesi',
       'Priority support 12h',
     ],
+    featureKeys: ['settings.plan.allTools', 'settings.plan.growth.f2', 'settings.plan.growth.f3', 'settings.plan.growth.f4', 'settings.plan.growth.f5'],
   },
   {
     id: 'scale',
     name: 'Scale',
     price: 299,
     priceLabel: '€299',
-    period: '/mese',
-    tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.',
+    period: '/mese', periodKey: 'settings.perMonth',
+    tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.', taglineKey: 'settings.plan.scale.tagline',
     accent: '#22c55e',
     accentBg: 'rgba(34,197,94,0.12)',
     accentBorder: 'rgba(34,197,94,0.30)',
-    cta: 'Passa a Scale',
+    cta: 'Passa a Scale', ctaKey: 'settings.plan.scale.cta',
     features: [
       '✨ Tutti i tool inclusi',
       '2.000 – 7.000 ordini/mese',
@@ -70,20 +72,21 @@ const PLANS = [
       'Crediti Creative Lab (AI) massimi',
       'CSM dedicato',
     ],
+    featureKeys: ['settings.plan.allTools', 'settings.plan.scale.f2', 'settings.plan.scale.f3', 'settings.plan.scale.f4', 'settings.plan.scale.f5'],
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     price: null,
-    priceLabel: 'Su misura',
+    priceLabel: 'Su misura', priceLabelKey: 'settings.priceCustom',
     period: '',
-    tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.',
+    tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', taglineKey: 'settings.plan.enterprise.tagline',
     accent: '#f59e0b',
     accentBg: 'rgba(245,158,11,0.12)',
     accentBorder: 'rgba(245,158,11,0.30)',
     contact: true,
     contactHref: 'mailto:info@lyftads.agency?subject=Richiesta%20piano%20Enterprise%20LyftAI',
-    cta: 'Contattaci',
+    cta: 'Contattaci', ctaKey: 'settings.plan.enterprise.cta',
     features: [
       '✨ Tutti i tool inclusi',
       '7.000+ ordini/mese',
@@ -91,27 +94,49 @@ const PLANS = [
       'Integrazioni custom',
       'Account manager dedicato',
     ],
+    featureKeys: ['settings.plan.allTools', 'settings.plan.enterprise.f2', 'settings.plan.enterprise.f3', 'settings.plan.enterprise.f4', 'settings.plan.enterprise.f5'],
   },
 ]
 
 // Feature matrix per la tabella comparativa — modello "tutti i tool inclusi":
 // i tool sono ✓ ovunque; i piani differiscono per volume, team, crediti AI, support.
 const FEATURE_MATRIX = [
-  { feature: 'Dashboard · KPI Brain · Attribuzione', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Klaviyo · CRO · AI Website Scanner', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Creative · Meta Detail · Meta KPI', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Creative Lab AI · Competitor Intel', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Performance Agent AI · Simulatore LTV:CAC', starter: true, growth: true, scale: true, enterprise: true },
-  { feature: 'Integrazioni (Shopify, Meta, Google, Klaviyo)', starter: true, growth: true, scale: true, enterprise: 'Custom' },
-  { feature: 'Ordini/mese inclusi', starter: 'Fino a 500', growth: '500 – 2.000', scale: '2.000 – 7.000', enterprise: '7.000+' },
-  { feature: 'Utenti del team', starter: '2', growth: '5', scale: 'Illimitati', enterprise: 'Illimitati' },
-  { feature: 'Crediti Creative Lab (AI)', starter: 'Base', growth: 'Estesi', scale: 'Massimi', enterprise: 'Massimi' },
-  { feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato', enterprise: 'Illimitato' },
-  { feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: 'Opzionale', enterprise: true },
-  { feature: 'SLA e onboarding dedicato', starter: false, growth: false, scale: false, enterprise: true },
-  { feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato', enterprise: 'Account manager' },
+  { featureKey: 'settings.fm1', feature: 'Dashboard · KPI Brain · Attribuzione', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm2', feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm3', feature: 'Klaviyo · CRO · AI Website Scanner', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm4', feature: 'Creative · Meta Detail · Meta KPI', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm5', feature: 'Creative Lab AI · Competitor Intel', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm6', feature: 'Performance Agent AI · Simulatore LTV:CAC', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm7', feature: 'Integrazioni (Shopify, Meta, Google, Klaviyo)', starter: true, growth: true, scale: true, enterprise: 'Custom' },
+  { featureKey: 'settings.fm8', feature: 'Ordini/mese inclusi', starter: 'Fino a 500', growth: '500 – 2.000', scale: '2.000 – 7.000', enterprise: '7.000+' },
+  { featureKey: 'settings.fm9', feature: 'Utenti del team', starter: '2', growth: '5', scale: 'Illimitati', enterprise: 'Illimitati' },
+  { featureKey: 'settings.fm10', feature: 'Crediti Creative Lab (AI)', starter: 'Base', growth: 'Estesi', scale: 'Massimi', enterprise: 'Massimi' },
+  { featureKey: 'settings.fm11', feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato', enterprise: 'Illimitato' },
+  { featureKey: 'settings.fm12', feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: 'Opzionale', enterprise: true },
+  { featureKey: 'settings.fm13', feature: 'SLA e onboarding dedicato', starter: false, growth: false, scale: false, enterprise: true },
+  { featureKey: 'settings.fm14', feature: 'Support', starter: 'Email 48h', growth: 'Priority 12h', scale: 'CSM dedicato', enterprise: 'Account manager' },
 ]
+
+// Mappa valori-stringa della matrice → chiave i18n (per tradurre le celle).
+const FM_VALUE_KEYS = {
+  'Custom': 'settings.val.custom',
+  'Fino a 500': 'settings.val.upTo500',
+  '500 – 2.000': 'settings.val.500to2000',
+  '2.000 – 7.000': 'settings.val.2000to7000',
+  '7.000+': 'settings.val.7000plus',
+  'Illimitati': 'settings.val.unlimitedUsers',
+  'Base': 'settings.val.base',
+  'Estesi': 'settings.val.extended',
+  'Massimi': 'settings.val.max',
+  '12 mesi': 'settings.val.12months',
+  '24 mesi': 'settings.val.24months',
+  'Illimitato': 'settings.val.unlimited',
+  'Opzionale': 'settings.val.optional',
+  'Email 48h': 'settings.val.email48',
+  'Priority 12h': 'settings.val.priority12',
+  'CSM dedicato': 'settings.val.csm',
+  'Account manager': 'settings.val.accountManager',
+}
 
 
 // ── Reusable black glass 3D card ──────────────────────────────────
@@ -251,7 +276,7 @@ function PlanCard({ plan, isCurrent }) {
           fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
           boxShadow: `0 8px 20px ${plan.accent}66`,
         }}>
-          {plan.badge}
+          {t(plan.badgeKey, null, plan.badge)}
         </div>
       )}
 
@@ -261,22 +286,22 @@ function PlanCard({ plan, isCurrent }) {
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
         <span style={{ fontSize: 40, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
-          {plan.priceLabel}
+          {t(plan.priceLabelKey, null, plan.priceLabel)}
         </span>
         {plan.period && (
-          <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{plan.period}</span>
+          <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t(plan.periodKey, null, plan.period)}</span>
         )}
       </div>
 
       <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5, minHeight: 38, marginTop: -6 }}>
-        {plan.tagline}
+        {t(plan.taglineKey, null, plan.tagline)}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1, marginTop: 6 }}>
         {plan.features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <span style={{ color: plan.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4, flexShrink: 0 }}>✓</span>
-            <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>{f}</span>
+            <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>{t(plan.featureKeys?.[i], null, f)}</span>
           </div>
         ))}
       </div>
@@ -294,7 +319,7 @@ function PlanCard({ plan, isCurrent }) {
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = '' }}
         >
-          {plan.cta}
+          {t(plan.ctaKey, null, plan.cta)}
         </a>
       ) : (
         <button
@@ -331,7 +356,7 @@ function PlanCard({ plan, isCurrent }) {
               }} />
               {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
             </>
-          ) : isCurrent ? t('settings.currentPlan', null, '✓ Piano attuale') : (plan.cta || ('↑ Passa a ' + plan.name))}
+          ) : isCurrent ? t('settings.currentPlan', null, '✓ Piano attuale') : (t(plan.ctaKey, null, plan.cta) || ('↑ Passa a ' + plan.name))}
         </button>
       )}
       {error && (
@@ -385,7 +410,7 @@ function ComparisonTable() {
                 padding: '12px 16px',
                 fontSize: 12.5, color: 'var(--text)',
                 borderBottom: '1px solid rgba(255,255,255,0.03)',
-              }}>{row.feature}</td>
+              }}>{t(row.featureKey, null, row.feature)}</td>
               {['starter','growth','scale','enterprise'].map((tier, j) => {
                 const v = row[tier]
                 return (
@@ -400,7 +425,7 @@ function ComparisonTable() {
                     {typeof v === 'boolean'
                       ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}>✓</span>
                            : <span style={{ color: 'var(--text3)', opacity: 0.5 }}>—</span>)
-                      : <span style={{ color: '#fff' }}>{v}</span>}
+                      : <span style={{ color: '#fff' }}>{t(FM_VALUE_KEYS[v], null, v)}</span>}
                   </td>
                 )
               })}

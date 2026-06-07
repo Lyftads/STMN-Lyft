@@ -24,6 +24,7 @@ import SeoAuditTab from './components/SeoAuditTab'
 import PnLTab from './components/PnLTab'
 import OnboardingTab from './components/OnboardingTab'
 import PlanUsageBanner from './components/PlanUsageBanner'
+import PendingActionsBanner from './components/PendingActionsBanner'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
@@ -2751,6 +2752,7 @@ export default function App() {
   >
     {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}
     <PlanUsageBanner onGoSettings={() => setTab('settings')} />
+    {tab === 'dashboard' && <PendingActionsBanner onOpen={() => setTab('actionQueue')} />}
 
       {/* ⬇⬇⬇ DA QUI IN GIÙ: lascia il tuo JSX ORIGINALE invariato (header, tabs, dashboard cards, grafici, tab Mensile/Weekly/Simulatore/MetaDetail, chiusura return e chiusura componente) ⬇⬇⬇ */}
 

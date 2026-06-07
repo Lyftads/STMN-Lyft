@@ -66,6 +66,9 @@ const P = {
   'eye-off': <><path d="M4 4l16 16" /><path d="M9.5 9.5A3 3 0 0 0 12 15a3 3 0 0 0 2.5-1.4" /><path d="M6.5 6.6C3.9 8.1 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.4 4.5-1M9.5 5.2A9.6 9.6 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.2 3" /></>,
   flag: <><path d="M5 21V4M5 4h12l-2 4 2 4H5" /></>,
   tag: <><path d="M3 11V4h7l11 11-7 7L3 11Z" /><circle cx="7.5" cy="7.5" r="1.3" /></>,
+  headphones: <><path d="M4 13v-1a8 8 0 0 1 16 0v1" /><rect x="3" y="13" width="4" height="7" rx="1.5" /><rect x="17" y="13" width="4" height="7" rx="1.5" /></>,
+  dot: <circle cx="12" cy="12" r="5" />,
+  clipboard: <><rect x="5" y="5" width="14" height="16" rx="2" /><rect x="9" y="3" width="6" height="4" rx="1" /><line x1="8.5" y1="11" x2="15.5" y2="11" /><line x1="8.5" y1="15" x2="13.5" y2="15" /></>,
   // accenti
   sparkle: <path d="M12 3c.4 3.6 1.4 4.6 5 5-3.6.4-4.6 1.4-5 5-.4-3.6-1.4-4.6-5-5 3.6-.4 4.6-1.4 5-5Z" />,
   sparkles: <><path d="M11 3c.3 2.7 1 3.4 3.7 3.7C12 7 11.3 7.7 11 10.4 10.7 7.7 10 7 7.3 6.7 10 6.4 10.7 5.7 11 3Z" /><path d="M17.5 12c.2 1.7.6 2.1 2.3 2.3-1.7.2-2.1.6-2.3 2.3-.2-1.7-.6-2.1-2.3-2.3 1.7-.2 2.1-.6 2.3-2.3Z" /></>,
@@ -76,7 +79,7 @@ export default function Icon({ name, size = 16, strokeWidth = 1.8, filled, style
   const d = P[name]
   if (!d) return null
   // alcune icone sono "piene" per natura
-  const isFill = filled || name === 'sparkle' || name === 'sparkles' || name === 'star' || name === 'pin'
+  const isFill = filled || name === 'sparkle' || name === 'sparkles' || name === 'star' || name === 'pin' || name === 'dot'
   return (
     <svg
       width={size}

@@ -432,7 +432,7 @@ export default function ChatTab({ standalone = false }) {
           {m.audio_url && <AudioMsg src={m.audio_url} />}
           {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
             ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt="" style={{ marginTop: 6, maxWidth: 240, borderRadius: 8, display: 'block' }} /></a>
-            : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-block', color: '#7b9cff', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>)}
+            : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-block', color: '#7b9cff', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || 'Allegato'}</a>)}
         </div>
       </div>
     )
@@ -471,7 +471,7 @@ export default function ChatTab({ standalone = false }) {
               <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Canali</div>
               {groupChannels.map(c => (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
-                  <span style={{ opacity: 0.6 }}>{c.is_private ? '🔒' : '#'}</span>
+                  <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? '#fff' : undefined }}>{c.name}</span>
                   {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
                 </div>
@@ -516,7 +516,7 @@ export default function ChatTab({ standalone = false }) {
               <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>Non letti · {unreadList.length}</div>
               {unreadList.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Tutto letto 🎉</div> : unreadList.map(c => { const o = c.is_dm ? dmOther(c) : null; return (
                 <div key={c.id} onClick={() => { setActive(c.id); setRail('home') }} style={itemStyle(false)}>
-                  {c.is_dm ? <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} /> : <span style={{ opacity: 0.6 }}>{c.is_private ? '🔒' : '#'}</span>}
+                  {c.is_dm ? <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} /> : <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>}
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800, color: '#fff' }}>{c.is_dm ? (o?.full_name || o?.email || 'Diretto') : c.name}</span>
                   <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />
                 </div>
@@ -529,7 +529,7 @@ export default function ChatTab({ standalone = false }) {
                 const isImg = (/^image\//.test(f.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''))
                 return (
                   <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, textDecoration: 'none', color: '#fff' }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 15 }}>{f.audio_url ? '🎤' : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📎')}</div>
+                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 15 }}>{f.audio_url ? <Icon name="mic" size={16} /> : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.audio_url ? 'Vocale' : (f.file_name || 'Allegato')}</div>
                       <div style={{ fontSize: 11, color: MUTED }}>#{f.channel_name} · {f.author_name || ''}</div>
@@ -556,7 +556,7 @@ export default function ChatTab({ standalone = false }) {
               <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {activeChannel?.is_dm
                   ? <><Avatar name={channelLabel(activeChannel)} url={dmOther(activeChannel)?.avatar_url} size={24} online={isOnline(dmOther(activeChannel))} /> {channelLabel(activeChannel)}</>
-                  : (active ? `${activeChannel?.is_private ? '🔒' : '#'} ${activeName(activeChannel)}` : 'Seleziona una conversazione')}
+                  : (active ? <>{activeChannel?.is_private ? <Icon name="lock" size={13} /> : '#'} {activeName(activeChannel)}</> : 'Seleziona una conversazione')}
               </span>
               {active && (
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -574,8 +574,8 @@ export default function ChatTab({ standalone = false }) {
                   <HBtn onClick={() => setCallMenu(o => !o)} title="Incontro: avvia o copia link"><Icon name="headset" size={16} /></HBtn>
                   {callMenu && (
                     <div style={{ position: 'absolute', top: 38, right: 0, ...PANEL, padding: 6, width: 240, zIndex: 30 }}>
-                      <MenuItem onClick={() => { startCall(); setCallMenu(false) }}>🎧&nbsp;&nbsp;Avvia incontro</MenuItem>
-                      <MenuItem onClick={() => { copyMeetLink(); setCallMenu(false) }}>🔗&nbsp;&nbsp;Copia link all'incontro</MenuItem>
+                      <MenuItem onClick={() => { startCall(); setCallMenu(false) }}><Icon name="headset" size={14} style={{ marginRight: 8 }} />Avvia incontro</MenuItem>
+                      <MenuItem onClick={() => { copyMeetLink(); setCallMenu(false) }}><Icon name="link" size={14} style={{ marginRight: 8 }} />Copia link all'incontro</MenuItem>
                     </div>
                   )}
                 </div>
@@ -608,7 +608,7 @@ export default function ChatTab({ standalone = false }) {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      {m.pinned && <span style={{ marginLeft: 6, color: '#7b5bff', fontWeight: 600 }}>📌 fissato</span>}
+                      {m.pinned && <span style={{ marginLeft: 6, color: '#7b5bff', fontWeight: 600 }}><Icon name="pin" size={11} /> fissato</span>}
                     </div>
                     {m.reply_excerpt && (
                       <div style={{ borderLeft: '2px solid #7b5bff', padding: '2px 8px', margin: '3px 0', color: MUTED, fontSize: 12.5, background: 'rgba(123,91,255,0.07)', borderRadius: '0 6px 6px 0' }}>
@@ -619,7 +619,7 @@ export default function ChatTab({ standalone = false }) {
                     {m.audio_url && <AudioMsg src={m.audio_url} />}
                     {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
                       ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 10, display: 'block' }} /></a>
-                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: '#fff', textDecoration: 'none', fontSize: 13 }}>📎 {m.file_name || 'Allegato'}</a>
+                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: '#fff', textDecoration: 'none', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || 'Allegato'}</a>
                     )}
                     {Object.keys(reactions).length > 0 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
@@ -629,7 +629,7 @@ export default function ChatTab({ standalone = false }) {
                       </div>
                     )}
                     {m.reply_count > 0 && (
-                      <div onClick={() => openThread(m)} style={{ marginTop: 5, color: '#7b9cff', fontSize: 12.5, cursor: 'pointer', fontWeight: 600 }}>💬 {m.reply_count} rispost{m.reply_count === 1 ? 'a' : 'e'}</div>
+                      <div onClick={() => openThread(m)} style={{ marginTop: 5, color: '#7b9cff', fontSize: 12.5, cursor: 'pointer', fontWeight: 600 }}><Icon name="chat" size={12} /> {m.reply_count} rispost{m.reply_count === 1 ? 'a' : 'e'}</div>
                     )}
                     {reactFor === m.id && (
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, ...PANEL, padding: 4, width: 'fit-content' }}>
@@ -646,11 +646,11 @@ export default function ChatTab({ standalone = false }) {
                       <ActBtn title="Altre azioni" onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}><Icon name="more" /></ActBtn>
                       {menuFor === m.id && (
                         <div style={{ position: 'absolute', top: 30, right: 0, ...PANEL, padding: 6, width: 240, zIndex: 30 }}>
-                          <MenuItem onClick={() => { markUnread(m); setMenuFor(null) }}>🔵&nbsp;&nbsp;Contrassegna come non letto</MenuItem>
-                          <MenuItem onClick={() => { copyText(m.body || ''); setMenuFor(null) }}>📋&nbsp;&nbsp;Copia messaggio</MenuItem>
-                          <MenuItem onClick={() => { copyText(`${typeof location !== 'undefined' ? location.origin : ''}/chat`); setMenuFor(null) }}>🔗&nbsp;&nbsp;Copia collegamento</MenuItem>
-                          <MenuItem onClick={() => { togglePin(m); setMenuFor(null) }}>📌&nbsp;&nbsp;{m.pinned ? 'Rimuovi dai fissati' : 'Fissa sul canale'}</MenuItem>
-                          {(mine || me?.isAdmin) && <MenuItem danger onClick={() => { deleteMessage(m.id); setMenuFor(null) }}>🗑&nbsp;&nbsp;Elimina messaggio</MenuItem>}
+                          <MenuItem onClick={() => { markUnread(m); setMenuFor(null) }}><Icon name="dot" size={12} style={{ marginRight: 8, color: '#3b82f6' }} />Contrassegna come non letto</MenuItem>
+                          <MenuItem onClick={() => { copyText(m.body || ''); setMenuFor(null) }}><Icon name="clipboard" size={14} style={{ marginRight: 8 }} />Copia messaggio</MenuItem>
+                          <MenuItem onClick={() => { copyText(`${typeof location !== 'undefined' ? location.origin : ''}/chat`); setMenuFor(null) }}><Icon name="link" size={14} style={{ marginRight: 8 }} />Copia collegamento</MenuItem>
+                          <MenuItem onClick={() => { togglePin(m); setMenuFor(null) }}><Icon name="pin" size={14} style={{ marginRight: 8 }} />{m.pinned ? 'Rimuovi dai fissati' : 'Fissa sul canale'}</MenuItem>
+                          {(mine || me?.isAdmin) && <MenuItem danger onClick={() => { deleteMessage(m.id); setMenuFor(null) }}><Icon name="trash" size={14} style={{ marginRight: 8 }} />Elimina messaggio</MenuItem>}
                         </div>
                       )}
                     </div>
@@ -670,7 +670,7 @@ export default function ChatTab({ standalone = false }) {
                     return (
                       <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 10 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 18 }}>
-                          {m.audio_url ? '🎤' : (isImg ? <img src={m.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📎')}
+                          {m.audio_url ? <Icon name="mic" size={18} /> : (isImg ? <img src={m.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? 'Messaggio vocale' : (m.file_name || 'Allegato')}</div>
@@ -864,8 +864,8 @@ function RailBtn({ active, onClick, title, badge, children }) {
   )
 }
 
-function Icon({ name, size = 17 }) {
-  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
+function Icon({ name, size = 17, style }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: 'middle', flex: 'none', ...style } }
   switch (name) {
     case 'smile': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
     case 'reply': return <svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-3.5A8.5 8.5 0 1 1 21 11.5z" /></svg>
@@ -891,6 +891,13 @@ function Icon({ name, size = 17 }) {
     case 'dm': return <svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-3.5A8.5 8.5 0 1 1 21 11.5z" /><line x1="8" y1="11" x2="8.01" y2="11" /><line x1="12" y1="11" x2="12.01" y2="11" /><line x1="16" y1="11" x2="16.01" y2="11" /></svg>
     case 'inbox': return <svg {...p}><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>
     case 'folder': return <svg {...p}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+    case 'paperclip': return <svg {...p}><path d="M19 11.5 12 18.5a4.5 4.5 0 0 1-6.5-6.5l7-7a3 3 0 0 1 4.5 4.5l-7 7a1.5 1.5 0 0 1-2.2-2.2l6.2-6.2" /></svg>
+    case 'lock': return <svg {...p}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+    case 'pin': return <svg {...p}><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z" /><line x1="12" y1="14" x2="12" y2="21" /></svg>
+    case 'chat': return <svg {...p}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-3.5A8.5 8.5 0 1 1 21 11.5z" /></svg>
+    case 'trash': return <svg {...p}><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 14h10l1-14" /></svg>
+    case 'clipboard': return <svg {...p}><rect x="5" y="5" width="14" height="16" rx="2" /><rect x="9" y="3" width="6" height="4" rx="1" /><line x1="8.5" y1="11" x2="15.5" y2="11" /><line x1="8.5" y1="15" x2="13.5" y2="15" /></svg>
+    case 'dot': return <svg {...p} fill="currentColor" stroke="none"><circle cx="12" cy="12" r="5" /></svg>
     default: return null
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ScannerAgent from './ScannerAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -92,7 +93,7 @@ function ScoreGauge({ score = 0, label }) {
         alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'Barlow', lineHeight: 1, letterSpacing: '-0.04em' }}>{v}</div>
-        <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginTop: 4 }}>Score CRO</div>
+        <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginTop: 4 }}>{useI18n().t('ws.scoreCro', null, 'Score CRO')}</div>
         {label && <div style={{ fontSize: 10, color, fontWeight: 800, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>}
       </div>
     </div>
@@ -100,11 +101,12 @@ function ScoreGauge({ score = 0, label }) {
 }
 
 function PrioPill({ priority }) {
+  const { t } = useI18n()
   const colors = {
-    critical: { bg: 'rgba(239,68,68,0.18)', text: '#fca5a5', label: 'Critico' },
-    high:     { bg: 'rgba(245,158,11,0.18)', text: '#fcd34d', label: 'Alta' },
-    medium:   { bg: 'rgba(41,151,255,0.18)', text: '#93c5fd', label: 'Media' },
-    low:      { bg: 'rgba(255,255,255,0.06)', text: 'var(--text3)', label: 'Bassa' },
+    critical: { bg: 'rgba(239,68,68,0.18)', text: '#fca5a5', label: t('ws.prioCritical', null, 'Critico') },
+    high:     { bg: 'rgba(245,158,11,0.18)', text: '#fcd34d', label: t('ws.prioHigh', null, 'Alta') },
+    medium:   { bg: 'rgba(41,151,255,0.18)', text: '#93c5fd', label: t('ws.prioMedium', null, 'Media') },
+    low:      { bg: 'rgba(255,255,255,0.06)', text: 'var(--text3)', label: t('ws.prioLow', null, 'Bassa') },
   }
   const c = colors[priority] || colors.medium
   return (
@@ -170,6 +172,7 @@ function InnerCard({ children, accent }) {
 }
 
 export default function WebsiteScannerTab() {
+  const { t } = useI18n()
   const [url, setUrl] = useState('')
   const [scanning, setScanning] = useState(false)
   const [data, setData] = useState(null)
@@ -180,7 +183,7 @@ export default function WebsiteScannerTab() {
   const runScan = async () => {
     setError('')
     if (!url.trim()) {
-      setError('Inserisci un URL valido')
+      setError(t('ws.invalidUrl', null, 'Inserisci un URL valido'))
       return
     }
     setData(null)
@@ -198,12 +201,12 @@ export default function WebsiteScannerTab() {
       // lo screenshot reale (Chromium fra1 IT) al posto del preview US
       if (json?.screenshotDataUrl || json?.screenshotUrl) setData(json)
       if (!r.ok || json.error) {
-        setError(json?.error || `Errore ${r.status}`)
+        setError(json?.error || t('ws.errorStatus', { status: r.status }, `Errore ${r.status}`))
       } else {
         setData(json)
       }
     } catch (e) {
-      setError(e?.message || 'Errore di rete')
+      setError(e?.message || t('ws.networkError', null, 'Errore di rete'))
     } finally {
       setScanning(false)
     }
@@ -221,7 +224,7 @@ export default function WebsiteScannerTab() {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 360px', minWidth: 280 }}>
             <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 8 }}>
-              URL della pagina da analizzare
+              {t('ws.urlLabel', null, 'URL della pagina da analizzare')}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input
@@ -272,16 +275,16 @@ export default function WebsiteScannerTab() {
                       borderTopColor: '#fff', borderRadius: 999,
                       animation: 'spin 1s linear infinite',
                     }} />
-                    Analizzando…
+                    {t('ws.analyzing', null, 'Analizzando…')}
                   </>
                 ) : (
-                  <>▶ Scansiona</>
+                  <>{t('ws.scan', null, '▶ Scansiona')}</>
                 )}
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
-                Viewport
+                {t('ws.viewport', null, 'Viewport')}
               </div>
               <div style={{
                 display: 'inline-flex',
@@ -292,8 +295,8 @@ export default function WebsiteScannerTab() {
                 gap: 2,
               }}>
                 {[
-                  { id: 'desktop', label: '🖥 Desktop' },
-                  { id: 'mobile', label: '📱 Mobile' },
+                  { id: 'desktop', label: t('ws.desktop', null, '🖥 Desktop') },
+                  { id: 'mobile', label: t('ws.mobile', null, '📱 Mobile') },
                 ].map(opt => {
                   const active = viewport === opt.id
                   return (
@@ -322,7 +325,7 @@ export default function WebsiteScannerTab() {
               </div>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 10, lineHeight: 1.5 }}>
-              Inserisci l'URL di una landing, pagina prodotto, homepage o checkout. L'AI analizzerà lo screenshot secondo i principali framework CRO (Nielsen, ConversionXL, Baymard, Cialdini) e fornirà insight con esempi concreti.
+              {t('ws.urlHint', null, "Inserisci l'URL di una landing, pagina prodotto, homepage o checkout. L'AI analizzerà lo screenshot secondo i principali framework CRO (Nielsen, ConversionXL, Baymard, Cialdini) e fornirà insight con esempi concreti.")}
             </div>
           </div>
         </div>
@@ -352,7 +355,7 @@ export default function WebsiteScannerTab() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
-                  Landing Page Preview
+                  {t('ws.preview', null, 'Landing Page Preview')}
                 </div>
                 {data?.provider && (
                   <span style={{
@@ -380,7 +383,7 @@ export default function WebsiteScannerTab() {
                   rel="noreferrer"
                   style={{ fontSize: 11, color: ACCENT_GLOW, fontWeight: 700, textDecoration: 'none' }}
                 >
-                  Apri ↗
+                  {t('ws.open', null, 'Apri ↗')}
                 </a>
               )}
             </div>
@@ -423,7 +426,7 @@ export default function WebsiteScannerTab() {
                     animation: 'spin 1s linear infinite',
                   }} />
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    Cattura screenshot…
+                    {t('ws.capturing', null, 'Cattura screenshot…')}
                   </div>
                 </div>
               )}
@@ -461,9 +464,9 @@ export default function WebsiteScannerTab() {
                     animation: 'spin 1s linear infinite',
                   }} />
                   <div>
-                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 900 }}>AI Senior CRO al lavoro…</div>
+                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 900 }}>{t('ws.aiWorking', null, 'AI Senior CRO al lavoro…')}</div>
                     <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 2 }}>
-                      Sto analizzando hero, CTA, trust signals, copy e visual hierarchy
+                      {t('ws.aiWorkingSub', null, 'Sto analizzando hero, CTA, trust signals, copy e visual hierarchy')}
                     </div>
                   </div>
                 </div>
@@ -505,7 +508,7 @@ export default function WebsiteScannerTab() {
                     <ScoreGauge score={analysis.overallScore} label={analysis.scoreLabel} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em', marginBottom: 6 }}>
-                        Analisi completata
+                        {t('ws.analysisDone', null, 'Analisi completata')}
                       </h2>
                       <p style={{ margin: 0, color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55 }}>
                         {analysis.summary}
@@ -515,7 +518,7 @@ export default function WebsiteScannerTab() {
                   {analysis.firstImpression && (
                     <InnerCard accent={ACCENT_GLOW}>
                       <div style={{ fontSize: 9.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 6 }}>
-                        Prima impressione (3 secondi)
+                        {t('ws.firstImpression', null, 'Prima impressione (3 secondi)')}
                       </div>
                       <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>
                         {analysis.firstImpression}
@@ -527,8 +530,8 @@ export default function WebsiteScannerTab() {
                 {/* What works */}
                 {Array.isArray(analysis.works) && analysis.works.length > 0 && (
                   <Section
-                    title="Cosa funziona"
-                    subtitle={`${analysis.works.length} elementi efficaci dal punto di vista CRO`}
+                    title={t('ws.worksTitle', null, 'Cosa funziona')}
+                    subtitle={t('ws.worksSub', { n: analysis.works.length }, `${analysis.works.length} elementi efficaci dal punto di vista CRO`)}
                     dotColor="#22c55e"
                     delay={0.3}
                   >
@@ -549,8 +552,8 @@ export default function WebsiteScannerTab() {
                 {/* What to improve */}
                 {Array.isArray(analysis.improve) && analysis.improve.length > 0 && (
                   <Section
-                    title="Da migliorare"
-                    subtitle="Modifiche specifiche con copy e azioni concrete"
+                    title={t('ws.improveTitle', null, 'Da migliorare')}
+                    subtitle={t('ws.improveSub', null, 'Modifiche specifiche con copy e azioni concrete')}
                     dotColor="#f59e0b"
                     delay={0.5}
                   >
@@ -563,12 +566,12 @@ export default function WebsiteScannerTab() {
                           </div>
                           {it.current && (
                             <div style={{ marginBottom: 8 }}>
-                              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>Stato attuale</div>
+                              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>{t('ws.currentState', null, 'Stato attuale')}</div>
                               <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.5 }}>{it.current}</div>
                             </div>
                           )}
                           <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>Azione consigliata</div>
+                            <div style={{ fontSize: 9, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>{t('ws.suggestedAction', null, 'Azione consigliata')}</div>
                             <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>{it.suggestion}</div>
                           </div>
                           {it.example && (
@@ -583,13 +586,13 @@ export default function WebsiteScannerTab() {
                               color: '#bfdbfe',
                               lineHeight: 1.55,
                             }}>
-                              <div style={{ fontSize: 9, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4, fontFamily: 'Inter' }}>Esempio</div>
+                              <div style={{ fontSize: 9, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4, fontFamily: 'Inter' }}>{t('ws.example', null, 'Esempio')}</div>
                               {it.example}
                             </div>
                           )}
                           {it.expectedImpact && (
                             <div style={{ marginTop: 10, fontSize: 11.5, color: '#86efac', fontWeight: 700 }}>
-                              ⌁ Impatto atteso: {it.expectedImpact}
+                              ⌁ {t('ws.expectedImpact', null, 'Impatto atteso:')} {it.expectedImpact}
                             </div>
                           )}
                         </InnerCard>
@@ -601,8 +604,8 @@ export default function WebsiteScannerTab() {
                 {/* What to remove */}
                 {Array.isArray(analysis.remove) && analysis.remove.length > 0 && (
                   <Section
-                    title="Da rimuovere o ridurre"
-                    subtitle="Elementi che generano friction o cognitive load"
+                    title={t('ws.removeTitle', null, 'Da rimuovere o ridurre')}
+                    subtitle={t('ws.removeSub', null, 'Elementi che generano friction o cognitive load')}
                     dotColor="#ef4444"
                     delay={0.7}
                   >
@@ -613,7 +616,7 @@ export default function WebsiteScannerTab() {
                           <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55, marginBottom: r.alternative ? 8 : 0 }}>{r.reason}</div>
                           {r.alternative && (
                             <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginTop: 6 }}>
-                              ↪ Sostituire con: <span style={{ color: 'var(--text)' }}>{r.alternative}</span>
+                              ↪ {t('ws.replaceWith', null, 'Sostituire con:')} <span style={{ color: 'var(--text)' }}>{r.alternative}</span>
                             </div>
                           )}
                         </InnerCard>
@@ -625,8 +628,8 @@ export default function WebsiteScannerTab() {
                 {/* Quick wins */}
                 {Array.isArray(analysis.quickWins) && analysis.quickWins.length > 0 && (
                   <Section
-                    title="Quick wins"
-                    subtitle="Azioni veloci ad alto impatto da implementare oggi"
+                    title={t('ws.quickWinsTitle', null, 'Quick wins')}
+                    subtitle={t('ws.quickWinsSub', null, 'Azioni veloci ad alto impatto da implementare oggi')}
                     dotColor={ACCENT_GLOW}
                     delay={0.9}
                   >
@@ -661,14 +664,14 @@ export default function WebsiteScannerTab() {
                   {analysis.ctaAnalysis && (
                     <GlassCard padding={22} delay={1.1}>
                       <div style={{ fontSize: 10, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
-                        CTA principale
+                        {t('ws.ctaMain', null, 'CTA principale')}
                       </div>
                       <div style={{ color: '#fff', fontSize: 14, fontWeight: 900, marginBottom: 10, fontFamily: 'Barlow', letterSpacing: '-0.01em' }}>
                         "{analysis.ctaAnalysis.primaryCta}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5, marginBottom: 10 }}>
-                        <div><span style={{ color: 'var(--text3)' }}>Posizione:</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.position}</span></div>
-                        <div><span style={{ color: 'var(--text3)' }}>Contrasto:</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.contrast}</span></div>
+                        <div><span style={{ color: 'var(--text3)' }}>{t('ws.position', null, 'Posizione:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.position}</span></div>
+                        <div><span style={{ color: 'var(--text3)' }}>{t('ws.contrast', null, 'Contrasto:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.contrast}</span></div>
                       </div>
                       <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55 }}>{analysis.ctaAnalysis.verdict}</div>
                     </GlassCard>
@@ -676,11 +679,11 @@ export default function WebsiteScannerTab() {
                   {analysis.trustSignals && (
                     <GlassCard padding={22} delay={1.3}>
                       <div style={{ fontSize: 10, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
-                        Trust signals
+                        {t('ws.trustSignals', null, 'Trust signals')}
                       </div>
                       {Array.isArray(analysis.trustSignals.present) && analysis.trustSignals.present.length > 0 && (
                         <div style={{ marginBottom: 12 }}>
-                          <div style={{ fontSize: 11, color: '#86efac', fontWeight: 800, marginBottom: 6 }}>Presenti</div>
+                          <div style={{ fontSize: 11, color: '#86efac', fontWeight: 800, marginBottom: 6 }}>{t('ws.present', null, 'Presenti')}</div>
                           {analysis.trustSignals.present.map((t, i) => (
                             <div key={i} style={{ fontSize: 12, color: 'var(--text)', padding: '3px 0' }}>✓ {t}</div>
                           ))}
@@ -688,7 +691,7 @@ export default function WebsiteScannerTab() {
                       )}
                       {Array.isArray(analysis.trustSignals.missing) && analysis.trustSignals.missing.length > 0 && (
                         <div>
-                          <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 800, marginBottom: 6 }}>Mancanti</div>
+                          <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 800, marginBottom: 6 }}>{t('ws.missing', null, 'Mancanti')}</div>
                           {analysis.trustSignals.missing.map((t, i) => (
                             <div key={i} style={{ fontSize: 12, color: 'var(--text2)', padding: '3px 0' }}>✕ {t}</div>
                           ))}
@@ -699,14 +702,14 @@ export default function WebsiteScannerTab() {
                   {analysis.copyAnalysis && (
                     <GlassCard padding={22} delay={1.5}>
                       <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
-                        Copy & value proposition
+                        {t('ws.copyVp', null, 'Copy & value proposition')}
                       </div>
                       <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 900, fontFamily: 'Barlow', letterSpacing: '-0.01em', marginBottom: 10 }}>
                         "{analysis.copyAnalysis.headline}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5 }}>
-                        <div><span style={{ color: 'var(--text3)' }}>Value prop:</span> <span style={{ color: 'var(--text)' }}>{analysis.copyAnalysis.valueProposition}</span></div>
-                        <div><span style={{ color: 'var(--text3)' }}>Tono:</span> <span style={{ color: 'var(--text)' }}>{analysis.copyAnalysis.tone}</span></div>
+                        <div><span style={{ color: 'var(--text3)' }}>{t('ws.valueProp', null, 'Value prop:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.copyAnalysis.valueProposition}</span></div>
+                        <div><span style={{ color: 'var(--text3)' }}>{t('ws.tone', null, 'Tono:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.copyAnalysis.tone}</span></div>
                       </div>
                     </GlassCard>
                   )}
@@ -725,10 +728,10 @@ export default function WebsiteScannerTab() {
               filter: `drop-shadow(0 0 24px ${ACCENT_GLOW}55)`,
             }}>🔍</div>
             <h2 style={{ margin: 0, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 10 }}>
-              Analizza qualsiasi landing page
+              {t('ws.emptyTitle', null, 'Analizza qualsiasi landing page')}
             </h2>
             <p style={{ margin: 0, color: 'var(--text3)', fontSize: 13.5, lineHeight: 1.6 }}>
-              Inserisci sopra l'URL della pagina che vuoi analizzare. Un Senior CRO Specialist con expertise in heuristic evaluation, persuasion principles e best practice e-commerce ti darà un report dettagliato con cosa funziona, cosa migliorare con esempi concreti, cosa rimuovere e quick wins da implementare subito.
+              {t('ws.emptyDesc', null, "Inserisci sopra l'URL della pagina che vuoi analizzare. Un Senior CRO Specialist con expertise in heuristic evaluation, persuasion principles e best practice e-commerce ti darà un report dettagliato con cosa funziona, cosa migliorare con esempi concreti, cosa rimuovere e quick wins da implementare subito.")}
             </p>
           </div>
         </GlassCard>

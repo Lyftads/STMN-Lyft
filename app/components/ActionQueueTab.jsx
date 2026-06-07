@@ -405,6 +405,7 @@ export default function ActionQueueTab({ metrics }) {
                   </span>
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{a.summary}</div>
+                    {a.payload?.why && <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 4, lineHeight: 1.45 }}>{a.payload.why}</div>}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 7, fontSize: 11, color: 'var(--text3)' }}>
                       <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, color: '#a78bfa' }}>{a.channel}</span>
                       {a.target_name && <span>· {a.target_name}</span>}

@@ -5,6 +5,10 @@ import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { addNotification } from '../../../lib/team/notify'
+import { withTenantContext } from '../../../lib/tenant/credentials'
+import { executeMetaAction } from '../../../lib/actions/executors/meta'
+
+const META_EXECUTOR_ON = process.env.ACTIONS_META_EXECUTOR === 'true' || process.env.ACTIONS_META_EXECUTOR === '1'
 
 // Coda Azioni (Fase 1). Workspace-scoped, service-role + filtro workspace_id.
 // Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
@@ -102,9 +106,31 @@ export async function PATCH(req) {
     patch.status = 'rejected'
     patch.approved_by = ws.memberId || ws.userId || null
   } else if (op === 'execute') {
-    // Fase 1: esecuzione manuale ("segna come eseguita"). In Fase 2 lo farà l'executor.
+    // Default: esecuzione MANUALE ("segna come eseguita").
     patch.status = 'executed'
     patch.executed_at = new Date().toISOString()
+    // Fase 2: se l'executor è attivo e l'azione è su Meta, prova l'esecuzione reale.
+    if (META_EXECUTOR_ON) {
+      try {
+        const { data: act } = await admin.from('action_queue').select('*').eq('workspace_id', ws.workspaceId).eq('id', id).single()
+        if (act && act.channel === 'meta') {
+          const r = await withTenantContext(req, () => executeMetaAction(act))
+          if (r.ok) {
+            patch.result = r.result || null
+          } else if (r.manual) {
+            // non auto-eseguibile → resta "eseguita" manualmente dall'admin
+          } else {
+            patch.status = 'failed'
+            patch.error = r.error || 'Esecuzione fallita'
+            patch.executed_at = null
+          }
+        }
+      } catch (e) {
+        patch.status = 'failed'
+        patch.error = e.message
+        patch.executed_at = null
+      }
+    }
   } else if (op === 'reopen') {
     patch.status = 'pending'
     patch.approved_by = null

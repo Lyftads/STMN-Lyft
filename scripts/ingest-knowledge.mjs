@@ -47,6 +47,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 if (!SB_URL || !SB_KEY) { console.error('Mancano NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY'); process.exit(1) }
 if (!OPENAI) { console.error('Manca OPENAI_API_KEY'); process.exit(1) }
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } })
+let FORCE = false  // --force per riprocessare anche i già-fatti
 
 // ── OpenAI: embedding, whisper, distill ──────────────────────────────────────
 // fetch con retry su 429 (rate limit) e 5xx, backoff esponenziale.
@@ -186,7 +187,7 @@ async function ytSubtitles(url, tag) {
   const base = path.join(TMP, tag)
   try {
     await exec('yt-dlp', ['--skip-download', '--write-auto-subs', '--write-subs',
-      '--sub-langs', 'it,en,it-IT,en-US', '--sub-format', 'vtt', '-o', base, url], { maxBuffer: 1 << 26 })
+      '--sub-langs', 'it.*,en.*', '--sub-format', 'vtt', '-o', base, url], { maxBuffer: 1 << 26 })
   } catch {}
   const vtt = fs.readdirSync(TMP).find(f => f.startsWith(path.basename(tag)) && f.endsWith('.vtt'))
   if (!vtt) return null
@@ -208,35 +209,35 @@ function videoId(url) {
   return m ? m[1] : String(url).slice(-11)
 }
 
-// Espande i canali (@handle) in URL di video: ultimi N video + ultime M live.
-// Gli URL singoli /watch passano invariati. Niente shorts.
+// Espande i canali (@handle) in URL: ultimi N video + ultime M live.
+// ORDINE: prima TUTTI i video di tutti i canali, POI tutte le live — così se il
+// budget si esaurisce, restano fuori solo le live (più costose/meno dense), non i video.
 async function expandSources(rawList, { maxVideos, maxLives }) {
-  const out = []
+  const videos = [], lives = []
+  const listTab = async (base, tab, n) => {
+    try {
+      const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(n), `${base}/${tab}`], { maxBuffer: 1 << 26 })
+      return stdout.split('\n').map(s => s.trim()).filter(Boolean)
+    } catch (e) { warn(`  no ${tab} ${base}: ${e.message.slice(0, 60)}`); return [] }
+  }
   for (const item of rawList) {
     if (/youtube\.com\/@/.test(item) && !/\/watch/.test(item)) {
       const base = item.replace(/\/(videos|streams|shorts).*$/, '')
-      // ultimi N video
-      try {
-        const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(maxVideos), `${base}/videos`], { maxBuffer: 1 << 26 })
-        const vids = stdout.split('\n').map(s => s.trim()).filter(Boolean)
-        out.push(...vids); log(`  ${base}/videos → ${vids.length} video`)
-      } catch (e) { warn(`  no videos ${base}: ${e.message.slice(0,60)}`) }
-      // ultime M live
-      if (maxLives > 0) {
-        try {
-          const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(maxLives), `${base}/streams`], { maxBuffer: 1 << 26 })
-          const lives = stdout.split('\n').map(s => s.trim()).filter(Boolean)
-          out.push(...lives); log(`  ${base}/streams → ${lives.length} live`)
-        } catch (e) { warn(`  no streams ${base}: ${e.message.slice(0,60)}`) }
-      }
+      const v = await listTab(base, 'videos', maxVideos); videos.push(...v); log(`  ${base}/videos → ${v.length}`)
+      if (maxLives > 0) { const l = await listTab(base, 'streams', maxLives); lives.push(...l); log(`  ${base}/streams → ${l.length}`) }
     } else if (/youtube\.com\/watch|youtu\.be\//.test(item)) {
-      out.push(item)
+      videos.push(item)
     }
   }
-  // dedup per video id
+  // video-prima-poi-live, dedup per video id
   const seen = new Set(); const uniq = []
-  for (const u of out) { const id = videoId(u); if (seen.has(id)) continue; seen.add(id); uniq.push(u) }
+  for (const u of [...videos, ...lives]) { const id = videoId(u); if (seen.has(id)) continue; seen.add(id); uniq.push(u) }
   return uniq
+}
+
+// Già presente in knowledge_base? (per riprendere senza ri-spendere)
+async function alreadyDone(sourceRef) {
+  try { const { count } = await sb.from('knowledge_base').select('id', { count: 'exact', head: true }).eq('source_ref', sourceRef); return (count || 0) > 0 } catch { return false }
 }
 
 async function ingestYouTube(urls) {
@@ -244,6 +245,7 @@ async function ingestYouTube(urls) {
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i]; const id = videoId(url); const tag = `yt_${id}`
     log(`[YT ${i + 1}/${urls.length}] ${url}`)
+    if (!FORCE && await alreadyDone(`yt:${id}`)) { log('  già fatto, salto'); continue }
     try {
       let text = await ytSubtitles(url, tag)
       if (text) log('  sottotitoli ok'); else { log('  niente sub → audio+Whisper'); text = await transcribeInput(await ytAudio(url, tag), tag) }
@@ -401,6 +403,7 @@ function opt(name, def) { const i = rest.indexOf(`--${name}`); return i >= 0 ? r
       const file = opt('file')
       if (file) raw = raw.concat(fs.readFileSync(file, 'utf8').split('\n').map(s => s.trim()).filter(s => /^https?:\/\//.test(s)))
       if (!raw.length) { console.error('Nessun URL/canale. Passa URL o --file urls.txt'); process.exit(1) }
+      FORCE = flag('force')
       const maxVideos = Number(opt('max-videos', 60))
       const maxLives = Number(opt('max-lives', 10))
       log(`Espando canali (ultimi ${maxVideos} video + ${maxLives} live per canale)…`)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import EnqueueButton from './ui/EnqueueButton'
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -294,7 +295,18 @@ export default function KlaviyoTab() {
                 const st = campStatsMap[c.id]
                 return (
                 <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>{c.name}</td>
+                  <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span>{c.name}</span>
+                      {c.status === 'Draft' && (
+                        <EnqueueButton compact build={() => ({
+                          channel: 'klaviyo', source: 'klaviyo', type: 'custom', target_name: c.name,
+                          payload: { campaignId: c.id, status: c.status },
+                          summary: tr('aq.sum.klaviyoSchedule', { name: c.name }),
+                        })} />
+                      )}
+                    </div>
+                  </td>
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{
                       fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 6,

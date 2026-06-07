@@ -65,6 +65,30 @@ export default function SocialStudio() {
   }
   const driveOn = drivePickerConfigured()
 
+  // Musica (ricerca libreria Apple Music via /api/social/music)
+  const [music, setMusic] = useState(null)
+  const [musicQ, setMusicQ] = useState('')
+  const [musicRes, setMusicRes] = useState([])
+  const [musicLoading, setMusicLoading] = useState(false)
+  const [playingId, setPlayingId] = useState(null)
+  const audioRef = useRef(null)
+
+  const searchMusic = async () => {
+    if (!musicQ.trim()) return
+    setMusicLoading(true)
+    try {
+      const r = await fetch(`/api/social/music?q=${encodeURIComponent(musicQ)}`)
+      const j = await r.json()
+      setMusicRes(j.results || [])
+    } catch {}
+    setMusicLoading(false)
+  }
+  const togglePreview = (song) => {
+    const a = audioRef.current; if (!a || !song.preview) return
+    if (playingId === song.id) { a.pause(); setPlayingId(null); return }
+    a.src = song.preview; a.play().catch(() => {}); setPlayingId(song.id)
+  }
+
   // Upload DIRETTO su Supabase Storage (signed URL) → file pesanti, full quality.
   const uploadFiles = async (files) => {
     if (!files?.length) return
@@ -194,6 +218,43 @@ export default function SocialStudio() {
         </div>
         <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginBottom: 14 }}>{uploading ? t('social.uploading') : t('social.upload')} · max 50MB · {t('social.linkPlaceholder')}</div>
 
+        {/* Musica */}
+        <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.music')}</div>
+        <audio ref={audioRef} onEnded={() => setPlayingId(null)} style={{ display: 'none' }} />
+        {music ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 10, border: '1px solid var(--border)', marginBottom: 8 }}>
+            {music.artwork ? <img src={music.artwork} alt="" style={{ width: 38, height: 38, borderRadius: 6 }} /> : <span style={{ width: 38, height: 38, borderRadius: 6, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.06)' }}><Icon name="headphones" size={16} /></span>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{music.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{music.artist}</div>
+            </div>
+            {music.preview && <button onClick={() => togglePreview(music)} style={iconBtn}>{playingId === music.id ? '❚❚' : '▶'}</button>}
+            <button onClick={() => { setMusic(null); if (audioRef.current) audioRef.current.pause(); setPlayingId(null) }} style={iconBtn}>×</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+              <input value={musicQ} onChange={e => setMusicQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') searchMusic() }} placeholder={t('social.musicSearch')} style={{ ...editInput, flex: 1 }} />
+              <button onClick={searchMusic} disabled={musicLoading} style={{ padding: '8px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer' }}><Icon name="search" size={14} /></button>
+            </div>
+            {musicRes.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6, maxHeight: 240, overflowY: 'auto' }}>
+                {musicRes.map(s => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 6, borderRadius: 8, cursor: 'pointer' }} onClick={() => { setMusic(s); setMusicRes([]); if (audioRef.current) audioRef.current.pause(); setPlayingId(null) }}>
+                    {s.artwork && <img src={s.artwork} alt="" style={{ width: 34, height: 34, borderRadius: 5 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.artist}</div>
+                    </div>
+                    {s.preview && <button onClick={(e) => { e.stopPropagation(); togglePreview(s) }} style={iconBtn}>{playingId === s.id ? '❚❚' : '▶'}</button>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginBottom: 14 }}>{t('social.musicHint')}</div>
+
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('social.brief')} rows={3}
           style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />
         <div style={{ marginTop: 10 }}>
@@ -208,7 +269,7 @@ export default function SocialStudio() {
           <div style={{ marginTop: 18 }}>
             <div style={lab}>{t('social.preview')}</div>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-              <SocialMockup platform={platform} postType={postType} media={media} caption={draft?.caption || ''} hashtags={draft?.hashtags || []} />
+              <SocialMockup platform={platform} postType={postType} media={media} caption={draft?.caption || ''} hashtags={draft?.hashtags || []} music={music} />
             </div>
           </div>
         )}
@@ -224,10 +285,10 @@ export default function SocialStudio() {
             <div style={{ marginTop: 10 }}><div style={lab}>{t('social.cta')}</div>
               <input value={draft.cta || ''} onChange={e => setField('cta', e.target.value)} style={editInput} /></div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-              <EnqueueButton onDone={() => { loadPlanned(); setMedia([]) }} build={() => ({
+              <EnqueueButton onDone={() => { loadPlanned(); setMedia([]); setMusic(null) }} build={() => ({
                 channel: platform, source: 'social_studio', type: 'create_post',
                 target_name: draft.hook || draft.format,
-                payload: { ...draft, scheduled_for: scheduleDate || null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name, kind: m.kind })) },
+                payload: { ...draft, scheduled_for: scheduleDate || null, music: music ? { title: music.title, artist: music.artist, artwork: music.artwork || null } : null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name, kind: m.kind })) },
                 summary: t('aq.sum.createPost', { platform: platLabel, hook: draft.hook || draft.format }),
               })} label={t('aq.launch.enqueue')} />
               <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
@@ -335,6 +396,7 @@ const navBtn = { width: 28, height: 28, borderRadius: 8, border: '1px solid var(
 
 const lab = { fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 4 }
 const editInput = { width: '100%', borderRadius: 9, padding: '8px 10px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }
+const iconBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontSize: 11, flexShrink: 0 }
 function Field({ label, value }) {
   if (!value) return null
   return (

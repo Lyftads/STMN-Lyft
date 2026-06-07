@@ -29,17 +29,17 @@ function Placeholder({ t }) {
   )
 }
 
-export default function SocialMockup({ platform, postType, media = [], caption = '', hashtags = [] }) {
+export default function SocialMockup({ platform, postType, media = [], caption = '', hashtags = [], music = null }) {
   const { t } = useI18n()
   const handle = t('social.yourBrand', null, 'your_brand')
   const capText = [caption, (hashtags || []).join(' ')].filter(Boolean).join('\n\n')
   const vertical = postType === 'reel' || postType === 'story' || platform === 'tiktok'
   return vertical
-    ? <Vertical postType={postType} media={media} capText={capText} handle={handle} t={t} />
+    ? <Vertical postType={postType} media={media} capText={capText} handle={handle} music={music} t={t} />
     : <Feed postType={postType} media={media} capText={capText} handle={handle} t={t} />
 }
 
-function Vertical({ postType, media, capText, handle, t }) {
+function Vertical({ postType, media, capText, handle, music, t }) {
   const isStory = postType === 'story'
   const first = media[0]
   return (
@@ -61,9 +61,15 @@ function Vertical({ postType, media, capText, handle, t }) {
           <Icon name="heart" size={26} /><Icon name="chat" size={25} /><Icon name="send" size={24} /><Icon name="bookmark" size={23} />
         </div>
       )}
-      <div style={{ position: 'absolute', left: 12, right: isStory ? 12 : 54, bottom: 16, color: '#fff', fontSize: 11.5, lineHeight: 1.4, whiteSpace: 'pre-wrap', overflow: 'hidden', maxHeight: isStory ? 64 : 130, textShadow: '0 1px 3px rgba(0,0,0,0.75)' }}>
+      <div style={{ position: 'absolute', left: 12, right: isStory ? 12 : 54, bottom: music ? 34 : 16, color: '#fff', fontSize: 11.5, lineHeight: 1.4, whiteSpace: 'pre-wrap', overflow: 'hidden', maxHeight: isStory ? 64 : 110, textShadow: '0 1px 3px rgba(0,0,0,0.75)' }}>
         {capText}
       </div>
+      {music && (
+        <div style={{ position: 'absolute', left: 12, right: isStory ? 12 : 54, bottom: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 10.5, fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.75)' }}>
+          <Icon name="headphones" size={12} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{music.artist} · {music.title}</span>
+        </div>
+      )}
     </div>
   )
 }

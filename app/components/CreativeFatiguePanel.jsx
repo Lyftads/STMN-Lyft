@@ -112,30 +112,30 @@ export default function CreativeFatiguePanel() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.8}>
-        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>Ultimi 28 giorni · frequency↑ · CTR↓ vs media · CPA↑ vs media</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>{t('cf.subtitle')}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
             {accounts.length > 1 && (
               <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
-                <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
+                <option value="" style={{ background: 'var(--surface)' }}>{t('flt.allAccounts')}</option>
                 {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
               </select>
             )}
           </div>
         </div>
-        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le creative attive…</div>}
+        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('cf.loading')}</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
-        {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna creativa con dati sufficienti nel periodo.</div>}
+        {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{t('cf.empty')}</div>}
 
         {ads.length > 0 && (
           <>
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
-              <Stat label="Creative analizzate" value={nf(data.total)} />
-              <Stat label="Da rinfrescare" value={nf(data.toRefresh)} tone={data.toRefresh > 0 ? 'var(--red)' : 'var(--green)'} />
-              <Stat label="CTR medio" value={`${avgCtr}%`} d={delta.ctr} />
-              <Stat label="CPA medio" value={money(avgCpa)} d={delta.cpa} lowerBetter />
+              <Stat label={t('cf.stat.analyzed')} value={nf(data.total)} />
+              <Stat label={t('cf.stat.toRefresh')} value={nf(data.toRefresh)} tone={data.toRefresh > 0 ? 'var(--red)' : 'var(--green)'} />
+              <Stat label={t('cf.stat.avgCtr')} value={`${avgCtr}%`} d={delta.ctr} />
+              <Stat label={t('cf.stat.avgCpa')} value={money(avgCpa)} d={delta.cpa} lowerBetter />
             </div>
 
             <div className="stagger" style={{ display: 'grid', gap: 8 }}>
@@ -153,7 +153,7 @@ export default function CreativeFatiguePanel() {
                     {/* Nome + barra fatigue */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4, background: s.bg, color: s.color, letterSpacing: '.05em', flexShrink: 0 }}>{s.label}</span>
+                        <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4, background: s.bg, color: s.color, letterSpacing: '.05em', flexShrink: 0 }}>{t('cf.sev.' + (SEV[a.severity] ? a.severity : 'low'))}</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 7 }}>
@@ -166,10 +166,10 @@ export default function CreativeFatiguePanel() {
 
                     {/* Metriche colorate (no muro di testo) */}
                     <div style={{ display: 'flex', gap: 16, flexShrink: 0, textAlign: 'right' }}>
-                      <Metric label="Freq" value={a.frequency} tone={freqTone(a.frequency)} />
-                      <Metric label="CTR" value={`${a.ctr}%`} tone={ctrTone(a.ctr)} />
-                      <Metric label="CPA" value={money(a.cpa)} tone={cpaTone(a.cpa)} />
-                      <Metric label="Spesa" value={money(a.spend)} />
+                      <Metric label={t('m.freq')} value={a.frequency} tone={freqTone(a.frequency)} />
+                      <Metric label={t('m.ctr')} value={`${a.ctr}%`} tone={ctrTone(a.ctr)} />
+                      <Metric label={t('m.cpa')} value={money(a.cpa)} tone={cpaTone(a.cpa)} />
+                      <Metric label={t('m.spend')} value={money(a.spend)} />
                     </div>
                     {a.severity === 'high' && (
                       <ApplyButton qstate={queued[a.adId]} onClick={() => enqueue(a.adId, {
@@ -187,14 +187,14 @@ export default function CreativeFatiguePanel() {
             {ads.length > 12 && (
               <div style={{ textAlign: 'center', marginTop: 16 }}>
                 <button onClick={() => setShowAll(v => !v)} className="btn-glass" style={{ padding: '9px 24px', cursor: 'pointer' }}>
-                  {showAll ? 'Mostra meno' : `Mostra tutte (${ads.length})`}
+                  {showAll ? t('flt.showLess') : t('flt.showAll', { n: ads.length })}
                 </button>
               </div>
             )}
 
             {chartData.length > 0 && (
               <div className="glass-card-static reveal-zoom" style={{ marginTop: 22, padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Top creative per fatigue score</div>
+                <div className="label" style={{ marginBottom: 12 }}>{t('cf.chartTitle')}</div>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={chartData} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
                     <defs>

@@ -105,41 +105,41 @@ export default function BudgetAdvisorPanel() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={2.2}>
-        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>Ultimi 28 giorni · solo campagne attive · riallocazione a parità di spesa · consulenziale (non esecutivo)</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>{t('ba.subtitle')}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
             {accounts.length > 1 && (
               <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
-                <option value="" style={{ background: 'var(--surface)' }}>Tutti gli account</option>
+                <option value="" style={{ background: 'var(--surface)' }}>{t('flt.allAccounts')}</option>
                 {accounts.map(a => <option key={a.id} value={a.id} style={{ background: 'var(--surface)' }}>{a.name}</option>)}
               </select>
             )}
           </div>
         </div>
-        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Analizzo le campagne…</div>}
+        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('ba.loading')}</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
-        {!loading && !error && camps.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessuna campagna con spesa nel periodo.</div>}
+        {!loading && !error && camps.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{t('ba.empty')}</div>}
 
         {camps.length > 0 && (
           <>
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 16px' }}>
-              <Stat label="Spesa totale" value={eur(data.totalSpend)} d={delta.spend} />
-              <Stat label="ROAS medio (MER)" value={`${data.mer}x`} tone={data.mer >= 2 ? 'var(--green)' : data.mer >= 1 ? 'var(--orange)' : 'var(--red)'} d={delta.mer} />
-              <Stat label="Da scalare" value={data.counts?.scala || 0} tone="var(--green)" />
-              <Stat label="Da ridurre / tagliare" value={(data.counts?.riduci || 0) + (data.counts?.taglia || 0)} tone="var(--red)" />
+              <Stat label={t('ba.stat.totalSpend')} value={eur(data.totalSpend)} d={delta.spend} />
+              <Stat label={t('ba.stat.mer')} value={`${data.mer}x`} tone={data.mer >= 2 ? 'var(--green)' : data.mer >= 1 ? 'var(--orange)' : 'var(--red)'} d={delta.mer} />
+              <Stat label={t('ba.stat.toScale')} value={data.counts?.scala || 0} tone="var(--green)" />
+              <Stat label={t('ba.stat.toReduce')} value={(data.counts?.riduci || 0) + (data.counts?.taglia || 0)} tone="var(--red)" />
             </div>
 
             {re.freed > 0 && (
               <div className="glass-card-static" style={{ padding: '14px 16px', borderRadius: 12, borderLeft: '3px solid var(--accent)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginBottom: 4 }}>
-                    Sposta ~{eur(re.freed)} dalle campagne deboli (ROAS {re.avgCutRoas}x) verso quelle forti (ROAS {re.avgScaleRoas}x)
+                    {t('aq.sum.shift', { amount: eur(re.freed), cut: re.avgCutRoas, scale: re.avgScaleRoas })}
                   </div>
                   {re.forecastDelta > 0 && (
                     <div style={{ fontSize: 12, color: 'var(--text2)' }}>
-                      Revenue incrementale stimata nel periodo: <strong style={{ color: 'var(--green)' }}>+{eur(re.forecastDelta)}</strong> (a parità di spesa totale).
+                      {t('ba.forecastPre')} <strong style={{ color: 'var(--green)' }}>+{eur(re.forecastDelta)}</strong> {t('ba.forecastPost')}
                     </div>
                   )}
                 </div>
@@ -159,19 +159,19 @@ export default function BudgetAdvisorPanel() {
                   <div key={i} className="glass-card-static" style={{ padding: 12, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 14, borderLeft: `3px solid ${a.color}` }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4, background: a.bg, color: a.color, letterSpacing: '.05em', flexShrink: 0 }}>{a.label}</span>
+                        <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4, background: a.bg, color: a.color, letterSpacing: '.05em', flexShrink: 0 }}>{t('ba.act.' + (ACT[c.action] ? c.action : 'mantieni'))}</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
                       </div>
                       {c.deltaPct !== 0 && (
                         <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 5 }}>
-                          Budget: {eur2(c.spend)} → <strong style={{ color: a.color }}>{c.deltaPct === -100 ? 'pausa' : eur2(c.suggestedSpend)}</strong> {c.deltaPct !== -100 && <span>({c.deltaPct > 0 ? '+' : ''}{c.deltaPct}%)</span>}
+                          {t('ba.budgetLabel')} {eur2(c.spend)} → <strong style={{ color: a.color }}>{c.deltaPct === -100 ? t('ba.pause') : eur2(c.suggestedSpend)}</strong> {c.deltaPct !== -100 && <span>({c.deltaPct > 0 ? '+' : ''}{c.deltaPct}%)</span>}
                         </div>
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: 16, flexShrink: 0, textAlign: 'right' }}>
-                      <Metric label="Spesa" value={eur2(c.spend)} />
-                      <Metric label="ROAS" value={`${c.roas}x`} tone={c.roas >= 2 ? 'var(--green)' : c.roas >= 1 ? 'var(--orange)' : 'var(--red)'} />
-                      <Metric label="CPA" value={eur2(c.cpa)} />
+                      <Metric label={t('m.spend')} value={eur2(c.spend)} />
+                      <Metric label={t('m.roas')} value={`${c.roas}x`} tone={c.roas >= 2 ? 'var(--green)' : c.roas >= 1 ? 'var(--orange)' : 'var(--red)'} />
+                      <Metric label={t('m.cpa')} value={eur2(c.cpa)} />
                     </div>
                     {c.action !== 'mantieni' && (() => {
                       const key = c.id || `c${i}`
@@ -196,14 +196,14 @@ export default function BudgetAdvisorPanel() {
             {camps.length > 12 && (
               <div style={{ textAlign: 'center', marginTop: 16 }}>
                 <button onClick={() => setShowAll(v => !v)} className="btn-glass" style={{ padding: '9px 24px', cursor: 'pointer' }}>
-                  {showAll ? 'Mostra meno' : `Mostra tutte (${camps.length})`}
+                  {showAll ? t('flt.showLess') : t('flt.showAll', { n: camps.length })}
                 </button>
               </div>
             )}
 
             {chartData.length > 0 && (
               <div className="glass-card-static reveal-zoom" style={{ marginTop: 22, padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Spesa attuale vs consigliata (top campagne)</div>
+                <div className="label" style={{ marginBottom: 12 }}>{t('ba.chartTitle')}</div>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={chartData} margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
                     <defs>
@@ -215,8 +215,8 @@ export default function BudgetAdvisorPanel() {
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: 'var(--text2)' }} formatter={(v) => eur2(v)} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="attuale" name="Attuale" fill="url(#baAtt)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
-                    <Bar dataKey="consigliata" name="Consigliata" fill="url(#baCon)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
+                    <Bar dataKey="attuale" name={t('ba.chart.current')} fill="url(#baAtt)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
+                    <Bar dataKey="consigliata" name={t('ba.chart.suggested')} fill="url(#baCon)" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#baGlow)' }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

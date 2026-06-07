@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import CreativeAgent from './CreativeAgent'
 import { PlatformBadges } from './PlatformIcon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const PRESETS = [
-  { id: 'today', label: 'Oggi' },
-  { id: 'yesterday', label: 'Ieri' },
-  { id: 'last_7d', label: 'Ultimi 7 giorni' },
-  { id: 'current_month', label: 'Mese corrente' },
-  { id: 'last_month', label: 'Mese scorso' },
-  { id: 'last_90d', label: 'Ultimi 90 giorni' },
+  { id: 'today', label: 'Oggi', labelKey: 'cr.presetToday' },
+  { id: 'yesterday', label: 'Ieri', labelKey: 'cr.presetYesterday' },
+  { id: 'last_7d', label: 'Ultimi 7 giorni', labelKey: 'cr.presetLast7d' },
+  { id: 'current_month', label: 'Mese corrente', labelKey: 'cr.presetCurrentMonth' },
+  { id: 'last_month', label: 'Mese scorso', labelKey: 'cr.presetLastMonth' },
+  { id: 'last_90d', label: 'Ultimi 90 giorni', labelKey: 'cr.presetLast90d' },
 ]
 
 function asNum(v) {
@@ -157,6 +158,7 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
 }
 
 function CreativeCard({ row, index, onClick }) {
+  const { t } = useI18n()
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
   const products = Array.isArray(row.products) ? row.products.filter(p => p.image_url) : []
@@ -230,7 +232,7 @@ function CreativeCard({ row, index, onClick }) {
             fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
-            Catalogo · {products.length}
+            {t('cr.catalog', null, 'Catalogo')} · {products.length}
           </div>
           <div style={{
             display: 'flex', gap: 8, height: '100%',
@@ -260,7 +262,7 @@ function CreativeCard({ row, index, onClick }) {
                   <div style={{
                     color: '#fff', fontSize: 11, fontWeight: 800,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{p.name || 'Prodotto'}</div>
+                  }}>{p.name || t('cr.product', null, 'Prodotto')}</div>
                   {p.price && (
                     <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{p.price}</div>
                   )}
@@ -314,11 +316,11 @@ function CreativeCard({ row, index, onClick }) {
               textTransform: 'uppercase',
             }}>Advantage+ Catalog</div>
             <div style={{ color: 'var(--text3)', fontSize: 11, textAlign: 'center', lineHeight: 1.4 }}>
-              Carosello dinamico<br/>(prodotti gestiti da Meta)
+              {t('cr.dynamicCarousel', null, 'Carosello dinamico')}<br/>{t('cr.metaManaged', null, '(prodotti gestiti da Meta)')}
             </div>
           </div>
         ) : (
-          <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nessuna immagine</div>
+          <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('cr.noImage', null, 'Nessuna immagine')}</div>
         )}
       </div>
       )}
@@ -376,7 +378,7 @@ function CreativeCard({ row, index, onClick }) {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}>
-              {row.campaign_name || 'Campagna non disponibile'}
+              {row.campaign_name || t('cr.campaignUnavailable', null, 'Campagna non disponibile')}
             </div>
           </div>
 
@@ -393,7 +395,7 @@ function CreativeCard({ row, index, onClick }) {
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               flex: '0 0 auto',
-            }}>vs prec.</div>
+            }}>{t('cr.vsPrev', null, 'vs prec.')}</div>
           )}
         </div>
 
@@ -404,14 +406,14 @@ function CreativeCard({ row, index, onClick }) {
             gap: 10,
           }}
         >
-          <Mini label="Spesa" value={money(spend)} curr={spend} prev={prev?.spend} />
-          <Mini label="Revenue" value={money(purchaseValue)} curr={purchaseValue} prev={prev?.revenue} />
+          <Mini label={t('cr.spend', null, 'Spesa')} value={money(spend)} curr={spend} prev={prev?.spend} />
+          <Mini label={t('cr.revenue', null, 'Revenue')} value={money(purchaseValue)} curr={purchaseValue} prev={prev?.revenue} />
           <Mini label="ROAS" value={ratio(roas)} curr={roas} prev={prev?.roas} tone={accent.glow} highlight />
-          <Mini label="Ordini" value={num(purchases)} curr={purchases} prev={prev?.orders} />
+          <Mini label={t('cr.orders', null, 'Ordini')} value={num(purchases)} curr={purchases} prev={prev?.orders} />
           <Mini label="CTR" value={pct(ctr)} curr={ctr} prev={prev?.ctr_link} kind="pct" />
           <Mini label="CPC" value={money2(cpc)} curr={cpc} prev={prev?.cpc_link} isLowerBetter />
-          <Mini label="Impression" value={num(impressions)} curr={impressions} prev={prev?.impressions} />
-          <Mini label="Click" value={num(clicks)} curr={clicks} prev={prev?.link_clicks} />
+          <Mini label={t('cr.impressions', null, 'Impression')} value={num(impressions)} curr={impressions} prev={prev?.impressions} />
+          <Mini label={t('cr.clicks', null, 'Click')} value={num(clicks)} curr={clicks} prev={prev?.link_clicks} />
         </div>
       </div>
     </div>
@@ -498,6 +500,7 @@ function formatCta(cta) {
 }
 
 function CreativeDetailModal({ row, onClose }) {
+  const { t } = useI18n()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -588,7 +591,7 @@ function CreativeDetailModal({ row, onClose }) {
           ) : img ? (
             <img src={img} alt={name} style={{ width: '100%', borderRadius: 14, display: 'block' }} />
           ) : (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 40 }}>Nessuna anteprima</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 40 }}>{t('cr.noPreview', null, 'Nessuna anteprima')}</div>
           )}
         </div>
 
@@ -605,7 +608,7 @@ function CreativeDetailModal({ row, onClose }) {
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginBottom: 4 }}>{name}</div>
-              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{row.campaign_name || 'Senza campagna'}</div>
+              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{row.campaign_name || t('cr.noCampaign', null, 'Senza campagna')}</div>
               {row.adset_name && (
                 <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{row.adset_name}</div>
               )}
@@ -636,14 +639,14 @@ function CreativeDetailModal({ row, onClose }) {
               borderRadius: 14,
               border: '1px solid var(--border)',
             }}>
-              <MiniStat label="Spesa" value={money(row.spend)} />
+              <MiniStat label={t('cr.spend', null, 'Spesa')} value={money(row.spend)} />
               <MiniStat label="ROAS" value={ratio(row.roas)} />
               <MiniStat label="CPC" value={money2(row.cpc_link)} />
               <MiniStat label="CTR" value={pct(row.ctr_link)} />
             </div>
 
             {copies.length > 0 && (
-              <Section label={`Copy${copies.length > 1 ? ` · ${copies.length} varianti` : ''}`}>
+              <Section label={`Copy${copies.length > 1 ? ` · ${t('cr.variantsN', { n: copies.length }, `${copies.length} varianti`)}` : ''}`}>
                 {copies.map((c, i) => (
                   <CopyBlock key={i} index={copies.length > 1 ? i + 1 : null} text={c} />
                 ))}
@@ -651,7 +654,7 @@ function CreativeDetailModal({ row, onClose }) {
             )}
 
             {headlines.length > 0 && (
-              <Section label={`Headline${headlines.length > 1 ? ` · ${headlines.length} varianti` : ''}`}>
+              <Section label={`Headline${headlines.length > 1 ? ` · ${t('cr.variantsN', { n: headlines.length }, `${headlines.length} varianti`)}` : ''}`}>
                 {headlines.map((h, i) => (
                   <div key={i} style={lineStyle}>
                     {headlines.length > 1 && <span style={badgeIdx}>{i + 1}</span>}
@@ -662,7 +665,7 @@ function CreativeDetailModal({ row, onClose }) {
             )}
 
             {descriptions.length > 0 && (
-              <Section label={`Descrizione${descriptions.length > 1 ? ` · ${descriptions.length} varianti` : ''}`}>
+              <Section label={`${t('cr.description', null, 'Descrizione')}${descriptions.length > 1 ? ` · ${t('cr.variantsN', { n: descriptions.length }, `${descriptions.length} varianti`)}` : ''}`}>
                 {descriptions.map((d, i) => (
                   <div key={i} style={lineStyle}>
                     {descriptions.length > 1 && <span style={badgeIdx}>{i + 1}</span>}
@@ -673,7 +676,7 @@ function CreativeDetailModal({ row, onClose }) {
             )}
 
             {(ctas.length > 0 || links.length > 0) && (
-              <Section label="CTA e Link">
+              <Section label={t('cr.ctaAndLink', null, 'CTA e Link')}>
                 {ctas.map((c, i) => (
                   <div key={`cta-${i}`} style={lineStyle}>
                     <span style={{ ...badgeIdx, background: 'rgba(34,197,94,0.18)', color: '#86efac' }}>CTA</span>
@@ -682,7 +685,7 @@ function CreativeDetailModal({ row, onClose }) {
                 ))}
                 {links.map((l, i) => (
                   <div key={`link-${i}`} style={{ ...lineStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                    <span style={{ ...badgeIdx, background: 'rgba(59,130,246,0.18)', color: '#93c5fd' }}>Link</span>
+                    <span style={{ ...badgeIdx, background: 'rgba(59,130,246,0.18)', color: '#93c5fd' }}>{t('cr.linkBadge', null, 'Link')}</span>
                     <a href={l} target="_blank" rel="noreferrer" style={{
                       color: '#7dd3fc', fontSize: 13, wordBreak: 'break-all', textDecoration: 'underline',
                     }}>{l}</a>
@@ -691,7 +694,7 @@ function CreativeDetailModal({ row, onClose }) {
               </Section>
             )}
 
-            <Section label="Identificativi">
+            <Section label={t('cr.identifiers', null, 'Identificativi')}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11, color: 'var(--text3)' }}>
                 <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Ad ID</span><br/>{row.ad_id}</div>
                 <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Creative ID</span><br/>{row.creative_id || '—'}</div>
@@ -774,6 +777,7 @@ function CopyBlock({ index, text }) {
 }
 
 export default function CreativeTab() {
+  const { t } = useI18n()
   const [preset, setPreset] = useState('last_7d')
   const [accountFilter, setAccountFilter] = useState('')
   const [data, setData] = useState(null)
@@ -837,7 +841,7 @@ export default function CreativeTab() {
     const set = new Map()
     for (const r of rows) {
       const id = r.campaign_id || ''
-      const name = r.campaign_name || 'Senza campagna'
+      const name = r.campaign_name || t('cr.noCampaign', null, 'Senza campagna')
       if (id && !set.has(id)) set.set(id, name)
     }
     return Array.from(set, ([id, name]) => ({ id, name }))
@@ -957,7 +961,7 @@ export default function CreativeTab() {
         >
           {PRESETS.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.label}
+              {t(p.labelKey, null, p.label)}
             </option>
           ))}
         </select>
@@ -971,17 +975,17 @@ export default function CreativeTab() {
           marginBottom: 24,
         }}
       >
-        <Stat label="Spesa" value={money(totals.spend)} tone="#3b82f6"
+        <Stat label={t('cr.spend', null, 'Spesa')} value={money(totals.spend)} tone="#3b82f6"
           curr={totals.spend} prev={prevSummary?.spend} daily={daily} dataKey="spend" />
-        <Stat label="Revenue" value={money(totals.revenue)} tone="#22c55e"
+        <Stat label={t('cr.revenue', null, 'Revenue')} value={money(totals.revenue)} tone="#22c55e"
           curr={totals.revenue} prev={prevSummary?.revenue} daily={daily} dataKey="revenue" />
         <Stat label="ROAS" value={ratio(totalRoas)} tone="#22c55e"
           curr={totalRoas} prev={prevSummary?.roas} daily={daily} dataKey="roas" />
-        <Stat label="Ordini" value={num(totals.orders)} tone="#f97316"
+        <Stat label={t('cr.orders', null, 'Ordini')} value={num(totals.orders)} tone="#f97316"
           curr={totals.orders} prev={prevSummary?.orders} daily={daily} dataKey="orders" />
         <Stat label="CPC" value={money2(totalCpc)} tone="#ec4899"
           curr={totalCpc} prev={prevSummary?.cpc_link} daily={daily} dataKey="cpc_link" isLowerBetter />
-        <Stat label="CTR Link" value={pct(totalCtr)} tone="#a78bfa"
+        <Stat label={t('cr.ctrLink', null, 'CTR Link')} value={pct(totalCtr)} tone="#a78bfa"
           curr={totalCtr} prev={prevSummary?.ctr_link} daily={daily} dataKey="ctr_link" />
       </div>
 
@@ -1011,7 +1015,7 @@ export default function CreativeTab() {
                 fontWeight: 900,
               }}
             >
-              Top Creative
+              {t('cr.topCreative', null, 'Top Creative')}
             </h2>
 
             <p
@@ -1021,12 +1025,12 @@ export default function CreativeTab() {
                 fontSize: 13,
               }}
             >
-              {sortedRows.length} di {rows.length} creative attive
+              {t('cr.ofActive', { shown: sortedRows.length, total: rows.length }, `${sortedRows.length} di ${rows.length} creative attive`)}
             </p>
           </div>
 
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>
-            {loading ? 'Caricamento…' : `${campaigns.length} campagne`}
+            {loading ? t('cr.loading', null, 'Caricamento…') : t('cr.campaignsN', { n: campaigns.length }, `${campaigns.length} campagne`)}
           </div>
         </div>
 
@@ -1034,7 +1038,7 @@ export default function CreativeTab() {
         <div style={{ marginBottom: 18 }}>
           <input
             type="text"
-            placeholder="Cerca creative per nome, campagna o adset…"
+            placeholder={t('cr.searchPlaceholder', null, 'Cerca creative per nome, campagna o adset…')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
@@ -1056,13 +1060,13 @@ export default function CreativeTab() {
               onChange={e => setSortBy(e.target.value)}
               style={selectStyle}
             >
-              <option value="roas">Sort: ROAS</option>
-              <option value="spend">Sort: Spesa</option>
-              <option value="revenue">Sort: Revenue</option>
-              <option value="orders">Sort: Ordini</option>
-              <option value="cpc">Sort: CPC</option>
-              <option value="ctr">Sort: CTR</option>
-              <option value="impressions">Sort: Impression</option>
+              <option value="roas">{t('cr.sortRoas', null, 'Sort: ROAS')}</option>
+              <option value="spend">{t('cr.sortSpend', null, 'Sort: Spesa')}</option>
+              <option value="revenue">{t('cr.sortRevenue', null, 'Sort: Revenue')}</option>
+              <option value="orders">{t('cr.sortOrders', null, 'Sort: Ordini')}</option>
+              <option value="cpc">{t('cr.sortCpc', null, 'Sort: CPC')}</option>
+              <option value="ctr">{t('cr.sortCtr', null, 'Sort: CTR')}</option>
+              <option value="impressions">{t('cr.sortImpressions', null, 'Sort: Impression')}</option>
             </select>
 
             <button
@@ -1070,7 +1074,7 @@ export default function CreativeTab() {
               onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
               style={chipStyle}
             >
-              {sortDir === 'desc' ? 'High → Low' : 'Low → High'}
+              {sortDir === 'desc' ? t('cr.highLow', null, 'High → Low') : t('cr.lowHigh', null, 'Low → High')}
             </button>
 
             <select
@@ -1078,7 +1082,7 @@ export default function CreativeTab() {
               onChange={e => setCampaignFilter(e.target.value)}
               style={selectStyle}
             >
-              <option value="">Tutte le campagne</option>
+              <option value="">{t('cr.allCampaigns', null, 'Tutte le campagne')}</option>
               {campaigns.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -1090,7 +1094,7 @@ export default function CreativeTab() {
                 onClick={() => { setSearch(''); setCampaignFilter(''); setQuickFilter(''); setAccountFilter('') }}
                 style={{ ...chipStyle, borderColor: '#ef444477', color: '#fca5a5' }}
               >
-                Reset filtri
+                {t('cr.resetFilters', null, 'Reset filtri')}
               </button>
             )}
           </div>
@@ -1100,8 +1104,8 @@ export default function CreativeTab() {
             <span style={{
               fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
               letterSpacing: '0.12em', fontWeight: 800, marginRight: 4,
-            }}>Account</span>
-            {[{ id: '', label: 'Tutti' }, ...((data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a })))].map(opt => {
+            }}>{t('cr.account', null, 'Account')}</span>
+            {[{ id: '', label: t('cr.allAccounts', null, 'Tutti') }, ...((data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a })))].map(opt => {
               const active = accountFilter === opt.id
               return (
                 <button
@@ -1128,7 +1132,7 @@ export default function CreativeTab() {
 
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>
-              Quick Filters
+              {t('cr.quickFilters', null, 'Quick Filters')}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[
@@ -1184,8 +1188,8 @@ export default function CreativeTab() {
             }}
           >
             {loading
-              ? 'Sto caricando le creative…'
-              : 'Nessun dato creative disponibile per il periodo selezionato.'}
+              ? t('cr.loadingCreatives', null, 'Sto caricando le creative…')
+              : t('cr.noData', null, 'Nessun dato creative disponibile per il periodo selezionato.')}
           </div>
         )}
       </div>

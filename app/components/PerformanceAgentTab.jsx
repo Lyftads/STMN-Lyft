@@ -1,27 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-
-const PRESETS = [
-  { value: 'today', label: 'Oggi' },
-  { value: 'yesterday', label: 'Ieri' },
-  { value: 'last_7d', label: 'Ultimi 7 giorni' },
-  { value: 'last_14d', label: 'Ultimi 14 giorni' },
-  { value: 'last_28d', label: 'Ultimi 28 giorni' },
-  { value: 'last_90d', label: 'Ultimi 90 giorni' },
-  { value: 'current_month', label: 'Mese corrente' },
-  { value: 'last_month', label: 'Mese scorso' },
-]
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const SUGGESTIONS = [
-  'Fammi un check-up generale: cosa va bene, cosa preoccupa.',
-  'Quali campagne Meta dovrei scalare e quali tagliare?',
-  'Il mio MER sta peggiorando: aiutami a capire perché.',
-  'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?',
-  'Come stanno andando le email su Klaviyo? Open rate, click, revenue.',
-  'Confronta la revenue da email vs Meta Ads — dove sto crescendo di più?',
-  'Analizza i prezzi dei competitor: come mi posiziono rispetto a Velites, Picsil e Frog Grips?',
-  'Che promozioni stanno facendo i competitor? Devo reagire?',
+  { key: 'agent.sugg1', text: 'Fammi un check-up generale: cosa va bene, cosa preoccupa.' },
+  { key: 'agent.sugg2', text: 'Quali campagne Meta dovrei scalare e quali tagliare?' },
+  { key: 'agent.sugg3', text: 'Il mio MER sta peggiorando: aiutami a capire perché.' },
+  { key: 'agent.sugg4', text: 'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?' },
+  { key: 'agent.sugg5', text: 'Come stanno andando le email su Klaviyo? Open rate, click, revenue.' },
+  { key: 'agent.sugg6', text: 'Confronta la revenue da email vs Meta Ads — dove sto crescendo di più?' },
+  { key: 'agent.sugg7', text: 'Analizza i prezzi dei competitor: come mi posiziono rispetto a Velites, Picsil e Frog Grips?' },
+  { key: 'agent.sugg8', text: 'Che promozioni stanno facendo i competitor? Devo reagire?' },
 ]
 
 const palette = {
@@ -58,6 +48,8 @@ function formatMessage(text) {
 }
 
 export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
+  const { t } = useI18n()
+  const suggestions = SUGGESTIONS.map(s => t(s.key, null, s.text))
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const preset = globalPreset || 'last_28d'
@@ -106,29 +98,29 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
       const json = await r.json()
 
       if (!r.ok) {
-        setError(json?.error || `Errore ${r.status}`)
+        setError(json?.error || t('agent.errorN', { n: r.status }, `Errore ${r.status}`))
         setMessages(prev => [
           ...prev,
           {
             role: 'assistant',
-            content: `⚠️ ${json?.error || `Errore ${r.status}`}`,
+            content: `⚠️ ${json?.error || t('agent.errorN', { n: r.status }, `Errore ${r.status}`)}`,
             isError: true,
           },
         ])
       } else {
         setMessages(prev => [
           ...prev,
-          { role: 'assistant', content: json.reply || '(risposta vuota)' },
+          { role: 'assistant', content: json.reply || t('agent.emptyReply', null, '(risposta vuota)') },
         ])
         if (json?.summary) setDataSummary(json.summary)
       }
     } catch (err) {
-      setError(err?.message || 'Errore di rete')
+      setError(err?.message || t('agent.netError', null, 'Errore di rete'))
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ ${err?.message || 'Errore di rete'}`,
+          content: `⚠️ ${err?.message || t('agent.netError', null, 'Errore di rete')}`,
           isError: true,
         },
       ])
@@ -186,7 +178,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               Performance Agent
             </div>
             <div style={{ fontSize: 12, color: palette.muted, marginTop: 2 }}>
-              Performance · CMO · CRO · Ads · Klaviyo · usa i dati live di Shopify + Meta + Email
+              {t('agent.subtitle', null, 'Performance · CMO · CRO · Ads · Klaviyo · usa i dati live di Shopify + Meta + Email')}
             </div>
           </div>
         </div>
@@ -208,7 +200,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                 cursor: loading ? 'not-allowed' : 'pointer',
               }}
             >
-              Reset chat
+              {t('agent.resetChat', null, 'Reset chat')}
             </button>
           )}
         </div>
@@ -235,10 +227,10 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             }}
           >
             <div style={{ color: palette.muted, fontSize: 14, lineHeight: 1.5, maxWidth: 640 }}>
-              Ehi Marino, chiedimi quello che vuoi — Shopify, Meta, Klaviyo, ho tutto sotto mano. Trend, campagne da scalare o tagliare, email che funzionano e quelle che no. Sparami la domanda.
+              {t('agent.greeting', null, 'Ehi Marino, chiedimi quello che vuoi — Shopify, Meta, Klaviyo, ho tutto sotto mano. Trend, campagne da scalare o tagliare, email che funzionano e quelle che no. Sparami la domanda.')}
             </div>
             <div style={{ display: 'grid', gap: 8, width: '100%' }}>
-              {SUGGESTIONS.map(s => (
+              {suggestions.map(s => (
                 <button
                   key={s}
                   type="button"
@@ -317,7 +309,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                 <Dot delay={150} />
                 <Dot delay={300} />
               </span>
-              Sto analizzando i dati…
+              {t('agent.analyzing', null, 'Sto analizzando i dati…')}
             </div>
           </div>
         )}
@@ -357,7 +349,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Marino, chiedi pure…"
+            placeholder={t('agent.placeholder', null, 'Marino, chiedi pure…')}
             disabled={loading}
             style={{
               flex: 1,
@@ -388,14 +380,14 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
             }}
           >
-            Invia
+            {t('agent.send', null, 'Invia')}
           </button>
         </form>
         <div style={{ marginTop: 8, fontSize: 11, color: palette.muted, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <span>Dati live da tutte le piattaforme collegate. Niente è inventato.</span>
+          <span>{t('agent.footer', null, 'Dati live da tutte le piattaforme collegate. Niente è inventato.')}</span>
           {dataSummary && (
             <span style={{ color: '#a89db8' }}>
-              {(dataSummary.activeSources || []).map(s => `${s} ✓`).join(' · ') || 'nessuna fonte'} — {dataSummary.activeCount || 0} integrazion{dataSummary.activeCount === 1 ? 'e' : 'i'}
+              {(dataSummary.activeSources || []).map(s => `${s} ✓`).join(' · ') || t('agent.noSource', null, 'nessuna fonte')} — {dataSummary.activeCount || 0} {dataSummary.activeCount === 1 ? t('agent.integrationOne', null, 'integrazione') : t('agent.integrationMany', null, 'integrazioni')}
             </span>
           )}
         </div>

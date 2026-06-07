@@ -21,7 +21,7 @@ export async function GET(req) {
   const today = new Date()
   const todayStr = today.toISOString().slice(0, 10)
   const tomorrowStr = new Date(today.getTime() + 86400000).toISOString().slice(0, 10)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stmn-lyft.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
 
   try {
     const { data: tasks } = await admin

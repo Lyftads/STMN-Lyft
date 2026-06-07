@@ -8,7 +8,7 @@ const CLIENT_ID     = process.env.SHOPIFY_CLIENT_ID
 const CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET
 const SHOP          = process.env.SHOPIFY_STORE_URL
 const SCOPES        = 'read_orders,read_customers,read_analytics'
-const REDIRECT_URI  = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://stmn-lyft.vercel.app'}/api/auth`
+const REDIRECT_URI  = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://lyftai.io'}/api/auth`
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)

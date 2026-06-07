@@ -12,7 +12,7 @@ import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/se
 //   STRIPE_PRICE_STARTER            price_... (recurring monthly Starter)
 //   STRIPE_PRICE_GROWTH             price_... (recurring monthly Growth)
 //   STRIPE_PRICE_SCALE              price_... (recurring monthly Scale)
-//   NEXT_PUBLIC_APP_URL  (opt.)     https://stmn-lyft.vercel.app
+//   NEXT_PUBLIC_APP_URL  (opt.)     https://lyftai.io
 //                                   (fallback: ricavato da request origin)
 //
 // Body POST: { planId: 'starter' | 'growth' | 'scale', mode?: 'subscription' | 'setup' }

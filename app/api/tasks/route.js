@@ -12,7 +12,7 @@ const PRIORITIES = ['low', 'medium', 'high', 'urgent']
 function originOf(req) {
   return req.headers.get('origin') ||
     (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
-    process.env.NEXT_PUBLIC_APP_URL || 'https://stmn-lyft.vercel.app'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
 }
 
 export async function GET(req) {

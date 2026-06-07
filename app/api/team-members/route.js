@@ -65,7 +65,7 @@ async function ensureOwnerMember(admin, ws, email) {
 function originOf(req) {
   return req.headers.get('origin') ||
     (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
-    process.env.NEXT_PUBLIC_APP_URL || 'https://stmn-lyft.vercel.app'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
 }
 
 // Trova un utente auth per email (no filtro nativo → scorre le pagine).

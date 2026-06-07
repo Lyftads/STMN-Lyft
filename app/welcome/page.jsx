@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import Icon from '../components/ui/Icon'
 import dynamic from 'next/dynamic'
 import LogoMark from '../components/LogoMark'
 import { browserToLocale } from '../../lib/i18n/geoLocale'
@@ -95,24 +96,24 @@ const I18N = {
     tabsTour: { eyebrow: 'Tour completo', title: '9 tab. Tutto quello che ti serve in un unico software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard', desc: 'Vista d\'insieme con KPI live, raccomandazioni proattive e alert anomalie.' },
-      { id: 'kpi', icon: '★', title: 'KPI Brain', desc: 'Top prodotti, marketing sources, paesi di fatturazione. Insight pronti.' },
+      { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain', desc: 'Top prodotti, marketing sources, paesi di fatturazione. Insight pronti.' },
       { id: 'reports', icon: '▦', title: 'Report periodici', desc: 'Weekly, Monthly, Quarter, Year con confronto period-over-period. Export PDF.' },
-      { id: 'klaviyo', icon: '✉', title: 'Klaviyo', desc: 'Revenue email, KPI flussi, segmenti. Tutto in un\'unica vista.' },
+      { id: 'klaviyo', icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenue email, KPI flussi, segmenti. Tutto in un\'unica vista.' },
       { id: 'meta', icon: '⊞', title: 'Creative + Meta Detail', desc: 'Performance ad-level, ROAS per campagna, analisi creative.' },
       { id: 'cro', icon: '◇', title: 'CRO + AI Scanner', desc: 'Funnel, top pages, audit CRO automatico via GPT-4o Vision.' },
-      { id: 'agent', icon: '✦', title: 'Performance Agent', desc: 'Chat con un advisor AI verticale sul tuo brand. CMO · CFO · CRO.' },
-      { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'Generazione AI di ad creative basate sul tuo brand identity.' },
+      { id: 'agent', icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent', desc: 'Chat con un advisor AI verticale sul tuo brand. CMO · CFO · CRO.' },
+      { id: 'lab', icon: <Icon name="sparkles" size={18} />, title: 'Creative Lab', desc: 'Generazione AI di ad creative basate sul tuo brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catalogo, ads attive, comparazione prezzi automatica.' },
     ],
     featuresTitle: { eyebrow: 'Cosa fa per te', title: 'Tutto il tuo brand in un\'unica piattaforma' },
     features: [
       { icon: '◎', title: 'Dashboard real-time + Live View', desc: 'KPI core (Fatturato, AOV, MER, CAC, LTV) live + globo 3D dei visitatori in tempo reale da GA4.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'Consulente AI che parla del TUO brand. Legge Shopify, Meta, GA4 e Search Console: risponde coi tuoi numeri.' },
+      { icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent AI', desc: 'Consulente AI che parla del TUO brand. Legge Shopify, Meta, GA4 e Search Console: risponde coi tuoi numeri.' },
       { icon: '€', title: 'Conto Economico (P&L)', desc: 'Conto economico mensile: COGS reali Shopify, fee pagamenti, spedizione, OPEX → fino all\'EBIT, con grafico e variazioni.' },
       { icon: '⌕', title: 'Suite SEO + AI', desc: 'Audit on-page e multipagina, Google Search Console reale, Keyword AI, AI Visibility (AEO), Editor contenuti, Competitor.' },
-      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR ed entrate per destinatario di campagne e flussi, in un\'unica vista.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenue, OR/CR ed entrate per destinatario di campagne e flussi, in un\'unica vista.' },
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads attive, prezzi e cataloghi competitor + analisi LTV/coorti e attribuzione total impact.' },
-      { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue e Meta Detail ad-level per non bruciare budget.' },
+      { icon: <Icon name="scale" size={18} />, title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue e Meta Detail ad-level per non bruciare budget.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'Vedi LyftAI in azione', sub: 'Ecco cosa trovi appena entri nel tuo account: tutti i dati del tuo brand già pronti, in un\'unica dashboard.', explore: 'È il software reale: cliccaci dentro ed esploralo →', openFull: '▶ Apri la demo a schermo intero', loading: 'Carico la demo…' },
     demoTitle: { eyebrow: 'Dati in azione', title: 'Esempio di quello che vedi ogni giorno' },
@@ -121,7 +122,7 @@ const I18N = {
       orders: { eyebrow: 'Ordini per canale', value: '1.284', sub: 'Meta è il top channel' },
       briefingTitle: 'Briefing automatico — stamattina',
       briefingItems: [
-        { icon: '⚠', color: '#f87171', txt: 'ROAS Meta crollato a 1.4x (vs 2.8x media 7gg)' },
+        { icon: <Icon name="warning" size={16} />, color: '#f87171', txt: 'ROAS Meta crollato a 1.4x (vs 2.8x media 7gg)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV in calo da 4 giorni: 78€ → 71€' },
         { icon: '◆', color: BLUE, txt: 'Top product cambia: il nuovo bestseller scala' },
         { icon: 'ⓘ', color: GREEN, txt: 'Settimana record: 142 ordini (best del mese)' },
@@ -240,24 +241,24 @@ const I18N = {
     tabsTour: { eyebrow: 'Complete tour', title: '9 tabs. Everything you need in one software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard', desc: 'Overview with live KPIs, proactive recommendations and anomaly alerts.' },
-      { id: 'kpi', icon: '★', title: 'KPI Brain', desc: 'Top products, marketing sources, billing countries. Insights ready.' },
+      { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain', desc: 'Top products, marketing sources, billing countries. Insights ready.' },
       { id: 'reports', icon: '▦', title: 'Periodic reports', desc: 'Weekly, Monthly, Quarter, Year with period-over-period comparison. PDF export.' },
-      { id: 'klaviyo', icon: '✉', title: 'Klaviyo', desc: 'Email revenue, flow KPIs, segments. All in one view.' },
+      { id: 'klaviyo', icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Email revenue, flow KPIs, segments. All in one view.' },
       { id: 'meta', icon: '⊞', title: 'Creative + Meta Detail', desc: 'Ad-level performance, ROAS per campaign, creative analysis.' },
       { id: 'cro', icon: '◇', title: 'CRO + AI Scanner', desc: 'Funnel, top pages, automatic CRO audit via GPT-4o Vision.' },
-      { id: 'agent', icon: '✦', title: 'Performance Agent', desc: 'Chat with an AI advisor verticalized on your brand. CMO · CFO · CRO.' },
-      { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'AI generation of ad creatives based on your brand identity.' },
+      { id: 'agent', icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent', desc: 'Chat with an AI advisor verticalized on your brand. CMO · CFO · CRO.' },
+      { id: 'lab', icon: <Icon name="sparkles" size={18} />, title: 'Creative Lab', desc: 'AI generation of ad creatives based on your brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catalog, active ads, automatic price comparison.' },
     ],
     featuresTitle: { eyebrow: 'What it does for you', title: 'Your whole brand in a single platform' },
     features: [
       { icon: '◎', title: 'Real-time Dashboard + Live View', desc: 'Core KPIs (Revenue, AOV, MER, CAC, LTV) live + 3D globe of real-time visitors from GA4.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'AI consultant that speaks YOUR brand. Reads Shopify, Meta, GA4 and Search Console: answers with your numbers.' },
+      { icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent AI', desc: 'AI consultant that speaks YOUR brand. Reads Shopify, Meta, GA4 and Search Console: answers with your numbers.' },
       { icon: '€', title: 'P&L statement', desc: 'Monthly P&L: real Shopify COGS, payment fees, shipping, OPEX → down to EBIT, with chart and MoM variations.' },
       { icon: '⌕', title: 'SEO Suite + AI', desc: 'On-page & multi-page audit, real Google Search Console, Keyword AI, AI Visibility (AEO), content Editor, Competitor.' },
-      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR and revenue-per-recipient for campaigns and flows, in one view.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenue, OR/CR and revenue-per-recipient for campaigns and flows, in one view.' },
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Active ads, prices and competitor catalogs + LTV/cohort analysis and total-impact attribution.' },
-      { icon: '⚖', title: 'Full Meta Ads', desc: 'Creative, Budget Advisor, Creative Fatigue and ad-level Meta Detail so you never burn budget.' },
+      { icon: <Icon name="scale" size={18} />, title: 'Full Meta Ads', desc: 'Creative, Budget Advisor, Creative Fatigue and ad-level Meta Detail so you never burn budget.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'See LyftAI in action', sub: 'Here\'s what you find the moment you log in: all your brand\'s data, ready to go, in one dashboard.', explore: 'It\'s the real software: click inside and explore →', openFull: '▶ Open the demo full screen', loading: 'Loading the demo…' },
     demoTitle: { eyebrow: 'Data in action', title: 'Example of what you see every day' },
@@ -266,7 +267,7 @@ const I18N = {
       orders: { eyebrow: 'Orders by channel', value: '1,284', sub: 'Meta is the top channel' },
       briefingTitle: 'Automatic briefing — this morning',
       briefingItems: [
-        { icon: '⚠', color: '#f87171', txt: 'Meta ROAS collapsed to 1.4x (vs 2.8x 7d avg)' },
+        { icon: <Icon name="warning" size={16} />, color: '#f87171', txt: 'Meta ROAS collapsed to 1.4x (vs 2.8x 7d avg)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV declining for 4 days: 78€ → 71€' },
         { icon: '◆', color: BLUE, txt: 'Top product changes: the new bestseller is scaling' },
         { icon: 'ⓘ', color: GREEN, txt: 'Record week: 142 orders (best of month)' },
@@ -385,24 +386,24 @@ const I18N = {
     tabsTour: { eyebrow: 'Tour completo', title: '9 pestañas. Todo lo que necesitas en un software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard', desc: 'Vista general con KPIs en vivo, recomendaciones proactivas y alertas de anomalías.' },
-      { id: 'kpi', icon: '★', title: 'KPI Brain', desc: 'Top productos, fuentes de marketing, países de facturación. Insights listos.' },
+      { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain', desc: 'Top productos, fuentes de marketing, países de facturación. Insights listos.' },
       { id: 'reports', icon: '▦', title: 'Reportes periódicos', desc: 'Semanal, Mensual, Trimestral, Anual con comparación período sobre período. Exporte PDF.' },
-      { id: 'klaviyo', icon: '✉', title: 'Klaviyo', desc: 'Revenue email, KPIs de flujos, segmentos. Todo en una vista.' },
+      { id: 'klaviyo', icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenue email, KPIs de flujos, segmentos. Todo en una vista.' },
       { id: 'meta', icon: '⊞', title: 'Creative + Meta Detail', desc: 'Performance ad-level, ROAS por campaña, análisis creativo.' },
       { id: 'cro', icon: '◇', title: 'CRO + AI Scanner', desc: 'Embudo, top páginas, auditoría CRO automática vía GPT-4o Vision.' },
-      { id: 'agent', icon: '✦', title: 'Performance Agent', desc: 'Chat con un asesor IA verticalizado en tu marca. CMO · CFO · CRO.' },
-      { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'Generación IA de creatividades publicitarias basadas en tu brand identity.' },
+      { id: 'agent', icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent', desc: 'Chat con un asesor IA verticalizado en tu marca. CMO · CFO · CRO.' },
+      { id: 'lab', icon: <Icon name="sparkles" size={18} />, title: 'Creative Lab', desc: 'Generación IA de creatividades publicitarias basadas en tu brand identity.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catálogo, ads activos, comparación de precios automática.' },
     ],
     featuresTitle: { eyebrow: 'Qué hace por ti', title: 'Toda tu marca en una sola plataforma' },
     features: [
       { icon: '◎', title: 'Dashboard en tiempo real + Live View', desc: 'KPIs core (Revenue, AOV, MER, CAC, LTV) en vivo + globo 3D de visitantes en tiempo real desde GA4.' },
-      { icon: '✦', title: 'Performance Agent AI', desc: 'Consultor IA que habla de TU marca. Lee Shopify, Meta, GA4 y Search Console: responde con tus números.' },
+      { icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent AI', desc: 'Consultor IA que habla de TU marca. Lee Shopify, Meta, GA4 y Search Console: responde con tus números.' },
       { icon: '€', title: 'Cuenta de resultados (P&L)', desc: 'P&L mensual: COGS reales de Shopify, comisiones de pago, envío, OPEX → hasta el EBIT, con gráfico y variaciones.' },
       { icon: '⌕', title: 'Suite SEO + IA', desc: 'Auditoría on-page y multipágina, Google Search Console real, Keyword AI, AI Visibility (AEO), Editor de contenidos, Competidores.' },
-      { icon: '✉', title: 'Klaviyo', desc: 'Revenue, OR/CR e ingresos por destinatario de campañas y flujos, en una sola vista.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenue, OR/CR e ingresos por destinatario de campañas y flujos, en una sola vista.' },
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Ads activos, precios y catálogos de competidores + análisis LTV/cohortes y atribución total impact.' },
-      { icon: '⚖', title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue y Meta Detail a nivel de ad para no quemar budget.' },
+      { icon: <Icon name="scale" size={18} />, title: 'Meta Ads completo', desc: 'Creative, Budget Advisor, Creative Fatigue y Meta Detail a nivel de ad para no quemar budget.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'Mira LyftAI en acción', sub: 'Esto es lo que encuentras al entrar en tu cuenta: todos los datos de tu marca listos, en un solo dashboard.', explore: 'Es el software real: haz clic dentro y explóralo →', openFull: '▶ Abrir la demo a pantalla completa', loading: 'Cargando la demo…' },
     demoTitle: { eyebrow: 'Datos en acción', title: 'Ejemplo de lo que ves cada día' },
@@ -411,7 +412,7 @@ const I18N = {
       orders: { eyebrow: 'Pedidos por canal', value: '1.284', sub: 'Meta es el top channel' },
       briefingTitle: 'Briefing automático — esta mañana',
       briefingItems: [
-        { icon: '⚠', color: '#f87171', txt: 'ROAS Meta colapsó a 1.4x (vs 2.8x media 7d)' },
+        { icon: <Icon name="warning" size={16} />, color: '#f87171', txt: 'ROAS Meta colapsó a 1.4x (vs 2.8x media 7d)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV bajando desde 4 días: 78€ → 71€' },
         { icon: '◆', color: BLUE, txt: 'Top product cambia: el nuevo bestseller escala' },
         { icon: 'ⓘ', color: GREEN, txt: 'Semana récord: 142 pedidos (mejor del mes)' },
@@ -530,24 +531,24 @@ const I18N = {
     tabsTour: { eyebrow: 'Tour complet', title: '9 onglets. Tout ce dont vous avez besoin dans un seul logiciel.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard', desc: 'Vue d\'ensemble avec KPI en direct, recommandations proactives et alertes d\'anomalies.' },
-      { id: 'kpi', icon: '★', title: 'KPI Brain', desc: 'Top produits, sources marketing, pays de facturation. Insights prêts.' },
+      { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain', desc: 'Top produits, sources marketing, pays de facturation. Insights prêts.' },
       { id: 'reports', icon: '▦', title: 'Rapports périodiques', desc: 'Hebdo, Mensuel, Trimestre, Année avec comparaison période sur période. Export PDF.' },
-      { id: 'klaviyo', icon: '✉', title: 'Klaviyo', desc: 'Revenus email, KPI des flux, segments. Tout dans une seule vue.' },
+      { id: 'klaviyo', icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenus email, KPI des flux, segments. Tout dans une seule vue.' },
       { id: 'meta', icon: '⊞', title: 'Créa + Meta Detail', desc: 'Performance au niveau de l\'annonce, ROAS par campagne, analyse créative.' },
       { id: 'cro', icon: '◇', title: 'CRO + Scanner IA', desc: 'Funnel, top pages, audit CRO automatique via GPT-4o Vision.' },
-      { id: 'agent', icon: '✦', title: 'Performance Agent', desc: 'Discutez avec un conseiller IA spécialisé sur votre marque. CMO · CFO · CRO.' },
-      { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'Génération IA de créas publicitaires basée sur votre identité de marque.' },
+      { id: 'agent', icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent', desc: 'Discutez avec un conseiller IA spécialisé sur votre marque. CMO · CFO · CRO.' },
+      { id: 'lab', icon: <Icon name="sparkles" size={18} />, title: 'Creative Lab', desc: 'Génération IA de créas publicitaires basée sur votre identité de marque.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Catalogue, annonces actives, comparaison de prix automatique.' },
     ],
     featuresTitle: { eyebrow: 'Ce qu\'il fait pour vous', title: 'Toute votre marque dans une seule plateforme' },
     features: [
       { icon: '◎', title: 'Dashboard temps réel + Live View', desc: 'KPI clés (Revenu, AOV, MER, CAC, LTV) en direct + globe 3D des visiteurs en temps réel depuis GA4.' },
-      { icon: '✦', title: 'Performance Agent IA', desc: 'Consultant IA qui parle VOTRE marque. Lit Shopify, Meta, GA4 et Search Console : répond avec vos chiffres.' },
+      { icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent IA', desc: 'Consultant IA qui parle VOTRE marque. Lit Shopify, Meta, GA4 et Search Console : répond avec vos chiffres.' },
       { icon: '€', title: 'Compte de résultat', desc: 'P&L mensuel : COGS Shopify réels, frais de paiement, expédition, OPEX → jusqu\'à l\'EBIT, avec graphique et variations MoM.' },
       { icon: '⌕', title: 'Suite SEO + IA', desc: 'Audit on-page & multi-pages, Google Search Console réel, Keyword AI, AI Visibility (AEO), éditeur de contenu, Competitor.' },
-      { icon: '✉', title: 'Klaviyo', desc: 'Revenus, OR/CR et revenu par destinataire pour campagnes et flux, dans une seule vue.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Revenus, OR/CR et revenu par destinataire pour campagnes et flux, dans une seule vue.' },
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Annonces actives, prix et catalogues concurrents + analyse LTV/cohortes et attribution à impact total.' },
-      { icon: '⚖', title: 'Meta Ads complet', desc: 'Créa, Budget Advisor, Creative Fatigue et Meta Detail au niveau de l\'annonce pour ne jamais brûler de budget.' },
+      { icon: <Icon name="scale" size={18} />, title: 'Meta Ads complet', desc: 'Créa, Budget Advisor, Creative Fatigue et Meta Detail au niveau de l\'annonce pour ne jamais brûler de budget.' },
     ],
     inAction: { eyebrow: 'Démo', title: 'Voir LyftAI en action', sub: 'Voici ce que vous trouvez dès la connexion : toutes les données de votre marque, prêtes, dans un seul dashboard.', explore: 'C\'est le vrai logiciel : cliquez à l\'intérieur et explorez →', openFull: '▶ Ouvrir la démo en plein écran', loading: 'Chargement de la démo…' },
     demoTitle: { eyebrow: 'Données en action', title: 'Exemple de ce que vous voyez chaque jour' },
@@ -556,7 +557,7 @@ const I18N = {
       orders: { eyebrow: 'Commandes par canal', value: '1 284', sub: 'Meta est le premier canal' },
       briefingTitle: 'Briefing automatique — ce matin',
       briefingItems: [
-        { icon: '⚠', color: '#f87171', txt: 'ROAS Meta effondré à 1,4x (vs 2,8x moy. 7j)' },
+        { icon: <Icon name="warning" size={16} />, color: '#f87171', txt: 'ROAS Meta effondré à 1,4x (vs 2,8x moy. 7j)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV en baisse depuis 4 jours : 78€ → 71€' },
         { icon: '◆', color: BLUE, txt: 'Le top produit change : le nouveau best-seller scale' },
         { icon: 'ⓘ', color: GREEN, txt: 'Semaine record : 142 commandes (meilleure du mois)' },
@@ -675,24 +676,24 @@ const I18N = {
     tabsTour: { eyebrow: 'Komplette Tour', title: '9 Tabs. Alles was Sie brauchen in einer Software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard', desc: 'Überblick mit Live-KPIs, proaktiven Empfehlungen und Anomalie-Alerts.' },
-      { id: 'kpi', icon: '★', title: 'KPI Brain', desc: 'Top-Produkte, Marketing-Quellen, Abrechnungsländer. Insights sofort bereit.' },
+      { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain', desc: 'Top-Produkte, Marketing-Quellen, Abrechnungsländer. Insights sofort bereit.' },
       { id: 'reports', icon: '▦', title: 'Periodische Berichte', desc: 'Woche, Monat, Quartal, Jahr mit Periodenvergleich. PDF-Export.' },
-      { id: 'klaviyo', icon: '✉', title: 'Klaviyo', desc: 'E-Mail-Umsatz, Flow-KPIs, Segmente. Alles in einer Ansicht.' },
+      { id: 'klaviyo', icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'E-Mail-Umsatz, Flow-KPIs, Segmente. Alles in einer Ansicht.' },
       { id: 'meta', icon: '⊞', title: 'Kreativ + Meta Detail', desc: 'Performance auf Anzeigenebene, ROAS pro Kampagne, Kreativ-Analyse.' },
       { id: 'cro', icon: '◇', title: 'CRO + KI-Scanner', desc: 'Funnel, Top-Seiten, automatisches CRO-Audit via GPT-4o Vision.' },
-      { id: 'agent', icon: '✦', title: 'Performance Agent', desc: 'Chatten Sie mit einem KI-Berater, spezialisiert auf Ihre Marke. CMO · CFO · CRO.' },
-      { id: 'lab', icon: '✧', title: 'Creative Lab', desc: 'KI-Generierung von Werbe-Kreativen auf Basis Ihrer Markenidentität.' },
+      { id: 'agent', icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent', desc: 'Chatten Sie mit einem KI-Berater, spezialisiert auf Ihre Marke. CMO · CFO · CRO.' },
+      { id: 'lab', icon: <Icon name="sparkles" size={18} />, title: 'Creative Lab', desc: 'KI-Generierung von Werbe-Kreativen auf Basis Ihrer Markenidentität.' },
       { id: 'competitor', icon: '◈', title: 'Competitor Intel', desc: 'Katalog, aktive Anzeigen, automatischer Preisvergleich.' },
     ],
     featuresTitle: { eyebrow: 'Was es für Sie tut', title: 'Ihre ganze Marke in einer einzigen Plattform' },
     features: [
       { icon: '◎', title: 'Echtzeit-Dashboard + Live View', desc: 'Kern-KPIs (Umsatz, AOV, MER, CAC, LTV) live + 3D-Globus der Echtzeit-Besucher aus GA4.' },
-      { icon: '✦', title: 'Performance Agent KI', desc: 'KI-Berater, der IHRE Marke spricht. Liest Shopify, Meta, GA4 und Search Console: antwortet mit Ihren Zahlen.' },
+      { icon: <Icon name="sparkle" size={18} />, title: 'Performance Agent KI', desc: 'KI-Berater, der IHRE Marke spricht. Liest Shopify, Meta, GA4 und Search Console: antwortet mit Ihren Zahlen.' },
       { icon: '€', title: 'Gewinn- & Verlustrechnung', desc: 'Monatliche GuV: echte Shopify-COGS, Zahlungsgebühren, Versand, OPEX → bis zum EBIT, mit Diagramm und MoM-Veränderungen.' },
       { icon: '⌕', title: 'SEO-Suite + KI', desc: 'On-Page- & Multi-Page-Audit, echte Google Search Console, Keyword AI, AI Visibility (AEO), Content-Editor, Competitor.' },
-      { icon: '✉', title: 'Klaviyo', desc: 'Umsatz, OR/CR und Umsatz pro Empfänger für Kampagnen und Flows, in einer Ansicht.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Klaviyo', desc: 'Umsatz, OR/CR und Umsatz pro Empfänger für Kampagnen und Flows, in einer Ansicht.' },
       { icon: '◈', title: 'Competitor Intel + LTV', desc: 'Aktive Anzeigen, Preise und Wettbewerber-Kataloge + LTV-/Kohortenanalyse und Gesamt-Impact-Attribution.' },
-      { icon: '⚖', title: 'Komplettes Meta Ads', desc: 'Kreativ, Budget Advisor, Creative Fatigue und Meta Detail auf Anzeigenebene, damit Sie nie Budget verbrennen.' },
+      { icon: <Icon name="scale" size={18} />, title: 'Komplettes Meta Ads', desc: 'Kreativ, Budget Advisor, Creative Fatigue und Meta Detail auf Anzeigenebene, damit Sie nie Budget verbrennen.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'LyftAI in Aktion sehen', sub: 'Das finden Sie direkt nach dem Login: alle Daten Ihrer Marke, startklar, in einem Dashboard.', explore: 'Es ist die echte Software: klicken Sie hinein und erkunden Sie →', openFull: '▶ Demo im Vollbild öffnen', loading: 'Demo wird geladen…' },
     demoTitle: { eyebrow: 'Daten in Aktion', title: 'Beispiel dessen, was Sie täglich sehen' },
@@ -701,7 +702,7 @@ const I18N = {
       orders: { eyebrow: 'Bestellungen nach Kanal', value: '1.284', sub: 'Meta ist der Top-Kanal' },
       briefingTitle: 'Automatisches Briefing — heute Morgen',
       briefingItems: [
-        { icon: '⚠', color: '#f87171', txt: 'Meta-ROAS eingebrochen auf 1,4x (vs. 2,8x 7T-Schnitt)' },
+        { icon: <Icon name="warning" size={16} />, color: '#f87171', txt: 'Meta-ROAS eingebrochen auf 1,4x (vs. 2,8x 7T-Schnitt)' },
         { icon: '▲', color: '#fbbf24', txt: 'AOV seit 4 Tagen rückläufig: 78€ → 71€' },
         { icon: '◆', color: BLUE, txt: 'Top-Produkt ändert sich: der neue Bestseller skaliert' },
         { icon: 'ⓘ', color: GREEN, txt: 'Rekordwoche: 142 Bestellungen (beste des Monats)' },
@@ -1052,7 +1053,7 @@ function Nav({ t, lang, setLang }) {
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 6,
             }}>
-              <span>🌐</span> {LANG_LABELS[lang]}
+              <span style={{ display: 'inline-flex' }}><Icon name="globe" size={14} /></span> {LANG_LABELS[lang]}
               <span style={{ fontSize: 8, opacity: 0.6 }}>▾</span>
             </button>
             {openLang && (
@@ -1071,7 +1072,7 @@ function Nav({ t, lang, setLang }) {
                     fontSize: 12, fontWeight: 700, padding: '8px 12px',
                     borderRadius: 7, display: 'flex', alignItems: 'center', gap: 8,
                   }}>
-                    {lang === code ? '✓' : ' '} {LANG_LABELS[code]}
+                    {lang === code ? <Icon name="check" size={12} /> : ' '} {LANG_LABELS[code]}
                   </button>
                 ))}
               </div>
@@ -1221,7 +1222,7 @@ function Hero({ t }) {
             marginTop: 32, fontSize: 12.5, color: 'rgba(255,255,255,0.5)',
             display: 'flex', justifyContent: 'center', gap: 22, flexWrap: 'wrap',
           }}>
-            {t.hero.perks.map((p, i) => <span key={i}>✓ {p}</span>)}
+            {t.hero.perks.map((p, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={13} /> {p}</span>)}
           </div>
         </Reveal>
       </div>
@@ -1300,7 +1301,7 @@ function ProblemSolution({ t }) {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {t.problem.withoutList.map(it => (
                 <li key={it} style={{ display: 'flex', gap: 12, fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>
-                  <span style={{ color: '#f87171', fontWeight: 900, fontSize: 14, flexShrink: 0, lineHeight: 1.5 }}>✕</span>
+                  <span style={{ color: '#f87171', fontWeight: 900, fontSize: 14, flexShrink: 0, lineHeight: 1.5 }}><Icon name="close" size={14} /></span>
                   {it}
                 </li>
               ))}
@@ -1315,7 +1316,7 @@ function ProblemSolution({ t }) {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {t.problem.withList.map(it => (
                 <li key={it} style={{ display: 'flex', gap: 12, fontSize: 14, color: 'rgba(255,255,255,0.9)' }}>
-                  <span style={{ color: GREEN, fontWeight: 900, fontSize: 14, flexShrink: 0, lineHeight: 1.5 }}>✓</span>
+                  <span style={{ color: GREEN, fontWeight: 900, fontSize: 14, flexShrink: 0, lineHeight: 1.5 }}><Icon name="check" size={14} /></span>
                   {it}
                 </li>
               ))}
@@ -1433,7 +1434,7 @@ function DemoCharts({ t }) {
                 <div style={{ fontSize: 30, fontWeight: 900, marginTop: 6, letterSpacing: '-0.02em' }}>{t.demoCards.revenue.value}</div>
                 <div style={{ fontSize: 12, color: GREEN, marginTop: 4 }}>{t.demoCards.revenue.delta}</div>
               </div>
-              <span style={{ fontSize: 26 }}>📈</span>
+              <span style={{ color: GREEN, display: 'inline-flex' }}><Icon name="chart-line" size={26} /></span>
             </div>
             <MockLineChart />
           </div>
@@ -1448,7 +1449,7 @@ function DemoCharts({ t }) {
                 <div style={{ fontSize: 30, fontWeight: 900, marginTop: 6, letterSpacing: '-0.02em' }}>{t.demoCards.orders.value}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{t.demoCards.orders.sub}</div>
               </div>
-              <span style={{ fontSize: 26 }}>🛒</span>
+              <span style={{ color: BLUE, display: 'inline-flex' }}><Icon name="cart" size={26} /></span>
             </div>
             <MockBarChart />
           </div>
@@ -1589,7 +1590,7 @@ function Pricing({ t }) {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 26 }}>
                 {p.features.map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                    <span style={{ color: planAccents[i], fontWeight: 800, fontSize: 14, lineHeight: 1.4 }}>✓</span>
+                    <span style={{ color: planAccents[i], fontWeight: 800, fontSize: 14, lineHeight: 1.4 }}><Icon name="check" size={14} /></span>
                     {f}
                   </li>
                 ))}
@@ -1694,7 +1695,7 @@ function BundleCompare({ t }) {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, flex: 1 }}>
               {b.items.map(it => (
                 <li key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                  <span style={{ color: GREEN, fontWeight: 800 }}>✓</span>{it.name}
+                  <span style={{ color: GREEN, fontWeight: 800 }}><Icon name="check" size={14} /></span>{it.name}
                   <span style={{ marginLeft: 'auto', color: GREEN, fontSize: 12, fontWeight: 700 }}>incluso</span>
                 </li>
               ))}
@@ -1856,7 +1857,7 @@ function ContactForm({ t, lang }) {
         <div className="glass-card-static" style={{ padding: 32, marginTop: 50 }}>
           {done ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <div style={{ fontSize: 56, marginBottom: 16, color: GREEN }}>✓</div>
+              <div style={{ fontSize: 56, marginBottom: 16, color: GREEN }}><Icon name="check" size={56} /></div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 10, letterSpacing: '-0.02em' }}>
                 {cf.doneTitle}
               </div>
@@ -1902,7 +1903,7 @@ function ContactForm({ t, lang }) {
               </FormField>
               {error && (
                 <div style={{ padding: 12, borderRadius: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', color: '#fca5a5', fontSize: 13 }}>
-                  ⚠ {error}
+                  <Icon name="warning" size={13} /> {error}
                 </div>
               )}
               <button type="submit" disabled={sending} className="cta-btn" style={{
@@ -2046,7 +2047,7 @@ function Footer({ t }) {
         fontSize: 11, color: 'rgba(255,255,255,0.4)',
       }}>
         <div>© {new Date().getFullYear()} LYFT SRL — Tutti i diritti riservati</div>
-        <div>Made with ✦ in Italia</div>
+        <div>Made with <Icon name="sparkle" size={12} /> in Italia</div>
       </div>
     </footer>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Icon from './Icon'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS } from '../../../lib/i18n/locales'
 
@@ -70,7 +71,7 @@ export default function LanguageSwitcher({ compact = false }) {
               >
                 <span style={{ fontSize: 16, lineHeight: 1 }}>{LOCALE_FLAGS[l]}</span>
                 <span style={{ flex: 1 }}>{LOCALE_LABELS[l]}</span>
-                {active && <span style={{ color: '#22c55e', fontSize: 13 }}>✓</span>}
+                {active && <span style={{ color: '#22c55e', display: 'inline-flex' }}><Icon name="check" size={12} /></span>}
               </button>
             )
           })}

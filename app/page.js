@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Icon from './components/ui/Icon'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { allowedTabsFor } from '../lib/team/roleTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
@@ -296,7 +297,7 @@ function Settings({ cfg, onSave, onClose }) {
       <div style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:10,padding:28,width:340}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
           <span style={{fontWeight:600,fontSize:15}}>{t('sim.ltvParams', null, 'Parametri LTV')}</span>
-          <button onClick={onClose} style={{color:'#555',background:'none',border:'none',fontSize:18,cursor:'pointer'}}>✕</button>
+          <button onClick={onClose} style={{color:'#555',background:'none',border:'none',fontSize:18,cursor:'pointer'}}><Icon name="close" size={16} /></button>
         </div>
         {[
           {k:'freq',  l:t('sim.freqYear', null, 'Frequenza acquisti / anno'), s:'0.01', u:'×/anno'},

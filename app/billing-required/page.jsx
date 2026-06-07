@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import Icon from '../components/ui/Icon'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import LogoMark from '../components/LogoMark'
@@ -155,7 +156,7 @@ function BillingContent() {
             background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
             color: '#fca5a5', fontSize: 13, textAlign: 'center',
           }}>
-            ⚠ {error}
+            <Icon name="warning" size={13} /> {error}
           </div>
         )}
 
@@ -194,7 +195,7 @@ function BillingContent() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 26 }}>
                 {p.features.map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                    <span style={{ color: p.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4 }}>✓</span>
+                    <span style={{ color: p.accent, fontWeight: 800, fontSize: 14, lineHeight: 1.4, display: 'inline-flex' }}><Icon name="check" size={13} /></span>
                     {f}
                   </li>
                 ))}
@@ -225,10 +226,10 @@ function BillingContent() {
             display: 'inline-flex', gap: 28, fontSize: 12, color: 'rgba(255,255,255,0.5)',
             flexWrap: 'wrap', justifyContent: 'center',
           }}>
-            <span>✓ Niente carta richiesta</span>
-            <span>✓ Cancella in 1 click</span>
-            <span>✓ Niente penali</span>
-            <span>✓ Accesso completo durante il trial</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={12} /> Niente carta richiesta</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={12} /> Cancella in 1 click</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={12} /> Niente penali</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check" size={12} /> Accesso completo durante il trial</span>
           </div>
         </div>
       </div>

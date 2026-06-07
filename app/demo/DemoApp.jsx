@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, Component } from 'react'
+import Icon from '../components/ui/Icon'
 import App from '../page'
 import { demoData, demoLocalStorage } from '../../lib/demo/data'
 
@@ -141,7 +142,7 @@ export default function DemoApp() {
         padding: '7px 16px', fontSize: 12.5, fontWeight: 700,
         background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', color: '#fff',
       }}>
-        <span>🔎 Demo interattiva di LyftAI — dati di esempio, account "Acme Store"</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Icon name="search" size={14} /> Demo interattiva di LyftAI — dati di esempio, account "Acme Store"</span>
         <a href="/register" target="_top" style={{ color: '#fff', textDecoration: 'underline', fontWeight: 800 }}>Inizia gratis →</a>
         {/* "Torna al sito" solo se a schermo intero (NON nell'iframe della landing) */}
         {typeof window !== 'undefined' && window.self === window.top && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
+import Icon from '../components/ui/Icon'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const ACCENT = '#bf5af2'
@@ -9,7 +10,7 @@ const STEPS = [
   {
     id: 'shopify',
     label: 'Shopify',
-    icon: '🛍',
+    icon: <Icon name="bag" size={22} />,
     description: 'Lo store da cui leggere ordini, prodotti, clienti, marketing.',
     fields: [
       { key: 'shopify_store_url', label: 'Store URL', placeholder: 'mio-store.myshopify.com', required: true, hint: 'Senza https://. Es: stamina-fitness3.myshopify.com' },
@@ -37,7 +38,7 @@ const STEPS = [
   {
     id: 'klaviyo',
     label: 'Klaviyo',
-    icon: '✉',
+    icon: <Icon name="mail" size={22} />,
     description: 'Per email flows, segmenti, revenue da email marketing.',
     fields: [
       { key: 'klaviyo_api_key', label: 'Private API Key', placeholder: 'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'password', hint: 'Account → Settings → API Keys → Create Private API Key. Scope: read_all' },
@@ -196,7 +197,7 @@ function OnboardingInner() {
                 fontSize: 11, fontWeight: 700,
                 color: isCurrent ? '#fff' : isDone ? '#86efac' : 'var(--text4, #666)',
               }}>
-                {isDone ? '✓' : `${i + 1}`}
+                {isDone ? <Icon name="check" size={12} /> : `${i + 1}`}
                 <span>{s.label}</span>
               </div>
             )
@@ -275,7 +276,7 @@ function OnboardingInner() {
               background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
               color: '#fca5a5', fontSize: 12,
             }}>
-              ⚠ {error}
+              <Icon name="warning" size={13} /> {error}
             </div>
           )}
 
@@ -371,7 +372,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
         color: '#fca5a5', fontSize: 13,
       }}>
-        ⚠ Connessione fallita: <strong>{gaError}</strong>. Riprova cliccando il bottone qui sotto.
+        <Icon name="warning" size={13} /> Connessione fallita: <strong>{gaError}</strong>. Riprova cliccando il bottone qui sotto.
         <div style={{ marginTop: 14 }}>
           <ConnectButton />
         </div>
@@ -388,7 +389,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
           border: '1px dashed rgba(255,255,255,0.15)',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>🔗</div>
+          <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
             Connetti il tuo account Google
           </div>
@@ -412,7 +413,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
         color: '#86efac', fontSize: 13, marginBottom: 16,
       }}>
-        ✓ Google connesso. Adesso scegli la property GA4 da monitorare.
+        <Icon name="check" size={13} /> Google connesso. Adesso scegli la property GA4 da monitorare.
       </div>
 
       <label style={{
@@ -428,7 +429,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         </div>
       ) : propsError ? (
         <div style={{ fontSize: 13, color: '#fca5a5', padding: '12px 14px' }}>
-          ⚠ {propsError}
+          <Icon name="warning" size={13} /> {propsError}
         </div>
       ) : properties.length === 0 ? (
         <div style={{

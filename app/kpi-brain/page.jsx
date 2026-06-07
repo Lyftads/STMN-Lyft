@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Icon from '../components/ui/Icon'
 
 const metricCards = [
   {
@@ -552,7 +553,7 @@ export default function KPIBrainPage() {
         <SectionShell>
           <div className="mb-6 flex items-start gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300">
-              ⚠
+              <Icon name="warning" size={20} />
             </div>
 
             <div>

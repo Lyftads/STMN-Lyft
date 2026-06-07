@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Icon from '../../components/ui/Icon'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getBrowserSupabase } from '../../../lib/supabase/client'
@@ -44,7 +45,7 @@ export default function ResetPasswordConfirmPage() {
           background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)',
           color: '#86efac', fontSize: 13.5, lineHeight: 1.6, textAlign: 'center',
         }}>
-          ✓ Password aggiornata. Reindirizzamento alla dashboard…
+          <Icon name="check" size={14} /> Password aggiornata. Reindirizzamento alla dashboard…
         </div>
       </AuthShell>
     )

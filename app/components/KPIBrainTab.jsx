@@ -640,7 +640,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       {/* Insights */}
       <div className="glass-section reveal-zoom" style={{marginTop:18,background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24}}>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
-          <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:16}}>✦</div>
+          <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center'}}><Icon name="sparkle" size={18} /></div>
           <div>
             <div style={{fontSize:18,fontWeight:900,color:'var(--text)'}}>{t('kpi.insightsTitle', null, 'Insight & Riepilogo')}</div>
             <div style={{color:'var(--text2)',fontSize:12}}>{insights.length} {t('kpi.observations', null, 'osservazioni sul periodo')}</div>

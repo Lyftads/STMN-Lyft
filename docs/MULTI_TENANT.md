@@ -34,8 +34,8 @@ Sono segreti dell'app, uguali per tutti i tenant:
 | `app/api/cro/route.js` | SHOPIFY, GA4, GOOGLE | ✅ **migrata** (getShopify + getGoogle in shopifyRest/getGoogleToken/getGA4Data + GET wrappato) |
 | `app/api/adlibrary-page/route.js` | META token | ✅ **migrata** |
 | `app/api/product-images/route.js` | SHOPIFY_STORE_URL (+ fallback hardcoded!) | ✅ **migrata** (rimosso fallback STMN) |
-| `app/api/google/route.js` | GOOGLE_ADS_CUSTOMER_ID / MCC_ID | ⏳ (verifica: per-tenant) |
-| `app/api/debug/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ⏳ (o limitare al solo beta) |
+| `app/api/google/route.js` | GOOGLE_ADS_CUSTOMER_ID / MCC_ID | ⏳ **richiede schema**: aggiungere colonna companies.google_ads_customer_id (+ MCC) + campo resolver + UI onboarding, poi leggere da lì. Il token OAuth è già per-tenant (getGoogle). |
+| `app/api/debug/route.js` | SHOPIFY | ✅ **migrata** (getShopify + auth richiesta) |
 
 ## Pattern di migrazione (sicuro, STMN invariato)
 In **env-only mode** `getShopify()/getMeta()/…` ritornano esattamente i valori

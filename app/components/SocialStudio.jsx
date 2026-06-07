@@ -14,7 +14,8 @@ const PLATFORMS = [
 ]
 
 export default function SocialStudio() {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
+  const [view, setView] = useState('calendar')
   const [platform, setPlatform] = useState('instagram')
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
@@ -138,8 +139,19 @@ export default function SocialStudio() {
 
       {/* In programma (calendario editoriale) */}
       <div className="glass-card-static" style={{ padding: 18, borderRadius: 14, marginTop: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>{t('social.planned')}</div>
-        {planned.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', flex: 1 }}>{t('social.planned')}</div>
+          <div style={{ display: 'inline-flex', borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            {['calendar', 'agenda'].map(v => (
+              <button key={v} onClick={() => setView(v)} style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, background: view === v ? 'rgba(123,91,255,0.2)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)' }}>
+                {v === 'calendar' ? t('social.viewCalendar') : t('social.viewAgenda')}
+              </button>
+            ))}
+          </div>
+        </div>
+        {view === 'calendar' ? (
+          <CalendarMonth posts={planned} locale={intlLocale} noneText={t('social.noPlanned')} />
+        ) : planned.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('social.noPlanned')}</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -163,6 +175,61 @@ export default function SocialStudio() {
     </div>
   )
 }
+
+const pad2 = (n) => String(n).padStart(2, '0')
+function CalendarMonth({ posts, locale, noneText }) {
+  const [offset, setOffset] = useState(0)
+  const today = new Date()
+  const base = new Date(today.getFullYear(), today.getMonth() + offset, 1)
+  const y = base.getFullYear(), m = base.getMonth()
+  const firstW = (base.getDay() + 6) % 7        // 0 = lunedì
+  const days = new Date(y, m + 1, 0).getDate()
+  const todayKey = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`
+
+  const byDate = {}
+  for (const p of posts) { const d = p.payload?.scheduled_for; if (d) (byDate[d] = byDate[d] || []).push(p) }
+
+  // intestazioni giorni (lun→dom) dalla locale
+  const dow = []
+  for (let i = 0; i < 7; i++) { const d = new Date(2024, 0, 1 + i); dow.push(d.toLocaleDateString(locale, { weekday: 'short' })) }
+
+  const cells = []
+  for (let i = 0; i < firstW; i++) cells.push(null)
+  for (let d = 1; d <= days; d++) cells.push(d)
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <button onClick={() => setOffset(o => o - 1)} style={navBtn}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 13.5, fontWeight: 800, color: 'var(--text)', textTransform: 'capitalize' }}>{base.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</div>
+        <button onClick={() => setOffset(o => o + 1)} style={navBtn}>›</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+        {dow.map((w, i) => <div key={'h' + i} style={{ textAlign: 'center', fontSize: 9.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 800, padding: '2px 0' }}>{w}</div>)}
+        {cells.map((d, i) => {
+          if (d == null) return <div key={'e' + i} />
+          const key = `${y}-${pad2(m + 1)}-${pad2(d)}`
+          const items = byDate[key] || []
+          const isToday = key === todayKey
+          return (
+            <div key={key} style={{ minHeight: 64, borderRadius: 8, padding: 5, background: isToday ? 'rgba(123,91,255,0.10)' : 'rgba(255,255,255,0.02)', border: isToday ? '1px solid rgba(123,91,255,0.5)' : '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: isToday ? '#c4b5fd' : 'var(--text3)', marginBottom: 3 }}>{d}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {items.slice(0, 3).map((p, j) => {
+                  const pf = PLATFORMS.find(x => x.id === p.channel)
+                  return <div key={j} title={p.payload?.hook || p.target_name} style={{ fontSize: 9, lineHeight: 1.25, padding: '2px 4px', borderRadius: 4, background: `${pf?.color || '#888'}22`, color: pf?.color || '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(p.payload?.hook || p.target_name || '').slice(0, 18)}</div>
+                })}
+                {items.length > 3 && <div style={{ fontSize: 9, color: 'var(--text3)' }}>+{items.length - 3}</div>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {posts.length === 0 && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10 }}>{noneText}</div>}
+    </div>
+  )
+}
+const navBtn = { width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }
 
 const lab = { fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 4 }
 function Field({ label, value }) {

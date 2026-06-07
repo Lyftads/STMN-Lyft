@@ -1,14 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 
-const STORE = process.env.SHOPIFY_STORE_URL
-const TOKEN = process.env.SHOPIFY_ADMIN_TOKEN
-
-async function shopifyGql(query) {
-  const res = await fetch(`https://${STORE}/admin/api/2024-04/graphql.json`, {
+async function shopifyGql(store, token, query) {
+  const res = await fetch(`https://${store}/admin/api/2024-04/graphql.json`, {
     method: 'POST',
-    headers: { 'X-Shopify-Access-Token': TOKEN, 'Content-Type': 'application/json' },
+    headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
     cache: 'no-store',
   })
@@ -16,13 +14,15 @@ async function shopifyGql(query) {
   return res.json()
 }
 
-export async function GET() {
+export async function GET(req) {
+  return withTenantContext(req, async () => {
+  const { storeUrl: STORE, adminToken: TOKEN } = getShopify()
   if (!STORE || !TOKEN) {
     return NextResponse.json({ error: 'Shopify not configured' }, { status: 500 })
   }
 
   try {
-    const data = await shopifyGql(`{
+    const data = await shopifyGql(STORE, TOKEN, `{
       products(first: 100, sortKey: BEST_SELLING) {
         edges {
           node {
@@ -110,4 +110,5 @@ export async function GET() {
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
+  })
 }

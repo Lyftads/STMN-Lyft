@@ -38,9 +38,10 @@ function getAccountIds() {
     process.env.META_ACCOUNTS ||
     process.env.META_ACCOUNT_ID ||
     ''
-  // env-only (STMN): catena env identica a prima. Multi-tenant: l'account del
-  // tenant (resolver) ha precedenza, env come fallback.
-  const raw = process.env.LYFT_MULTI_TENANT === 'true' ? (getMeta().adAccountId || envChain) : envChain
+  // env-only (STMN, flag off): catena env identica a prima. Multi-tenant: SOLO
+  // l'account risolto dal resolver (envT lo limita all'owner) — NIENTE fallback
+  // a process.env, altrimenti un altro tenant vedrebbe gli account di STMN.
+  const raw = process.env.LYFT_MULTI_TENANT === 'true' ? (getMeta().adAccountId || '') : envChain
 
   return raw
     .split(',')

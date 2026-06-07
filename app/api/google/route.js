@@ -29,9 +29,9 @@ export async function GET(req) {
   const CLIENT_ID = g.clientId
   const CLIENT_SECRET = g.clientSecret
   const REFRESH_TOKEN = g.refreshToken
-  const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
-  const CUSTOMER_ID = (process.env.GOOGLE_ADS_CUSTOMER_ID || '').replace(/-/g, '')
-  const MCC_ID = (process.env.GOOGLE_ADS_MCC_ID || '').replace(/-/g, '')
+  const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN // app cred condivisa
+  const CUSTOMER_ID = (g.adsCustomerId || '').replace(/-/g, '')  // per-tenant (resolver, env-fallback)
+  const MCC_ID = (g.adsMccId || '').replace(/-/g, '')
 
   if (!DEVELOPER_TOKEN || !CUSTOMER_ID || !REFRESH_TOKEN || !CLIENT_ID || !CLIENT_SECRET) {
     return NextResponse.json({

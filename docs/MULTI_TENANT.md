@@ -34,7 +34,7 @@ Sono segreti dell'app, uguali per tutti i tenant:
 | `app/api/cro/route.js` | SHOPIFY, GA4, GOOGLE | ✅ **migrata** (getShopify + getGoogle in shopifyRest/getGoogleToken/getGA4Data + GET wrappato) |
 | `app/api/adlibrary-page/route.js` | META token | ✅ **migrata** |
 | `app/api/product-images/route.js` | SHOPIFY_STORE_URL (+ fallback hardcoded!) | ✅ **migrata** (rimosso fallback STMN) |
-| `app/api/google/route.js` | GOOGLE_ADS_CUSTOMER_ID / MCC_ID | ⏳ **richiede schema**: aggiungere colonna companies.google_ads_customer_id (+ MCC) + campo resolver + UI onboarding, poi leggere da lì. Il token OAuth è già per-tenant (getGoogle). |
+| `app/api/google/route.js` | GOOGLE_ADS_CUSTOMER_ID / MCC_ID | ✅ **migrata** (resolver: adsCustomerId/adsMccId DB-first; dev token resta shared env; SQL companies_google_ads.sql) |
 | `app/api/debug/route.js` | SHOPIFY | ✅ **migrata** (getShopify + auth richiesta) |
 
 ## Pattern di migrazione (sicuro, STMN invariato)
@@ -75,5 +75,5 @@ Regole:
 
 ## Stato
 - Fondamenta resolver: ✅ pronte.
-- Route migrate ✅: `product-costs`, `product-images`, `report`, `adlibrary-page`, `creative-lab`, `creative`, `cro`, `debug`. Resta solo `google` (Google Ads customer/MCC) → richiede colonna schema `companies.google_ads_customer_id`.
+- Route migrate ✅: `product-costs`, `product-images`, `report`, `adlibrary-page`, `creative-lab`, `creative`, `cro`, `debug`. **Tutte e 9 migrate** ✅. Per onboardare il Google Ads di un tenant: eseguire `supabase/companies_google_ads.sql` e popolare `companies.google_ads_customer_id` (+ mcc) — via SQL o futuro campo onboarding.
 - Flag in produzione: **OFF** (env-only, STMN invariato).

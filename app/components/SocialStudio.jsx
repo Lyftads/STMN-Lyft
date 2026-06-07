@@ -8,6 +8,7 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { openDrivePicker, drivePickerConfigured } from '../../lib/social/drivePicker'
 import SocialMockup from './social/SocialMockup'
+import MediaCropper from './social/MediaCropper'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -90,22 +91,42 @@ export default function SocialStudio() {
   }
 
   // Upload DIRETTO su Supabase Storage (signed URL) → file pesanti, full quality.
+  const uploadBlob = async (blob, name) => {
+    const sb = getBrowserSupabase()
+    const r = await fetch('/api/social/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: name || blob.name || 'file.jpg' }) })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.error || 'Upload error')
+    const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, blob)
+    if (error) throw error
+    return j.publicUrl
+  }
   const uploadFiles = async (files) => {
     if (!files?.length) return
     setUploading(true); setErr(null)
-    const sb = getBrowserSupabase()
     for (const file of files) {
       try {
-        const r = await fetch('/api/social/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
-        const j = await r.json()
-        if (!j.ok) { setErr(j.error || 'Upload error'); continue }
-        const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, file)
-        if (error) { setErr(error.message); continue }
-        setMedia(m => [...m, { url: j.publicUrl, type: file.type || '', name: file.name, kind: 'file' }])
+        const url = await uploadBlob(file, file.name)
+        setMedia(m => [...m, { url, previewUrl: URL.createObjectURL(file), type: file.type || '', name: file.name, kind: 'file', file }])
       } catch (e) { setErr(e.message) }
     }
     setUploading(false)
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  // Crop/ridimensiona immagini
+  const [cropIdx, setCropIdx] = useState(null)
+  const [cropBusy, setCropBusy] = useState(false)
+  const applyCrop = async (blob) => {
+    if (cropIdx == null) return
+    setCropBusy(true)
+    try {
+      const name = `crop-${Date.now()}.jpg`
+      const url = await uploadBlob(blob, name)
+      const previewUrl = URL.createObjectURL(blob)
+      setMedia(m => m.map((mm, i) => i === cropIdx ? { url, previewUrl, type: 'image/jpeg', name, kind: 'file', file: blob } : mm))
+      setCropIdx(null)
+    } catch (e) { setErr(e.message) }
+    setCropBusy(false)
   }
 
   const loadPlanned = useCallback(async () => {
@@ -151,6 +172,15 @@ export default function SocialStudio() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {cropIdx != null && (media[cropIdx]?.file || media[cropIdx]?.previewUrl) && (
+        <MediaCropper
+          src={media[cropIdx].file ? URL.createObjectURL(media[cropIdx].file) : media[cropIdx].previewUrl}
+          initialAspect={(postType === 'reel' || postType === 'story' || platform === 'tiktok') ? 9 / 16 : 1}
+          busy={cropBusy}
+          onCancel={() => setCropIdx(null)}
+          onApply={applyCrop}
+        />
+      )}
       <div className="glass-card-static" style={{ padding: 18, borderRadius: 14 }}>
         {/* Piattaforma */}
         <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.platform')}</div>
@@ -198,6 +228,9 @@ export default function SocialStudio() {
                 : <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name={m.kind === 'drive' ? 'image' : 'link'} size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>}
               <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
               {m.type.startsWith('video') && m.kind === 'file' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
+              {!(m.type || '').startsWith('video') && (m.file || m.previewUrl) && (
+                <button onClick={() => setCropIdx(i)} title={t('social.edit')} style={{ position: 'absolute', bottom: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="edit" size={11} /></button>
+              )}
             </div>
           ))}
           <button onClick={() => fileRef.current?.click()} disabled={uploading} title={t('social.upload')} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text3)', cursor: uploading ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 300 }}>

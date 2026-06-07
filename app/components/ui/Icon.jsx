@@ -70,6 +70,8 @@ const P = {
   dot: <circle cx="12" cy="12" r="5" />,
   heart: <path d="M12 20.5S3.5 15 3.5 8.8A4.3 4.3 0 0 1 12 6a4.3 4.3 0 0 1 8.5 2.8C20.5 15 12 20.5 12 20.5Z" />,
   bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
+  edit: <><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2 4 20Z" /><path d="M14.5 6.7l2.8 2.8" /></>,
+  crop: <><path d="M6 2v16h16M2 6h16v16" /></>,
   clipboard: <><rect x="5" y="5" width="14" height="16" rx="2" /><rect x="9" y="3" width="6" height="4" rx="1" /><line x1="8.5" y1="11" x2="15.5" y2="11" /><line x1="8.5" y1="15" x2="13.5" y2="15" /></>,
   // accenti
   sparkle: <path d="M12 3c.4 3.6 1.4 4.6 5 5-3.6.4-4.6 1.4-5 5-.4-3.6-1.4-4.6-5-5 3.6-.4 4.6-1.4 5-5Z" />,

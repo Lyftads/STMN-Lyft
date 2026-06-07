@@ -115,6 +115,8 @@ export default function SocialStudio() {
     setLoading(false)
   }
 
+  const setField = (k, v) => setDraft(d => ({ ...d, [k]: v }))
+
   const copy = () => {
     if (!draft) return
     const text = `${draft.caption}\n\n${(draft.hashtags || []).join(' ')}`.trim()
@@ -213,26 +215,19 @@ export default function SocialStudio() {
 
         {draft && (
           <div className="glass-panel" style={{ marginTop: 14, padding: 16, borderRadius: 12, borderLeft: '3px solid #e1306c' }}>
-            <Field label={t('social.format')} value={draft.format} />
-            <Field label={t('social.hook')} value={draft.hook} />
-            <div style={{ marginTop: 10 }}>
-              <div style={lab}>{t('social.caption')}</div>
-              <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{draft.caption}</div>
-            </div>
-            {draft.hashtags?.length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <div style={lab}>{t('social.hashtags')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {draft.hashtags.map((h, i) => <span key={i} style={{ fontSize: 11.5, color: '#a78bfa', background: 'rgba(123,91,255,0.12)', padding: '2px 8px', borderRadius: 999 }}>{h}</span>)}
-                </div>
-              </div>
-            )}
-            <Field label={t('social.cta')} value={draft.cta} />
+            <div><div style={lab}>{t('social.hook')}</div>
+              <input value={draft.hook || ''} onChange={e => setField('hook', e.target.value)} style={editInput} /></div>
+            <div style={{ marginTop: 10 }}><div style={lab}>{t('social.caption')}</div>
+              <textarea value={draft.caption || ''} onChange={e => setField('caption', e.target.value)} rows={5} style={{ ...editInput, resize: 'vertical', lineHeight: 1.5 }} /></div>
+            <div style={{ marginTop: 10 }}><div style={lab}>{t('social.hashtags')}</div>
+              <input value={(draft.hashtags || []).join(' ')} onChange={e => setField('hashtags', e.target.value.split(/\s+/).filter(Boolean).map(x => x.startsWith('#') ? x : '#' + x))} style={editInput} /></div>
+            <div style={{ marginTop: 10 }}><div style={lab}>{t('social.cta')}</div>
+              <input value={draft.cta || ''} onChange={e => setField('cta', e.target.value)} style={editInput} /></div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
               <EnqueueButton onDone={() => { loadPlanned(); setMedia([]) }} build={() => ({
                 channel: platform, source: 'social_studio', type: 'create_post',
                 target_name: draft.hook || draft.format,
-                payload: { ...draft, scheduled_for: scheduleDate || null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name })) },
+                payload: { ...draft, scheduled_for: scheduleDate || null, media: media.map(m => ({ url: m.url, type: m.type, name: m.name, kind: m.kind })) },
                 summary: t('aq.sum.createPost', { platform: platLabel, hook: draft.hook || draft.format }),
               })} label={t('aq.launch.enqueue')} />
               <button onClick={copy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
@@ -339,6 +334,7 @@ function CalendarMonth({ posts, locale, noneText }) {
 const navBtn = { width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }
 
 const lab = { fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 4 }
+const editInput = { width: '100%', borderRadius: 9, padding: '8px 10px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }
 function Field({ label, value }) {
   if (!value) return null
   return (

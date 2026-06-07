@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
 // ── Ads attive di UNA pagina (advertiser) dalla Meta Ad Library ──
 // Endpoint AGGIUNTIVO e isolato: NON tocca /api/competitor-intel.
@@ -10,11 +11,6 @@ import { NextResponse } from 'next/server'
 // → 2) Browserless headless (render + intercetta GraphQL) → 3) link.
 // Quando l'app Meta sara' approvata, la fonte (1) prende il sopravvento da sola.
 
-const ACCESS_TOKEN =
-  process.env.META_ACCESS_TOKEN ||
-  process.env.FACEBOOK_ACCESS_TOKEN ||
-  process.env.FB_ACCESS_TOKEN ||
-  ''
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
 
 function sanitize(v) {
@@ -113,6 +109,7 @@ async function extractCreativeMedia(snapshotUrl) {
 }
 
 async function viaApi(pageId, country) {
+  const ACCESS_TOKEN = getMeta().accessToken
   if (!ACCESS_TOKEN) return null
   try {
     const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
@@ -217,6 +214,7 @@ const PAGE_CACHE = new Map()
 const PAGE_TTL_MS = 6 * 60 * 60 * 1000
 
 export async function GET(request) {
+  return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
   const pageId = (searchParams.get('pageId') || '').trim()
   const country = (searchParams.get('country') || 'IT').toUpperCase()
@@ -250,4 +248,5 @@ export async function GET(request) {
   // Cache solo risposte utili (con ads)
   if (ads.length) PAGE_CACHE.set(cacheKey, { ts: Date.now(), payload })
   return NextResponse.json({ ...payload, cached: false })
+  })
 }

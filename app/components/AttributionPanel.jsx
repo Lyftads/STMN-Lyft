@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 import FxCard from './ui/FxCard'
 import RecommendationsFeed from './RecommendationsFeed'
 import MetaAdsAgent from './MetaAdsAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -51,6 +52,7 @@ function chColor(label, i) {
 }
 
 export default function AttributionPanel({ preset = 'last_28d', reloadKey, live }) {
+  const { t: tr } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -96,7 +98,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
         if (j.error && !j.totals) setError(j.error)
         else setData(j)
       } catch (e) {
-        if (!cancelled) setError(e?.message || 'Errore di rete')
+        if (!cancelled) setError(e?.message || tr('agent.netError', null, 'Errore di rete'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -113,8 +115,8 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
   const daily = data?.daily || []
 
   const pieData = [
-    { name: 'Tracciato (paid/marketing)', value: split.paidRevenue || 0, color: '#2997ff' },
-    { name: 'Organico / diretto', value: split.organicRevenue || 0, color: '#30d158' },
+    { name: tr('attr.pieTracked', null, 'Tracciato (paid/marketing)'), value: split.paidRevenue || 0, color: '#2997ff' },
+    { name: tr('attr.pieOrganic', null, 'Organico / diretto'), value: split.organicRevenue || 0, color: '#30d158' },
   ]
   const chartData = channels.slice(0, 8).map((c, i) => ({ name: (c.label || '').slice(0, 14), revenue: c.revenue, color: chColor(c.label, i) }))
   const maxRev = Math.max(...channels.map(c => c.revenue || 0), 1)
@@ -132,25 +134,25 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
 
   return (
     <div style={{ marginTop: 24 }}>
-      <FxCard title="Attribuzione · Total Impact" subtitle="Vista blended del business · paid vs organico · contributo per canale · MER reale vs ROAS dichiarato da Meta" delay={1.6}>
-        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Calcolo l'attribuzione del periodo…</div>}
+      <FxCard title={tr('attr.title', null, 'Attribuzione · Total Impact')} subtitle={tr('attr.subtitle', null, 'Vista blended del business · paid vs organico · contributo per canale · MER reale vs ROAS dichiarato da Meta')} delay={1.6}>
+        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {tr('attr.loading', null, "Calcolo l'attribuzione del periodo…")}</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
-        {!loading && !error && !(t.revenue > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessun dato nel periodo selezionato.</div>}
+        {!loading && !error && !(t.revenue > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{tr('attr.noData', null, 'Nessun dato nel periodo selezionato.')}</div>}
 
         {t.revenue > 0 && (
           <>
             {/* KPI Total Impact */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
-              <Stat label="Fatturato totale" value={eur(t.revenue)} sub={`${nf(t.orders)} ordini`} dd={d.revenue} dataKey="revenue" sparkColor="#30d158" />
-              <Stat label="Spesa Ads (Meta)" value={eur(t.adSpend)} dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
-              <Stat label="MER blended" value={`${(t.blendedMer || 0).toFixed(2)}x`} sub="Fatturato / Ad Spend" dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
-              <Stat label="ROAS Meta (dichiarato)" value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={`${nf(t.metaPurchases)} acquisti attribuiti`} dd={d.metaRoas} dataKey="metaRoas" sparkColor="#64d2ff" />
+              <Stat label={tr('attr.totalRevenue', null, 'Fatturato totale')} value={eur(t.revenue)} sub={`${nf(t.orders)} ${tr('kpi.ordersWord', null, 'ordini')}`} dd={d.revenue} dataKey="revenue" sparkColor="#30d158" />
+              <Stat label={tr('attr.adSpendMeta', null, 'Spesa Ads (Meta)')} value={eur(t.adSpend)} dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
+              <Stat label={tr('attr.merBlended', null, 'MER blended')} value={`${(t.blendedMer || 0).toFixed(2)}x`} sub={tr('attr.revPerSpend', null, 'Fatturato / Ad Spend')} dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
+              <Stat label={tr('attr.roasDeclared', null, 'ROAS Meta (dichiarato)')} value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={tr('attr.attributedPurchases', { n: nf(t.metaPurchases) }, `${nf(t.metaPurchases)} acquisti attribuiti`)} dd={d.metaRoas} dataKey="metaRoas" sparkColor="#64d2ff" />
             </div>
 
             {/* Paid vs Organico */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 20 }}>
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Paid/marketing vs Organico</div>
+                <div className="label" style={{ marginBottom: 12 }}>{tr('attr.paidVsOrganic', null, 'Paid/marketing vs Organico')}</div>
                 <ResponsiveContainer width="100%" height={190}>
                   <PieChart>
                     <defs>
@@ -169,21 +171,21 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginTop: 6 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text2)' }}><b style={{ color: '#2997ff' }}>●</b> Paid {split.paidPct}%</span>
-                  <span style={{ fontSize: 11, color: 'var(--text2)' }}><b style={{ color: '#30d158' }}>●</b> Organico {split.organicPct}%</span>
+                  <span style={{ fontSize: 11, color: 'var(--text2)' }}><b style={{ color: '#2997ff' }}>●</b> {tr('attr.paid', null, 'Paid')} {split.paidPct}%</span>
+                  <span style={{ fontSize: 11, color: 'var(--text2)' }}><b style={{ color: '#30d158' }}>●</b> {tr('attr.organic', null, 'Organico')} {split.organicPct}%</span>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 12 }}>
                 <div className="glass-card" style={{ padding: '16px 18px' }}>
-                  <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Fatturato tracciato (marketing)</div>
+                  <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{tr('attr.trackedRevenue', null, 'Fatturato tracciato (marketing)')}</div>
                   <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur(split.paidRevenue)}<DeltaBadge d={split.deltaPaid} /></div>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{nf(split.paidOrders)} ordini · {split.paidPct}% del totale</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{tr('attr.ordersOfTotal', { n: nf(split.paidOrders), pct: split.paidPct }, `${nf(split.paidOrders)} ordini · ${split.paidPct}% del totale`)}</div>
                 </div>
                 <div className="glass-card" style={{ padding: '16px 18px' }}>
-                  <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>Fatturato organico / diretto</div>
+                  <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{tr('attr.organicRevenue', null, 'Fatturato organico / diretto')}</div>
                   <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur(split.organicRevenue)}<DeltaBadge d={split.deltaOrganic} /></div>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{nf(split.organicOrders)} ordini · {split.organicPct}% del totale</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{tr('attr.ordersOfTotal', { n: nf(split.organicOrders), pct: split.organicPct }, `${nf(split.organicOrders)} ordini · ${split.organicPct}% del totale`)}</div>
                 </div>
               </div>
             </div>
@@ -192,12 +194,12 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
             {attr.metaRevenue > 0 && (
               <div className="glass-card-static" style={{ padding: '14px 16px', borderRadius: 12, borderLeft: '3px solid var(--accent)', marginBottom: 20 }}>
                 <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginBottom: 4 }}>
-                  Meta si attribuisce <b style={{ color: '#0866FF' }}>{eur(attr.metaRevenue)}</b>, lato Shopify (last-click) a Facebook/Instagram risultano <b>{eur(attr.metaTrackedRevenue)}</b>
+                  {tr('attr.metaClaims1', null, 'Meta si attribuisce ')}<b style={{ color: '#0866FF' }}>{eur(attr.metaRevenue)}</b>{tr('attr.metaClaims2', null, ', lato Shopify (last-click) a Facebook/Instagram risultano ')}<b>{eur(attr.metaTrackedRevenue)}</b>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text2)' }}>
                   {attr.overAttributionPct != null
-                    ? <>Gap di sovra-attribuzione: <strong style={{ color: attr.gap > 0 ? 'var(--orange)' : 'var(--green)' }}>{attr.gap > 0 ? '+' : ''}{eur(attr.gap)} ({attr.overAttributionPct > 0 ? '+' : ''}{attr.overAttributionPct}%)</strong>. Usa il MER blended ({(t.blendedMer || 0).toFixed(2)}x) come bussola reale, non il ROAS in piattaforma.</>
-                    : <>Il MER blended ({(t.blendedMer || 0).toFixed(2)}x) è la metrica reale di efficienza, al netto dell'attribuzione di piattaforma.</>}
+                    ? <>{tr('attr.overAttrLabel', null, 'Gap di sovra-attribuzione:')} <strong style={{ color: attr.gap > 0 ? 'var(--orange)' : 'var(--green)' }}>{attr.gap > 0 ? '+' : ''}{eur(attr.gap)} ({attr.overAttributionPct > 0 ? '+' : ''}{attr.overAttributionPct}%)</strong>. {tr('attr.overAttrSuffix', { mer: (t.blendedMer || 0).toFixed(2) }, `Usa il MER blended (${(t.blendedMer || 0).toFixed(2)}x) come bussola reale, non il ROAS in piattaforma.`)}</>
+                    : <>{tr('attr.merReal', { mer: (t.blendedMer || 0).toFixed(2) }, `Il MER blended (${(t.blendedMer || 0).toFixed(2)}x) è la metrica reale di efficienza, al netto dell'attribuzione di piattaforma.`)}</>}
                 </div>
               </div>
             )}
@@ -216,8 +218,8 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 16, flexShrink: 0, textAlign: 'right' }}>
-                    <Metric label="Fatturato" value={eur(c.revenue)} />
-                    <Metric label="Ordini" value={nf(c.orders)} />
+                    <Metric label={tr('kpi.revenue', null, 'Fatturato')} value={eur(c.revenue)} />
+                    <Metric label={tr('kpi.orders', null, 'Ordini')} value={nf(c.orders)} />
                     <Metric label="AOV" value={eur2(c.aov)} />
                   </div>
                 </div>
@@ -226,15 +228,15 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
 
             {/* Nuovi vs ritorno */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12, margin: '12px 0 8px' }}>
-              <Stat label="Fatturato nuovi clienti" value={eur(cust.ncRevenue)} sub={`${nf(cust.nc)} NC · ${cust.ncPct}% del fatturato`} tone="var(--cyan)" />
-              <Stat label="Fatturato clienti di ritorno" value={eur(cust.rcRevenue)} sub={`${nf(cust.rc)} RC`} tone="var(--purple)" />
-              <Stat label="Quota acquisizione" value={`${cust.ncPct}%`} sub="fatturato da nuovi clienti" />
+              <Stat label={tr('attr.ncRevenue', null, 'Fatturato nuovi clienti')} value={eur(cust.ncRevenue)} sub={tr('attr.ncSub', { nc: nf(cust.nc), pct: cust.ncPct }, `${nf(cust.nc)} NC · ${cust.ncPct}% del fatturato`)} tone="var(--cyan)" />
+              <Stat label={tr('attr.rcRevenue', null, 'Fatturato clienti di ritorno')} value={eur(cust.rcRevenue)} sub={tr('attr.rcSub', { rc: nf(cust.rc) }, `${nf(cust.rc)} RC`)} tone="var(--purple)" />
+              <Stat label={tr('attr.acqShare', null, 'Quota acquisizione')} value={`${cust.ncPct}%`} sub={tr('attr.acqSub', null, 'fatturato da nuovi clienti')} />
             </div>
 
             {/* Grafico contributo per canale */}
             {chartData.length > 0 && (
               <div className="glass-card-static reveal-zoom" style={{ marginTop: 14, padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Contributo per canale (fatturato)</div>
+                <div className="label" style={{ marginBottom: 12 }}>{tr('attr.channelContrib', null, 'Contributo per canale (fatturato)')}</div>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={chartData} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
                     <defs>
@@ -267,18 +269,18 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
           config={{
             endpoint: '/api/attribution-agent',
             title: 'Attribution Agent',
-            subtitle: 'Analista attribuzione & MER blended',
+            subtitle: tr('attr.agentSubtitle', null, 'Analista attribuzione & MER blended'),
             accent: '#bf5af2',
             accent2: '#7b3fe4',
-            loadingLabel: "Analizzo l'attribuzione…",
-            placeholder: 'Chiedi del MER, split organico, gap Meta, canali…',
+            loadingLabel: tr('attr.agentLoading', null, "Analizzo l'attribuzione…"),
+            placeholder: tr('attr.agentPlaceholder', null, 'Chiedi del MER, split organico, gap Meta, canali…'),
             suggestions: [
-              'Sintetizza il Total Impact del periodo in 3 punti',
-              'Quanto è reale il ROAS Meta rispetto al MER blended?',
-              'Quanto fatturato è organico/diretto e cosa significa?',
-              'Dipendo troppo da un canale? Dove sta il rischio?',
-              'Dove sposterei budget per migliorare il MER?',
-              'Nuovi vs ritorno: sto acquisendo abbastanza?',
+              tr('attr.sugg1', null, 'Sintetizza il Total Impact del periodo in 3 punti'),
+              tr('attr.sugg2', null, 'Quanto è reale il ROAS Meta rispetto al MER blended?'),
+              tr('attr.sugg3', null, 'Quanto fatturato è organico/diretto e cosa significa?'),
+              tr('attr.sugg4', null, 'Dipendo troppo da un canale? Dove sta il rischio?'),
+              tr('attr.sugg5', null, 'Dove sposterei budget per migliorare il MER?'),
+              tr('attr.sugg6', null, 'Nuovi vs ritorno: sto acquisendo abbastanza?'),
             ],
           }}
         />

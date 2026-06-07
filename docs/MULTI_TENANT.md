@@ -75,5 +75,5 @@ Regole:
 
 ## Stato
 - Fondamenta resolver: ✅ pronte.
-- Route migrate: `product-costs` ✅, `product-images` ✅, `report` ✅ — restanti ⚠️ da fare (creative/creative-lab/cro/adlibrary/google/debug), una alla volta con test a runtime.
+- Route migrate ✅: `product-costs`, `product-images`, `report`, `adlibrary-page`, `creative-lab`, `creative`, `cro`, `debug`. Resta solo `google` (Google Ads customer/MCC) → richiede colonna schema `companies.google_ads_customer_id`.
 - Flag in produzione: **OFF** (env-only, STMN invariato).

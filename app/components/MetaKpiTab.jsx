@@ -10,6 +10,7 @@ import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
 import RecommendationsFeed from './RecommendationsFeed'
 import MetaAdsAgent from './MetaAdsAgent'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Mini-grafico sparkline per le card KPI
 function Sparkline({ data, dataKey, color = '#2997ff', width = 92, height = 30 }) {
@@ -41,14 +42,14 @@ function Sparkline({ data, dataKey, color = '#2997ff', width = 92, height = 30 }
 // ─────────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { value: 'today',        label: 'Oggi' },
-  { value: 'yesterday',    label: 'Ieri' },
+  { value: 'today',        label: 'Oggi', labelKey: 'meta.today' },
+  { value: 'yesterday',    label: 'Ieri', labelKey: 'meta.yesterday' },
   { value: 'last_7d',      label: '7gg' },
   { value: 'last_14d',     label: '14gg' },
   { value: 'last_28d',     label: '28gg' },
   { value: 'last_30d',     label: '30gg' },
   { value: 'last_90d',     label: '90gg' },
-  { value: 'current_month',label: 'Mese' },
+  { value: 'current_month',label: 'Mese', labelKey: 'mkpi.monthShort' },
   { value: 'ytd',          label: 'YTD' },
 ]
 
@@ -65,32 +66,33 @@ const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 //   count   → mostra numero (es. +1.234)
 // 'lower' = true significa che un calo e' positivo (CPO, CPM, CPC, frequenza).
 const KPIS = [
-  { key: 'spend',      label: 'Spesa',         fmt: eur,  kind: 'money'   },
-  { key: 'revenue',    label: 'Revenue',       fmt: eur,  kind: 'money'   },
-  { key: 'roas',       label: 'ROAS',          fmt: mul,  kind: 'ratio'   },
-  { key: 'purchases',  label: 'Acquisti',      fmt: num,  kind: 'count'   },
-  { key: 'cpo',        label: 'CPO',           fmt: eur2, kind: 'money',  lower: true },
-  { key: 'impressions',label: 'Impressioni',   fmt: num,  kind: 'count'   },
-  { key: 'reach',      label: 'Copertura',     fmt: num,  kind: 'count'   },
-  { key: 'frequency',  label: 'Frequenza',     fmt: v => v != null ? Number(v).toFixed(2) : '—', kind: 'ratio', lower: true },
-  { key: 'cpm',        label: 'CPM',           fmt: eur2, kind: 'money',  lower: true },
-  { key: 'ctr_link',   label: 'CTR link',      fmt: pct,  kind: 'percent' },
-  { key: 'cpc_link',   label: 'CPC link',      fmt: eur2, kind: 'money',  lower: true },
-  { key: 'link_clicks',label: 'Click link',    fmt: num,  kind: 'count'   },
+  { key: 'spend',      label: 'Spesa',       labelKey: 'meta.spend',     fmt: eur,  kind: 'money'   },
+  { key: 'revenue',    label: 'Revenue',     fmt: eur,  kind: 'money'   },
+  { key: 'roas',       label: 'ROAS',        fmt: mul,  kind: 'ratio'   },
+  { key: 'purchases',  label: 'Acquisti',    labelKey: 'meta.purchases', fmt: num,  kind: 'count'   },
+  { key: 'cpo',        label: 'CPO',         fmt: eur2, kind: 'money',  lower: true },
+  { key: 'impressions',label: 'Impressioni', labelKey: 'mkpi.impressions', fmt: num,  kind: 'count'   },
+  { key: 'reach',      label: 'Copertura',   labelKey: 'meta.reach',     fmt: num,  kind: 'count'   },
+  { key: 'frequency',  label: 'Frequenza',   labelKey: 'meta.frequency', fmt: v => v != null ? Number(v).toFixed(2) : '—', kind: 'ratio', lower: true },
+  { key: 'cpm',        label: 'CPM',         fmt: eur2, kind: 'money',  lower: true },
+  { key: 'ctr_link',   label: 'CTR link',    labelKey: 'meta.ctrLink',   fmt: pct,  kind: 'percent' },
+  { key: 'cpc_link',   label: 'CPC link',    labelKey: 'meta.cpcLink',   fmt: eur2, kind: 'money',  lower: true },
+  { key: 'link_clicks',label: 'Click link',  labelKey: 'meta.clickLink', fmt: num,  kind: 'count'   },
 ]
 
 const CHARTS = [
-  { key: 'spend',     label: 'Spending',    fmt: eur  },
-  { key: 'roas',      label: 'ROAS',        fmt: mul  },
-  { key: 'cpo',       label: 'CPO',         fmt: eur2 },
-  { key: 'ctr_link',  label: 'CTR link',    fmt: pct  },
-  { key: 'cpm',       label: 'CPM',         fmt: eur2 },
-  { key: 'frequency', label: 'Frequenza',   fmt: v => v != null ? Number(v).toFixed(2) : '—' },
-  { key: 'reach',     label: 'Copertura',   fmt: num  },
+  { key: 'spend',     label: 'Spending',  fmt: eur  },
+  { key: 'roas',      label: 'ROAS',      fmt: mul  },
+  { key: 'cpo',       label: 'CPO',       fmt: eur2 },
+  { key: 'ctr_link',  label: 'CTR link',  labelKey: 'meta.ctrLink',   fmt: pct  },
+  { key: 'cpm',       label: 'CPM',       fmt: eur2 },
+  { key: 'frequency', label: 'Frequenza', labelKey: 'meta.frequency', fmt: v => v != null ? Number(v).toFixed(2) : '—' },
+  { key: 'reach',     label: 'Copertura', labelKey: 'meta.reach',     fmt: num  },
 ]
 
 
 export default function MetaKpiTab({ live, globalPreset }) {
+  const { t } = useI18n()
   const [preset, setPreset] = useState('last_28d')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -148,7 +150,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             <PlatformBadges sources={['meta']} size={16} />
           </div>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
-            Performance Meta Ads · {data?.range?.since} → {data?.range?.until}
+            {t('mkpi.header', null, 'Performance Meta Ads')} · {data?.range?.since} → {data?.range?.until}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -169,7 +171,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
           >
             {PRESETS.map(o => (
               <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>
-                {o.label}
+                {t(o.labelKey, null, o.label)}
               </option>
             ))}
           </select>
@@ -185,7 +187,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             }}
           >
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Aggiorno…' : 'Aggiorna'}
+            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
           <DownloadReportButton tab="Meta KPI" preset={preset} />
         </div>
@@ -197,7 +199,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
 
       {loading && !data && (
         <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
-          Carico i KPI Meta…
+          {t('mkpi.loadingKpi', null, 'Carico i KPI Meta…')}
         </div>
       )}
 
@@ -241,6 +243,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
 
 // ── Card KPI singola ─────────────────────────────────────────
 function KpiCard({ kpi, value, prev, daily }) {
+  const { t } = useI18n()
   const v = Number(value || 0)
   const p = Number(prev || 0)
   const hasPrev = prev != null && Number.isFinite(p)
@@ -272,7 +275,7 @@ function KpiCard({ kpi, value, prev, daily }) {
           fontSize: 10, color: 'var(--text3)', fontWeight: 800,
           letterSpacing: '0.10em', textTransform: 'uppercase',
         }}>
-          {kpi.label}
+          {t(kpi.labelKey, null, kpi.label)}
         </div>
         <PlatformBadges sources={['meta']} size={14} />
       </div>
@@ -302,7 +305,7 @@ function KpiCard({ kpi, value, prev, daily }) {
       )}
       {hasPrev && Math.abs(absDelta) <= 0.0001 && (
         <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
-          = periodo precedente
+          {t('mkpi.samePrev', null, '= periodo precedente')}
         </div>
       )}
     </div>
@@ -311,6 +314,7 @@ function KpiCard({ kpi, value, prev, daily }) {
 
 // ── Singolo grafico separato ─────────────────────────────────
 function SeparateChart({ chart, daily }) {
+  const { t } = useI18n()
   const series = daily.map(d => ({
     date: (d.date || '').slice(5),
     v: d[chart.key] ?? 0,
@@ -321,9 +325,9 @@ function SeparateChart({ chart, daily }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-            Andamento
+            {t('mkpi.trend', null, 'Andamento')}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 3 }}>{chart.label}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
         </div>
         <PlatformBadges sources={['meta']} size={16} />
       </div>
@@ -341,7 +345,7 @@ function SeparateChart({ chart, daily }) {
             <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={50} />
             <Tooltip
               contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
-              formatter={v => [chart.fmt(v), chart.label]}
+              formatter={v => [chart.fmt(v), t(chart.labelKey, null, chart.label)]}
             />
             <Area type="monotone" dataKey="v" stroke="#ffffff" fill={`url(#grad-${chart.key})`} strokeWidth={1.5} />
           </AreaChart>

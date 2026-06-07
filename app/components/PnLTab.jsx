@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
@@ -29,6 +30,10 @@ function Delta({ cur, prev, lowerBetter = false }) {
 }
 
 export default function PnLTab({ data = [] }) {
+  const { t, intlLocale } = useI18n()
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+  const monthLabelL = (m) => { const [y, mm] = m.split('-').map(Number); return `${cap(new Date(y, (mm || 1) - 1, 1).toLocaleDateString(intlLocale, { month: 'short' }))} ${String(y).slice(2)}` }
+  const monthFullL = (m) => { const [y, mm] = m.split('-').map(Number); return `${cap(new Date(y, (mm || 1) - 1, 1).toLocaleDateString(intlLocale, { month: 'long' }))} ${y}` }
   const [view, setView] = useState('12')   // 'last' | 'prev' | '6' | '12' | '24'
   const fetchMonths = (view === 'last' || view === 'prev') ? 3 : Number(view)
   const [state, setState] = useState({ loading: true })
@@ -133,20 +138,20 @@ export default function PnLTab({ data = [] }) {
   const desc = [...rows].reverse() // più recente in alto
   // Voci del conto economico (righe); i mesi sono le colonne
   const lines = [
-    { label: 'Fatturato (incl. IVA)', key: 'fatturato' },
-    { label: 'IVA', key: 'taxes' },
-    { label: 'Ricavi netti (ex-IVA)', key: 'net', strong: true },
-    { label: 'COGS (costo prodotti)', key: 'cogs', neg: true },
-    { label: 'Margine lordo', key: 'grossMargin', strong: true },
-    { label: 'Advertising', key: 'ads', neg: true },
-    { label: 'Fee gateway', key: 'fee', neg: true },
-    { label: 'Packaging', key: 'packaging', neg: true },
-    { label: 'Spedizione (corriere)', key: 'shipCost', neg: true },
-    { label: 'Costi fissi (OPEX)', key: 'fixed', neg: true },
-    { label: 'Margine contribuzione', key: 'contrib', strong: true },
-    { label: 'EBIT (utile)', key: 'ebit', ebit: true },
-    { label: 'EBIT %', key: 'ebitPct', pct: true },
-    { label: 'Ordini', key: 'orders', int: true },
+    { label: t('pnl.lineFatturato', null, 'Fatturato (incl. IVA)'), key: 'fatturato' },
+    { label: t('pnl.lineVat', null, 'IVA'), key: 'taxes' },
+    { label: t('pnl.lineNet', null, 'Ricavi netti (ex-IVA)'), key: 'net', strong: true },
+    { label: t('pnl.lineCogs', null, 'COGS (costo prodotti)'), key: 'cogs', neg: true },
+    { label: t('pnl.lineGrossMargin', null, 'Margine lordo'), key: 'grossMargin', strong: true },
+    { label: t('pnl.lineAds', null, 'Advertising'), key: 'ads', neg: true },
+    { label: t('pnl.lineFee', null, 'Fee gateway'), key: 'fee', neg: true },
+    { label: t('pnl.linePackaging', null, 'Packaging'), key: 'packaging', neg: true },
+    { label: t('pnl.lineShipping', null, 'Spedizione (corriere)'), key: 'shipCost', neg: true },
+    { label: t('pnl.lineFixed', null, 'Costi fissi (OPEX)'), key: 'fixed', neg: true },
+    { label: t('pnl.lineContrib', null, 'Margine contribuzione'), key: 'contrib', strong: true },
+    { label: t('pnl.lineEbit', null, 'EBIT (utile)'), key: 'ebit', ebit: true },
+    { label: t('pnl.lineEbitPct', null, 'EBIT %'), key: 'ebitPct', pct: true },
+    { label: t('pnl.lineOrders', null, 'Ordini'), key: 'orders', int: true },
   ]
   // mese precedente per ogni mese (per la variazione MoM, indipendente da cosa mostro)
   const prevOf = {}
@@ -161,62 +166,62 @@ export default function PnLTab({ data = [] }) {
   return (
     <div style={{ maxWidth: 1280 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.</div>
+        <div style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>{t('pnl.desc', null, 'Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.')}</div>
         <select value={view} onChange={e => setView(e.target.value)} style={inp}>
-          <option value="last">Mese attuale</option>
-          <option value="prev">Mese precedente</option>
-          <option value="6">6 mesi</option>
-          <option value="12">12 mesi</option>
-          <option value="24">24 mesi</option>
+          <option value="last">{t('pnl.viewLast', null, 'Mese attuale')}</option>
+          <option value="prev">{t('pnl.viewPrev', null, 'Mese precedente')}</option>
+          <option value="6">{t('pnl.view6', null, '6 mesi')}</option>
+          <option value="12">{t('pnl.view12', null, '12 mesi')}</option>
+          <option value="24">{t('pnl.view24', null, '24 mesi')}</option>
         </select>
-        <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>⚙ Costi & impostazioni</button>
-        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? 'Aggiorno…' : 'Aggiorna'}</button>
+        <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer' }}>{t('pnl.costsSettings', null, '⚙ Costi & impostazioni')}</button>
+        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
       </div>
 
       {showCfg && (
         <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 14, marginBottom: 16 }}>
-            <Field label="COGS % (se costi Shopify mancanti)" value={cfg.cogsPct ?? ''} ph={state.avgMargin != null ? `auto: ${(100 - state.avgMargin).toFixed(0)}%` : 'es. 40'} onChange={v => saveCfg({ ...cfg, cogsPct: v === '' ? null : Number(v) })} />
-            <Field label="Packaging €/ordine" value={cfg.packagingPerOrder} onChange={v => saveCfg({ ...cfg, packagingPerOrder: Number(v) || 0 })} />
-            <Field label="Spedizione corriere €/ordine" value={cfg.shippingPerOrder} ph="es. 5.50 (tariffa media)" onChange={v => saveCfg({ ...cfg, shippingPerOrder: Number(v) || 0 })} />
-            <Field label="Fee gateway %" value={cfg.gatewayPct} ph={state.feesSource === 'shopify-payments' ? 'auto da Shopify Payments' : 'es. 1.5'} onChange={v => saveCfg({ ...cfg, gatewayPct: Number(v) || 0 })} />
-            <Field label="Fee gateway € fisso/ordine" value={cfg.gatewayFixed} onChange={v => saveCfg({ ...cfg, gatewayFixed: Number(v) || 0 })} />
+            <Field label={t('pnl.cogsField', null, 'COGS % (se costi Shopify mancanti)')} value={cfg.cogsPct ?? ''} ph={state.avgMargin != null ? t('pnl.cogsAutoPh', { n: (100 - state.avgMargin).toFixed(0) }, `auto: ${(100 - state.avgMargin).toFixed(0)}%`) : t('pnl.eg40', null, 'es. 40')} onChange={v => saveCfg({ ...cfg, cogsPct: v === '' ? null : Number(v) })} />
+            <Field label={t('pnl.packagingField', null, 'Packaging €/ordine')} value={cfg.packagingPerOrder} onChange={v => saveCfg({ ...cfg, packagingPerOrder: Number(v) || 0 })} />
+            <Field label={t('pnl.shippingField', null, 'Spedizione corriere €/ordine')} value={cfg.shippingPerOrder} ph={t('pnl.eg550', null, 'es. 5.50 (tariffa media)')} onChange={v => saveCfg({ ...cfg, shippingPerOrder: Number(v) || 0 })} />
+            <Field label={t('pnl.gatewayPctField', null, 'Fee gateway %')} value={cfg.gatewayPct} ph={state.feesSource === 'shopify-payments' ? t('pnl.autoShopifyPay', null, 'auto da Shopify Payments') : t('pnl.eg15', null, 'es. 1.5')} onChange={v => saveCfg({ ...cfg, gatewayPct: Number(v) || 0 })} />
+            <Field label={t('pnl.gatewayFixedField', null, 'Fee gateway € fisso/ordine')} value={cfg.gatewayFixed} onChange={v => saveCfg({ ...cfg, gatewayFixed: Number(v) || 0 })} />
           </div>
-          <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>Costi fissi mensili (OPEX)</div>
+          <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{t('pnl.opex', null, 'Costi fissi mensili (OPEX)')}</div>
           {(cfg.fixedCosts || []).map((f, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <input value={f.name} placeholder="Voce (es. Affitto)" onChange={e => { const fc = [...cfg.fixedCosts]; fc[i] = { ...fc[i], name: e.target.value }; saveCfg({ ...cfg, fixedCosts: fc }) }} style={{ ...inp, flex: 1 }} />
-              <input value={f.amount} type="number" placeholder="€/mese" onChange={e => { const fc = [...cfg.fixedCosts]; fc[i] = { ...fc[i], amount: e.target.value }; saveCfg({ ...cfg, fixedCosts: fc }) }} style={{ ...inp, width: 130 }} />
+              <input value={f.name} placeholder={t('pnl.itemPh', null, 'Voce (es. Affitto)')} onChange={e => { const fc = [...cfg.fixedCosts]; fc[i] = { ...fc[i], name: e.target.value }; saveCfg({ ...cfg, fixedCosts: fc }) }} style={{ ...inp, flex: 1 }} />
+              <input value={f.amount} type="number" placeholder={t('pnl.perMonthPh', null, '€/mese')} onChange={e => { const fc = [...cfg.fixedCosts]; fc[i] = { ...fc[i], amount: e.target.value }; saveCfg({ ...cfg, fixedCosts: fc }) }} style={{ ...inp, width: 130 }} />
               <button onClick={() => saveCfg({ ...cfg, fixedCosts: cfg.fixedCosts.filter((_, j) => j !== i) })} style={{ ...inp, cursor: 'pointer', width: 40 }}>×</button>
             </div>
           ))}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => saveCfg({ ...cfg, fixedCosts: [...(cfg.fixedCosts || []), { name: '', amount: '' }] })} style={{ ...inp, cursor: 'pointer' }}>+ Aggiungi costo fisso</button>
-            <span style={{ fontSize: 11, color: saved ? '#30d158' : 'var(--text3)' }}>{saved ? '✓ Salvato sul tuo account' : 'Si salva automaticamente sul tuo account'}</span>
+            <button onClick={() => saveCfg({ ...cfg, fixedCosts: [...(cfg.fixedCosts || []), { name: '', amount: '' }] })} style={{ ...inp, cursor: 'pointer' }}>{t('pnl.addFixed', null, '+ Aggiungi costo fisso')}</button>
+            <span style={{ fontSize: 11, color: saved ? '#30d158' : 'var(--text3)' }}>{saved ? t('pnl.savedAccount', null, '✓ Salvato sul tuo account') : t('pnl.autoSaveAccount', null, 'Si salva automaticamente sul tuo account')}</span>
           </div>
           <div style={{ fontSize: 11, opacity: 0.5, marginTop: 12 }}>
-            COGS: {cfg.cogsPct != null ? `override manuale ${cfg.cogsPct}%` : state.cogsSource === 'shopify' ? 'reale dalle analitiche Shopify ✓ (cost_of_goods_sold)' : state.cogsRatio != null ? `stima da margine medio catalogo ${state.avgMargin}%` : 'imposta una % qui'} · Fee: {state.feesSource === 'shopify-payments' ? 'reali da Shopify Payments ✓' : 'stima da % (Shopify Payments non disponibile)'}
+            {t('pnl.cogsLabel', null, 'COGS:')} {cfg.cogsPct != null ? t('pnl.cogsOverride', { n: cfg.cogsPct }, `override manuale ${cfg.cogsPct}%`) : state.cogsSource === 'shopify' ? t('pnl.cogsReal', null, 'reale dalle analitiche Shopify ✓ (cost_of_goods_sold)') : state.cogsRatio != null ? t('pnl.cogsEstimate', { n: state.avgMargin }, `stima da margine medio catalogo ${state.avgMargin}%`) : t('pnl.cogsSetHere', null, 'imposta una % qui')} · {t('pnl.feeLabel', null, 'Fee:')} {state.feesSource === 'shopify-payments' ? t('pnl.feeReal', null, 'reali da Shopify Payments ✓') : t('pnl.feeEstimate', null, 'stima da % (Shopify Payments non disponibile)')}
           </div>
         </div>
       )}
 
-      {state.loading && <div style={{ opacity: 0.5, fontSize: 13 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Calcolo il conto economico…</div>}
-      {!state.loading && !state.configured && <div className="glass-card" style={{ padding: 20, fontSize: 13, color: '#ff375f' }}>⚠ {state.error || 'Shopify non configurato.'}</div>}
-      {!state.loading && state.configured && rows.length === 0 && <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>Nessun dato nel periodo.</div>}
+      {state.loading && <div style={{ opacity: 0.5, fontSize: 13 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('pnl.computing', null, 'Calcolo il conto economico…')}</div>}
+      {!state.loading && !state.configured && <div className="glass-card" style={{ padding: 20, fontSize: 13, color: '#ff375f' }}>⚠ {state.error || t('pnl.notConfigured', null, 'Shopify non configurato.')}</div>}
+      {!state.loading && state.configured && rows.length === 0 && <div className="glass-card" style={{ padding: 20, fontSize: 13 }}>{t('pnl.noDataPeriod', null, 'Nessun dato nel periodo.')}</div>}
 
       {!state.loading && asc.length > 1 && (
         <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, opacity: 0.85 }}>Andamento · Ricavi netti · Costi totali · EBIT</div>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, opacity: 0.85 }}>{t('pnl.chartTitle', null, 'Andamento · Ricavi netti · Costi totali · EBIT')}</div>
           <div style={{ width: '100%', height: 290 }}>
             <ResponsiveContainer>
-              <ComposedChart data={asc.map(r => ({ name: monthLabel(r.month), Ricavi: r.net, Costi: (r.net != null && r.ebit != null) ? Math.round(r.net - r.ebit) : null, EBIT: r.ebit }))} margin={{ top: 6, right: 8, left: -4, bottom: 0 }}>
+              <ComposedChart data={asc.map(r => ({ name: monthLabelL(r.month), Ricavi: r.net, Costi: (r.net != null && r.ebit != null) ? Math.round(r.net - r.ebit) : null, EBIT: r.ebit }))} margin={{ top: 6, right: 8, left: -4, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 10 }} />
                 <YAxis tick={{ fill: 'var(--text3)', fontSize: 10 }} width={52} tickFormatter={v => `€${Math.round(v / 1000)}k`} />
                 <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={v => eur(v)} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Ricavi" fill="#2997ff" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Costi" fill="#ff453a" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Ricavi" name={t('pnl.seriesRevenue', null, 'Ricavi')} fill="#2997ff" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Costi" name={t('pnl.seriesCosts', null, 'Costi')} fill="#ff453a" radius={[3, 3, 0, 0]} />
                 <Line dataKey="EBIT" stroke="#30d158" strokeWidth={2.5} dot={{ r: 2 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -229,9 +234,9 @@ export default function PnLTab({ data = [] }) {
           <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>Voce</th>
-                {asc.map(r => <th key={r.month} style={{ ...th, minWidth: 110 }}>{monthFull(r.month)}</th>)}
-                {showTotal && <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>Totale</th>}
+                <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{t('pnl.colItem', null, 'Voce')}</th>
+                {asc.map(r => <th key={r.month} style={{ ...th, minWidth: 110 }}>{monthFullL(r.month)}</th>)}
+                {showTotal && <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>{t('pnl.colTotal', null, 'Totale')}</th>}
               </tr>
             </thead>
             <tbody>

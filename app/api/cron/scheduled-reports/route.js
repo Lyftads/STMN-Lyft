@@ -54,7 +54,9 @@ export async function GET(req) {
       try {
         const res = await fetch(`${origin}/api/scheduled-reports/send`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          // Segreto cron: autorizza /send (e a cascata /metrics) a usare le
+          // creds di STMN senza sessione utente (vedi isAuthorizedCron).
+          headers: { 'Content-Type': 'application/json', 'x-internal-cron': process.env.CRON_SECRET || '' },
           body: JSON.stringify({ type, email }),
         })
         const j = await res.json()

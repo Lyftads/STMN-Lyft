@@ -47,9 +47,15 @@ export async function POST(req) {
 async function buildDigest({ type, req }) {
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const cookieHeader = req.headers.get('cookie') || ''
+  const cronHeader = req.headers.get('x-internal-cron') || ''
   const preset = type === 'weekly' ? 'last_7d' : 'last_30d'
 
-  const headers = cookieHeader ? { cookie: cookieHeader } : {}
+  // Propaga il contesto a /metrics e /meta-kpi: cookie se l'utente e' loggato
+  // (owner che lancia il report a mano), oppure il segreto cron se la chiamata
+  // arriva dal job schedulato (vedi isAuthorizedCron nel resolver tenant).
+  const headers = {}
+  if (cookieHeader) headers.cookie = cookieHeader
+  if (cronHeader) headers['x-internal-cron'] = cronHeader
 
   const [metricsRes, metaKpiRes] = await Promise.allSettled([
     fetch(`${origin}/api/metrics?preset=${preset}`, { cache: 'no-store', headers }).then(r => r.json()),

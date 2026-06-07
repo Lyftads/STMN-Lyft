@@ -31,7 +31,9 @@ function isAuthorized(req) {
 async function fetchInternal(origin, path) {
   try {
     const res = await fetch(`${origin}${path}`, {
-      headers: { 'x-internal-cron': '1' },
+      // Segreto cron: autorizza il resolver tenant a servire le creds di STMN
+      // a questa fetch interna senza sessione utente (vedi isAuthorizedCron).
+      headers: { 'x-internal-cron': process.env.CRON_SECRET || '' },
       signal: AbortSignal.timeout(60_000),
     })
     if (!res.ok) return null

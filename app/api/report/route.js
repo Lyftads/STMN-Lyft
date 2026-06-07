@@ -3,9 +3,8 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 
-const META_TOKEN = process.env.META_ACCESS_TOKEN
-const META_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -18,6 +17,7 @@ const intf = (n) => num(n).toLocaleString('it-IT')
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 function accountIds() {
+  const META_ACCOUNT = getMeta().adAccountId
   return String(META_ACCOUNT || '').split(',').map(s => { const x = s.trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}` }).filter(Boolean)
 }
 function valFrom(arr, types) {
@@ -59,6 +59,7 @@ async function shopifyDaily(origin, since, until) {
 
 // ── Meta insights per finestra (account-level) ──
 async function metaPeriod(since, until, extraFields = '') {
+  const META_TOKEN = getMeta().accessToken
   const acc = accountIds()
   if (!acc.length || !META_TOKEN) return null
   const agg = { spend: 0, impressions: 0, clicks: 0, reach: 0, purchases: 0, revenue: 0, freqW: 0 }
@@ -101,6 +102,7 @@ function rowFromInsight(r) {
   }
 }
 async function metaGraph(path, params) {
+  const META_TOKEN = getMeta().accessToken
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/${path}`)
   for (const [k, v] of Object.entries(params || {})) if (v != null && v !== '') url.searchParams.set(k, v)
   url.searchParams.set('access_token', META_TOKEN)
@@ -336,6 +338,7 @@ async function renderPdf(html) {
 }
 
 export async function GET(req) {
+  return withTenantContext(req, async () => {
   const { searchParams, origin } = new URL(req.url)
   const tab = searchParams.get('tab') || 'Report'
   const label = searchParams.get('label') || 'Periodo'
@@ -466,5 +469,6 @@ export async function GET(req) {
       'Content-Disposition': `attachment; filename="${fname}"`,
       'Cache-Control': 'no-store',
     },
+  })
   })
 }

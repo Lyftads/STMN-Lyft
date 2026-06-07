@@ -28,7 +28,7 @@ Sono segreti dell'app, uguali per tutti i tenant:
 | Route | Env letti | Stato |
 |---|---|---|
 | `app/api/product-costs/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ✅ **migrata (template)** |
-| `app/api/report/route.js` | META_ACCESS_TOKEN, META_AD_ACCOUNT_ID | ⏳ |
+| `app/api/report/route.js` | META_ACCESS_TOKEN, META_AD_ACCOUNT_ID | ✅ **migrata** (getMeta nelle 3 fn + GET wrappato) |
 | `app/api/creative/route.js` | META token + account(s) | ⏳ |
 | `app/api/creative-lab/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN | ⏳ |
 | `app/api/cro/route.js` | SHOPIFY_STORE_URL/ADMIN_TOKEN, GA4_PROPERTY_ID, GOOGLE_REFRESH_TOKEN (const modulo) | ⏳ (Google già via resolver, Shopify/GA4 no) |
@@ -75,5 +75,5 @@ Regole:
 
 ## Stato
 - Fondamenta resolver: ✅ pronte.
-- Route migrate: `product-costs` ✅, `product-images` ✅ — restanti ⚠️ da fare (le più grandi — report/creative/creative-lab/cro — vanno migrate con test a runtime dedicato, non in blocco alla cieca).
+- Route migrate: `product-costs` ✅, `product-images` ✅, `report` ✅ — restanti ⚠️ da fare (creative/creative-lab/cro/adlibrary/google/debug), una alla volta con test a runtime.
 - Flag in produzione: **OFF** (env-only, STMN invariato).

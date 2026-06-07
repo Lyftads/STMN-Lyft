@@ -29,7 +29,16 @@ export default function SocialStudio() {
   const [planned, setPlanned] = useState([])
   const [media, setMedia] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [linkInput, setLinkInput] = useState('')
   const fileRef = useRef(null)
+
+  const addLink = () => {
+    const url = linkInput.trim()
+    if (!/^https?:\/\//i.test(url)) return
+    const isVid = /\.(mp4|mov|webm|m4v|avi)(\?|$)/i.test(url)
+    setMedia(m => [...m, { url, type: isVid ? 'video/link' : '', name: (url.split('/').pop() || 'link').split('?')[0].slice(0, 40), kind: 'link' }])
+    setLinkInput('')
+  }
 
   // Upload DIRETTO su Supabase Storage (signed URL) → file pesanti, full quality.
   const uploadFiles = async (files) => {
@@ -43,7 +52,7 @@ export default function SocialStudio() {
         if (!j.ok) { setErr(j.error || 'Upload error'); continue }
         const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, file)
         if (error) { setErr(error.message); continue }
-        setMedia(m => [...m, { url: j.publicUrl, type: file.type || '', name: file.name }])
+        setMedia(m => [...m, { url: j.publicUrl, type: file.type || '', name: file.name, kind: 'file' }])
       } catch (e) { setErr(e.message) }
     }
     setUploading(false)
@@ -130,20 +139,28 @@ export default function SocialStudio() {
         <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 8 }}>{t('social.media')}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
           {media.map((m, i) => (
-            <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#000' }}>
-              {m.type.startsWith('video')
-                ? <video src={m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            <div key={i} style={{ position: 'relative', width: 76, height: 76, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#000', display: 'grid', placeItems: 'center' }}>
+              {m.kind === 'link'
+                ? <div style={{ textAlign: 'center', padding: 5, color: 'var(--text3)' }}><Icon name="link" size={16} /><div style={{ fontSize: 8, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{m.name}</div></div>
+                : m.type.startsWith('video')
+                  ? <video src={m.url} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               <button onClick={() => setMedia(media.filter((_, j) => j !== i))} title="×" style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'grid', placeItems: 'center' }}>×</button>
-              {m.type.startsWith('video') && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
+              {m.type.startsWith('video') && m.kind !== 'link' && <span style={{ position: 'absolute', bottom: 3, left: 3, color: '#fff' }}><Icon name="mic" size={11} /></span>}
             </div>
           ))}
-          <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text3)', cursor: uploading ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 300 }}>
+          <button onClick={() => fileRef.current?.click()} disabled={uploading} title={t('social.upload')} style={{ width: 76, height: 76, borderRadius: 8, border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text3)', cursor: uploading ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 300 }}>
             {uploading ? '…' : '+'}
           </button>
           <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={e => uploadFiles(Array.from(e.target.files || []))} />
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginBottom: 14 }}>{uploading ? t('social.uploading') : t('social.upload')}</div>
+        {/* Incolla link pubblico (Drive/Dropbox/URL) — file pesanti senza limiti */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+          <input value={linkInput} onChange={e => setLinkInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addLink() }} placeholder={t('social.linkPlaceholder')}
+            style={{ flex: 1, minWidth: 200, borderRadius: 9, padding: '8px 10px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 12.5, fontFamily: 'inherit' }} />
+          <button onClick={addLink} style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('social.add')}</button>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginBottom: 14 }}>{uploading ? t('social.uploading') : t('social.upload')} · max 50MB · {t('social.linkPlaceholder')}</div>
 
         <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('social.brief')} rows={3}
           style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />

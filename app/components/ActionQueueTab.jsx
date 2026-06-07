@@ -235,6 +235,15 @@ function RecapPanel({ t, actions }) {
   }).length
   const rate = (executed.length + rejected) > 0 ? Math.round(executed.length / (executed.length + rejected) * 100) : null
 
+  // Tempo medio dalla proposta all'esecuzione
+  const decided = executed.filter(a => a.executed_at && a.created_at)
+  let avgTime = null
+  if (decided.length) {
+    const ms = decided.reduce((s, a) => s + (new Date(a.executed_at) - new Date(a.created_at)), 0) / decided.length
+    const h = ms / 3_600_000
+    avgTime = h < 1 ? `${Math.max(1, Math.round(ms / 60_000))}m` : h < 24 ? `${Math.round(h)}h` : `${Math.floor(h / 24)}g ${Math.round(h % 24)}h`
+  }
+
   const tally = (key) => {
     const m = {}
     for (const a of executed) { const k = a[key] || '—'; m[k] = (m[k] || 0) + 1 }
@@ -281,6 +290,7 @@ function RecapPanel({ t, actions }) {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
             {stat(t('aq.recap.executed'), executed.length, `${exMonth} ${t('aq.recap.thisMonth')}`)}
             {rate != null && <div title={t('aq.recap.rateHint')} style={{ flex: 1, minWidth: 120 }}>{stat(t('aq.recap.actionRate'), `${rate}%`)}</div>}
+            {avgTime != null && <div title={t('aq.recap.avgTimeHint')} style={{ flex: 1, minWidth: 120 }}>{stat(t('aq.recap.avgTime'), avgTime)}</div>}
           </div>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {breakdown(t('aq.recap.bySource'), bySource)}

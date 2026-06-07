@@ -2187,7 +2187,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
 
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function App() {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   const [tab, setTab] = useState('dashboard')
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   const [live, setLive] = useState(null)
@@ -2852,7 +2852,10 @@ export default function App() {
         const monthName = (s) => {
           if (!s) return ''
           const [y, m] = s.split('-').map(Number)
-          return `${MONTH_NAMES_IT[m-1]} ${y}`
+          try {
+            const mn = new Date(Date.UTC(y, m-1, 1)).toLocaleDateString(intlLocale, { month: 'long' })
+            return `${mn.charAt(0).toUpperCase() + mn.slice(1)} ${y}`
+          } catch { return `${MONTH_NAMES_IT[m-1]} ${y}` }
         }
         const mTH = {
           position:'sticky', top:0, zIndex:20,
@@ -3571,7 +3574,7 @@ export default function App() {
                 <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['Trimestre','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                      {[t('dash.thQuarter', null, 'Trimestre'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
                         <th key={h} style={qTH}>{h}</th>
                       ))}
                     </tr>
@@ -3606,7 +3609,7 @@ export default function App() {
                 <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['Trimestre','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                      {[t('dash.thQuarter', null, 'Trimestre'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
                         <th key={h} style={qTH}>{h}</th>
                       ))}
                     </tr>
@@ -4016,7 +4019,7 @@ export default function App() {
                 <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['Anno','Fatturato €','Fatt. NC €','Fatt. RC €','Resi €','Meta ADS €','Google ADS €','Tot Ordini','NC #','RC #','Sessioni'].map(h=>(
+                      {[t('dash.thYear', null, 'Anno'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
                         <th key={h} style={qTH}>{h}</th>
                       ))}
                     </tr>
@@ -4051,7 +4054,7 @@ export default function App() {
                 <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['Anno','Fatturato','Fatt. NC','Fatt. RC','ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
+                      {[t('dash.thYear', null, 'Anno'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
                         <th key={h} style={qTH}>{h}</th>
                       ))}
                     </tr>

@@ -13,10 +13,14 @@ const FAL_KEY = process.env.FAL_KEY
 
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
 
+// "Spina dorsale" qualità (Kive-grade): direzione fotografica editoriale/commerciale
+// che ogni prompt eredita. Garantisce realismo alto, ottica/luce pro, zero artefatti AI.
+const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (Kive-grade): photorealistic, shot on a full-frame camera with a fast prime lens, deliberate professional lighting, crisp tack-sharp focus on the subject with natural depth of field, fine micro-detail and realistic textures, natural skin with pores (no plastic/AI look), accurate color and true-to-life materials, balanced composition, premium magazine finish. Avoid: warped anatomy, extra fingers, garbled text or logos, watermarks, lowres, oversharpening, HDR halos, cartoon or 3D-render look.'
+
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
 async function enhancePrompt(userPrompt, style, contextBlock, refImages = []) {
-  if (!OPENAI_KEY) return userPrompt
+  if (!OPENAI_KEY) return [style, userPrompt, QUALITY_SPINE].filter(Boolean).join('. ')
   try {
     const ctx = contextBlock ? `\n\nCLIENT CONTEXT (ground the visual in this brand — products, colors, tone, what converts):\n${contextBlock}` : ''
     const hasRefs = Array.isArray(refImages) && refImages.length > 0
@@ -34,11 +38,11 @@ async function enhancePrompt(userPrompt, style, contextBlock, refImages = []) {
       body: JSON.stringify({
         model: hasRefs ? 'gpt-4o' : 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a prompt engineer for image generation models. Rewrite the user request as ONE vivid, detailed English image prompt (subject, composition, lighting, lens, mood, color). Honor the brand identity, real products and palette from the client context when relevant. If reference images are attached, describe and preserve their subject/style/colors. Keep any product/brand/text faithful. No preamble, output only the prompt.' },
+          { role: 'system', content: `You are an elite prompt engineer for top-tier image models, producing campaign-quality results on par with Kive. Rewrite the user request as ONE vivid, richly detailed English image prompt. Be specific and concrete about: subject and styling, environment/set, composition and framing, camera and lens (e.g. 50mm/85mm full-frame), the exact lighting setup, mood and color palette. When a Style is provided, treat it as the AUTHORITATIVE art direction and build the whole scene around it. Honor the brand identity, real products and palette from the client context when relevant. If reference images are attached, describe and faithfully preserve their subject, materials, colors and framing. Keep any product/brand/text exactly faithful. End the prompt by appending these quality requirements verbatim: "${QUALITY_SPINE}" No preamble, output only the final prompt.` },
           { role: 'user', content: userContent },
         ],
         temperature: 0.7,
-        max_tokens: 260,
+        max_tokens: 420,
       }),
       signal: AbortSignal.timeout(30000),
     })
@@ -121,7 +125,7 @@ async function generateOne(model, prompt, fmt, refUrls) {
 
 // Istruzione di scena per Kontext: cambia ambiente/luce ma NON il prodotto.
 async function buildKontextInstruction(userPrompt, style, contextBlock) {
-  if (!OPENAI_KEY) return userPrompt
+  if (!OPENAI_KEY) return [`Place the exact product from the input image into this scene: ${style || userPrompt || 'a clean premium commercial set'}`, 'Keep the product identical — same shape, colors, materials, logos and proportions.', QUALITY_SPINE].filter(Boolean).join('. ')
   try {
     const ctx = contextBlock ? `\n\nBRAND CONTEXT:\n${contextBlock}` : ''
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -130,10 +134,10 @@ async function buildKontextInstruction(userPrompt, style, contextBlock) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You write ONE concise English editing instruction for an image model that places the EXACT product shown in the input image into a new scene. Describe the background, surface, lighting, mood and composition for a commercial shot. CRUCIAL: explicitly state to keep the product identical — same shape, colors, materials, logos and proportions — do not redesign or alter it. Output only the instruction.' },
+          { role: 'system', content: `You write ONE detailed English editing instruction for a high-end image model that places the EXACT product shown in the input image into a new scene, with campaign quality comparable to Kive. Describe the background/set, surface, the precise lighting setup, camera angle, mood and composition for a premium commercial shot. When a Style is provided, treat it as the AUTHORITATIVE art direction for the new scene. CRUCIAL: explicitly state to keep the product identical — same shape, colors, materials, logos, text and proportions — do not redesign or alter it. End the instruction by appending these quality requirements verbatim: "${QUALITY_SPINE}" Output only the instruction.` },
           { role: 'user', content: `Scene wanted: ${userPrompt || 'clean premium commercial scene'}\nStyle: ${style || 'commercial product photography'}${ctx}` },
         ],
-        temperature: 0.6, max_tokens: 200,
+        temperature: 0.6, max_tokens: 360,
       }),
       signal: AbortSignal.timeout(20000),
     })
@@ -157,7 +161,7 @@ export async function POST(req) {
 
   // Kontext richiede l'immagine del prodotto; gli altri richiedono una descrizione.
   if (isKontext && !refList.length) return json({ error: 'Per "Prodotto fedele" seleziona un prodotto o allega un\'immagine.' }, 400)
-  if (!isKontext && !rawPrompt) return json({ error: 'Descrivi cosa vuoi generare' }, 400)
+  if (!isKontext && !rawPrompt && !body?.style) return json({ error: 'Descrivi cosa vuoi generare o scegli uno Studio' }, 400)
 
   const fmt = getFormat(body?.format)
   const count = Math.min(4, Math.max(1, parseInt(body?.count || '1')))

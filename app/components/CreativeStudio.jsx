@@ -41,6 +41,12 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [refImages, setRefImages] = useState([])
   const [stylePresets, setStylePresets] = useState([])
   const [activeStyle, setActiveStyle] = useState(null) // preset id
+  const [studioPresets, setStudioPresets] = useState([])
+  const [studioCategories, setStudioCategories] = useState([])
+  const [activeStudio, setActiveStudio] = useState(null) // studio id (ambiente Kive)
+  const [showStudios, setShowStudios] = useState(false)
+  const [studioCat, setStudioCat] = useState('all')
+  const [studioQuery, setStudioQuery] = useState('')
   const [products, setProducts] = useState(null)        // null = non caricati
   const [showProducts, setShowProducts] = useState(false)
   const [productQuery, setProductQuery] = useState('')
@@ -86,6 +92,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       const j = await r.json()
       setBalance(j.balance ?? 0); setModels(j.models || []); setVideoModels(j.videoModels || [])
       setPacks(j.packs || []); setTxHistory(j.history || []); setStylePresets(j.stylePresets || [])
+      setStudioPresets(j.studioPresets || []); setStudioCategories(j.studioCategories || [])
       if (j.models?.length && !j.models.find(m => m.id === model)) setModel(j.models[0].id)
       if (j.videoModels?.length && !j.videoModels.find(m => m.id === videoModel)) setVideoModel(j.videoModels[0].id)
     } catch {}
@@ -175,7 +182,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const isKontext = kind === 'image' && model === 'flux-kontext'
   const canGenerate = kind === 'video'
     ? (!!sourceImage || !!input.trim())
-    : (isKontext ? refImages.length > 0 : !!input.trim())
+    : (isKontext ? refImages.length > 0 : (!!input.trim() || !!activeStudio))
 
   const patchMsg = (id, patch) => setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m))
 
@@ -207,9 +214,14 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     if (!canGenerate || busy) return
     const text = input.trim()
     const refs = refImages.map(r => r.dataUrl || r.url).filter(Boolean)
-    const styleStr = stylePresets.find(s => s.id === activeStyle)?.prompt || undefined
+    const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
+    const presetStr = stylePresets.find(s => s.id === activeStyle)?.prompt
+    // L'ambiente Studio guida la scena (ha priorità), lo stile rifinisce il mood.
+    const styleStr = [studioStr, presetStr].filter(Boolean).join('. ') || undefined
     setBusy(true); setError('')
-    setMessages(prev => [...prev, { id: nextId(), role: 'user', text: text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : ''), media: refImages.map(r => ({ type: 'image', url: r.dataUrl })) }])
+    const studioLabel = studioPresets.find(s => s.id === activeStudio)?.label
+    const userMsgText = text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : studioLabel ? t('cs.studioGenReq', { name: studioLabel }, `Genera nell'ambiente "${studioLabel}"`) : '')
+    setMessages(prev => [...prev, { id: nextId(), role: 'user', text: userMsgText, media: refImages.map(r => ({ type: 'image', url: r.dataUrl })) }])
     setInput(''); setRefImages([])
     const aId = nextId()
     setMessages(prev => [...prev, { id: aId, role: 'assistant', pending: true, text: kind === 'video' ? t('cs.videoBusy', null, 'Genero il video… 1-3 minuti') : t('cs.generating', null, 'Genero…') }])
@@ -504,6 +516,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...tool(recording), color: recording ? '#ff453a' : 'var(--text2,#9aa)' }}><Icon name="wave" size={16} /></button>
               <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
               <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
+              <button onClick={() => setShowStudios(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={tool(!!activeStudio || showStudios)}><Icon name="grid" size={16} /></button>
               <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
               <span style={sep} />
               {kind === 'video'
@@ -559,6 +572,21 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                 ))}
               </div>
             )}
+            {(() => {
+              const st = studioPresets.find(s => s.id === activeStudio)
+              if (!st) return null
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(123,91,255,0.10)', border: '1px solid #7b5bff' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: st.swatch, border: '1px solid rgba(255,255,255,0.18)' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.studioApplied', null, 'Ambiente applicato')}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</div>
+                  </div>
+                  <button onClick={() => setShowStudios(true)} title={t('cs.studioChange', null, 'Cambia ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 9px', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{t('cs.studioChangeBtn', null, 'Cambia')}</button>
+                  <button onClick={() => setActiveStudio(null)} title={t('cs.studioRemove', null, 'Rimuovi ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13 }}>×</button>
+                </div>
+              )
+            })()}
             {stylePresets.length > 0 && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                 {stylePresets.map(s => (
@@ -648,6 +676,52 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           </div>
         </div>
       )}
+
+      {/* Pannello STUDIOS (ambienti stile Kive) — drawer da destra */}
+      {showStudios && (() => {
+        const cats = [{ id: 'all', label: t('cs.studioAll', null, 'Tutti') }, ...studioCategories.map(c => ({ id: c.id, label: t(`cs.cat.${c.id}`, null, c.label) }))]
+        const q = studioQuery.trim().toLowerCase()
+        const list = studioPresets.filter(s =>
+          (studioCat === 'all' || s.category === studioCat) &&
+          (!q || s.label.toLowerCase().includes(q))
+        )
+        return (
+          <div onClick={() => setShowStudios(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100, display: 'flex', justifyContent: 'flex-end' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '94vw', height: '100%', background: 'rgba(14,14,22,0.98)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.5)' }}>
+              {/* Header */}
+              <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <Icon name="grid" size={18} />
+                  <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{t('cs.studiosTitle', null, 'Studios — Ambienti')}</div>
+                  <button onClick={() => setShowStudios(false)} style={xBtn}>×</button>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text2,#9aa)', lineHeight: 1.45 }}>{t('cs.studiosHint', null, 'Scegli un ambiente: scena, set e luce vengono applicati al prodotto e al prompt.')}</div>
+                <input value={studioQuery} onChange={e => setStudioQuery(e.target.value)} placeholder={t('cs.studioSearch', null, 'Cerca ambiente…')} style={{ width: '100%', marginTop: 12, background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: 'Barlow', boxSizing: 'border-box' }} />
+                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                  {cats.map(c => (
+                    <button key={c.id} onClick={() => setStudioCat(c.id)} style={{ ...chip, ...(studioCat === c.id ? chipOn : {}), padding: '5px 11px', fontSize: 11.5 }}>{c.label}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Griglia preview */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignContent: 'start' }}>
+                {list.length === 0 && <div style={{ gridColumn: '1/-1', color: 'var(--text2,#9aa)', fontSize: 13, textAlign: 'center', padding: 30 }}>{t('cs.studioNone', null, 'Nessun ambiente trovato.')}</div>}
+                {list.map(s => {
+                  const on = activeStudio === s.id
+                  return (
+                    <button key={s.id} onClick={() => { setActiveStudio(s.id); setShowStudios(false) }} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'Barlow' }}>
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', borderRadius: 12, background: s.swatch, border: on ? '2px solid #7b5bff' : '1px solid var(--border)', overflow: 'hidden', boxShadow: 'inset 0 -40px 50px rgba(0,0,0,0.35)' }}>
+                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#7b5bff', display: 'grid', placeItems: 'center' }}><Icon name="check" size={12} /></span>}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginTop: 7, lineHeight: 1.3 }}>{s.label}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Modale ricarica */}
       {showRecharge && (

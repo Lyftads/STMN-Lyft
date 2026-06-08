@@ -78,6 +78,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   const [maskEdit, setMaskEdit] = useState(null)   // url immagine in inpainting
   const [recipe, setRecipe] = useState(null)        // { label, done, total } | null
   const [showModelTryOn, setShowModelTryOn] = useState(false)
+  const [ctxMenu, setCtxMenu] = useState(null)      // { x, y, url } menu tasto destro
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [batchInstr, setBatchInstr] = useState('')
@@ -150,19 +151,35 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   // Esci dalla modalità selezione: deseleziona tutto + torna in "sposta".
   const exitSelect = useCallback(() => { setSelectMode(false); setSelected(new Set()); marqueeRef.current.active = false; setMarquee(null) }, [])
 
-  // ESC mentre sei in selezione → deseleziona tutto ed esci dal comando.
+  // Elimina dalla board (e dal DB) le immagini indicate (una url o un array).
+  const deleteItems = useCallback(async (urls) => {
+    const list = (Array.isArray(urls) ? urls : [urls]).filter(Boolean)
+    if (!list.length) return
+    const set = new Set(list)
+    setItems(prev => prev.filter(it => !set.has(it.url)))
+    setSelected(prev => { const n = new Set(prev); list.forEach(u => n.delete(u)); return n })
+    try { await fetch('/api/studio/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls: list }) }) } catch {}
+  }, [])
+
+  // ESC esce dalla selezione · CANC/Backspace elimina le immagini selezionate.
   useEffect(() => {
     if (!selectMode) return
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); exitSelect() } }
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toUpperCase()
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'Escape') { e.preventDefault(); exitSelect() }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && selected.size) { e.preventDefault(); deleteItems([...selected]) }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectMode, exitSelect])
+  }, [selectMode, selected, exitSelect, deleteItems])
 
-  // Tasto destro mentre sei in selezione → deseleziona tutto ed esci dal comando.
+  // Tasto destro sulla lavagna → menu contestuale con le azioni (mouse).
   const onCanvasContext = (e) => {
-    if (!selectMode) return
     e.preventDefault()
-    exitSelect()
+    const cardEl = e.target.closest?.('[data-card-url]')
+    const url = cardEl?.getAttribute('data-card-url') || null
+    setCtxMenu({ x: e.clientX, y: e.clientY, url })
   }
 
   const onCanvasDown = (e) => {
@@ -433,6 +450,15 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     else if (res.error && res.error !== 'insufficient') setError(res.error)
   }
 
+  const doLightboxEnhance = async () => {
+    if (!lightbox || editing) return
+    setEditing(true); setError('')
+    const res = await applyEnhance({ imageUrl: lightbox.url, mode: 'enhance', srcFormat: lightbox.format })
+    setEditing(false)
+    if (res.ok) setLightbox(res.item)
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
   const doLightboxRelight = async () => {
     if (!lightbox || editing) return
     const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
@@ -501,6 +527,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   const toggleSel = (url) => setSelected(prev => { const n = new Set(prev); n.has(url) ? n.delete(url) : (n.size < 100 && n.add(url)); return n })
   const selectAll = () => setSelected(new Set(items.filter(it => it.type === 'image').slice(0, 100).map(it => it.url)))
   const clearSel = () => setSelected(new Set())
+  const deleteSelected = () => { if (selected.size) deleteItems([...selected]) }
 
   // Batch: applica edit/reframe a tutte le selezionate (pool di concorrenza)
   const runBatch = async (mode, scale) => {
@@ -549,7 +576,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
         {onExit && (
           <button onClick={onExit} title={t('cs.backToBoards', null, 'Progetti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 13px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="grid" size={14} /> {t('cs.boards', null, 'Progetti')}</button>
         )}
-        <CreativeStudioLogo size={26} />
+        <CreativeStudioLogo size={26} showText={!boardTitle} />
         {boardTitle && <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{boardTitle}</div>}
         <div style={{ flex: 1 }} />
         {!standalone && (
@@ -646,6 +673,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                 <span style={{ fontSize: 13, fontWeight: 800 }}>{selected.size} {t('cs.selected', null, 'selezionate')}</span>
                 <button onClick={selectAll} style={{ ...chip }}>{t('cs.selectAll', null, 'Tutte')}</button>
                 <button onClick={clearSel} style={{ ...chip }}>{t('cs.clear', null, 'Pulisci')}</button>
+                <button onClick={deleteSelected} disabled={!selected.size} style={{ ...chip, color: selected.size ? '#ff8095' : 'var(--text3,#666)', borderColor: selected.size ? 'rgba(255,69,58,0.4)' : 'var(--border)', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="trash" size={12} /> {t('cs.delete', null, 'Elimina')}</button>
                 <span style={sep} />
                 {/* Reframe */}
                 <div style={{ display: 'inline-flex', gap: 4 }}>{FORMATS.map(f => <button key={f.id} onClick={() => setBatchFmt(f.id)} style={{ ...chip, ...(batchFmt === f.id ? chipOn : {}) }}>{f.label}</button>)}</div>
@@ -795,6 +823,45 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
         <MaskEditor imageUrl={maskEdit} busy={editing} onApply={doInpaint} onClose={() => setMaskEdit(null)} />
       )}
 
+      {/* Menu contestuale tasto destro */}
+      {ctxMenu && (() => {
+        const it = ctxMenu.url ? items.find(i => i.url === ctxMenu.url) : null
+        const close = () => setCtxMenu(null)
+        const run = (fn) => { close(); fn() }
+        const mi = (label, icon, fn, danger) => (
+          <button onMouseDown={e => e.stopPropagation()} onClick={() => run(fn)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 12px', background: 'transparent', border: 'none', borderRadius: 7, color: danger ? '#ff8095' : '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap', textAlign: 'left' }}><Icon name={icon} size={13} /> {label}</button>
+        )
+        const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
+        const X = Math.min(ctxMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 230)
+        const Y = Math.min(ctxMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 360)
+        return (
+          <div onMouseDown={close} onContextMenu={e => { e.preventDefault(); close() }} style={{ position: 'fixed', inset: 0, zIndex: 2300 }}>
+            <div onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ position: 'fixed', left: X, top: Y, minWidth: 210, padding: 6, borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 16px 50px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {it && it.type === 'image' && (<>
+                {mi(t('cs.ctxOpen', null, 'Apri / Modifica'), 'edit', () => { setLightbox(it); setEditInstr('') })}
+                {mi(t('cs.enhance', null, 'Migliora'), 'sparkles', () => applyEnhance({ imageUrl: it.url, mode: 'enhance', srcFormat: it.format }))}
+                {mi(t('cs.upscale2x', null, 'Upscale 2×'), 'scan', () => applyEnhance({ imageUrl: it.url, mode: 'upscale', scale: '2x', srcFormat: it.format }))}
+                {studioStr && mi(t('cs.relightApply', null, 'Riaccendi'), 'bulb', () => applyEnhance({ imageUrl: it.url, mode: 'relight', prompt: studioStr, srcFormat: it.format }))}
+                {mi(t('cs.animate', null, 'Anima'), 'sparkles', () => animate(it))}
+                {mi('Social', 'send', () => sendToSocial(it))}
+                {mi(t('cs.download', null, 'Scarica'), 'download', () => { try { window.open(it.url, '_blank') } catch {} })}
+                <span style={{ height: 1, background: 'var(--border)', margin: '4px 6px' }} />
+                {mi(t('cs.delete', null, 'Elimina'), 'trash', () => deleteItems([it.url]), true)}
+              </>)}
+              {!it && (<>
+                {mi(selectMode ? t('cs.toolMove', null, 'Sposta') : t('cs.toolSelect', null, 'Seleziona'), selectMode ? 'cursor' : 'check-circle', () => selectMode ? exitSelect() : setSelectMode(true))}
+                {selectMode && selected.size > 0 && mi(t('cs.selectAll', null, 'Tutte'), 'check', selectAll)}
+                {mi(t('cs.fitView', null, 'Adatta vista'), 'scan', resetView)}
+                {selected.size > 0 && (<>
+                  <span style={{ height: 1, background: 'var(--border)', margin: '4px 6px' }} />
+                  {mi(t('cs.deleteSelected', { n: selected.size }, `Elimina selezionate (${selected.size})`), 'trash', deleteSelected, true)}
+                </>)}
+              </>)}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Modello + capo (pipeline genera modello → Try-On prodotto reale) */}
       {showModelTryOn && (
         <ModelTryOnModal
@@ -834,8 +901,9 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.upscale', null, 'Upscale creativo')}</div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                 {UPSCALES.map(u => <button key={u.id} onClick={() => doLightboxUpscale(u.id)} disabled={editing} style={{ ...miniBtn, opacity: editing ? 0.5 : 1 }}><Icon name="scan" size={12} /> {u.label} · {u.credits} cr</button>)}
+                <button onClick={doLightboxEnhance} disabled={editing} style={{ ...chip, opacity: editing ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.enhance', null, 'Migliora')} · 5 cr</button>
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--text3,#888)', marginBottom: 8 }}>{t('cs.upscaleHint', null, 'Alza risoluzione e rigenera micro-dettaglio (pelle, tessuti).')}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--text3,#888)', marginBottom: 8 }}>{t('cs.upscaleHint', null, 'Alza risoluzione e rigenera micro-dettaglio (pelle, tessuti). “Migliora” ripristina e affina senza ingrandire.')}</div>
 
               {/* Relight (Magnific Relight) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '8px 0 6px' }}>{t('cs.relight', null, 'Relight — illuminazione')}</div>

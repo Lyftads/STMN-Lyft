@@ -23,3 +23,16 @@ export async function GET(req) {
   }))
   return NextResponse.json({ items })
 }
+
+// DELETE /api/studio/history { urls: [...] } — elimina le generazioni indicate.
+export async function DELETE(req) {
+  const user = await getAuthUser()
+  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false })
+  let body; try { body = await req.json() } catch { body = {} }
+  const urls = Array.isArray(body?.urls) ? body.urls.filter(Boolean).slice(0, 200) : []
+  if (!urls.length) return NextResponse.json({ error: 'urls mancanti' }, { status: 400 })
+  const { error } = await admin.from('studio_generations').delete().eq('user_id', user.id).in('url', urls)
+  return NextResponse.json({ ok: !error })
+}

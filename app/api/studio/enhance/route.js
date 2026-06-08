@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
-import { UPSCALE_FAL, getUpscaleOption, RELIGHT_FAL, RELIGHT_CREDITS, INPAINT_FAL, INPAINT_CREDITS } from '../../../../lib/studio/models'
+import { UPSCALE_FAL, getUpscaleOption, RELIGHT_FAL, RELIGHT_CREDITS, INPAINT_FAL, INPAINT_CREDITS, ENHANCE_CREDITS } from '../../../../lib/studio/models'
 import { getAuthUser, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
 import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
@@ -24,7 +24,7 @@ export async function POST(req) {
 
   const imageUrl = (body?.imageUrl || '').trim()
   if (!imageUrl) return json({ error: 'Immagine mancante' }, 400)
-  const mode = ['relight', 'inpaint'].includes(body?.mode) ? body.mode : 'upscale'
+  const mode = ['relight', 'inpaint', 'enhance'].includes(body?.mode) ? body.mode : 'upscale'
   const prompt = (body?.prompt || '').trim()
   if (mode === 'relight' && !prompt) return json({ error: 'Descrivi la luce o scegli uno Studio' }, 400)
   const maskUrl = (body?.maskUrl || '').trim()
@@ -34,7 +34,7 @@ export async function POST(req) {
   }
 
   const opt = mode === 'upscale' ? getUpscaleOption(body?.scale) : null
-  const cost = mode === 'upscale' ? opt.credits : mode === 'inpaint' ? INPAINT_CREDITS : RELIGHT_CREDITS
+  const cost = mode === 'upscale' ? opt.credits : mode === 'inpaint' ? INPAINT_CREDITS : mode === 'enhance' ? ENHANCE_CREDITS : RELIGHT_CREDITS
 
   const ref = `${mode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
   const spend = await spendCredits(user.id, cost, mode, ref)
@@ -43,9 +43,12 @@ export async function POST(req) {
     return json({ error: 'Errore crediti: ' + (spend.error || 'sconosciuto') }, 500)
   }
 
-  const endpoint = mode === 'upscale' ? UPSCALE_FAL : mode === 'inpaint' ? INPAINT_FAL : RELIGHT_FAL
+  const endpoint = mode === 'inpaint' ? INPAINT_FAL : mode === 'relight' ? RELIGHT_FAL : UPSCALE_FAL
   const reqBody = mode === 'upscale'
     ? { image_url: imageUrl, upscale_factor: opt.scale, prompt: prompt || 'masterpiece, best quality, highly detailed, sharp focus, fine texture', creativity: 0.35, resemblance: 0.6 }
+    : mode === 'enhance'
+    // Enhance/Restore: stessa risoluzione (x2 minimo del modello), più dettaglio/texture, alta fedeltà alla composizione
+    ? { image_url: imageUrl, upscale_factor: 2, prompt: prompt || 'restore and enhance, razor-sharp focus, fine natural skin texture, detailed fabric, remove blur and noise, photorealistic', creativity: 0.5, resemblance: 0.8 }
     : mode === 'inpaint'
     ? { image_url: imageUrl, mask_url: maskUrl, prompt }
     : { image_url: imageUrl, prompt, enable_hr_fix: true }
@@ -76,7 +79,7 @@ export async function POST(req) {
   const fmt = body?.srcFormat || 'square'
   await saveGeneration({
     user_id: user.id, type: 'image', status: 'done', url,
-    model: mode, model_name: mode === 'upscale' ? `Upscale ${opt.label}` : mode === 'inpaint' ? 'Inpaint' : 'Relight',
+    model: mode, model_name: mode === 'upscale' ? `Upscale ${opt.label}` : mode === 'inpaint' ? 'Inpaint' : mode === 'enhance' ? 'Enhance' : 'Relight',
     prompt: prompt || (mode === 'upscale' ? `upscale ${opt.label}` : mode),
     format: fmt, source: mode, ref, credits: cost, board_id: boardId,
   })

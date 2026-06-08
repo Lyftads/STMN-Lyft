@@ -155,6 +155,12 @@ export default function VendroShell({
     : navGroups
 
   const goTo = (id) => {
+    // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra
+    // (la board è importante e merita lo spazio pieno, come "Apri come app").
+    if (id === 'creativeStudio') {
+      try { window.open('/creative-studio', '_blank', 'noopener') } catch {}
+      return
+    }
     if (typeof setTab === 'function') setTab(id)
   }
 
@@ -399,7 +405,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

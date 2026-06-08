@@ -4,6 +4,7 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -11,12 +12,13 @@ const UA = 'Mozilla/5.0 (compatible; LyftAI-SEO/1.0; +https://lyftai.io)'
 
 async function chat(system, user, locale) {
   const langMsg = aiLangSystemMessage(locale)
+  const kb = await buildKnowledgeBlock(String(user || '').slice(0, 500) || 'SEO contenuti e-commerce marketing')
   const r = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: MODEL, temperature: 0.5, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }, ...(langMsg ? [langMsg] : [])],
+      messages: [{ role: 'system', content: system }, ...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: user }, ...(langMsg ? [langMsg] : [])],
     }),
   })
   if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`)

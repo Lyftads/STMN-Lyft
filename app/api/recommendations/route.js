@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
 import { buildBrandContext } from '../../../lib/tenant/brand'
-import { recall } from '../../../lib/tenant/agentMemory'
+import { recall, buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 // ============================================================================
 //  Proactive Recommendations
@@ -141,6 +141,10 @@ Se i dati non bastano per raccomandazioni significative: { "recommendations": []
 
   const userPayload = `## CONTESTO BRAND\n${brandBlock || 'N/A'}\n\n## MEMORIE PRECEDENTI\n${memText || 'Nessuna memoria ancora.'}\n\n## METRICHE LIVE (${preset})\n${JSON.stringify(compactMetrics(metrics)).slice(0, 30_000)}`
 
+  // Knowledge globale (corso + video): principi di advertising/marketing come
+  // metodo. Si auto-esclude se non c'è nulla di semanticamente pertinente.
+  const kb = await buildKnowledgeBlock(`raccomandazioni performance marketing advertising e-commerce ${preset}`)
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -149,6 +153,7 @@ Se i dati non bastano per raccomandazioni significative: { "recommendations": []
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: sysPrompt },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: userPayload },
         ],

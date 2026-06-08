@@ -4,6 +4,7 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -67,6 +68,8 @@ export async function POST(req) {
   const auditBlock = buildContext(ctx)
 
   try {
+    const lastUserMsg = [...messages].reverse().find(m => m?.role === 'user')?.content || 'SEO e-commerce strategia'
+    const kb = await buildKnowledgeBlock(String(lastUserMsg).slice(0, 500))
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -76,6 +79,7 @@ export async function POST(req) {
         top_p: 0.9,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           ...(auditBlock ? [{ role: 'system', content: `Contesto — usa questi dati per ogni risposta:\n${auditBlock}` }] : []),
           ...messages,

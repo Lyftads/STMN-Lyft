@@ -7,6 +7,7 @@ import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { auditPage, discoverUrls } from '../../../../lib/seo/audit'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -63,6 +64,7 @@ export async function POST(request) {
   if (process.env.OPENAI_API_KEY) {
     try {
       const top = commonIssues.map(i => `${i.label}: ${i.affected}/${pages.length} pagine`).join('\n')
+      const kb = await buildKnowledgeBlock('SEO tecnica e on-page e-commerce strategia sito intero')
       const r = await fetch(OPENAI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -70,6 +72,7 @@ export async function POST(request) {
           model: MODEL, temperature: 0.4, response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: 'Sei un consulente SEO senior e-commerce. Italiano. Dati i problemi SEO ricorrenti su un sito (con n. pagine colpite), restituisci JSON {"recommendations":[{"priority":"alta|media|bassa","title":"...","action":"..."}]}. Max 6, per impatto sul sito intero.' },
+            ...(kb ? [{ role: 'system', content: kb }] : []),
             { role: 'user', content: `Sito: ${new URL(pages[0].url).origin}\nPagine analizzate: ${pages.length}\nScore medio: ${avgScore}\n\nProblemi ricorrenti:\n${top}` },
             ...(aiLangSystemMessage(body.locale) ? [aiLangSystemMessage(body.locale)] : []),
           ],

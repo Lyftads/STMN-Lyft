@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -440,6 +441,8 @@ IMPORTANTE: ogni imagePrompt DEVE descrivere una scena COMPLETAMENTE diversa dal
 
 Rispondi con un JSON valido: { "creatives": [...] }`
 
+  const kbCreative = await buildKnowledgeBlock('creative strategy Meta Ads hook angoli copy UGC advertising')
+
   try {
     const copyRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -456,6 +459,7 @@ Rispondi con un JSON valido: { "creatives": [...] }`
             content:
               'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.',
           },
+          ...(kbCreative ? [{ role: 'system', content: kbCreative }] : []),
           { role: 'user', content: copyPrompt },
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
         ],

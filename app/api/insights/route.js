@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -89,6 +90,8 @@ export async function POST(req) {
     },
   }
 
+  const kb = await buildKnowledgeBlock(`insight performance marketing advertising e-commerce ${preset}`)
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -103,6 +106,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".' },
           { role: 'user', content: `Periodo: ${preset}\n\nDATI:\n${safeJson(context)}` },

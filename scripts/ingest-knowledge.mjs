@@ -53,13 +53,24 @@ let FORCE = false  // --force per riprocessare anche i già-fatti
 // fetch con retry su 429 (rate limit) e 5xx, backoff esponenziale.
 async function oaiFetch(url, init, tries = 6) {
   for (let i = 1; i <= tries; i++) {
-    const r = await fetch(url, init)
-    if (r.ok) return r
-    if ((r.status === 429 || r.status >= 500) && i < tries) {
-      const wait = Math.min(2000 * 2 ** (i - 1), 30000)
-      await new Promise(s => setTimeout(s, wait)); continue
+    try {
+      // Timeout per-tentativo (4 min): una connessione appesa — es. upload
+      // Whisper che non riceve mai risposta — non deve bloccare il job per ore.
+      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(240000) })
+      if (r.ok) return r
+      if ((r.status === 429 || r.status >= 500) && i < tries) {
+        const wait = Math.min(2000 * 2 ** (i - 1), 30000)
+        await new Promise(s => setTimeout(s, wait)); continue
+      }
+      return r
+    } catch (e) {
+      // Timeout/errore di rete → retry con backoff; all'ultimo tentativo rilancia.
+      if (i < tries) {
+        const wait = Math.min(2000 * 2 ** (i - 1), 30000)
+        await new Promise(s => setTimeout(s, wait)); continue
+      }
+      throw e
     }
-    return r
   }
 }
 

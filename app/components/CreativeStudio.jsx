@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
 import CreativeStudioLogo from './ui/CreativeStudioLogo'
 import AdComposer from './studio/AdComposer'
+import TryOnModal from './studio/TryOnModal'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
@@ -32,7 +33,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
   const [input, setInput] = useState('')
   const [kind, setKind] = useState('image')
-  const [model, setModel] = useState('flux-pro')
+  const [model, setModel] = useState('flux2-pro')
   const [videoModel, setVideoModel] = useState('luma-ray2-flash')
   const [format, setFormat] = useState('square')
   const [count, setCount] = useState(1)
@@ -55,6 +56,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   // Editing / selezione
   const [lightbox, setLightbox] = useState(null)     // item aperto
   const [adComposer, setAdComposer] = useState(null) // url immagine base per il compositore
+  const [tryOn, setTryOn] = useState(null)           // url prodotto per il try-on
   const [editInstr, setEditInstr] = useState('')
   const [editing, setEditing] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
@@ -62,6 +64,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [batchInstr, setBatchInstr] = useState('')
   const [batchFmt, setBatchFmt] = useState('square')
   const [batch, setBatch] = useState(null)           // { done, total } | null
+  const [marquee, setMarquee] = useState(null)       // rettangolo selezione (client coords)
+  const marqueeRef = useRef({ active: false, x0: 0, y0: 0, x1: 0, y1: 0 })
 
   // Lavagna infinita
   const [zoom, setZoom] = useState(1)
@@ -124,14 +128,36 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
   const onCanvasDown = (e) => {
     if (e.button !== 0) return
+    if (selectMode) { // marquee: trascina per selezionare
+      marqueeRef.current = { active: true, x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY }
+      setMarquee({ ...marqueeRef.current }); return
+    }
     panRef.current = { dragging: true, sx: e.clientX - pan.x, sy: e.clientY - pan.y, moved: false }
   }
   const onCanvasMove = (e) => {
+    if (marqueeRef.current.active) { marqueeRef.current.x1 = e.clientX; marqueeRef.current.y1 = e.clientY; setMarquee({ ...marqueeRef.current }); return }
     if (!panRef.current.dragging) return
     panRef.current.moved = true
     setPan({ x: e.clientX - panRef.current.sx, y: e.clientY - panRef.current.sy })
   }
-  const endPan = () => { panRef.current.dragging = false }
+  const commitMarquee = () => {
+    const m = marqueeRef.current
+    const r = { left: Math.min(m.x0, m.x1), top: Math.min(m.y0, m.y1), right: Math.max(m.x0, m.x1), bottom: Math.max(m.y0, m.y1) }
+    const els = viewportRef.current?.querySelectorAll('[data-card-url]') || []
+    setSelected(prev => {
+      const n = new Set(prev)
+      els.forEach(el => {
+        const b = el.getBoundingClientRect()
+        const hit = !(b.right < r.left || b.left > r.right || b.bottom < r.top || b.top > r.bottom)
+        if (hit && n.size < 100) n.add(el.getAttribute('data-card-url'))
+      })
+      return n
+    })
+  }
+  const endPan = () => {
+    if (marqueeRef.current.active) { commitMarquee(); marqueeRef.current.active = false; setMarquee(null); return }
+    panRef.current.dragging = false
+  }
   const zoomBy = (f) => {
     const el = viewportRef.current
     const cx = el ? el.clientWidth / 2 : 0, cy = el ? el.clientHeight / 2 : 0
@@ -372,7 +398,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         {!standalone && (
           <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>
         )}
-        <button onClick={() => { setSelectMode(s => !s); clearSel() }} style={{ background: selectMode ? 'rgba(123,91,255,0.22)' : 'var(--glass,#14141d)', border: selectMode ? '1px solid #7b5bff' : '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check-circle" size={14} /> {selectMode ? t('cs.selDone', null, 'Fine') : t('cs.select', null, 'Seleziona')}</button>
         <button onClick={() => setShowHistory(true)} title={t('cs.historyTitle', null, 'Storico crediti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, width: 34, height: 34, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} /></button>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 13px' }}>
           <Icon name="sparkles" size={14} /><span style={{ fontWeight: 800, fontSize: 14 }}>{balance == null ? '—' : balance}</span>
@@ -389,7 +414,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           onMouseDown={onCanvasDown} onMouseMove={onCanvasMove} onMouseUp={endPan} onMouseLeave={endPan}
           style={{
             flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
-            cursor: panRef.current.dragging ? 'grabbing' : 'grab',
+            cursor: selectMode ? 'crosshair' : (panRef.current.dragging ? 'grabbing' : 'grab'),
             backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
             backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`,
@@ -409,7 +434,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           <div style={{ position: 'absolute', top: 0, left: 0, width: 1180, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
               {items.map((it, i) => (
-                <div key={i} onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: selected.has(it.url) ? '2px solid #7b5bff' : '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+                <div key={i} {...(it.type === 'image' ? { 'data-card-url': it.url } : {})} onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: selected.has(it.url) ? '2px solid #7b5bff' : '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
                   <div
                     onClick={() => { if (selectMode) toggleSel(it.url); else if (it.type === 'image') { setLightbox(it); setEditInstr('') } }}
                     style={{ position: 'relative', aspectRatio: aspectFor(it.format), background: '#000', cursor: it.type === 'image' || selectMode ? 'pointer' : 'default' }}>
@@ -430,6 +455,14 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               ))}
             </div>
           </div>
+
+          {/* Rettangolo di selezione (marquee) */}
+          {marquee && (() => {
+            const vr = viewportRef.current?.getBoundingClientRect(); if (!vr) return null
+            const left = Math.min(marquee.x0, marquee.x1) - vr.left, top = Math.min(marquee.y0, marquee.y1) - vr.top
+            const w = Math.abs(marquee.x1 - marquee.x0), h = Math.abs(marquee.y1 - marquee.y0)
+            return <div style={{ position: 'absolute', left, top, width: w, height: h, border: '1.5px solid #7b5bff', background: 'rgba(123,91,255,0.12)', borderRadius: 4, pointerEvents: 'none', zIndex: 5 }} />
+          })()}
 
           {/* Barra selezione/batch (in alto, in modalità selezione) */}
           {selectMode && (
@@ -462,7 +495,9 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           {/* TOOLBAR Luma-style (basso-centro) */}
           <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
-              <button title={t('cs.toolSelect', null, 'Sposta / seleziona')} style={tool(true)}><Icon name="cursor" size={16} /></button>
+              <button onClick={() => { setSelectMode(false); clearSel() }} title={t('cs.toolMove', null, 'Sposta (pan)')} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
+              <button onClick={() => setSelectMode(true)} title={t('cs.toolSelect', null, 'Seleziona (trascina)')} style={tool(selectMode)}><Icon name="check-circle" size={16} /></button>
+              {selectMode && selected.size > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#7b5bff', padding: '0 4px' }}>{selected.size}</span>}
               <span style={sep} />
               <button onClick={() => { setKind('image'); setError('') }} title={t('cs.modeImage', null, 'Immagine')} style={tool(kind === 'image')}><Icon name="image" size={16} /></button>
               <button onClick={() => { setKind('video'); setError('') }} title={t('cs.modeVideo', null, 'Video')} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
@@ -551,6 +586,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         <AdComposer imageUrl={adComposer} onClose={() => setAdComposer(null)} onSaved={(it) => setItems(prev => [it, ...prev])} />
       )}
 
+      {/* Virtual Try-On */}
+      {tryOn && (
+        <TryOnModal garmentImage={tryOn} onClose={() => setTryOn(null)} onSaved={(it) => setItems(prev => [it, ...prev])} onCredits={(b) => typeof b === 'number' && setBalance(b)} />
+      )}
+
       {/* Lightbox: apri immagine + edit testuale + reframe */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={modalBg}>
@@ -577,6 +617,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
                 <a href={lightbox.url} download target="_blank" rel="noreferrer" style={{ ...chip, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="download" size={12} /> {t('cs.download', null, 'Scarica')}</a>
                 <button onClick={() => { setAdComposer(lightbox.url); setLightbox(null) }} style={{ ...miniBtn }}><Icon name="layers" size={12} /> {t('cs.makeAd', null, 'Crea ad')}</button>
+                <button onClick={() => { setTryOn(lightbox.url); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="shirt" size={12} /> {t('cs.tryon', null, 'Indossa')}</button>
                 <button onClick={() => { animate(lightbox); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>
                 <button onClick={() => sendToSocial(lightbox)} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="send" size={12} /> Social</button>
               </div>

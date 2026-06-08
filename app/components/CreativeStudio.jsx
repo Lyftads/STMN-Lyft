@@ -678,11 +678,8 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               <span style={sep} />
               <button onClick={() => { setKind('image'); setError('') }} title={t('cs.modeImage', null, 'Immagine')} style={tool(kind === 'image')}><Icon name="image" size={16} /></button>
               <button onClick={() => { setKind('video'); setError('') }} title={t('cs.modeVideo', null, 'Video')} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
-              <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...tool(recording), color: recording ? '#ff453a' : 'var(--text2,#9aa)' }}><Icon name="wave" size={16} /></button>
-              <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
               <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
               <button onClick={() => setShowModelTryOn(true)} disabled={!refImages.some(r => r.product)} title={refImages.some(r => r.product) ? t('cs.modelTryon', null, 'Modello + capo (prodotto perfetto)') : t('cs.modelTryonNeed', null, 'Scegli prima un prodotto')} style={{ ...tool(showModelTryOn), opacity: refImages.some(r => r.product) ? 1 : 0.4, cursor: refImages.some(r => r.product) ? 'pointer' : 'not-allowed' }}><Icon name="shirt" size={16} /></button>
-              <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
               <span style={sep} />
               {kind === 'video'
                 ? <select value={videoModel} onChange={e => setVideoModel(e.target.value)} style={selStyle}>{videoModels.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits}cr</option>)}</select>

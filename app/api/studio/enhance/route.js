@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { UPSCALE_FAL, getUpscaleOption, RELIGHT_FAL, RELIGHT_CREDITS, INPAINT_FAL, INPAINT_CREDITS } from '../../../../lib/studio/models'
 import { getAuthUser, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
+import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
 
 const FAL_KEY = process.env.FAL_KEY
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
@@ -70,14 +71,16 @@ export async function POST(req) {
     return json({ error: errMsg || 'Operazione fallita', balance }, 502)
   }
 
+  const boardId = (body?.boardId && await ownsBoard(user.id, body.boardId)) ? body.boardId : null
   const url = await persistMedia(user.id, resultUrl, 'image')
   const fmt = body?.srcFormat || 'square'
   await saveGeneration({
     user_id: user.id, type: 'image', status: 'done', url,
     model: mode, model_name: mode === 'upscale' ? `Upscale ${opt.label}` : mode === 'inpaint' ? 'Inpaint' : 'Relight',
     prompt: prompt || (mode === 'upscale' ? `upscale ${opt.label}` : mode),
-    format: fmt, source: mode, ref, credits: cost,
+    format: fmt, source: mode, ref, credits: cost, board_id: boardId,
   })
+  if (boardId) await touchBoard(boardId)
 
   return json({ image: { url }, format: fmt, balance: spend.balance, creditsSpent: cost })
 }

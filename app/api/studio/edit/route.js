@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { EDIT_CREDITS, EDIT_FAL } from '../../../../lib/studio/models'
 import { getAuthUser, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
+import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
 
 const FAL_KEY = process.env.FAL_KEY
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
@@ -62,13 +63,15 @@ export async function POST(req) {
     return json({ error: errMsg || 'Modifica fallita', balance }, 502)
   }
 
+  const boardId = (body?.boardId && await ownsBoard(user.id, body.boardId)) ? body.boardId : null
   const url = await persistMedia(user.id, resultUrl, 'image')
   const fmt = mode === 'reframe' ? (body?.format || 'square') : (body?.srcFormat || 'square')
   await saveGeneration({
     user_id: user.id, type: 'image', status: 'done', url,
     model: mode, model_name: mode === 'reframe' ? 'Reframe' : 'Edit',
-    prompt: instruction || `reframe ${fmt}`, format: fmt, source: 'edit', ref, credits: cost,
+    prompt: instruction || `reframe ${fmt}`, format: fmt, source: 'edit', ref, credits: cost, board_id: boardId,
   })
+  if (boardId) await touchBoard(boardId)
 
   return json({ image: { url }, format: fmt, balance: spend.balance, creditsSpent: cost })
 }

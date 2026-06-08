@@ -32,7 +32,7 @@ const clampZoom = (z) => Math.min(3, Math.max(0.2, z))
 const PERSON_RE = /\b(uomo|donna|ragazz\w*|model\w*|modell\w*|persona|atlet\w*|indoss\w*|lui|lei|barb\w*|capell\w*|man|woman|men|women|girl|boy|guy|lady|person|people|athlete|wearing|wears|model|hair|beard|pose|posa)\b/i
 const describesPerson = (text) => !!text && PERSON_RE.test(text)
 
-export default function CreativeStudio({ standalone = false, onNavigate }) {
+export default function CreativeStudio({ standalone = false, onNavigate, boardId = null, boardTitle = '', onExit }) {
   const { t, intlLocale } = useI18n()
   const [balance, setBalance] = useState(null)
   const [models, setModels] = useState([])
@@ -113,12 +113,13 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
   const loadHistory = useCallback(async () => {
     try {
-      const r = await fetch('/api/studio/history', { cache: 'no-store' })
+      const url = boardId ? `/api/studio/history?boardId=${encodeURIComponent(boardId)}` : '/api/studio/history'
+      const r = await fetch(url, { cache: 'no-store' })
       if (!r.ok) return
       const j = await r.json()
       if (Array.isArray(j.items)) setItems(j.items)
     } catch {}
-  }, [])
+  }, [boardId])
 
   useEffect(() => { loadCredits(); loadHistory() }, [loadCredits, loadHistory])
   useEffect(() => {
@@ -268,14 +269,14 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       if (wearScenario) {
         patchMsg(aId, { text: t('cs.mtoStep1', null, '1/2 · Genero il modello…') })
         const modelPrompt = [text, studioStr, 'full-body fashion model, wearing a plain neutral t-shirt, clear front view, natural pose'].filter(Boolean).join('. ')
-        const mr = await fetch('/api/studio/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: modelPrompt, model: 'seedream-4', format: 'portrait', count: 1 }) })
+        const mr = await fetch('/api/studio/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: modelPrompt, model: 'seedream-4', format: 'portrait', count: 1, boardId }) })
         const mj = await mr.json()
         if (mr.status === 402 || mj.error === 'insufficient_credits') { setBalance(mj.balance ?? balance); setShowRecharge(true); patchMsg(aId, { pending: false, error: true, text: t('cs.insufficient', null, 'Crediti insufficienti.') }); return }
         if (!mr.ok || !mj.images?.[0]?.url) { patchMsg(aId, { pending: false, error: true, text: mj.error || t('cs.genFail', null, 'Generazione fallita.') }); if (typeof mj.balance === 'number') setBalance(mj.balance); return }
         if (typeof mj.balance === 'number') setBalance(mj.balance)
         const modelUrl = mj.images[0].url
         patchMsg(aId, { text: t('cs.mtoStep2', null, '2/2 · Applico il prodotto…') })
-        const tr = await fetch('/api/studio/tryon', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelImage: modelUrl, garmentImage: productImgs[0], category: 'auto' }) })
+        const tr = await fetch('/api/studio/tryon', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelImage: modelUrl, garmentImage: productImgs[0], category: 'auto', boardId }) })
         const tj = await tr.json()
         if (tr.status === 402 || tj.error === 'insufficient_credits') { setBalance(tj.balance ?? balance); setShowRecharge(true); patchMsg(aId, { pending: false, error: true, text: t('cs.insufficient', null, 'Crediti insufficienti.') }); return }
         if (!tr.ok || !tj.image?.url) { patchMsg(aId, { pending: false, error: true, text: tj.error || t('cs.genFail', null, 'Generazione fallita.') }); if (typeof tj.balance === 'number') setBalance(tj.balance); return }
@@ -288,7 +289,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       if (kind === 'video') {
         const r = await fetch('/api/studio/generate-video', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: sourceImage ? 'image' : 'text', prompt: text, imageUrl: sourceImage || '', model: videoModel, format, style: styleStr }),
+          body: JSON.stringify({ mode: sourceImage ? 'image' : 'text', prompt: text, imageUrl: sourceImage || '', model: videoModel, format, style: styleStr, boardId }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -304,7 +305,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       } else {
         const r = await fetch('/api/studio/generate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, styleRefImages: styleRefs, style: styleStr }),
+          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, styleRefImages: styleRefs, style: styleStr, boardId }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -394,7 +395,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     try {
       const r = await fetch('/api/studio/edit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, mode, instruction, format, srcFormat }),
+        body: JSON.stringify({ imageUrl, mode, instruction, format, srcFormat, boardId }),
       })
       const j = await r.json()
       if (r.status === 402 || j.error === 'insufficient_credits') { setBalance(j.balance ?? balance); setShowRecharge(true); return { ok: false, error: 'insufficient' } }
@@ -407,11 +408,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }
 
   // Upscaler creativo + Relight (Magnific-style). Ritorna { ok, item, error }.
-  const applyEnhance = async ({ imageUrl, mode, scale, prompt, srcFormat }) => {
+  const applyEnhance = async ({ imageUrl, mode, scale, prompt, maskUrl, srcFormat }) => {
     try {
       const r = await fetch('/api/studio/enhance', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, mode, scale, prompt, srcFormat }),
+        body: JSON.stringify({ imageUrl, mode, scale, prompt, maskUrl, srcFormat, boardId }),
       })
       const j = await r.json()
       if (r.status === 402 || j.error === 'insufficient_credits') { setBalance(j.balance ?? balance); setShowRecharge(true); return { ok: false, error: 'insufficient' } }
@@ -545,7 +546,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     <div style={{ color: '#fff', fontFamily: 'Barlow', height: standalone ? '100dvh' : '78vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: standalone ? '12px 18px' : '0 0 12px', flexWrap: 'wrap', flexShrink: 0 }}>
+        {onExit && (
+          <button onClick={onExit} title={t('cs.backToBoards', null, 'Progetti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 13px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="grid" size={14} /> {t('cs.boards', null, 'Progetti')}</button>
+        )}
         <CreativeStudioLogo size={26} />
+        {boardTitle && <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{boardTitle}</div>}
         <div style={{ flex: 1 }} />
         {!standalone && (
           <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>
@@ -785,7 +790,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
       {/* Virtual Try-On */}
       {tryOn && (
-        <TryOnModal garmentImage={tryOn} onClose={() => setTryOn(null)} onSaved={(it) => setItems(prev => [it, ...prev])} onCredits={(b) => typeof b === 'number' && setBalance(b)} />
+        <TryOnModal garmentImage={tryOn} boardId={boardId} onClose={() => setTryOn(null)} onSaved={(it) => setItems(prev => [it, ...prev])} onCredits={(b) => typeof b === 'number' && setBalance(b)} />
       )}
 
       {/* Inpainting con maschera (Weave-style) */}
@@ -796,6 +801,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       {/* Modello + capo (pipeline genera modello → Try-On prodotto reale) */}
       {showModelTryOn && (
         <ModelTryOnModal
+          boardId={boardId}
           garmentImages={refImages.filter(r => r.product).map(r => r.url).filter(Boolean)}
           initialPrompt={input}
           studioPrompt={studioPresets.find(s => s.id === activeStudio)?.prompt || ''}

@@ -28,7 +28,6 @@ import PendingActionsBanner from './components/PendingActionsBanner'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
-import CreativeLabTab from './components/CreativeLabTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import RecommendationsFeed from './components/RecommendationsFeed'
@@ -4332,10 +4331,6 @@ export default function App() {
   <ChatTab />
 )}
 
-{/* CREATIVE LAB TAB */}
-{tab === 'creativeLab' && (
-  <CreativeLabTab />
-)}
       </VendroShell>
     )
   }

@@ -7,6 +7,7 @@ import { getVideoModel } from '../../../../lib/studio/models'
 import { getAuthUser, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { buildStudioContext } from '../../../../lib/studio/context'
 import { createPendingVideo } from '../../../../lib/studio/persist'
+import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.FAL_KEY
@@ -98,11 +99,13 @@ export async function POST(req) {
   }
 
   // 3) Crea la generazione in stato pending (il client farà polling)
+  const boardId = (body?.boardId && await ownsBoard(user.id, body.boardId)) ? body.boardId : null
   const gen = await createPendingVideo({
     user_id: user.id, model: model.id, model_name: model.name, prompt,
     format: body?.format || 'square', source: mode, ref, credits: cost,
-    fal_status_url: sub.statusUrl, fal_response_url: sub.responseUrl,
+    fal_status_url: sub.statusUrl, fal_response_url: sub.responseUrl, board_id: boardId,
   })
+  if (boardId) await touchBoard(boardId)
 
   return json({
     generationId: gen?.id || null,

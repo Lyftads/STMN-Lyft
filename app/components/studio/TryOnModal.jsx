@@ -13,7 +13,7 @@ const CATS = [
   { id: 'one-pieces', label: 'Intero' },
 ]
 
-export default function TryOnModal({ garmentImage, onClose, onSaved, onCredits }) {
+export default function TryOnModal({ garmentImage, boardId = null, onClose, onSaved, onCredits }) {
   const { t } = useI18n()
   const [modelImage, setModelImage] = useState(null) // dataURL persona
   const [category, setCategory] = useState('auto')
@@ -34,7 +34,7 @@ export default function TryOnModal({ garmentImage, onClose, onSaved, onCredits }
     try {
       const r = await fetch('/api/studio/tryon', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelImage, garmentImage, category }),
+        body: JSON.stringify({ modelImage, garmentImage, category, boardId }),
       })
       const j = await r.json()
       if (r.status === 402 || j.error === 'insufficient_credits') { onCredits && onCredits(j.balance); setError(t('cs.insufficient', null, 'Crediti insufficienti.')); return }

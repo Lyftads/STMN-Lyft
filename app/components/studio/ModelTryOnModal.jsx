@@ -15,7 +15,7 @@ const CATS = [
   { id: 'one-pieces', label: 'Intero' },
 ]
 
-export default function ModelTryOnModal({ garmentImages = [], initialPrompt = '', studioPrompt = '', onClose, onSaved, onCredits }) {
+export default function ModelTryOnModal({ garmentImages = [], boardId = null, initialPrompt = '', studioPrompt = '', onClose, onSaved, onCredits }) {
   const { t } = useI18n()
   const imgs = (Array.isArray(garmentImages) ? garmentImages : [garmentImages]).filter(Boolean)
   const [garmentIdx, setGarmentIdx] = useState(0)
@@ -39,7 +39,7 @@ export default function ModelTryOnModal({ garmentImages = [], initialPrompt = ''
       const fullPrompt = [prompt.trim(), studioPrompt, `full-body fashion model, ${garmentHint}, clear front view, natural pose`].filter(Boolean).join('. ')
       const r = await fetch('/api/studio/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: fullPrompt, model: 'seedream-4', format: 'portrait', count: 1 }),
+        body: JSON.stringify({ prompt: fullPrompt, model: 'seedream-4', format: 'portrait', count: 1, boardId }),
       })
       const j = await r.json()
       if (r.status === 402 || j.error === 'insufficient_credits') { onCredits && onCredits(j.balance); setError(t('cs.insufficient', null, 'Crediti insufficienti.')); setStep('idle'); return }
@@ -53,7 +53,7 @@ export default function ModelTryOnModal({ garmentImages = [], initialPrompt = ''
     try {
       const r = await fetch('/api/studio/tryon', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelImage: mUrl, garmentImage, category }),
+        body: JSON.stringify({ modelImage: mUrl, garmentImage, category, boardId }),
       })
       const j = await r.json()
       if (r.status === 402 || j.error === 'insufficient_credits') { onCredits && onCredits(j.balance); setError(t('cs.insufficient', null, 'Crediti insufficienti.')); setStep('idle'); return }

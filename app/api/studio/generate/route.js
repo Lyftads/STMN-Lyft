@@ -7,6 +7,7 @@ import { getImageModel, getFormat } from '../../../../lib/studio/models'
 import { getAuthUser, getBalance, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { buildStudioContext } from '../../../../lib/studio/context'
 import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
+import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.FAL_KEY
@@ -178,6 +179,7 @@ export async function POST(req) {
   try { body = await req.json() } catch { return json({ error: 'Body non valido' }, 400) }
 
   const rawPrompt = (body?.prompt || '').trim()
+  const boardId = (body?.boardId && await ownsBoard(user.id, body.boardId)) ? body.boardId : null
   const refList = Array.isArray(body?.refImages) ? body.refImages.filter(Boolean) : []
   const styleRefList = Array.isArray(body?.styleRefImages) ? body.styleRefImages.filter(Boolean) : []
   const model = getImageModel(body?.model) || getImageModel('flux-pro')
@@ -240,9 +242,10 @@ export async function POST(req) {
     await saveGeneration({
       user_id: user.id, type: 'image', status: 'done', url,
       model: model.id, model_name: model.name, prompt, format: fmt.id,
-      source: 'text', ref, credits: model.credits,
+      source: 'text', ref, credits: model.credits, board_id: boardId,
     })
   }
+  if (boardId) await touchBoard(boardId)
 
   return json({
     images,

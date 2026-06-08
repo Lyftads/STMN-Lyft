@@ -14,6 +14,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const FORMATS = [
   { id: 'square', label: '1:1' },
+  { id: 'portrait', label: '4:5' },
   { id: 'vertical', label: '9:16' },
   { id: 'landscape', label: '16:9' },
 ]
@@ -353,7 +354,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     } catch (e) { setError(e.message); setBuying('') }
   }
 
-  const aspectFor = (f) => f === 'vertical' ? '9 / 16' : f === 'landscape' ? '16 / 9' : '1 / 1'
+  const aspectFor = (f) => f === 'vertical' ? '9 / 16' : f === 'landscape' ? '16 / 9' : f === 'portrait' ? '4 / 5' : '1 / 1'
   const cycleFormat = () => setFormat(f => f === 'square' ? 'vertical' : f === 'vertical' ? 'landscape' : 'square')
   const placeholder = kind === 'video'
     ? (sourceImage ? t('cs.animPlaceholder', null, 'Come animarla? Es: lento dolly in, il prodotto che ruota…') : t('cs.videoPlaceholder', null, 'Descrivi il video: soggetto, movimento, camera, mood…'))

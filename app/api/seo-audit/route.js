@@ -7,6 +7,7 @@ import { auditPage } from '../../../lib/seo/audit'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -16,6 +17,7 @@ async function aiRecommendations(result, locale) {
   try {
     const langMsg = aiLangSystemMessage(locale)
     const issues = result.checks.filter(c => c.status !== 'pass').map(c => `${c.label}: ${c.detail}`).join('\n')
+    const kb = await buildKnowledgeBlock(`SEO on-page ottimizzazione contenuti e-commerce ${result.meta?.title || result.url}`)
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -23,6 +25,7 @@ async function aiRecommendations(result, locale) {
         model: MODEL, temperature: 0.4, response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: 'Sei un consulente SEO senior per e-commerce. Rispondi in italiano. Dato l\'elenco dei problemi SEO on-page, restituisci JSON {"recommendations":[{"priority":"alta|media|bassa","title":"...","action":"azione concreta in 1 frase"}]}. Max 6, ordinate per impatto. Concrete, niente fuffa.' },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           { role: 'user', content: `URL: ${result.url}\nTitle: "${result.meta.title}"\n\nProblemi:\n${issues || 'nessuno'}` },
           ...(langMsg ? [langMsg] : []),
         ],

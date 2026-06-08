@@ -4,6 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
@@ -175,12 +176,14 @@ async function aiNarrative(context, locale) {
   if (!OPENAI_KEY) return null
   try {
     const langMsg = aiLangSystemMessage(locale)
+    const kb = await buildKnowledgeBlock('analisi report performance marketing e-commerce insight e azioni')
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
         model: OPENAI_MODEL, temperature: 0.5, response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: 'Sei un analista marketing di STMN Fitness (accessori CrossFit, no integratori). Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.' },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           { role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` },
           ...(langMsg ? [langMsg] : []),
         ],

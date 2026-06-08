@@ -19,17 +19,24 @@ const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (Kiv
 
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
-async function enhancePrompt(userPrompt, style, contextBlock, refImages = []) {
+async function enhancePrompt(userPrompt, style, contextBlock, refImages = [], styleRefs = []) {
   if (!OPENAI_KEY) return [style, userPrompt, QUALITY_SPINE].filter(Boolean).join('. ')
   try {
     const ctx = contextBlock ? `\n\nCLIENT CONTEXT (ground the visual in this brand — products, colors, tone, what converts):\n${contextBlock}` : ''
-    const hasRefs = Array.isArray(refImages) && refImages.length > 0
+    // Mystic-style: distingue reference di STRUTTURA/soggetto da reference di STILE.
+    const styleSet = new Set((styleRefs || []).filter(Boolean))
+    const subjectRefs = (refImages || []).filter(u => u && !styleSet.has(u))
+    const visionRefs = [...subjectRefs, ...styleSet].slice(0, 4)
+    const hasRefs = visionRefs.length > 0
+    const refInstr = styleSet.size > 0
+      ? `The FIRST ${subjectRefs.length} reference image(s) define the SUBJECT/structure — preserve their product/subject, shape and composition faithfully. The LAST ${styleSet.size} reference image(s) are STYLE references — adopt their aesthetic, color palette, lighting, texture and mood, but do NOT copy their subject.`
+      : `Use the attached reference image(s) as visual reference: replicate the product/subject, style, colors and framing faithfully.`
     // Con immagini di riferimento → GPT-4o vision le analizza e ne incorpora
     // soggetto/stile/colori nel prompt. Senza → gpt-4o-mini testuale.
     const userContent = hasRefs
       ? [
-          { type: 'text', text: `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}\n\nUse the attached reference image(s) as visual reference: replicate the product/subject, style, colors and framing faithfully.` },
-          ...refImages.slice(0, 3).map(u => ({ type: 'image_url', image_url: { url: u } })),
+          { type: 'text', text: `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}\n\n${refInstr}` },
+          ...visionRefs.map(u => ({ type: 'image_url', image_url: { url: u } })),
         ]
       : `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}`
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -156,6 +163,7 @@ export async function POST(req) {
 
   const rawPrompt = (body?.prompt || '').trim()
   const refList = Array.isArray(body?.refImages) ? body.refImages.filter(Boolean) : []
+  const styleRefList = Array.isArray(body?.styleRefImages) ? body.styleRefImages.filter(Boolean) : []
   const model = getImageModel(body?.model) || getImageModel('flux-pro')
   const isKontext = model.provider === 'fal-kontext'
 
@@ -187,7 +195,7 @@ export async function POST(req) {
     try { contextBlock = (await buildStudioContext({ origin, cookie })).contextBlock } catch {}
     prompt = isKontext
       ? await buildKontextInstruction(rawPrompt, body?.style, contextBlock)
-      : await enhancePrompt(rawPrompt, body?.style, contextBlock, refList)
+      : await enhancePrompt(rawPrompt, body?.style, contextBlock, refList, styleRefList)
   } else if (isKontext && !prompt) {
     prompt = 'Place the product in a clean premium commercial scene; keep the product identical.'
   }

@@ -5,6 +5,7 @@ import Icon from './ui/Icon'
 import CreativeStudioLogo from './ui/CreativeStudioLogo'
 import AdComposer from './studio/AdComposer'
 import TryOnModal from './studio/TryOnModal'
+import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST } from '../../lib/studio/models'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
@@ -65,6 +66,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [tryOn, setTryOn] = useState(null)           // url prodotto per il try-on
   const [editInstr, setEditInstr] = useState('')
   const [editing, setEditing] = useState(false)
+  const [relightInstr, setRelightInstr] = useState('')
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [batchInstr, setBatchInstr] = useState('')
@@ -132,6 +134,24 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
+
+  // Esci dalla modalità selezione: deseleziona tutto + torna in "sposta".
+  const exitSelect = useCallback(() => { setSelectMode(false); setSelected(new Set()); marqueeRef.current.active = false; setMarquee(null) }, [])
+
+  // ESC mentre sei in selezione → deseleziona tutto ed esci dal comando.
+  useEffect(() => {
+    if (!selectMode) return
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); exitSelect() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectMode, exitSelect])
+
+  // Tasto destro mentre sei in selezione → deseleziona tutto ed esci dal comando.
+  const onCanvasContext = (e) => {
+    if (!selectMode) return
+    e.preventDefault()
+    exitSelect()
+  }
 
   const onCanvasDown = (e) => {
     if (e.button !== 0) return
@@ -214,6 +234,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     if (!canGenerate || busy) return
     const text = input.trim()
     const refs = refImages.map(r => r.dataUrl || r.url).filter(Boolean)
+    const styleRefs = refImages.filter(r => r.role === 'style').map(r => r.dataUrl || r.url).filter(Boolean)
     const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
     const presetStr = stylePresets.find(s => s.id === activeStyle)?.prompt
     // L'ambiente Studio guida la scena (ha priorità), lo stile rifinisce il mood.
@@ -246,7 +267,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       } else {
         const r = await fetch('/api/studio/generate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, style: styleStr }),
+          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, styleRefImages: styleRefs, style: styleStr }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -348,6 +369,44 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     } catch (e) { return { ok: false, error: e.message } }
   }
 
+  // Upscaler creativo + Relight (Magnific-style). Ritorna { ok, item, error }.
+  const applyEnhance = async ({ imageUrl, mode, scale, prompt, srcFormat }) => {
+    try {
+      const r = await fetch('/api/studio/enhance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl, mode, scale, prompt, srcFormat }),
+      })
+      const j = await r.json()
+      if (r.status === 402 || j.error === 'insufficient_credits') { setBalance(j.balance ?? balance); setShowRecharge(true); return { ok: false, error: 'insufficient' } }
+      if (!r.ok || !j.image?.url) { if (typeof j.balance === 'number') setBalance(j.balance); return { ok: false, error: j.error } }
+      const it = { type: 'image', url: j.image.url, modelName: mode === 'upscale' ? `Upscale ${scale || '2x'}` : 'Relight', prompt: prompt || '', format: j.format }
+      setItems(prev => [it, ...prev])
+      if (typeof j.balance === 'number') setBalance(j.balance)
+      return { ok: true, item: it }
+    } catch (e) { return { ok: false, error: e.message } }
+  }
+
+  const doLightboxUpscale = async (scale) => {
+    if (!lightbox || editing) return
+    setEditing(true); setError('')
+    const res = await applyEnhance({ imageUrl: lightbox.url, mode: 'upscale', scale, srcFormat: lightbox.format })
+    setEditing(false)
+    if (res.ok) setLightbox(res.item)
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
+  const doLightboxRelight = async () => {
+    if (!lightbox || editing) return
+    const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
+    const light = relightInstr.trim() || studioStr
+    if (!light) { setError(t('cs.relightNeed', null, 'Scrivi la luce o seleziona uno Studio.')); return }
+    setEditing(true); setError('')
+    const res = await applyEnhance({ imageUrl: lightbox.url, mode: 'relight', prompt: light, srcFormat: lightbox.format })
+    setEditing(false)
+    if (res.ok) { setRelightInstr(''); setLightbox(res.item) }
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
   const doLightboxEdit = async (mode, format) => {
     if (!lightbox || editing) return
     if (mode === 'edit' && !editInstr.trim()) return
@@ -364,7 +423,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const clearSel = () => setSelected(new Set())
 
   // Batch: applica edit/reframe a tutte le selezionate (pool di concorrenza)
-  const runBatch = async (mode) => {
+  const runBatch = async (mode, scale) => {
     const urls = [...selected]
     if (!urls.length || batch) return
     if (mode === 'edit' && !batchInstr.trim()) return
@@ -373,7 +432,9 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     const worker = async () => {
       while (idx < urls.length) {
         const u = urls[idx++]
-        const res = await applyEdit({ imageUrl: u, mode, instruction: batchInstr.trim(), format: batchFmt, srcFormat: 'square' })
+        const res = mode === 'upscale'
+          ? await applyEnhance({ imageUrl: u, mode: 'upscale', scale, srcFormat: 'square' })
+          : await applyEdit({ imageUrl: u, mode, instruction: batchInstr.trim(), format: batchFmt, srcFormat: 'square' })
         done++; setBatch({ done, total: urls.length })
         if (!res.ok && res.error === 'insufficient') { idx = urls.length; break }
       }
@@ -423,7 +484,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         {/* LAVAGNA INFINITA */}
         <div
           ref={viewportRef}
-          onMouseDown={onCanvasDown} onMouseMove={onCanvasMove} onMouseUp={endPan} onMouseLeave={endPan}
+          onMouseDown={onCanvasDown} onMouseMove={onCanvasMove} onMouseUp={endPan} onMouseLeave={endPan} onContextMenu={onCanvasContext}
           style={{
             flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
             cursor: selectMode ? 'crosshair' : (panRef.current.dragging ? 'grabbing' : 'grab'),
@@ -488,6 +549,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                 <div style={{ display: 'inline-flex', gap: 4 }}>{FORMATS.map(f => <button key={f.id} onClick={() => setBatchFmt(f.id)} style={{ ...chip, ...(batchFmt === f.id ? chipOn : {}) }}>{f.label}</button>)}</div>
                 <button onClick={() => runBatch('reframe')} disabled={!selected.size || !!batch} style={{ ...miniBtn, opacity: !selected.size || batch ? 0.5 : 1 }}>{t('cs.reframe', null, 'Riformatta')}</button>
                 <span style={sep} />
+                <button onClick={() => runBatch('upscale', '2x')} disabled={!selected.size || !!batch} style={{ ...miniBtn, opacity: !selected.size || batch ? 0.5 : 1 }}><Icon name="scan" size={12} /> {t('cs.upscale2x', null, 'Upscale 2×')}</button>
+                <span style={sep} />
                 {/* Edit */}
                 <input value={batchInstr} onChange={e => setBatchInstr(e.target.value)} placeholder={t('cs.editPlaceholder', null, 'Modifica… es: sfondo nero')} style={{ background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 12.5, fontFamily: 'Barlow', width: 180 }} />
                 <button onClick={() => runBatch('edit')} disabled={!selected.size || !batchInstr.trim() || !!batch} style={{ ...miniBtn, opacity: !selected.size || !batchInstr.trim() || batch ? 0.5 : 1 }}>{t('cs.applyAll', null, 'Applica a tutte')}</button>
@@ -507,7 +570,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           {/* TOOLBAR Luma-style (basso-centro) */}
           <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
-              <button onClick={() => { setSelectMode(false); clearSel() }} title={t('cs.toolMove', null, 'Sposta (pan)')} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
+              <button onClick={exitSelect} title={t('cs.toolMove', null, 'Sposta (pan)')} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
               <button onClick={() => setSelectMode(true)} title={t('cs.toolSelect', null, 'Seleziona (trascina)')} style={tool(selectMode)}><Icon name="check-circle" size={16} /></button>
               {selectMode && selected.size > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#7b5bff', padding: '0 4px' }}>{selected.size}</span>}
               <span style={sep} />
@@ -563,13 +626,18 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               </div>
             )}
             {refImages.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                {refImages.map((r, i) => (
-                  <div key={i} style={{ position: 'relative' }}>
-                    <img src={r.dataUrl} alt="" style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', border: '1px solid var(--border)' }} />
-                    <button onClick={() => setRefImages(refImages.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: 8, border: 'none', background: '#000', color: '#fff', cursor: 'pointer', fontSize: 10, lineHeight: 1 }}>×</button>
-                  </div>
-                ))}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                {refImages.map((r, i) => {
+                  const isStyle = r.role === 'style'
+                  const toggleRole = () => setRefImages(refImages.map((x, j) => j === i ? { ...x, role: isStyle ? 'subject' : 'style' } : x))
+                  return (
+                    <div key={i} style={{ position: 'relative', width: 40 }}>
+                      <img src={r.dataUrl || r.url} alt="" style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', border: isStyle ? '1.5px solid #7b5bff' : '1px solid var(--border)' }} />
+                      <button onClick={() => setRefImages(refImages.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: 8, border: 'none', background: '#000', color: '#fff', cursor: 'pointer', fontSize: 10, lineHeight: 1 }}>×</button>
+                      <button onClick={toggleRole} title={t('cs.refRoleToggle', null, 'Soggetto / Stile')} style={{ marginTop: 3, width: '100%', padding: '2px 0', borderRadius: 6, border: isStyle ? '1px solid #7b5bff' : '1px solid var(--border)', background: isStyle ? 'rgba(123,91,255,0.18)' : 'var(--glass2,rgba(255,255,255,0.05))', color: isStyle ? '#c4b5fd' : 'var(--text2,#9aa)', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow' }}>{isStyle ? t('cs.refStyle', null, 'STILE') : t('cs.refSubject', null, 'SOGG.')}</button>
+                    </div>
+                  )
+                })}
               </div>
             )}
             {(() => {
@@ -577,7 +645,9 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               if (!st) return null
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(123,91,255,0.10)', border: '1px solid #7b5bff' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: st.swatch, border: '1px solid rgba(255,255,255,0.18)' }} />
+                  <span style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: st.swatch, border: '1px solid rgba(255,255,255,0.18)', overflow: 'hidden', display: 'inline-block' }}>
+                    {st.preview && <img src={st.preview} alt="" draggable={false} onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.studioApplied', null, 'Ambiente applicato')}</div>
                     <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</div>
@@ -640,6 +710,18 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 6 }}>{t('cs.editByText', null, 'Modifica a parole')}</div>
               <textarea value={editInstr} onChange={e => setEditInstr(e.target.value)} rows={3} placeholder={t('cs.editPlaceholder', null, 'Es: sfondo nero, togli la persona, luce più calda…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={() => doLightboxEdit('edit')} disabled={editing || !editInstr.trim()} style={{ ...miniBtn, opacity: editing || !editInstr.trim() ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}>{editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.apply', null, 'Applica')} · 2 cr`}</button>
+
+              {/* Upscaler creativo (Magnific-style) */}
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.upscale', null, 'Upscale creativo')}</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                {UPSCALES.map(u => <button key={u.id} onClick={() => doLightboxUpscale(u.id)} disabled={editing} style={{ ...miniBtn, opacity: editing ? 0.5 : 1 }}><Icon name="scan" size={12} /> {u.label} · {u.credits} cr</button>)}
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text3,#888)', marginBottom: 8 }}>{t('cs.upscaleHint', null, 'Alza risoluzione e rigenera micro-dettaglio (pelle, tessuti).')}</div>
+
+              {/* Relight (Magnific Relight) */}
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '8px 0 6px' }}>{t('cs.relight', null, 'Relight — illuminazione')}</div>
+              <textarea value={relightInstr} onChange={e => setRelightInstr(e.target.value)} rows={2} placeholder={activeStudio ? t('cs.relightStudioPh', { name: studioPresets.find(s => s.id === activeStudio)?.label }, `Vuoto = usa la luce dello Studio "${studioPresets.find(s => s.id === activeStudio)?.label}"`) : t('cs.relightPh', null, 'Es: luce calda da sinistra al tramonto, ombre morbide…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
+              <button onClick={doLightboxRelight} disabled={editing || (!relightInstr.trim() && !activeStudio)} style={{ ...miniBtn, opacity: editing || (!relightInstr.trim() && !activeStudio) ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="bulb" size={13} /> {editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.relightApply', null, 'Riaccendi')} · ${RELIGHT_COST} cr`}</button>
 
               <div style={{ flex: 1 }} />
               <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
@@ -711,7 +793,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                   return (
                     <button key={s.id} onClick={() => { setActiveStudio(s.id); setShowStudios(false) }} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'Barlow' }}>
                       <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', borderRadius: 12, background: s.swatch, border: on ? '2px solid #7b5bff' : '1px solid var(--border)', overflow: 'hidden', boxShadow: 'inset 0 -40px 50px rgba(0,0,0,0.35)' }}>
-                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#7b5bff', display: 'grid', placeItems: 'center' }}><Icon name="check" size={12} /></span>}
+                        {s.preview && <img src={s.preview} alt={s.label} loading="lazy" draggable={false} onError={e => { e.currentTarget.style.display = 'none' }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#7b5bff', display: 'grid', placeItems: 'center', zIndex: 2 }}><Icon name="check" size={12} /></span>}
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginTop: 7, lineHeight: 1.3 }}>{s.label}</div>
                     </button>

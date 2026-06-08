@@ -6,6 +6,7 @@ import CreativeStudioLogo from './ui/CreativeStudioLogo'
 import AdComposer from './studio/AdComposer'
 import TryOnModal from './studio/TryOnModal'
 import MaskEditor from './studio/MaskEditor'
+import ModelTryOnModal from './studio/ModelTryOnModal'
 import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST, CAMERA_ANGLES, RECIPES } from '../../lib/studio/models'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -70,6 +71,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [relightInstr, setRelightInstr] = useState('')
   const [maskEdit, setMaskEdit] = useState(null)   // url immagine in inpainting
   const [recipe, setRecipe] = useState(null)        // { label, done, total } | null
+  const [showModelTryOn, setShowModelTryOn] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [batchInstr, setBatchInstr] = useState('')
@@ -625,6 +627,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
               <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
               <button onClick={() => setShowStudios(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={tool(!!activeStudio || showStudios)}><Icon name="grid" size={16} /></button>
+              <button onClick={() => setShowModelTryOn(true)} disabled={!refImages.some(r => r.product)} title={refImages.some(r => r.product) ? t('cs.modelTryon', null, 'Modello + capo (prodotto perfetto)') : t('cs.modelTryonNeed', null, 'Scegli prima un prodotto')} style={{ ...tool(showModelTryOn), opacity: refImages.some(r => r.product) ? 1 : 0.4, cursor: refImages.some(r => r.product) ? 'pointer' : 'not-allowed' }}><Icon name="shirt" size={16} /></button>
               <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
               <span style={sep} />
               {kind === 'video'
@@ -739,6 +742,18 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       {/* Inpainting con maschera (Weave-style) */}
       {maskEdit && (
         <MaskEditor imageUrl={maskEdit} busy={editing} onApply={doInpaint} onClose={() => setMaskEdit(null)} />
+      )}
+
+      {/* Modello + capo (pipeline genera modello → Try-On prodotto reale) */}
+      {showModelTryOn && (
+        <ModelTryOnModal
+          garmentImage={(refImages.find(r => r.product) || {}).url}
+          initialPrompt={input}
+          studioPrompt={studioPresets.find(s => s.id === activeStudio)?.prompt || ''}
+          onClose={() => setShowModelTryOn(false)}
+          onSaved={(it) => setItems(prev => [it, ...prev])}
+          onCredits={(b) => typeof b === 'number' && setBalance(b)}
+        />
       )}
 
       {/* Lightbox: apri immagine + edit testuale + reframe */}

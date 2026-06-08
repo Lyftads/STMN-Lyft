@@ -7,6 +7,7 @@ import AdComposer from './studio/AdComposer'
 import TryOnModal from './studio/TryOnModal'
 import MaskEditor from './studio/MaskEditor'
 import ModelTryOnModal from './studio/ModelTryOnModal'
+import StudiosPanel from './studio/StudiosPanel'
 import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST, CAMERA_ANGLES, RECIPES } from '../../lib/studio/models'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -52,7 +53,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [studioPresets, setStudioPresets] = useState([])
   const [studioCategories, setStudioCategories] = useState([])
   const [activeStudio, setActiveStudio] = useState(null) // studio id (ambiente Kive)
-  const [showStudios, setShowStudios] = useState(false)
+  const [studiosOpen, setStudiosOpen] = useState(true)   // sidebar ambienti (sinistra) aperta
   const [studioCat, setStudioCat] = useState('all')
   const [studioQuery, setStudioQuery] = useState('')
   const [products, setProducts] = useState(null)        // null = non caricati
@@ -557,8 +558,26 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         <button onClick={() => setShowRecharge(true)} style={{ background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 999, padding: '7px 15px', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="plus" size={12} /> {t('cs.recharge', null, 'Ricarica')}</button>
       </div>
 
-      {/* Body: lavagna + chat */}
+      {/* Body: ambienti (sinistra) + lavagna + chat */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+        {/* SIDEBAR AMBIENTI (sinistra) — sempre aperta */}
+        {studiosOpen ? (
+          <div style={{ width: 284, maxWidth: '38vw', flexShrink: 0, borderRight: '1px solid var(--border)', background: 'rgba(10,10,18,0.45)' }}>
+            <StudiosPanel
+              studioPresets={studioPresets} studioCategories={studioCategories} stylePresets={stylePresets}
+              activeStudio={activeStudio} setActiveStudio={setActiveStudio}
+              activeStyle={activeStyle} setActiveStyle={setActiveStyle}
+              studioCat={studioCat} setStudioCat={setStudioCat}
+              studioQuery={studioQuery} setStudioQuery={setStudioQuery}
+              onCollapse={() => setStudiosOpen(false)}
+            />
+          </div>
+        ) : (
+          <button onClick={() => setStudiosOpen(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={{ width: 40, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'rgba(10,10,18,0.45)', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 12, border: 'none' }}>
+            <Icon name="grid" size={18} />
+          </button>
+        )}
+
         {/* LAVAGNA INFINITA */}
         <div
           ref={viewportRef}
@@ -657,7 +676,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...tool(recording), color: recording ? '#ff453a' : 'var(--text2,#9aa)' }}><Icon name="wave" size={16} /></button>
               <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
               <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
-              <button onClick={() => setShowStudios(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={tool(!!activeStudio || showStudios)}><Icon name="grid" size={16} /></button>
               <button onClick={() => setShowModelTryOn(true)} disabled={!refImages.some(r => r.product)} title={refImages.some(r => r.product) ? t('cs.modelTryon', null, 'Modello + capo (prodotto perfetto)') : t('cs.modelTryonNeed', null, 'Scegli prima un prodotto')} style={{ ...tool(showModelTryOn), opacity: refImages.some(r => r.product) ? 1 : 0.4, cursor: refImages.some(r => r.product) ? 'pointer' : 'not-allowed' }}><Icon name="shirt" size={16} /></button>
               <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
               <span style={sep} />
@@ -731,7 +749,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                     <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.studioApplied', null, 'Ambiente applicato')}</div>
                     <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</div>
                   </div>
-                  <button onClick={() => setShowStudios(true)} title={t('cs.studioChange', null, 'Cambia ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 9px', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{t('cs.studioChangeBtn', null, 'Cambia')}</button>
+                  <button onClick={() => setStudiosOpen(true)} title={t('cs.studioChange', null, 'Cambia ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 9px', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{t('cs.studioChangeBtn', null, 'Cambia')}</button>
                   <button onClick={() => setActiveStudio(null)} title={t('cs.studioRemove', null, 'Rimuovi ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13 }}>×</button>
                 </div>
               )
@@ -879,63 +897,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           </div>
         </div>
       )}
-
-      {/* Pannello STUDIOS (ambienti stile Kive) — drawer da destra */}
-      {showStudios && (() => {
-        const cats = [{ id: 'all', label: t('cs.studioAll', null, 'Tutti') }, ...studioCategories.map(c => ({ id: c.id, label: t(`cs.cat.${c.id}`, null, c.label) }))]
-        const q = studioQuery.trim().toLowerCase()
-        const list = studioPresets.filter(s =>
-          (studioCat === 'all' || s.category === studioCat) &&
-          (!q || s.label.toLowerCase().includes(q))
-        )
-        return (
-          <div onClick={() => setShowStudios(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100, display: 'flex', justifyContent: 'flex-end' }}>
-            <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '94vw', height: '100%', background: 'rgba(14,14,22,0.98)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.5)' }}>
-              {/* Header */}
-              <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <Icon name="grid" size={18} />
-                  <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{t('cs.studiosTitle', null, 'Studios — Ambienti')}</div>
-                  <button onClick={() => setShowStudios(false)} style={xBtn}>×</button>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text2,#9aa)', lineHeight: 1.45 }}>{t('cs.studiosHint', null, 'Scegli un ambiente: scena, set e luce vengono applicati al prodotto e al prompt.')}</div>
-                <input value={studioQuery} onChange={e => setStudioQuery(e.target.value)} placeholder={t('cs.studioSearch', null, 'Cerca ambiente…')} style={{ width: '100%', marginTop: 12, background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: 'Barlow', boxSizing: 'border-box' }} />
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                  {cats.map(c => (
-                    <button key={c.id} onClick={() => setStudioCat(c.id)} style={{ ...chip, ...(studioCat === c.id ? chipOn : {}), padding: '5px 11px', fontSize: 11.5 }}>{c.label}</button>
-                  ))}
-                </div>
-                {stylePresets.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>{t('cs.styleLook', null, 'Stile / Look')}</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {stylePresets.map(s => (
-                        <button key={s.id} onClick={() => setActiveStyle(activeStyle === s.id ? null : s.id)} style={{ ...chip, ...(activeStyle === s.id ? chipOn : {}), padding: '5px 11px', fontSize: 11.5 }}>{s.label}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Griglia preview */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignContent: 'start' }}>
-                {list.length === 0 && <div style={{ gridColumn: '1/-1', color: 'var(--text2,#9aa)', fontSize: 13, textAlign: 'center', padding: 30 }}>{t('cs.studioNone', null, 'Nessun ambiente trovato.')}</div>}
-                {list.map(s => {
-                  const on = activeStudio === s.id
-                  return (
-                    <button key={s.id} onClick={() => { setActiveStudio(s.id); setShowStudios(false) }} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'Barlow' }}>
-                      <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', borderRadius: 12, background: s.swatch, border: on ? '2px solid #7b5bff' : '1px solid var(--border)', overflow: 'hidden', boxShadow: 'inset 0 -40px 50px rgba(0,0,0,0.35)' }}>
-                        {s.preview && <img src={s.preview} alt={s.label} loading="lazy" draggable={false} onError={e => { e.currentTarget.style.display = 'none' }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
-                        {on && <span style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: '#7b5bff', display: 'grid', placeItems: 'center', zIndex: 2 }}><Icon name="check" size={12} /></span>}
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginTop: 7, lineHeight: 1.3 }}>{s.label}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
       {/* Modale ricarica */}
       {showRecharge && (

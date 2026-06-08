@@ -165,12 +165,16 @@ async function saveNotes(notes, { topic, source, sourceRef, importance = 5 }) {
 // chunk (split a 18 min per stare sotto i 25MB di Whisper).
 async function toAudioChunks(input, tag) {
   const full = path.join(TMP, `${tag}.mp3`)
-  await exec('ffmpeg', ['-y', '-i', input, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '48k', full], { maxBuffer: 1 << 26 })
+  // -rw_timeout (µs): aborta letture HLS/http bloccate (stream che smette di
+  // rispondere). timeout exec: hard-kill se ffmpeg supera 15 min → evita che
+  // una singola lezione impicchi tutto il job per ore.
+  const FFOPTS = { maxBuffer: 1 << 26, timeout: 15 * 60_000, killSignal: 'SIGKILL' }
+  await exec('ffmpeg', ['-y', '-rw_timeout', '120000000', '-i', input, '-vn', '-ac', '1', '-ar', '16000', '-b:a', '48k', full], FFOPTS)
   const stat = fs.statSync(full)
   if (stat.size <= 24 * 1024 * 1024) return [full]
   // split in segmenti da 18 minuti
   const pat = path.join(TMP, `${tag}-%03d.mp3`)
-  await exec('ffmpeg', ['-y', '-i', full, '-f', 'segment', '-segment_time', '1080', '-c', 'copy', pat], { maxBuffer: 1 << 26 })
+  await exec('ffmpeg', ['-y', '-i', full, '-f', 'segment', '-segment_time', '1080', '-c', 'copy', pat], FFOPTS)
   return fs.readdirSync(TMP).filter(f => f.startsWith(`${tag}-`) && f.endsWith('.mp3')).sort().map(f => path.join(TMP, f))
 }
 
@@ -368,6 +372,15 @@ async function ingestCourse({ test, start, limit }) {
     }
 
     page.off('request', onReq)
+
+    // Assicura che i controlli di navigazione siano renderizzati prima di
+    // cercare il "next". Necessario sul percorso di SKIP (resume): lì non c'è
+    // l'attesa del player, quindi senza questo il link successivo non esiste
+    // ancora e il loop terminava a "Fine lezioni" già dalla lezione 1.
+    await page.waitForSelector(
+      'a[aria-label*="next" i], a[aria-label*="successiv" i], button[aria-label*="next" i], button[aria-label*="successiv" i]',
+      { timeout: 6000 }
+    ).catch(() => {})
 
     // vai alla prossima lezione (freccia →) — leggo l'href se è un link, altrimenti click
     const nextUrl = await page.evaluate(() => {

@@ -87,15 +87,34 @@ export async function POST(req) {
 export async function PATCH(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
-  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può gestire le azioni' }, { status: 403 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' })
 
   let b = {}
   try { b = await req.json() } catch {}
   const id = b.id
-  const op = String(b.op || '').trim()   // approve | reject | execute | reopen
+  const op = String(b.op || '').trim()   // approve | reject | execute | reopen | update
   if (!id) return NextResponse.json({ ok: false, error: 'ID mancante' }, { status: 400 })
+
+  // Modifica contenuto (caption/descrizione/data/media): admin o autore.
+  if (op === 'update') {
+    const { data: act } = await admin.from('action_queue').select('*').eq('workspace_id', ws.workspaceId).eq('id', id).maybeSingle()
+    if (!act) return NextResponse.json({ ok: false, error: 'Azione non trovata' }, { status: 404 })
+    const me = ws.memberId || ws.userId || null
+    if (!ws.isAdmin && !(act.requested_by && act.requested_by === me)) return NextResponse.json({ ok: false, error: 'Non autorizzato' }, { status: 403 })
+    const up = { updated_at: new Date().toISOString() }
+    if (typeof b.summary === 'string') up.summary = b.summary
+    if (b.target_name != null) up.target_name = String(b.target_name)
+    if (b.payload && typeof b.payload === 'object') up.payload = { ...(act.payload || {}), ...b.payload }
+    try {
+      const { data, error } = await admin.from('action_queue').update(up).eq('workspace_id', ws.workspaceId).eq('id', id).select().single()
+      if (error) throw error
+      return NextResponse.json({ ok: true, action: data })
+    } catch (e) { return NextResponse.json({ ok: false, error: e.message }) }
+  }
+
+  // Operazioni di stato: solo admin.
+  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può gestire le azioni' }, { status: 403 })
 
   const patch = { updated_at: new Date().toISOString() }
   if (b.note != null) patch.note = String(b.note)
@@ -170,13 +189,19 @@ export async function PATCH(req) {
 export async function DELETE(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
-  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può eliminare le azioni' }, { status: 403 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' })
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ ok: false, error: 'ID mancante' }, { status: 400 })
+
+  // Eliminazione: admin o autore della richiesta.
+  if (!ws.isAdmin) {
+    const { data: act } = await admin.from('action_queue').select('requested_by').eq('workspace_id', ws.workspaceId).eq('id', id).maybeSingle()
+    const me = ws.memberId || ws.userId || null
+    if (!act || !(act.requested_by && act.requested_by === me)) return NextResponse.json({ ok: false, error: 'Non autorizzato' }, { status: 403 })
+  }
   try {
     const { error } = await admin
       .from('action_queue')

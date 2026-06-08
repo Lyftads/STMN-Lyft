@@ -10,6 +10,7 @@ import { openDrivePicker, drivePickerConfigured } from '../../lib/social/drivePi
 import SocialMockup from './social/SocialMockup'
 import MediaCropper from './social/MediaCropper'
 import VideoTrimmer from './social/VideoTrimmer'
+import PostDetailModal from './social/PostDetailModal'
 
 // Fase 3 — Social Studio: brief → l'AI scrive un post IG/TikTok nel brand voice
 // → lo accodi (create_post) per l'approvazione. Pubblicazione gated (come Meta).
@@ -31,6 +32,7 @@ export default function SocialStudio() {
   const [copied, setCopied] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
   const [planned, setPlanned] = useState([])
+  const [detail, setDetail] = useState(null)
   const [media, setMedia] = useState([])
   const [uploading, setUploading] = useState(false)
   const [linkInput, setLinkInput] = useState('')
@@ -180,6 +182,7 @@ export default function SocialStudio() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {detail && <PostDetailModal action={detail} onClose={() => setDetail(null)} onChanged={loadPlanned} />}
       {trimIdx != null && (media[trimIdx]?.previewUrl || media[trimIdx]?.url) && (
         <VideoTrimmer
           src={media[trimIdx].previewUrl || media[trimIdx].url}
@@ -363,7 +366,7 @@ export default function SocialStudio() {
           </div>
         </div>
         {view === 'calendar' ? (
-          <CalendarMonth posts={planned} locale={intlLocale} noneText={t('social.noPlanned')} />
+          <CalendarMonth posts={planned} locale={intlLocale} noneText={t('social.noPlanned')} onPick={setDetail} />
         ) : planned.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('social.noPlanned')}</div>
         ) : (
@@ -372,7 +375,7 @@ export default function SocialStudio() {
               const date = a.payload?.scheduled_for
               const pf = PLATFORMS.find(p => p.id === a.channel)
               return (
-                <div key={a.id} className="glass-panel" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div key={a.id} onClick={() => setDetail(a)} className="glass-panel" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', cursor: 'pointer' }}>
                   <span style={{ minWidth: 88, fontSize: 12, fontWeight: 800, color: date ? 'var(--text)' : 'var(--text3)' }}>
                     {date ? new Date(date + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : t('social.noDate')}
                   </span>
@@ -391,7 +394,7 @@ export default function SocialStudio() {
 }
 
 const pad2 = (n) => String(n).padStart(2, '0')
-function CalendarMonth({ posts, locale, noneText }) {
+function CalendarMonth({ posts, locale, noneText, onPick }) {
   const [offset, setOffset] = useState(0)
   const today = new Date()
   const base = new Date(today.getFullYear(), today.getMonth() + offset, 1)
@@ -435,8 +438,8 @@ function CalendarMonth({ posts, locale, noneText }) {
                   const imgThumb = m0 && m0.kind === 'file' && !(m0.type || '').startsWith('video') && m0.url
                   const title = p.payload?.hook || p.target_name || ''
                   return imgThumb
-                    ? <img key={j} src={m0.url} alt="" title={title} style={{ width: '100%', height: 28, objectFit: 'cover', borderRadius: 4, display: 'block', border: `1px solid ${pf?.color || '#888'}` }} />
-                    : <div key={j} title={title} style={{ fontSize: 9, lineHeight: 1.25, padding: '2px 4px', borderRadius: 4, background: `${pf?.color || '#888'}22`, color: pf?.color || '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{((m0 && (m0.type || '').startsWith('video')) ? '▶ ' : '') + title.slice(0, 16)}</div>
+                    ? <img key={j} onClick={() => onPick && onPick(p)} src={m0.url} alt="" title={title} style={{ width: '100%', height: 28, objectFit: 'cover', borderRadius: 4, display: 'block', border: `1px solid ${pf?.color || '#888'}`, cursor: 'pointer' }} />
+                    : <div key={j} onClick={() => onPick && onPick(p)} title={title} style={{ fontSize: 9, lineHeight: 1.25, padding: '2px 4px', borderRadius: 4, background: `${pf?.color || '#888'}22`, color: pf?.color || '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{((m0 && (m0.type || '').startsWith('video')) ? '▶ ' : '') + title.slice(0, 16)}</div>
                 })}
                 {items.length > 3 && <div style={{ fontSize: 9, color: 'var(--text3)' }}>+{items.length - 3}</div>}
               </div>

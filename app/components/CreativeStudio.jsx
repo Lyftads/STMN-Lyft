@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
 import CreativeStudioLogo from './ui/CreativeStudioLogo'
+import AdComposer from './studio/AdComposer'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
@@ -52,6 +53,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
   // Editing / selezione
   const [lightbox, setLightbox] = useState(null)     // item aperto
+  const [adComposer, setAdComposer] = useState(null) // url immagine base per il compositore
   const [editInstr, setEditInstr] = useState('')
   const [editing, setEditing] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
@@ -541,6 +543,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         </div>
       </div>
 
+      {/* Compositore Ad */}
+      {adComposer && (
+        <AdComposer imageUrl={adComposer} onClose={() => setAdComposer(null)} onSaved={(it) => setItems(prev => [it, ...prev])} />
+      )}
+
       {/* Lightbox: apri immagine + edit testuale + reframe */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={modalBg}>
@@ -566,6 +573,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <div style={{ flex: 1 }} />
               <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
                 <a href={lightbox.url} download target="_blank" rel="noreferrer" style={{ ...chip, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="download" size={12} /> {t('cs.download', null, 'Scarica')}</a>
+                <button onClick={() => { setAdComposer(lightbox.url); setLightbox(null) }} style={{ ...miniBtn }}><Icon name="layers" size={12} /> {t('cs.makeAd', null, 'Crea ad')}</button>
                 <button onClick={() => { animate(lightbox); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>
                 <button onClick={() => sendToSocial(lightbox)} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="send" size={12} /> Social</button>
               </div>

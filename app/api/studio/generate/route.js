@@ -15,23 +15,32 @@ const json = (d, s = 200) => NextResponse.json(d, { status: s })
 
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
-async function enhancePrompt(userPrompt, style, contextBlock) {
+async function enhancePrompt(userPrompt, style, contextBlock, refImages = []) {
   if (!OPENAI_KEY) return userPrompt
   try {
     const ctx = contextBlock ? `\n\nCLIENT CONTEXT (ground the visual in this brand — products, colors, tone, what converts):\n${contextBlock}` : ''
+    const hasRefs = Array.isArray(refImages) && refImages.length > 0
+    // Con immagini di riferimento → GPT-4o vision le analizza e ne incorpora
+    // soggetto/stile/colori nel prompt. Senza → gpt-4o-mini testuale.
+    const userContent = hasRefs
+      ? [
+          { type: 'text', text: `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}\n\nUse the attached reference image(s) as visual reference: replicate the product/subject, style, colors and framing faithfully.` },
+          ...refImages.slice(0, 3).map(u => ({ type: 'image_url', image_url: { url: u } })),
+        ]
+      : `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}`
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: hasRefs ? 'gpt-4o' : 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a prompt engineer for image generation models. Rewrite the user request as ONE vivid, detailed English image prompt (subject, composition, lighting, lens, mood, color). Honor the brand identity, real products and palette from the client context when relevant. Keep any product/brand/text faithful. No preamble, output only the prompt.' },
-          { role: 'user', content: `Style: ${style || 'commercial advertising photography'}\nRequest: ${userPrompt}${ctx}` },
+          { role: 'system', content: 'You are a prompt engineer for image generation models. Rewrite the user request as ONE vivid, detailed English image prompt (subject, composition, lighting, lens, mood, color). Honor the brand identity, real products and palette from the client context when relevant. If reference images are attached, describe and preserve their subject/style/colors. Keep any product/brand/text faithful. No preamble, output only the prompt.' },
+          { role: 'user', content: userContent },
         ],
         temperature: 0.7,
-        max_tokens: 240,
+        max_tokens: 260,
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(30000),
     })
     if (!res.ok) return userPrompt
     const d = await res.json()
@@ -119,7 +128,7 @@ export async function POST(req) {
     const cookie = req.headers.get('cookie') || ''
     let contextBlock = ''
     try { contextBlock = (await buildStudioContext({ origin, cookie })).contextBlock } catch {}
-    prompt = await enhancePrompt(rawPrompt, body?.style, contextBlock)
+    prompt = await enhancePrompt(rawPrompt, body?.style, contextBlock, Array.isArray(body?.refImages) ? body.refImages : [])
   }
   const results = []
   for (let i = 0; i < count; i++) {

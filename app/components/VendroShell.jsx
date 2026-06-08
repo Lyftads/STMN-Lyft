@@ -155,6 +155,13 @@ export default function VendroShell({
     : navGroups
 
   const goTo = (id) => {
+    // Creative Studio si apre come web app a tutto schermo in una nuova finestra.
+    if (id === 'creativeStudio' && typeof window !== 'undefined') {
+      const w = Math.min(1600, window.screen?.availWidth || 1440)
+      const h = Math.min(1000, window.screen?.availHeight || 900)
+      window.open('/creative-studio', 'lyft-creative-studio', `width=${w},height=${h},left=40,top=40`)
+      return
+    }
     if (typeof setTab === 'function') setTab(id)
   }
 

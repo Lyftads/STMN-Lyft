@@ -41,6 +41,7 @@ import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import ActionQueueTab from './components/ActionQueueTab'
 import SocialStudio from './components/SocialStudio'
+import CreativeStudio from './components/CreativeStudio'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
 import TimeframeSelector from './components/TimeframeSelector'
@@ -4240,6 +4241,10 @@ export default function App() {
 
 {tab === 'social' && (
   <SocialStudio />
+)}
+
+{tab === 'creativeStudio' && (
+  <CreativeStudio />
 )}
 
 {tab === 'budgetAdvisor' && (

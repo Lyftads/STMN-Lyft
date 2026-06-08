@@ -6,6 +6,9 @@
 
 const P = {
   // generiche / stato
+  plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
+  download: <><path d="M12 3v12" /><polyline points="7 11 12 16 17 11" /><path d="M5 20h14" /></>,
+  refresh: <><path d="M3.5 12a8.5 8.5 0 0 1 14.5-6l2 2" /><path d="M20.5 12A8.5 8.5 0 0 1 6 18l-2-2" /><polyline points="20 4 20 8 16 8" /><polyline points="4 20 4 16 8 16" /></>,
   warning: <><path d="M12 3 2.5 20h19L12 3Z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17.5" x2="12" y2="17.5" /></>,
   check: <polyline points="4 12.5 9.5 18 20 6.5" />,
   'check-circle': <><circle cx="12" cy="12" r="9" /><polyline points="8 12.5 11 15.5 16.5 9" /></>,

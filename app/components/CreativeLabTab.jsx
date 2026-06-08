@@ -862,7 +862,6 @@ export default function CreativeLabTab() {
                 {(models.length > 0 ? models : [
                   { id: 'gpt-image-1', name: 'GPT Image', ready: true },
                   { id: 'gemini', name: 'Gemini', ready: false },
-                  { id: 'dall-e-3', name: 'DALL-E 3', ready: true },
                 ]).map((m) => (
                   <button key={m.id} onClick={() => m.ready && setImageModel(m.id)}
                     style={{

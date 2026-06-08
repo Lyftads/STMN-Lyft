@@ -70,35 +70,6 @@ function getSizeForModel(model, format) {
   return format === 'story' ? '1024x1792' : '1024x1024'
 }
 
-async function generateImageDalle3(prompt, size) {
-  if (!OPENAI_KEY) return { error: 'OPENAI_API_KEY non configurata' }
-  try {
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size,
-        quality: 'standard',
-      }),
-      signal: AbortSignal.timeout(90000),
-    })
-    if (!res.ok) {
-      const err = await res.text()
-      return { error: `DALL-E 3 ${res.status}: ${err.slice(0, 200)}` }
-    }
-    const data = await res.json()
-    return { url: data.data?.[0]?.url || null }
-  } catch (e) {
-    return { error: e.message }
-  }
-}
-
 async function generateImageGpt(prompt, size) {
   if (!OPENAI_KEY) return { error: 'OPENAI_API_KEY non configurata' }
   try {
@@ -164,8 +135,6 @@ async function generateImageGemini(prompt) {
 async function generateImage(prompt, model, format) {
   const size = getSizeForModel(model, format)
   switch (model) {
-    case 'dall-e-3':
-      return generateImageDalle3(prompt, size)
     case 'gpt-image-1':
       return generateImageGpt(prompt, size)
     case 'gemini':
@@ -260,7 +229,6 @@ export async function GET(request) {
   const availableModels = [
     { id: 'gpt-image-1', name: 'GPT Image', ready: Boolean(OPENAI_KEY) },
     { id: 'gemini', name: 'Gemini Imagen', ready: Boolean(GEMINI_KEY) },
-    { id: 'dall-e-3', name: 'DALL-E 3', ready: Boolean(OPENAI_KEY) },
   ]
 
   return json({

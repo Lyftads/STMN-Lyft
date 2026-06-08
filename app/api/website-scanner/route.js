@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -375,6 +376,8 @@ export async function POST(req) {
     }, { status: 502 })
   }
 
+  const kbScanner = await buildKnowledgeBlock('CRO ottimizzazione landing page e-commerce conversion rate persuasione')
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -390,6 +393,7 @@ export async function POST(req) {
         max_tokens: 4000,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(kbScanner ? [{ role: 'system', content: kbScanner }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           {
             role: 'user',

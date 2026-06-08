@@ -5,9 +5,11 @@ export const maxDuration = 300
 import { NextResponse } from 'next/server'
 import { getImageModel, getFormat } from '../../../../lib/studio/models'
 import { getAuthUser, getBalance, spendCredits, addCredits } from '../../../../lib/studio/credits'
+import { LORA_FAL, LORA_CREDITS } from '../../../../lib/studio/models'
 import { buildStudioContext } from '../../../../lib/studio/context'
 import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
 import { ownsBoard, touchBoard } from '../../../../lib/studio/boards'
+import { getReadyLora } from '../../../../lib/studio/trainedModels'
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.FAL_KEY
@@ -112,10 +114,12 @@ async function genOpenAI(prompt, fmt) {
 // multi-immagine (più angoli = più precisione). instruction = scena.
 async function genKontext(model, instruction, refUrls) {
   if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
-  const urls = (refUrls || []).filter(Boolean).slice(0, 4)
-  const multi = urls.length > 1 && model.falModelMulti
-  const endpoint = multi ? model.falModelMulti : model.falModel
-  const body = multi ? { prompt: instruction, image_urls: urls } : { prompt: instruction, image_url: urls[0] }
+  const urls = (refUrls || []).filter(Boolean)
+  // La PRIMA foto è il prodotto canonico da riprodurre (è l'immagine base che
+  // viene editata nella scena). Le altre foto NON entrano nella generazione:
+  // servono solo all'analisi dei dettagli (vedi buildKontextInstruction).
+  const endpoint = model.falModel
+  const body = { prompt: instruction, image_url: urls[0] }
   try {
     const res = await fetch(`https://fal.run/${endpoint}`, {
       method: 'POST',
@@ -130,7 +134,25 @@ async function genKontext(model, instruction, refUrls) {
   } catch (e) { return { error: e.message } }
 }
 
+// Inferenza con una LoRA addestrata (modello AI dell'utente).
+async function genLora(model, prompt, fmt) {
+  if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
+  try {
+    const res = await fetch(`https://fal.run/${LORA_FAL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Key ${FAL_KEY}` },
+      body: JSON.stringify({ prompt, image_size: fmt.falSize, num_images: 1, loras: [{ path: model.loraUrl, scale: 1 }] }),
+      signal: AbortSignal.timeout(180000),
+    })
+    if (!res.ok) return { error: `${model.name} ${res.status}: ${(await res.text()).slice(0, 180)}` }
+    const d = await res.json()
+    const url = d.images?.[0]?.url || d.image?.url || null
+    return url ? { url } : { error: `${model.name}: nessuna immagine` }
+  } catch (e) { return { error: e.message } }
+}
+
 async function generateOne(model, prompt, fmt, refUrls) {
+  if (model.provider === 'lora') return genLora(model, prompt, fmt)
   if (model.provider === 'fal-kontext') return genKontext(model, prompt, refUrls)
   return model.provider === 'openai' ? genOpenAI(prompt, fmt) : genFal(model, prompt, fmt)
 }
@@ -139,31 +161,39 @@ async function generateOne(model, prompt, fmt, refUrls) {
 // pixel-identico. Modello/persona e scena vanno RIPRODOTTI se descritti nel
 // prompt (o impliciti nell'ambiente): la persona indossa/usa il prodotto in modo
 // naturale, ma il prodotto non cambia mai. Se nessuno è descritto → product shot pulito.
-async function buildKontextInstruction(userPrompt, style, contextBlock) {
-  const hardRules = 'The featured product from the input image must remain 100% identical: exact same geometry, proportions, colors, materials, finish, label and logos — never redesign, recolor, reshape, relabel or restyle the product itself. CRITICAL: any printed graphic, slogan, artwork or text on the product must be reproduced EXACTLY as in the input — same wording, lettering, font, size, placement and colors; never simplify, remove, blur, crop, distort or restyle the print. If the request or environment describes a person/model (appearance, outfit, pose, location), render that person faithfully and have them wear/hold/use the product naturally at correct scale, perspective and lighting — but the product and its print stay pixel-identical to the reference. If no person is described, keep it a clean product shot without adding random people.'
+async function buildKontextInstruction(userPrompt, style, contextBlock, refImages = []) {
+  const hardRules = 'The featured product from the FIRST input image must remain 100% identical: exact same geometry, proportions, colors, materials, finish, label and logos — never redesign, recolor, reshape, relabel or restyle the product itself. CRITICAL: any printed graphic, slogan, artwork or text on the product must be reproduced EXACTLY as in the first image — same wording, lettering, font, size, placement and colors; never simplify, remove, blur, crop, distort or restyle the print. If the request or environment describes a person/model (appearance, outfit, pose, location), render that person faithfully and have them wear/hold/use the product naturally at correct scale, perspective and lighting — but the product and its print stay pixel-identical to the first reference. If no person is described, keep it a clean product shot without adding random people.'
+  const refs = (refImages || []).filter(Boolean)
   if (!OPENAI_KEY) {
     const scene = [userPrompt, style].filter(Boolean).join('. ') || 'a clean premium commercial set'
     return [`Edit the input image into this scene: ${scene}.`, hardRules, PRODUCT_QUALITY_SPINE].filter(Boolean).join(' ')
   }
   try {
     const ctx = contextBlock ? `\n\nBRAND CONTEXT:\n${contextBlock}` : ''
+    // Le foto extra (oltre la prima) servono SOLO a capire i dettagli del prodotto
+    // (stampa, logo, materiali, cuciture): le passiamo a GPT-4o vision perché le
+    // descriva e l'istruzione preservi quei dettagli sulla PRIMA immagine.
+    const extra = refs.slice(1, 4)
+    const useVision = extra.length > 0
+    const sys = `You write ONE detailed English editing instruction for FLUX Kontext, campaign quality like Kive.
+The product to reproduce is the one in the FIRST input image (that is the base that will be edited). ${useVision ? 'The OTHER attached images are EXTRA reference of the SAME product from other angles/close-ups: use them ONLY to understand fine details (print wording, logo, colors, materials, stitching) so they are preserved — do NOT switch to another angle or compose them into the output; the output must keep the framing/angle of the first image unless the scene/pose requires the subject to move naturally.' : ''}
+The single hard invariant: the product stays pixel-identical (never redesign, recolor, reshape, relabel or restyle it).
+Everything else follows the request and environment: if the user describes a model/person (look, outfit, pose) and/or a location, faithfully render that person and scene, with the product naturally worn/held/used at correct scale, perspective and integrated lighting. If no person is described or implied, keep it a clean product still-life — do NOT invent a random person.
+ABSOLUTE RULES (state them explicitly): ${hardRules}
+End the instruction by appending these quality requirements verbatim: "${PRODUCT_QUALITY_SPINE}" Output only the instruction.`
+    const userText = `Request: ${userPrompt || 'clean premium commercial product scene'}\nEnvironment/Style: ${style || 'commercial product photography studio'}${ctx}`
+    const userContent = useVision
+      ? [{ type: 'text', text: userText }, ...extra.map(u => ({ type: 'image_url', image_url: { url: u } }))]
+      : userText
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: `You write ONE detailed English editing instruction for FLUX Kontext, with campaign quality comparable to Kive.
-The single hard invariant: the featured product from the input image stays pixel-identical (never redesign, recolor, reshape, relabel or restyle it).
-Everything else follows the request and environment: if the user describes a model/person (their look, outfit, pose) and/or a location, faithfully render that person and scene, and place the product naturally worn/held/used by them at correct scale, perspective and integrated lighting. If a portrait-style environment is given, you may include a fitting model. If no person is described or implied, keep it a clean product still-life — do NOT invent a random person.
-Describe the subject (if any), the outfit/styling, the setting/background, surface and the precise lighting.
-ABSOLUTE RULES (state them explicitly in the instruction): ${hardRules}
-End the instruction by appending these quality requirements verbatim: "${PRODUCT_QUALITY_SPINE}" Output only the instruction.` },
-          { role: 'user', content: `Request: ${userPrompt || 'clean premium commercial product scene'}\nEnvironment/Style: ${style || 'commercial product photography studio'}${ctx}` },
-        ],
-        temperature: 0.55, max_tokens: 400,
+        model: useVision ? 'gpt-4o' : 'gpt-4o-mini',
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: userContent }],
+        temperature: 0.55, max_tokens: 420,
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(30000),
     })
     if (!res.ok) return [userPrompt, hardRules].filter(Boolean).join(' ')
     const d = await res.json()
@@ -182,7 +212,12 @@ export async function POST(req) {
   const boardId = (body?.boardId && await ownsBoard(user.id, body.boardId)) ? body.boardId : null
   const refList = Array.isArray(body?.refImages) ? body.refImages.filter(Boolean) : []
   const styleRefList = Array.isArray(body?.styleRefImages) ? body.styleRefImages.filter(Boolean) : []
-  const model = getImageModel(body?.model) || getImageModel('flux-pro')
+  // Modello AI addestrato (LoRA): risolto server-side per sicurezza.
+  const lora = body?.aiModelId ? await getReadyLora(user.id, body.aiModelId) : null
+  const triggerWord = lora?.trigger_word || ''
+  const model = lora
+    ? { id: 'lora', name: lora.name || 'Modello AI', credits: LORA_CREDITS, provider: 'lora', loraUrl: lora.lora_url }
+    : (getImageModel(body?.model) || getImageModel('flux-pro'))
   const isKontext = model.provider === 'fal-kontext'
 
   // Kontext richiede l'immagine del prodotto; gli altri richiedono una descrizione.
@@ -212,11 +247,13 @@ export async function POST(req) {
     let contextBlock = ''
     try { contextBlock = (await buildStudioContext({ origin, cookie })).contextBlock } catch {}
     prompt = isKontext
-      ? await buildKontextInstruction(rawPrompt, body?.style, contextBlock)
+      ? await buildKontextInstruction(rawPrompt, body?.style, contextBlock, refList)
       : await enhancePrompt(rawPrompt, body?.style, contextBlock, refList, styleRefList)
   } else if (isKontext && !prompt) {
     prompt = 'Place the product in a clean premium commercial scene; keep the product identical.'
   }
+  // Modello AI: anteponi la trigger word così la LoRA si attiva.
+  if (model.provider === 'lora' && triggerWord) prompt = `${triggerWord}, ${prompt}`
   const results = []
   for (let i = 0; i < count; i++) {
     results.push(await generateOne(model, prompt, fmt, refList))

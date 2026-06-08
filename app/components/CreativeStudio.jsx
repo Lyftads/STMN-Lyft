@@ -8,6 +8,7 @@ import TryOnModal from './studio/TryOnModal'
 import MaskEditor from './studio/MaskEditor'
 import ModelTryOnModal from './studio/ModelTryOnModal'
 import StudiosPanel from './studio/StudiosPanel'
+import AiModelsModal from './studio/AiModelsModal'
 import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST, CAMERA_ANGLES, RECIPES } from '../../lib/studio/models'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -32,7 +33,7 @@ const clampZoom = (z) => Math.min(3, Math.max(0.2, z))
 const PERSON_RE = /\b(uomo|donna|ragazz\w*|model\w*|modell\w*|persona|atlet\w*|indoss\w*|lui|lei|barb\w*|capell\w*|man|woman|men|women|girl|boy|guy|lady|person|people|athlete|wearing|wears|model|hair|beard|pose|posa)\b/i
 const describesPerson = (text) => !!text && PERSON_RE.test(text)
 
-export default function CreativeStudio({ standalone = false, onNavigate, boardId = null, boardTitle = '', onExit }) {
+export default function CreativeStudio({ standalone = false, onNavigate, boardId = null, boardTitle = '', initialPrompt = '', onExit }) {
   const { t, intlLocale } = useI18n()
   const [balance, setBalance] = useState(null)
   const [models, setModels] = useState([])
@@ -40,7 +41,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   const [packs, setPacks] = useState([])
   const [txHistory, setTxHistory] = useState([])
 
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(initialPrompt || '')
   const [kind, setKind] = useState('image')
   const [model, setModel] = useState('flux2-pro')
   const [videoModel, setVideoModel] = useState('luma-ray2-flash')
@@ -79,6 +80,8 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   const [recipe, setRecipe] = useState(null)        // { label, done, total } | null
   const [showModelTryOn, setShowModelTryOn] = useState(false)
   const [ctxMenu, setCtxMenu] = useState(null)      // { x, y, url } menu tasto destro
+  const [showAiModels, setShowAiModels] = useState(false)
+  const [activeAiModel, setActiveAiModel] = useState(null) // { id, name, triggerWord } | null
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [batchInstr, setBatchInstr] = useState('')
@@ -272,7 +275,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     // persona (o Studio ritratto) → pipeline Modello + Try-On (stampa fedele).
     const productImgs = refImages.filter(r => r.product).map(r => r.url).filter(Boolean)
     const activeStudioObj = studioPresets.find(s => s.id === activeStudio)
-    const wearScenario = kind === 'image' && productImgs.length > 0 && (describesPerson(text) || activeStudioObj?.category === 'portrait')
+    const wearScenario = kind === 'image' && !activeAiModel && productImgs.length > 0 && (describesPerson(text) || activeStudioObj?.category === 'portrait')
     setBusy(true); setError('')
     const studioLabel = studioPresets.find(s => s.id === activeStudio)?.label
     const userMsgText = text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : studioLabel ? t('cs.studioGenReq', { name: studioLabel }, `Genera nell'ambiente "${studioLabel}"`) : '')
@@ -322,7 +325,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
       } else {
         const r = await fetch('/api/studio/generate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, styleRefImages: styleRefs, style: styleStr, boardId }),
+          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, styleRefImages: styleRefs, style: styleStr, boardId, aiModelId: activeAiModel?.id || undefined }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -700,19 +703,20 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
           {/* TOOLBAR Luma-style (basso-centro) */}
           <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
-              <button onClick={exitSelect} title={t('cs.toolMove', null, 'Sposta (pan)')} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
-              <button onClick={() => setSelectMode(true)} title={t('cs.toolSelect', null, 'Seleziona (trascina)')} style={tool(selectMode)}><Icon name="check-circle" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.toolMove', null, 'Sposta (pan)')} onClick={exitSelect} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.toolSelect', null, 'Seleziona (trascina)')} onClick={() => setSelectMode(true)} style={tool(selectMode)}><Icon name="check-circle" size={16} /></button>
               {selectMode && selected.size > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#7b5bff', padding: '0 4px' }}>{selected.size}</span>}
               <span style={sep} />
-              <button onClick={() => { setKind('image'); setError('') }} title={t('cs.modeImage', null, 'Immagine')} style={tool(kind === 'image')}><Icon name="image" size={16} /></button>
-              <button onClick={() => { setKind('video'); setError('') }} title={t('cs.modeVideo', null, 'Video')} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
-              <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
-              <button onClick={() => setShowModelTryOn(true)} disabled={!refImages.some(r => r.product)} title={refImages.some(r => r.product) ? t('cs.modelTryon', null, 'Modello + capo (prodotto perfetto)') : t('cs.modelTryonNeed', null, 'Scegli prima un prodotto')} style={{ ...tool(showModelTryOn), opacity: refImages.some(r => r.product) ? 1 : 0.4, cursor: refImages.some(r => r.product) ? 'pointer' : 'not-allowed' }}><Icon name="shirt" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.modeImage', null, 'Immagine')} onClick={() => { setKind('image'); setError('') }} style={tool(kind === 'image')}><Icon name="image" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.modeVideo', null, 'Video')} onClick={() => { setKind('video'); setError('') }} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.product', null, 'Prodotto dal negozio')} onClick={openProducts} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
+              <button className="cs-tt" data-tip={refImages.some(r => r.product) ? t('cs.modelTryon', null, 'Modello + capo (prodotto perfetto)') : t('cs.modelTryonNeed', null, 'Scegli prima un prodotto')} onClick={() => setShowModelTryOn(true)} disabled={!refImages.some(r => r.product)} style={{ ...tool(showModelTryOn), opacity: refImages.some(r => r.product) ? 1 : 0.4, cursor: refImages.some(r => r.product) ? 'pointer' : 'not-allowed' }}><Icon name="shirt" size={16} /></button>
+              <button className="cs-tt" data-tip={t('cs.aiModels', null, 'Modelli AI addestrati')} onClick={() => setShowAiModels(true)} style={tool(!!activeAiModel || showAiModels)}><Icon name="star" size={16} /></button>
               <span style={sep} />
               {kind === 'video'
                 ? <select value={videoModel} onChange={e => setVideoModel(e.target.value)} style={selStyle}>{videoModels.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits}cr</option>)}</select>
                 : <select value={model} onChange={e => setModel(e.target.value)} style={selStyle}>{models.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits}cr</option>)}</select>}
-              <button onClick={cycleFormat} style={{ ...chip, ...chipOn }} title={t('cs.format', null, 'Formato')}>{FORMATS.find(f => f.id === format)?.label}</button>
+              <button className="cs-tt" data-tip={t('cs.format', null, 'Formato')} onClick={cycleFormat} style={{ ...chip, ...chipOn }}>{FORMATS.find(f => f.id === format)?.label}</button>
               {kind === 'image' && <select value={count} onChange={e => setCount(parseInt(e.target.value))} style={selStyle}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}×</option>)}</select>}
             </div>
           </div>
@@ -765,6 +769,16 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                     </div>
                   )
                 })}
+              </div>
+            )}
+            {activeAiModel && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8, padding: '6px 10px', borderRadius: 10, background: 'rgba(123,91,255,0.10)', border: '1px solid #7b5bff' }}>
+                <Icon name="star" size={14} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.aiModelActive', null, 'Modello AI attivo')}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAiModel.name}</div>
+                </div>
+                <button onClick={() => setActiveAiModel(null)} title={t('cs.aiModelRemove', null, 'Disattiva modello')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13 }}>×</button>
               </div>
             )}
             {(() => {
@@ -861,6 +875,16 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
           </div>
         )
       })()}
+
+      {/* Modelli AI addestrati (LoRA) */}
+      {showAiModels && (
+        <AiModelsModal
+          activeModelId={activeAiModel?.id}
+          onSelect={(m) => { setActiveAiModel(m); setShowAiModels(false) }}
+          onClose={() => setShowAiModels(false)}
+          onCredits={(b) => typeof b === 'number' && setBalance(b)}
+        />
+      )}
 
       {/* Modello + capo (pipeline genera modello → Try-On prodotto reale) */}
       {showModelTryOn && (
@@ -1020,6 +1044,20 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
       <style jsx>{`
         .csDot { width: 8px; height: 8px; border-radius: 50%; background: #7b5bff; display: inline-block; animation: csPulse 1s infinite; }
         @keyframes csPulse { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
+        .cs-tt { position: relative; }
+        .cs-tt::after {
+          content: attr(data-tip);
+          position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%) translateY(4px);
+          background: #0b0b12; color: #fff; font-size: 12px; font-weight: 600; font-family: Barlow;
+          padding: 6px 11px; border-radius: 9px; white-space: nowrap; pointer-events: none;
+          opacity: 0; transition: opacity .12s ease, transform .12s ease; z-index: 60;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .cs-tt::before {
+          content: ''; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(4px);
+          border: 5px solid transparent; border-top-color: #0b0b12; opacity: 0; transition: opacity .12s ease, transform .12s ease; pointer-events: none; z-index: 60;
+        }
+        .cs-tt:hover::after, .cs-tt:hover::before { opacity: 1; transform: translateX(-50%) translateY(0); }
       `}</style>
     </div>
   )

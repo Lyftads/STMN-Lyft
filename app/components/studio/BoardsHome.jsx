@@ -13,6 +13,7 @@ export default function BoardsHome({ onOpen }) {
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [menuId, setMenuId] = useState(null)
+  const [prompt, setPrompt] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -25,11 +26,27 @@ export default function BoardsHome({ onOpen }) {
 
   const createBoard = async () => {
     if (creating) return
+    const title = window.prompt(t('cs.boardNamePrompt', null, 'Nome del progetto'), '')
+    if (title == null) return // annullato
     setCreating(true)
     try {
-      const r = await fetch('/api/studio/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t('cs.boardUntitled', null, 'Senza titolo') }) })
+      const r = await fetch('/api/studio/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: (title || '').trim() || t('cs.boardUntitled', null, 'Senza titolo') }) })
       const j = await r.json()
       if (j.board) onOpen(j.board)
+    } catch {} finally { setCreating(false) }
+  }
+
+  // Crea un progetto dalla barra "Cosa vuoi creare oggi?" e apre la board con il
+  // prompt già pronto per generare.
+  const createFromPrompt = async () => {
+    if (creating) return
+    const p = prompt.trim()
+    setCreating(true)
+    try {
+      const title = p ? p.split(/\s+/).slice(0, 5).join(' ') : t('cs.boardUntitled', null, 'Senza titolo')
+      const r = await fetch('/api/studio/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+      const j = await r.json()
+      if (j.board) onOpen(j.board, p)
     } catch {} finally { setCreating(false) }
   }
 
@@ -61,10 +78,24 @@ export default function BoardsHome({ onOpen }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
           <CreativeStudioLogo size={26} />
-          <div style={{ fontSize: 20, fontWeight: 900 }}>Creative <span style={{ color: 'var(--text2,#9aa)' }}>Studio</span></div>
         </div>
 
-        <h1 style={{ textAlign: 'center', fontSize: 30, fontWeight: 900, margin: '28px 0 26px', letterSpacing: '-0.02em' }}>{t('cs.boardsHeadline', null, 'Cosa vuoi creare oggi?')}</h1>
+        <h1 style={{ textAlign: 'center', fontSize: 30, fontWeight: 900, margin: '28px 0 20px', letterSpacing: '-0.02em' }}>{t('cs.boardsHeadline', null, 'Cosa vuoi creare oggi?')}</h1>
+
+        {/* Barra crea (stile Luma): scrivi e parte un nuovo progetto */}
+        <div style={{ maxWidth: 720, margin: '0 auto 34px', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 18, padding: 16 }}>
+          <textarea
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); createFromPrompt() } }}
+            rows={2}
+            placeholder={t('cs.boardsCreatePh', null, 'Descrivi cosa vuoi creare…')}
+            style={{ width: '100%', resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 16, fontFamily: 'Barlow', lineHeight: 1.4, boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+            <button onClick={createFromPrompt} disabled={creating} style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: creating ? '#3a3a48' : 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', cursor: creating ? 'wait' : 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="send" size={16} /></button>
+          </div>
+        </div>
 
         {/* Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>

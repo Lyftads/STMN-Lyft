@@ -17,6 +17,10 @@ const json = (d, s = 200) => NextResponse.json(d, { status: s })
 // che ogni prompt eredita. Garantisce realismo alto, ottica/luce pro, zero artefatti AI.
 const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (Kive-grade): photorealistic, shot on a full-frame camera with a fast prime lens, deliberate professional lighting, crisp tack-sharp focus on the subject with natural depth of field, fine micro-detail and realistic textures, natural skin with pores (no plastic/AI look), accurate color and true-to-life materials, balanced composition, premium magazine finish. Avoid: warped anatomy, extra fingers, garbled text or logos, watermarks, lowres, oversharpening, HDR halos, cartoon or 3D-render look.'
 
+// Spina qualità per il path PRODOTTO (Kontext): nessun riferimento a pelle/persone,
+// massima fedeltà del prodotto. Evita che il modello aggiunga un soggetto umano.
+const PRODUCT_QUALITY_SPINE = 'High-end commercial product photograph (Kive-grade): photorealistic, professional studio-quality lighting, tack-sharp focus on the product, true-to-life materials and colors, premium catalogue finish. The product must stay pixel-identical to the input. Avoid: any added person or model unless already present, redesigning/recoloring/reshaping the product, garbled or altered text/logos, warped geometry, watermarks, lowres, cartoon or 3D-render look.'
+
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
 async function enhancePrompt(userPrompt, style, contextBlock, refImages = [], styleRefs = []) {
@@ -130,9 +134,16 @@ async function generateOne(model, prompt, fmt, refUrls) {
   return model.provider === 'openai' ? genOpenAI(prompt, fmt) : genFal(model, prompt, fmt)
 }
 
-// Istruzione di scena per Kontext: cambia ambiente/luce ma NON il prodotto.
+// Istruzione di scena per Kontext: cambia SOLO ambiente/luce, MAI il prodotto.
+// Il prodotto in input è l'unico soggetto e resta pixel-identico. Lo Studio/Style
+// fornisce solo sfondo, superficie e illuminazione: qualunque "soggetto umano"
+// descritto nello Style va IGNORATO (no persone aggiunte).
 async function buildKontextInstruction(userPrompt, style, contextBlock) {
-  if (!OPENAI_KEY) return [`Place the exact product from the input image into this scene: ${style || userPrompt || 'a clean premium commercial set'}`, 'Keep the product identical — same shape, colors, materials, logos and proportions.', QUALITY_SPINE].filter(Boolean).join('. ')
+  const hardRules = 'Keep the product 100% identical to the input image: exact same geometry, proportions, colors, materials, finish, label, text and logos — do NOT redesign, recolor, reshape, relabel or stylize it. The product is the ONLY subject: do not add any person, model, hand or mannequin (unless already present in the input). Only change the surrounding background, surface and lighting.'
+  if (!OPENAI_KEY) {
+    const env = style || userPrompt || 'a clean premium commercial set'
+    return [`Place the exact product from the input image into a new commercial scene. Environment, surface and lighting (use ONLY the setting and light from this, ignore any human subject it mentions): ${env}.`, hardRules, PRODUCT_QUALITY_SPINE].filter(Boolean).join(' ')
+  }
   try {
     const ctx = contextBlock ? `\n\nBRAND CONTEXT:\n${contextBlock}` : ''
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -141,17 +152,21 @@ async function buildKontextInstruction(userPrompt, style, contextBlock) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `You write ONE detailed English editing instruction for a high-end image model that places the EXACT product shown in the input image into a new scene, with campaign quality comparable to Kive. Describe the background/set, surface, the precise lighting setup, camera angle, mood and composition for a premium commercial shot. When a Style is provided, treat it as the AUTHORITATIVE art direction for the new scene. CRUCIAL: explicitly state to keep the product identical — same shape, colors, materials, logos, text and proportions — do not redesign or alter it. End the instruction by appending these quality requirements verbatim: "${QUALITY_SPINE}" Output only the instruction.` },
-          { role: 'user', content: `Scene wanted: ${userPrompt || 'clean premium commercial scene'}\nStyle: ${style || 'commercial product photography'}${ctx}` },
+          { role: 'system', content: `You write ONE detailed English editing instruction for FLUX Kontext that keeps the EXACT product from the input image and only changes the scene around it, with campaign quality comparable to Kive.
+Use the provided Style/Environment ONLY for the background, surface, set and lighting — if it describes a human subject, model, portrait or fashion person, IGNORE that entirely; there must be NO added people. The product shown in the input is the sole subject.
+Describe the new background, the surface the product sits on, the precise lighting setup and mood that match the environment.
+ABSOLUTE RULES (state them explicitly in the instruction): ${hardRules}
+End the instruction by appending these quality requirements verbatim: "${PRODUCT_QUALITY_SPINE}" Output only the instruction.` },
+          { role: 'user', content: `Product scene wanted: ${userPrompt || 'clean premium commercial scene'}\nEnvironment/Style (background & lighting only): ${style || 'commercial product photography studio'}${ctx}` },
         ],
-        temperature: 0.6, max_tokens: 360,
+        temperature: 0.45, max_tokens: 380,
       }),
       signal: AbortSignal.timeout(20000),
     })
-    if (!res.ok) return userPrompt
+    if (!res.ok) return [userPrompt, hardRules].filter(Boolean).join(' ')
     const d = await res.json()
-    return d.choices?.[0]?.message?.content?.trim() || userPrompt
-  } catch { return userPrompt }
+    return d.choices?.[0]?.message?.content?.trim() || [userPrompt, hardRules].filter(Boolean).join(' ')
+  } catch { return [userPrompt, hardRules].filter(Boolean).join(' ') }
 }
 
 export async function POST(req) {

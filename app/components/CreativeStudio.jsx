@@ -702,13 +702,15 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                 </div>
               )
             })()}
-            {stylePresets.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                {stylePresets.map(s => (
-                  <button key={s.id} onClick={() => setActiveStyle(activeStyle === s.id ? null : s.id)} style={{ ...chip, ...(activeStyle === s.id ? chipOn : {}), padding: '5px 10px', fontSize: 11.5 }}>{s.label}</button>
-                ))}
-              </div>
-            )}
+            {activeStyle && (() => {
+              const sp = stylePresets.find(s => s.id === activeStyle)
+              if (!sp) return null
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <button onClick={() => setActiveStyle(null)} style={{ ...chip, ...chipOn, padding: '5px 10px', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{sp.label} <span style={{ opacity: 0.8 }}>×</span></button>
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 12, padding: 8 }}>
               <textarea ref={taRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown} rows={2} placeholder={placeholder} style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 13.5, fontFamily: 'Barlow', lineHeight: 1.4 }} />
             </div>
@@ -857,6 +859,16 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                     <button key={c.id} onClick={() => setStudioCat(c.id)} style={{ ...chip, ...(studioCat === c.id ? chipOn : {}), padding: '5px 11px', fontSize: 11.5 }}>{c.label}</button>
                   ))}
                 </div>
+                {stylePresets.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 6 }}>{t('cs.styleLook', null, 'Stile / Look')}</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {stylePresets.map(s => (
+                        <button key={s.id} onClick={() => setActiveStyle(activeStyle === s.id ? null : s.id)} style={{ ...chip, ...(activeStyle === s.id ? chipOn : {}), padding: '5px 11px', fontSize: 11.5 }}>{s.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               {/* Griglia preview */}
               <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignContent: 'start' }}>

@@ -17,9 +17,9 @@ const json = (d, s = 200) => NextResponse.json(d, { status: s })
 // che ogni prompt eredita. Garantisce realismo alto, ottica/luce pro, zero artefatti AI.
 const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (Kive-grade): photorealistic, shot on a full-frame camera with a fast prime lens, deliberate professional lighting, crisp tack-sharp focus on the subject with natural depth of field, fine micro-detail and realistic textures, natural skin with pores (no plastic/AI look), accurate color and true-to-life materials, balanced composition, premium magazine finish. Avoid: warped anatomy, extra fingers, garbled text or logos, watermarks, lowres, oversharpening, HDR halos, cartoon or 3D-render look.'
 
-// Spina qualità per il path PRODOTTO (Kontext): nessun riferimento a pelle/persone,
-// massima fedeltà del prodotto. Evita che il modello aggiunga un soggetto umano.
-const PRODUCT_QUALITY_SPINE = 'High-end commercial product photograph (Kive-grade): photorealistic, professional studio-quality lighting, tack-sharp focus on the product, true-to-life materials and colors, premium catalogue finish. The product must stay pixel-identical to the input. Avoid: any added person or model unless already present, redesigning/recoloring/reshaping the product, garbled or altered text/logos, warped geometry, watermarks, lowres, cartoon or 3D-render look.'
+// Spina qualità per il path PRODOTTO (Kontext): fedeltà assoluta del prodotto.
+// Il modello umano/scena vanno renderizzati SE descritti, ma il prodotto resta identico.
+const PRODUCT_QUALITY_SPINE = 'High-end commercial/editorial photograph (Kive-grade): photorealistic, professional lighting, tack-sharp, true-to-life materials and colors, natural skin texture when a person is present, premium finish. The featured product must stay pixel-identical to the input image. Avoid: redesigning/recoloring/reshaping/relabeling the product, garbled or altered text/logos on the product, warped geometry, watermarks, lowres, cartoon or 3D-render look.'
 
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
@@ -134,15 +134,15 @@ async function generateOne(model, prompt, fmt, refUrls) {
   return model.provider === 'openai' ? genOpenAI(prompt, fmt) : genFal(model, prompt, fmt)
 }
 
-// Istruzione di scena per Kontext: cambia SOLO ambiente/luce, MAI il prodotto.
-// Il prodotto in input è l'unico soggetto e resta pixel-identico. Lo Studio/Style
-// fornisce solo sfondo, superficie e illuminazione: qualunque "soggetto umano"
-// descritto nello Style va IGNORATO (no persone aggiunte).
+// Istruzione di scena per Kontext. INVARIANTE: il prodotto in input resta
+// pixel-identico. Modello/persona e scena vanno RIPRODOTTI se descritti nel
+// prompt (o impliciti nell'ambiente): la persona indossa/usa il prodotto in modo
+// naturale, ma il prodotto non cambia mai. Se nessuno è descritto → product shot pulito.
 async function buildKontextInstruction(userPrompt, style, contextBlock) {
-  const hardRules = 'Keep the product 100% identical to the input image: exact same geometry, proportions, colors, materials, finish, label, text and logos — do NOT redesign, recolor, reshape, relabel or stylize it. The product is the ONLY subject: do not add any person, model, hand or mannequin (unless already present in the input). Only change the surrounding background, surface and lighting.'
+  const hardRules = 'The featured product from the input image must remain 100% identical: exact same geometry, proportions, colors, materials, finish, print, label, text and logos — never redesign, recolor, reshape, relabel or restyle the product itself. If the request or environment describes a person/model (appearance, outfit, pose, location), render that person faithfully and have them wear/hold/use the product naturally at correct scale, perspective and lighting — but the product stays pixel-identical. If no person is described, keep it a clean product shot without adding random people.'
   if (!OPENAI_KEY) {
-    const env = style || userPrompt || 'a clean premium commercial set'
-    return [`Place the exact product from the input image into a new commercial scene. Environment, surface and lighting (use ONLY the setting and light from this, ignore any human subject it mentions): ${env}.`, hardRules, PRODUCT_QUALITY_SPINE].filter(Boolean).join(' ')
+    const scene = [userPrompt, style].filter(Boolean).join('. ') || 'a clean premium commercial set'
+    return [`Edit the input image into this scene: ${scene}.`, hardRules, PRODUCT_QUALITY_SPINE].filter(Boolean).join(' ')
   }
   try {
     const ctx = contextBlock ? `\n\nBRAND CONTEXT:\n${contextBlock}` : ''
@@ -152,14 +152,15 @@ async function buildKontextInstruction(userPrompt, style, contextBlock) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `You write ONE detailed English editing instruction for FLUX Kontext that keeps the EXACT product from the input image and only changes the scene around it, with campaign quality comparable to Kive.
-Use the provided Style/Environment ONLY for the background, surface, set and lighting — if it describes a human subject, model, portrait or fashion person, IGNORE that entirely; there must be NO added people. The product shown in the input is the sole subject.
-Describe the new background, the surface the product sits on, the precise lighting setup and mood that match the environment.
+          { role: 'system', content: `You write ONE detailed English editing instruction for FLUX Kontext, with campaign quality comparable to Kive.
+The single hard invariant: the featured product from the input image stays pixel-identical (never redesign, recolor, reshape, relabel or restyle it).
+Everything else follows the request and environment: if the user describes a model/person (their look, outfit, pose) and/or a location, faithfully render that person and scene, and place the product naturally worn/held/used by them at correct scale, perspective and integrated lighting. If a portrait-style environment is given, you may include a fitting model. If no person is described or implied, keep it a clean product still-life — do NOT invent a random person.
+Describe the subject (if any), the outfit/styling, the setting/background, surface and the precise lighting.
 ABSOLUTE RULES (state them explicitly in the instruction): ${hardRules}
 End the instruction by appending these quality requirements verbatim: "${PRODUCT_QUALITY_SPINE}" Output only the instruction.` },
-          { role: 'user', content: `Product scene wanted: ${userPrompt || 'clean premium commercial scene'}\nEnvironment/Style (background & lighting only): ${style || 'commercial product photography studio'}${ctx}` },
+          { role: 'user', content: `Request: ${userPrompt || 'clean premium commercial product scene'}\nEnvironment/Style: ${style || 'commercial product photography studio'}${ctx}` },
         ],
-        temperature: 0.45, max_tokens: 380,
+        temperature: 0.55, max_tokens: 400,
       }),
       signal: AbortSignal.timeout(20000),
     })

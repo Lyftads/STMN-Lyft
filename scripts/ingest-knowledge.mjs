@@ -202,7 +202,7 @@ async function ytSubtitles(url, tag) {
   const base = path.join(TMP, tag)
   try {
     await exec('yt-dlp', ['--skip-download', '--write-auto-subs', '--write-subs',
-      '--sub-langs', 'it.*,en.*', '--sub-format', 'vtt', '-o', base, url], { maxBuffer: 1 << 26 })
+      '--sub-langs', 'it.*,en.*', '--sub-format', 'vtt', '-o', base, url], { maxBuffer: 1 << 26, timeout: 5 * 60_000, killSignal: 'SIGKILL' })
   } catch {}
   const vtt = fs.readdirSync(TMP).find(f => f.startsWith(path.basename(tag)) && f.endsWith('.vtt'))
   if (!vtt) return null
@@ -215,7 +215,10 @@ async function ytSubtitles(url, tag) {
 
 async function ytAudio(url, tag) {
   const out = path.join(TMP, `${tag}.m4a`)
-  await exec('yt-dlp', ['-f', 'bestaudio', '-x', '--audio-format', 'm4a', '-o', out, url], { maxBuffer: 1 << 26 })
+  // timeout 15 min: un download yt-dlp appeso (video enormi 2h+ o connessione
+  // stallata) non deve bloccare il job all'infinito. Se sfora → SIGKILL → la
+  // catch del chiamante logga "errore" e passa al video successivo.
+  await exec('yt-dlp', ['-f', 'bestaudio', '-x', '--audio-format', 'm4a', '-o', out, url], { maxBuffer: 1 << 26, timeout: 15 * 60_000, killSignal: 'SIGKILL' })
   return out
 }
 
@@ -231,7 +234,7 @@ async function expandSources(rawList, { maxVideos, maxLives }) {
   const videos = [], lives = []
   const listTab = async (base, tab, n) => {
     try {
-      const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(n), `${base}/${tab}`], { maxBuffer: 1 << 26 })
+      const { stdout } = await exec('yt-dlp', ['--flat-playlist', '--print', 'url', '--playlist-end', String(n), `${base}/${tab}`], { maxBuffer: 1 << 26, timeout: 3 * 60_000, killSignal: 'SIGKILL' })
       return stdout.split('\n').map(s => s.trim()).filter(Boolean)
     } catch (e) { warn(`  no ${tab} ${base}: ${e.message.slice(0, 60)}`); return [] }
   }

@@ -5,7 +5,8 @@ import Icon from './ui/Icon'
 import CreativeStudioLogo from './ui/CreativeStudioLogo'
 import AdComposer from './studio/AdComposer'
 import TryOnModal from './studio/TryOnModal'
-import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST } from '../../lib/studio/models'
+import MaskEditor from './studio/MaskEditor'
+import { UPSCALE_OPTIONS as UPSCALES, RELIGHT_CREDITS as RELIGHT_COST, CAMERA_ANGLES, RECIPES } from '../../lib/studio/models'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
@@ -67,6 +68,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [editInstr, setEditInstr] = useState('')
   const [editing, setEditing] = useState(false)
   const [relightInstr, setRelightInstr] = useState('')
+  const [maskEdit, setMaskEdit] = useState(null)   // url immagine in inpainting
+  const [recipe, setRecipe] = useState(null)        // { label, done, total } | null
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [batchInstr, setBatchInstr] = useState('')
@@ -407,6 +410,48 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     else if (res.error && res.error !== 'insufficient') setError(res.error)
   }
 
+  // Inpainting con maschera (Weave-style) — chiamato dal MaskEditor.
+  const doInpaint = async ({ maskUrl, prompt }) => {
+    if (!maskEdit || editing) return
+    setEditing(true); setError('')
+    const res = await applyEnhance({ imageUrl: maskEdit, mode: 'inpaint', prompt, maskUrl, srcFormat: lightbox?.format })
+    setEditing(false)
+    if (res.ok) { setMaskEdit(null); setLightbox(res.item) }
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
+  // Camera angle: stessa scena, nuovo angolo (via edit Kontext).
+  const doLightboxCamera = async (angle) => {
+    if (!lightbox || editing) return
+    setEditing(true); setError('')
+    const instr = `${angle.instr}; keep the exact same subject, product, materials, colors and scene identical, only change the camera angle`
+    const res = await applyEdit({ imageUrl: lightbox.url, mode: 'edit', instruction: instr, srcFormat: lightbox.format })
+    setEditing(false)
+    if (res.ok) setLightbox(res.item)
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
+  // Recipe (Weave-style): incatena operazioni su un'immagine, passando il
+  // risultato di ogni step al successivo.
+  const runRecipe = async (rec) => {
+    if (!lightbox || recipe || editing) return
+    const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
+    setError(''); setRecipe({ label: rec.label, done: 0, total: rec.steps.length })
+    let cur = lightbox
+    for (let i = 0; i < rec.steps.length; i++) {
+      const st = rec.steps[i]
+      let res
+      if (st.op === 'upscale') res = await applyEnhance({ imageUrl: cur.url, mode: 'upscale', scale: st.scale, srcFormat: cur.format })
+      else if (st.op === 'relight') res = await applyEnhance({ imageUrl: cur.url, mode: 'relight', prompt: (st.useStudio && studioStr) || st.prompt, srcFormat: cur.format })
+      else if (st.op === 'reframe') res = await applyEdit({ imageUrl: cur.url, mode: 'reframe', format: st.format, srcFormat: cur.format })
+      if (!res?.ok) { if (res?.error && res.error !== 'insufficient') setError(res.error); setRecipe(null); return }
+      cur = res.item
+      setRecipe({ label: rec.label, done: i + 1, total: rec.steps.length })
+      setLightbox(cur)
+    }
+    setRecipe(null)
+  }
+
   const doLightboxEdit = async (mode, format) => {
     if (!lightbox || editing) return
     if (mode === 'edit' && !editInstr.trim()) return
@@ -689,6 +734,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         <TryOnModal garmentImage={tryOn} onClose={() => setTryOn(null)} onSaved={(it) => setItems(prev => [it, ...prev])} onCredits={(b) => typeof b === 'number' && setBalance(b)} />
       )}
 
+      {/* Inpainting con maschera (Weave-style) */}
+      {maskEdit && (
+        <MaskEditor imageUrl={maskEdit} busy={editing} onApply={doInpaint} onClose={() => setMaskEdit(null)} />
+      )}
+
       {/* Lightbox: apri immagine + edit testuale + reframe */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={modalBg}>
@@ -722,6 +772,29 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '8px 0 6px' }}>{t('cs.relight', null, 'Relight — illuminazione')}</div>
               <textarea value={relightInstr} onChange={e => setRelightInstr(e.target.value)} rows={2} placeholder={activeStudio ? t('cs.relightStudioPh', { name: studioPresets.find(s => s.id === activeStudio)?.label }, `Vuoto = usa la luce dello Studio "${studioPresets.find(s => s.id === activeStudio)?.label}"`) : t('cs.relightPh', null, 'Es: luce calda da sinistra al tramonto, ombre morbide…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={doLightboxRelight} disabled={editing || (!relightInstr.trim() && !activeStudio)} style={{ ...miniBtn, opacity: editing || (!relightInstr.trim() && !activeStudio) ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="bulb" size={13} /> {editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.relightApply', null, 'Riaccendi')} · ${RELIGHT_COST} cr`}</button>
+
+              {/* Inpainting con maschera (Weave-style) */}
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.inpaint', null, 'Inpainting — maschera')}</div>
+              <button onClick={() => setMaskEdit(lightbox.url)} disabled={editing} style={{ ...miniBtn, opacity: editing ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="edit" size={13} /> {t('cs.inpaintOpen', null, 'Dipingi e rigenera area')} · 3 cr</button>
+
+              {/* Camera angle (Weave-style) */}
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.cameraAngle', null, 'Angolo camera')}</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                {CAMERA_ANGLES.map(a => <button key={a.id} onClick={() => doLightboxCamera(a)} disabled={editing} style={{ ...chip, opacity: editing ? 0.5 : 1 }}>{a.label}</button>)}
+              </div>
+
+              {/* Recipes (Weave-style workflow 1-click) */}
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.recipes', null, 'Recipe — 1 click')}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {RECIPES.map(r => (
+                  <button key={r.id} onClick={() => runRecipe(r)} disabled={!!recipe || editing} style={{ ...chip, opacity: recipe || editing ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left' }}>
+                    <Icon name="bolt" size={12} />
+                    <span style={{ fontWeight: 800, color: '#fff' }}>{r.label}</span>
+                    <span style={{ fontSize: 10.5, color: 'var(--text2,#9aa)' }}>{r.desc}</span>
+                    {recipe?.label === r.label && <span style={{ marginLeft: 'auto', color: '#7b5bff', fontWeight: 800 }}>{recipe.done}/{recipe.total}</span>}
+                  </button>
+                ))}
+              </div>
 
               <div style={{ flex: 1 }} />
               <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>

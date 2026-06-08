@@ -18,7 +18,10 @@ export async function GET(request) {
       if (!res.ok) return NextResponse.json({ products: [] })
       const data = await res.json()
       const products = (data.products || [])
-        .map(p => ({ id: p.id, title: p.title, image: p.image?.src || p.images?.[0]?.src || '', price: parseFloat(p.variants?.[0]?.price) || 0 }))
+        .map(p => {
+          const images = (p.images || []).map(i => i.src).filter(Boolean)
+          return { id: p.id, title: p.title, image: p.image?.src || images[0] || '', images, price: parseFloat(p.variants?.[0]?.price) || 0 }
+        })
         .filter(p => p.title && p.image)
       return NextResponse.json({ products })
     } catch {

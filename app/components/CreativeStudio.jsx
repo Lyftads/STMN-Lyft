@@ -261,7 +261,9 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     }
   }
   const pickProduct = (p) => {
-    setRefImages(prev => [...prev.filter(r => !r.product), { url: p.image, name: p.title, product: true }].slice(0, 3))
+    // Prende TUTTE le foto del prodotto (più angoli = più fedeltà col multi-Kontext)
+    const imgs = (p.images && p.images.length ? p.images : [p.image]).filter(Boolean).slice(0, 4)
+    setRefImages(imgs.map((u, i) => ({ url: u, name: p.title, product: true })))
     setKind('image'); setModel('flux-kontext') // fedeltà prodotto (Kontext)
     if (!input.trim()) setInput(t('cs.productPrompt', { name: p.title }, `Scatto prodotto di ${p.title}`))
     setShowProducts(false)

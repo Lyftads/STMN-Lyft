@@ -91,15 +91,20 @@ async function genOpenAI(prompt, fmt) {
   } catch (e) { return { error: e.message } }
 }
 
-// FLUX Kontext: inserisce il PRODOTTO REALE (image_url) nella scena descritta,
-// mantenendolo pixel-identico (fedeltà tipo Kive). instruction = scena.
-async function genKontext(model, instruction, imageUrl) {
+// FLUX Kontext: inserisce il PRODOTTO REALE nella scena descritta mantenendolo
+// pixel-identico (fedeltà tipo Kive). Con PIÙ foto del prodotto usa l'endpoint
+// multi-immagine (più angoli = più precisione). instruction = scena.
+async function genKontext(model, instruction, refUrls) {
   if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
+  const urls = (refUrls || []).filter(Boolean).slice(0, 4)
+  const multi = urls.length > 1 && model.falModelMulti
+  const endpoint = multi ? model.falModelMulti : model.falModel
+  const body = multi ? { prompt: instruction, image_urls: urls } : { prompt: instruction, image_url: urls[0] }
   try {
-    const res = await fetch(`https://fal.run/${model.falModel}`, {
+    const res = await fetch(`https://fal.run/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Key ${FAL_KEY}` },
-      body: JSON.stringify({ prompt: instruction, image_url: imageUrl }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(180000),
     })
     if (!res.ok) return { error: `${model.name} ${res.status}: ${(await res.text()).slice(0, 180)}` }
@@ -109,8 +114,8 @@ async function genKontext(model, instruction, imageUrl) {
   } catch (e) { return { error: e.message } }
 }
 
-async function generateOne(model, prompt, fmt, refUrl) {
-  if (model.provider === 'fal-kontext') return genKontext(model, prompt, refUrl)
+async function generateOne(model, prompt, fmt, refUrls) {
+  if (model.provider === 'fal-kontext') return genKontext(model, prompt, refUrls)
   return model.provider === 'openai' ? genOpenAI(prompt, fmt) : genFal(model, prompt, fmt)
 }
 
@@ -149,10 +154,9 @@ export async function POST(req) {
   const refList = Array.isArray(body?.refImages) ? body.refImages.filter(Boolean) : []
   const model = getImageModel(body?.model) || getImageModel('flux-pro')
   const isKontext = model.provider === 'fal-kontext'
-  const refUrl = refList[0] || null
 
   // Kontext richiede l'immagine del prodotto; gli altri richiedono una descrizione.
-  if (isKontext && !refUrl) return json({ error: 'Per "Prodotto fedele" seleziona un prodotto o allega un\'immagine.' }, 400)
+  if (isKontext && !refList.length) return json({ error: 'Per "Prodotto fedele" seleziona un prodotto o allega un\'immagine.' }, 400)
   if (!isKontext && !rawPrompt) return json({ error: 'Descrivi cosa vuoi generare' }, 400)
 
   const fmt = getFormat(body?.format)
@@ -185,7 +189,7 @@ export async function POST(req) {
   }
   const results = []
   for (let i = 0; i < count; i++) {
-    results.push(await generateOne(model, prompt, fmt, refUrl))
+    results.push(await generateOne(model, prompt, fmt, refList))
   }
 
   // 3) Rimborsa la quota fallita

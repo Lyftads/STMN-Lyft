@@ -50,8 +50,8 @@ async function enhancePrompt(userPrompt, style, contextBlock, refImages = []) {
 
 async function genFal(model, prompt, fmt) {
   if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
-  const aspect = fmt.id === 'vertical' ? '9:16' : fmt.id === 'landscape' ? '16:9' : '1:1'
-  const body = model.id === 'imagen-4'
+  const aspect = fmt.id === 'vertical' ? '9:16' : fmt.id === 'landscape' ? '16:9' : fmt.id === 'portrait' ? '4:5' : '1:1'
+  const body = model.useAspect
     ? { prompt, aspect_ratio: aspect }
     : { prompt, image_size: fmt.falSize, num_images: 1 }
   try {

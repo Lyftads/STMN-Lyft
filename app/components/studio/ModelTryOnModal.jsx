@@ -15,8 +15,11 @@ const CATS = [
   { id: 'one-pieces', label: 'Intero' },
 ]
 
-export default function ModelTryOnModal({ garmentImage, initialPrompt = '', studioPrompt = '', onClose, onSaved, onCredits }) {
+export default function ModelTryOnModal({ garmentImages = [], initialPrompt = '', studioPrompt = '', onClose, onSaved, onCredits }) {
   const { t } = useI18n()
+  const imgs = (Array.isArray(garmentImages) ? garmentImages : [garmentImages]).filter(Boolean)
+  const [garmentIdx, setGarmentIdx] = useState(0)
+  const garmentImage = imgs[garmentIdx] || imgs[0]
   const [prompt, setPrompt] = useState(initialPrompt)
   const [category, setCategory] = useState('auto')
   const [step, setStep] = useState('idle') // idle | model | tryon
@@ -79,6 +82,15 @@ export default function ModelTryOnModal({ garmentImage, initialPrompt = '', stud
           <div>
             <div style={lab}>{t('cs.tryonGarment', null, 'Prodotto')}</div>
             <div style={box}>{garmentImage ? <img src={garmentImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ color: 'var(--text3,#888)', fontSize: 12 }}>—</span>}</div>
+            {imgs.length > 1 && (
+              <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                {imgs.map((u, i) => (
+                  <button key={i} onClick={() => setGarmentIdx(i)} title={t('cs.mtoPickFront', null, 'Usa questa foto (scegli il fronte)')} style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', padding: 0, cursor: 'pointer', border: i === garmentIdx ? '2px solid #7b5bff' : '1px solid var(--border)', background: '#000' }}>
+                    <img src={u} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <div style={lab}>{t('cs.mtoModel', null, 'Modello generato')}</div>

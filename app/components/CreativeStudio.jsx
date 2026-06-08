@@ -26,6 +26,11 @@ let _mid = 0
 const nextId = () => `m${Date.now()}_${_mid++}`
 const clampZoom = (z) => Math.min(3, Math.max(0.2, z))
 
+// Euristica multilingua: il prompt descrive una persona/modello? Serve a
+// instradare automaticamente i prodotti "indossati" sulla pipeline Modello+Try-On.
+const PERSON_RE = /\b(uomo|donna|ragazz\w*|model\w*|modell\w*|persona|atlet\w*|indoss\w*|lui|lei|barb\w*|capell\w*|man|woman|men|women|girl|boy|guy|lady|person|people|athlete|wearing|wears|model|hair|beard|pose|posa)\b/i
+const describesPerson = (text) => !!text && PERSON_RE.test(text)
+
 export default function CreativeStudio({ standalone = false, onNavigate }) {
   const { t, intlLocale } = useI18n()
   const [balance, setBalance] = useState(null)
@@ -244,6 +249,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     const presetStr = stylePresets.find(s => s.id === activeStyle)?.prompt
     // L'ambiente Studio guida la scena (ha priorità), lo stile rifinisce il mood.
     const styleStr = [studioStr, presetStr].filter(Boolean).join('. ') || undefined
+    // Auto-routing "indossato": prodotto selezionato + prompt che descrive una
+    // persona (o Studio ritratto) → pipeline Modello + Try-On (stampa fedele).
+    const productImgs = refImages.filter(r => r.product).map(r => r.url).filter(Boolean)
+    const activeStudioObj = studioPresets.find(s => s.id === activeStudio)
+    const wearScenario = kind === 'image' && productImgs.length > 0 && (describesPerson(text) || activeStudioObj?.category === 'portrait')
     setBusy(true); setError('')
     const studioLabel = studioPresets.find(s => s.id === activeStudio)?.label
     const userMsgText = text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : studioLabel ? t('cs.studioGenReq', { name: studioLabel }, `Genera nell'ambiente "${studioLabel}"`) : '')
@@ -253,6 +263,27 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     setMessages(prev => [...prev, { id: aId, role: 'assistant', pending: true, text: kind === 'video' ? t('cs.videoBusy', null, 'Genero il video… 1-3 minuti') : t('cs.generating', null, 'Genero…') }])
 
     try {
+      // ── Pipeline automatica Modello + capo (Try-On) ──
+      if (wearScenario) {
+        patchMsg(aId, { text: t('cs.mtoStep1', null, '1/2 · Genero il modello…') })
+        const modelPrompt = [text, studioStr, 'full-body fashion model, wearing a plain neutral t-shirt, clear front view, natural pose'].filter(Boolean).join('. ')
+        const mr = await fetch('/api/studio/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: modelPrompt, model: 'seedream-4', format: 'portrait', count: 1 }) })
+        const mj = await mr.json()
+        if (mr.status === 402 || mj.error === 'insufficient_credits') { setBalance(mj.balance ?? balance); setShowRecharge(true); patchMsg(aId, { pending: false, error: true, text: t('cs.insufficient', null, 'Crediti insufficienti.') }); return }
+        if (!mr.ok || !mj.images?.[0]?.url) { patchMsg(aId, { pending: false, error: true, text: mj.error || t('cs.genFail', null, 'Generazione fallita.') }); if (typeof mj.balance === 'number') setBalance(mj.balance); return }
+        if (typeof mj.balance === 'number') setBalance(mj.balance)
+        const modelUrl = mj.images[0].url
+        patchMsg(aId, { text: t('cs.mtoStep2', null, '2/2 · Applico il prodotto…') })
+        const tr = await fetch('/api/studio/tryon', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelImage: modelUrl, garmentImage: productImgs[0], category: 'auto' }) })
+        const tj = await tr.json()
+        if (tr.status === 402 || tj.error === 'insufficient_credits') { setBalance(tj.balance ?? balance); setShowRecharge(true); patchMsg(aId, { pending: false, error: true, text: t('cs.insufficient', null, 'Crediti insufficienti.') }); return }
+        if (!tr.ok || !tj.image?.url) { patchMsg(aId, { pending: false, error: true, text: tj.error || t('cs.genFail', null, 'Generazione fallita.') }); if (typeof tj.balance === 'number') setBalance(tj.balance); return }
+        const it = { type: 'image', url: tj.image.url, modelName: 'Modello + capo', prompt: text, format: 'portrait' }
+        setItems(prev => [it, ...prev])
+        if (typeof tj.balance === 'number') setBalance(tj.balance)
+        patchMsg(aId, { pending: false, text: t('cs.replyModelGarment', null, 'Ecco il modello con il prodotto applicato (stampa fedele).'), media: [{ type: 'image', url: it.url }] })
+        return
+      }
       if (kind === 'video') {
         const r = await fetch('/api/studio/generate-video', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -747,7 +778,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       {/* Modello + capo (pipeline genera modello → Try-On prodotto reale) */}
       {showModelTryOn && (
         <ModelTryOnModal
-          garmentImage={(refImages.find(r => r.product) || {}).url}
+          garmentImages={refImages.filter(r => r.product).map(r => r.url).filter(Boolean)}
           initialPrompt={input}
           studioPrompt={studioPresets.find(s => s.id === activeStudio)?.prompt || ''}
           onClose={() => setShowModelTryOn(false)}
@@ -763,7 +794,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
             <div style={{ flex: '1 1 340px', minWidth: 280, display: 'grid', placeItems: 'center', background: '#000', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh', position: 'sticky', top: 0 }}>
               <img src={lightbox.url} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', display: 'block' }} />
             </div>
-            <div style={{ flex: '1 1 280px', minWidth: 260, display: 'flex', flexDirection: 'column', maxHeight: 'calc(92vh - 32px)', overflowY: 'auto', paddingRight: 4 }}>
+            <div style={{ flex: '1 1 280px', minWidth: 260, display: 'block', maxHeight: 'calc(92vh - 32px)', overflowY: 'auto', paddingRight: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{t('cs.editTitle', null, 'Modifica immagine')}</div>
                 <button onClick={() => setLightbox(null)} style={xBtn}>×</button>

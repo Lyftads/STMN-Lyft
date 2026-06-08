@@ -91,8 +91,51 @@ async function genOpenAI(prompt, fmt) {
   } catch (e) { return { error: e.message } }
 }
 
-async function generateOne(model, prompt, fmt) {
+// FLUX Kontext: inserisce il PRODOTTO REALE (image_url) nella scena descritta,
+// mantenendolo pixel-identico (fedeltà tipo Kive). instruction = scena.
+async function genKontext(model, instruction, imageUrl) {
+  if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
+  try {
+    const res = await fetch(`https://fal.run/${model.falModel}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Key ${FAL_KEY}` },
+      body: JSON.stringify({ prompt: instruction, image_url: imageUrl }),
+      signal: AbortSignal.timeout(180000),
+    })
+    if (!res.ok) return { error: `${model.name} ${res.status}: ${(await res.text()).slice(0, 180)}` }
+    const d = await res.json()
+    const url = d.images?.[0]?.url || d.image?.url || null
+    return url ? { url } : { error: `${model.name}: nessuna immagine` }
+  } catch (e) { return { error: e.message } }
+}
+
+async function generateOne(model, prompt, fmt, refUrl) {
+  if (model.provider === 'fal-kontext') return genKontext(model, prompt, refUrl)
   return model.provider === 'openai' ? genOpenAI(prompt, fmt) : genFal(model, prompt, fmt)
+}
+
+// Istruzione di scena per Kontext: cambia ambiente/luce ma NON il prodotto.
+async function buildKontextInstruction(userPrompt, style, contextBlock) {
+  if (!OPENAI_KEY) return userPrompt
+  try {
+    const ctx = contextBlock ? `\n\nBRAND CONTEXT:\n${contextBlock}` : ''
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You write ONE concise English editing instruction for an image model that places the EXACT product shown in the input image into a new scene. Describe the background, surface, lighting, mood and composition for a commercial shot. CRUCIAL: explicitly state to keep the product identical — same shape, colors, materials, logos and proportions — do not redesign or alter it. Output only the instruction.' },
+          { role: 'user', content: `Scene wanted: ${userPrompt || 'clean premium commercial scene'}\nStyle: ${style || 'commercial product photography'}${ctx}` },
+        ],
+        temperature: 0.6, max_tokens: 200,
+      }),
+      signal: AbortSignal.timeout(20000),
+    })
+    if (!res.ok) return userPrompt
+    const d = await res.json()
+    return d.choices?.[0]?.message?.content?.trim() || userPrompt
+  } catch { return userPrompt }
 }
 
 export async function POST(req) {
@@ -103,9 +146,15 @@ export async function POST(req) {
   try { body = await req.json() } catch { return json({ error: 'Body non valido' }, 400) }
 
   const rawPrompt = (body?.prompt || '').trim()
-  if (!rawPrompt) return json({ error: 'Descrivi cosa vuoi generare' }, 400)
-
+  const refList = Array.isArray(body?.refImages) ? body.refImages.filter(Boolean) : []
   const model = getImageModel(body?.model) || getImageModel('flux-pro')
+  const isKontext = model.provider === 'fal-kontext'
+  const refUrl = refList[0] || null
+
+  // Kontext richiede l'immagine del prodotto; gli altri richiedono una descrizione.
+  if (isKontext && !refUrl) return json({ error: 'Per "Prodotto fedele" seleziona un prodotto o allega un\'immagine.' }, 400)
+  if (!isKontext && !rawPrompt) return json({ error: 'Descrivi cosa vuoi generare' }, 400)
+
   const fmt = getFormat(body?.format)
   const count = Math.min(4, Math.max(1, parseInt(body?.count || '1')))
   const cost = model.credits * count
@@ -128,11 +177,15 @@ export async function POST(req) {
     const cookie = req.headers.get('cookie') || ''
     let contextBlock = ''
     try { contextBlock = (await buildStudioContext({ origin, cookie })).contextBlock } catch {}
-    prompt = await enhancePrompt(rawPrompt, body?.style, contextBlock, Array.isArray(body?.refImages) ? body.refImages : [])
+    prompt = isKontext
+      ? await buildKontextInstruction(rawPrompt, body?.style, contextBlock)
+      : await enhancePrompt(rawPrompt, body?.style, contextBlock, refList)
+  } else if (isKontext && !prompt) {
+    prompt = 'Place the product in a clean premium commercial scene; keep the product identical.'
   }
   const results = []
   for (let i = 0; i < count; i++) {
-    results.push(await generateOne(model, prompt, fmt))
+    results.push(await generateOne(model, prompt, fmt, refUrl))
   }
 
   // 3) Rimborsa la quota fallita

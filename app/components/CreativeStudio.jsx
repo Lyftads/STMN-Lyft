@@ -133,7 +133,10 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const activeImageModel = models.find(m => m.id === model)
   const activeVideoModel = videoModels.find(m => m.id === videoModel)
   const cost = kind === 'video' ? (activeVideoModel?.credits || 20) : (activeImageModel?.credits || 2) * count
-  const canGenerate = kind === 'video' ? (!!sourceImage || !!input.trim()) : !!input.trim()
+  const isKontext = kind === 'image' && model === 'flux-kontext'
+  const canGenerate = kind === 'video'
+    ? (!!sourceImage || !!input.trim())
+    : (isKontext ? refImages.length > 0 : !!input.trim())
 
   const patchMsg = (id, patch) => setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m))
 
@@ -247,7 +250,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }
   const pickProduct = (p) => {
     setRefImages(prev => [...prev.filter(r => !r.product), { url: p.image, name: p.title, product: true }].slice(0, 3))
-    setKind('image')
+    setKind('image'); setModel('flux-kontext') // fedeltà prodotto (Kontext)
     if (!input.trim()) setInput(t('cs.productPrompt', { name: p.title }, `Scatto prodotto di ${p.title}`))
     setShowProducts(false)
   }

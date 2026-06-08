@@ -50,6 +50,16 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [showHistory, setShowHistory] = useState(false)
   const [buying, setBuying] = useState('')
 
+  // Editing / selezione
+  const [lightbox, setLightbox] = useState(null)     // item aperto
+  const [editInstr, setEditInstr] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState(() => new Set())
+  const [batchInstr, setBatchInstr] = useState('')
+  const [batchFmt, setBatchFmt] = useState('square')
+  const [batch, setBatch] = useState(null)           // { done, total } | null
+
   // Lavagna infinita
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 28, y: 24 })
@@ -277,6 +287,58 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     } catch { setError(t('cs.micFail', null, 'Microfono non disponibile o permesso negato.')) }
   }
 
+  // Applica una modifica (edit testuale o reframe) a una singola immagine.
+  // Ritorna { ok, item, error }. Aggiunge il risultato alla board.
+  const applyEdit = async ({ imageUrl, mode, instruction, format, srcFormat }) => {
+    try {
+      const r = await fetch('/api/studio/edit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl, mode, instruction, format, srcFormat }),
+      })
+      const j = await r.json()
+      if (r.status === 402 || j.error === 'insufficient_credits') { setBalance(j.balance ?? balance); setShowRecharge(true); return { ok: false, error: 'insufficient' } }
+      if (!r.ok || !j.image?.url) { if (typeof j.balance === 'number') setBalance(j.balance); return { ok: false, error: j.error } }
+      const it = { type: 'image', url: j.image.url, modelName: mode === 'reframe' ? 'Reframe' : 'Edit', prompt: instruction || '', format: j.format }
+      setItems(prev => [it, ...prev])
+      if (typeof j.balance === 'number') setBalance(j.balance)
+      return { ok: true, item: it }
+    } catch (e) { return { ok: false, error: e.message } }
+  }
+
+  const doLightboxEdit = async (mode, format) => {
+    if (!lightbox || editing) return
+    if (mode === 'edit' && !editInstr.trim()) return
+    setEditing(true); setError('')
+    const res = await applyEdit({ imageUrl: lightbox.url, mode, instruction: editInstr.trim(), format, srcFormat: lightbox.format })
+    setEditing(false)
+    if (res.ok) { setEditInstr(''); setLightbox(res.item) }
+    else if (res.error && res.error !== 'insufficient') setError(res.error)
+  }
+
+  // Selezione multipla
+  const toggleSel = (url) => setSelected(prev => { const n = new Set(prev); n.has(url) ? n.delete(url) : (n.size < 100 && n.add(url)); return n })
+  const selectAll = () => setSelected(new Set(items.filter(it => it.type === 'image').slice(0, 100).map(it => it.url)))
+  const clearSel = () => setSelected(new Set())
+
+  // Batch: applica edit/reframe a tutte le selezionate (pool di concorrenza)
+  const runBatch = async (mode) => {
+    const urls = [...selected]
+    if (!urls.length || batch) return
+    if (mode === 'edit' && !batchInstr.trim()) return
+    setError(''); setBatch({ done: 0, total: urls.length })
+    let idx = 0, done = 0
+    const worker = async () => {
+      while (idx < urls.length) {
+        const u = urls[idx++]
+        const res = await applyEdit({ imageUrl: u, mode, instruction: batchInstr.trim(), format: batchFmt, srcFormat: 'square' })
+        done++; setBatch({ done, total: urls.length })
+        if (!res.ok && res.error === 'insufficient') { idx = urls.length; break }
+      }
+    }
+    await Promise.all([worker(), worker(), worker()]) // 3 in parallelo
+    setBatch(null); setBatchInstr('')
+  }
+
   const buyPack = async (packId) => {
     setBuying(packId)
     try {
@@ -305,6 +367,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         {!standalone && (
           <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>
         )}
+        <button onClick={() => { setSelectMode(s => !s); clearSel() }} style={{ background: selectMode ? 'rgba(123,91,255,0.22)' : 'var(--glass,#14141d)', border: selectMode ? '1px solid #7b5bff' : '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check-circle" size={14} /> {selectMode ? t('cs.selDone', null, 'Fine') : t('cs.select', null, 'Seleziona')}</button>
         <button onClick={() => setShowHistory(true)} title={t('cs.historyTitle', null, 'Storico crediti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, width: 34, height: 34, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} /></button>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 13px' }}>
           <Icon name="sparkles" size={14} /><span style={{ fontWeight: 800, fontSize: 14 }}>{balance == null ? '—' : balance}</span>
@@ -341,12 +404,17 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           <div style={{ position: 'absolute', top: 0, left: 0, width: 1180, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
               {items.map((it, i) => (
-                <div key={i} onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ position: 'relative', aspectRatio: aspectFor(it.format), background: '#000' }}>
+                <div key={i} onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: selected.has(it.url) ? '2px solid #7b5bff' : '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+                  <div
+                    onClick={() => { if (selectMode) toggleSel(it.url); else if (it.type === 'image') { setLightbox(it); setEditInstr('') } }}
+                    style={{ position: 'relative', aspectRatio: aspectFor(it.format), background: '#000', cursor: it.type === 'image' || selectMode ? 'pointer' : 'default' }}>
                     {it.type === 'video'
                       ? <video src={it.url} controls loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       : <img src={it.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                     <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px', fontSize: 10.5, fontWeight: 700 }}>{it.modelName}</span>
+                    {selectMode && (
+                      <span style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', border: '2px solid #fff', background: selected.has(it.url) ? '#7b5bff' : 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>{selected.has(it.url) && <Icon name="check" size={12} />}</span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, padding: 8, flexWrap: 'wrap' }}>
                     <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 50, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
@@ -357,6 +425,27 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               ))}
             </div>
           </div>
+
+          {/* Barra selezione/batch (in alto, in modalità selezione) */}
+          {selectMode && (
+            <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', top: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+              <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 14, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '94%' }}>
+                <span style={{ fontSize: 13, fontWeight: 800 }}>{selected.size} {t('cs.selected', null, 'selezionate')}</span>
+                <button onClick={selectAll} style={{ ...chip }}>{t('cs.selectAll', null, 'Tutte')}</button>
+                <button onClick={clearSel} style={{ ...chip }}>{t('cs.clear', null, 'Pulisci')}</button>
+                <span style={sep} />
+                {/* Reframe */}
+                <div style={{ display: 'inline-flex', gap: 4 }}>{FORMATS.map(f => <button key={f.id} onClick={() => setBatchFmt(f.id)} style={{ ...chip, ...(batchFmt === f.id ? chipOn : {}) }}>{f.label}</button>)}</div>
+                <button onClick={() => runBatch('reframe')} disabled={!selected.size || !!batch} style={{ ...miniBtn, opacity: !selected.size || batch ? 0.5 : 1 }}>{t('cs.reframe', null, 'Riformatta')}</button>
+                <span style={sep} />
+                {/* Edit */}
+                <input value={batchInstr} onChange={e => setBatchInstr(e.target.value)} placeholder={t('cs.editPlaceholder', null, 'Modifica… es: sfondo nero')} style={{ background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 12.5, fontFamily: 'Barlow', width: 180 }} />
+                <button onClick={() => runBatch('edit')} disabled={!selected.size || !batchInstr.trim() || !!batch} style={{ ...miniBtn, opacity: !selected.size || !batchInstr.trim() || batch ? 0.5 : 1 }}>{t('cs.applyAll', null, 'Applica a tutte')}</button>
+                {batch && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#7b5bff' }}>{batch.done}/{batch.total}</span>}
+                {selected.size > 0 && !batch && <span style={{ fontSize: 11.5, color: 'var(--text2,#9aa)' }}>{t('cs.cost', { n: selected.size * 2 }, `${selected.size * 2} cr`)}</span>}
+              </div>
+            </div>
+          )}
 
           {/* Controllo zoom (basso-sinistra) */}
           <div onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ position: 'absolute', left: 16, bottom: 16, display: 'inline-flex', alignItems: 'center', gap: 4, padding: 5, borderRadius: 999, border: '1px solid var(--border)' }}>
@@ -452,6 +541,39 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         </div>
       </div>
 
+      {/* Lightbox: apri immagine + edit testuale + reframe */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={modalBg}>
+          <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 16, borderRadius: 16, width: 880, maxWidth: '96vw', maxHeight: '92vh', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 340px', minWidth: 280, display: 'grid', placeItems: 'center', background: '#000', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh' }}>
+              <img src={lightbox.url} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', display: 'block' }} />
+            </div>
+            <div style={{ flex: '1 1 280px', minWidth: 260, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{t('cs.editTitle', null, 'Modifica immagine')}</div>
+                <button onClick={() => setLightbox(null)} style={xBtn}>×</button>
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 6 }}>{t('cs.reframe', null, 'Riformatta')}</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                {FORMATS.map(f => <button key={f.id} onClick={() => doLightboxEdit('reframe', f.id)} disabled={editing} style={{ ...chip }}>{f.label}</button>)}
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 6 }}>{t('cs.editByText', null, 'Modifica a parole')}</div>
+              <textarea value={editInstr} onChange={e => setEditInstr(e.target.value)} rows={3} placeholder={t('cs.editPlaceholder', null, 'Es: sfondo nero, togli la persona, luce più calda…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
+              <button onClick={() => doLightboxEdit('edit')} disabled={editing || !editInstr.trim()} style={{ ...miniBtn, opacity: editing || !editInstr.trim() ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}>{editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.apply', null, 'Applica')} · 2 cr`}</button>
+
+              <div style={{ flex: 1 }} />
+              <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
+                <a href={lightbox.url} download target="_blank" rel="noreferrer" style={{ ...chip, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="download" size={12} /> {t('cs.download', null, 'Scarica')}</a>
+                <button onClick={() => { animate(lightbox); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>
+                <button onClick={() => sendToSocial(lightbox)} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="send" size={12} /> Social</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modale selettore prodotto */}
       {showProducts && (
         <div onClick={() => setShowProducts(false)} style={modalBg}>
@@ -535,6 +657,7 @@ const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(-
 const chip = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px', color: 'var(--text2,#9aa)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 const chipOn = { background: 'rgba(123,91,255,0.18)', borderColor: '#7b5bff', color: '#fff' }
 const sep = { width: 1, height: 22, background: 'var(--border)', margin: '0 2px' }
+const miniBtn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 5 }
 const iconBtn = { background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 9, width: 38, height: 38, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const modalBg = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }
 const xBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }

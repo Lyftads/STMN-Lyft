@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
-// Creative Studio — web app generativa (si apre a tutto schermo in nuova finestra).
-// Layout stile Luma: canvas a sinistra (board persistente + toolbar in basso),
-// chat laterale a destra (vocali + upload immagini/file come contesto).
-// Immagini (text->image, con reference) + Video (text->video, image->video).
-// Crediti via Stripe, scalo per modello con rimborso se fallisce.
+// Creative Studio — web app generativa (apribile a tutto schermo).
+// Lavagna INFINITA (pan + zoom rotella/pulsanti) a sinistra con toolbar
+// fluttuante stile Luma; chat laterale a destra (Creative Agent) con vocali e
+// upload immagini di riferimento. Immagini (text->image, reference) + Video
+// (text->video, image->video). Crediti via Stripe con rimborso se fallisce.
 
 const FORMATS = [
   { id: 'square', label: '1:1' },
@@ -17,6 +17,7 @@ const FORMATS = [
 ]
 let _mid = 0
 const nextId = () => `m${Date.now()}_${_mid++}`
+const clampZoom = (z) => Math.min(3, Math.max(0.2, z))
 
 export default function CreativeStudio({ standalone = false, onNavigate }) {
   const { t, intlLocale } = useI18n()
@@ -33,15 +34,21 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [format, setFormat] = useState('square')
   const [count, setCount] = useState(1)
   const [sourceImage, setSourceImage] = useState(null)
-  const [refImages, setRefImages] = useState([]) // [{ dataUrl, name }]
+  const [refImages, setRefImages] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [items, setItems] = useState([])         // board (canvas)
-  const [messages, setMessages] = useState([])   // chat
+  const [items, setItems] = useState([])
+  const [messages, setMessages] = useState([])
   const [recording, setRecording] = useState(false)
   const [showRecharge, setShowRecharge] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [buying, setBuying] = useState('')
+
+  // Lavagna infinita
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 28, y: 24 })
+  const viewportRef = useRef(null)
+  const panRef = useRef({ dragging: false, sx: 0, sy: 0, moved: false })
 
   const taRef = useRef(null)
   const fileRef = useRef(null)
@@ -78,6 +85,45 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }, [loadCredits])
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
+  // Zoom con la rotella (verso il cursore). Listener non-passive per preventDefault.
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top
+      setZoom(z => {
+        const nz = clampZoom(z * (e.deltaY < 0 ? 1.12 : 1 / 1.12))
+        setPan(p => ({ x: mx - (mx - p.x) * (nz / z), y: my - (my - p.y) * (nz / z) }))
+        return nz
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  const onCanvasDown = (e) => {
+    if (e.button !== 0) return
+    panRef.current = { dragging: true, sx: e.clientX - pan.x, sy: e.clientY - pan.y, moved: false }
+  }
+  const onCanvasMove = (e) => {
+    if (!panRef.current.dragging) return
+    panRef.current.moved = true
+    setPan({ x: e.clientX - panRef.current.sx, y: e.clientY - panRef.current.sy })
+  }
+  const endPan = () => { panRef.current.dragging = false }
+  const zoomBy = (f) => {
+    const el = viewportRef.current
+    const cx = el ? el.clientWidth / 2 : 0, cy = el ? el.clientHeight / 2 : 0
+    setZoom(z => {
+      const nz = clampZoom(z * f)
+      setPan(p => ({ x: cx - (cx - p.x) * (nz / z), y: cy - (cy - p.y) * (nz / z) }))
+      return nz
+    })
+  }
+  const resetView = () => { setZoom(1); setPan({ x: 28, y: 24 }) }
+
   const activeImageModel = models.find(m => m.id === model)
   const activeVideoModel = videoModels.find(m => m.id === videoModel)
   const cost = kind === 'video' ? (activeVideoModel?.credits || 20) : (activeImageModel?.credits || 2) * count
@@ -93,8 +139,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         const r = await fetch(`/api/studio/video-status?id=${encodeURIComponent(genId)}`, { cache: 'no-store' })
         const j = await r.json()
         if (j.status === 'done' && j.url) {
-          const it = { type: 'video', url: j.url, ...meta }
-          setItems(prev => [it, ...prev])
+          setItems(prev => [{ type: 'video', url: j.url, ...meta }, ...prev])
           patchMsg(msgId, { pending: false, text: t('cs.replyVideo', null, 'Ecco il tuo video.'), media: [{ type: 'video', url: j.url }] })
           return
         }
@@ -115,7 +160,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     const text = input.trim()
     const refs = refImages.map(r => r.dataUrl)
     setBusy(true); setError('')
-    // messaggio utente
     setMessages(prev => [...prev, { id: nextId(), role: 'user', text: text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : ''), media: refImages.map(r => ({ type: 'image', url: r.dataUrl })) }])
     setInput(''); setRefImages([])
     const aId = nextId()
@@ -165,16 +209,13 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }
 
   const onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate() } }
-
   const animate = (it) => { setKind('video'); setSourceImage(it.url); setFormat(it.format || 'square'); setError(''); setTimeout(() => taRef.current?.focus(), 100) }
-
   const sendToSocial = (it) => {
     try { localStorage.setItem('lyft_studio_handoff', JSON.stringify({ url: it.url, type: it.type })) } catch {}
     if (onNavigate) onNavigate('social')
     else { try { window.open('/?tab=social', '_blank') } catch {} }
   }
 
-  // Upload immagini di riferimento (contesto)
   const onPickFiles = (e) => {
     const files = Array.from(e.target.files || []).slice(0, 3)
     files.forEach(f => {
@@ -186,7 +227,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     e.target.value = ''
   }
 
-  // Vocali → trascrizione Whisper → testo nel prompt
   const toggleRec = async () => {
     if (recording) { try { recRef.current?.stop() } catch {}; return }
     try {
@@ -220,10 +260,13 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }
 
   const aspectFor = (f) => f === 'vertical' ? '9 / 16' : f === 'landscape' ? '16 / 9' : '1 / 1'
+  const cycleFormat = () => setFormat(f => f === 'square' ? 'vertical' : f === 'vertical' ? 'landscape' : 'square')
   const placeholder = kind === 'video'
     ? (sourceImage ? t('cs.animPlaceholder', null, 'Come animarla? Es: lento dolly in, il prodotto che ruota…') : t('cs.videoPlaceholder', null, 'Descrivi il video: soggetto, movimento, camera, mood…'))
     : t('cs.placeholder', null, 'Es: il nostro best-seller su sfondo minimal, luce da studio…')
   const txLabel = (reason) => ({ purchase: t('cs.txPurchase', null, 'Acquisto'), spend: t('cs.txSpend', null, 'Generazione'), refund: t('cs.txRefund', null, 'Rimborso'), grant: t('cs.txGrant', null, 'Omaggio') }[reason] || reason)
+
+  const tool = (active) => ({ background: active ? 'rgba(123,91,255,0.22)' : 'transparent', border: 'none', borderRadius: 9, width: 34, height: 34, color: active ? '#fff' : 'var(--text2,#9aa)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' })
 
   return (
     <div style={{ color: '#fff', fontFamily: 'Barlow', height: standalone ? '100dvh' : '78vh', display: 'flex', flexDirection: 'column' }}>
@@ -242,29 +285,43 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
         <button onClick={() => setShowRecharge(true)} style={{ background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 999, padding: '7px 15px', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="plus" size={12} /> {t('cs.recharge', null, 'Ricarica')}</button>
       </div>
 
-      {/* Body: canvas + chat */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 0 }}>
-        {/* CANVAS */}
-        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: standalone ? '4px 18px 100px' : '4px 4px 100px' }}>
-            {items.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3,#777)' }}>
+      {/* Body: lavagna + chat */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+        {/* LAVAGNA INFINITA */}
+        <div
+          ref={viewportRef}
+          onMouseDown={onCanvasDown} onMouseMove={onCanvasMove} onMouseUp={endPan} onMouseLeave={endPan}
+          style={{
+            flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
+            cursor: panRef.current.dragging ? 'grabbing' : 'grab',
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+            backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+            backgroundPosition: `${pan.x}px ${pan.y}px`,
+          }}
+        >
+          {items.length === 0 && (
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', color: 'var(--text3,#777)' }}>
+              <div style={{ textAlign: 'center' }}>
                 <div style={{ marginBottom: 12, opacity: 0.5 }}><Icon name="image" size={40} /></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text2,#9aa)' }}>{t('cs.emptyTitle', null, 'La tua board è vuota')}</div>
                 <div style={{ fontSize: 13, marginTop: 4 }}>{t('cs.emptyHintChat', null, 'Usa la chat a destra per creare.')}</div>
               </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            </div>
+          )}
+
+          {/* Contenuto trasformato (pan + zoom) */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: 1180, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
               {items.map((it, i) => (
-                <div key={i} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+                <div key={i} onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'relative', aspectRatio: aspectFor(it.format), background: '#000' }}>
                     {it.type === 'video'
                       ? <video src={it.url} controls loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      : <img src={it.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                      : <img src={it.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                     <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px', fontSize: 10.5, fontWeight: 700 }}>{it.modelName}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, padding: 8, flexWrap: 'wrap' }}>
-                    <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 60, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
+                    <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 50, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
                     {it.type === 'image' && <button onClick={() => animate(it)} title={t('cs.animate', null, 'Anima')} style={{ background: 'rgba(123,91,255,0.18)', border: '1px solid #7b5bff', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>}
                     <button onClick={() => sendToSocial(it)} title={t('cs.sendSocial', null, 'Manda a Social Studio')} style={{ background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer' }}><Icon name="send" size={13} /></button>
                   </div>
@@ -273,18 +330,28 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
             </div>
           </div>
 
-          {/* TOOLBAR in basso (sul canvas) */}
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
-            <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
-              <div style={{ display: 'inline-flex', background: 'var(--glass2,#1a1a24)', borderRadius: 999, padding: 2 }}>
-                {[['image', t('cs.modeImage', null, 'Immagine')], ['video', t('cs.modeVideo', null, 'Video')]].map(([k, lbl]) => (
-                  <button key={k} onClick={() => { setKind(k); setError('') }} style={{ border: 'none', borderRadius: 999, padding: '6px 14px', fontFamily: 'Barlow', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', color: kind === k ? '#fff' : 'var(--text2,#9aa)', background: kind === k ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent' }}>{lbl}</button>
-                ))}
-              </div>
+          {/* Controllo zoom (basso-sinistra) */}
+          <div onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ position: 'absolute', left: 16, bottom: 16, display: 'inline-flex', alignItems: 'center', gap: 4, padding: 5, borderRadius: 999, border: '1px solid var(--border)' }}>
+            <button onClick={() => zoomBy(1 / 1.2)} style={tool(false)} title="Zoom -"><Icon name="minus" size={15} /></button>
+            <button onClick={resetView} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, minWidth: 44 }}>{Math.round(zoom * 100)}%</button>
+            <button onClick={() => zoomBy(1.2)} style={tool(false)} title="Zoom +"><Icon name="plus" size={15} /></button>
+          </div>
+
+          {/* TOOLBAR Luma-style (basso-centro) */}
+          <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+            <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
+              <button title={t('cs.toolSelect', null, 'Sposta / seleziona')} style={tool(true)}><Icon name="cursor" size={16} /></button>
+              <span style={sep} />
+              <button onClick={() => { setKind('image'); setError('') }} title={t('cs.modeImage', null, 'Immagine')} style={tool(kind === 'image')}><Icon name="image" size={16} /></button>
+              <button onClick={() => { setKind('video'); setError('') }} title={t('cs.modeVideo', null, 'Video')} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
+              <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...tool(recording), color: recording ? '#ff453a' : 'var(--text2,#9aa)' }}><Icon name="wave" size={16} /></button>
+              <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
+              <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
+              <span style={sep} />
               {kind === 'video'
                 ? <select value={videoModel} onChange={e => setVideoModel(e.target.value)} style={selStyle}>{videoModels.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits}cr</option>)}</select>
                 : <select value={model} onChange={e => setModel(e.target.value)} style={selStyle}>{models.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits}cr</option>)}</select>}
-              <div style={{ display: 'inline-flex', gap: 4 }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={{ ...chip, ...(format === f.id ? chipOn : {}) }}>{f.label}</button>)}</div>
+              <button onClick={cycleFormat} style={{ ...chip, ...chipOn }} title={t('cs.format', null, 'Formato')}>{FORMATS.find(f => f.id === format)?.label}</button>
               {kind === 'image' && <select value={count} onChange={e => setCount(parseInt(e.target.value))} style={selStyle}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}×</option>)}</select>}
             </div>
           </div>
@@ -295,11 +362,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="sparkles" size={15} /> {t('cs.agentTitle', null, 'Creative Agent')}
           </div>
-
           <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {messages.length === 0 && (
-              <div style={{ fontSize: 13, color: 'var(--text2,#9aa)', lineHeight: 1.6 }}>{t('cs.agentHello', null, 'Descrivimi cosa creare. Conosco brand, prodotti e performance. Puoi anche parlare o allegare immagini di riferimento.')}</div>
-            )}
+            {messages.length === 0 && <div style={{ fontSize: 13, color: 'var(--text2,#9aa)', lineHeight: 1.6 }}>{t('cs.agentHello', null, 'Descrivimi cosa creare. Conosco brand, prodotti e performance. Puoi anche parlare o allegare immagini di riferimento.')}</div>}
             {messages.map(m => (
               <div key={m.id} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
                 <div style={{ borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.45, background: m.role === 'user' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : (m.error ? 'rgba(255,69,58,0.14)' : 'var(--glass2,rgba(255,255,255,0.05))'), border: m.role === 'user' ? 'none' : '1px solid var(--border)', color: m.error ? '#ff8095' : '#fff' }}>
@@ -319,7 +383,6 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
 
           {error && <div style={{ margin: '0 14px', background: 'rgba(255,69,58,0.12)', border: '1px solid rgba(255,69,58,0.35)', color: '#ff8095', borderRadius: 8, padding: '7px 10px', fontSize: 12 }}>{error}</div>}
 
-          {/* Input chat */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border)' }}>
             {kind === 'video' && sourceImage && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: 6, borderRadius: 9, background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)' }}>
@@ -409,9 +472,10 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   )
 }
 
-const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '7px 9px', color: '#fff', fontSize: 12, fontFamily: 'Barlow', cursor: 'pointer' }
-const chip = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: 'var(--text2,#9aa)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '6px 8px', color: '#fff', fontSize: 12, fontFamily: 'Barlow', cursor: 'pointer', maxWidth: 150 }
+const chip = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px', color: 'var(--text2,#9aa)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 const chipOn = { background: 'rgba(123,91,255,0.18)', borderColor: '#7b5bff', color: '#fff' }
+const sep = { width: 1, height: 22, background: 'var(--border)', margin: '0 2px' }
 const iconBtn = { background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 9, width: 38, height: 38, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const modalBg = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }
 const xBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }

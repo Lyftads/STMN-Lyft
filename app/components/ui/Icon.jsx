@@ -7,6 +7,10 @@
 const P = {
   // generiche / stato
   plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
+  cursor: <path d="M5 3l14 6.5-6 1.8-2.2 6.2z" />,
+  video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-2.5v9L16 14z" /></>,
+  wave: <><line x1="4" y1="10" x2="4" y2="14" /><line x1="8" y1="6" x2="8" y2="18" /><line x1="12" y1="9" x2="12" y2="15" /><line x1="16" y1="5" x2="16" y2="19" /><line x1="20" y1="10" x2="20" y2="14" /></>,
+  minus: <line x1="5" y1="12" x2="19" y2="12" />,
   download: <><path d="M12 3v12" /><polyline points="7 11 12 16 17 11" /><path d="M5 20h14" /></>,
   refresh: <><path d="M3.5 12a8.5 8.5 0 0 1 14.5-6l2 2" /><path d="M20.5 12A8.5 8.5 0 0 1 6 18l-2-2" /><polyline points="20 4 20 8 16 8" /><polyline points="4 20 4 16 8 16" /></>,
   warning: <><path d="M12 3 2.5 20h19L12 3Z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17.5" x2="12" y2="17.5" /></>,

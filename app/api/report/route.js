@@ -35,9 +35,9 @@ function deltaTag(cur, prev, { lowerBetter = false } = {}) {
 }
 
 // ── Shopify periodo (revenue/ordini/NC/RC) via /api/shopify-countries ──
-async function shopifyPeriod(origin, since, until) {
+async function shopifyPeriod(origin, since, until, cookie = '') {
   try {
-    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}`, { cache: 'no-store', signal: AbortSignal.timeout(40000) })
+    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
     const j = await r.json()
     if (j.error || !j.total) return null
     const c = j.countries || []
@@ -49,12 +49,25 @@ async function shopifyPeriod(origin, since, until) {
     }
   } catch { return null }
 }
-async function shopifyDaily(origin, since, until) {
+async function shopifyDaily(origin, since, until, cookie = '') {
   try {
-    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}&breakdown=daily`, { cache: 'no-store', signal: AbortSignal.timeout(40000) })
+    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}&breakdown=daily`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
     const j = await r.json()
     return Array.isArray(j.daily) ? j.daily : []
   } catch { return [] }
+}
+// Shopify per finestra derivato da shopifyWeekly di /api/metrics: affidabile sui
+// giorni recenti (Admin GraphQL), a differenza di ShopifyQL (shopify-countries
+// lagga sull'ultima settimana). Usato per il report Weekly.
+async function shopifyFromWeekly(origin, since, until, cookie = '') {
+  try {
+    const r = await fetch(`${origin}/api/metrics?preset=last_90d`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
+    const m = await r.json()
+    const wk = (m?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until)
+    if (!wk.length) return null
+    const sum = (k) => wk.reduce((s, w) => s + num(w[k]), 0)
+    return { revenue: sum('fatturato'), orders: sum('ordini'), ncOrders: sum('nc'), rcOrders: sum('rc'), fatturNC: sum('fatturNC'), fatturRC: sum('fatturRC'), resi: sum('resi'), countries: [] }
+  } catch { return null }
 }
 
 // ── Meta insights per finestra (account-level) ──
@@ -340,6 +353,7 @@ async function renderPdf(html) {
 export async function GET(req) {
   return withTenantContext(req, async () => {
   const { searchParams, origin } = new URL(req.url)
+  const cookie = req.headers.get('cookie') || '' // inoltra la sessione alle fetch interne (cache hit + tenant corretto)
   const tab = searchParams.get('tab') || 'Report'
   const label = searchParams.get('label') || 'Periodo'
   const since = searchParams.get('since'), until = searchParams.get('until')
@@ -381,8 +395,8 @@ export async function GET(req) {
     let m = null, countriesData = null
     try {
       const [mr0, cd] = await Promise.all([
-        fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(35000) }).then(r => r.json()).catch(() => null),
-        shopifyPeriod(origin, since, until).catch(() => null),
+        fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) }).then(r => r.json()).catch(() => null),
+        shopifyPeriod(origin, since, until, cookie).catch(() => null),
       ])
       m = mr0; countriesData = cd
     } catch {}
@@ -394,9 +408,9 @@ export async function GET(req) {
 
     // Fallback: se /api/metrics non ha dati Shopify (lento/vuoto), usa shopify-countries
     if (!sc.revenue && !sc.orders) {
-      const f = await shopifyPeriod(origin, since, until)
+      const f = await shopifyPeriod(origin, since, until, cookie)
       if (f) { sc.revenue = f.revenue; sc.orders = f.orders; sc.ncOrders = f.ncOrders; sc.rcOrders = f.rcOrders }
-      if (prevSince) { const fp = await shopifyPeriod(origin, prevSince, prevUntil); if (fp) { sp.revenue = fp.revenue; sp.orders = fp.orders; sp.ncOrders = fp.ncOrders; sp.rcOrders = fp.rcOrders } }
+      if (prevSince) { const fp = await shopifyPeriod(origin, prevSince, prevUntil, cookie); if (fp) { sp.revenue = fp.revenue; sp.orders = fp.orders; sp.ncOrders = fp.ncOrders; sp.rcOrders = fp.rcOrders } }
     }
 
     const mSpend = num(mr.spend), mSpendP = num(mpr.spend)
@@ -423,16 +437,19 @@ export async function GET(req) {
       { label: 'CTR Meta', value: `${(num(mr.impressions) > 0 ? (num(mr.clicks) / num(mr.impressions)) * 100 : 0).toFixed(2)}%`, prevValue: `${(num(mpr.impressions) > 0 ? (num(mpr.clicks) / num(mpr.impressions)) * 100 : 0).toFixed(2)}%`, cur: num(mr.impressions) > 0 ? num(mr.clicks) / num(mr.impressions) : 0, prev: num(mpr.impressions) > 0 ? num(mpr.clicks) / num(mpr.impressions) : 0 },
     ]
   } else {
-    // Finestra arbitraria (Weekly custom): shopify-countries (finestra breve) + Meta
-    const [sCur, sPrev, sDaily, mc, mp] = await Promise.all([
-      shopifyPeriod(origin, since, until),
-      prevSince ? shopifyPeriod(origin, prevSince, prevUntil) : null,
-      shopifyDaily(origin, since, until),
+    // Weekly: Shopify da shopifyWeekly (/api/metrics, affidabile sui giorni
+    // recenti) con fallback a shopify-countries; + Meta.
+    const [wCur, wPrev, sCur, sPrev, sDaily, mc, mp] = await Promise.all([
+      shopifyFromWeekly(origin, since, until, cookie),
+      prevSince ? shopifyFromWeekly(origin, prevSince, prevUntil, cookie) : null,
+      shopifyPeriod(origin, since, until, cookie),
+      prevSince ? shopifyPeriod(origin, prevSince, prevUntil, cookie) : null,
+      shopifyDaily(origin, since, until, cookie),
       metaPeriod(since, until),
       prevSince ? metaPeriod(prevSince, prevUntil) : null,
     ])
-    daily = sDaily; shop = sCur
-    const sc = sCur || {}, sp = sPrev || {}, a = mc || {}, b = mp || {}
+    daily = sDaily; shop = sCur || wCur
+    const sc = wCur || sCur || {}, sp = wPrev || sPrev || {}, a = mc || {}, b = mp || {}
     const aov = sc.orders > 0 ? sc.revenue / sc.orders : 0, aovP = sp.orders > 0 ? sp.revenue / sp.orders : 0
     const mer = a.spend > 0 ? sc.revenue / a.spend : 0, merP = b.spend > 0 ? sp.revenue / b.spend : 0
     kpis = [

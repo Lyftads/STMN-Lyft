@@ -37,7 +37,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [kind, setKind] = useState('image')
   const [model, setModel] = useState('flux2-pro')
   const [videoModel, setVideoModel] = useState('luma-ray2-flash')
-  const [format, setFormat] = useState('square')
+  const [format, setFormat] = useState('portrait')
   const [count, setCount] = useState(1)
   const [sourceImage, setSourceImage] = useState(null)
   const [refImages, setRefImages] = useState([])
@@ -499,7 +499,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   }
 
   const aspectFor = (f) => f === 'vertical' ? '9 / 16' : f === 'landscape' ? '16 / 9' : f === 'portrait' ? '4 / 5' : '1 / 1'
-  const cycleFormat = () => setFormat(f => f === 'square' ? 'vertical' : f === 'vertical' ? 'landscape' : 'square')
+  const cycleFormat = () => setFormat(f => f === 'square' ? 'portrait' : f === 'portrait' ? 'vertical' : f === 'vertical' ? 'landscape' : 'square')
   const placeholder = kind === 'video'
     ? (sourceImage ? t('cs.animPlaceholder', null, 'Come animarla? Es: lento dolly in, il prodotto che ruota…') : t('cs.videoPlaceholder', null, 'Descrivi il video: soggetto, movimento, camera, mood…'))
     : t('cs.placeholder', null, 'Es: il nostro best-seller su sfondo minimal, luce da studio…')
@@ -744,11 +744,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       {/* Lightbox: apri immagine + edit testuale + reframe */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={modalBg}>
-          <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 16, borderRadius: 16, width: 880, maxWidth: '96vw', maxHeight: '92vh', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 340px', minWidth: 280, display: 'grid', placeItems: 'center', background: '#000', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh' }}>
+          <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 16, borderRadius: 16, width: 880, maxWidth: '96vw', maxHeight: '92vh', display: 'flex', gap: 16, flexWrap: 'wrap', overflowY: 'auto' }}>
+            <div style={{ flex: '1 1 340px', minWidth: 280, display: 'grid', placeItems: 'center', background: '#000', borderRadius: 12, overflow: 'hidden', maxHeight: '80vh', position: 'sticky', top: 0 }}>
               <img src={lightbox.url} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', display: 'block' }} />
             </div>
-            <div style={{ flex: '1 1 280px', minWidth: 260, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: '1 1 280px', minWidth: 260, display: 'flex', flexDirection: 'column', maxHeight: 'calc(92vh - 32px)', overflowY: 'auto', paddingRight: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{ fontSize: 16, fontWeight: 800, flex: 1 }}>{t('cs.editTitle', null, 'Modifica immagine')}</div>
                 <button onClick={() => setLightbox(null)} style={xBtn}>×</button>

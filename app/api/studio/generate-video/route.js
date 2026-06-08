@@ -12,17 +12,18 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.FAL_KEY
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
 
-async function enhanceVideoPrompt(userPrompt, fromImage, contextBlock) {
+async function enhanceVideoPrompt(userPrompt, fromImage, contextBlock, style) {
   if (!OPENAI_KEY) return userPrompt
   try {
     const ctx = contextBlock ? `\n\nCLIENT CONTEXT (brand/products/what converts):\n${contextBlock}` : ''
+    const st = style ? `\nStyle: ${style}` : ''
     const sys = fromImage
       ? 'You write motion prompts for image-to-video models. Given the user request, output ONE concise English prompt describing the MOTION, camera movement and atmosphere to animate the given still image. No preamble.'
       : 'You write prompts for text-to-video models. Output ONE concise, vivid English prompt: subject, action/motion, camera movement, lighting, mood. Keep brand/product faithful. No preamble.'
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: sys }, { role: 'user', content: `${userPrompt}${ctx}` }], temperature: 0.7, max_tokens: 200 }),
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: sys }, { role: 'user', content: `${userPrompt}${st}${ctx}` }], temperature: 0.7, max_tokens: 200 }),
       signal: AbortSignal.timeout(20000),
     })
     if (!res.ok) return userPrompt
@@ -87,7 +88,7 @@ export async function POST(req) {
     const cookie = req.headers.get('cookie') || ''
     let contextBlock = ''
     try { contextBlock = (await buildStudioContext({ origin, cookie })).contextBlock } catch {}
-    prompt = await enhanceVideoPrompt(rawPrompt, mode === 'image', contextBlock)
+    prompt = await enhanceVideoPrompt(rawPrompt, mode === 'image', contextBlock, body?.style)
   }
 
   const sub = await submitVideoFal(endpoint, prompt || 'cinematic motion', aspect, mode === 'image' ? imageUrl : null)

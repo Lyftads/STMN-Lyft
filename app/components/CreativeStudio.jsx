@@ -35,6 +35,11 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const [count, setCount] = useState(1)
   const [sourceImage, setSourceImage] = useState(null)
   const [refImages, setRefImages] = useState([])
+  const [stylePresets, setStylePresets] = useState([])
+  const [activeStyle, setActiveStyle] = useState(null) // preset id
+  const [products, setProducts] = useState(null)        // null = non caricati
+  const [showProducts, setShowProducts] = useState(false)
+  const [productQuery, setProductQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [items, setItems] = useState([])
@@ -62,7 +67,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       if (!r.ok) return
       const j = await r.json()
       setBalance(j.balance ?? 0); setModels(j.models || []); setVideoModels(j.videoModels || [])
-      setPacks(j.packs || []); setTxHistory(j.history || [])
+      setPacks(j.packs || []); setTxHistory(j.history || []); setStylePresets(j.stylePresets || [])
       if (j.models?.length && !j.models.find(m => m.id === model)) setModel(j.models[0].id)
       if (j.videoModels?.length && !j.videoModels.find(m => m.id === videoModel)) setVideoModel(j.videoModels[0].id)
     } catch {}
@@ -158,7 +163,8 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
   const generate = async () => {
     if (!canGenerate || busy) return
     const text = input.trim()
-    const refs = refImages.map(r => r.dataUrl)
+    const refs = refImages.map(r => r.dataUrl || r.url).filter(Boolean)
+    const styleStr = stylePresets.find(s => s.id === activeStyle)?.prompt || undefined
     setBusy(true); setError('')
     setMessages(prev => [...prev, { id: nextId(), role: 'user', text: text || (sourceImage ? t('cs.animateReq', null, 'Anima questa immagine') : ''), media: refImages.map(r => ({ type: 'image', url: r.dataUrl })) }])
     setInput(''); setRefImages([])
@@ -169,7 +175,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       if (kind === 'video') {
         const r = await fetch('/api/studio/generate-video', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: sourceImage ? 'image' : 'text', prompt: text, imageUrl: sourceImage || '', model: videoModel, format }),
+          body: JSON.stringify({ mode: sourceImage ? 'image' : 'text', prompt: text, imageUrl: sourceImage || '', model: videoModel, format, style: styleStr }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -185,7 +191,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       } else {
         const r = await fetch('/api/studio/generate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs }),
+          body: JSON.stringify({ prompt: text, model, format, count, refImages: refs, style: styleStr }),
         })
         const j = await r.json()
         if (r.status === 402 || j.error === 'insufficient_credits') {
@@ -225,6 +231,24 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
       reader.readAsDataURL(f)
     })
     e.target.value = ''
+  }
+
+  // Selettore prodotto (da Shopify): il prodotto reale come reference + nel prompt
+  const openProducts = async () => {
+    setShowProducts(true)
+    if (products === null) {
+      try {
+        const r = await fetch('/api/studio/products', { cache: 'no-store' })
+        const j = await r.json()
+        setProducts(j.products || [])
+      } catch { setProducts([]) }
+    }
+  }
+  const pickProduct = (p) => {
+    setRefImages(prev => [...prev.filter(r => !r.product), { url: p.image, name: p.title, product: true }].slice(0, 3))
+    setKind('image')
+    if (!input.trim()) setInput(t('cs.productPrompt', { name: p.title }, `Scatto prodotto di ${p.title}`))
+    setShowProducts(false)
   }
 
   const toggleRec = async () => {
@@ -346,6 +370,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
               <button onClick={() => { setKind('video'); setError('') }} title={t('cs.modeVideo', null, 'Video')} style={tool(kind === 'video')}><Icon name="video" size={16} /></button>
               <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...tool(recording), color: recording ? '#ff453a' : 'var(--text2,#9aa)' }}><Icon name="wave" size={16} /></button>
               <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={tool(false)}><Icon name="image" size={15} filled /></button>
+              <button onClick={openProducts} title={t('cs.product', null, 'Prodotto dal negozio')} style={tool(refImages.some(r => r.product))}><Icon name="bag" size={16} /></button>
               <button onClick={cycleFormat} title={t('cs.format', null, 'Formato')} style={tool(false)}><Icon name="crop" size={16} /></button>
               <span style={sep} />
               {kind === 'video'
@@ -401,6 +426,13 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
                 ))}
               </div>
             )}
+            {stylePresets.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                {stylePresets.map(s => (
+                  <button key={s.id} onClick={() => setActiveStyle(activeStyle === s.id ? null : s.id)} style={{ ...chip, ...(activeStyle === s.id ? chipOn : {}), padding: '5px 10px', fontSize: 11.5 }}>{s.label}</button>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 12, padding: 8 }}>
               <textarea ref={taRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown} rows={2} placeholder={placeholder} style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 13.5, fontFamily: 'Barlow', lineHeight: 1.4 }} />
             </div>
@@ -415,6 +447,29 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* Modale selettore prodotto */}
+      {showProducts && (
+        <div onClick={() => setShowProducts(false)} style={modalBg}>
+          <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 20, borderRadius: 16, width: 560, maxWidth: '95vw', maxHeight: '82vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{t('cs.productTitle', null, 'Scegli un prodotto')}</div>
+              <button onClick={() => setShowProducts(false)} style={xBtn}>×</button>
+            </div>
+            <input value={productQuery} onChange={e => setProductQuery(e.target.value)} placeholder={t('cs.productSearch', null, 'Cerca prodotto…')} style={{ width: '100%', marginBottom: 12, background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: 'Barlow' }} />
+            <div style={{ overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+              {products === null && <div style={{ color: 'var(--text2,#9aa)', fontSize: 13, gridColumn: '1/-1' }}>{t('cs.loading', null, 'Carico…')}</div>}
+              {products && products.length === 0 && <div style={{ color: 'var(--text2,#9aa)', fontSize: 13, gridColumn: '1/-1' }}>{t('cs.noProducts', null, 'Nessun prodotto trovato (collega Shopify).')}</div>}
+              {(products || []).filter(p => !productQuery || p.title.toLowerCase().includes(productQuery.toLowerCase())).map(p => (
+                <button key={p.id} onClick={() => pickProduct(p)} style={{ background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 10, padding: 8, cursor: 'pointer', textAlign: 'left', color: '#fff', fontFamily: 'Barlow' }}>
+                  <img src={p.image} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 7, marginBottom: 6 }} />
+                  <div style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modale ricarica */}
       {showRecharge && (

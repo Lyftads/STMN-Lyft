@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
+import PlatformIcon from './PlatformIcon'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
 import NangoConnectButton from './NangoConnectButton'
@@ -21,7 +22,7 @@ const SKIP_KEY = 'lyft_onb_skipped'
 
 const STEPS = [
   {
-    id: 'shopify', label: 'Shopify', icon: <Icon name="bag" size={20} />, kind: 'shopify',
+    id: 'shopify', label: 'Shopify', logo: 'shopify', kind: 'shopify',
     short: 'Lo store: ordini, prodotti, clienti, vendite.',
     what: 'È la fonte principale dei dati commerciali. Da Shopify LyftAI legge — in sola lettura — ordini, prodotti, clienti (in forma aggregata), inventario, sconti ed evasioni. Servono per fatturato, AOV, LTV, coorti, attribuzione e tutte le metriche di vendita.',
     how: [
@@ -32,7 +33,7 @@ const STEPS = [
     ],
   },
   {
-    id: 'meta', label: 'Meta Ads', icon: '◧', kind: 'meta',
+    id: 'meta', label: 'Meta Ads', logo: 'meta', kind: 'meta',
     short: 'Facebook/Instagram Ads: spesa, ROAS, campagne.',
     what: 'Collega l\'account pubblicitario Meta per leggere spesa, impression, click, conversioni, ROAS e performance di campagne/adset/ad. Alimenta le tab Meta (Detail, KPI, Creative, Lighthouse) e l\'attribuzione paid.',
     how: [
@@ -43,7 +44,7 @@ const STEPS = [
     ],
   },
   {
-    id: 'ga4', label: 'Google (GA4, Ads, Search Console)', icon: '▰', kind: 'google',
+    id: 'ga4', label: 'Google (GA4, Ads, Search Console)', logo: 'google', kind: 'google',
     short: 'Un solo consenso per GA4, Google Ads e Search Console.',
     what: 'Con un unico accesso Google colleghi Google Analytics 4 (traffico, sessioni, sorgenti, conversioni), Google Ads (spesa e performance) e Search Console (query e posizionamento organico). Tutto in sola lettura.',
     how: [
@@ -54,7 +55,7 @@ const STEPS = [
     ],
   },
   {
-    id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" size={20} />, kind: 'klaviyo',
+    id: 'klaviyo', label: 'Klaviyo', logo: 'klaviyo', kind: 'klaviyo',
     short: 'Email marketing: campagne, flussi, segmenti.',
     what: 'Collega Klaviyo per analizzare campagne, flussi automatici, segmenti e metriche email (aperture, click, revenue attribuito). Alimenta la tab Klaviyo e il contributo email all\'attribuzione.',
     how: [
@@ -179,7 +180,7 @@ export default function OnboardingTab() {
               }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: conn || sk ? '#fff' : markColor, background: conn ? '#30d158' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', border: conn || sk || active ? 'none' : `1.5px solid ${MUTED}` }}>{mark}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? '#fff' : '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.icon} {s.label}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? '#fff' : '#d0d0d8', overflow: 'hidden', whiteSpace: 'nowrap' }}>{s.logo ? <PlatformIcon platform={s.logo} size={16} /> : <span>{s.icon}</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span></span>
                   <span style={{ fontSize: 11, color: conn ? '#30d158' : sk ? MUTED : MUTED }}>{conn ? 'Collegato' : sk ? 'Saltato' : 'Da fare'}</span>
                 </span>
               </button>
@@ -194,7 +195,7 @@ export default function OnboardingTab() {
         {/* Dettaglio step */}
         <div style={{ ...card, flex: 1, minWidth: 320 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            <span style={{ fontSize: 30 }}>{step.icon}</span>
+            {step.logo ? <PlatformIcon platform={step.logo} size={28} /> : <span style={{ fontSize: 30 }}>{step.icon}</span>}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 20, fontWeight: 800 }}>{step.label}</div>
               <div style={{ color: MUTED, fontSize: 13 }}>Step {current + 1} di {STEPS.length} · {step.short}</div>

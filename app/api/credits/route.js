@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAuthUser, getBalance, getHistory } from '../../../lib/studio/credits'
-import { IMAGE_MODELS, CREDIT_PACKS } from '../../../lib/studio/models'
+import { IMAGE_MODELS, VIDEO_MODELS, CREDIT_PACKS } from '../../../lib/studio/models'
 
 // GET /api/credits → saldo + storico + listino modelli/pacchetti per la UI.
 export async function GET() {
@@ -14,6 +14,7 @@ export async function GET() {
     balance,
     history,
     models: IMAGE_MODELS.map(m => ({ id: m.id, name: m.name, credits: m.credits, badge: m.badge })),
+    videoModels: VIDEO_MODELS.map(m => ({ id: m.id, name: m.name, credits: m.credits, badge: m.badge })),
     packs: CREDIT_PACKS.map(p => ({ id: p.id, credits: p.credits, priceLabel: p.priceLabel, best: !!p.best })),
   })
 }

@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
+import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 
 // Fase 3 (social organico): trasforma un brief in una bozza di post per
 // Instagram o TikTok, coerente col brand. Non pubblica: restituisce la bozza,
@@ -58,6 +59,7 @@ export async function POST(req) {
 
   try {
     const langMsg = aiLangSystemMessage(b.locale)
+    const kb = await buildKnowledgeBlock(`contenuto social ${platform} ${postType} copywriting marketing: ${prompt}`.slice(0, 500))
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -67,6 +69,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt(platform, postType) },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(langMsg ? [langMsg] : []),
           ...(brand ? [{ role: 'system', content: `BRAND:\n${String(brand).slice(0, 2000)}` }] : []),
           { role: 'user', content: prompt },

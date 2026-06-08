@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
+import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 
 // Orchestratore (Performance Agent → azioni). Legge i dati live (metrics) + il
 // brand context e propone azioni CONCRETE e cross-canale, nella forma della
@@ -57,6 +58,7 @@ export async function POST(req) {
 
   try {
     const langMsg = aiLangSystemMessage(b.locale)
+    const kb = await buildKnowledgeBlock('azioni di ottimizzazione advertising performance marketing e-commerce cross-canale')
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -66,6 +68,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(langMsg ? [langMsg] : []),
           ...(brand ? [{ role: 'system', content: `BRAND:\n${String(brand).slice(0, 2000)}` }] : []),
           ...(Array.isArray(b.exclude) && b.exclude.length

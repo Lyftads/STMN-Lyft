@@ -5,6 +5,7 @@ export const maxDuration = 30
 import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 
 // Trasforma una descrizione in linguaggio naturale in una BOZZA strutturata di
 // campagna Meta. Non crea nulla: restituisce la bozza, che l'utente rivede e
@@ -37,6 +38,7 @@ export async function POST(req) {
 
   try {
     const langMsg = aiLangSystemMessage(b.locale)
+    const kb = await buildKnowledgeBlock(`campagna Meta Ads struttura targeting budget: ${prompt}`.slice(0, 500))
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -46,6 +48,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(langMsg ? [langMsg] : []),
           { role: 'user', content: prompt },
         ],

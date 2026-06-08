@@ -62,7 +62,7 @@ export default function VendroShell({
 
   const navGroups = [
     {
-      title: 'Team',
+      title: 'Productivity',
       color: '#7b5bff',
       items: [
         { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },

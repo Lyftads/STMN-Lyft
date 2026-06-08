@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
+import CreativeStudioLogo from './ui/CreativeStudioLogo'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
@@ -296,7 +297,7 @@ export default function CreativeStudio({ standalone = false, onNavigate }) {
     <div style={{ color: '#fff', fontFamily: 'Barlow', height: standalone ? '100dvh' : '78vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: standalone ? '12px 18px' : '0 0 12px', flexWrap: 'wrap', flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>Creative Studio</div>
+        <CreativeStudioLogo size={26} />
         <div style={{ flex: 1 }} />
         {!standalone && (
           <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>

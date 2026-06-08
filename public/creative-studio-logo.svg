@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="csGrad" x1="40" y1="40" x2="472" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B5BFF"/>
+      <stop offset="1" stop-color="#5B8BFF"/>
+    </linearGradient>
+    <radialGradient id="csGlow" cx="0.32" cy="0.28" r="0.9">
+      <stop stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#csGrad)"/>
+  <rect width="512" height="512" rx="116" fill="url(#csGlow)"/>
+  <!-- spark grande (creatività AI) -->
+  <path d="M268 104C284 212 300 228 408 244C300 260 284 276 268 384C252 276 236 260 128 244C236 228 252 212 268 104Z" fill="#fff"/>
+  <!-- spark piccola in alto a destra -->
+  <path d="M392 120C398 156 404 162 440 168C404 174 398 180 392 216C386 180 380 174 344 168C380 162 386 156 392 120Z" fill="#fff" fill-opacity="0.9"/>
+</svg>

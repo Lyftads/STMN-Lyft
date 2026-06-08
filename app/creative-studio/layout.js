@@ -1,5 +1,6 @@
 export const metadata = {
   title: 'Creative Studio',
+  icons: { icon: '/creative-studio-logo.svg', apple: '/creative-studio-logo.svg' },
   appleWebApp: {
     capable: true,
     title: 'Creative Studio',

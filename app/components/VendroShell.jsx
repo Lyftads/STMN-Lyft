@@ -9,6 +9,7 @@ import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
 import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
+import { CreativeStudioMark } from './ui/CreativeStudioLogo'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
@@ -130,7 +131,7 @@ export default function VendroShell({
       items: [
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
         { id: 'creativeLab', label: 'Creative Lab', icon: <Icon name="sparkles" /> },
-        { id: 'creativeStudio', label: 'Creative Studio', icon: <Icon name="image" /> },
+        { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
         { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },
         { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],

@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { getImageModel, getFormat } from '../../../../lib/studio/models'
 import { getAuthUser, getBalance, spendCredits, addCredits } from '../../../../lib/studio/credits'
 import { buildStudioContext } from '../../../../lib/studio/context'
+import { persistMedia, saveGeneration } from '../../../../lib/studio/persist'
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.FAL_KEY
@@ -132,9 +133,21 @@ export async function POST(req) {
     balance = await addCredits(user.id, model.credits * failed, 'refund', ref, model.id)
   }
 
-  const images = results.filter(r => r.url).map(r => ({ url: r.url }))
-  if (!images.length) {
+  const ok = results.filter(r => r.url)
+  if (!ok.length) {
     return json({ error: results[0]?.error || 'Generazione fallita', balance }, 502)
+  }
+
+  // 4) Persisti i media su Storage (URL permanenti) e salva le generazioni
+  const images = []
+  for (const r of ok) {
+    const url = await persistMedia(user.id, r.url, 'image')
+    images.push({ url })
+    await saveGeneration({
+      user_id: user.id, type: 'image', status: 'done', url,
+      model: model.id, model_name: model.name, prompt, format: fmt.id,
+      source: 'text', ref, credits: model.credits,
+    })
   }
 
   return json({

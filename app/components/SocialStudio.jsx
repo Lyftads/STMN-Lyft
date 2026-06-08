@@ -38,6 +38,19 @@ export default function SocialStudio() {
   const [linkInput, setLinkInput] = useState('')
   const fileRef = useRef(null)
 
+  // Handoff da Creative Studio: una creatività generata "mandata" qui arriva
+  // via localStorage → la aggiungo ai media come link pubblico.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem('lyft_studio_handoff')
+      if (!raw) return
+      localStorage.removeItem('lyft_studio_handoff')
+      const { url, type } = JSON.parse(raw)
+      if (url) setMedia(m => [...m, { url, previewUrl: url, type: type === 'video' ? 'video/link' : 'image/link', name: (url.split('/').pop() || 'studio').split('?')[0].slice(0, 40), kind: 'link' }])
+    } catch {}
+  }, [])
+
   const addLink = () => {
     const url = linkInput.trim()
     if (!/^https?:\/\//i.test(url)) return

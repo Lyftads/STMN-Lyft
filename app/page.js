@@ -4244,7 +4244,7 @@ export default function App() {
 )}
 
 {tab === 'creativeStudio' && (
-  <CreativeStudio />
+  <CreativeStudio onNavigate={setTab} />
 )}
 
 {tab === 'budgetAdvisor' && (

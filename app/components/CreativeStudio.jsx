@@ -5,10 +5,9 @@ import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — board generativa chat-driven.
-// Fase 1: immagini (text->image). Fase 2: video (text->video e image->video).
-// Descrivi a chat → l'AI potenzia il prompt col contesto del cliente (brand,
-// prodotti, performance) e genera col modello scelto. Crediti via Stripe;
-// scalo per modello con rimborso se fallisce.
+// Immagini (text->image) + Video (text->video, image->video). Board persistente
+// (studio_generations). Video async via coda fal + polling. Crediti via Stripe,
+// scalo per modello con rimborso se fallisce. Bottone "Manda a Social Studio".
 // Estetica Luma: canvas scuro, media-hero, barra chat fluttuante in basso.
 
 const FORMATS = [
@@ -17,23 +16,25 @@ const FORMATS = [
   { id: 'landscape', label: '16:9' },
 ]
 
-export default function CreativeStudio() {
-  const { t } = useI18n()
+export default function CreativeStudio({ onNavigate }) {
+  const { t, intlLocale } = useI18n()
   const [balance, setBalance] = useState(null)
   const [models, setModels] = useState([])
   const [videoModels, setVideoModels] = useState([])
   const [packs, setPacks] = useState([])
+  const [txHistory, setTxHistory] = useState([])
   const [prompt, setPrompt] = useState('')
   const [kind, setKind] = useState('image') // 'image' | 'video'
   const [model, setModel] = useState('flux-pro')
   const [videoModel, setVideoModel] = useState('luma-ray2-flash')
   const [format, setFormat] = useState('square')
   const [count, setCount] = useState(1)
-  const [sourceImage, setSourceImage] = useState(null) // url per image->video
+  const [sourceImage, setSourceImage] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [items, setItems] = useState([]) // { type:'image'|'video', url, modelName, prompt, format }
+  const [items, setItems] = useState([]) // { type:'image'|'video', url,... } | { status:'pending', _pid,... }
   const [showRecharge, setShowRecharge] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [buying, setBuying] = useState('')
   const taRef = useRef(null)
 
@@ -46,14 +47,24 @@ export default function CreativeStudio() {
       setModels(j.models || [])
       setVideoModels(j.videoModels || [])
       setPacks(j.packs || [])
+      setTxHistory(j.history || [])
       if (j.models?.length && !j.models.find(m => m.id === model)) setModel(j.models[0].id)
       if (j.videoModels?.length && !j.videoModels.find(m => m.id === videoModel)) setVideoModel(j.videoModels[0].id)
     } catch {}
   }, [model, videoModel])
 
-  useEffect(() => { loadCredits() }, [loadCredits])
+  // Board persistente: carica le generazioni passate
+  const loadHistory = useCallback(async () => {
+    try {
+      const r = await fetch('/api/studio/history', { cache: 'no-store' })
+      if (!r.ok) return
+      const j = await r.json()
+      if (Array.isArray(j.items)) setItems(j.items)
+    } catch {}
+  }, [])
 
-  // Ritorno dal checkout Stripe → ricarico il saldo (dà tempo al webhook)
+  useEffect(() => { loadCredits(); loadHistory() }, [loadCredits, loadHistory])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const p = new URLSearchParams(window.location.search)
@@ -65,45 +76,68 @@ export default function CreativeStudio() {
   const cost = kind === 'video' ? (activeVideoModel?.credits || 20) : (activeImageModel?.credits || 2) * count
   const canGenerate = kind === 'video' ? (!!sourceImage || !!prompt.trim()) : !!prompt.trim()
 
+  // Polling stato video async
+  const pollVideo = useCallback((genId, pid) => {
+    let tries = 0
+    const tick = async () => {
+      tries++
+      try {
+        const r = await fetch(`/api/studio/video-status?id=${encodeURIComponent(genId)}`, { cache: 'no-store' })
+        const j = await r.json()
+        if (j.status === 'done' && j.url) {
+          setItems(prev => prev.map(it => it._pid === pid ? { type: 'video', url: j.url, modelName: it.modelName, prompt: it.prompt, format: it.format, fromImage: it.fromImage } : it))
+          return
+        }
+        if (j.status === 'failed') {
+          setItems(prev => prev.filter(it => it._pid !== pid))
+          if (typeof j.balance === 'number') setBalance(j.balance)
+          setError(t('cs.videoFailed', null, 'Generazione video fallita (crediti rimborsati).'))
+          return
+        }
+      } catch {}
+      if (tries < 100) setTimeout(tick, 5000)        // ~8 min max
+      else { setItems(prev => prev.filter(it => it._pid !== pid)); setError(t('cs.videoTimeout', null, 'Il video ci sta mettendo troppo, riprova.')) }
+    }
+    setTimeout(tick, 4000)
+  }, [t])
+
   const generate = async () => {
     if (!canGenerate || busy) return
     setBusy(true); setError('')
     const text = prompt.trim()
     try {
-      let r, j
       if (kind === 'video') {
-        r = await fetch('/api/studio/generate-video', {
+        const r = await fetch('/api/studio/generate-video', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: sourceImage ? 'image' : 'text', prompt: text, imageUrl: sourceImage || '', model: videoModel, format }),
         })
-        j = await r.json()
+        const j = await r.json()
+        if (r.status === 402 || j.error === 'insufficient_credits') {
+          setBalance(j.balance ?? balance); setShowRecharge(true)
+          setError(t('cs.insufficient', null, 'Crediti insufficienti per questa generazione.')); return
+        }
+        if (!r.ok || !j.generationId) {
+          setError(j.error || t('cs.genFail', null, 'Generazione fallita.'))
+          if (typeof j.balance === 'number') setBalance(j.balance); return
+        }
+        // Card "in coda" + avvio polling
+        const pid = 'p_' + Date.now()
+        setItems(prev => [{ status: 'pending', _pid: pid, modelName: j.modelName, prompt: text, format: j.format, fromImage: j.mode === 'image' }, ...prev])
+        if (typeof j.balance === 'number') setBalance(j.balance)
+        pollVideo(j.generationId, pid)
       } else {
-        r = await fetch('/api/studio/generate', {
+        const r = await fetch('/api/studio/generate', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: text, model, format, count }),
         })
-        j = await r.json()
-      }
-
-      if (r.status === 402 || j.error === 'insufficient_credits') {
-        setBalance(j.balance ?? balance); setShowRecharge(true)
-        setError(t('cs.insufficient', null, 'Crediti insufficienti per questa generazione.'))
-        return
-      }
-
-      if (kind === 'video') {
-        if (!r.ok || !j.video?.url) {
-          setError(j.error || t('cs.genFail', null, 'Generazione fallita.'))
-          if (typeof j.balance === 'number') setBalance(j.balance)
-          return
+        const j = await r.json()
+        if (r.status === 402 || j.error === 'insufficient_credits') {
+          setBalance(j.balance ?? balance); setShowRecharge(true)
+          setError(t('cs.insufficient', null, 'Crediti insufficienti per questa generazione.')); return
         }
-        setItems(prev => [{ type: 'video', url: j.video.url, modelName: j.modelName, prompt: text, format: j.format, fromImage: j.mode === 'image' }, ...prev])
-        if (typeof j.balance === 'number') setBalance(j.balance)
-      } else {
         if (!r.ok || !j.images?.length) {
           setError(j.error || t('cs.genFail', null, 'Generazione fallita.'))
-          if (typeof j.balance === 'number') setBalance(j.balance)
-          return
+          if (typeof j.balance === 'number') setBalance(j.balance); return
         }
         const newItems = j.images.map(img => ({ type: 'image', url: img.url, modelName: j.modelName, prompt: text, format: j.format }))
         setItems(prev => [...newItems, ...prev])
@@ -119,12 +153,16 @@ export default function CreativeStudio() {
 
   const onKeyDown = (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); generate() } }
 
-  // "Anima": prende un'immagine generata e prepara un image->video
   const animate = (it) => {
-    setKind('video'); setSourceImage(it.url); setFormat(it.format || 'square')
-    setError('')
+    setKind('video'); setSourceImage(it.url); setFormat(it.format || 'square'); setError('')
     if (typeof window !== 'undefined') window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
     setTimeout(() => taRef.current?.focus(), 200)
+  }
+
+  // Manda la creatività a Social Studio (handoff via localStorage + cambio tab)
+  const sendToSocial = (it) => {
+    try { localStorage.setItem('lyft_studio_handoff', JSON.stringify({ url: it.url, type: it.type })) } catch {}
+    if (onNavigate) onNavigate('social')
   }
 
   const buyPack = async (packId) => {
@@ -142,12 +180,17 @@ export default function CreativeStudio() {
 
   const aspectFor = (f) => f === 'vertical' ? '9 / 16' : f === 'landscape' ? '16 / 9' : '1 / 1'
   const placeholder = kind === 'video'
-    ? (sourceImage ? t('cs.animPlaceholder', null, 'Come animarla? Es: lento dolly in, particelle di luce, il prodotto ruota…') : t('cs.videoPlaceholder', null, 'Descrivi il video: soggetto, movimento, camera, mood…'))
+    ? (sourceImage ? t('cs.animPlaceholder', null, 'Come animarla? Es: lento dolly in, particelle di luce, il prodotto che ruota…') : t('cs.videoPlaceholder', null, 'Descrivi il video: soggetto, movimento, camera, mood…'))
     : t('cs.placeholder', null, 'Es: il nostro best-seller su sfondo minimal, luce da studio, mood premium…')
+
+  const txLabel = (reason) => ({
+    purchase: t('cs.txPurchase', null, 'Acquisto'), spend: t('cs.txSpend', null, 'Generazione'),
+    refund: t('cs.txRefund', null, 'Rimborso'), grant: t('cs.txGrant', null, 'Omaggio'),
+  }[reason] || reason)
 
   return (
     <div style={{ color: '#fff', fontFamily: 'Barlow', display: 'flex', flexDirection: 'column', minHeight: '70vh' }}>
-      {/* Top bar: tipo + saldo + ricarica */}
+      {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <div style={{ display: 'inline-flex', background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: 3 }}>
           {[['image', t('cs.modeImage', null, 'Immagine')], ['video', t('cs.modeVideo', null, 'Video')]].map(([k, lbl]) => (
@@ -155,6 +198,7 @@ export default function CreativeStudio() {
           ))}
         </div>
         <div style={{ flex: 1 }} />
+        <button onClick={() => setShowHistory(true)} title={t('cs.historyTitle', null, 'Storico crediti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, width: 36, height: 36, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} /></button>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px' }}>
           <Icon name="sparkles" size={15} />
           <span style={{ fontWeight: 800, fontSize: 14 }}>{balance == null ? '—' : balance}</span>
@@ -169,7 +213,7 @@ export default function CreativeStudio() {
         <div style={{ background: 'rgba(255,69,58,0.12)', border: '1px solid rgba(255,69,58,0.35)', color: '#ff8095', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14 }}>{error}</div>
       )}
 
-      {/* Galleria (media-hero) */}
+      {/* Galleria */}
       <div style={{ flex: 1 }}>
         {items.length === 0 && !busy && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3,#777)' }}>
@@ -179,12 +223,14 @@ export default function CreativeStudio() {
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-          {busy && (
-            <div style={{ aspectRatio: aspectFor(format), borderRadius: 14, background: 'linear-gradient(110deg,#1a1a24 8%,#22222e 18%,#1a1a24 33%)', backgroundSize: '200% 100%', animation: 'csShimmer 1.2s linear infinite', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', color: 'var(--text3,#888)', fontSize: 12, textAlign: 'center', padding: 12 }}>
-              {kind === 'video' ? t('cs.videoBusy', null, 'Genero il video… 1-3 minuti') : t('cs.generating', null, 'Genero…')}
-            </div>
+          {busy && kind === 'image' && (
+            <div style={{ aspectRatio: aspectFor(format), borderRadius: 14, background: 'linear-gradient(110deg,#1a1a24 8%,#22222e 18%,#1a1a24 33%)', backgroundSize: '200% 100%', animation: 'csShimmer 1.2s linear infinite', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', color: 'var(--text3,#888)', fontSize: 12 }}>{t('cs.generating', null, 'Genero…')}</div>
           )}
-          {items.map((it, i) => (
+          {items.map((it, i) => it.status === 'pending' ? (
+            <div key={it._pid} style={{ aspectRatio: aspectFor(it.format), borderRadius: 14, background: 'linear-gradient(110deg,#1a1a24 8%,#22222e 18%,#1a1a24 33%)', backgroundSize: '200% 100%', animation: 'csShimmer 1.4s linear infinite', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', color: 'var(--text2,#9aa)', fontSize: 12, textAlign: 'center', padding: 14 }}>
+              <div><Icon name="sparkles" size={20} /><div style={{ marginTop: 8, fontWeight: 700 }}>{t('cs.videoBusy', null, 'Genero il video… 1-3 minuti')}</div></div>
+            </div>
+          ) : (
             <div key={i} className="glass-card-static" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
               <div style={{ position: 'relative', aspectRatio: aspectFor(it.format), background: '#000' }}>
                 {it.type === 'video'
@@ -192,11 +238,12 @@ export default function CreativeStudio() {
                   : <img src={it.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                 <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px', fontSize: 10.5, fontWeight: 700 }}>{it.modelName}</span>
               </div>
-              <div style={{ display: 'flex', gap: 6, padding: 8 }}>
-                <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /> {t('cs.download', null, 'Scarica')}</a>
+              <div style={{ display: 'flex', gap: 6, padding: 8, flexWrap: 'wrap' }}>
+                <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 70, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /> {t('cs.download', null, 'Scarica')}</a>
                 {it.type === 'image' && (
                   <button onClick={() => animate(it)} title={t('cs.animate', null, 'Anima')} style={{ background: 'rgba(123,91,255,0.18)', border: '1px solid #7b5bff', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>
                 )}
+                <button onClick={() => sendToSocial(it)} title={t('cs.sendSocial', null, 'Manda a Social Studio')} style={{ background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer' }}><Icon name="send" size={13} /></button>
               </div>
             </div>
           ))}
@@ -206,7 +253,6 @@ export default function CreativeStudio() {
       {/* Barra chat fluttuante */}
       <div style={{ position: 'sticky', bottom: 0, marginTop: 22, paddingTop: 10 }}>
         <div className="glass-card-static" style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.35)' }}>
-          {/* Immagine di partenza per image->video */}
           {kind === 'video' && sourceImage && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: 8, borderRadius: 10, background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)' }}>
               <img src={sourceImage} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
@@ -214,17 +260,9 @@ export default function CreativeStudio() {
               <button onClick={() => setSourceImage(null)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', color: '#fff', cursor: 'pointer', fontSize: 12 }}>{t('cs.clear', null, 'Rimuovi')}</button>
             </div>
           )}
-          <textarea
-            ref={taRef}
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            onKeyDown={onKeyDown}
-            rows={2}
-            placeholder={placeholder}
-            style={{ width: '100%', resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 15, fontFamily: 'Barlow', lineHeight: 1.5 }}
-          />
+          <textarea ref={taRef} value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={onKeyDown} rows={2} placeholder={placeholder}
+            style={{ width: '100%', resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 15, fontFamily: 'Barlow', lineHeight: 1.5 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-            {/* Modello */}
             {kind === 'video' ? (
               <select value={videoModel} onChange={e => setVideoModel(e.target.value)} style={selStyle}>
                 {videoModels.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits} cr</option>)}
@@ -234,13 +272,9 @@ export default function CreativeStudio() {
                 {models.map(m => <option key={m.id} value={m.id}>{m.name} · {m.credits} cr</option>)}
               </select>
             )}
-            {/* Formato */}
             <div style={{ display: 'inline-flex', gap: 4 }}>
-              {FORMATS.map(f => (
-                <button key={f.id} onClick={() => setFormat(f.id)} style={{ ...chip, ...(format === f.id ? chipOn : {}) }}>{f.label}</button>
-              ))}
+              {FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={{ ...chip, ...(format === f.id ? chipOn : {}) }}>{f.label}</button>)}
             </div>
-            {/* Quantità (solo immagini) */}
             {kind === 'image' && (
               <select value={count} onChange={e => setCount(parseInt(e.target.value))} style={selStyle}>
                 {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}×</option>)}
@@ -249,7 +283,7 @@ export default function CreativeStudio() {
             <div style={{ flex: 1 }} />
             <span style={{ fontSize: 12, color: 'var(--text2,#9aa)' }}>{t('cs.cost', { n: cost }, `${cost} crediti`)}</span>
             <button onClick={generate} disabled={busy || !canGenerate} style={{ background: busy || !canGenerate ? '#3a3a48' : 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '10px 20px', color: '#fff', fontWeight: 800, fontSize: 14, cursor: busy || !canGenerate ? 'default' : 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Icon name="sparkles" size={14} /> {busy ? (kind === 'video' ? t('cs.videoBusyShort', null, 'Genero video…') : t('cs.generating', null, 'Genero…')) : t('cs.generate', null, 'Genera')}
+              <Icon name="sparkles" size={14} /> {busy ? t('cs.generating', null, 'Genero…') : t('cs.generate', null, 'Genera')}
             </button>
           </div>
         </div>
@@ -257,11 +291,11 @@ export default function CreativeStudio() {
 
       {/* Modale ricarica */}
       {showRecharge && (
-        <div onClick={() => setShowRecharge(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }}>
+        <div onClick={() => setShowRecharge(false)} style={modalBg}>
           <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 22, borderRadius: 16, width: 520, maxWidth: '95vw' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: 800, flex: 1 }}>{t('cs.rechargeTitle', null, 'Ricarica crediti')}</div>
-              <button onClick={() => setShowRecharge(false)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }}>×</button>
+              <button onClick={() => setShowRecharge(false)} style={xBtn}>×</button>
             </div>
             <div style={{ fontSize: 13, color: 'var(--text2,#9aa)', marginBottom: 16 }}>{t('cs.rechargeHint', null, 'I crediti non scadono. Pagamento sicuro via Stripe.')}</div>
             <div style={{ display: 'grid', gap: 10 }}>
@@ -279,6 +313,30 @@ export default function CreativeStudio() {
         </div>
       )}
 
+      {/* Modale storico crediti */}
+      {showHistory && (
+        <div onClick={() => setShowHistory(false)} style={modalBg}>
+          <div onClick={e => e.stopPropagation()} className="glass-card-static" style={{ padding: 22, borderRadius: 16, width: 480, maxWidth: '95vw', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, flex: 1 }}>{t('cs.historyTitle', null, 'Storico crediti')}</div>
+              <button onClick={() => setShowHistory(false)} style={xBtn}>×</button>
+            </div>
+            {txHistory.length === 0 && <div style={{ fontSize: 13, color: 'var(--text2,#9aa)' }}>{t('cs.noHistory', null, 'Nessun movimento ancora.')}</div>}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {txHistory.map(tx => (
+                <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{txLabel(tx.reason)}{tx.model ? ` · ${tx.model}` : ''}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3,#888)' }}>{tx.created_at ? new Date(tx.created_at).toLocaleString(intlLocale || undefined) : ''}</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: tx.delta >= 0 ? '#30d158' : '#ff8095' }}>{tx.delta >= 0 ? '+' : ''}{tx.delta}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`@keyframes csShimmer { to { background-position: -200% 0 } }`}</style>
     </div>
   )
@@ -287,3 +345,5 @@ export default function CreativeStudio() {
 const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 10px', color: '#fff', fontSize: 12.5, fontFamily: 'Barlow', cursor: 'pointer' }
 const chip = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 11px', color: 'var(--text2,#9aa)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 const chipOn = { background: 'rgba(123,91,255,0.18)', borderColor: '#7b5bff', color: '#fff' }
+const modalBg = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }
+const xBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }

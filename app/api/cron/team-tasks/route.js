@@ -105,6 +105,9 @@ ${openList}`
   } catch (e) {
     return NextResponse.json({ ok: false, error: e?.message || 'planning fallito' }, { status: 500 })
   }
+  // callBrain in json mode può restituire l'oggetto già parsato OPPURE la stringa
+  // JSON grezza: normalizza.
+  if (typeof plan === 'string') { try { plan = JSON.parse(plan) } catch {} }
   // Il modello può mettere l'array sotto chiavi diverse o al top level.
   const rawTasks = Array.isArray(plan) ? plan
     : Array.isArray(plan?.tasks) ? plan.tasks

@@ -78,7 +78,7 @@ export async function POST(req) {
       if (rows.length) {
         const top = [...rows].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0)).slice(0, 40)
         creativeBlock = 'CREATIVE REALI di questo brand (nomi ESATTI — puoi citare SOLO questi):\n' + top.map(c =>
-          `• "${c.ad_name || '?'}" · adset "${c.adset_name || '?'}" · campagna "${c.campaign_name || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr_link ?? c.ctr ?? '-'}%`
+          `• "${c.name || c.ad_name || '?'}" · adset "${c.adset_name || '?'}" · campagna "${c.campaign_name || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr_link ?? c.ctr ?? '-'}%`
         ).join('\n')
       }
     }

@@ -105,7 +105,7 @@ export async function GET(request) {
   // così gli agent possono citare le creative esatte senza inventarle.
   if (Array.isArray(creative?.rows) && creative.rows.length) {
     context.creatives = creative.rows.slice(0, 40).map(c => ({
-      name: c.ad_name || null,
+      name: c.name || c.ad_name || null,
       adset: c.adset_name || null,
       campaign: c.campaign_name || null,
       spend: c.spend, roas: c.roas,

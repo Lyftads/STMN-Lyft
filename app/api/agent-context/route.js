@@ -103,14 +103,14 @@ export async function GET(request) {
 
   // Creative a livello di singola creative/ad (NOMI reali + adset/campagna),
   // così gli agent possono citare le creative esatte senza inventarle.
-  if (Array.isArray(creative?.creatives) && creative.creatives.length) {
-    context.creatives = creative.creatives.slice(0, 40).map(c => ({
-      name: c.name || c.creative_name || c.ad_name || c.title || c.adName || null,
-      adset: c.adset_name || c.adsetName || null,
-      campaign: c.campaign_name || c.campaignName || null,
-      status: c.status || c.effective_status || null,
-      spend: c.spend, roas: c.roas, ctr: c.ctr, cpm: c.cpm,
-      impressions: c.impressions, purchases: c.purchases ?? c.conversions,
+  if (Array.isArray(creative?.rows) && creative.rows.length) {
+    context.creatives = creative.rows.slice(0, 40).map(c => ({
+      name: c.ad_name || null,
+      adset: c.adset_name || null,
+      campaign: c.campaign_name || null,
+      spend: c.spend, roas: c.roas,
+      ctr: c.ctr_link ?? c.ctr, cpc: c.cpc_link ?? c.cpc,
+      impressions: c.impressions, purchases: c.purchases ?? c.orders,
     }))
   }
 

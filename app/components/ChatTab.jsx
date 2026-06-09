@@ -40,6 +40,7 @@ export default function ChatTab({ standalone = false }) {
   const [me, setMe] = useState(null)
   const [members, setMembers] = useState([])
   const [agentAvatars, setAgentAvatars] = useState({}) // tag "Nome · Ruolo" → foto profilo agente AI
+  const [agentMembers, setAgentMembers] = useState([]) // agenti AI come pseudo-membri (per @ e pannello persone)
   const [profile, setProfile] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
   const [showNewChannel, setShowNewChannel] = useState(false)
@@ -91,6 +92,11 @@ export default function ChatTab({ standalone = false }) {
       const map = {}
       ;(d.team || []).forEach(a => { if (a.tag && a.avatar) map[a.tag] = a.avatar })
       setAgentAvatars(map)
+      // Pseudo-membri per il menu @ e il pannello persone (sempre "online").
+      setAgentMembers((d.team || []).map(a => ({
+        id: 'agent:' + a.id, full_name: a.name, email: a.name, role: a.role,
+        avatar_url: a.avatar, isAgent: true,
+      })))
     }).catch(() => {})
   }, [])
 
@@ -441,7 +447,8 @@ export default function ChatTab({ standalone = false }) {
   const mentionPool = (activeChannel && (activeChannel.is_private || activeChannel.is_dm) && activeMemberIds.length)
     ? members.filter(m => activeMemberIds.includes(m.id))
     : members
-  const mentionList = mentionPool.filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 8)
+  // Gli agenti AI sono sempre menzionabili (in ogni canale), in cima alla lista.
+  const mentionList = [...agentMembers, ...mentionPool].filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 12)
   const shownMessages = searchQ.trim() ? messages.filter(m => (m.body || '').toLowerCase().includes(searchQ.trim().toLowerCase())) : messages
   const sharedFiles = messages.filter(m => m.file_url || m.audio_url)
   const channelUnread = (ch) => { const last = lastAt[ch.id]; if (!last) return false; let read = null; try { read = localStorage.getItem('chread_' + ch.id) } catch {}; return ch.id !== active && (!read || last > read) }
@@ -518,6 +525,15 @@ export default function ChatTab({ standalone = false }) {
                   <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ' · guest' : ''}</span>
                 </div>
               ))}
+              {agentMembers.length > 0 && (<>
+                <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Team AI · {agentMembers.length}</div>
+                {agentMembers.map(a => (
+                  <div key={a.id} title={`Menzionalo con @${a.full_name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10 }}>
+                    <Avatar name={a.full_name} url={a.avatar_url} size={26} online={true} />
+                    <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.full_name} <span style={{ color: MUTED, fontSize: 11 }}>· {a.role}</span> <span style={{ color: '#a78bfa', fontSize: 10 }}>AI</span></span>
+                  </div>
+                ))}
+              </>)}
             </>)}
 
             {rail === 'dms' && (<>
@@ -782,8 +798,8 @@ export default function ChatTab({ standalone = false }) {
                   <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 10 }}>
                     {mentionList.map(mem => (
                       <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
-                        <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={isOnline(mem)} />
-                        {mem.full_name || mem.email}
+                        <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={mem.isAgent ? true : isOnline(mem)} />
+                        <span>{mem.full_name || mem.email}{mem.role ? <span style={{ color: MUTED, fontSize: 11.5 }}> · {mem.role}</span> : null}{mem.isAgent ? <span style={{ color: '#a78bfa', fontSize: 10, marginLeft: 4 }}>AI</span> : null}</span>
                       </div>
                     ))}
                   </div>

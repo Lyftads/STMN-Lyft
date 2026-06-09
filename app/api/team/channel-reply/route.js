@@ -59,14 +59,29 @@ export async function POST(req) {
   ))
   const lastUserMsg = [...conversation].reverse().find(m => m.role === 'user')?.content || ''
 
-  // Dati reali cross-dominio (numeri e NOMI veri: campagne, adset, prodotti, flussi…)
-  // così l'agente cita SOLO dati reali e non inventa. Inoltra il cookie di sessione.
+  // Dati reali cross-dominio + creative dirette (NOMI esatti), in parallelo.
+  // Inoltra il cookie di sessione. La lista creative è passata come blocco
+  // DEDICATO (extraSystem) così non viene mai troncata dal contesto generale.
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
-  let liveData = null
+  const H = cookie ? { cookie } : {}
+  let liveData = null, creativeBlock = ''
   try {
-    const cr = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
-    if (cr.ok) liveData = await cr.json()
+    const [ctxRes, crvRes] = await Promise.all([
+      fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H }).catch(() => null),
+      fetch(`${origin}/api/creative?preset=last_28d`, { cache: 'no-store', headers: H }).catch(() => null),
+    ])
+    if (ctxRes && ctxRes.ok) liveData = await ctxRes.json()
+    if (crvRes && crvRes.ok) {
+      const cj = await crvRes.json()
+      const rows = Array.isArray(cj?.rows) ? cj.rows : []
+      if (rows.length) {
+        const top = [...rows].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0)).slice(0, 40)
+        creativeBlock = 'CREATIVE REALI di questo brand (nomi ESATTI — puoi citare SOLO questi):\n' + top.map(c =>
+          `• "${c.ad_name || '?'}" · adset "${c.adset_name || '?'}" · campagna "${c.campaign_name || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr_link ?? c.ctr ?? '-'}%`
+        ).join('\n')
+      }
+    }
   } catch {}
 
   try {
@@ -74,12 +89,13 @@ export async function POST(req) {
       skill: {
         id: `team-${agent.id}`,
         systemPrompt: teamSkillPrompt(agent),
-        guard: 'REGOLA CRITICA ANTI-INVENZIONE: ogni NOME (campagna, adset, creative, prodotto, flusso) e ogni numero/percentuale che citi DEVE essere presente LETTERALMENTE nei DATI LIVE. È VIETATO inventare o ipotizzare nomi e numeri. Se il dato chiesto non è nei DATI LIVE (es. i nomi delle singole creative potrebbero non esserci), dillo onestamente ("non ho qui i nomi delle singole creative, guardiamole insieme nella tab Creative") — NON inventare MAI.',
+        guard: 'REGOLA CRITICA ANTI-INVENZIONE: ogni NOME (campagna, adset, creative, prodotto, flusso) e ogni numero/percentuale che citi DEVE essere presente LETTERALMENTE nei DATI LIVE o nel blocco CREATIVE REALI. È VIETATO inventare o ipotizzare nomi e numeri. Se proprio un dato non c\'è, dillo onestamente — NON inventare MAI.',
       },
       query: lastUserMsg,
       data: liveData,
       dataLabel: 'DATI LIVE (numeri e nomi REALI del brand — puoi citare SOLO questi):',
       dataMax: 70000,
+      extraSystem: creativeBlock ? [{ role: 'system', content: creativeBlock }] : [],
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.3,

@@ -44,11 +44,11 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata.' }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || 'Impossibile avviare la call.' }); return }
       const { Conversation } = await import('@elevenlabs/client')
-      const lang = getClientLocale() || 'it'
+      // NB: niente customLlmExtraBody (l'agente lo rifiuta, error 1008). L'agente
+      // è identificato dal `model` (team-<id>) configurato sull'agent ElevenLabs.
       const conv = await Conversation.startSession({
         signedUrl: cfg.signedUrl,
         connectionType: 'websocket',
-        customLlmExtraBody: { lyft_agent: agent.id, lyft_locale: lang },
         onConnect: (e) => { convIdRef.current = e?.conversationId || convIdRef.current },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: s?.status === 'connected' ? 'connected' : c.status } : c),
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),

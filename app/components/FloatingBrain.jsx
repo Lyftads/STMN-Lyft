@@ -32,6 +32,9 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const [msgs, setMsgs] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [actions, setActions] = useState([])      // azioni proposte dalla conversazione
+  const [actLoading, setActLoading] = useState(false)
+  const [added, setAdded] = useState({})          // indici già aggiunti alla Coda
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 

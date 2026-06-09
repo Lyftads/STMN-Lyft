@@ -63,15 +63,6 @@ export default function VendroShell({
 
   const navGroups = [
     {
-      title: 'Productivity',
-      color: '#7b5bff',
-      items: [
-        { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
-        { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
-        { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
-      ],
-    },
-    {
       title: 'Commerce',
       color: '#ff375f',
       items: [
@@ -81,6 +72,19 @@ export default function VendroShell({
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
         { id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" /> },
+      ],
+    },
+    {
+      title: 'Productivity AI',
+      color: '#7b5bff',
+      items: [
+        { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
+        { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
+        { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
+        { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
+        { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
+        { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },
+        { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },
     {
@@ -123,16 +127,6 @@ export default function VendroShell({
       items: [
         { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
         { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
-      ],
-    },
-    {
-      title: 'AI',
-      color: '#bf5af2',
-      items: [
-        { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
-        { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
-        { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },
-        { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },
     {

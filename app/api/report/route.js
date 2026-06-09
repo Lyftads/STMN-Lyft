@@ -4,7 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
@@ -175,22 +175,22 @@ async function listCampaigns() {
 async function aiNarrative(context, locale) {
   if (!OPENAI_KEY) return null
   try {
-    const langMsg = aiLangSystemMessage(locale)
-    const kb = await buildKnowledgeBlock('analisi report performance marketing e-commerce insight e azioni')
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: OPENAI_MODEL, temperature: 0.5, response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'Sei un analista marketing di STMN Fitness (accessori CrossFit, no integratori). Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.' },
-          ...(kb ? [{ role: 'system', content: kb }] : []),
-          { role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` },
-          ...(langMsg ? [langMsg] : []),
-        ],
-      }), signal: AbortSignal.timeout(40000),
+    // Tool mode (conversation:false): brand + memorie + knowledge entrano nel
+    // contesto SENZA il blocco persona/chat. Lo schema di output {summary,
+    // insights, todos} resta governato dal systemPrompt → invariato.
+    const { parsed } = await callBrain({
+      skill: {
+        id: 'report',
+        json: true,
+        systemPrompt: 'Sei un analista marketing di STMN Fitness (accessori CrossFit, no integratori). Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.',
+      },
+      query: 'analisi report performance marketing e-commerce insight e azioni',
+      messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` }],
+      locale,
+      conversation: false,
+      temperature: 0.5,
     })
-    const j = await res.json()
-    return JSON.parse(j?.choices?.[0]?.message?.content || '{}')
+    return parsed || null
   } catch { return null }
 }
 

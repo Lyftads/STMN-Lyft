@@ -59,32 +59,55 @@ export async function POST(req) {
   ))
   const lastUserMsg = [...conversation].reverse().find(m => m.role === 'user')?.content || ''
 
-  // Dati reali cross-dominio + creative dirette (NOMI esatti), in parallelo.
-  // Inoltra il cookie di sessione. La lista creative è passata come blocco
-  // DEDICATO (extraSystem) così non viene mai troncata dal contesto generale.
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
   const H = cookie ? { cookie } : {}
-  let liveData = null, creativeBlock = ''
-  try {
-    const [ctxRes, crvRes] = await Promise.all([
-      fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H }).catch(() => null),
-      fetch(`${origin}/api/creative?preset=last_28d`, { cache: 'no-store', headers: H }).catch(() => null),
-    ])
-    if (ctxRes && ctxRes.ok) liveData = await ctxRes.json()
-    if (crvRes && crvRes.ok) {
-      const cj = await crvRes.json()
-      const rows = Array.isArray(cj?.rows) ? cj.rows : []
-      if (rows.length) {
-        const top = [...rows].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0)).slice(0, 40)
-        creativeBlock = 'CREATIVE REALI di questo brand (nomi ESATTI — puoi citare SOLO questi):\n' + top.map(c =>
-          `• "${c.name || c.ad_name || '?'}" · adset "${c.adset_name || '?'}" · campagna "${c.campaign_name || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr_link ?? c.ctr ?? '-'}%`
-        ).join('\n')
-      }
-    }
-  } catch {}
+
+  // Posta un messaggio come l'agente nel canale.
+  const post = async (text) => {
+    const t = String(text || '').trim()
+    if (!t) return null
+    const { data } = await admin.from('channel_messages').insert({
+      channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag, body: t,
+    }).select('*').single()
+    return data
+  }
+  const done = (data) => NextResponse.json({ ok: !!data, message: data || null, agent: { id: agent.id, name: agent.name, role: agent.role } })
 
   try {
+    // ── 1) TRIAGE veloce (senza dati): o risponde subito (chiacchiera), o manda
+    //      un ack immediato e poi va a cercare i dati. Evita l'attesa al buio.
+    const triage = await callBrain({
+      skill: { id: `team-${agent.id}`, systemPrompt: teamSkillPrompt(agent) },
+      query: lastUserMsg,
+      messages: conversation,
+      locale: b.locale || null,
+      temperature: 0.4,
+      guardTail: 'Decidi in base all\'ultima richiesta. Se per rispondere ti servono DATI del brand (creative, campagne, adset, numeri, prodotti, performance, vendite…), NON rispondere nel merito: scrivi SOLO una frase brevissima e naturale, in prima persona, che stai andando a controllare (es. "Dammi un attimo Marino, controllo le creative migliori 👀"). Se invece è un saluto o chiacchiera che NON richiede dati, rispondi direttamente e fai iniziare il messaggio ESATTAMENTE con "DIRETTO: " seguito dalla risposta breve.',
+    })
+    const tr = String(triage.content || '').trim()
+
+    // Chiacchiera/saluto → risposta diretta, una volta sola (veloce).
+    if (/^DIRETTO:/i.test(tr)) {
+      return done(await post(tr.replace(/^DIRETTO:\s*/i, '').trim()))
+    }
+
+    // Domanda che richiede dati → posta SUBITO l'ack, poi cerca i dati.
+    await post(tr || 'Un attimo, controllo i dati…')
+
+    // ── 2) Dati reali (agent-context include già le creative con i nomi) ──
+    let liveData = null, creativeBlock = ''
+    try {
+      const ctxRes = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H })
+      if (ctxRes.ok) liveData = await ctxRes.json()
+    } catch {}
+    if (Array.isArray(liveData?.creatives) && liveData.creatives.length) {
+      creativeBlock = 'CREATIVE REALI di questo brand (nomi ESATTI — puoi citare SOLO questi):\n' + liveData.creatives.slice(0, 40).map(c =>
+        `• "${c.name || '?'}" · adset "${c.adset || '?'}" · campagna "${c.campaign || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr ?? '-'}%`
+      ).join('\n')
+    }
+
+    // ── 3) Risposta VERA con i dati ──
     const { content: reply } = await callBrain({
       skill: {
         id: `team-${agent.id}`,
@@ -99,17 +122,9 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.3,
-      guardTail: 'Sei in una chat di team (LyftTalk), non in un report. Rispondi SOLO ed ESATTAMENTE a ciò che ti è stato chiesto, come un collega vero che scrive in chat: 1-3 frasi brevi, tono naturale e umano. VIETATO riassumere il tuo ruolo o elencare cosa sai fare, vietati elenchi puntati e preamboli. Se non hai un dato, dillo invece di inventarlo. Se serve approfondire, proponi di vederlo insieme.',
+      guardTail: 'Hai appena detto che stavi controllando: ORA dai la risposta vera e diretta a ciò che ti è stato chiesto, con i dati reali. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Cita SOLO nomi/numeri reali; se un dato non c\'è, dillo.',
     })
-    const text = String(reply || '').trim()
-    if (!text) return NextResponse.json({ ok: false, error: 'Risposta vuota' })
-
-    const { data, error } = await admin.from('channel_messages').insert({
-      channel_id: channelId, workspace_id: ws.workspaceId,
-      author_id: null, author_name: tag, body: text,
-    }).select('*').single()
-    if (error) throw error
-    return NextResponse.json({ ok: true, message: data, agent: { id: agent.id, name: agent.name, role: agent.role } })
+    return done(await post(reply))
   } catch (e) {
     return NextResponse.json({ ok: false, error: e?.message || 'Errore' })
   }

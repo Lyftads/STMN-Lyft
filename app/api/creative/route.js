@@ -38,12 +38,12 @@ function getAccountIds() {
     process.env.META_ACCOUNTS ||
     process.env.META_ACCOUNT_ID ||
     ''
-  // Isolamento multi-tenant: la catena env Meta (multi-account STMN) e'
-  // usabile SOLO quando il context lo consente (owner/cron → allowEnv=true).
-  // Un tenant non-owner usa SOLO il proprio account; se non ne ha → '' (mai
-  // gli account di STMN). Vale per entrambe le modalita' del flag.
+  // Isolamento multi-tenant: la catena env Meta (multi-account STMN) è usabile
+  // SOLO per owner/cron (allowEnv=true). Ma se la env è VUOTA (account in DB),
+  // si usa comunque l'account risolto dal resolver (m.adAccountId = DB o env
+  // singola). Un tenant non-owner usa SOLO il proprio account (mai STMN).
   const m = getMeta()
-  const raw = m.allowEnv ? envChain : (m.adAccountId || '')
+  const raw = (m.allowEnv && envChain) ? envChain : (m.adAccountId || '')
 
   return raw
     .split(',')

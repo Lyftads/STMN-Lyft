@@ -18,11 +18,23 @@ export async function POST(req) {
 
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
+  // Retry: shopify.weekly a volte arriva vuoto (ShopifyQL rate-limit/cost). Ritento
+  // così lo snapshot ha la serie settimanale (serve per "questa/scorsa settimana").
   let data = null
-  try {
-    const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
-    if (r.ok) data = await r.json()
-  } catch {}
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
+      if (r.ok) {
+        const d = await r.json()
+        data = data || d
+        const wk = d?.shopify?.weekly
+        if (Array.isArray(wk) && wk.length) { data = d; break }
+        // tieni il primo dato valido ma ritenta per ottenere la weekly
+        if (d) data = d
+      }
+    } catch {}
+    if (i < 2) await new Promise(r => setTimeout(r, 1500))
+  }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
   try {

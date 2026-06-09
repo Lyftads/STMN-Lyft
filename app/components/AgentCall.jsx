@@ -47,7 +47,7 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
       const lang = getClientLocale() || 'it'
       const conv = await Conversation.startSession({
         signedUrl: cfg.signedUrl,
-        connectionType: 'webrtc',
+        connectionType: 'websocket',
         customLlmExtraBody: { lyft_agent: agent.id, lyft_locale: lang },
         onConnect: (e) => { convIdRef.current = e?.conversationId || convIdRef.current },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: s?.status === 'connected' ? 'connected' : c.status } : c),

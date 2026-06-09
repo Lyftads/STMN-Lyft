@@ -88,6 +88,22 @@ export async function POST(req) {
   if (lyftimer) data._lyftimer = { entries: (lyftimer.entries || []).slice(0, 40), summary: lyftimer.summary || null }
   if (comp) data._competitors = comp
 
+  // Preserva la weekly BUONA precedente: se ShopifyQL ora torna a ZERO su una
+  // settimana, riusa il valore non-zero dello snapshot precedente → Shopify resta
+  // sempre allineato alle tab (niente "in aggiornamento"/zero intermittenti).
+  try {
+    const { data: prev } = await admin.from('call_context').select('data').eq('workspace_id', ws.workspaceId).maybeSingle()
+    const prevWk = prev?.data?.shopify?.weekly
+    if (Array.isArray(prevWk) && Array.isArray(data?.shopify?.weekly)) {
+      data.shopify.weekly = data.shopify.weekly.map(w => {
+        if (Number(w.ordini) || Number(w.fatturato)) return w
+        const k = String(w.date || '').slice(0, 10)
+        const old = prevWk.find(o => String(o.date || '').slice(0, 10) === k && (Number(o.ordini) || Number(o.fatturato)))
+        return old || w
+      })
+    }
+  } catch {}
+
   try {
     await admin.from('call_context').upsert({ workspace_id: ws.workspaceId, data, updated_at: new Date().toISOString() })
   } catch (e) {

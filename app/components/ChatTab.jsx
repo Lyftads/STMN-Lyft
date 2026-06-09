@@ -5,6 +5,7 @@ import Avatar from './Avatar'
 import ProfileModal from './ProfileModal'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
+import AgentCall from './AgentCall'
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
@@ -622,6 +623,11 @@ export default function ChatTab({ standalone = false }) {
                   )}
                 </div>
                 {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri · aggiungi persone"><Icon name="users" size={16} /></HBtn>}
+                <AgentCall
+                  agent={{ id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
+                  label="📞 Squadra AI"
+                  buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
+                />
               </div>
             )}
           </div>

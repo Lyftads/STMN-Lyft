@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { callBrain } from '../../../lib/agent/gateway'
+
+// Guardrail anti-invenzione (identico al precedente messaggio system inline).
+const GUARD_NUMBERS = 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende).'
 
 const AGENT_ID = 'performance'
 
@@ -439,46 +443,23 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...cleanMessages].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: cleanMessages.length })
 
-  const openaiBody = {
-    model: MODEL,
-    temperature: 0.3,
-    presence_penalty: 0.2,
-    frequency_penalty: 0.2,
-    messages: [
-      ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'system', content: 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende).' },
-      {
-        role: 'system',
-        content: `DATI LIVE (periodo: ${preset}):\n${safeJson(context)}`,
-      },
-      ...cleanMessages,
-      ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-    ],
-  }
-
+  // Migrato al gateway unico (callBrain). Assembla lo stesso identico prompt di
+  // prima — context engine (brand+memorie+knowledge) + SYSTEM_PROMPT + guard +
+  // DATI LIVE + storia + lingua — con gli stessi parametri. La skill è "inline":
+  // il prompt resta in questo file, cambia solo chi orchestra la chiamata.
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(openaiBody),
+    const { userId, content: reply, usage } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT, guard: GUARD_NUMBERS },
+      query: lastUserMsg,
+      data: context,
+      dataLabel: `DATI LIVE (periodo: ${preset}):`,
+      messages: cleanMessages,
+      locale: body?.locale,
+      temperature: 0.3,
+      presencePenalty: 0.2,
+      frequencyPenalty: 0.2,
     })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json(
-        { error: `OpenAI ${r.status}: ${text.slice(0, 400)}` },
-        { status: 502 }
-      )
-    }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
@@ -491,14 +472,15 @@ export async function POST(req) {
       reply,
       model: MODEL,
       preset,
-      usage: json?.usage || null,
+      usage: usage || null,
       summary,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
+    const status = err?.status ? 502 : 500
     return NextResponse.json(
       { error: err?.message || 'Errore chiamata OpenAI' },
-      { status: 500 }
+      { status }
     )
   }
 }

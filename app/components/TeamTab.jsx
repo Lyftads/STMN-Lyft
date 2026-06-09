@@ -53,7 +53,7 @@ export default function TeamTab() {
   async function startCall(a) {
     setCall({ status: 'connecting', mode: 'listening' })
     try {
-      const cfg = await fetch('/api/team/call/signed-url').then(r => r.json()).catch(() => ({}))
+      const cfg = await fetch(`/api/team/call/signed-url?agentId=${encodeURIComponent(a.id)}`).then(r => r.json()).catch(() => ({}))
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata (manca la chiave ElevenLabs).' }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || 'Impossibile avviare la call.' }); return }
       const { Conversation } = await import('@elevenlabs/client')
@@ -62,7 +62,6 @@ export default function TeamTab() {
         signedUrl: cfg.signedUrl,
         connectionType: 'webrtc',
         customLlmExtraBody: { lyft_agent: a.id, lyft_locale: lang },
-        overrides: { tts: { voiceId: a.voiceId || undefined }, agent: { language: lang } },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: (s?.status === 'connected' ? 'connected' : c.status) } : c),
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),
         onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || 'Errore call') })),

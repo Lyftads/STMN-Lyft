@@ -65,7 +65,7 @@ export async function POST(req) {
   try { body = await req.json() } catch {}
   // L'agente arriva via extra-body inoltrato dall'SDK (`lyft_agent`) o dal `model`
   // (es. "team-ads"). Così UN solo agent ElevenLabs serve tutte le 8 personas.
-  const agentId = String(body.lyft_agent || '').trim() || String(body.model || '').replace(/^team-/, '') || 'ceo'
+  const agentId = String(body.lyft_agent || body.extra_body?.lyft_agent || '').trim() || String(body.model || '').replace(/^team-/, '') || 'ceo'
   const agent = getTeamAgent(agentId) || getTeamAgent('ceo')
   const msgs = Array.isArray(body.messages) ? body.messages : []
   const history = msgs.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')

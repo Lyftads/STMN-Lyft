@@ -62,6 +62,10 @@ export async function POST(req) {
   })().catch(() => null)
   // 5) P&L mensile (marginalità: ricavi netti, COGS, utile lordo, margine).
   const pnlP = fetch(`${origin}/api/pnl?months=3`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+  // 6) Task, Lyftimer, Competitor (per gli strumenti live degli agent).
+  const tasksP = fetch(`${origin}/api/tasks`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+  const lyftimerP = fetch(`${origin}/api/time-entries`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+  const compP = fetch(`${origin}/api/competitor-intel`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
 
   // ── agent-context con retry (la weekly ShopifyQL a volte torna a zero) ─────
   let data = null
@@ -74,12 +78,15 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  const [periods, klaviyo, gsc, ga4p, pnl] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP])
+  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP])
   if (periods) data._periods = periods
   if (klaviyo) data._klaviyo = klaviyo
   if (gsc) data._gsc = gsc
   if (ga4p) data._ga4 = ga4p
   if (pnl?.series) data._pnl = { series: pnl.series, cogsByMonth: pnl.cogsByMonth || null }
+  if (tasks?.tasks) data._tasks = tasks.tasks.slice(0, 60)
+  if (lyftimer) data._lyftimer = { entries: (lyftimer.entries || []).slice(0, 40), summary: lyftimer.summary || null }
+  if (comp) data._competitors = comp
 
   try {
     await admin.from('call_context').upsert({ workspace_id: ws.workspaceId, data, updated_at: new Date().toISOString() })

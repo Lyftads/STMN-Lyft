@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../../../lib/team/workspace'
 import { callBrain } from '../../../../../lib/agent/gateway'
-import { getTeamAgent } from '../../../../../lib/agent/team'
+import { getTeamAgent, teamSkillPrompt } from '../../../../../lib/agent/team'
 import { rememberBatch } from '../../../../../lib/tenant/agentMemory'
 import { notifyAssignment, sendEmail } from '../../../../../lib/team/notify'
 

@@ -6,6 +6,7 @@ import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
+import { TOOLS, executeTool } from '../../../lib/agent/tools'
 
 const GUARD = 'REGOLA CRITICA: ogni numero, nome prodotto, nome campagna, percentuale che citi DEVE essere copiato letteralmente dal blocco DATI LIVE. Vietato inventare/stimare. Se manca un dato dillo. Rispetta il BRAND GUARD del CONTESTO BRAND.'
 
@@ -43,9 +44,9 @@ export async function POST(req) {
   // + memorie + knowledge + i DATI LIVE cross-dominio).
   const skillPrompt = `${agent.systemPrompt}\n\n${rosterNote}\n\nParli SEMPRE in prima persona come ${agent.name} (${agent.role}). Tono umano, come una persona vera al telefono/in call — niente preamboli da AI, niente "come assistente". Rispondi nella lingua dell'utente.`
 
-  // Stessi DATI PRECISI per periodo degli agent in call (snapshot condiviso).
-  let briefBlock = null
-  try { const snap = await readSnapshot(process.env.LYFT_OWNER_USER_ID); if (snap?.data) briefBlock = buildBrief(snap.data) } catch {}
+  // Stessi DATI PRECISI per periodo + STRUMENTI live degli agent in call (snapshot).
+  let briefBlock = null, snapData = null
+  try { const snap = await readSnapshot(process.env.LYFT_OWNER_USER_ID); if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) } } catch {}
 
   try {
     const { userId, content: reply, usage } = await callBrain({
@@ -54,10 +55,12 @@ export async function POST(req) {
       data: context,
       dataLabel: `DATI LIVE (periodo: ${preset}):`,
       dataMax: 70000,
-      extraSystem: briefBlock ? [{ role: 'system', content: briefBlock }] : [],
+      extraSystem: briefBlock ? [{ role: 'system', content: briefBlock + '\n\nHai STRUMENTI per qualsiasi altro dato del software (get_kpis per ogni KPI/periodo, list_creatives, list_adsets, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono, non dire "non ho il dato" se uno strumento può dartelo.' }] : [],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.4,
+      tools: snapData ? TOOLS : null,
+      onToolCall: snapData ? (n, a) => executeTool(n, a, snapData) : null,
     })
 
     if (userId && lastUserMsg && reply) {

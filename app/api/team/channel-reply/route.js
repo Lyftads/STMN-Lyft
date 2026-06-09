@@ -6,6 +6,7 @@ import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { callBrain } from '../../../../lib/agent/gateway'
 import { readSnapshot, buildBrief } from '../../../../lib/agent/brandSnapshot'
+import { TOOLS, executeTool } from '../../../../lib/agent/tools'
 import { getTeamAgent, findMentionedAgent, teamSkillPrompt } from '../../../../lib/agent/team'
 
 // Genera la risposta di un agente del team a una menzione in un canale LyftTalk,
@@ -97,9 +98,9 @@ export async function POST(req) {
     await post(tr || 'Un attimo, controllo i dati…')
 
     // ── 2) Dati reali (agent-context include già le creative con i nomi) ──
-    // Stessi DATI PRECISI per periodo degli agent in call (snapshot condiviso).
-    let briefBlock = null
-    try { const snap = await readSnapshot(ws.workspaceId); if (snap?.data) briefBlock = buildBrief(snap.data) } catch {}
+    // Stessi DATI PRECISI per periodo + STRUMENTI live (snapshot condiviso).
+    let briefBlock = null, snapData = null
+    try { const snap = await readSnapshot(ws.workspaceId); if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) } } catch {}
 
     let liveData = null, creativeBlock = ''
     try {
@@ -135,7 +136,9 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.3,
-      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente "Ciao Marino" un\'altra volta. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Cita SOLO nomi/numeri reali; se un dato non c\'è, dillo.',
+      tools: snapData ? TOOLS : null,
+      onToolCall: snapData ? (n, a) => executeTool(n, a, snapData) : null,
+      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente "Ciao Marino" un\'altra volta. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Hai STRUMENTI per qualsiasi dato del software (get_kpis, list_creatives, list_adsets, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono.',
     })
     const answerMsg = await post(reply)
 

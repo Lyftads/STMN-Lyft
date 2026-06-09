@@ -184,6 +184,16 @@ export default function ChatTab({ standalone = false }) {
       seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
       setMessages(prev => [...prev, r.message]); scrollBottom()
     }
+    // Se il messaggio nomina un agente del team AI, falla rispondere nel canale.
+    // (La risposta dell'agente comparirà tramite il polling dei messaggi.)
+    if (/(^|[^a-zà-ù])(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)([^a-zà-ù]|$)/i.test(body)) {
+      let locale = null
+      try { locale = localStorage.getItem('lyft_lang') } catch {}
+      fetch('/api/team/channel-reply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: active, locale }),
+      }).catch(() => {})
+    }
   }
 
   function reloadMembers() { fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {}) }

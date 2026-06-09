@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const AGENT_ID = 'year'
 
@@ -116,37 +117,23 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
+  const langMsg = aiLangSystemMessage(body?.locale)
 
+  // Migrato al gateway callBrain. Ordine e parametri IDENTICI.
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.2,
-        top_p: 0.2,
-        messages: [
-          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'system', content: `DATI ANNUALI — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` },
-          ...clean,
-          { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero e OGNI nome di anno che scrivi sia letteralmente presente nel JSON DATI ANNUALI. Se manca, scrivi "Non ho questo dato" invece di inventare.' },
-        ],
-      }),
+    const { userId, content: reply, usage } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      query: lastUserMsg,
+      data: context,
+      dataLabel: 'DATI ANNUALI — usa SOLO questi numeri, mai inventare:',
+      dataMax: 70000,
+      messages: clean,
+      locale: null,
+      extraSystem: langMsg ? [langMsg] : [],
+      temperature: 0.2,
+      topP: 0.2,
+      guardTail: 'REMINDER: prima di rispondere verifica che OGNI numero e OGNI nome di anno che scrivi sia letteralmente presente nel JSON DATI ANNUALI. Se manca, scrivi "Non ho questo dato" invece di inventare.',
     })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 300)}` }, { status: 502 })
-    }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
@@ -157,10 +144,11 @@ export async function POST(req) {
 
     return NextResponse.json({
       reply,
-      usage: json?.usage || null,
+      usage: usage || null,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status: 500 })
+    const status = err?.status ? 502 : 500
+    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
   }
 }

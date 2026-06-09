@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
+import { callBrain } from '../../../lib/agent/gateway'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -140,11 +141,6 @@ export async function POST(req) {
 
   // Brand context + memory recall (semantic) per ultima query utente
   const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({
-    agentId: AGENT_ID,
-    query: lastUserMsg,
-    conversationLength: clean.length,
-  })
 
   // Skill matching contestuale: carica solo le skill rilevanti per la query
   // utente (max 2). Le skill aggiunte come system messages dedicati.
@@ -153,62 +149,41 @@ export async function POST(req) {
     role: 'system',
     content: `SKILL ATTIVATA: ${s.name} (v${s.version})\nUsa le istruzioni seguenti per strutturare la risposta:\n\n${s.body}`,
   }))
+  const langMsg = aiLangSystemMessage(body?.locale)
 
+  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
+  // contextBlock → SYSTEM_PROMPT → lingua → skillBlocks → DATI LIVE → storia →
+  // REMINDER finale. extraSystem preserva l'ordine lingua+skill; locale:null
+  // evita doppia direttiva-lingua. temp 0, top_p 0.1, troncamento dati 60k.
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0,
-        top_p: 0.1,
-        messages: [
-          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          ...skillBlocks,
-          ...(context ? [{ role: 'system', content: `DATI LIVE — usa SOLO questi numeri, mai inventare:\n${safeJson(context)}` }] : []),
-          ...clean,
-          { role: 'system', content: 'REMINDER: prima di rispondere, verifica che OGNI numero e OGNI nome (prodotti, campagne) che stai per scrivere sia letteralmente presente nel JSON DATI LIVE. Se manca anche un solo dato, scrivi "Non ho questo dato" invece di inventare.' },
-        ],
-      }),
+    const { userId, content: reply, usage } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      query: lastUserMsg,
+      data: context,
+      dataLabel: 'DATI LIVE — usa SOLO questi numeri, mai inventare:',
+      dataMax: 60000,
+      messages: clean,
+      locale: null,
+      extraSystem: [...(langMsg ? [langMsg] : []), ...skillBlocks],
+      temperature: 0,
+      topP: 0.1,
+      guardTail: 'REMINDER: prima di rispondere, verifica che OGNI numero e OGNI nome (prodotti, campagne) che stai per scrivere sia letteralmente presente nel JSON DATI LIVE. Se manca anche un solo dato, scrivi "Non ho questo dato" invece di inventare.',
     })
 
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json(
-        { error: `OpenAI ${r.status}: ${text.slice(0, 300)}` },
-        { status: 502 }
-      )
-    }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
-
-    // Fire-and-forget: estrai memorie dall'ultimo turn e salvale in DB.
-    // Non bloccante — la response torna subito all'utente.
     if (userId && lastUserMsg && reply) {
-      persistTurnMemory({
-        agentId: AGENT_ID,
-        userId,
-        userMessage: lastUserMsg,
-        assistantMessage: reply,
-      }).catch(() => {}) // already-logged inside, swallow
+      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
     }
-    // Auto-extraction da dati live (throttled internamente a 30min per timeframe)
     if (userId && context) {
       persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: tf }).catch(() => {})
     }
 
     return NextResponse.json({
       reply,
-      usage: json?.usage || null,
+      usage: usage || null,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status: 500 })
+    const status = err?.status ? 502 : 500
+    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
   }
 }

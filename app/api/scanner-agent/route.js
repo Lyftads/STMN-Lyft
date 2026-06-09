@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const AGENT_ID = 'scanner'
 
@@ -97,37 +98,24 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
+  const langMsg = aiLangSystemMessage(body?.locale)
 
+  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
+  // contextBlock → SYSTEM_PROMPT → lingua → SCAN DATA → storia → REMINDER finale.
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.4,
-        top_p: 0.9,
-        messages: [
-          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'system', content: `SCAN DATA — l'analisi CRO di riferimento per ogni domanda:\n${safeJson(context)}` },
-          ...clean,
-          { role: 'system', content: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.' },
-        ],
-      }),
+    const { userId, content: reply, usage } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      query: lastUserMsg,
+      data: context,
+      dataLabel: "SCAN DATA — l'analisi CRO di riferimento per ogni domanda:",
+      dataMax: 50000,
+      messages: clean,
+      locale: null, // lingua via extraSystem per preservare la posizione esatta
+      extraSystem: langMsg ? [langMsg] : [],
+      temperature: 0.4,
+      topP: 0.9,
+      guardTail: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.',
     })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 300)}` }, { status: 502 })
-    }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
@@ -135,10 +123,11 @@ export async function POST(req) {
 
     return NextResponse.json({
       reply,
-      usage: json?.usage || null,
+      usage: usage || null,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status: 500 })
+    const status = err?.status ? 502 : 500
+    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
   }
 }

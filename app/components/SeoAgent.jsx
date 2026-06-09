@@ -104,6 +104,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
   }
 
   if (!mounted) return null
+  return null // launcher flottante rimosso -> sostituito dal cervello unico (FloatingBrain)
 
   const suggestions = customSug || (ctx ? SUGGESTIONS_WITH_AUDIT : SUGGESTIONS_NO_AUDIT)
   const subtitle = hint || (ctx

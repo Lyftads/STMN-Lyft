@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 
@@ -26,6 +27,7 @@ function loadMsgs() {
 
 export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const { t } = useI18n()
+  const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState([])
   const [input, setInput] = useState('')
@@ -33,6 +35,9 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
+  // Portal su document.body: così la position:fixed è relativa al VIEWPORT e
+  // non a un antenato con transform/filter (che la farebbe scrollare).
+  useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setMsgs(loadMsgs()) }, [])
   useEffect(() => {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(msgs.slice(-40))) } catch {}
@@ -88,7 +93,9 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
 
   const clear = () => { setMsgs([]); try { localStorage.removeItem(STORE_KEY) } catch {} }
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <>
       {/* FAB */}
       {!open && (
@@ -188,7 +195,8 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body,
   )
 }
 

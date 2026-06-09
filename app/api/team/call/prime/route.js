@@ -49,6 +49,26 @@ export async function POST(req) {
     data._periods = await withTenantContext(req, () => periodStats())
   } catch {}
 
+  // Klaviyo per periodo (this week = giorni da lunedì, this month = giorni dal 1°, 30g).
+  try {
+    const now2 = new Date(); const dd2 = (now2.getUTCDay() + 6) % 7; const daysMonth = now2.getUTCDate() - 1
+    const kf = days => fetch(`${origin}/api/klaviyo?days=${days}`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const [kWeek, kMonth, k30] = await Promise.all([kf(dd2), kf(daysMonth), kf(30)])
+    data._klaviyo = { this_week: kWeek?.kpis || null, this_month: kMonth?.kpis || null, last_30d: k30?.kpis || null }
+  } catch {}
+
+  // Google Search Console per periodo (7g + settimana prec, 30g + mese prec).
+  try {
+    const sites = await fetch(`${origin}/api/gsc?action=sites`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const list = sites?.sites || []
+    const site = list[0]?.siteUrl || list[0]?.url || list[0] || null
+    if (site) {
+      const gf = days => fetch(`${origin}/api/gsc?site=${encodeURIComponent(site)}&days=${days}`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
+      const [g7, g30] = await Promise.all([gf(7), gf(30)])
+      data._gsc = { last_7d: g7, last_30d: g30 }
+    }
+  } catch {}
+
   try {
     await admin.from('call_context').upsert({ workspace_id: ws.workspaceId, data, updated_at: new Date().toISOString() })
   } catch (e) {

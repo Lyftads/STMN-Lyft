@@ -50,6 +50,7 @@ import QuarterAgent from './components/QuarterAgent'
 import YearAgent from './components/YearAgent'
 import SimulatorAgent from './components/SimulatorAgent'
 import { PlatformBadges } from './components/PlatformIcon'
+import FloatingBrain from './components/FloatingBrain'
 import { useI18n } from '../lib/i18n/I18nProvider'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -4331,6 +4332,7 @@ export default function App() {
   <ChatTab />
 )}
 
+      <FloatingBrain currentTab={tab} />
       </VendroShell>
     )
   }

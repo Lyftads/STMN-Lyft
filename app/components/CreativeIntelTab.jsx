@@ -120,8 +120,9 @@ function AdCard({ ad, onOpen }) {
 
 function DetailModal({ ad, onClose }) {
   const f = FUNNEL[ad.funnel]
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }}>
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 860, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 0 }}>
         <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 320 }}>
           {ad.video ? <video src={ad.video} poster={ad.thumbnail} controls style={{ width: '100%', maxHeight: '92vh', objectFit: 'contain' }} />
@@ -162,14 +163,15 @@ function DetailModal({ ad, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
 export default function CreativeIntelTab() {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
-  const [country, setCountry] = useState('IT')
+  const [country, setCountry] = useState('ALL')
   const [format, setFormat] = useState('')
   const [ads, setAds] = useState([])
   const [srcUsed, setSrcUsed] = useState(null)

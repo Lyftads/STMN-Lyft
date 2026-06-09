@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Competitor Creative Intel — modulo originale LyftAI: cerca e scompone le
-// creatività dei competitor (via Foreplay). Estetica dark coerente col resto app.
+// creatività dei competitor via Meta Ad Library. Estetica dark coerente.
 
 const FORMATS = [
   { id: '', label: 'Tutti' },
@@ -85,7 +86,10 @@ function AdCard({ ad, onOpen }) {
         {ad.thumbnail || ad.image ? (
           <img src={ad.thumbnail || ad.image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#4a4060', fontSize: 12, fontWeight: 700 }}>{ad.format}</div>
+          <div style={{ width: '100%', height: '100%', padding: '34px 16px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(34,34,48,0.4))' }}>
+            {ad.headline && <div style={{ fontSize: 13.5, fontWeight: 900, color: '#fff', lineHeight: 1.3, maxHeight: 54, overflow: 'hidden' }}>{ad.headline}</div>}
+            <div style={{ fontSize: 11.5, color: '#c8c0d6', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || 'Catalogo prodotti / DCO'}</div>
+          </div>
         )}
         <div style={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
           <Badge color="#c4b5fd">{ad.format}</Badge>

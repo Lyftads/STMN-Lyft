@@ -124,7 +124,32 @@ export async function POST(req) {
       temperature: 0.3,
       guardTail: 'Hai appena detto che stavi controllando: ORA dai la risposta vera e diretta a ciò che ti è stato chiesto, con i dati reali. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Cita SOLO nomi/numeri reali; se un dato non c\'è, dillo.',
     })
-    return done(await post(reply))
+    const answerMsg = await post(reply)
+
+    // ── 4) Allega le IMMAGINI delle creative menzionate (o richieste) ──
+    try {
+      const creatives = Array.isArray(liveData?.creatives) ? liveData.creatives.filter(c => c.image) : []
+      if (creatives.length) {
+        const r = String(reply || '')
+        // creative i cui nomi compaiono nella risposta dell'agente
+        let toShow = creatives.filter(c => c.name && r.includes(c.name))
+        // se l'utente ha chiesto di VEDERLE e non ne abbiamo agganciate dal testo → top per spesa
+        const wantsImages = /mostr|fammi veder|farmi veder|vedere|immagin|allega|screenshot|come sono fatt|fammele/i.test(lastUserMsg)
+        if (wantsImages && toShow.length === 0) {
+          toShow = [...creatives].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0))
+        }
+        for (const c of toShow.slice(0, 3)) {
+          await admin.from('channel_messages').insert({
+            channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag,
+            body: c.name || 'Creative',
+            file_url: c.image, file_type: 'image/jpeg',
+            file_name: `${String(c.name || 'creative').slice(0, 60)}.jpg`,
+          })
+        }
+      }
+    } catch {}
+
+    return done(answerMsg)
   } catch (e) {
     return NextResponse.json({ ok: false, error: e?.message || 'Errore' })
   }

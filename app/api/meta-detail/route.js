@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
@@ -112,6 +112,39 @@ function getPreviousRange(range) {
   }
 }
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+// Rate limit Meta: code 17 (User request limit reached), 4 (App request limit),
+// 32 (Page-level), 613, 80000-80004 (Business Use Case), o HTTP 429.
+function isRateLimit(status, err) {
+  if (status === 429) return true
+  const code = err?.code
+  return code === 17 || code === 4 || code === 32 || code === 613 ||
+    (code >= 80000 && code <= 80004)
+}
+
+// Fetch su Graph con retry+backoff sui limiti di rate (così un click su una
+// campagna non fallisce subito quando Meta limita temporaneamente l'utente).
+async function graphFetch(urlStr) {
+  const backoffs = [0, 2000, 6000]
+  let lastErr = null
+  for (let i = 0; i < backoffs.length; i++) {
+    if (backoffs[i]) await sleep(backoffs[i])
+    const res = await fetch(urlStr, { cache: 'no-store' })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && !data.error) return data
+    lastErr = data.error || { message: `Meta API error ${res.status}` }
+    if (!isRateLimit(res.status, data.error) || i === backoffs.length - 1) {
+      const e = new Error(isRateLimit(res.status, data.error)
+        ? 'Limite richieste Meta raggiunto, riprova tra qualche minuto.'
+        : (lastErr.message || `Meta API error ${res.status}`))
+      e.rateLimited = isRateLimit(res.status, data.error)
+      throw e
+    }
+  }
+  throw new Error(lastErr?.message || 'Meta API error')
+}
+
 async function graph(path, params = {}) {
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/${path}`)
 
@@ -123,15 +156,7 @@ async function graph(path, params = {}) {
 
   url.searchParams.set('access_token', metaToken())
 
-  const res = await fetch(url.toString(), { cache: 'no-store' })
-  const data = await res.json()
-
-  if (!res.ok || data.error) {
-    const msg = data?.error?.message || `Meta API error ${res.status}`
-    throw new Error(msg)
-  }
-
-  return data
+  return graphFetch(url.toString())
 }
 
 async function graphAll(path, params = {}) {
@@ -139,11 +164,7 @@ async function graphAll(path, params = {}) {
   let rows = Array.isArray(data.data) ? data.data : []
 
   while (data.paging?.next) {
-    const res = await fetch(data.paging.next, { cache: 'no-store' })
-    data = await res.json()
-
-    if (data.error) throw new Error(data.error.message)
-
+    data = await graphFetch(data.paging.next)
     rows = rows.concat(Array.isArray(data.data) ? data.data : [])
   }
 
@@ -642,6 +663,17 @@ async function getAdRows(accounts, range, adsetId) {
   // Catalog di solito lo tengono qui invece che sul creative)
   const adsetProductSetId = await getAdsetProductSetId(adsetId)
 
+  // Dedup: gli ad spesso condividono lo stesso product_set → fetcho ogni set
+  // UNA sola volta (riduce drasticamente le chiamate Meta e il rischio di rate limit).
+  const sampleCache = new Map()
+  const productSetSample = async (psId) => {
+    if (!psId) return []
+    if (sampleCache.has(psId)) return sampleCache.get(psId)
+    const p = fetchProductSetSample(psId, 6)
+    sampleCache.set(psId, p)
+    return p
+  }
+
   return await Promise.all(ads.map(async ad => {
     const insight = insightMap.get(ad.id) || {}
 
@@ -651,7 +683,7 @@ async function getAdRows(accounts, range, adsetId) {
 
     // Per catalog ads recupero un sample di prodotti reali del catalogo
     const productSetId = getCreativeProductSetId(ad.creative) || adsetProductSetId
-    const products = productSetId ? await fetchProductSetSample(productSetId, 6) : []
+    const products = await productSetSample(productSetId)
 
     return calcRow(
       {

@@ -22,9 +22,23 @@ function CallAvatar({ a, size = 120 }) {
 export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle }) {
   const [call, setCall] = useState(null) // { status, mode, error? }
   const convRef = useRef(null)
+  const convIdRef = useRef(null)
+  const finalizedRef = useRef(false)
+
+  // A fine call: trascrizione + estrazione/esecuzione azioni + memoria (server).
+  function finalize() {
+    const id = convIdRef.current
+    if (!id || finalizedRef.current) return
+    finalizedRef.current = true
+    fetch('/api/team/call/finalize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: id, agentId: agent.id }),
+    }).catch(() => {})
+  }
 
   async function startCall() {
     setCall({ status: 'connecting', mode: 'listening' })
+    convIdRef.current = null; finalizedRef.current = false
     try {
       const cfg = await fetch(`/api/team/call/signed-url?agentId=${encodeURIComponent(agent.id)}`).then(r => r.json()).catch(() => ({}))
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata.' }); return }
@@ -35,12 +49,14 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
         signedUrl: cfg.signedUrl,
         connectionType: 'webrtc',
         customLlmExtraBody: { lyft_agent: agent.id, lyft_locale: lang },
+        onConnect: (e) => { convIdRef.current = e?.conversationId || convIdRef.current },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: s?.status === 'connected' ? 'connected' : c.status } : c),
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),
         onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || 'Errore call') })),
-        onDisconnect: () => setCall(c => c && c.status !== 'ended' ? { ...c, status: 'ended' } : c),
+        onDisconnect: () => { finalize(); setCall(c => c && c.status !== 'ended' ? { ...c, status: 'ended' } : c) },
       })
       convRef.current = conv
+      try { convIdRef.current = convIdRef.current || conv.getId?.() } catch {}
       setCall(c => ({ ...(c || {}), status: 'connected', mode: 'listening' }))
     } catch (e) {
       setCall({ status: 'ended', error: String(e?.message || e || 'Microfono o connessione non disponibili') })
@@ -48,6 +64,7 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
   }
   async function endCall() {
     try { await convRef.current?.endSession() } catch {}
+    finalize()
     convRef.current = null
     setCall(null)
   }

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../../lib/supabase/server'
@@ -30,44 +30,44 @@ export async function POST(req) {
     if (!Array.isArray(wk)) return false
     return wk.some(w => [thisMon, lastMon].includes(String(w.date || '').slice(0, 10)) && (Number(w.ordini) || Number(w.fatturato)))
   }
+  const H = cookie ? { cookie } : {}
+
+  // ── In PARALLELO (non dipendono da agent-context) ──────────────────────────
+  // 1) Periodi Shopify esatti (Admin GraphQL).
+  const periodsP = withTenantContext(req, () => periodStats()).catch(() => null)
+  // 2) Klaviyo per periodo: questa settimana (giorni da lun), questo mese (dal 1°), 30g.
+  const klaviyoP = (async () => {
+    const now2 = new Date(); const dd2 = (now2.getUTCDay() + 6) % 7; const daysMonth = now2.getUTCDate() - 1
+    const kf = days => fetch(`${origin}/api/klaviyo?days=${days}`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const [kWeek, kMonth, k30] = await Promise.all([kf(Math.max(dd2, 1)), kf(Math.max(daysMonth, 1)), kf(30)])
+    return { this_week: kWeek?.kpis || null, this_month: kMonth?.kpis || null, last_30d: k30?.kpis || null }
+  })().catch(() => null)
+  // 3) GSC per periodo (7g + prec, 30g + prec) — sito del BRAND, non lyftai.io.
+  const gscP = (async () => {
+    const sites = await fetch(`${origin}/api/gsc?action=sites`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const list = (sites?.sites || []).map(s => (typeof s === 'string' ? s : s.siteUrl || s.url)).filter(Boolean)
+    const site = list.find(s => /stmn/i.test(s)) || list.find(s => !/lyftai/i.test(s)) || list[0] || null
+    if (!site) return null
+    const gf = days => fetch(`${origin}/api/gsc?site=${encodeURIComponent(site)}&days=${days}`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const [g7, g30] = await Promise.all([gf(7), gf(30)])
+    return { site, last_7d: g7, last_30d: g30 }
+  })().catch(() => null)
+
+  // ── agent-context con retry (la weekly ShopifyQL a volte torna a zero) ─────
   let data = null
   for (let i = 0; i < 4; i++) {
     try {
-      const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
-      if (r.ok) {
-        const d = await r.json()
-        if (d) data = d
-        if (weeklyOk(d)) break
-      }
+      const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H })
+      if (r.ok) { const d = await r.json(); if (d) data = d; if (weeklyOk(d)) break }
     } catch {}
     if (i < 3) await new Promise(r => setTimeout(r, 1500))
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  // Time frame Shopify ESATTI via Admin GraphQL (oggi/ieri/settimana/mese/30g).
-  try {
-    data._periods = await withTenantContext(req, () => periodStats())
-  } catch {}
-
-  // Klaviyo per periodo (this week = giorni da lunedì, this month = giorni dal 1°, 30g).
-  try {
-    const now2 = new Date(); const dd2 = (now2.getUTCDay() + 6) % 7; const daysMonth = now2.getUTCDate() - 1
-    const kf = days => fetch(`${origin}/api/klaviyo?days=${days}`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
-    const [kWeek, kMonth, k30] = await Promise.all([kf(dd2), kf(daysMonth), kf(30)])
-    data._klaviyo = { this_week: kWeek?.kpis || null, this_month: kMonth?.kpis || null, last_30d: k30?.kpis || null }
-  } catch {}
-
-  // Google Search Console per periodo (7g + settimana prec, 30g + mese prec).
-  try {
-    const sites = await fetch(`${origin}/api/gsc?action=sites`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
-    const list = sites?.sites || []
-    const site = list[0]?.siteUrl || list[0]?.url || list[0] || null
-    if (site) {
-      const gf = days => fetch(`${origin}/api/gsc?site=${encodeURIComponent(site)}&days=${days}`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.ok ? r.json() : null).catch(() => null)
-      const [g7, g30] = await Promise.all([gf(7), gf(30)])
-      data._gsc = { last_7d: g7, last_30d: g30 }
-    }
-  } catch {}
+  const [periods, klaviyo, gsc] = await Promise.all([periodsP, klaviyoP, gscP])
+  if (periods) data._periods = periods
+  if (klaviyo) data._klaviyo = klaviyo
+  if (gsc) data._gsc = gsc
 
   try {
     await admin.from('call_context').upsert({ workspace_id: ws.workspaceId, data, updated_at: new Date().toISOString() })

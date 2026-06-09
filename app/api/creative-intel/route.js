@@ -3,25 +3,38 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
-import { searchAds, searchBrands, adsByBrand } from '../../../lib/foreplay/client'
+import * as scrape from '../../../lib/adlibrary/scrape'
+import * as metaApi from '../../../lib/adlibrary/meta'
 
-// GET /api/creative-intel?mode=ads|brands|brandAds&query=&platform=&format=&order=&brandId=&cursor=
-// Competitor Creative Intel: cerca/scompone le creatività dei competitor (Foreplay).
+// GET /api/creative-intel — Competitor Creative Intel (solo Meta Ad Library, gratis).
+//   source=scrape (default, nessuna app/token) | api (API ufficiale, token Meta)
+//   query · country · format · limit · cursor
 export async function GET(req) {
   const sp = new URL(req.url).searchParams
-  const mode = sp.get('mode') || 'ads'
+  const source = sp.get('source') === 'api' ? 'api' : 'scrape'
   const query = sp.get('query') || ''
-  const platform = sp.get('platform') || ''
-  const format = sp.get('format') || ''
-  const order = sp.get('order') || ''
+  const country = sp.get('country') || 'IT'
+  const limit = Math.min(50, Math.max(1, parseInt(sp.get('limit') || '40')))
   const cursor = sp.get('cursor') || ''
-  const limit = Math.min(60, Math.max(1, parseInt(sp.get('limit') || '40')))
+  const fmt = (sp.get('format') || '').toUpperCase()
 
   let out
-  if (mode === 'brands') out = await searchBrands({ query, limit })
-  else if (mode === 'brandAds') out = await adsByBrand({ brandId: sp.get('brandId') || '', limit, cursor })
-  else out = await searchAds({ query, platform, format, order, limit, cursor })
+  if (source === 'api') {
+    const media = fmt === 'VIDEO' ? 'VIDEO' : fmt === 'IMAGE' ? 'IMAGE' : ''
+    out = await metaApi.searchAds({ query, country, media, limit, after: cursor })
+  } else {
+    out = await scrape.searchAds({ query, country, limit, cursor })
+    // Se lo scraping viene bloccato e c'è il token Meta, ripiega sull'API ufficiale.
+    if (out?.error && process.env.META_ACCESS_TOKEN) {
+      const media = fmt === 'VIDEO' ? 'VIDEO' : fmt === 'IMAGE' ? 'IMAGE' : ''
+      const alt = await metaApi.searchAds({ query, country, media, limit })
+      if (!alt.error) out = { ...alt, fellBack: true }
+    }
+  }
 
-  if (out?.error) return NextResponse.json({ ok: false, error: out.error, credits: out.credits ?? null }, { status: 502 })
-  return NextResponse.json({ ok: true, ...out })
+  if (out?.error) return NextResponse.json({ ok: false, error: out.error }, { status: 502 })
+  // filtro formato lato server (lo scraping non lo applica a monte)
+  let ads = out.ads || []
+  if (fmt && source === 'scrape') ads = ads.filter(a => a.format === fmt)
+  return NextResponse.json({ ok: true, source, ads, cursor: out.cursor || null, fellBack: !!out.fellBack })
 }

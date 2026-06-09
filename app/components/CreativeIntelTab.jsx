@@ -7,22 +7,23 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Competitor Creative Intel — modulo originale LyftAI: cerca e scompone le
 // creatività dei competitor (via Foreplay). Estetica dark coerente col resto app.
 
-const PLATFORMS = [
-  { id: '', label: 'Tutte' },
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'tiktok', label: 'TikTok' },
-]
 const FORMATS = [
   { id: '', label: 'Tutti' },
-  { id: 'video', label: 'Video' },
-  { id: 'image', label: 'Image' },
-  { id: 'carousel', label: 'Carousel' },
+  { id: 'VIDEO', label: 'Video' },
+  { id: 'IMAGE', label: 'Image' },
+  { id: 'CAROUSEL', label: 'Carousel' },
 ]
-const ORDERS = [
-  { id: '', label: 'Rilevanti' },
-  { id: 'newest', label: 'Recenti' },
-  { id: 'most_relevant', label: 'Top' },
+const SOURCES = [
+  { id: 'scrape', label: 'Scraping · nessuna app' },
+  { id: 'api', label: 'API ufficiale · token' },
+]
+const COUNTRIES = [
+  { id: 'IT', label: 'Italia' },
+  { id: 'ES', label: 'Spagna' },
+  { id: 'FR', label: 'Francia' },
+  { id: 'DE', label: 'Germania' },
+  { id: 'GB', label: 'UK' },
+  { id: 'US', label: 'USA' },
 ]
 
 const FUNNEL = {

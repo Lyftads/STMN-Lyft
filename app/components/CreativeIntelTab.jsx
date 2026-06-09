@@ -14,13 +14,13 @@ const FORMATS = [
   { id: 'IMAGE', label: 'Image' },
 ]
 const COUNTRIES = [
+  { id: 'ALL', label: 'Tutti' },
   { id: 'IT', label: 'Italia' },
   { id: 'ES', label: 'Spagna' },
   { id: 'FR', label: 'Francia' },
   { id: 'DE', label: 'Germania' },
   { id: 'GB', label: 'UK' },
   { id: 'US', label: 'USA' },
-  { id: 'ALL', label: 'Tutti' },
 ]
 
 function funnelOf(text) {

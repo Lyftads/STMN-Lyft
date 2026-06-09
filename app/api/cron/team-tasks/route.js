@@ -105,8 +105,20 @@ ${openList}`
   } catch (e) {
     return NextResponse.json({ ok: false, error: e?.message || 'planning fallito' }, { status: 500 })
   }
-  const proposed = Array.isArray(plan?.tasks) ? plan.tasks.slice(0, 5) : []
-  if (!proposed.length) return NextResponse.json({ ok: true, created: 0, note: 'nessun task proposto', summary: plan?.summary || null })
+  // Il modello può mettere l'array sotto chiavi diverse o al top level.
+  const rawTasks = Array.isArray(plan) ? plan
+    : Array.isArray(plan?.tasks) ? plan.tasks
+    : Array.isArray(plan?.task) ? plan.task
+    : Array.isArray(plan?.items) ? plan.items
+    : Array.isArray(plan?.plan) ? plan.plan : []
+  const proposed = rawTasks.slice(0, 5)
+  if (!proposed.length) {
+    const debug = new URL(req.url).searchParams.get('debug')
+    return NextResponse.json({
+      ok: true, created: 0, note: 'nessun task proposto', summary: plan?.summary || null,
+      ...(debug ? { _planType: Array.isArray(plan) ? 'array' : typeof plan, _planKeys: plan && !Array.isArray(plan) ? Object.keys(plan) : null, _plan: plan, _members: members.length, _hasData: !!liveData } : {}),
+    })
+  }
 
   // ── Crea i task + assegna + email ─────────────────────────────────────────
   const created = []

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../lib/agent/gateway'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -90,40 +90,23 @@ export async function POST(req) {
     },
   }
 
-  const kb = await buildKnowledgeBlock(`insight performance marketing advertising e-commerce ${preset}`)
-
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    // Tool mode: brand+memorie+knowledge nel contesto, output schema invariato.
+    const { content: raw } = await callBrain({
+      skill: {
+        id: 'insights',
+        json: true,
+        systemPrompt: SYSTEM_PROMPT,
+        guard: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".',
       },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.1,
-        top_p: 0.2,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(kb ? [{ role: 'system', content: kb }] : []),
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'system', content: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".' },
-          { role: 'user', content: `Periodo: ${preset}\n\nDATI:\n${safeJson(context)}` },
-        ],
-      }),
+      query: `insight performance marketing advertising e-commerce ${preset}`,
+      messages: [{ role: 'user', content: `Periodo: ${preset}\n\nDATI:\n${safeJson(context)}` }],
+      locale: body?.locale,
+      conversation: false,
+      temperature: 0.1,
+      topP: 0.2,
     })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json(
-        { error: `OpenAI ${r.status}: ${text.slice(0, 300)}` },
-        { status: 502 }
-      )
-    }
-
-    const json = await r.json()
-    const content = json?.choices?.[0]?.message?.content || '{}'
+    const content = raw || '{}'
 
     let parsed
     try {

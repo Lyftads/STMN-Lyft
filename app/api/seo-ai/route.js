@@ -4,25 +4,24 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 const UA = 'Mozilla/5.0 (compatible; LyftAI-SEO/1.0; +https://lyftai.io)'
 
 async function chat(system, user, locale) {
-  const langMsg = aiLangSystemMessage(locale)
-  const kb = await buildKnowledgeBlock(String(user || '').slice(0, 500) || 'SEO contenuti e-commerce marketing')
-  const r = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model: MODEL, temperature: 0.5, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: system }, ...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: user }, ...(langMsg ? [langMsg] : [])],
-    }),
+  // Tool mode: brand+memorie+knowledge nel contesto, schema output (dal `system`
+  // passato dal chiamante) invariato. callBrain lancia su errore OpenAI (come prima).
+  const { parsed } = await callBrain({
+    skill: { id: 'seo', json: true, systemPrompt: system },
+    query: String(user || '').slice(0, 500) || 'SEO contenuti e-commerce marketing',
+    messages: [{ role: 'user', content: user }],
+    locale,
+    conversation: false,
+    temperature: 0.5,
   })
-  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`)
-  return JSON.parse((await r.json()).choices?.[0]?.message?.content || '{}')
+  return parsed || {}
 }
 
 // estrae title + heading + estratto testo da una URL (per il brief editoriale)

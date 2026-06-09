@@ -53,6 +53,16 @@ export async function POST(req) {
     return { site, last_7d: g7, last_30d: g30 }
   })().catch(() => null)
 
+  // 4) GA4 per periodo (sessioni → conversion rate per periodo).
+  const ga4P = (async () => {
+    const now2 = new Date(); const dd2 = (now2.getUTCDay() + 6) % 7; const daysMonth = now2.getUTCDate() - 1
+    const gf = days => fetch(`${origin}/api/ga4?days=${days}`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+    const [w, m, d30] = await Promise.all([gf(Math.max(dd2, 1)), gf(Math.max(daysMonth, 1)), gf(30)])
+    return { this_week: w?.summary || null, this_month: m?.summary || null, last_30d: d30?.summary || null }
+  })().catch(() => null)
+  // 5) P&L mensile (marginalità: ricavi netti, COGS, utile lordo, margine).
+  const pnlP = fetch(`${origin}/api/pnl?months=3`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+
   // ── agent-context con retry (la weekly ShopifyQL a volte torna a zero) ─────
   let data = null
   for (let i = 0; i < 4; i++) {
@@ -64,10 +74,12 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  const [periods, klaviyo, gsc] = await Promise.all([periodsP, klaviyoP, gscP])
+  const [periods, klaviyo, gsc, ga4p, pnl] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP])
   if (periods) data._periods = periods
   if (klaviyo) data._klaviyo = klaviyo
   if (gsc) data._gsc = gsc
+  if (ga4p) data._ga4 = ga4p
+  if (pnl?.series) data._pnl = { series: pnl.series, cogsByMonth: pnl.cogsByMonth || null }
 
   try {
     await admin.from('call_context').upsert({ workspace_id: ws.workspaceId, data, updated_at: new Date().toISOString() })

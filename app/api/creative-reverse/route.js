@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -72,6 +73,8 @@ export async function POST(req) {
 
   if (!adText) return NextResponse.json({ error: 'Nessun testo dall\'inserzione da analizzare' }, { status: 400 })
 
+  const kb = await buildKnowledgeBlock('creative strategy hook angoli copy advertising adattamento on-brand')
+
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -82,6 +85,7 @@ export async function POST(req) {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM },
+          ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: `Inserzione attiva da riadattare on-brand per STMN:\n\n${adText}` },
         ],

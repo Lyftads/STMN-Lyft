@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
+import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -100,6 +101,8 @@ URL: ${url}
 CONTENUTO PAGINA:
 ${pageContent}`
 
+  const kb = await buildKnowledgeBlock('CRO ottimizzazione conversione landing page persuasione e-commerce')
+
   try {
     const r = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -108,7 +111,7 @@ ${pageContent}`
         model: MODEL,
         temperature: 0.3,
         response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
+        messages: [...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
       }),
     })
 

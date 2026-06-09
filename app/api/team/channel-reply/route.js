@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { callBrain } from '../../../../lib/agent/gateway'
+import { readSnapshot, buildBrief } from '../../../../lib/agent/brandSnapshot'
 import { getTeamAgent, findMentionedAgent, teamSkillPrompt } from '../../../../lib/agent/team'
 
 // Genera la risposta di un agente del team a una menzione in un canale LyftTalk,
@@ -96,6 +97,10 @@ export async function POST(req) {
     await post(tr || 'Un attimo, controllo i dati…')
 
     // ── 2) Dati reali (agent-context include già le creative con i nomi) ──
+    // Stessi DATI PRECISI per periodo degli agent in call (snapshot condiviso).
+    let briefBlock = null
+    try { const snap = await readSnapshot(ws.workspaceId); if (snap?.data) briefBlock = buildBrief(snap.data) } catch {}
+
     let liveData = null, creativeBlock = ''
     try {
       const ctxRes = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H })
@@ -123,7 +128,10 @@ export async function POST(req) {
       data: liveData,
       dataLabel: 'DATI LIVE (numeri e nomi REALI del brand — puoi citare SOLO questi):',
       dataMax: 70000,
-      extraSystem: creativeBlock ? [{ role: 'system', content: creativeBlock }] : [],
+      extraSystem: [
+        ...(briefBlock ? [{ role: 'system', content: briefBlock }] : []),
+        ...(creativeBlock ? [{ role: 'system', content: creativeBlock }] : []),
+      ],
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.3,

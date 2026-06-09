@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
 
 const GUARD = 'REGOLA CRITICA: ogni numero, nome prodotto, nome campagna, percentuale che citi DEVE essere copiato letteralmente dal blocco DATI LIVE. Vietato inventare/stimare. Se manca un dato dillo. Rispetta il BRAND GUARD del CONTESTO BRAND.'
 
@@ -42,6 +43,10 @@ export async function POST(req) {
   // + memorie + knowledge + i DATI LIVE cross-dominio).
   const skillPrompt = `${agent.systemPrompt}\n\n${rosterNote}\n\nParli SEMPRE in prima persona come ${agent.name} (${agent.role}). Tono umano, come una persona vera al telefono/in call — niente preamboli da AI, niente "come assistente". Rispondi nella lingua dell'utente.`
 
+  // Stessi DATI PRECISI per periodo degli agent in call (snapshot condiviso).
+  let briefBlock = null
+  try { const snap = await readSnapshot(process.env.LYFT_OWNER_USER_ID); if (snap?.data) briefBlock = buildBrief(snap.data) } catch {}
+
   try {
     const { userId, content: reply, usage } = await callBrain({
       skill: { id: `team-${agent.id}`, systemPrompt: skillPrompt, guard: GUARD },
@@ -49,6 +54,7 @@ export async function POST(req) {
       data: context,
       dataLabel: `DATI LIVE (periodo: ${preset}):`,
       dataMax: 70000,
+      extraSystem: briefBlock ? [{ role: 'system', content: briefBlock }] : [],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.4,

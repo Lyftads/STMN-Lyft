@@ -125,6 +125,8 @@ export default function TeamTab() {
   useEffect(() => {
     fetch('/api/team-agent').then(r => r.json()).then(d => setRoster(d.team || [])).catch(() => {})
     ensureContext() // pre-load in background
+    // Innesca lo snapshot dati preciso (per periodo) → la chat usa gli stessi dati della call.
+    fetch('/api/team/call/prime', { method: 'POST' }).catch(() => {})
   }, [])
 
   const agent = roster.find(a => a.id === sel) || null

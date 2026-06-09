@@ -261,15 +261,16 @@ export async function GET(req) {
   return withTenantContext(req, async () => {
     const { searchParams, origin } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_28d'
+    const cookie = req.headers.get('cookie') || '' // sessione utente → fetch interni autenticati (post-fix multi-tenant)
     let m = null
     try {
-      m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', signal: AbortSignal.timeout(40000) }).then(r => r.json())
+      m = await fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(40000) }).then(r => r.json())
     } catch {}
     const range = m?.kpiBrain?.range || null
     const prev = m?.kpiBrain?.previousRange || null
     let shopifyDaily = []
     if (range?.since) {
-      try { shopifyDaily = await fetch(`${origin}/api/shopify-countries?since=${range.since}&until=${range.until}&breakdown=daily`, { cache: 'no-store', signal: AbortSignal.timeout(40000) }).then(r => r.json()).then(j => j.daily || []) } catch {}
+      try { shopifyDaily = await fetch(`${origin}/api/shopify-countries?since=${range.since}&until=${range.until}&breakdown=daily`, { cache: 'no-store', headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(40000) }).then(r => r.json()).then(j => j.daily || []) } catch {}
     }
     const [metaCur, metaPrev, metaByDate] = await Promise.all([
       range ? metaPeriod(range.since, range.until) : Promise.resolve(null),

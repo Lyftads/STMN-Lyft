@@ -123,6 +123,7 @@ export async function GET(req) {
     const since = start.toISOString().slice(0, 10)
     const until = now.toISOString().slice(0, 10)
     const origin = new URL(req.url).origin
+    const cookie = req.headers.get('cookie') || '' // sessione utente → fetch interni autenticati (post-fix multi-tenant)
 
     try {
       // Interrogo OGNI metrica separatamente (query a singola metrica = robuste:
@@ -166,7 +167,7 @@ export async function GET(req) {
       // COGS ratio reale dai costi prodotto Shopify
       let cogsRatio = null, avgMargin = null
       try {
-        const pc = await fetch(`${origin}/api/product-costs`, { cache: 'no-store' }).then(r => r.json())
+        const pc = await fetch(`${origin}/api/product-costs`, { cache: 'no-store', headers: cookie ? { cookie } : {} }).then(r => r.json())
         if (pc?.summary?.avgMargin != null) { avgMargin = pc.summary.avgMargin; cogsRatio = r2(1 - avgMargin / 100) }
         else if (pc?.avgMargin != null) { avgMargin = pc.avgMargin; cogsRatio = r2(1 - avgMargin / 100) }
       } catch {}

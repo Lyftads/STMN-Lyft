@@ -3,9 +3,12 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 
-async function safeFetch(url) {
+async function safeFetch(url, cookie) {
   try {
-    const res = await fetch(url, { cache: 'no-store' })
+    // Inoltra il cookie di sessione: questi sono fetch interni server→server e
+    // SENZA cookie girerebbero anonimi → dopo il fix multi-tenant ricevono creds
+    // vuote (niente dati). Col cookie girano come l'utente loggato (owner/cliente).
+    const res = await fetch(url, { cache: 'no-store', headers: cookie ? { cookie } : {} })
     if (!res.ok) return null
     const data = await res.json()
     if (data.configured === false) return null
@@ -20,29 +23,30 @@ export async function GET(request) {
   const preset = searchParams.get('preset') || 'last_28d'
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
+  const cookie = request.headers.get('cookie') || '' // sessione dell'utente loggato → fetch interni autenticati
 
   const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
     await Promise.all([
-      safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`),
-      safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`),
-      safeFetch(`${base}/api/klaviyo?days=${days}`),
-      safeFetch(`${base}/api/google`),
-      safeFetch(`${base}/api/ga4?days=${days}`),
-      safeFetch(`${base}/api/tiktok?days=${days}`),
-      safeFetch(`${base}/api/pinterest?days=${days}`),
-      safeFetch(`${base}/api/snapchat?days=${days}`),
-      safeFetch(`${base}/api/competitor-intel`),
-      safeFetch(`${base}/api/product-costs`),
-      safeFetch(`${base}/api/market-intel`),
-      safeFetch(`${base}/api/realtime`),
+      safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`, cookie),
+      safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, cookie),
+      safeFetch(`${base}/api/klaviyo?days=${days}`, cookie),
+      safeFetch(`${base}/api/google`, cookie),
+      safeFetch(`${base}/api/ga4?days=${days}`, cookie),
+      safeFetch(`${base}/api/tiktok?days=${days}`, cookie),
+      safeFetch(`${base}/api/pinterest?days=${days}`, cookie),
+      safeFetch(`${base}/api/snapchat?days=${days}`, cookie),
+      safeFetch(`${base}/api/competitor-intel`, cookie),
+      safeFetch(`${base}/api/product-costs`, cookie),
+      safeFetch(`${base}/api/market-intel`, cookie),
+      safeFetch(`${base}/api/realtime`, cookie),
     ])
 
   // Search Console (dati reali): risolvi la prima proprietà verificata e prendi i dati
   let gsc = null
   try {
-    const gscSites = await safeFetch(`${base}/api/gsc?action=sites`)
+    const gscSites = await safeFetch(`${base}/api/gsc?action=sites`, cookie)
     const firstSite = gscSites?.sites?.[0]?.siteUrl
-    if (firstSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(firstSite)}&days=${days}`)
+    if (firstSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(firstSite)}&days=${days}`, cookie)
   } catch {}
 
   const sources = {

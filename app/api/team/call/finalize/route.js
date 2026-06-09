@@ -107,7 +107,7 @@ export async function POST(req) {
         assignee_id: assignee?.id || null, due_date: due, created_by: ownerMember?.id || null,
       }).select('*').single()
       if (data) {
-        createdTasks.push({ title: data.title, assignee: assignee?.full_name || assignee?.email || '—', due_date: due })
+        createdTasks.push({ title: data.title, assignee: assignee?.full_name || assignee?.email || '—', due_date: due, agent: t.agent })
         if (data.assignee_id) await notifyAssignment({ workspaceId: ws.workspaceId, task: data, origin }).catch(() => {})
       }
     } catch {}
@@ -145,6 +145,25 @@ export async function POST(req) {
         channel_id: general.id, workspace_id: ws.workspaceId, author_id: null, author_name: `${ceo.name} · ${ceo.role}`, body,
       })
       postedRecap = true
+
+      // Ogni specialista coinvolto commenta il SUO pezzo (task del suo dominio).
+      const byAgent = {}
+      for (const t of createdTasks) { const a = t.agent && t.agent !== 'ceo' ? t.agent : null; if (a) (byAgent[a] = byAgent[a] || []).push(t) }
+      const agentIds = Object.keys(byAgent).slice(0, 4)
+      for (const aid of agentIds) {
+        const ag = getTeamAgent(aid); if (!ag) continue
+        const myTasks = byAgent[aid].map(t => `"${t.title}" (scad. ${t.due_date})`).join(', ')
+        try {
+          const r = await callBrain({
+            skill: { id: `team-${ag.id}`, systemPrompt: teamSkillPrompt(ag) },
+            query: `Dalla call sono usciti questi task per te: ${myTasks}. Commenta brevemente come li affronterai.`,
+            messages: [], locale: 'it', temperature: 0.5,
+            guardTail: `Sei ${ag.name} (${ag.role}) in LyftTalk dopo il recap della call di Chiara. In 1-2 frasi naturali, conferma i TUOI task (${myTasks}) e come li affronti. Rivolgiti a Chiara/Marino per nome. NON risalutare, niente elenchi.`,
+          })
+          const txt = String(r.content || '').trim()
+          if (txt) await admin.from('channel_messages').insert({ channel_id: general.id, workspace_id: ws.workspaceId, author_id: null, author_name: `${ag.name} · ${ag.role}`, body: txt })
+        } catch {}
+      }
     }
   } catch {}
 

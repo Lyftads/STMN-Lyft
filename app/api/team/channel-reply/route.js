@@ -29,18 +29,25 @@ export async function POST(req) {
   // Ultimi messaggi del canale per dare contesto alla risposta.
   const { data: rows } = await admin
     .from('channel_messages')
-    .select('author_name, body, created_at')
+    .select('author_id, author_name, body, created_at')
     .eq('workspace_id', ws.workspaceId)
     .eq('channel_id', channelId)
     .order('created_at', { ascending: false })
     .limit(14)
   const recent = (rows || []).reverse().filter(m => m.body)
 
+  // Quale agente risponde:
+  // 1) agentId esplicito, 2) nome menzionato nell'ultimo messaggio,
+  // 3) CONTINUA la conversazione con l'ultimo agente che ha scritto (author_id null).
   if (!agent) {
     const last = [...recent].reverse().find(m => m.body)
     agent = findMentionedAgent(last?.body || '')
   }
-  if (!agent) return NextResponse.json({ ok: false, error: 'Nessun agente menzionato' }, { status: 400 })
+  if (!agent) {
+    const lastAgentMsg = [...recent].reverse().find(m => !m.author_id && m.author_name)
+    if (lastAgentMsg) agent = findMentionedAgent(lastAgentMsg.author_name)
+  }
+  if (!agent) return NextResponse.json({ ok: false, error: 'Nessun agente in conversazione' }, { status: 400 })
 
   const tag = `${agent.name} · ${agent.role}`
   // Mappa lo storico canale in conversazione: i messaggi dell'agente = assistant,
@@ -48,7 +55,7 @@ export async function POST(req) {
   const conversation = recent.map(m => (
     m.author_name === tag
       ? { role: 'assistant', content: m.body }
-      : { role: 'user', content: `${m.author_name || 'Utente'}: ${m.body}` }
+      : { role: 'user', content: `${String(m.author_name || 'Utente').split(' ')[0]}: ${m.body}` }
   ))
   const lastUserMsg = [...conversation].reverse().find(m => m.role === 'user')?.content || ''
 
@@ -59,6 +66,7 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.5,
+      guardTail: 'Sei in una chat di team (LyftTalk), non in un report. Rispondi SOLO ed ESATTAMENTE a ciò che ti è stato chiesto, come un collega vero che scrive in chat: 1-3 frasi brevi, tono naturale e umano. VIETATO riassumere il tuo ruolo o elencare cosa sai fare, vietati elenchi puntati e preamboli. Se la domanda è un saluto, rispondi con un saluto breve. Se serve approfondire, proponi di vederlo insieme.',
     })
     const text = String(reply || '').trim()
     if (!text) return NextResponse.json({ ok: false, error: 'Risposta vuota' })

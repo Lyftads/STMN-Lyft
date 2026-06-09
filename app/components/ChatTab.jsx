@@ -39,6 +39,7 @@ export default function ChatTab({ standalone = false }) {
   const [text, setText] = useState('')
   const [me, setMe] = useState(null)
   const [members, setMembers] = useState([])
+  const [agentAvatars, setAgentAvatars] = useState({}) // tag "Nome · Ruolo" → foto profilo agente AI
   const [profile, setProfile] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
   const [showNewChannel, setShowNewChannel] = useState(false)
@@ -83,6 +84,15 @@ export default function ChatTab({ standalone = false }) {
   const recTimerRef = useRef(null)
   const recCancelRef = useRef(false)
   const linkSelRef = useRef({ s: 0, e: 0 })
+
+  // Roster agenti AI → mappa tag→foto, per mostrare le foto profilo in chat.
+  useEffect(() => {
+    fetch('/api/team-agent', { cache: 'no-store' }).then(r => r.json()).then(d => {
+      const map = {}
+      ;(d.team || []).forEach(a => { if (a.tag && a.avatar) map[a.tag] = a.avatar })
+      setAgentAvatars(map)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
@@ -184,9 +194,15 @@ export default function ChatTab({ standalone = false }) {
       seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
       setMessages(prev => [...prev, r.message]); scrollBottom()
     }
-    // Se il messaggio nomina un agente del team AI, falla rispondere nel canale.
-    // (La risposta dell'agente comparirà tramite il polling dei messaggi.)
-    if (/(^|[^a-zà-ù])(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)([^a-zà-ù]|$)/i.test(body)) {
+    // Risposta degli agenti del team AI:
+    //  - se il messaggio NOMINA un agente, oppure
+    //  - se l'ULTIMO a parlare nel canale era un agente (continua la conversazione
+    //    senza dover richiamare il nome ogni volta).
+    // I messaggi degli agenti hanno author_id null.
+    const prevMsg = messages[messages.length - 1]
+    const continueAgent = !!(prevMsg && !prevMsg.author_id)
+    const mentionsAgent = /(^|[^a-zà-ù])(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)([^a-zà-ù]|$)/i.test(body)
+    if (mentionsAgent || continueAgent) {
       let locale = null
       try { locale = localStorage.getItem('lyft_lang') } catch {}
       fetch('/api/team/channel-reply', {
@@ -435,7 +451,7 @@ export default function ChatTab({ standalone = false }) {
     const mem = memberMap[m.author_id]
     return (
       <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
-        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url} size={30} online={mem ? isOnline(mem) : undefined} />
+        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url || agentAvatars[m.author_name]} size={30} online={mem ? isOnline(mem) : undefined} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
           {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
@@ -614,7 +630,7 @@ export default function ChatTab({ standalone = false }) {
                 {showDay && <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 8px' }}><span style={{ fontSize: 12, color: '#c9c9d6', background: 'rgba(20,20,30,0.7)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, padding: '3px 14px', fontWeight: 700 }}>{dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}</span></div>}
                 {firstUnreadId === m.id && unreadCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 8px' }}><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /><span style={{ fontSize: 11.5, color: '#ff5a7a', fontWeight: 700, whiteSpace: 'nowrap' }}>{unreadCount} nuovi messaggi</span><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /></div>}
                 <div className="chat-row" onClick={() => setActionsFor(actionsFor === m.id ? null : m.id)} style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
-                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
+                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url || agentAvatars[m.author_name]} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

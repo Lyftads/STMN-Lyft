@@ -20,22 +20,27 @@ export async function POST(req) {
 
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
-  // Retry: shopify.weekly a volte arriva vuoto (ShopifyQL rate-limit/cost). Ritento
-  // così lo snapshot ha la serie settimanale (serve per "questa/scorsa settimana").
+  // Retry: ShopifyQL (shopify.weekly) a volte torna a ZERO sulle settimane recenti
+  // (rate-limit/cost). Ritento finché questa/scorsa settimana hanno valori reali,
+  // così matchano ESATTAMENTE la tab Weekly. Altrimenti tengo l'ultimo dato.
+  const mon = off => { const x = new Date(); const dd = (x.getUTCDay() + 6) % 7; x.setUTCDate(x.getUTCDate() - dd - off * 7); return x.toISOString().slice(0, 10) }
+  const thisMon = mon(0), lastMon = mon(1)
+  const weeklyOk = d => {
+    const wk = d?.shopify?.weekly
+    if (!Array.isArray(wk)) return false
+    return wk.some(w => [thisMon, lastMon].includes(String(w.date || '').slice(0, 10)) && (Number(w.ordini) || Number(w.fatturato)))
+  }
   let data = null
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     try {
       const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
       if (r.ok) {
         const d = await r.json()
-        data = data || d
-        const wk = d?.shopify?.weekly
-        if (Array.isArray(wk) && wk.length) { data = d; break }
-        // tieni il primo dato valido ma ritenta per ottenere la weekly
         if (d) data = d
+        if (weeklyOk(d)) break
       }
     } catch {}
-    if (i < 2) await new Promise(r => setTimeout(r, 1500))
+    if (i < 3) await new Promise(r => setTimeout(r, 1500))
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 

@@ -28,6 +28,7 @@ import PendingActionsBanner from './components/PendingActionsBanner'
 import TasksTab from './components/TasksTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
+import TeamTab from './components/TeamTab'
 import Sparkline from './components/Sparkline'
 import DeltaBadge from './components/DeltaBadge'
 import RecommendationsFeed from './components/RecommendationsFeed'
@@ -4330,6 +4331,10 @@ export default function App() {
 {/* TEAM · CHAT */}
 {tab === 'chat' && (
   <ChatTab />
+)}
+
+{tab === 'team' && (
+  <TeamTab />
 )}
 
       <FloatingBrain currentTab={tab} />

@@ -81,6 +81,7 @@ export default function VendroShell({
         { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
         { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
+        { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
         { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
         { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },

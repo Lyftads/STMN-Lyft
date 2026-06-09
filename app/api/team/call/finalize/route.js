@@ -121,10 +121,12 @@ export async function POST(req) {
   if (memItems.length) await rememberBatch(memItems).catch(() => {})
 
   // ── Salva la sessione ──────────────────────────────────────────────────────
-  await admin.from('call_sessions').insert({
-    workspace_id: ws.workspaceId, agent_id: entryAgent.id, conversation_id: conversationId,
-    transcript, summary: plan.summary || null, actions: { decisions: plan.decisions || [], tasks: createdTasks, reminders: plan.reminders || [], analyses: plan.analyses || [] },
-  }).catch(() => {})
+  try {
+    await admin.from('call_sessions').insert({
+      workspace_id: ws.workspaceId, agent_id: entryAgent.id, conversation_id: conversationId,
+      transcript, summary: plan.summary || null, actions: { decisions: plan.decisions || [], tasks: createdTasks, reminders: plan.reminders || [], analyses: plan.analyses || [] },
+    })
+  } catch {}
 
   // ── Recap in LYFTTALK (Chiara posta sintesi + decisioni + task per agente) ──
   let postedRecap = false

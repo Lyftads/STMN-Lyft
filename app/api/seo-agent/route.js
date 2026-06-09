@@ -4,7 +4,7 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -69,30 +69,25 @@ export async function POST(req) {
 
   try {
     const lastUserMsg = [...messages].reverse().find(m => m?.role === 'user')?.content || 'SEO e-commerce strategia'
-    const kb = await buildKnowledgeBlock(String(lastUserMsg).slice(0, 500))
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.5,
-        top_p: 0.9,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(kb ? [{ role: 'system', content: kb }] : []),
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          ...(auditBlock ? [{ role: 'system', content: `Contesto — usa questi dati per ogni risposta:\n${auditBlock}` }] : []),
-          ...messages,
-        ],
-      }),
+    const langMsg = aiLangSystemMessage(body?.locale)
+    // Migrato a callBrain (chat mode): ora ha brand+memorie+knowledge oltre
+    // all'auditBlock. La lingua e l'auditBlock passano via extraSystem per
+    // restare subito dopo il SYSTEM_PROMPT, prima della storia (ordine come prima).
+    const { content: reply } = await callBrain({
+      skill: { id: 'seo', systemPrompt: SYSTEM_PROMPT },
+      query: String(lastUserMsg).slice(0, 500),
+      messages,
+      locale: null,
+      extraSystem: [
+        ...(langMsg ? [langMsg] : []),
+        ...(auditBlock ? [{ role: 'system', content: `Contesto — usa questi dati per ogni risposta:\n${auditBlock}` }] : []),
+      ],
+      temperature: 0.5,
+      topP: 0.9,
     })
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 200)}` }, { status: 502 })
-    }
-    const json = await r.json()
-    return NextResponse.json({ reply: json?.choices?.[0]?.message?.content || '(vuoto)' })
+    return NextResponse.json({ reply: reply || '(vuoto)' })
   } catch (e) {
-    return NextResponse.json({ error: e?.message || 'Errore di rete' }, { status: 500 })
+    const status = e?.status ? 502 : 500
+    return NextResponse.json({ error: e?.message || 'Errore di rete' }, { status })
   }
 }

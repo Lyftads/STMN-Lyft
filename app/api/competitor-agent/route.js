@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
+import { callBrain } from '../../../lib/agent/gateway'
 
 const AGENT_ID = 'competitor'
 
@@ -132,37 +133,24 @@ export async function POST(req) {
     .slice(-20)
 
   const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
+  const langMsg = aiLangSystemMessage(body?.locale)
 
+  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
+  // contextBlock → SYSTEM_PROMPT → lingua → COMPETITOR DATA → storia → REMINDER.
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.4,
-        top_p: 0.9,
-        messages: [
-          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'system', content: `COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:\n${safeJson(context)}` },
-          ...clean,
-          { role: 'system', content: 'REMINDER: ogni numero/prodotto/prezzo/ad che citi deve essere nel JSON COMPETITOR DATA. Se ads=0 o prodotti mancanti, dillo. Rispetta il BRAND GUARD del CONTESTO BRAND. Comparazioni con numeri esatti, mosse concrete. Bold limitato. Niente intestazioni markdown.' },
-        ],
-      }),
+    const { userId, content: reply, usage } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      query: lastUserMsg,
+      data: context,
+      dataLabel: 'COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
+      dataMax: 60000,
+      messages: clean,
+      locale: null,
+      extraSystem: langMsg ? [langMsg] : [],
+      temperature: 0.4,
+      topP: 0.9,
+      guardTail: 'REMINDER: ogni numero/prodotto/prezzo/ad che citi deve essere nel JSON COMPETITOR DATA. Se ads=0 o prodotti mancanti, dillo. Rispetta il BRAND GUARD del CONTESTO BRAND. Comparazioni con numeri esatti, mosse concrete. Bold limitato. Niente intestazioni markdown.',
     })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 300)}` }, { status: 502 })
-    }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
@@ -173,7 +161,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       reply,
-      usage: json?.usage || null,
+      usage: usage || null,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {

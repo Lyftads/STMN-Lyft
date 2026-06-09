@@ -48,6 +48,7 @@ export async function POST(req) {
   const entryAgent = getTeamAgent(b.agentId) || getTeamAgent('ceo')
   if (!conversationId) return NextResponse.json({ ok: false, error: 'conversationId mancante' }, { status: 400 })
 
+  try {
   // Evita doppi processi della stessa call.
   const { data: existing } = await admin.from('call_sessions').select('id').eq('conversation_id', conversationId).maybeSingle()
   if (existing) return NextResponse.json({ ok: true, already: true })
@@ -125,21 +126,46 @@ export async function POST(req) {
     transcript, summary: plan.summary || null, actions: { decisions: plan.decisions || [], tasks: createdTasks, reminders: plan.reminders || [], analyses: plan.analyses || [] },
   }).catch(() => {})
 
-  // ── Recap email all'owner ──────────────────────────────────────────────────
-  if (ownerMember?.email && (plan.summary || createdTasks.length)) {
-    const taskRows = createdTasks.map(t => `<li>${t.title} → <b>${t.assignee}</b> (scad. ${t.due_date})</li>`).join('')
-    const decRows = (plan.decisions || []).map(d => `<li>${d}</li>`).join('')
-    await sendEmail({
-      to: ownerMember.email, subject: '📞 Recap della call con la Squadra AI',
-      html: `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px">
-        <h2>Recap call</h2>
-        ${plan.summary ? `<p style="color:#444">${plan.summary}</p>` : ''}
-        ${decRows ? `<h3>Decisioni</h3><ul>${decRows}</ul>` : ''}
-        ${taskRows ? `<h3>Task creati e assegnati</h3><ul>${taskRows}</ul>` : ''}
-        <p style="font-size:12px;color:#888;margin-top:14px">La Squadra AI ricorderà questa call nelle prossime conversazioni.</p>
-      </div>`,
-    }).catch(() => {})
-  }
+  // ── Recap in LYFTTALK (Chiara posta sintesi + decisioni + task per agente) ──
+  let postedRecap = false
+  try {
+    const { data: chans } = await admin.from('channels').select('id, name').eq('workspace_id', ws.workspaceId).order('created_at', { ascending: true })
+    const general = (chans || []).find(c => (c.name || '').toLowerCase() === 'generale') || (chans || [])[0]
+    if (general && (plan.summary || createdTasks.length)) {
+      const ceo = getTeamAgent('ceo')
+      const decLines = (plan.decisions || []).slice(0, 6).map(d => `• ${d}`).join('\n')
+      const taskLines = createdTasks.map(t => `• ${t.title} → ${t.assignee} (scad. ${t.due_date})`).join('\n')
+      const body = `📞 *Recap della call*\n${plan.summary || ''}` +
+        (decLines ? `\n\n*Decisioni:*\n${decLines}` : '') +
+        (taskLines ? `\n\n*Task creati e programmati:*\n${taskLines}` : '') +
+        `\n\nLi trovate in Progetti & Task. Procediamo, squadra. 💪`
+      await admin.from('channel_messages').insert({
+        channel_id: general.id, workspace_id: ws.workspaceId, author_id: null, author_name: `${ceo.name} · ${ceo.role}`, body,
+      })
+      postedRecap = true
+    }
+  } catch {}
 
-  return NextResponse.json({ ok: true, summary: plan.summary || null, tasks: createdTasks.length, decisions: (plan.decisions || []).length, remembered: memItems.length })
+  // ── Recap email all'owner ──────────────────────────────────────────────────
+  try {
+    if (ownerMember?.email && (plan.summary || createdTasks.length)) {
+      const taskRows = createdTasks.map(t => `<li>${t.title} → <b>${t.assignee}</b> (scad. ${t.due_date})</li>`).join('')
+      const decRows = (plan.decisions || []).map(d => `<li>${d}</li>`).join('')
+      await sendEmail({
+        to: ownerMember.email, subject: '📞 Recap della call con la Squadra AI',
+        html: `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px">
+          <h2>Recap call</h2>
+          ${plan.summary ? `<p style="color:#444">${plan.summary}</p>` : ''}
+          ${decRows ? `<h3>Decisioni</h3><ul>${decRows}</ul>` : ''}
+          ${taskRows ? `<h3>Task creati e assegnati</h3><ul>${taskRows}</ul>` : ''}
+          <p style="font-size:12px;color:#888;margin-top:14px">La Squadra AI ricorderà questa call nelle prossime conversazioni.</p>
+        </div>`,
+      }).catch(() => {})
+    }
+  } catch {}
+
+  return NextResponse.json({ ok: true, summary: plan.summary || null, tasks: createdTasks.length, decisions: (plan.decisions || []).length, remembered: memItems.length, postedRecap })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e?.message || 'errore finalize', stack: String(e?.stack || '').slice(0, 300) }, { status: 200 })
+  }
 }

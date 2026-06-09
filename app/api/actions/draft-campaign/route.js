@@ -5,7 +5,7 @@ export const maxDuration = 30
 import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
-import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../../lib/agent/gateway'
 
 // Trasforma una descrizione in linguaggio naturale in una BOZZA strutturata di
 // campagna Meta. Non crea nulla: restituisce la bozza, che l'utente rivede e
@@ -37,28 +37,16 @@ export async function POST(req) {
   if (!prompt) return NextResponse.json({ ok: false, error: 'Descrizione mancante' }, { status: 400 })
 
   try {
-    const langMsg = aiLangSystemMessage(b.locale)
-    const kb = await buildKnowledgeBlock(`campagna Meta Ads struttura targeting budget: ${prompt}`.slice(0, 500))
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...(kb ? [{ role: 'system', content: kb }] : []),
-          ...(langMsg ? [langMsg] : []),
-          { role: 'user', content: prompt },
-        ],
-      }),
-      signal: AbortSignal.timeout(28000),
+    // Tool mode: brand+memorie+knowledge nel contesto, schema output invariato.
+    const { parsed } = await callBrain({
+      skill: { id: 'meta-ads', json: true, systemPrompt: SYSTEM_PROMPT },
+      query: `campagna Meta Ads struttura targeting budget: ${prompt}`.slice(0, 500),
+      messages: [{ role: 'user', content: prompt }],
+      locale: b.locale,
+      conversation: false,
+      temperature: 0.3,
     })
-    const j = await r.json()
-    if (!r.ok) return NextResponse.json({ ok: false, error: j?.error?.message || `HTTP ${r.status}` }, { status: 502 })
-    let draft = {}
-    try { draft = JSON.parse(j.choices?.[0]?.message?.content || '{}') } catch {}
+    const draft = parsed || {}
     // normalizzazione difensiva
     const out = {
       name: String(draft.name || 'Nuova campagna').slice(0, 120),

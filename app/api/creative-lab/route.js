@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { callBrain } from '../../../lib/agent/gateway'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -441,42 +441,17 @@ IMPORTANTE: ogni imagePrompt DEVE descrivere una scena COMPLETAMENTE diversa dal
 
 Rispondi con un JSON valido: { "creatives": [...] }`
 
-  const kbCreative = await buildKnowledgeBlock('creative strategy Meta Ads hook angoli copy UGC advertising')
-
   try {
-    const copyRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_KEY}`,
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        temperature: 0.9,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.',
-          },
-          ...(kbCreative ? [{ role: 'system', content: kbCreative }] : []),
-          { role: 'user', content: copyPrompt },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-        ],
-        response_format: { type: 'json_object' },
-      }),
+    // Tool mode: brand+memorie+knowledge nel contesto, schema output invariato.
+    const { content } = await callBrain({
+      skill: { id: 'creative', json: true, systemPrompt: 'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.' },
+      query: 'creative strategy Meta Ads hook angoli copy UGC advertising',
+      messages: [{ role: 'user', content: copyPrompt }],
+      locale: body?.locale,
+      conversation: false,
+      temperature: 0.9,
     })
-
-    if (!copyRes.ok) {
-      const text = await copyRes.text()
-      return json(
-        { error: `OpenAI ${copyRes.status}: ${text.slice(0, 300)}` },
-        502
-      )
-    }
-
-    const copyData = await copyRes.json()
-    const rawContent = copyData.choices?.[0]?.message?.content || '{}'
+    const rawContent = content || '{}'
 
     let creatives
     try {

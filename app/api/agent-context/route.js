@@ -25,10 +25,11 @@ export async function GET(request) {
   const base = new URL(request.url).origin
   const cookie = request.headers.get('cookie') || '' // sessione dell'utente loggato → fetch interni autenticati
 
-  const [metrics, metaDetail, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
+  const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`, cookie),
       safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, cookie),
+      safeFetch(`${base}/api/creative?preset=${encodeURIComponent(preset)}`, cookie),
       safeFetch(`${base}/api/klaviyo?days=${days}`, cookie),
       safeFetch(`${base}/api/google`, cookie),
       safeFetch(`${base}/api/ga4?days=${days}`, cookie),
@@ -98,6 +99,19 @@ export async function GET(request) {
       todos: metaDetail.todos,
       campaigns: Array.isArray(metaDetail.rows) ? metaDetail.rows.slice(0, 30) : [],
     }
+  }
+
+  // Creative a livello di singola creative/ad (NOMI reali + adset/campagna),
+  // così gli agent possono citare le creative esatte senza inventarle.
+  if (Array.isArray(creative?.creatives) && creative.creatives.length) {
+    context.creatives = creative.creatives.slice(0, 40).map(c => ({
+      name: c.name || c.creative_name || c.ad_name || c.title || c.adName || null,
+      adset: c.adset_name || c.adsetName || null,
+      campaign: c.campaign_name || c.campaignName || null,
+      status: c.status || c.effective_status || null,
+      spend: c.spend, roas: c.roas, ctr: c.ctr, cpm: c.cpm,
+      impressions: c.impressions, purchases: c.purchases ?? c.conversions,
+    }))
   }
 
   if (klaviyo?.kpis) {

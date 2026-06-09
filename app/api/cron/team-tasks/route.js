@@ -7,6 +7,10 @@ import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { callBrain } from '../../../../lib/agent/gateway'
 import { getTeamAgent, teamSkillPrompt, teamRoster } from '../../../../lib/agent/team'
 import { notifyAssignment, sendEmail } from '../../../../lib/team/notify'
+import { buildReportNarrative, renderReportHTML } from '../../../../lib/team/report'
+
+// Dominio dell'agente proponente → ruolo del collaboratore ideale.
+const AGENT_ROLE = { ads: 'advertising_manager', creative: 'advertising_manager', cro: 'cro_specialist', data: 'data_analyst', seo: 'cro_specialist', cmo: 'ecommerce_manager', cfo: 'ecommerce_manager', ceo: 'admin' }
 
 // ============================================================================
 //  TASK AUTOMATICI DELLA SQUADRA AI — gli agenti trasformano i dati reali in
@@ -128,13 +132,30 @@ ${openList}`
   // collaboratori reali.
   const dry = !!new URL(req.url).searchParams.get('dry')
 
+  // Distribuzione per ruolo: il task va a un collaboratore (non-guest) che ha il
+  // ruolo adatto al dominio dell'agente proponente, scegliendo ogni volta il meno
+  // carico (round-robin) → niente "tutti alla stessa persona".
+  const load = {}
+  const eligible = members.filter(m => !(m.roles || []).includes('guest'))
+  const pickAssignee = (agentId) => {
+    const role = AGENT_ROLE[agentId] || 'ecommerce_manager'
+    let cands = eligible.filter(m => (m.roles || []).includes(role))
+    if (!cands.length) cands = eligible.filter(m => (m.roles || []).includes('admin'))
+    if (!cands.length) cands = ownerMember ? [ownerMember] : eligible
+    if (!cands.length) return null
+    cands.sort((a, b) => (load[a.id] || 0) - (load[b.id] || 0))
+    const chosen = cands[0]
+    load[chosen.id] = (load[chosen.id] || 0) + 1
+    return chosen
+  }
+
   // ── Crea i task + assegna + email ─────────────────────────────────────────
   const created = []
   for (const t of proposed) {
     const title = String(t.title || '').trim()
     if (!title) continue
     const proposer = getTeamAgent(t.agent)
-    const assignee = byEmail.get(String(t.assignee_email || '').toLowerCase()) || ownerMember
+    const assignee = pickAssignee(t.agent)
     const days = Math.min(14, Math.max(1, Number(t.due_in_days) || 7))
     const due = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
     const desc = `${t.description || ''}\n\n— Proposto da ${proposer ? `${proposer.name} (${proposer.role})` : 'Squadra AI'}`.trim()
@@ -159,7 +180,17 @@ ${openList}`
     } catch {}
   }
 
-  if (dry) return NextResponse.json({ ok: true, dry: true, created: 0, would_create: created.length, summary: plan?.summary || null, tasks: created })
+  if (dry) {
+    // preview=1 → renderizza il report HTML (con i task risolti in dry) per
+    // ispezione visiva, SENZA creare task né inviare email.
+    if (new URL(req.url).searchParams.get('preview')) {
+      const narrative = await buildReportNarrative(liveData)
+      if (plan?.summary && !narrative.executive) narrative.executive = String(plan.summary)
+      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName: liveData?.brand?.name || 'il tuo brand', periodLabel: 'ultimi 30 giorni', appUrl: origin })
+      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+    }
+    return NextResponse.json({ ok: true, dry: true, created: 0, would_create: created.length, summary: plan?.summary || null, tasks: created })
+  }
 
   // ── Annuncio in LyftTalk (Chiara) ─────────────────────────────────────────
   if (created.length) {
@@ -178,25 +209,21 @@ ${openList}`
     } catch {}
   }
 
-  // ── Report email all'owner ────────────────────────────────────────────────
+  // ── Report email DETTAGLIATO all'owner (per settore + grafici + creatives) ─
+  let reported = false
   if (created.length && ownerMember?.email) {
-    const rows = created.map(c => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${c.title}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${c.assignee}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${c.priority}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${c.due_date}</td></tr>`).join('')
-    await sendEmail({
-      to: ownerMember.email,
-      subject: `🤖 La Squadra AI ha creato ${created.length} task`,
-      html: `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px">
-        <h2 style="margin:0 0 8px">Task della settimana dalla Squadra AI</h2>
-        <p style="color:#444">${plan?.summary ? String(plan.summary) : 'Task operativi generati dai dati reali del brand.'}</p>
-        <table style="border-collapse:collapse;width:100%;font-size:14px"><thead><tr>
-          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333">Task</th>
-          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333">Assegnato a</th>
-          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333">Priorità</th>
-          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #333">Scadenza</th>
-        </tr></thead><tbody>${rows}</tbody></table>
-        <p style="margin-top:16px"><a href="${origin}" style="background:#7c5cff;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Apri il board</a></p>
-      </div>`,
-    }).catch(() => {})
+    try {
+      const narrative = await buildReportNarrative(liveData)
+      if (plan?.summary && !narrative.executive) narrative.executive = String(plan.summary)
+      const brandName = liveData?.brand?.name || liveData?.brandName || 'il tuo brand'
+      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName, periodLabel: 'ultimi 30 giorni', appUrl: origin })
+      reported = await sendEmail({
+        to: ownerMember.email,
+        subject: `📊 Report settimanale della Squadra AI — ${created.length} task assegnati`,
+        html,
+      })
+    } catch {}
   }
 
-  return NextResponse.json({ ok: true, created: created.length, summary: plan?.summary || null, tasks: created })
+  return NextResponse.json({ ok: true, created: created.length, reported, summary: plan?.summary || null, tasks: created })
 }

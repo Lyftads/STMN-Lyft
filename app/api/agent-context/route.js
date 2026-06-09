@@ -3,12 +3,14 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 
-async function safeFetch(url, cookie) {
+async function safeFetch(url, auth) {
   try {
-    // Inoltra il cookie di sessione: questi sono fetch interni server→server e
-    // SENZA cookie girerebbero anonimi → dopo il fix multi-tenant ricevono creds
-    // vuote (niente dati). Col cookie girano come l'utente loggato (owner/cliente).
-    const res = await fetch(url, { cache: 'no-store', headers: cookie ? { cookie } : {} })
+    // Inoltra l'autenticazione ai fetch interni server→server: senza, girerebbero
+    // anonimi → dopo il fix multi-tenant ricevono creds vuote (niente dati).
+    // `auth` può essere il cookie di sessione (stringa, utente loggato) oppure un
+    // oggetto header (es. { 'x-internal-cron': SECRET } per lo standup via cron).
+    const headers = typeof auth === 'string' ? (auth ? { cookie: auth } : {}) : (auth || {})
+    const res = await fetch(url, { cache: 'no-store', headers })
     if (!res.ok) return null
     const data = await res.json()
     if (data.configured === false) return null
@@ -23,7 +25,10 @@ export async function GET(request) {
   const preset = searchParams.get('preset') || 'last_28d'
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
-  const cookie = request.headers.get('cookie') || '' // sessione dell'utente loggato → fetch interni autenticati
+  // Auth da inoltrare ai fetch interni: cookie di sessione (utente loggato) o,
+  // se assente, il segreto cron (standup automatico → creds STMN via isAuthorizedCron).
+  const cron = request.headers.get('x-internal-cron') || ''
+  const cookie = request.headers.get('cookie') || (cron ? { 'x-internal-cron': cron } : '')
 
   const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
     await Promise.all([

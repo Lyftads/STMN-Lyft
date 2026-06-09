@@ -94,6 +94,7 @@ export default function QuarterAgent({ quarters, selectedQuarter, previousQuarte
   }
 
   if (!mounted) return null
+  return null; // launcher flottante rimosso -> sostituito dal cervello unico (FloatingBrain)
 
   const content = (
     <>

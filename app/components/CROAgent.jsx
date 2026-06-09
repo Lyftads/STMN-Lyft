@@ -87,6 +87,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
   }
 
   if (!mounted) return null
+  return null; // launcher flottante rimosso -> sostituito dal cervello unico (FloatingBrain)
 
   const content = (
     <>

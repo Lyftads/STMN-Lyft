@@ -89,6 +89,7 @@ export default function SimulatorAgent({ ltvInputs, ltvOutputs, scenarios, cashF
   }
 
   if (!mounted) return null
+  return null; // launcher flottante rimosso -> sostituito dal cervello unico (FloatingBrain)
 
   const content = (
     <>

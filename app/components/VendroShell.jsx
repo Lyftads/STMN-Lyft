@@ -97,6 +97,7 @@ export default function VendroShell({
         { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
         { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
         { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
+        { id: 'creativeIntel', label: 'Creative Intel', icon: <Icon name="eye" /> },
       ],
     },
     {

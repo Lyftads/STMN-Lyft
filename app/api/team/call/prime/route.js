@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../../../lib/team/workspace'
 import { withTenantContext } from '../../../../../lib/tenant/credentials'
-import { weekStats } from '../../../../../lib/agent/shopifyWeeks'
+import { periodStats } from '../../../../../lib/agent/shopifyWeeks'
 
 // "Innesca" i dati reali per la call: il browser dell'owner (autenticato) chiama
 // questo endpoint prima di avviare la call. Qui carichiamo l'agent-context con il
@@ -44,9 +44,9 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  // Settimane PRECISE via Admin GraphQL (no lag ShopifyQL) → questa/scorsa settimana.
+  // Time frame Shopify ESATTI via Admin GraphQL (oggi/ieri/settimana/mese/30g).
   try {
-    data._weekStats = await withTenantContext(req, () => weekStats())
+    data._periods = await withTenantContext(req, () => periodStats())
   } catch {}
 
   try {

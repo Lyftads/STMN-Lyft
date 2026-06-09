@@ -41,6 +41,73 @@ export default function TeamTab() {
   const ctxRef = useRef(null)                       // agent-context (dati reali), caricato una volta
   const ctxPromRef = useRef(null)                    // promise condivisa del fetch (no doppioni)
   const scrollRef = useRef(null)
+  const [autoVoice, setAutoVoice] = useState(false) // legge in automatico le risposte
+  const [speaking, setSpeaking] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
+
+  // Programma la call settimanale ricorrente (.ics via email → calendario).
+  async function scheduleCall() {
+    const day = prompt('Giorno della call settimanale (1=lun, 2=mar … 7=dom):', '1')
+    if (day == null) return
+    const time = prompt('Orario (HH:MM, ora italiana):', '10:00')
+    if (time == null) return
+    setScheduling(true)
+    try {
+      const d = await fetch('/api/team/schedule-call', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekday: Number(day), time }),
+      }).then(r => r.json()).catch(() => ({}))
+      alert(d.ok ? `Call programmata ${d.when}. Invito inviato a ${d.recipients} persone (controlla l'email per aggiungerla al calendario).` : `Errore: ${d.error || 'riprova'}`)
+    } finally { setScheduling(false) }
+  }
+  const audioRef = useRef(null)
+  const recRef = useRef(null)
+  const chunksRef = useRef([])
+
+  // Riproduce la risposta dell'agente con la sua voce (ElevenLabs TTS).
+  async function speak(text, agentId) {
+    try {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+      setSpeaking(true)
+      const res = await fetch('/api/team/voice', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: agentId || sel, text: String(text || '').slice(0, 2500) }),
+      })
+      if (!res.ok) { setSpeaking(false); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = new Audio(url)
+      audioRef.current = a
+      a.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+      a.onerror = () => { setSpeaking(false) }
+      await a.play()
+    } catch { setSpeaking(false) }
+  }
+  function stopSpeak() { try { audioRef.current?.pause() } catch {}; audioRef.current = null; setSpeaking(false) }
+
+  // Microfono push-to-talk: registra → Whisper → testo → invia.
+  async function startRec() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      chunksRef.current = []
+      mr.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' })
+        setTranscribing(true)
+        try {
+          const fd = new FormData(); fd.append('file', blob, 'audio.webm')
+          const d = await fetch('/api/studio/transcribe', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
+          if (d.text && d.text.trim()) await send(d.text.trim())
+        } finally { setTranscribing(false) }
+      }
+      recRef.current = mr; mr.start(); setRecording(true)
+    } catch { alert('Microfono non disponibile o permesso negato') }
+  }
+  function stopRec() { try { recRef.current?.stop() } catch {}; setRecording(false) }
 
   // Carica i dati reali una volta sola; ritorna sempre la stessa promise così
   // un send() che parte prima del pre-load aspetta lo stesso fetch (niente
@@ -80,6 +147,7 @@ export default function TeamTab() {
       const d = await res.json()
       const reply = d.reply || d.error || '…'
       setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: reply }] }))
+      if (autoVoice && d.reply) speak(d.reply, sel)
     } catch {
       setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: t('team.error', null, 'Ops, errore. Riprova.') }] }))
     } finally { setBusy(false) }
@@ -89,6 +157,11 @@ export default function TeamTab() {
   if (!agent) {
     return (
       <div style={{ padding: '8px 0 40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button type="button" onClick={scheduleCall} disabled={scheduling}
+            style={{ cursor: scheduling ? 'default' : 'pointer', border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 600 }}>
+            {scheduling ? '…' : '📅 Programma call settimanale'}</button>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {roster.map(a => (
             <button key={a.id} type="button" onClick={() => setSel(a.id)}
@@ -119,7 +192,7 @@ export default function TeamTab() {
       border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', overflow: 'hidden' }}>
       {/* Header agente */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--glass)' }}>
-        <button type="button" onClick={() => setSel(null)}
+        <button type="button" onClick={() => { stopSpeak(); setSel(null) }}
           style={{ cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '6px 10px', fontSize: 13 }}>←</button>
         <Avatar a={agent} size={40} />
         <span style={{ flex: 1, minWidth: 0 }}>
@@ -130,6 +203,12 @@ export default function TeamTab() {
           </span>
           <span style={{ display: 'block', color: agent.color, fontSize: 12.5, fontWeight: 600 }}>{agent.role}</span>
         </span>
+        {speaking
+          ? <button type="button" onClick={stopSpeak} title="Ferma voce"
+              style={{ cursor: 'pointer', background: agent.color, border: 'none', color: '#fff', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>⏹ Stop</button>
+          : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
+              style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? '#fff' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
+              {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
       </div>
 
       {/* Messaggi */}
@@ -148,6 +227,10 @@ export default function TeamTab() {
               background: m.role === 'user' ? 'linear-gradient(135deg, #6d28d9, #2a1746)' : 'var(--glass)',
               border: m.role === 'user' ? 'none' : '1px solid var(--border)' }}>
               {bubbleText(m.content)}
+              {m.role === 'assistant' && (
+                <button type="button" onClick={() => speak(m.content, sel)} title="Ascolta"
+                  style={{ display: 'block', marginTop: 6, cursor: 'pointer', background: 'transparent', border: 'none', color: agent.color, fontSize: 12, padding: 0 }}>🔊 Ascolta</button>
+              )}
             </div>
           </div>
         ))}
@@ -160,13 +243,18 @@ export default function TeamTab() {
       </div>
 
       {/* Input */}
-      <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border)', background: 'var(--glass)' }}>
+      <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border)', background: 'var(--glass)', alignItems: 'center' }}>
+        <button type="button" onClick={recording ? stopRec : startRec} disabled={transcribing || busy}
+          title={recording ? 'Ferma e invia' : 'Parla'}
+          style={{ cursor: transcribing || busy ? 'default' : 'pointer', border: `1px solid ${recording ? '#ff453a' : 'var(--border)'}`, borderRadius: 10, width: 44, height: 44, flexShrink: 0, fontSize: 18,
+            background: recording ? '#ff453a' : 'var(--surface)', color: recording ? '#fff' : 'var(--text2)' }}>
+          {transcribing ? '…' : recording ? '⏺' : '🎤'}</button>
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-          placeholder={t('team.placeholder', { name: agent.name }, `Scrivi a ${agent.name}…`)}
+          placeholder={recording ? 'Sto ascoltando… parla pure' : t('team.placeholder', { name: agent.name }, `Scrivi a ${agent.name}…`)}
           style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 14px', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
         <button type="button" onClick={() => send()} disabled={busy || !input.trim()}
-          style={{ cursor: busy || !input.trim() ? 'default' : 'pointer', border: 'none', borderRadius: 10, padding: '0 18px',
+          style={{ cursor: busy || !input.trim() ? 'default' : 'pointer', border: 'none', borderRadius: 10, padding: '0 18px', height: 44,
             background: busy || !input.trim() ? 'var(--border)' : agent.color, color: '#fff', fontWeight: 700, fontSize: 14 }}>
           {t('team.send', null, 'Invia')}
         </button>

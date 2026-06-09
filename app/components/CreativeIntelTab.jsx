@@ -120,6 +120,9 @@ function DetailModal({ ad, onClose }) {
           {ad.linkUrl && (
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#c4b5fd', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.linkUrl}</a>
           )}
+          {ad.snapshotUrl && (
+            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: '#fff', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>↗ Apri nella Ad Library</a>
+          )}
         </div>
       </div>
     </div>
@@ -129,12 +132,11 @@ function DetailModal({ ad, onClose }) {
 export default function CreativeIntelTab() {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
-  const [platform, setPlatform] = useState('')
+  const [source, setSource] = useState('scrape')
+  const [country, setCountry] = useState('IT')
   const [format, setFormat] = useState('')
-  const [order, setOrder] = useState('')
   const [ads, setAds] = useState([])
   const [cursor, setCursor] = useState(null)
-  const [credits, setCredits] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
@@ -144,19 +146,16 @@ export default function CreativeIntelTab() {
     if (!query.trim() && !more) return
     setLoading(true); setError(''); setSearched(true)
     try {
-      const p = new URLSearchParams({ mode: 'ads', query: query.trim(), limit: '40' })
-      if (platform) p.set('platform', platform)
+      const p = new URLSearchParams({ query: query.trim(), source, country, limit: '40' })
       if (format) p.set('format', format)
-      if (order) p.set('order', order)
       if (more && cursor) p.set('cursor', cursor)
       const r = await fetch(`/api/creative-intel?${p}`, { cache: 'no-store' })
       const j = await r.json()
-      if (!j.ok) { setError(j.error || 'Errore ricerca'); if (j.credits != null) setCredits(j.credits); return }
+      if (!j.ok) { setError(j.error || 'Errore ricerca'); return }
       setAds(prev => more ? [...prev, ...(j.ads || [])] : (j.ads || []))
       setCursor(j.cursor || null)
-      if (j.credits != null) setCredits(j.credits)
     } catch (e) { setError(e.message) } finally { setLoading(false) }
-  }, [query, platform, format, order, cursor])
+  }, [query, source, country, format, cursor])
 
   const chip = (active) => ({ padding: '7px 13px', borderRadius: 10, border: `1px solid ${active ? '#8b5cf6' : 'var(--border)'}`, background: active ? '#8b5cf620' : 'var(--glass)', color: active ? '#c4b5fd' : '#8b8aa0', fontSize: 12, fontWeight: 800, cursor: 'pointer' })
 
@@ -171,11 +170,11 @@ export default function CreativeIntelTab() {
           </div>
           <button onClick={() => run(false)} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : '#fff', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
         </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{PLATFORMS.map(p => <button key={p.id} onClick={() => setPlatform(p.id)} style={chip(platform === p.id)}>{p.label}</button>)}</div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{SOURCES.map(s => <button key={s.id} onClick={() => setSource(s.id)} style={chip(source === s.id)}>{s.label}</button>)}</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{c.label}</button>)}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={chip(format === f.id)}>{f.label}</button>)}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{ORDERS.map(o => <button key={o.id} onClick={() => setOrder(o.id)} style={chip(order === o.id)}>{o.label}</button>)}</div>
-          {credits != null && <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580', alignSelf: 'center' }}>{t('ci.credits', { n: credits }, `${credits} crediti Foreplay`)}</div>}
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580' }}>{t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
         </div>
       </div>
 

@@ -59,14 +59,31 @@ export async function POST(req) {
   ))
   const lastUserMsg = [...conversation].reverse().find(m => m.role === 'user')?.content || ''
 
+  // Dati reali cross-dominio (numeri e NOMI veri: campagne, adset, prodotti, flussi…)
+  // così l'agente cita SOLO dati reali e non inventa. Inoltra il cookie di sessione.
+  const origin = new URL(req.url).origin
+  const cookie = req.headers.get('cookie') || ''
+  let liveData = null
+  try {
+    const cr = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: cookie ? { cookie } : {} })
+    if (cr.ok) liveData = await cr.json()
+  } catch {}
+
   try {
     const { content: reply } = await callBrain({
-      skill: { id: `team-${agent.id}`, systemPrompt: teamSkillPrompt(agent) },
+      skill: {
+        id: `team-${agent.id}`,
+        systemPrompt: teamSkillPrompt(agent),
+        guard: 'REGOLA CRITICA ANTI-INVENZIONE: ogni NOME (campagna, adset, creative, prodotto, flusso) e ogni numero/percentuale che citi DEVE essere presente LETTERALMENTE nei DATI LIVE. È VIETATO inventare o ipotizzare nomi e numeri. Se il dato chiesto non è nei DATI LIVE (es. i nomi delle singole creative potrebbero non esserci), dillo onestamente ("non ho qui i nomi delle singole creative, guardiamole insieme nella tab Creative") — NON inventare MAI.',
+      },
       query: lastUserMsg,
+      data: liveData,
+      dataLabel: 'DATI LIVE (numeri e nomi REALI del brand — puoi citare SOLO questi):',
+      dataMax: 70000,
       messages: conversation,
       locale: b.locale || null,
-      temperature: 0.5,
-      guardTail: 'Sei in una chat di team (LyftTalk), non in un report. Rispondi SOLO ed ESATTAMENTE a ciò che ti è stato chiesto, come un collega vero che scrive in chat: 1-3 frasi brevi, tono naturale e umano. VIETATO riassumere il tuo ruolo o elencare cosa sai fare, vietati elenchi puntati e preamboli. Se la domanda è un saluto, rispondi con un saluto breve. Se serve approfondire, proponi di vederlo insieme.',
+      temperature: 0.3,
+      guardTail: 'Sei in una chat di team (LyftTalk), non in un report. Rispondi SOLO ed ESATTAMENTE a ciò che ti è stato chiesto, come un collega vero che scrive in chat: 1-3 frasi brevi, tono naturale e umano. VIETATO riassumere il tuo ruolo o elencare cosa sai fare, vietati elenchi puntati e preamboli. Se non hai un dato, dillo invece di inventarlo. Se serve approfondire, proponi di vederlo insieme.',
     })
     const text = String(reply || '').trim()
     if (!text) return NextResponse.json({ ok: false, error: 'Risposta vuota' })

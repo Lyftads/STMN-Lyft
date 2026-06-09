@@ -74,7 +74,7 @@ export default function AlertsBell() {
           transition: 'all .15s',
         }}
       >
-        <Icon name="bell" size={18} />
+        <Icon name="warning" size={18} />
         {totalBadge > 0 && (
           <span style={{
             position: 'absolute', top: -3, right: -3,

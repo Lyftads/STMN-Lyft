@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@elevenlabs/client": "^1.10.0",
     "@nangohq/frontend": "^0.70.6",
     "@supabase/ssr": "^0.10.3",
     "date-fns": "^3.6.0",

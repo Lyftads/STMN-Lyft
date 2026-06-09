@@ -46,6 +46,38 @@ export default function TeamTab() {
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [scheduling, setScheduling] = useState(false)
+  const [call, setCall] = useState(null) // { status:'connecting'|'connected'|'ended', mode:'listening'|'speaking', error? }
+  const convRef = useRef(null)
+
+  // Avvia la call full-duplex con l'agente (ElevenLabs Conversational AI).
+  async function startCall(a) {
+    setCall({ status: 'connecting', mode: 'listening' })
+    try {
+      const cfg = await fetch('/api/team/call/signed-url').then(r => r.json()).catch(() => ({}))
+      if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata (manca la chiave ElevenLabs).' }); return }
+      if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || 'Impossibile avviare la call.' }); return }
+      const { Conversation } = await import('@elevenlabs/client')
+      const conv = await Conversation.startSession({
+        signedUrl: cfg.signedUrl,
+        connectionType: 'webrtc',
+        customLlmExtraBody: { lyft_agent: a.id },
+        overrides: { tts: { voiceId: a.voiceId || undefined }, agent: { language: 'it' } },
+        onStatusChange: (s) => setCall(c => c ? { ...c, status: (s?.status === 'connected' ? 'connected' : c.status) } : c),
+        onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),
+        onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || 'Errore call') })),
+        onDisconnect: () => { setCall(c => c && c.status !== 'ended' ? { ...c, status: 'ended' } : c) },
+      })
+      convRef.current = conv
+      setCall(c => ({ ...(c || {}), status: 'connected', mode: 'listening' }))
+    } catch (e) {
+      setCall({ status: 'ended', error: String(e?.message || e || 'Microfono o connessione non disponibili') })
+    }
+  }
+  async function endCall() {
+    try { await convRef.current?.endSession() } catch {}
+    convRef.current = null
+    setCall(null)
+  }
 
   // Programma la call settimanale ricorrente (.ics via email → calendario).
   async function scheduleCall() {
@@ -209,6 +241,8 @@ export default function TeamTab() {
           : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
               style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? '#fff' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
               {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
+        <button type="button" onClick={() => startCall(agent)} title="Chiama in vivavoce"
+          style={{ cursor: 'pointer', background: '#30d158', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>📞 Chiama</button>
       </div>
 
       {/* Messaggi */}
@@ -259,6 +293,30 @@ export default function TeamTab() {
           {t('team.send', null, 'Invia')}
         </button>
       </div>
+
+      {/* Overlay CALL full-duplex */}
+      {call && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', inset: -10, borderRadius: '50%', border: `3px solid ${agent.color}`,
+              opacity: call.mode === 'speaking' ? 0.9 : 0.3, animation: call.status === 'connected' ? 'lyftPulse 1.2s ease-out infinite' : 'none' }} />
+            <Avatar a={agent} size={120} />
+          </div>
+          <div style={{ textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{agent.name}</div>
+            <div style={{ color: agent.color, fontSize: 14, fontWeight: 600 }}>{agent.role}</div>
+            <div style={{ marginTop: 8, fontSize: 13, color: '#c7c7cf' }}>
+              {call.status === 'connecting' && 'Connessione in corso…'}
+              {call.status === 'connected' && (call.mode === 'speaking' ? '🔊 Sta parlando…' : '🎙️ Ti ascolto, parla pure')}
+              {call.status === 'ended' && (call.error ? `⚠️ ${call.error}` : 'Call terminata')}
+            </div>
+          </div>
+          {call.status === 'ended'
+            ? <button type="button" onClick={() => setCall(null)} style={{ cursor: 'pointer', background: 'var(--glass)', border: '1px solid var(--border)', color: '#fff', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
+            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: '#fff', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>📵 Riaggancia</button>}
+          <style>{`@keyframes lyftPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}`}</style>
+        </div>
+      )}
     </div>
   )
 }

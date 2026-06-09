@@ -83,7 +83,7 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.4,
-      guardTail: 'Decidi in base all\'ultima richiesta. Se per rispondere ti servono DATI del brand (creative, campagne, adset, numeri, prodotti, performance, vendite…), NON rispondere nel merito: scrivi SOLO una frase brevissima e naturale, in prima persona, che stai andando a controllare (es. "Dammi un attimo Marino, controllo le creative migliori 👀"). Se invece è un saluto o chiacchiera che NON richiede dati, rispondi direttamente e fai iniziare il messaggio ESATTAMENTE con "DIRETTO: " seguito dalla risposta breve.',
+      guardTail: 'Decidi in base all\'ultima richiesta. Se per rispondere ti servono DATI del brand (creative, campagne, adset, numeri, prodotti, performance, vendite…), NON dare ancora i dati: scrivi un messaggio breve e naturale che (a) risponde all\'eventuale parte social/saluto del messaggio (es. se chiede "come stai?": "Ciao Marino, tutto bene grazie!") e (b) dice che vai a controllare (es. "dammi un attimo, controllo le creative migliori 👀"). Se invece è SOLO un saluto/chiacchiera che NON richiede dati, rispondi direttamente e fai iniziare il messaggio ESATTAMENTE con "DIRETTO: " seguito dalla risposta breve.',
     })
     const tr = String(triage.content || '').trim()
 
@@ -122,7 +122,7 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.3,
-      guardTail: 'Hai appena detto che stavi controllando: ORA dai la risposta vera e diretta a ciò che ti è stato chiesto, con i dati reali. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Cita SOLO nomi/numeri reali; se un dato non c\'è, dillo.',
+      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente "Ciao Marino" un\'altra volta. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Cita SOLO nomi/numeri reali; se un dato non c\'è, dillo.',
     })
     const answerMsg = await post(reply)
 

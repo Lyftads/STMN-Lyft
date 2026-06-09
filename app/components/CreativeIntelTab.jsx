@@ -11,11 +11,6 @@ const FORMATS = [
   { id: '', label: 'Tutti' },
   { id: 'VIDEO', label: 'Video' },
   { id: 'IMAGE', label: 'Image' },
-  { id: 'CAROUSEL', label: 'Carousel' },
-]
-const SOURCES = [
-  { id: 'scrape', label: 'Scraping · nessuna app' },
-  { id: 'api', label: 'API ufficiale · token' },
 ]
 const COUNTRIES = [
   { id: 'IT', label: 'Italia' },
@@ -24,7 +19,45 @@ const COUNTRIES = [
   { id: 'DE', label: 'Germania' },
   { id: 'GB', label: 'UK' },
   { id: 'US', label: 'USA' },
+  { id: 'ALL', label: 'Tutti' },
 ]
+
+function funnelOf(text) {
+  const s = (text || '').toLowerCase()
+  if (/\b(shop|buy|order|acquista|compra|sconto|% off|spedizione gratis|codice|checkout|abbonati|saldi|offerta|get yours)\b/.test(s)) return 'bofu'
+  if (/\b(come funziona|how it works|recensione|review|guida|guide|perché|why|risultati|results|confronta|compare)\b/.test(s)) return 'mofu'
+  return 'tofu'
+}
+function daysSince(d) {
+  if (!d) return null
+  const t = Date.parse(d)
+  if (!Number.isFinite(t)) return null
+  const n = Math.floor((Date.now() - t) / 86400000)
+  return n >= 0 ? n : null
+}
+// Mappa un ad di /api/adlibrary-search nella forma usata dalle card.
+function mapAd(a) {
+  const headline = (a.titles && a.titles[0]) || ''
+  const body = (a.bodies && a.bodies[0]) || (a.descriptions && a.descriptions[0]) || ''
+  return {
+    id: a.id || Math.random().toString(36).slice(2),
+    brand: a.pageName || 'Pagina',
+    headline,
+    body,
+    format: a.isVideo ? 'VIDEO' : a.imageUrl ? 'IMAGE' : 'AD',
+    thumbnail: a.imageUrl || null,
+    image: a.imageUrl || null,
+    video: a.videoUrl || null,
+    videoDuration: 0,
+    linkUrl: (a.captions && a.captions[0]) || '',
+    snapshotUrl: a.snapshotUrl || '',
+    cta: '',
+    platforms: a.platforms || [],
+    live: true,
+    runningDays: daysSince(a.startDate),
+    funnel: funnelOf(`${headline} ${body}`),
+  }
+}
 
 const FUNNEL = {
   tofu: { label: 'TOFU', color: '#22c55e' },
@@ -132,30 +165,30 @@ function DetailModal({ ad, onClose }) {
 export default function CreativeIntelTab() {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
-  const [source, setSource] = useState('scrape')
   const [country, setCountry] = useState('IT')
   const [format, setFormat] = useState('')
   const [ads, setAds] = useState([])
-  const [cursor, setCursor] = useState(null)
+  const [srcUsed, setSrcUsed] = useState(null)
+  const [libraryUrl, setLibraryUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
   const [searched, setSearched] = useState(false)
 
-  const run = useCallback(async (more = false) => {
-    if (!query.trim() && !more) return
-    setLoading(true); setError(''); setSearched(true)
+  const run = useCallback(async () => {
+    if (!query.trim()) return
+    setLoading(true); setError(''); setSearched(true); setSrcUsed(null)
     try {
-      const p = new URLSearchParams({ query: query.trim(), source, country, limit: '40' })
-      if (format) p.set('format', format)
-      if (more && cursor) p.set('cursor', cursor)
-      const r = await fetch(`/api/creative-intel?${p}`, { cache: 'no-store' })
+      const r = await fetch(`/api/adlibrary-search?q=${encodeURIComponent(query.trim())}&country=${encodeURIComponent(country)}`, { cache: 'no-store' })
       const j = await r.json()
-      if (!j.ok) { setError(j.error || 'Errore ricerca'); return }
-      setAds(prev => more ? [...prev, ...(j.ads || [])] : (j.ads || []))
-      setCursor(j.cursor || null)
+      let list = (j.ads || []).map(mapAd)
+      if (format) list = list.filter(a => a.format === format)
+      setAds(list)
+      setSrcUsed(j.source || null)
+      setLibraryUrl(j.libraryUrl || '')
+      if (!list.length) setError(j.error && j.error !== 'no_results' ? j.error : '')
     } catch (e) { setError(e.message) } finally { setLoading(false) }
-  }, [query, source, country, format, cursor])
+  }, [query, country, format])
 
   const chip = (active) => ({ padding: '7px 13px', borderRadius: 10, border: `1px solid ${active ? '#8b5cf6' : 'var(--border)'}`, background: active ? '#8b5cf620' : 'var(--glass)', color: active ? '#c4b5fd' : '#8b8aa0', fontSize: 12, fontWeight: 800, cursor: 'pointer' })
 
@@ -166,15 +199,14 @@ export default function CreativeIntelTab() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
             <Icon name="search" size={16} />
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && run(false)} placeholder={t('ci.searchPh', null, 'Cerca brand o keyword (es. supplement, nike, longevity)…')} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, fontWeight: 600 }} />
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()} placeholder={t('ci.searchPh', null, 'Cerca brand o keyword (es. supplement, nike, longevity)…')} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, fontWeight: 600 }} />
           </div>
-          <button onClick={() => run(false)} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : '#fff', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
+          <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : '#fff', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{SOURCES.map(s => <button key={s.id} onClick={() => setSource(s.id)} style={chip(source === s.id)}>{s.label}</button>)}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{c.label}</button>)}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={chip(format === f.id)}>{f.label}</button>)}</div>
-          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580' }}>{t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580' }}>{srcUsed ? t('ci.via', { src: srcUsed }, `via ${srcUsed}`) : t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
         </div>
       </div>
 
@@ -197,9 +229,9 @@ export default function CreativeIntelTab() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
             {ads.map(ad => <AdCard key={ad.id} ad={ad} onOpen={setSelected} />)}
           </div>
-          {cursor && (
+          {libraryUrl && (
             <div style={{ textAlign: 'center', marginTop: 22 }}>
-              <button onClick={() => run(true)} disabled={loading} style={{ padding: '11px 26px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--glass)', color: '#c8c0d6', fontSize: 13, fontWeight: 800, cursor: loading ? 'wait' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.loadMore', null, 'Carica altre')}</button>
+              <a href={libraryUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '11px 26px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--glass)', color: '#c8c0d6', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>{t('ci.openLibrary', null, 'Apri tutte nella Ad Library ↗')}</a>
             </div>
           )}
         </>

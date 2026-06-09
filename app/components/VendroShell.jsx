@@ -88,12 +88,14 @@ export default function VendroShell({
       ],
     },
     {
-      title: 'Website',
+      title: 'Intelligence Website',
       color: '#ff9f0a',
       items: [
         { id: 'cro', label: 'CRO', icon: <Icon name="funnel" /> },
         { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
         { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
+        { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
+        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
       ],
     },
     {
@@ -119,14 +121,6 @@ export default function VendroShell({
         { id: 'quarter', label: 'Quarter', icon: <Icon name="chart-line" /> },
         { id: 'year', label: 'Year', icon: <Icon name="pulse" /> },
         { id: 'simulator', label: 'Simulatore', icon: <Icon name="gauge" /> },
-      ],
-    },
-    {
-      title: 'Intelligence',
-      color: '#64d2ff',
-      items: [
-        { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
-        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
       ],
     },
     {

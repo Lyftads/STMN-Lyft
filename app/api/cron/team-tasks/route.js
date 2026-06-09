@@ -74,6 +74,17 @@ export async function GET(req) {
     .order('created_at', { ascending: false }).limit(40)
   const openList = (openTasks || []).map(t => `- "${t.title}" [${t.status}${t.due_date ? ', scad. ' + t.due_date : ''}]`).join('\n') || '(nessuno)'
 
+  // report_only=1 → invia SOLO il report dettagliato all'owner (niente nuovi
+  // task, niente email agli assegnatari). Per "mandami subito il report".
+  if (new URL(req.url).searchParams.get('report_only')) {
+    if (!ownerMember?.email) return NextResponse.json({ ok: false, error: 'owner senza email' }, { status: 400 })
+    const narrative = await buildReportNarrative(liveData)
+    const openForReport = (openTasks || []).slice(0, 12).map(t => ({ title: t.title, assignee: '—', priority: t.priority, due_date: t.due_date || '—', proposer: '' }))
+    const html = renderReportHTML({ liveData, narrative, tasks: openForReport, brandName: liveData?.brand?.name || 'il tuo brand', periodLabel: 'ultime 4 settimane', appUrl: origin })
+    const sent = await sendEmail({ to: ownerMember.email, subject: '📊 Report dettagliato della Squadra AI', html })
+    return NextResponse.json({ ok: true, report_only: true, sent, to: ownerMember.email })
+  }
+
   // ── Pianificazione: Chiara orchestra il team → tasks concreti (JSON) ───────
   const ceo = getTeamAgent('ceo')
   const roster = teamRoster()

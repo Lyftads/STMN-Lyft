@@ -102,9 +102,14 @@ export async function POST(req) {
       if (ctxRes.ok) liveData = await ctxRes.json()
     } catch {}
     if (Array.isArray(liveData?.creatives) && liveData.creatives.length) {
-      creativeBlock = 'CREATIVE REALI di questo brand (nomi ESATTI — puoi citare SOLO questi):\n' + liveData.creatives.slice(0, 40).map(c =>
-        `• "${c.name || '?'}" · adset "${c.adset || '?'}" · campagna "${c.campaign || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr ?? '-'}%`
-      ).join('\n')
+      const top = [...liveData.creatives].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0)).slice(0, 25)
+      creativeBlock = 'CREATIVE REALI di questo brand (nomi, performance, copy, CTA, prodotti — puoi citare SOLO questi):\n' + top.map(c => {
+        let line = `• "${c.name || '?'}" · adset "${c.adset || '?'}" · campagna "${c.campaign || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr ?? '-'}%`
+        if (c.copy) line += `\n   copy: "${String(c.copy).replace(/\s+/g, ' ').slice(0, 220)}"`
+        if (c.cta || c.description) line += `\n   CTA: ${c.cta || '-'}${c.description ? ' · ' + c.description : ''}`
+        if (Array.isArray(c.products) && c.products.length) line += `\n   prodotti (carosello): ${c.products.map(p => p.name).filter(Boolean).slice(0, 6).join(', ')}`
+        return line
+      }).join('\n')
     }
 
     // ── 3) Risposta VERA con i dati ──
@@ -128,23 +133,35 @@ export async function POST(req) {
 
     // ── 4) Allega le IMMAGINI delle creative menzionate (o richieste) ──
     try {
-      const creatives = Array.isArray(liveData?.creatives) ? liveData.creatives.filter(c => c.image) : []
+      const creatives = Array.isArray(liveData?.creatives)
+        ? liveData.creatives.filter(c => c.image || (Array.isArray(c.products) && c.products.length))
+        : []
       if (creatives.length) {
         const r = String(reply || '')
-        // creative i cui nomi compaiono nella risposta dell'agente
         let toShow = creatives.filter(c => c.name && r.includes(c.name))
-        // se l'utente ha chiesto di VEDERLE e non ne abbiamo agganciate dal testo → top per spesa
         const wantsImages = /mostr|fammi veder|farmi veder|vedere|immagin|allega|screenshot|come sono fatt|fammele/i.test(lastUserMsg)
         if (wantsImages && toShow.length === 0) {
           toShow = [...creatives].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0))
         }
-        for (const c of toShow.slice(0, 3)) {
-          await admin.from('channel_messages').insert({
-            channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag,
-            body: c.name || 'Creative',
-            file_url: c.image, file_type: 'image/jpeg',
-            file_name: `${String(c.name || 'creative').slice(0, 60)}.jpg`,
-          })
+        const insertImg = (body, fileUrl) => admin.from('channel_messages').insert({
+          channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag,
+          body, file_url: fileUrl, file_type: 'image/jpeg', file_name: 'creative.jpg',
+        })
+        let imgCount = 0
+        const MAX = 6
+        for (const c of toShow) {
+          if (imgCount >= MAX) break
+          if (Array.isArray(c.products) && c.products.length) {
+            // Carosello/DPA → immagini dei singoli PRODOTTI (CDN Shopify, stabile)
+            for (const p of c.products) {
+              if (imgCount >= MAX || !p.image) continue
+              await insertImg(`${c.name || 'Creative'} — ${p.name || ''}${p.price ? ' · ' + p.price : ''}`, p.image)
+              imgCount++
+            }
+          } else if (c.image) {
+            await insertImg(c.name || 'Creative', c.image)
+            imgCount++
+          }
         }
       }
     } catch {}

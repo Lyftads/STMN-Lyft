@@ -112,6 +112,14 @@ export async function GET(request) {
       ctr: c.ctr_link ?? c.ctr, cpc: c.cpc_link ?? c.cpc,
       impressions: c.impressions, purchases: c.purchases ?? c.orders,
       image: c.full_image_url || c.image_url || c.display_image_url || c.preview_image_url || c.thumbnail_url || null,
+      copy: c.copy ? String(c.copy).slice(0, 400) : null,
+      headline: (c.headline && !String(c.headline).includes('{{')) ? c.headline : null,
+      description: c.description || null,
+      cta: c.cta || null,
+      // Prodotti del carosello/DPA: ognuno con la sua immagine (CDN Shopify, stabile)
+      products: (Array.isArray(c.products) && c.products.length)
+        ? c.products.slice(0, 10).map(p => ({ name: p.name, image: p.image_url, price: p.price }))
+        : null,
     }))
   }
 

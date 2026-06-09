@@ -123,6 +123,11 @@ ${openList}`
     })
   }
 
+  // dry=1 → risolve l'intero pipeline (piano + mappatura assegnatari) SENZA
+  // creare task né mandare email/post. Serve per verificare senza spammare i
+  // collaboratori reali.
+  const dry = !!new URL(req.url).searchParams.get('dry')
+
   // ── Crea i task + assegna + email ─────────────────────────────────────────
   const created = []
   for (const t of proposed) {
@@ -142,6 +147,10 @@ ${openList}`
       due_date: due,
       created_by: ownerMember?.id || null,
     }
+    if (dry) {
+      created.push({ id: '(dry)', title, priority: row.priority, due_date: due, assignee: assignee?.full_name || assignee?.email || '—', assignee_email: assignee?.email || null, proposer: proposer?.name || 'AI' })
+      continue
+    }
     try {
       const { data, error } = await admin.from('tasks').insert(row).select('*').single()
       if (error) throw error
@@ -149,6 +158,8 @@ ${openList}`
       if (data.assignee_id) await notifyAssignment({ workspaceId, task: data, origin }).catch(() => {})
     } catch {}
   }
+
+  if (dry) return NextResponse.json({ ok: true, dry: true, created: 0, would_create: created.length, summary: plan?.summary || null, tasks: created })
 
   // ── Annuncio in LyftTalk (Chiara) ─────────────────────────────────────────
   if (created.length) {

@@ -39,13 +39,24 @@ export default function TeamTab() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const ctxRef = useRef(null)                       // agent-context (dati reali), caricato una volta
+  const ctxPromRef = useRef(null)                    // promise condivisa del fetch (no doppioni)
   const scrollRef = useRef(null)
+
+  // Carica i dati reali una volta sola; ritorna sempre la stessa promise così
+  // un send() che parte prima del pre-load aspetta lo stesso fetch (niente
+  // risposte "senza dati").
+  function ensureContext() {
+    if (ctxRef.current) return Promise.resolve(ctxRef.current)
+    if (!ctxPromRef.current) {
+      ctxPromRef.current = fetch('/api/agent-context?preset=last_30d&days=30', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d) ctxRef.current = d; return d }).catch(() => null)
+    }
+    return ctxPromRef.current
+  }
 
   useEffect(() => {
     fetch('/api/team-agent').then(r => r.json()).then(d => setRoster(d.team || [])).catch(() => {})
-    // Pre-carica i dati reali in background (così la prima risposta è già informata).
-    fetch('/api/agent-context?preset=last_30d&days=30', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null).then(d => { if (d) ctxRef.current = d }).catch(() => {})
+    ensureContext() // pre-load in background
   }, [])
 
   const agent = roster.find(a => a.id === sel) || null
@@ -61,9 +72,10 @@ export default function TeamTab() {
     setByAgent(p => ({ ...p, [sel]: next }))
     setBusy(true)
     try {
+      const ctx = await ensureContext() // garantisce i dati reali anche al primo messaggio
       const res = await fetch('/api/team-agent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: sel, messages: next, agentContext: ctxRef.current, preset: 'last_30d', locale: getClientLocale() }),
+        body: JSON.stringify({ agentId: sel, messages: next, agentContext: ctx, preset: 'last_30d', locale: getClientLocale() }),
       })
       const d = await res.json()
       const reply = d.reply || d.error || '…'

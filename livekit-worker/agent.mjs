@@ -49,10 +49,11 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       vad,
-      stt: new openai.STT({ model: 'gpt-4o-transcribe', language: 'it' }),
+      stt: new openai.STT({ model: 'gpt-4o-transcribe', language: 'it', apiKey: process.env.OPENAI_API_KEY }),
       // LLM = nostro cervello (endpoint OpenAI-compatible, model team-<id>).
       llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
-      tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5' }),
+      // apiKey esplicito: il plugin di default cerca ELEVEN_API_KEY, noi usiamo ELEVENLABS_API_KEY.
+      tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5', apiKey: process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY }),
     })
 
     const agent = new voice.Agent({

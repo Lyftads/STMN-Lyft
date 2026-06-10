@@ -121,6 +121,24 @@ export async function POST(req) {
         return old || w
       })
     }
+    // _periods (Admin GraphQL): se un periodo torna vuoto, riusa l'ultimo buono.
+    const prevP = prev?.data?._periods
+    if (prevP) {
+      data._periods = data._periods || {}
+      for (const k of Object.keys(prevP)) {
+        const nw = data._periods[k]
+        if ((!nw || !(Number(nw.orders) || Number(nw.fatturato))) && (Number(prevP[k]?.orders) || Number(prevP[k]?.fatturato))) data._periods[k] = prevP[k]
+      }
+    }
+    // _metaPeriods (meta-detail): idem per la spesa Meta.
+    const prevM = prev?.data?._metaPeriods
+    if (prevM) {
+      data._metaPeriods = data._metaPeriods || {}
+      for (const k of Object.keys(prevM)) {
+        const nw = data._metaPeriods[k]
+        if ((!nw || nw.spend == null) && prevM[k]?.spend != null) data._metaPeriods[k] = prevM[k]
+      }
+    }
   } catch {}
 
   try {

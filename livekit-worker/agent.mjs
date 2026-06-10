@@ -74,7 +74,11 @@ export default defineAgent({
     })
 
     await session.start({ agent, room: ctx.room })
-    session.say(`Ciao a tutti, sono ${name}. Sono in ascolto, ditemi pure.`)
+    // Saluta SOLO la lead (Chiara) o un agente invitato da solo — evita 8 saluti
+    // sovrapposti e 8 TTS concorrenti all'ingresso (sovraccarico + limite ElevenLabs).
+    const otherAgents = [...(ctx.room?.remoteParticipants?.values() || [])].filter(p => String(p.identity || '').toLowerCase().startsWith('agent'))
+    if (agentId === 'ceo') session.say('Ciao a tutti, siamo qui con la squadra. Ditemi pure.')
+    else if (otherAgents.length === 0) session.say(`Ciao, sono ${name}. Dimmi pure.`)
   },
 })
 

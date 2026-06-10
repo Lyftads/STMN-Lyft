@@ -467,19 +467,29 @@ const cellMuted = { color: 'var(--text3)' }
 
 // Riga "flat" in stile Business Manager: toggle esplicito per il drill-down
 // (campagna → gruppi → inserzioni), click inserzione = anteprima creatività.
-function BMRow({ row, level, onOpen }) {
+function BMRow({ row, level, onOpen, checked, onCheck }) {
   const { t } = useI18n()
   const drillable = level !== 'ad'
   const go = (e) => { e.stopPropagation(); onOpen(row) }
   return (
     <tr
       onClick={() => onOpen(row)}
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.12s' }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.12s', background: checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
+      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
     >
       <td style={{ padding: '14px 16px', minWidth: 340 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Checkbox multi-selezione (solo campagne/gruppi) */}
+          {drillable && (
+            <input
+              type="checkbox"
+              checked={!!checked}
+              onClick={e => e.stopPropagation()}
+              onChange={() => onCheck && onCheck(row.id)}
+              style={{ width: 16, height: 16, accentColor: '#7b5bff', cursor: 'pointer', flexShrink: 0 }}
+            />
+          )}
           {/* Toggle: drill (›) per campagne/gruppi, anteprima (occhio) per inserzioni */}
           <button
             onClick={go}
@@ -527,7 +537,7 @@ const lab = { fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', l
 function AdPreviewModal({ ad, onClose }) {
   const { t } = useI18n()
   if (typeof document === 'undefined') return null
-  const media = ad.thumbnail_url || ad.image_url || (ad.products && ad.products[0] && ad.products[0].image_url) || null
+  const media = ad.image_url || (ad.products && ad.products[0] && ad.products[0].image_url) || ad.thumbnail_url || null
   const stat = (label, value) => (
     <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
       <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{label}</div>
@@ -696,9 +706,13 @@ export default function MetaDetailTab() {
 
   // ── Vista stile Business Manager: tab Campagne / Gruppi / Inserzioni ──
   const [bmLevel, setBmLevel] = useState('campaign')
-  const [selCampaign, setSelCampaign] = useState(null)
+  const [selCampaign, setSelCampaign] = useState(null)   // drill singolo (per breadcrumb)
   const [selAdset, setSelAdset] = useState(null)
   const [selAd, setSelAd] = useState(null)
+  const [viewCampaignIds, setViewCampaignIds] = useState([]) // campagne le cui adset sono mostrate
+  const [viewAdsetIds, setViewAdsetIds] = useState([])       // adset le cui inserzioni sono mostrate
+  const [checkCampaigns, setCheckCampaigns] = useState(() => new Set()) // checkbox multi-selezione
+  const [checkAdsets, setCheckAdsets] = useState(() => new Set())
 
   const loadChildren = useCallback(async (level, parentKey, paramKey, parentId) => {
     if (children[parentKey]) return
@@ -714,27 +728,46 @@ export default function MetaDetailTab() {
     }
   }, [children, qs, t])
 
+  // Drill singolo (click su riga/chevron)
   const openCampaign = useCallback((c) => {
-    setSelCampaign(c); setSelAdset(null); setBmLevel('adset')
+    setSelCampaign(c); setSelAdset(null); setViewCampaignIds([c.id]); setViewAdsetIds([]); setBmLevel('adset')
     loadChildren('adsets', `campaign:${c.id}`, 'campaign_id', c.id)
   }, [loadChildren])
   const openAdset = useCallback((a) => {
-    setSelAdset(a); setBmLevel('ad')
+    setSelAdset(a); setViewAdsetIds([a.id]); setBmLevel('ad')
     loadChildren('ads', `adset:${a.id}`, 'adset_id', a.id)
   }, [loadChildren])
+
+  // Drill multiplo (checkbox + "Vedi …")
+  const openMultiAdsets = useCallback(() => {
+    const ids = [...checkCampaigns]
+    if (!ids.length) return
+    setSelCampaign(null); setSelAdset(null); setViewCampaignIds(ids); setViewAdsetIds([]); setBmLevel('adset')
+    ids.forEach(id => loadChildren('adsets', `campaign:${id}`, 'campaign_id', id))
+  }, [checkCampaigns, loadChildren])
+  const openMultiAds = useCallback(() => {
+    const ids = [...checkAdsets]
+    if (!ids.length) return
+    setSelAdset(null); setViewAdsetIds(ids); setBmLevel('ad')
+    ids.forEach(id => loadChildren('ads', `adset:${id}`, 'adset_id', id))
+  }, [checkAdsets, loadChildren])
+
+  const toggleCheck = (setFn) => (id) => setFn(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleCheckCampaign = toggleCheck(setCheckCampaigns)
+  const toggleCheckAdset = toggleCheck(setCheckAdsets)
 
   const bmRows = useMemo(() => {
     const q = search.trim().toLowerCase()
     let list = []
     if (bmLevel === 'campaign') list = data?.rows || []
-    else if (bmLevel === 'adset') list = selCampaign ? (children[`campaign:${selCampaign.id}`] || []) : []
-    else list = selAdset ? (children[`adset:${selAdset.id}`] || []) : []
+    else if (bmLevel === 'adset') list = viewCampaignIds.flatMap(id => children[`campaign:${id}`] || [])
+    else list = viewAdsetIds.flatMap(id => children[`adset:${id}`] || [])
     if (q) list = list.filter(r => (r.name || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q))
     return list
-  }, [bmLevel, data, children, selCampaign, selAdset, search])
+  }, [bmLevel, data, children, viewCampaignIds, viewAdsetIds, search])
 
-  const bmLoading = bmLevel === 'adset' ? !!loadingNode[`campaign:${selCampaign?.id}`]
-    : bmLevel === 'ad' ? !!loadingNode[`adset:${selAdset?.id}`]
+  const bmLoading = bmLevel === 'adset' ? viewCampaignIds.some(id => loadingNode[`campaign:${id}`])
+    : bmLevel === 'ad' ? viewAdsetIds.some(id => loadingNode[`adset:${id}`])
     : loading
 
   const visibleRows = useMemo(() => {
@@ -1075,8 +1108,8 @@ export default function MetaDetailTab() {
       {(() => {
         const TABS = [
           { id: 'campaign', label: t('meta.tabCampaigns', null, 'Campagne'), enabled: true, count: (data?.rows || []).length },
-          { id: 'adset', label: t('meta.tabAdsets', null, 'Gruppi di inserzioni'), enabled: !!selCampaign, count: selCampaign ? (children[`campaign:${selCampaign.id}`] || []).length : null },
-          { id: 'ad', label: t('meta.tabAds', null, 'Inserzioni'), enabled: !!selAdset, count: selAdset ? (children[`adset:${selAdset.id}`] || []).length : null },
+          { id: 'adset', label: t('meta.tabAdsets', null, 'Gruppi di inserzioni'), enabled: viewCampaignIds.length > 0, count: viewCampaignIds.length ? viewCampaignIds.reduce((s, id) => s + (children[`campaign:${id}`] || []).length, 0) : null },
+          { id: 'ad', label: t('meta.tabAds', null, 'Inserzioni'), enabled: viewAdsetIds.length > 0, count: viewAdsetIds.length ? viewAdsetIds.reduce((s, id) => s + (children[`adset:${id}`] || []).length, 0) : null },
         ]
         const tabBtn = (tab) => ({
           padding: '12px 18px', border: 'none', background: 'transparent', cursor: tab.enabled ? 'pointer' : 'not-allowed',
@@ -1104,12 +1137,24 @@ export default function MetaDetailTab() {
               ))}
             </div>
 
-            {/* Breadcrumb drill-down */}
-            {(selCampaign || selAdset) && (
+            {/* Breadcrumb drill-down (gestisce singolo e multi-selezione) */}
+            {(viewCampaignIds.length > 0 || viewAdsetIds.length > 0) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontSize: 12.5, color: 'var(--text3)', flexWrap: 'wrap' }}>
                 {crumb(t('meta.tabCampaigns', null, 'Campagne'), () => setBmLevel('campaign'), bmLevel === 'campaign')}
-                {selCampaign && <><span>›</span>{crumb(selCampaign.name || selCampaign.id, () => setBmLevel('adset'), bmLevel === 'adset')}</>}
-                {selAdset && <><span>›</span>{crumb(selAdset.name || selAdset.id, () => setBmLevel('ad'), bmLevel === 'ad')}</>}
+                {viewCampaignIds.length > 0 && <><span>›</span>{crumb(selCampaign ? (selCampaign.name || selCampaign.id) : t('meta.bmNcampaigns', { n: viewCampaignIds.length }, `${viewCampaignIds.length} campagne`), () => setBmLevel('adset'), bmLevel === 'adset')}</>}
+                {viewAdsetIds.length > 0 && <><span>›</span>{crumb(selAdset ? (selAdset.name || selAdset.id) : t('meta.bmNadsets', { n: viewAdsetIds.length }, `${viewAdsetIds.length} gruppi`), () => setBmLevel('ad'), bmLevel === 'ad')}</>}
+              </div>
+            )}
+
+            {/* Barra azione multi-selezione */}
+            {((bmLevel === 'campaign' && checkCampaigns.size > 0) || (bmLevel === 'adset' && checkAdsets.size > 0)) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', background: 'rgba(123,91,255,0.08)', borderBottom: '1px solid rgba(123,91,255,0.2)' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: '#c4b5fd' }}>{t('meta.bmSelectedN', { n: bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size }, `${bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size} selezionate`)}</span>
+                <button onClick={() => bmLevel === 'campaign' ? setCheckCampaigns(new Set()) : setCheckAdsets(new Set())} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 11px', color: 'var(--text2)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{t('meta.bmClear', null, 'Deseleziona')}</button>
+                <div style={{ flex: 1 }} />
+                <button onClick={bmLevel === 'campaign' ? openMultiAdsets : openMultiAds} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 16px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
+                  {bmLevel === 'campaign' ? t('meta.bmViewAdsets', null, 'Vedi gruppi di inserzioni') : t('meta.bmViewAds', null, 'Vedi inserzioni')} →
+                </button>
               </div>
             )}
 
@@ -1135,14 +1180,21 @@ export default function MetaDetailTab() {
                 <tbody>
                   {bmRows.length > 0 ? (
                     bmRows.map(row => (
-                      <BMRow key={`${bmLevel}:${row.id}`} row={row} level={bmLevel} onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : setSelAd} />
+                      <BMRow
+                        key={`${bmLevel}:${row.id}`}
+                        row={row}
+                        level={bmLevel}
+                        onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : setSelAd}
+                        checked={bmLevel === 'campaign' ? checkCampaigns.has(row.id) : bmLevel === 'adset' ? checkAdsets.has(row.id) : false}
+                        onCheck={bmLevel === 'campaign' ? toggleCheckCampaign : bmLevel === 'adset' ? toggleCheckAdset : undefined}
+                      />
                     ))
                   ) : (
                     <tr>
                       <td colSpan="16" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
                         {bmLoading ? t('meta.loadingCampaigns', null, 'Sto caricando…')
-                          : bmLevel === 'adset' && !selCampaign ? t('meta.bmPickCampaign', null, 'Seleziona una campagna dalla tab "Campagne".')
-                          : bmLevel === 'ad' && !selAdset ? t('meta.bmPickAdset', null, 'Seleziona un gruppo di inserzioni.')
+                          : bmLevel === 'adset' && !viewCampaignIds.length ? t('meta.bmPickCampaign', null, 'Seleziona una o più campagne (checkbox) e premi “Vedi gruppi di inserzioni”.')
+                          : bmLevel === 'ad' && !viewAdsetIds.length ? t('meta.bmPickAdset', null, 'Seleziona uno o più gruppi di inserzioni.')
                           : t('meta.noActiveCampaigns', null, 'Nessun elemento nel periodo selezionato.')}
                       </td>
                     </tr>

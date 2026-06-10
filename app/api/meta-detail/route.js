@@ -647,19 +647,24 @@ async function fetchDailySeries(accounts, range) {
 // Estrae il testo dell'inserzione (copy, headline, descrizione, CTA, link) dal
 // creative Meta — gestisce object_story_spec (link/video) e asset_feed_spec (dinamici).
 function extractCreativeCopy(creative) {
-  if (!creative) return { body: '', headline: '', description: '', cta: '', link_url: '' }
+  if (!creative) return { body: '', headline: '', description: '', cta: '', link_url: '', image_url: null }
   const oss = creative.object_story_spec || {}
   const ld = oss.link_data || oss.video_data || oss.template_data || {}
   const afs = creative.asset_feed_spec || {}
   const first = (arr) => Array.isArray(arr) && arr.length ? (typeof arr[0] === 'object' ? (arr[0].text || arr[0].value || arr[0].url || '') : arr[0]) : ''
   const cta = (ld.call_to_action && ld.call_to_action.type) || first(afs.call_to_action_types) || ''
   const link = ld.link || (ld.call_to_action?.value?.link) || first(afs.link_urls) || ''
+  // Immagine ad ALTA risoluzione (non la mini-thumbnail): full image > picture del
+  // link/video data > immagine dell'asset feed.
+  const afsImg = (afs.images && afs.images[0]) || {}
+  const image = creative.image_url || ld.picture || ld.image_url || afsImg.url || null
   return {
     body: ld.message || first(afs.bodies) || '',
     headline: ld.name || ld.title || first(afs.titles) || '',
     description: ld.description || first(afs.descriptions) || '',
     cta: typeof cta === 'string' ? cta.replace(/_/g, ' ') : '',
     link_url: link || '',
+    image_url: image,
   }
 }
 
@@ -719,7 +724,6 @@ async function getAdRows(accounts, range, adsetId) {
         ad_name: ad.name,
         status: ad.effective_status || ad.status || null,
         thumbnail_url: thumbnail,
-        image_url: ad.creative?.image_url || null,
         product_set_id: productSetId,
         products,
         ...extractCreativeCopy(ad.creative),

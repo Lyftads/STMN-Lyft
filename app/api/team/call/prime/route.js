@@ -65,7 +65,8 @@ export async function POST(req) {
   // 6bis) KPI META per periodo TAB-ESATTI da /api/meta-detail (= tab Meta KPI/Detail,
   // affidabile, niente lag): spesa/ROAS/CTR/CPC/CPM/acquisti del periodo esatto.
   const metaPeriodsP = (async () => {
-    const map = { today: 'today', yesterday: 'yesterday', last_7d: 'last_7d', last_14d: 'last_14d', last_30d: 'last_30d', this_month: 'current_month', last_month: 'last_month' }
+    // NB current_month/last_30d da meta-detail tornano parziali → li ricavo da metaAds.monthly/weekly nel brief.
+    const map = { today: 'today', yesterday: 'yesterday', last_7d: 'last_7d', last_14d: 'last_14d', last_month: 'last_month' }
     const out = {}
     await Promise.all(Object.entries(map).map(async ([period, preset]) => {
       try {

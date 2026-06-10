@@ -1,26 +1,24 @@
 import { fileURLToPath } from 'node:url'
 import 'dotenv/config'
-import { cli, defineAgent, llm, pipeline, WorkerOptions } from '@livekit/agents'
+import { cli, defineAgent, voice, WorkerOptions } from '@livekit/agents'
 import * as openai from '@livekit/agents-plugin-openai'
 import * as elevenlabs from '@livekit/agents-plugin-elevenlabs'
 import * as silero from '@livekit/agents-plugin-silero'
 
 // ============================================================================
-//  WORKER BRIDGE — porta un agente della Squadra AI dentro una stanza LiveKit.
-//  Pipeline: STT (OpenAI) → LLM (il NOSTRO cervello via /api/team/call/llm,
-//  con persona+dati+voce dell'agente) → TTS (ElevenLabs, voce per agente).
+//  WORKER BRIDGE (@livekit/agents v1.x) — porta un agente della Squadra AI in
+//  una stanza LiveKit. STT (OpenAI) → LLM (il NOSTRO cervello via
+//  /api/team/call/llm, persona+dati+voce dell'agente) → TTS (ElevenLabs).
 //  Dispatchato da /api/team/call/agent-dispatch con metadata {agentId}.
-//
-//  Deploy: servizio always-on (Railway/Render/Fly). Env richieste sotto.
 // ============================================================================
 
-// Voci ElevenLabs per agente (uguali a lib/agent/team.js).
 const VOICES = {
   ceo: 'XB0fDUnXU5powFXDhCwa', ads: '21m00Tcm4TlvDq8ikWAM', cro: 'EXAVITQu4vr4xnSDxMaL',
   creative: 'Xb7hH8MSUJpSbSDYk0k2', cfo: 'onwK4e9ZLuTAKqWW03F9', cmo: 'ErXwobaYiN019PkySvjV',
   seo: 'JBFqnCBsd6RMkjVDRZzb', data: 'TX3LPaxmHKxFdv7VOQHJ',
 }
 const NAMES = { ceo: 'Chiara', cfo: 'Marco', cmo: 'Luigi', ads: 'Sofia', seo: 'Davide', cro: 'Giulia', data: 'Alessandro', creative: 'Valentina' }
+const ROLES = { ceo: 'CEO', cfo: 'CFO', cmo: 'CMO', ads: 'Advertising', seo: 'SEO', cro: 'CRO', data: 'Data Analyst', creative: 'Creative' }
 
 const BRAIN_URL = (process.env.BRAIN_URL || 'https://lyftai.io/api/team/call/llm').replace(/\/$/, '')
 
@@ -30,24 +28,24 @@ export default defineAgent({
     let agentId = 'ceo'
     try { agentId = JSON.parse(ctx.job?.metadata || '{}').agentId || 'ceo' } catch {}
     const voiceId = VOICES[agentId] || VOICES.ceo
+    const name = NAMES[agentId] || 'Assistente'
 
     const vad = await silero.VAD.load()
 
-    const agent = new pipeline.VoicePipelineAgent(
+    const session = new voice.AgentSession({
       vad,
-      // STT realtime (OpenAI). In alternativa: @livekit/agents-plugin-deepgram.
-      new openai.STT({ model: 'gpt-4o-transcribe', language: 'it' }),
-      // LLM = il nostro cervello: endpoint OpenAI-compatible, model team-<id>,
-      // auth col CALL_SECRET → risponde con persona + dati reali dell'agente.
-      new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
-      // TTS ElevenLabs con la voce dell'agente.
-      new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5' }),
-      { chatCtx: new llm.ChatContext(), allowInterruptions: true },
-    )
+      stt: new openai.STT({ model: 'gpt-4o-transcribe', language: 'it' }),
+      // LLM = nostro cervello (endpoint OpenAI-compatible, model team-<id>).
+      llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
+      tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5' }),
+    })
 
-    agent.start(ctx.room)
-    // Saluto d'ingresso.
-    await agent.say(`Ciao a tutti, sono ${NAMES[agentId] || 'un membro della squadra'}. Sono in ascolto.`, true)
+    const agent = new voice.Agent({
+      instructions: `Sei ${name}, ${ROLES[agentId] || ''} del brand. Sei in una call di gruppo con il team. Parla in italiano, breve e naturale.`,
+    })
+
+    await session.start({ agent, room: ctx.room })
+    session.say(`Ciao a tutti, sono ${name}. Sono in ascolto, ditemi pure.`)
   },
 })
 

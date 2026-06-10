@@ -713,20 +713,33 @@ export default function MetaDetailTab() {
   const [viewAdsetIds, setViewAdsetIds] = useState([])       // adset le cui inserzioni sono mostrate
   const [checkCampaigns, setCheckCampaigns] = useState(() => new Set()) // checkbox multi-selezione
   const [checkAdsets, setCheckAdsets] = useState(() => new Set())
+  const [nodeError, setNodeError] = useState({}) // errore per nodo (es. rate limit Meta)
 
-  const loadChildren = useCallback(async (level, parentKey, paramKey, parentId) => {
-    if (children[parentKey]) return
+  const loadChildren = useCallback(async (level, parentKey, paramKey, parentId, force = false) => {
+    // Salta solo se abbiamo già righe valide in cache; un risultato vuoto o fallito
+    // (es. rate limit Meta) NON viene messo in cache, così un nuovo click riprova.
+    if (!force && children[parentKey] && children[parentKey].length) return
     setLoadingNode(prev => ({ ...prev, [parentKey]: true }))
+    setNodeError(prev => { const n = { ...prev }; delete n[parentKey]; return n })
     setError('')
     try {
       const res = await fetch(`/api/meta-detail?${qs({ level, [paramKey]: parentId })}`, { cache: 'no-store' })
       const json = await res.json()
       if (!json.ok) throw new Error(json.error || t('meta.errAdset', null, 'Errore caricamento'))
       setChildren(prev => ({ ...prev, [parentKey]: json.rows || [] }))
-    } catch (e) { setError(e.message) } finally {
+    } catch (e) {
+      setError(e.message)
+      setNodeError(prev => ({ ...prev, [parentKey]: e.message }))
+    } finally {
       setLoadingNode(prev => ({ ...prev, [parentKey]: false }))
     }
   }, [children, qs, t])
+
+  // Ricarica i figli dei nodi attualmente visualizzati (pulsante "Riprova")
+  const retryBm = useCallback(async () => {
+    if (bmLevel === 'adset') for (const id of viewCampaignIds) await loadChildren('adsets', `campaign:${id}`, 'campaign_id', id, true)
+    else if (bmLevel === 'ad') for (const id of viewAdsetIds) await loadChildren('ads', `adset:${id}`, 'adset_id', id, true)
+  }, [bmLevel, viewCampaignIds, viewAdsetIds, loadChildren])
 
   // Drill singolo (click su riga/chevron)
   const openCampaign = useCallback((c) => {
@@ -739,17 +752,18 @@ export default function MetaDetailTab() {
   }, [loadChildren])
 
   // Drill multiplo (checkbox + "Vedi …")
-  const openMultiAdsets = useCallback(() => {
+  const openMultiAdsets = useCallback(async () => {
     const ids = [...checkCampaigns]
     if (!ids.length) return
     setSelCampaign(null); setSelAdset(null); setViewCampaignIds(ids); setViewAdsetIds([]); setBmLevel('adset')
-    ids.forEach(id => loadChildren('adsets', `campaign:${id}`, 'campaign_id', id))
+    // sequenziale: evita di saturare il rate limit Meta con N richieste in parallelo
+    for (const id of ids) await loadChildren('adsets', `campaign:${id}`, 'campaign_id', id)
   }, [checkCampaigns, loadChildren])
-  const openMultiAds = useCallback(() => {
+  const openMultiAds = useCallback(async () => {
     const ids = [...checkAdsets]
     if (!ids.length) return
     setSelAdset(null); setViewAdsetIds(ids); setBmLevel('ad')
-    ids.forEach(id => loadChildren('ads', `adset:${id}`, 'adset_id', id))
+    for (const id of ids) await loadChildren('ads', `adset:${id}`, 'adset_id', id)
   }, [checkAdsets, loadChildren])
 
   const toggleCheck = (setFn) => (id) => setFn(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -769,6 +783,9 @@ export default function MetaDetailTab() {
   const bmLoading = bmLevel === 'adset' ? viewCampaignIds.some(id => loadingNode[`campaign:${id}`])
     : bmLevel === 'ad' ? viewAdsetIds.some(id => loadingNode[`adset:${id}`])
     : loading
+  const bmError = bmLevel === 'adset' ? viewCampaignIds.map(id => nodeError[`campaign:${id}`]).find(Boolean)
+    : bmLevel === 'ad' ? viewAdsetIds.map(id => nodeError[`adset:${id}`]).find(Boolean)
+    : null
 
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -1193,6 +1210,13 @@ export default function MetaDetailTab() {
                     <tr>
                       <td colSpan="16" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
                         {bmLoading ? t('meta.loadingCampaigns', null, 'Sto caricando…')
+                          : bmError ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                              <div style={{ color: '#fca5a5', fontWeight: 700, maxWidth: 560 }}>{t('meta.bmLoadError', null, 'Meta non ha risposto (probabile limite di richieste). Riprova tra qualche secondo.')}</div>
+                              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{bmError}</div>
+                              <button onClick={retryBm} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 18px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{t('meta.bmRetry', null, 'Riprova')}</button>
+                            </div>
+                          )
                           : bmLevel === 'adset' && !viewCampaignIds.length ? t('meta.bmPickCampaign', null, 'Seleziona una o più campagne (checkbox) e premi “Vedi gruppi di inserzioni”.')
                           : bmLevel === 'ad' && !viewAdsetIds.length ? t('meta.bmPickAdset', null, 'Seleziona uno o più gruppi di inserzioni.')
                           : t('meta.noActiveCampaigns', null, 'Nessun elemento nel periodo selezionato.')}

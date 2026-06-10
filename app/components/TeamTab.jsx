@@ -160,7 +160,12 @@ export default function TeamTab() {
   if (!agent) {
     return (
       <div style={{ padding: '8px 0 40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 12 }}>
+          <AgentCall
+            agent={roster.find(a => a.id === 'ceo') || { id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
+            label="📞 Chiama la squadra"
+            buttonStyle={{ cursor: 'pointer', background: '#30d158', border: 'none', color: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700 }}
+          />
           <button type="button" onClick={scheduleCall} disabled={scheduling}
             style={{ cursor: scheduling ? 'default' : 'pointer', border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 600 }}>
             {scheduling ? '…' : '📅 Programma call settimanale'}</button>

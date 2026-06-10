@@ -735,34 +735,39 @@ export default function MetaDetailTab() {
     }
   }, [children, qs, t])
 
-  // Ricarica i figli dei nodi attualmente visualizzati (pulsante "Riprova")
+  // Gli adset si caricano UNA volta sola per tutto l'account (chiave 'adsets:all')
+  // e si filtrano per campagna lato client → niente chiamate per-campagna che
+  // saturano il rate limit Meta. Le inserzioni restano per-adset (chiamata leggera).
+  const loadAllAdsets = useCallback((force = false) => loadChildren('adsets', 'adsets:all', 'campaign_id', null, force), [loadChildren])
+
+  // Ricarica i nodi attualmente visualizzati (pulsante "Riprova")
   const retryBm = useCallback(async () => {
-    if (bmLevel === 'adset') for (const id of viewCampaignIds) await loadChildren('adsets', `campaign:${id}`, 'campaign_id', id, true)
+    if (bmLevel === 'adset') await loadAllAdsets(true)
     else if (bmLevel === 'ad') for (const id of viewAdsetIds) await loadChildren('ads', `adset:${id}`, 'adset_id', id, true)
-  }, [bmLevel, viewCampaignIds, viewAdsetIds, loadChildren])
+  }, [bmLevel, viewAdsetIds, loadAllAdsets, loadChildren])
 
   // Drill singolo (click su riga/chevron)
   const openCampaign = useCallback((c) => {
     setSelCampaign(c); setSelAdset(null); setViewCampaignIds([c.id]); setViewAdsetIds([]); setBmLevel('adset')
-    loadChildren('adsets', `campaign:${c.id}`, 'campaign_id', c.id)
-  }, [loadChildren])
+    loadAllAdsets()
+  }, [loadAllAdsets])
   const openAdset = useCallback((a) => {
     setSelAdset(a); setViewAdsetIds([a.id]); setBmLevel('ad')
     loadChildren('ads', `adset:${a.id}`, 'adset_id', a.id)
   }, [loadChildren])
 
   // Drill multiplo (checkbox + "Vedi …")
-  const openMultiAdsets = useCallback(async () => {
+  const openMultiAdsets = useCallback(() => {
     const ids = [...checkCampaigns]
     if (!ids.length) return
     setSelCampaign(null); setSelAdset(null); setViewCampaignIds(ids); setViewAdsetIds([]); setBmLevel('adset')
-    // sequenziale: evita di saturare il rate limit Meta con N richieste in parallelo
-    for (const id of ids) await loadChildren('adsets', `campaign:${id}`, 'campaign_id', id)
-  }, [checkCampaigns, loadChildren])
+    loadAllAdsets()
+  }, [checkCampaigns, loadAllAdsets])
   const openMultiAds = useCallback(async () => {
     const ids = [...checkAdsets]
     if (!ids.length) return
     setSelAdset(null); setViewAdsetIds(ids); setBmLevel('ad')
+    // sequenziale: evita di saturare il rate limit Meta con N richieste in parallelo
     for (const id of ids) await loadChildren('ads', `adset:${id}`, 'adset_id', id)
   }, [checkAdsets, loadChildren])
 
@@ -774,7 +779,11 @@ export default function MetaDetailTab() {
     const q = search.trim().toLowerCase()
     let list = []
     if (bmLevel === 'campaign') list = data?.rows || []
-    else if (bmLevel === 'adset') list = viewCampaignIds.flatMap(id => children[`campaign:${id}`] || [])
+    else if (bmLevel === 'adset') {
+      const all = children['adsets:all'] || []
+      const set = new Set(viewCampaignIds.map(String))
+      list = all.filter(r => set.has(String(r.campaign_id)))
+    }
     else list = viewAdsetIds.flatMap(id => children[`adset:${id}`] || [])
     if (q) list = list.filter(r => (r.name || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q))
     return list
@@ -803,10 +812,10 @@ export default function MetaDetailTab() {
     }
   }, [bmRows])
 
-  const bmLoading = bmLevel === 'adset' ? viewCampaignIds.some(id => loadingNode[`campaign:${id}`])
+  const bmLoading = bmLevel === 'adset' ? !!loadingNode['adsets:all']
     : bmLevel === 'ad' ? viewAdsetIds.some(id => loadingNode[`adset:${id}`])
     : loading
-  const bmError = bmLevel === 'adset' ? viewCampaignIds.map(id => nodeError[`campaign:${id}`]).find(Boolean)
+  const bmError = bmLevel === 'adset' ? nodeError['adsets:all']
     : bmLevel === 'ad' ? viewAdsetIds.map(id => nodeError[`adset:${id}`]).find(Boolean)
     : null
 
@@ -1148,7 +1157,7 @@ export default function MetaDetailTab() {
       {(() => {
         const TABS = [
           { id: 'campaign', label: t('meta.tabCampaigns', null, 'Campagne'), enabled: true, count: (data?.rows || []).length },
-          { id: 'adset', label: t('meta.tabAdsets', null, 'Gruppi di inserzioni'), enabled: viewCampaignIds.length > 0, count: viewCampaignIds.length ? viewCampaignIds.reduce((s, id) => s + (children[`campaign:${id}`] || []).length, 0) : null },
+          { id: 'adset', label: t('meta.tabAdsets', null, 'Gruppi di inserzioni'), enabled: viewCampaignIds.length > 0, count: viewCampaignIds.length ? (children['adsets:all'] || []).filter(r => viewCampaignIds.map(String).includes(String(r.campaign_id))).length : null },
           { id: 'ad', label: t('meta.tabAds', null, 'Inserzioni'), enabled: viewAdsetIds.length > 0, count: viewAdsetIds.length ? viewAdsetIds.reduce((s, id) => s + (children[`adset:${id}`] || []).length, 0) : null },
         ]
         const tabBtn = (tab) => ({

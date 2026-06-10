@@ -459,6 +459,16 @@ async function fetchActiveAdsets(campaignId) {
   })
 }
 
+// Tutti gli adset ATTIVI dell'account in una sola chiamata paginata (per il drill
+// "account-wide": evita N chiamate per-campagna che saturano il rate limit Meta).
+async function fetchAllActiveAdsets(accountId) {
+  return graphAll(`${accountId}/adsets`, {
+    fields: 'id,name,status,effective_status,campaign_id,campaign{name}',
+    effective_status: JSON.stringify(['ACTIVE']),
+    limit: '200',
+  })
+}
+
 async function fetchActiveAds(adsetId) {
   return graphAll(`${adsetId}/ads`, {
     fields:
@@ -636,6 +646,58 @@ async function getAdsetRows(accounts, range, campaignId) {
       insight
     )
   })
+}
+
+// Tutti gli adset dell'account con le loro metriche, in 2 sole chiamate Meta
+// (entità + insights account-wide level=adset). Il client filtra poi per campagna.
+// Drasticamente meno chiamate del drill per-campagna → niente rate limit a catena.
+async function getAllAdsetRows(accounts, range) {
+  const allRows = []
+
+  for (const accountId of accounts) {
+    const adsets = await fetchAllActiveAdsets(accountId)
+    if (!adsets.length) continue
+
+    const insights = await graphAll(`${accountId}/insights`, {
+      level: 'adset',
+      fields: [
+        'campaign_id', 'campaign_name', 'adset_id', 'adset_name',
+        'spend', 'impressions', 'reach', 'frequency', 'cpm',
+        'inline_link_clicks', 'inline_link_click_ctr', 'cost_per_inline_link_click',
+        'actions', 'action_values',
+      ].join(','),
+      time_range: JSON.stringify(range),
+      limit: '500',
+    })
+    const insightMap = new Map(insights.map(x => [x.adset_id, x]))
+
+    for (const adset of adsets) {
+      const insight = insightMap.get(adset.id) || {}
+      allRows.push(
+        calcRow(
+          {
+            id: adset.id,
+            level: 'adset',
+            name: adset.name,
+            account_id: accountId,
+            account_name: accountId,
+            campaign_id: adset.campaign_id || insight.campaign_id || null,
+            campaign_name: adset.campaign?.name || insight.campaign_name || '',
+            adset_id: adset.id,
+            adset_name: adset.name,
+            ad_id: null,
+            ad_name: null,
+            status: adset.effective_status || adset.status || null,
+            thumbnail_url: null,
+            has_children: true,
+          },
+          insight
+        )
+      )
+    }
+  }
+
+  return allRows
 }
 
 async function fetchDailySeries(accounts, range) {
@@ -816,8 +878,10 @@ export async function GET(req) {
     if (level === 'campaigns') {
       rows = await getCampaignRows(accounts, range)
     } else if (level === 'adsets') {
-      if (!campaignId) return jsonError('campaign_id mancante', 400)
-      rows = await getAdsetRows(accounts, range, campaignId)
+      // Senza campaign_id → tutti gli adset dell'account in 2 chiamate (il client filtra).
+      rows = campaignId
+        ? await getAdsetRows(accounts, range, campaignId)
+        : await getAllAdsetRows(accounts, range)
     } else if (level === 'ads') {
       if (!adsetId) return jsonError('adset_id mancante', 400)
       rows = await getAdRows(accounts, range, adsetId)

@@ -1044,70 +1044,83 @@ export default function MetaDetailTab() {
         )}
       </div>
 
-      {/* Tabella gerarchica */}
-      <FxCard
-        title={t('meta.hierarchyTitle', null, 'Gerarchia Meta')}
-        subtitle={t('meta.hierarchySub', { n: visibleRows.filter(r => r.level === 'campaign').length }, `${visibleRows.filter(r => r.level === 'campaign').length} campagne · Click campagna → ad set · Click ad set → ads`)}
-        glow={ACCENT_GLOW}
-        padding={0}
-        delay={1.6}
-      >
-        <div style={{ overflowX: 'auto', maxHeight: '72vh', padding: '0 24px 24px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
-            <thead>
-              <tr>
-                {[t('meta.level', null, 'Livello'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
-                  <th key={h} style={{
-                    position: 'sticky', top: 0, zIndex: 20,
-                    padding: '14px 16px',
-                    fontSize: 10.5, fontWeight: 800,
-                    textTransform: 'uppercase', letterSpacing: '0.12em',
-                    textAlign: 'left', whiteSpace: 'nowrap',
-                    color: 'var(--text2)',
-                    background: 'rgba(8,8,18,0.92)',
-                    backdropFilter: 'blur(20px)',
-                    borderBottom: '1.5px solid rgba(255,255,255,0.08)',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.length > 0 ? (
-                visibleRows.map(row => {
-                  const key = row.level === 'campaign' ? `campaign:${row.id}`
-                    : row.level === 'adset' ? `adset:${row.id}`
-                    : `ad:${row.id}`
-                  return (
-                    <HierarchyRow
-                      key={key}
-                      row={row}
-                      isOpen={row.level === 'campaign' ? !!openCampaigns[row.id]
-                        : row.level === 'adset' ? !!openAdsets[row.id]
-                        : false}
-                      isLoading={!!loadingNode[key]}
-                      onToggle={() => {
-                        if (row.level === 'campaign') toggleCampaign(row)
-                        if (row.level === 'adset') toggleAdset(row)
-                      }}
-                    />
-                  )
-                })
-              ) : (
-                <tr>
-                  <td colSpan="16" style={{
-                    padding: 40,
-                    color: 'var(--text3)',
-                    fontSize: 14,
-                    textAlign: 'center',
-                  }}>
-                    {loading ? t('meta.loadingCampaigns', null, 'Sto caricando le campagne…') : t('meta.noActiveCampaigns', null, 'Nessuna campagna attiva nel periodo selezionato.')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </FxCard>
+      {/* Gerarchia Meta — vista stile Business Manager (tab Campagne/Gruppi/Inserzioni) */}
+      {(() => {
+        const TABS = [
+          { id: 'campaign', label: t('meta.tabCampaigns', null, 'Campagne'), enabled: true, count: (data?.rows || []).length },
+          { id: 'adset', label: t('meta.tabAdsets', null, 'Gruppi di inserzioni'), enabled: !!selCampaign, count: selCampaign ? (children[`campaign:${selCampaign.id}`] || []).length : null },
+          { id: 'ad', label: t('meta.tabAds', null, 'Inserzioni'), enabled: !!selAdset, count: selAdset ? (children[`adset:${selAdset.id}`] || []).length : null },
+        ]
+        const tabBtn = (tab) => ({
+          padding: '12px 18px', border: 'none', background: 'transparent', cursor: tab.enabled ? 'pointer' : 'not-allowed',
+          color: bmLevel === tab.id ? '#fff' : tab.enabled ? 'var(--text2)' : 'var(--text3)',
+          fontSize: 13.5, fontWeight: bmLevel === tab.id ? 900 : 700, position: 'relative',
+          borderBottom: bmLevel === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+          opacity: tab.enabled ? 1 : 0.5,
+        })
+        const crumb = (label, onClick, active) => (
+          <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#fff' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 12.5, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
+        )
+        return (
+          <FxCard title={t('meta.hierarchyTitle', null, 'Gerarchia Meta')} subtitle={t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')} glow={ACCENT_GLOW} padding={0} delay={1.6}>
+            {/* Tab bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {TABS.map(tab => (
+                <button key={tab.id} onClick={() => tab.enabled && setBmLevel(tab.id)} disabled={!tab.enabled} style={tabBtn(tab)}>
+                  {tab.label}{tab.count != null && <span style={{ marginLeft: 7, fontSize: 11, color: 'var(--text3)', fontWeight: 700, fontFamily: 'Barlow' }}>{tab.count}</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* Breadcrumb drill-down */}
+            {(selCampaign || selAdset) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontSize: 12.5, color: 'var(--text3)', flexWrap: 'wrap' }}>
+                {crumb(t('meta.tabCampaigns', null, 'Campagne'), () => setBmLevel('campaign'), bmLevel === 'campaign')}
+                {selCampaign && <><span>›</span>{crumb(selCampaign.name || selCampaign.id, () => setBmLevel('adset'), bmLevel === 'adset')}</>}
+                {selAdset && <><span>›</span>{crumb(selAdset.name || selAdset.id, () => setBmLevel('ad'), bmLevel === 'ad')}</>}
+              </div>
+            )}
+
+            <div style={{ overflowX: 'auto', maxHeight: '72vh', padding: '0 24px 24px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
+                <thead>
+                  <tr>
+                    {[bmLevel === 'campaign' ? t('meta.tabCampaigns', null, 'Campagna') : bmLevel === 'adset' ? t('meta.levelAdset', null, 'Ad set') : t('meta.levelAd', null, 'Inserzione'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
+                      <th key={h} style={{
+                        position: 'sticky', top: 0, zIndex: 20,
+                        padding: '14px 16px',
+                        fontSize: 10.5, fontWeight: 800,
+                        textTransform: 'uppercase', letterSpacing: '0.12em',
+                        textAlign: 'left', whiteSpace: 'nowrap',
+                        color: 'var(--text2)',
+                        background: 'rgba(8,8,18,0.92)',
+                        backdropFilter: 'blur(20px)',
+                        borderBottom: '1.5px solid rgba(255,255,255,0.08)',
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bmRows.length > 0 ? (
+                    bmRows.map(row => (
+                      <BMRow key={`${bmLevel}:${row.id}`} row={row} level={bmLevel} onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : undefined} />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="16" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
+                        {bmLoading ? t('meta.loadingCampaigns', null, 'Sto caricando…')
+                          : bmLevel === 'adset' && !selCampaign ? t('meta.bmPickCampaign', null, 'Seleziona una campagna dalla tab "Campagne".')
+                          : bmLevel === 'ad' && !selAdset ? t('meta.bmPickAdset', null, 'Seleziona un gruppo di inserzioni.')
+                          : t('meta.noActiveCampaigns', null, 'Nessun elemento nel periodo selezionato.')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </FxCard>
+        )
+      })()}
 
       <MetaAdsAgent data={data} preset={preset} />
     </div>

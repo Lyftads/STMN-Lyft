@@ -888,7 +888,7 @@ export default function ChatTab({ standalone = false }) {
 
       <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
       {groupCall && active && (
-        <GroupCall room={`channel-${active}`} title="Call di gruppo" agents={SQUAD_AGENTS} onClose={() => setGroupCall(false)} />
+        <GroupCall room={`channel-${active}`} channelId={active} title="Call di gruppo" agents={SQUAD_AGENTS} onClose={() => setGroupCall(false)} />
       )}
     </div>
   )

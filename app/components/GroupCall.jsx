@@ -21,16 +21,32 @@ function Avatar({ p, size = 64 }) {
   )
 }
 
-export default function GroupCall({ room, title = 'Call di gruppo', agents = [], onClose }) {
+export default function GroupCall({ room, channelId, title = 'Call di gruppo', agents = [], onClose }) {
   const [status, setStatus] = useState('connecting') // connecting|connected|ended|error
   const [error, setError] = useState('')
   const [participants, setParticipants] = useState([])
   const [muted, setMuted] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [members, setMembers] = useState([])
+  const [invited, setInvited] = useState({})
   const roomRef = useRef(null)
   const audioEls = useRef([])
 
   useEffect(() => { connect(); return () => cleanup() }, []) // eslint-disable-line
+  useEffect(() => {
+    fetch('/api/team-members').then(r => r.ok ? r.json() : null).then(d => {
+      const list = (d?.members || d?.team || []).filter(m => (m.status === 'active' || m.status === 'invited') && !(m.roles || []).includes('guest'))
+      setMembers(list)
+    }).catch(() => {})
+  }, [])
+
+  async function invitePerson(m) {
+    setInvited(p => ({ ...p, [m.id]: 'sending' }))
+    try {
+      const d = await fetch('/api/team/call/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ memberId: m.id, channelId, room }) }).then(r => r.json()).catch(() => ({}))
+      setInvited(p => ({ ...p, [m.id]: d.ok ? 'sent' : 'err' }))
+    } catch { setInvited(p => ({ ...p, [m.id]: 'err' })) }
+  }
 
   function cleanup() {
     try { roomRef.current?.disconnect() } catch {}
@@ -98,13 +114,34 @@ export default function GroupCall({ room, title = 'Call di gruppo', agents = [],
 
       {/* Invita agent */}
       {status === 'connected' && agents.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 640 }}>
-          {agents.map(a => (
-            <button key={a.id} type="button" disabled={inviting} onClick={() => inviteAgent(a.id)}
-              style={{ cursor: inviting ? 'default' : 'pointer', background: 'rgba(124,92,255,0.18)', border: '1px solid rgba(124,92,255,0.45)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5 }}>
-              + {a.name}
-            </button>
-          ))}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: '#9a9aa8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Invita un agente</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 640 }}>
+            {agents.map(a => (
+              <button key={a.id} type="button" disabled={inviting} onClick={() => inviteAgent(a.id)}
+                style={{ cursor: inviting ? 'default' : 'pointer', background: 'rgba(124,92,255,0.18)', border: '1px solid rgba(124,92,255,0.45)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5 }}>
+                🤖 {a.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invita persone del team */}
+      {status === 'connected' && members.length > 0 && (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: '#9a9aa8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Invita una persona</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 640 }}>
+            {members.map(m => {
+              const st = invited[m.id]
+              return (
+                <button key={m.id} type="button" disabled={st === 'sending' || st === 'sent'} onClick={() => invitePerson(m)}
+                  style={{ cursor: st ? 'default' : 'pointer', background: st === 'sent' ? 'rgba(48,209,88,0.18)' : 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5 }}>
+                  {st === 'sent' ? '✓ invitato' : st === 'sending' ? '…' : '+ ' + (m.full_name || m.email?.split('@')[0] || 'membro')}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 

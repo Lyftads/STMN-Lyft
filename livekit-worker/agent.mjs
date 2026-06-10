@@ -50,8 +50,10 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       vad,
-      // whisper-1: l'unico supportato in "transcription mode" dal plugin (gpt-4o-transcribe NO).
-      stt: new openai.STT({ model: 'whisper-1', language: 'it', apiKey: process.env.OPENAI_API_KEY }),
+      // STT batch (useRealtime:false): whisper-1 via /audio/transcriptions, la VAD silero
+      // fa l'endpointing. NB: di default useRealtime=true forza la "transcription mode"
+      // realtime che NON supporta whisper-1 né gpt-4o-transcribe → la sessione crashava.
+      stt: new openai.STT({ model: 'whisper-1', useRealtime: false, language: 'it', apiKey: process.env.OPENAI_API_KEY }),
       // LLM = nostro cervello (endpoint OpenAI-compatible, model team-<id>).
       llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
       // apiKey esplicito: il plugin di default cerca ELEVEN_API_KEY, noi usiamo ELEVENLABS_API_KEY.

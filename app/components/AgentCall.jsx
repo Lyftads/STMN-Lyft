@@ -40,9 +40,9 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
     setCall({ status: 'connecting', mode: 'listening' })
     convIdRef.current = null; finalizedRef.current = false
     try {
-      // Innesca i dati reali (autenticato come owner) prima della call: il
-      // cervello della call li leggerà dallo snapshot. Non bloccante sugli errori.
-      await fetch('/api/team/call/prime', { method: 'POST' }).catch(() => {})
+      // Innesca i dati in BACKGROUND (non bloccante): la call parte subito usando
+      // lo snapshot già pronto; il prime aggiorna i dati per i turni successivi.
+      fetch('/api/team/call/prime', { method: 'POST' }).catch(() => {})
       const cfg = await fetch(`/api/team/call/signed-url?agentId=${encodeURIComponent(agent.id)}`).then(r => r.json()).catch(() => ({}))
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata.' }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || 'Impossibile avviare la call.' }); return }

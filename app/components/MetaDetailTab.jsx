@@ -780,6 +780,29 @@ export default function MetaDetailTab() {
     return list
   }, [bmLevel, data, children, viewCampaignIds, viewAdsetIds, search])
 
+  // Riga riepilogo (stile BM Meta): aggrega tutte le righe visualizzate.
+  const bmTotals = useMemo(() => {
+    const a = bmRows.reduce((acc, r) => {
+      acc.impressions += n(r.impressions); acc.reach += n(r.reach)
+      acc.link_clicks += n(r.link_clicks); acc.spend += n(r.spend)
+      acc.purchases += n(r.purchases); acc.purchase_value += n(r.purchase_value)
+      acc.freqW += n(r.frequency) * n(r.reach); acc.reachW += n(r.reach)
+      return acc
+    }, { impressions: 0, reach: 0, link_clicks: 0, spend: 0, purchases: 0, purchase_value: 0, freqW: 0, reachW: 0 })
+    return {
+      count: bmRows.length,
+      impressions: a.impressions, reach: a.reach, link_clicks: a.link_clicks, spend: a.spend, purchases: a.purchases,
+      frequency: a.reachW > 0 ? a.freqW / a.reachW : 0,
+      cpm: a.impressions > 0 ? (a.spend / a.impressions) * 1000 : 0,
+      ctr_link: a.impressions > 0 ? (a.link_clicks / a.impressions) * 100 : 0,
+      cpc_link: a.link_clicks > 0 ? a.spend / a.link_clicks : 0,
+      cost_per_result: a.purchases > 0 ? a.spend / a.purchases : 0,
+      roas: a.spend > 0 ? a.purchase_value / a.spend : 0,
+      conversione_acquisti: a.link_clicks > 0 ? (a.purchases / a.link_clicks) * 100 : 0,
+      aov_campagna: a.purchases > 0 ? a.purchase_value / a.purchases : 0,
+    }
+  }, [bmRows])
+
   const bmLoading = bmLevel === 'adset' ? viewCampaignIds.some(id => loadingNode[`campaign:${id}`])
     : bmLevel === 'ad' ? viewAdsetIds.some(id => loadingNode[`adset:${id}`])
     : loading
@@ -1224,6 +1247,39 @@ export default function MetaDetailTab() {
                     </tr>
                   )}
                 </tbody>
+                {bmRows.length > 0 && (() => {
+                  const lvl = bmLevel === 'campaign' ? t('meta.bmResultsCampaigns', { n: bmTotals.count }, `${bmTotals.count} campagne`)
+                    : bmLevel === 'adset' ? t('meta.bmResultsAdsets', { n: bmTotals.count }, `${bmTotals.count} gruppi di inserzioni`)
+                    : t('meta.bmResultsAds', { n: bmTotals.count }, `${bmTotals.count} inserzioni`)
+                  const footCell = { padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap', color: '#fff', fontWeight: 800, fontSize: 13 }
+                  return (
+                    <tfoot>
+                      <tr style={{ position: 'sticky', bottom: 0, zIndex: 15, background: 'rgba(8,8,18,0.96)', backdropFilter: 'blur(20px)', borderTop: '1.5px solid rgba(123,91,255,0.35)' }}>
+                        <td style={{ ...footCell, minWidth: 340 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{t('meta.bmResultsLabel', null, 'Risultati di')}</span>
+                            <span style={{ color: '#fff', fontWeight: 900 }}>{lvl}</span>
+                          </div>
+                        </td>
+                        <td style={footCell}><span style={cellMuted}>—</span></td>
+                        <td style={footCell}>{fmtInt(bmTotals.impressions)}</td>
+                        <td style={footCell}>{fmtInt(bmTotals.reach)}</td>
+                        <td style={footCell}>{n(bmTotals.frequency).toFixed(2)}</td>
+                        <td style={footCell}>{fmtMoney(bmTotals.cpm, 2)}</td>
+                        <td style={footCell}>{fmtPct(bmTotals.ctr_link, 2)}</td>
+                        <td style={footCell}>{fmtMoney(bmTotals.cpc_link, 2)}</td>
+                        <td style={footCell}>{fmtInt(bmTotals.link_clicks)}</td>
+                        <td style={{ ...footCell, fontWeight: 900 }}>{fmtMoney(bmTotals.spend, 0)}</td>
+                        <td style={footCell}>{fmtMoney(bmTotals.cost_per_result, 2)}</td>
+                        <td style={{ ...footCell, color: bmTotals.roas >= 2.5 ? '#22c55e' : bmTotals.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(bmTotals.roas)}</td>
+                        <td style={footCell}>{bmTotals.purchases ? fmtInt(bmTotals.purchases) : '—'}</td>
+                        <td style={footCell}>{fmtPct(bmTotals.conversione_acquisti, 2)}</td>
+                        <td style={footCell}>{fmtPct(bmTotals.conversione_acquisti, 2)}</td>
+                        <td style={footCell}>{fmtMoney(bmTotals.aov_campagna, 2)}</td>
+                      </tr>
+                    </tfoot>
+                  )
+                })()}
               </table>
             </div>
           </FxCard>

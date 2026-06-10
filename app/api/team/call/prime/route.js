@@ -62,6 +62,27 @@ export async function POST(req) {
   })().catch(() => null)
   // 5) P&L mensile (marginalità: ricavi netti, COGS, utile lordo, margine).
   const pnlP = fetch(`${origin}/api/pnl?months=3`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
+  // 6bis) Totali di periodo TAB-ESATTI da /api/metrics (stessa fonte delle tab):
+  // somma shopifyDayBreakdown del preset. Fonte PRIMARIA; Admin GraphQL = riserva.
+  const metricsPeriodsP = (async () => {
+    const map = { today: 'today', yesterday: 'yesterday', this_month: 'current_month', last_month: 'last_month', last_30d: 'last_30d' }
+    const out = {}
+    await Promise.all(Object.entries(map).map(async ([period, preset]) => {
+      try {
+        const r = await fetch(`${origin}/api/metrics?preset=${preset}`, { cache: 'no-store', headers: H })
+        if (!r.ok) return
+        const m = await r.json()
+        const db = m.shopifyDayBreakdown || m.shopify?.dayBreakdown || []
+        if (Array.isArray(db) && db.length) {
+          const rev = db.reduce((s, x) => s + (Number(x.revenue ?? x.value) || 0), 0)
+          const ord = db.reduce((s, x) => s + (Number(x.orders ?? x.ordini) || 0), 0)
+          if (rev || ord) out[period] = { fatturato: Math.round(rev), orders: ord }
+        }
+      } catch {}
+    }))
+    return out
+  })().catch(() => null)
+
   // 6) Task, Lyftimer, Competitor (per gli strumenti live degli agent).
   const tasksP = fetch(`${origin}/api/tasks`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
   const lyftimerP = fetch(`${origin}/api/time-entries`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
@@ -78,8 +99,9 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP])
+  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp, metricsPeriods] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP, metricsPeriodsP])
   if (periods) data._periods = periods
+  if (metricsPeriods && Object.keys(metricsPeriods).length) data._metricsPeriods = metricsPeriods
   if (klaviyo) data._klaviyo = klaviyo
   if (gsc) data._gsc = gsc
   if (ga4p) data._ga4 = ga4p

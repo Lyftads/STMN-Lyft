@@ -114,6 +114,44 @@ function getPreviousRange(range) {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
+// ── Cache TTL lato server per le risposte Graph ──
+// Meta limita le richieste a livello di ACCOUNT (error 17) su una finestra oraria:
+// i retry nella singola richiesta non possono battere un throttle di minuti.
+// L'unica leva reale è ridurre il volume di chiamate: una volta caricati con
+// successo adset/inserzioni di una campagna, ogni nuovo click / retry / dashboard
+// / PDF riusa la cache invece di ri-consumare budget Meta.
+const META_CACHE_TTL = 5 * 60 * 1000 // 5 minuti
+const __metaCache = new Map() // cacheKey -> { exp, data }
+
+function metaCacheKey(urlStr) {
+  try {
+    const u = new URL(urlStr)
+    u.searchParams.delete('access_token')
+    return u.toString()
+  } catch {
+    return urlStr
+  }
+}
+function metaCacheGet(urlStr) {
+  const hit = __metaCache.get(metaCacheKey(urlStr))
+  if (hit && hit.exp > Date.now()) return hit.data
+  return null
+}
+// Dato anche scaduto, usato come fallback quando Meta ci sta limitando:
+// meglio mostrare numeri leggermente vecchi che un errore.
+function metaCacheGetStale(urlStr) {
+  const hit = __metaCache.get(metaCacheKey(urlStr))
+  return hit ? hit.data : null
+}
+function metaCacheSet(urlStr, data) {
+  // Evita crescita illimitata della Map su lambda longeve
+  if (__metaCache.size > 300) {
+    const firstKey = __metaCache.keys().next().value
+    if (firstKey) __metaCache.delete(firstKey)
+  }
+  __metaCache.set(metaCacheKey(urlStr), { exp: Date.now() + META_CACHE_TTL, data })
+}
+
 // Rate limit Meta: code 17 (User request limit reached), 4 (App request limit),
 // 32 (Page-level), 613, 80000-80004 (Business Use Case), o HTTP 429.
 function isRateLimit(status, err) {
@@ -126,19 +164,28 @@ function isRateLimit(status, err) {
 // Fetch su Graph con retry+backoff sui limiti di rate (così un click su una
 // campagna non fallisce subito quando Meta limita temporaneamente l'utente).
 async function graphFetch(urlStr) {
+  const cached = metaCacheGet(urlStr)
+  if (cached) return cached
+
   const backoffs = [0, 2000, 6000]
   let lastErr = null
   for (let i = 0; i < backoffs.length; i++) {
     if (backoffs[i]) await sleep(backoffs[i])
     const res = await fetch(urlStr, { cache: 'no-store' })
     const data = await res.json().catch(() => ({}))
-    if (res.ok && !data.error) return data
+    if (res.ok && !data.error) { metaCacheSet(urlStr, data); return data }
     lastErr = data.error || { message: `Meta API error ${res.status}` }
-    if (!isRateLimit(res.status, data.error) || i === backoffs.length - 1) {
-      const e = new Error(isRateLimit(res.status, data.error)
+    const limited = isRateLimit(res.status, data.error)
+    if (!limited || i === backoffs.length - 1) {
+      // Throttle Meta: se abbiamo dati cache (anche scaduti) li serviamo invece di fallire
+      if (limited) {
+        const stale = metaCacheGetStale(urlStr)
+        if (stale) return stale
+      }
+      const e = new Error(limited
         ? 'Limite richieste Meta raggiunto, riprova tra qualche minuto.'
         : (lastErr.message || `Meta API error ${res.status}`))
-      e.rateLimited = isRateLimit(res.status, data.error)
+      e.rateLimited = limited
       throw e
     }
   }

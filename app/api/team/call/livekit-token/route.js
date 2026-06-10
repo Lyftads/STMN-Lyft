@@ -18,22 +18,23 @@ export async function POST(req) {
   try { b = await req.json() } catch {}
   const room = String(b.room || `team-${ws.workspaceId.slice(0, 8)}`).slice(0, 60)
 
-  // Nome/identità del partecipante (dal team_members se possibile).
+  // Nome/identità/foto del partecipante (dal team_members se possibile).
   let name = String(b.name || '').trim()
+  let avatar = ''
   const identity = `member-${ws.memberId || ws.userId || Math.random().toString(36).slice(2, 8)}`
-  if (!name) {
-    try {
-      const admin = getAdminSupabase()
-      if (admin && ws.memberId) {
-        const { data: m } = await admin.from('team_members').select('full_name, email').eq('id', ws.memberId).maybeSingle()
-        name = m?.full_name || (m?.email ? m.email.split('@')[0] : '') || 'Utente'
-      }
-    } catch {}
-  }
+  try {
+    const admin = getAdminSupabase()
+    if (admin && ws.memberId) {
+      const { data: m } = await admin.from('team_members').select('full_name, email, avatar_url').eq('id', ws.memberId).maybeSingle()
+      if (!name) name = m?.full_name || (m?.email ? m.email.split('@')[0] : '') || 'Utente'
+      avatar = m?.avatar_url || ''
+    }
+  } catch {}
   if (!name) name = 'Utente'
 
   try {
-    const at = new AccessToken(apiKey, apiSecret, { identity, name, ttl: '2h' })
+    const metadata = JSON.stringify({ name, avatar, isAgent: false })
+    const at = new AccessToken(apiKey, apiSecret, { identity, name, metadata, ttl: '2h' })
     at.addGrant({ roomJoin: true, room, canPublish: true, canSubscribe: true, canPublishData: true })
     const token = await at.toJwt()
     return NextResponse.json({ ok: true, token, url, room, identity, name })

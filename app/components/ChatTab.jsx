@@ -9,8 +9,14 @@ import AgentCall from './AgentCall'
 import GroupCall from './GroupCall'
 
 const SQUAD_AGENTS = [
-  { id: 'ceo', name: 'Chiara' }, { id: 'cfo', name: 'Marco' }, { id: 'cmo', name: 'Luigi' }, { id: 'ads', name: 'Sofia' },
-  { id: 'seo', name: 'Davide' }, { id: 'cro', name: 'Giulia' }, { id: 'data', name: 'Alessandro' }, { id: 'creative', name: 'Valentina' },
+  { id: 'ceo', name: 'Chiara', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 'cfo', name: 'Marco', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { id: 'cmo', name: 'Luigi', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
+  { id: 'ads', name: 'Sofia', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { id: 'seo', name: 'Davide', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
+  { id: 'cro', name: 'Giulia', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 'data', name: 'Alessandro', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
+  { id: 'creative', name: 'Valentina', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
 ]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
@@ -632,11 +638,11 @@ export default function ChatTab({ standalone = false }) {
                 {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri · aggiungi persone"><Icon name="users" size={16} /></HBtn>}
                 <AgentCall
                   agent={{ id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
-                  label="📞 Squadra AI"
+                  label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Squadra AI</span>}
                   buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
                 />
                 <button type="button" onClick={() => setGroupCall(true)} title="Call di gruppo: team + agent insieme"
-                  style={{ cursor: 'pointer', background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>👥 Call di gruppo</button>
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="users" size={14} />Call di gruppo</button>
               </div>
             )}
           </div>

@@ -19,6 +19,12 @@ const VOICES = {
 }
 const NAMES = { ceo: 'Chiara', cfo: 'Marco', cmo: 'Luigi', ads: 'Sofia', seo: 'Davide', cro: 'Giulia', data: 'Alessandro', creative: 'Valentina' }
 const ROLES = { ceo: 'CEO', cfo: 'CFO', cmo: 'CMO', ads: 'Advertising', seo: 'SEO', cro: 'CRO', data: 'Data Analyst', creative: 'Creative' }
+const AVATARS = {
+  ceo: 'https://randomuser.me/api/portraits/women/68.jpg', cfo: 'https://randomuser.me/api/portraits/men/32.jpg',
+  cmo: 'https://randomuser.me/api/portraits/men/45.jpg', ads: 'https://randomuser.me/api/portraits/women/44.jpg',
+  seo: 'https://randomuser.me/api/portraits/men/52.jpg', cro: 'https://randomuser.me/api/portraits/women/65.jpg',
+  data: 'https://randomuser.me/api/portraits/men/76.jpg', creative: 'https://randomuser.me/api/portraits/women/12.jpg',
+}
 
 const BRAIN_URL = (process.env.BRAIN_URL || 'https://lyftai.io/api/team/call/llm').replace(/\/$/, '')
 
@@ -29,6 +35,15 @@ export default defineAgent({
     try { agentId = JSON.parse(ctx.job?.metadata || '{}').agentId || 'ceo' } catch {}
     const voiceId = VOICES[agentId] || VOICES.ceo
     const name = NAMES[agentId] || 'Assistente'
+
+    // Nome + foto dell'agente, così nel tile della call (stile Meet) compaiono.
+    try {
+      const lp = ctx.room?.localParticipant
+      if (lp) {
+        await lp.setName?.(name)
+        await lp.setMetadata?.(JSON.stringify({ isAgent: true, name, avatar: AVATARS[agentId] || '' }))
+      }
+    } catch {}
 
     const vad = await silero.VAD.load()
 
@@ -48,6 +63,8 @@ export default defineAgent({
     session.say(`Ciao a tutti, sono ${name}. Sono in ascolto, ditemi pure.`)
   },
 })
+
+console.log(`[lyft-agent] boot · LIVEKIT_URL=${process.env.LIVEKIT_URL || '(MANCANTE!)'} · agentName=lyft-agent · brain=${BRAIN_URL} · openaiKey=${process.env.OPENAI_API_KEY ? 'ok' : 'MANCANTE'} · elevenKey=${process.env.ELEVENLABS_API_KEY ? 'ok' : 'MANCANTE'} · callSecret=${process.env.CALL_SECRET ? 'ok' : 'MANCANTE'}`)
 
 cli.runApp(new WorkerOptions({
   agent: fileURLToPath(import.meta.url),

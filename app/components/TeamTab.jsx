@@ -4,6 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import AgentCall from './AgentCall'
+import GroupCall from './GroupCall'
+import Icon from './ui/Icon'
+
+const SQUAD_AGENTS = [
+  { id: 'ceo', name: 'Chiara', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 'cfo', name: 'Marco', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { id: 'cmo', name: 'Luigi', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
+  { id: 'ads', name: 'Sofia', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { id: 'seo', name: 'Davide', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
+  { id: 'cro', name: 'Giulia', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 'data', name: 'Alessandro', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
+  { id: 'creative', name: 'Valentina', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+]
 
 // ============================================================================
 //  VISTA SQUADRA AI — griglia degli 8 agenti (C-suite + specialisti) con chat
@@ -35,6 +48,7 @@ function bubbleText(t) {
 export default function TeamTab() {
   const { t } = useI18n()
   const [roster, setRoster] = useState([])
+  const [groupCall, setGroupCall] = useState(false)
   const [sel, setSel] = useState(null)            // agentId selezionato
   const [byAgent, setByAgent] = useState({})       // { agentId: [{role,content}] }
   const [input, setInput] = useState('')
@@ -163,12 +177,15 @@ export default function TeamTab() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 12 }}>
           <AgentCall
             agent={roster.find(a => a.id === 'ceo') || { id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
-            label="📞 Chiama la squadra"
-            buttonStyle={{ cursor: 'pointer', background: '#30d158', border: 'none', color: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700 }}
+            label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Icon name="phone" size={15} />Chiama la squadra</span>}
+            buttonStyle={{ cursor: 'pointer', background: '#7c5cff', border: 'none', color: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700 }}
           />
+          <button type="button" onClick={() => setGroupCall(true)}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, background: '#30d158', border: 'none', color: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700 }}>
+            <Icon name="users" size={15} />Call di gruppo</button>
           <button type="button" onClick={scheduleCall} disabled={scheduling}
-            style={{ cursor: scheduling ? 'default' : 'pointer', border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 600 }}>
-            {scheduling ? '…' : '📅 Programma call settimanale'}</button>
+            style={{ cursor: scheduling ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 600 }}>
+            <Icon name="calendar" size={15} />{scheduling ? '…' : 'Programma call settimanale'}</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {roster.map(a => (
@@ -190,6 +207,9 @@ export default function TeamTab() {
             </button>
           ))}
         </div>
+        {groupCall && (
+          <GroupCall room="team-squad" channelId="team-squad" title="Call di gruppo" agents={SQUAD_AGENTS} onClose={() => setGroupCall(false)} />
+        )}
       </div>
     )
   }
@@ -217,7 +237,7 @@ export default function TeamTab() {
           : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
               style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? '#fff' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
               {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
-        <AgentCall agent={agent} label="📞 Chiama" />
+        <AgentCall agent={agent} label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Chiama</span>} />
       </div>
 
       {/* Messaggi */}

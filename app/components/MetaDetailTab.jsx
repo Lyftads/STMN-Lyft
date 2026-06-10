@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
@@ -464,25 +465,35 @@ const cell = {
 }
 const cellMuted = { color: 'var(--text3)' }
 
-// Riga "flat" in stile Business Manager: nessuna indentazione, click = drill-down.
+// Riga "flat" in stile Business Manager: toggle esplicito per il drill-down
+// (campagna → gruppi → inserzioni), click inserzione = anteprima creatività.
 function BMRow({ row, level, onOpen }) {
   const { t } = useI18n()
   const drillable = level !== 'ad'
+  const go = (e) => { e.stopPropagation(); onOpen(row) }
   return (
     <tr
-      onClick={drillable ? () => onOpen(row) : undefined}
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: drillable ? 'pointer' : 'default', transition: 'background 0.12s' }}
-      onMouseEnter={e => { if (drillable) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onClick={() => onOpen(row)}
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.12s' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
     >
       <td style={{ padding: '14px 16px', minWidth: 340 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Toggle: drill (›) per campagne/gruppi, anteprima (occhio) per inserzioni */}
+          <button
+            onClick={go}
+            title={drillable ? t('meta.bmDrill', null, 'Apri il livello sotto') : t('meta.bmPreview', null, 'Anteprima creatività')}
+            style={{
+              flexShrink: 0, width: 30, height: 30, borderRadius: 9,
+              border: '1px solid var(--accent)', background: 'rgba(123,91,255,0.12)',
+              color: 'var(--accent)', cursor: 'pointer', display: 'grid', placeItems: 'center',
+              fontSize: drillable ? 16 : 13, fontWeight: 900, lineHeight: 1,
+            }}
+          >{drillable ? '›' : <Icon name="eye" size={14} />}</button>
           <PerfDot roas={row.roas} />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3 }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</span>
-              {drillable && <span style={{ color: 'var(--accent)', fontWeight: 900, flexShrink: 0 }}>›</span>}
-            </div>
+            <div style={{ color: '#fff', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>{row.status ? `${row.status} · ` : ''}{row.id}</div>
           </div>
         </div>
@@ -507,6 +518,55 @@ function BMRow({ row, level, onOpen }) {
       <td style={cell}>{fmtPct(row.cro_campagna, 2)}</td>
       <td style={cell}>{fmtMoney(row.aov_campagna, 2)}</td>
     </tr>
+  )
+}
+
+const lab = { fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 5 }
+
+// Anteprima inserzione: creatività (immagine/prodotti) + copy, descrizione, CTA.
+function AdPreviewModal({ ad, onClose }) {
+  const { t } = useI18n()
+  if (typeof document === 'undefined') return null
+  const media = ad.thumbnail_url || ad.image_url || (ad.products && ad.products[0] && ad.products[0].image_url) || null
+  const stat = (label, value) => (
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
+      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{label}</div>
+      <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginTop: 2 }}>{value}</div>
+    </div>
+  )
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.74)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 820, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 0 }}>
+        <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 340, padding: 8 }}>
+          {media
+            ? <img src={media} alt="" style={{ width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10 }} />
+            : <div style={{ color: 'var(--text3)', fontSize: 13, padding: 24, textAlign: 'center' }}>{t('meta.noPreview', null, 'Anteprima non disponibile (catalogo/DPA)')}</div>}
+        </div>
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('meta.levelAd', null, 'Inserzione')}</span>
+            <div style={{ flex: 1 }} />
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }}>×</button>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 950, color: '#fff', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {stat(t('meta.spent', null, 'Speso'), fmtMoney(ad.spend, 0))}
+            {stat('ROAS', fmtRatio(ad.roas))}
+            {stat(t('meta.ctrLink', null, 'CTR link'), fmtPct(ad.ctr_link, 2))}
+            {stat(t('meta.purchases', null, 'Acquisti'), ad.purchases ? fmtInt(ad.purchases) : '—')}
+          </div>
+          {ad.headline && (<div><div style={lab}>{t('meta.adHeadline', null, 'Titolo')}</div><div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{ad.headline}</div></div>)}
+          {ad.body && (<div><div style={lab}>{t('meta.adCopy', null, 'Copy')}</div><div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' }}>{ad.body}</div></div>)}
+          {ad.description && (<div><div style={lab}>{t('meta.adDescription', null, 'Descrizione')}</div><div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{ad.description}</div></div>)}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {ad.cta && <span style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 8, background: '#0866FF', color: '#fff', fontSize: 12.5, fontWeight: 800, textTransform: 'capitalize' }}>{(ad.cta || '').toLowerCase()}</span>}
+            {ad.link_url && <a href={ad.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.link_url}</a>}
+          </div>
+          {(!ad.body && !ad.headline && !ad.description) && (<div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('meta.noCopy', null, 'Nessun testo disponibile (probabile catalogo dinamico).')}</div>)}
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -638,6 +698,7 @@ export default function MetaDetailTab() {
   const [bmLevel, setBmLevel] = useState('campaign')
   const [selCampaign, setSelCampaign] = useState(null)
   const [selAdset, setSelAdset] = useState(null)
+  const [selAd, setSelAd] = useState(null)
 
   const loadChildren = useCallback(async (level, parentKey, paramKey, parentId) => {
     if (children[parentKey]) return
@@ -927,40 +988,6 @@ export default function MetaDetailTab() {
         </FxCard>
       </div>
 
-      {/* To-do */}
-      <div style={{ marginBottom: 18 }}>
-        <FxCard delay={0.8} title={t('meta.todosTitle', null, 'To-do consigliate')} subtitle={t('meta.todosSub', null, "Azioni prioritarie suggerite dall'analisi")} glow={ACCENT_GLOW}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(data?.todos || []).map((todo, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 14,
-                padding: '14px 18px',
-                background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderTopColor: 'rgba(255,255,255,0.10)',
-                borderBottomColor: 'rgba(0,0,0,0.55)',
-                borderRadius: 12,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
-              }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                  color: '#fff',
-                  display: 'grid', placeItems: 'center',
-                  fontSize: 12, fontWeight: 900,
-                  flexShrink: 0,
-                  boxShadow: '0 0 14px rgba(245,158,11,0.35)',
-                }}>{i + 1}</div>
-                <div style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.55 }}>{todo}</div>
-              </div>
-            ))}
-            {(!data?.todos || data.todos.length === 0) && (
-              <div style={{ color: 'var(--text3)', fontSize: 13, padding: 14 }}>{t('meta.noTodos', null, 'Nessuna to-do per ora.')}</div>
-            )}
-          </div>
-        </FxCard>
-      </div>
-
       {/* Filtri + ricerca tabella */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
@@ -1062,7 +1089,12 @@ export default function MetaDetailTab() {
           <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#fff' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 12.5, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
         )
         return (
-          <FxCard title={t('meta.hierarchyTitle', null, 'Gerarchia Meta')} subtitle={t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')} glow={ACCENT_GLOW} padding={0} delay={1.6}>
+          <FxCard glow={ACCENT_GLOW} padding={0} delay={1.6}>
+            {/* Header (con padding proprio: niente titolo tagliato dal bordo) */}
+            <div style={{ padding: '22px 24px 14px' }}>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Gerarchia Meta')}</h2>
+              <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5, fontWeight: 500 }}>{t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')}</p>
+            </div>
             {/* Tab bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               {TABS.map(tab => (
@@ -1103,7 +1135,7 @@ export default function MetaDetailTab() {
                 <tbody>
                   {bmRows.length > 0 ? (
                     bmRows.map(row => (
-                      <BMRow key={`${bmLevel}:${row.id}`} row={row} level={bmLevel} onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : undefined} />
+                      <BMRow key={`${bmLevel}:${row.id}`} row={row} level={bmLevel} onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : setSelAd} />
                     ))
                   ) : (
                     <tr>
@@ -1121,6 +1153,42 @@ export default function MetaDetailTab() {
           </FxCard>
         )
       })()}
+
+      {/* To-do (spostato sotto la Gerarchia) */}
+      <div style={{ marginTop: 18 }}>
+        <FxCard delay={0.8} title={t('meta.todosTitle', null, 'To-do consigliate')} subtitle={t('meta.todosSub', null, "Azioni prioritarie suggerite dall'analisi")} glow={ACCENT_GLOW}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(data?.todos || []).map((todo, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                padding: '14px 18px',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderTopColor: 'rgba(255,255,255,0.10)',
+                borderBottomColor: 'rgba(0,0,0,0.55)',
+                borderRadius: 12,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: 'linear-gradient(135deg, #f59e0b, #f97316)',
+                  color: '#fff',
+                  display: 'grid', placeItems: 'center',
+                  fontSize: 12, fontWeight: 900,
+                  flexShrink: 0,
+                  boxShadow: '0 0 14px rgba(245,158,11,0.35)',
+                }}>{i + 1}</div>
+                <div style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.55 }}>{todo}</div>
+              </div>
+            ))}
+            {(!data?.todos || data.todos.length === 0) && (
+              <div style={{ color: 'var(--text3)', fontSize: 13, padding: 14 }}>{t('meta.noTodos', null, 'Nessuna to-do per ora.')}</div>
+            )}
+          </div>
+        </FxCard>
+      </div>
+
+      {selAd && <AdPreviewModal ad={selAd} onClose={() => setSelAd(null)} />}
 
       <MetaAdsAgent data={data} preset={preset} />
     </div>

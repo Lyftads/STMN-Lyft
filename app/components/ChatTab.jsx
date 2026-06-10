@@ -6,6 +6,12 @@ import ProfileModal from './ProfileModal'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
 import AgentCall from './AgentCall'
+import GroupCall from './GroupCall'
+
+const SQUAD_AGENTS = [
+  { id: 'ceo', name: 'Chiara' }, { id: 'cfo', name: 'Marco' }, { id: 'cmo', name: 'Luigi' }, { id: 'ads', name: 'Sofia' },
+  { id: 'seo', name: 'Davide' }, { id: 'cro', name: 'Giulia' }, { id: 'data', name: 'Alessandro' }, { id: 'creative', name: 'Valentina' },
+]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
@@ -62,6 +68,7 @@ export default function ChatTab({ standalone = false }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [menuFor, setMenuFor] = useState(null)
   const [callMenu, setCallMenu] = useState(false)
+  const [groupCall, setGroupCall] = useState(false)
   const [savedIds, setSavedIds] = useState([])
   const [threadRoot, setThreadRoot] = useState(null)
   const [threadMsgs, setThreadMsgs] = useState([])
@@ -628,6 +635,8 @@ export default function ChatTab({ standalone = false }) {
                   label="📞 Squadra AI"
                   buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
                 />
+                <button type="button" onClick={() => setGroupCall(true)} title="Call di gruppo: team + agent insieme"
+                  style={{ cursor: 'pointer', background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>👥 Call di gruppo</button>
               </div>
             )}
           </div>
@@ -878,6 +887,9 @@ export default function ChatTab({ standalone = false }) {
       )}
 
       <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
+      {groupCall && active && (
+        <GroupCall room={`channel-${active}`} title="Call di gruppo" agents={SQUAD_AGENTS} onClose={() => setGroupCall(false)} />
+      )}
     </div>
   )
 }

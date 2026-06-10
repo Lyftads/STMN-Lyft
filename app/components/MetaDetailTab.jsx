@@ -464,6 +464,52 @@ const cell = {
 }
 const cellMuted = { color: 'var(--text3)' }
 
+// Riga "flat" in stile Business Manager: nessuna indentazione, click = drill-down.
+function BMRow({ row, level, onOpen }) {
+  const { t } = useI18n()
+  const drillable = level !== 'ad'
+  return (
+    <tr
+      onClick={drillable ? () => onOpen(row) : undefined}
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: drillable ? 'pointer' : 'default', transition: 'background 0.12s' }}
+      onMouseEnter={e => { if (drillable) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+    >
+      <td style={{ padding: '14px 16px', minWidth: 340 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <PerfDot roas={row.roas} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</span>
+              {drillable && <span style={{ color: 'var(--accent)', fontWeight: 900, flexShrink: 0 }}>›</span>}
+            </div>
+            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>{row.status ? `${row.status} · ` : ''}{row.id}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '14px 16px' }}>
+        {level === 'ad'
+          ? <Thumb url={row.thumbnail_url} products={row.products} isDpa={!!row.product_set_id} />
+          : <span style={cellMuted}>—</span>}
+      </td>
+      <td style={cell}>{fmtInt(row.impressions)}</td>
+      <td style={cell}>{fmtInt(row.reach)}</td>
+      <td style={cell}>{n(row.frequency).toFixed(2)}</td>
+      <td style={cell}>{fmtMoney(row.cpm, 2)}</td>
+      <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
+      <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
+      <td style={cell}>{fmtInt(row.link_clicks)}</td>
+      <td style={{ ...cell, color: '#fff', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
+      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(row.roas)}</td>
+      <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
+      <td style={cell}>{fmtPct(row.conversione_acquisti, 2)}</td>
+      <td style={cell}>{fmtPct(row.cro_campagna, 2)}</td>
+      <td style={cell}>{fmtMoney(row.aov_campagna, 2)}</td>
+    </tr>
+  )
+}
+
 export default function MetaDetailTab() {
   const { t } = useI18n()
   const [preset, setPreset] = useState('last_28d')
@@ -587,6 +633,48 @@ export default function MetaDetailTab() {
       setLoadingNode(prev => ({ ...prev, [key]: false }))
     }
   }
+
+  // ── Vista stile Business Manager: tab Campagne / Gruppi / Inserzioni ──
+  const [bmLevel, setBmLevel] = useState('campaign')
+  const [selCampaign, setSelCampaign] = useState(null)
+  const [selAdset, setSelAdset] = useState(null)
+
+  const loadChildren = useCallback(async (level, parentKey, paramKey, parentId) => {
+    if (children[parentKey]) return
+    setLoadingNode(prev => ({ ...prev, [parentKey]: true }))
+    setError('')
+    try {
+      const res = await fetch(`/api/meta-detail?${qs({ level, [paramKey]: parentId })}`, { cache: 'no-store' })
+      const json = await res.json()
+      if (!json.ok) throw new Error(json.error || t('meta.errAdset', null, 'Errore caricamento'))
+      setChildren(prev => ({ ...prev, [parentKey]: json.rows || [] }))
+    } catch (e) { setError(e.message) } finally {
+      setLoadingNode(prev => ({ ...prev, [parentKey]: false }))
+    }
+  }, [children, qs, t])
+
+  const openCampaign = useCallback((c) => {
+    setSelCampaign(c); setSelAdset(null); setBmLevel('adset')
+    loadChildren('adsets', `campaign:${c.id}`, 'campaign_id', c.id)
+  }, [loadChildren])
+  const openAdset = useCallback((a) => {
+    setSelAdset(a); setBmLevel('ad')
+    loadChildren('ads', `adset:${a.id}`, 'adset_id', a.id)
+  }, [loadChildren])
+
+  const bmRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    let list = []
+    if (bmLevel === 'campaign') list = data?.rows || []
+    else if (bmLevel === 'adset') list = selCampaign ? (children[`campaign:${selCampaign.id}`] || []) : []
+    else list = selAdset ? (children[`adset:${selAdset.id}`] || []) : []
+    if (q) list = list.filter(r => (r.name || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q))
+    return list
+  }, [bmLevel, data, children, selCampaign, selAdset, search])
+
+  const bmLoading = bmLevel === 'adset' ? !!loadingNode[`campaign:${selCampaign?.id}`]
+    : bmLevel === 'ad' ? !!loadingNode[`adset:${selAdset?.id}`]
+    : loading
 
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase()

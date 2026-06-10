@@ -37,13 +37,14 @@ export default defineAgent({
     const name = NAMES[agentId] || 'Assistente'
 
     // Nome + foto dell'agente, così nel tile della call (stile Meet) compaiono.
+    // rtc-node usa updateName/updateMetadata (NON setName/setMetadata).
     try {
       const lp = ctx.room?.localParticipant
       if (lp) {
-        await lp.setName?.(name)
-        await lp.setMetadata?.(JSON.stringify({ isAgent: true, name, avatar: AVATARS[agentId] || '' }))
+        await lp.updateName(name)
+        await lp.updateMetadata(JSON.stringify({ isAgent: true, name, avatar: AVATARS[agentId] || '' }))
       }
-    } catch {}
+    } catch (e) { console.log('[lyft-agent] updateName/Metadata err:', e?.message) }
 
     const vad = await silero.VAD.load()
 
@@ -55,6 +56,13 @@ export default defineAgent({
       // apiKey esplicito: il plugin di default cerca ELEVEN_API_KEY, noi usiamo ELEVENLABS_API_KEY.
       tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5', apiKey: process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY }),
     })
+
+    // ── Diagnostica: capire dove si rompe il turno (STT → cervello → TTS) ────
+    session.on('user_input_transcribed', (ev) => console.log(`[lyft-agent] STT utente: "${ev?.transcript}" final=${ev?.isFinal}`))
+    session.on('user_state_changed', (ev) => console.log(`[lyft-agent] user ${ev?.oldState}→${ev?.newState}`))
+    session.on('agent_state_changed', (ev) => console.log(`[lyft-agent] agent ${ev?.oldState}→${ev?.newState}`))
+    session.on('conversation_item_added', (ev) => { try { console.log(`[lyft-agent] item ${ev?.item?.role}: ${String(ev?.item?.textContent ?? ev?.item?.content ?? '').slice(0, 140)}`) } catch {} })
+    session.on('error', (ev) => console.log('[lyft-agent] SESSION ERROR:', ev?.error?.message || ev?.error || JSON.stringify(ev)))
 
     const agent = new voice.Agent({
       instructions: `Sei ${name}, ${ROLES[agentId] || ''} del brand. Sei in una call di gruppo con il team. Parla in italiano, breve e naturale.`,

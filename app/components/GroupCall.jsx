@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from './ui/Icon'
 
 // ============================================================================
@@ -48,9 +49,11 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
   const [members, setMembers] = useState([])
   const [invited, setInvited] = useState({})
   const [agentState, setAgentState] = useState({})
+  const [mounted, setMounted] = useState(false)
   const roomRef = useRef(null)
   const audioEls = useRef([])
 
+  useEffect(() => { setMounted(true) }, [])
   useEffect(() => { connect(); return () => cleanup() }, []) // eslint-disable-line
   useEffect(() => {
     fetch('/api/team-members').then(r => r.ok ? r.json() : null).then(d => {
@@ -127,8 +130,8 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
   const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4
   const gridMax = Math.min(cols * 300, 1040)
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,6,20,0.95)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 24px 22px', overflowY: 'auto' }}>
+  const overlay = (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(8,6,20,0.97)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 24px 22px', overflowY: 'auto' }}>
       <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>{title}</div>
       <div style={{ color: '#c7c7cf', fontSize: 13, marginTop: 4 }}>
         {status === 'connecting' && 'Connessione alla stanza…'}
@@ -196,4 +199,6 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
       </div>
     </div>
   )
+
+  return mounted ? createPortal(overlay, document.body) : null
 }

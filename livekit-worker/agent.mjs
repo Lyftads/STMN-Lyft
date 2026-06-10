@@ -55,7 +55,9 @@ export default defineAgent({
       // realtime che NON supporta whisper-1 né gpt-4o-transcribe → la sessione crashava.
       stt: new openai.STT({ model: 'whisper-1', useRealtime: false, language: 'it', apiKey: process.env.OPENAI_API_KEY }),
       // LLM = nostro cervello (endpoint OpenAI-compatible, model team-<id>).
-      llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
+      // suffisso -group: dice al cervello che siamo in call multi-agente → gating per nome
+      // (risponde solo chi è chiamato per nome; se nessun nome, solo la lead Chiara).
+      llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}-group`, apiKey: process.env.CALL_SECRET || 'x' }),
       // apiKey esplicito: il plugin di default cerca ELEVEN_API_KEY, noi usiamo ELEVENLABS_API_KEY.
       tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5', apiKey: process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY }),
     })

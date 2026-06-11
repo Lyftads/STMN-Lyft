@@ -55,9 +55,8 @@ export default defineAgent({
       // realtime che NON supporta whisper-1 né gpt-4o-transcribe → la sessione crashava.
       stt: new openai.STT({ model: 'whisper-1', useRealtime: false, language: 'it', apiKey: process.env.OPENAI_API_KEY }),
       // LLM = nostro cervello (endpoint OpenAI-compatible, model team-<id>).
-      // suffisso -group: dice al cervello che siamo in call multi-agente → gating per nome
-      // (risponde solo chi è chiamato per nome; se nessun nome, solo la lead Chiara).
-      llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}-group`, apiKey: process.env.CALL_SECRET || 'x' }),
+      // Un solo agente per call → risponde a tutto (niente gating multi-agente).
+      llm: new openai.LLM({ baseURL: BRAIN_URL, model: `team-${agentId}`, apiKey: process.env.CALL_SECRET || 'x' }),
       // apiKey esplicito: il plugin di default cerca ELEVEN_API_KEY, noi usiamo ELEVENLABS_API_KEY.
       tts: new elevenlabs.TTS({ voiceId, modelId: 'eleven_flash_v2_5', apiKey: process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY }),
     })
@@ -74,11 +73,8 @@ export default defineAgent({
     })
 
     await session.start({ agent, room: ctx.room })
-    // Saluta SOLO la lead (Chiara) o un agente invitato da solo — evita 8 saluti
-    // sovrapposti e 8 TTS concorrenti all'ingresso (sovraccarico + limite ElevenLabs).
-    const otherAgents = [...(ctx.room?.remoteParticipants?.values() || [])].filter(p => String(p.identity || '').toLowerCase().startsWith('agent'))
-    if (agentId === 'ceo') session.say('Ciao a tutti, siamo qui con la squadra. Ditemi pure.')
-    else if (otherAgents.length === 0) session.say(`Ciao, sono ${name}. Dimmi pure.`)
+    // Un solo agente per call → saluta sempre in modo personale.
+    session.say(`Ciao, sono ${name}. Dimmi pure.`)
   },
 })
 

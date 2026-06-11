@@ -118,6 +118,9 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
   function leave() { cleanup(); onClose?.() }
 
   async function inviteAgent(agentId) {
+    // Un solo agente per call: blocca se ce n'è già uno (presente o in arrivo).
+    const locked = participants.some(p => p.isAgent) || Object.values(agentState).some(s => s === 'calling' || s === 'sent')
+    if (locked) return
     setInviting(true); setAgentState(s => ({ ...s, [agentId]: 'calling' }))
     try {
       const d = await fetch('/api/team/call/agent-dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room, agentId }) }).then(r => r.json()).catch(() => ({}))
@@ -129,6 +132,8 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
   const n = participants.length
   const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4
   const gridMax = Math.min(cols * 300, 1040)
+  // Un solo agente per call (presente in stanza o invito in corso).
+  const agentLocked = participants.some(p => p.isAgent) || Object.values(agentState).some(s => s === 'calling' || s === 'sent')
 
   const overlay = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(8,6,20,0.97)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 24px 22px', overflowY: 'auto' }}>
@@ -148,16 +153,19 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
         </div>
       )}
 
-      {/* Invita agent */}
+      {/* Invita UN agente (max 1 per call) */}
       {status === 'connected' && agents.length > 0 && (
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
-          <div style={{ color: '#9a9aa8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Invita un agente</div>
+          <div style={{ color: '#9a9aa8', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+            {agentLocked ? 'Un agente è in call' : 'Invita un agente (max 1)'}
+          </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 720 }}>
             {agents.map(a => {
               const st = agentState[a.id]
+              const disabled = inviting || (agentLocked && st !== 'calling' && st !== 'sent')
               return (
-                <button key={a.id} type="button" disabled={inviting} onClick={() => inviteAgent(a.id)}
-                  style={{ cursor: inviting ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, background: st === 'sent' ? 'rgba(124,92,255,0.32)' : 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.45)', color: '#fff', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 12.5 }}>
+                <button key={a.id} type="button" disabled={disabled} onClick={() => inviteAgent(a.id)}
+                  style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', gap: 7, background: st === 'sent' ? 'rgba(124,92,255,0.32)' : 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.45)', color: '#fff', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 12.5 }}>
                   {a.avatar && <img src={a.avatar} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />}
                   {a.name}{st === 'calling' ? ' …' : st === 'sent' ? ' ✓' : ''}
                 </button>

@@ -787,7 +787,13 @@ export default function ChatTab({ standalone = false }) {
                   rows={2}
                   value={text}
                   onChange={handleChange}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape' && (mentionOpen || emojiOpen)) { e.preventDefault(); setMentionOpen(false); setEmojiOpen(false); return }
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      if (mentionOpen && mentionList.length) { e.preventDefault(); pickMention(mentionList[0]); return }
+                      e.preventDefault(); send()
+                    }
+                  }}
                   placeholder={activeChannel ? `Messaggio ${activeChannel.is_dm ? `a ${channelLabel(activeChannel)}` : `in ${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}`}…` : 'Messaggio…'}
                   style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: 'transparent', caretColor: '#fff' }}
                 />
@@ -816,7 +822,7 @@ export default function ChatTab({ standalone = false }) {
                   </div>
                 )}
                 {mentionOpen && mentionList.length > 0 && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 10 }}>
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 30 }}>
                     {mentionList.map(mem => (
                       <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
                         <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={mem.isAgent ? true : isOnline(mem)} />

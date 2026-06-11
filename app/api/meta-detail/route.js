@@ -472,7 +472,7 @@ async function fetchAllActiveAdsets(accountId) {
 async function fetchActiveAds(adsetId) {
   return graphAll(`${adsetId}/ads`, {
     fields:
-      'id,name,status,effective_status,campaign_id,adset_id,campaign{name},adset{name},creative{id,thumbnail_url,image_url,product_set_id,object_story_spec,asset_feed_spec}',
+      'id,name,status,effective_status,campaign_id,adset_id,campaign{name},adset{name},creative{id,thumbnail_url,image_url,image_hash,product_set_id,object_story_spec,asset_feed_spec}',
     effective_status: JSON.stringify(['ACTIVE']),
     limit: '100',
   })
@@ -756,7 +756,7 @@ async function fetchDailySeries(accounts, range) {
 // Estrae il testo dell'inserzione (copy, headline, descrizione, CTA, link) dal
 // creative Meta — gestisce object_story_spec (link/video) e asset_feed_spec (dinamici).
 function extractCreativeCopy(creative) {
-  if (!creative) return { body: '', headline: '', description: '', cta: '', link_url: '', image_url: null }
+  if (!creative) return { body: '', headline: '', description: '', cta: '', link_url: '', image_url: null, image_hash: null }
   const oss = creative.object_story_spec || {}
   const ld = oss.link_data || oss.video_data || oss.template_data || {}
   const afs = creative.asset_feed_spec || {}
@@ -767,6 +767,9 @@ function extractCreativeCopy(creative) {
   // link/video data > immagine dell'asset feed.
   const afsImg = (afs.images && afs.images[0]) || {}
   const image = creative.image_url || ld.picture || ld.image_url || afsImg.url || null
+  // L'hash punta all'originale a piena risoluzione (risolto via /adimages):
+  // `picture` di Meta è solo un render ridotto → immagini sgranate se ingrandite.
+  const image_hash = creative.image_hash || ld.image_hash || afsImg.hash || oss.video_data?.image_hash || null
   return {
     body: ld.message || first(afs.bodies) || '',
     headline: ld.name || ld.title || first(afs.titles) || '',
@@ -774,7 +777,29 @@ function extractCreativeCopy(creative) {
     cta: typeof cta === 'string' ? cta.replace(/_/g, ' ') : '',
     link_url: link || '',
     image_url: image,
+    image_hash,
   }
+}
+
+// Risolve gli image_hash dei creative nell'URL dell'immagine ORIGINALE a piena
+// risoluzione (campo `url` di /adimages), evitando i render sgranati di Meta.
+async function fetchImageFullUrls(accounts, hashes) {
+  const uniq = [...new Set((hashes || []).filter(Boolean))]
+  const map = new Map()
+  if (!uniq.length) return map
+  for (const accountId of accounts) {
+    try {
+      const data = await graph(`${accountId}/adimages`, {
+        fields: 'hash,url,permalink_url,width,height',
+        hashes: JSON.stringify(uniq),
+      })
+      const arr = Array.isArray(data?.data) ? data.data : []
+      for (const img of arr) {
+        if (img.hash && (img.url || img.permalink_url)) map.set(img.hash, img.url || img.permalink_url)
+      }
+    } catch {}
+  }
+  return map
 }
 
 async function getAdRows(accounts, range, adsetId) {
@@ -807,7 +832,12 @@ async function getAdRows(accounts, range, adsetId) {
     return p
   }
 
-  return await Promise.all(ads.map(async ad => {
+  // Risolvo TUTTI gli image_hash in URL a piena risoluzione in una sola chiamata
+  // /adimages (deduplicata + in cache) → anteprime nitide invece dei render sgranati.
+  const copies = ads.map(ad => extractCreativeCopy(ad.creative))
+  const fullUrlMap = await fetchImageFullUrls(accounts, copies.map(c => c.image_hash))
+
+  return await Promise.all(ads.map(async (ad, i) => {
     const insight = insightMap.get(ad.id) || {}
 
     // Thumbnail: scarta il placeholder generico Meta per le DPA
@@ -817,6 +847,9 @@ async function getAdRows(accounts, range, adsetId) {
     // Per catalog ads recupero un sample di prodotti reali del catalogo
     const productSetId = getCreativeProductSetId(ad.creative) || adsetProductSetId
     const products = await productSetSample(productSetId)
+
+    const copy = copies[i]
+    const fullImage = (copy.image_hash && fullUrlMap.get(copy.image_hash)) || copy.image_url
 
     return calcRow(
       {
@@ -835,7 +868,8 @@ async function getAdRows(accounts, range, adsetId) {
         thumbnail_url: thumbnail,
         product_set_id: productSetId,
         products,
-        ...extractCreativeCopy(ad.creative),
+        ...copy,
+        image_url: fullImage,
         has_children: false,
       },
       insight

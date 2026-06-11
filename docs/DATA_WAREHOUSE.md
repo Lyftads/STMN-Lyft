@@ -204,6 +204,15 @@ group by 1,2,3;
 
 ## 7. Prossimi passi
 1. [ ] Validare MAR reali con free tier Fivetran su STMN (1 mese).
-2. [ ] Se si procede: creare `supabase/warehouse.sql` da questo design ed eseguirlo.
-3. [ ] Scrivere i sync job incrementali (Shopify per primo, riusando il pattern Admin GraphQL).
-4. [ ] Feature-flag `LYFT_WAREHOUSE` per tenant; brandSnapshot legge da `wh_*` se attivo.
+2. [x] **`supabase/warehouse.sql`** creato (tabelle `wh_*` + viste KPI + RLS). Da **eseguire su Supabase** quando si attiva il warehouse.
+3. [x] **Primo sync Shopify incrementale**: `lib/warehouse/syncShopify.js` + route `app/api/warehouse/sync/route.js` (watermark su `updated_at`, upsert idempotente). INERTE finché `LYFT_WAREHOUSE !== 'true'`.
+4. [ ] Sync per le altre fonti (Meta, Google Ads, GA4, Klaviyo) sullo stesso pattern.
+5. [ ] Feature-flag `LYFT_WAREHOUSE` per tenant; `brandSnapshot` legge dalle viste `wh_*` se attivo (tenere API live come fallback/real-time).
+
+### Come attivarlo (quando si decide)
+1. Eseguire `supabase/warehouse.sql` sul DB Supabase.
+2. Settare env `LYFT_WAREHOUSE=true`.
+3. Triggerare il sync (cron o manuale):
+   `curl -X POST https://lyftai.io/api/warehouse/sync -H "x-internal-cron: $CRON_SECRET"`
+   → fa il backfill 90gg al primo run, poi solo gli ordini modificati (watermark).
+4. Verificare `select * from wh_shopify_kpis order by day desc limit 7;` e confrontare con le tab.

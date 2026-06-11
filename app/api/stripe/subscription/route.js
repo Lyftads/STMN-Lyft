@@ -59,6 +59,7 @@ export async function GET(req) {
     // Path 2: leggi tutto su un customer. Se non specificato, lo ricava
     // dall'utente loggato (companies.stripe_customer_id).
     let resolvedCustomerId = customerId
+    let compStatus = null, compPlan = null
     if (!resolvedCustomerId) {
       try {
         const sb = getServerSupabase()
@@ -68,16 +69,27 @@ export async function GET(req) {
           if (admin) {
             const { data: company } = await admin
               .from('companies')
-              .select('stripe_customer_id')
+              .select('stripe_customer_id, stripe_subscription_status, plan')
               .eq('user_id', user.id)
               .maybeSingle()
             resolvedCustomerId = company?.stripe_customer_id || null
+            compStatus = company?.stripe_subscription_status || null
+            compPlan = company?.plan || null
           }
         }
       } catch {}
     }
 
     if (!resolvedCustomerId) {
+      // Account "comp"/omaggio: nessun cliente Stripe ma stato attivo impostato a
+      // mano sulla riga companies → concedi accesso (usato per account demo/review).
+      if (compStatus === 'active' || compStatus === 'trialing') {
+        return NextResponse.json({
+          customerId: null, email: null, name: null,
+          subscription: { id: 'comp', status: compStatus, planId: compPlan || 'scale', cancelAtPeriodEnd: false },
+          paymentMethod: null, invoices: [], comp: true,
+        })
+      }
       // Utente non ancora associato a Stripe → ritorna empty stato
       return NextResponse.json({
         customerId: null, email: null, name: null,

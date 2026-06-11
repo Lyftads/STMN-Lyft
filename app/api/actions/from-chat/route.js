@@ -11,7 +11,7 @@ import { callBrain } from '../../../../lib/agent/gateway'
 // aggiunge alla coda (status 'pending') e poi approva/esegue manualmente.
 
 const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google', 'shopify', 'other']
-const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'create_post', 'reply_comment', 'custom']
+const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'reply_comment', 'custom']
 
 const SYSTEM = `Dalla CONVERSAZIONE tra il founder e il suo consulente, estrai SOLO le azioni concrete ed eseguibili realmente emerse o raccomandate (max 4), da mettere nella Coda Azioni per l'approvazione.
 Rispondi SOLO con JSON: { "actions": [ { "channel": "...", "type": "...", "target_name": "...", "summary": "...", "why": "..." } ] }

@@ -84,7 +84,6 @@ export default function VendroShell({
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
         { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
-        { id: 'social', label: 'Social Studio', icon: <Icon name="image" /> },
         { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },

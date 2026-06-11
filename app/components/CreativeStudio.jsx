@@ -350,12 +350,6 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
 
   const onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate() } }
   const animate = (it) => { setKind('video'); setSourceImage(it.url); setFormat(it.format || 'square'); setError(''); setTimeout(() => taRef.current?.focus(), 100) }
-  const sendToSocial = (it) => {
-    try { localStorage.setItem('lyft_studio_handoff', JSON.stringify({ url: it.url, type: it.type })) } catch {}
-    if (onNavigate) onNavigate('social')
-    else { try { window.open('/?tab=social', '_blank') } catch {} }
-  }
-
   const onPickFiles = (e) => {
     const files = Array.from(e.target.files || []).slice(0, 3)
     files.forEach(f => {
@@ -654,7 +648,6 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                   <div style={{ display: 'flex', gap: 6, padding: 8, flexWrap: 'wrap' }}>
                     <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 50, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
                     {it.type === 'image' && <button onClick={() => animate(it)} title={t('cs.animate', null, 'Anima')} style={{ background: 'rgba(123,91,255,0.18)', border: '1px solid #7b5bff', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>}
-                    <button onClick={() => sendToSocial(it)} title={t('cs.sendSocial', null, 'Manda a Social Studio')} style={{ background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer' }}><Icon name="send" size={13} /></button>
                   </div>
                 </div>
               ))}
@@ -857,7 +850,6 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                 {mi(t('cs.upscale2x', null, 'Upscale 2×'), 'scan', () => applyEnhance({ imageUrl: it.url, mode: 'upscale', scale: '2x', srcFormat: it.format }))}
                 {studioStr && mi(t('cs.relightApply', null, 'Riaccendi'), 'bulb', () => applyEnhance({ imageUrl: it.url, mode: 'relight', prompt: studioStr, srcFormat: it.format }))}
                 {mi(t('cs.animate', null, 'Anima'), 'sparkles', () => animate(it))}
-                {mi('Social', 'send', () => sendToSocial(it))}
                 {mi(t('cs.download', null, 'Scarica'), 'download', () => { try { window.open(it.url, '_blank') } catch {} })}
                 <span style={{ height: 1, background: 'var(--border)', margin: '4px 6px' }} />
                 {mi(t('cs.delete', null, 'Elimina'), 'trash', () => deleteItems([it.url]), true)}
@@ -963,7 +955,6 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                 <button onClick={() => { setAdComposer(lightbox.url); setLightbox(null) }} style={{ ...miniBtn }}><Icon name="layers" size={12} /> {t('cs.makeAd', null, 'Crea ad')}</button>
                 <button onClick={() => { setTryOn(lightbox.url); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="shirt" size={12} /> {t('cs.tryon', null, 'Indossa')}</button>
                 <button onClick={() => { animate(lightbox); setLightbox(null) }} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>
-                <button onClick={() => sendToSocial(lightbox)} style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="send" size={12} /> Social</button>
               </div>
             </div>
           </div>

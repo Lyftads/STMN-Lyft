@@ -41,7 +41,6 @@ import LighthouseTab from './components/LighthouseTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import ActionQueueTab from './components/ActionQueueTab'
-import SocialStudio from './components/SocialStudio'
 import CreativeStudio from './components/CreativeStudio'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
@@ -4239,10 +4238,6 @@ export default function App() {
 
 {tab === 'actionQueue' && (
   <ActionQueueTab metrics={live} />
-)}
-
-{tab === 'social' && (
-  <SocialStudio />
 )}
 
 {tab === 'creativeStudio' && (

@@ -112,7 +112,7 @@ export default function OnboardingTab() {
 
   const isConnected = (id) => {
     const c = status.connected || []
-    if (id === 'shopify') return !!onb.steps?.shopify
+    if (id === 'shopify') return c.includes('shopify') || !!onb.steps?.shopify
     if (id === 'meta') return c.includes('facebook') || !!onb.steps?.meta
     if (id === 'ga4') return !!status.googleConnected || !!onb.steps?.ga4
     if (id === 'klaviyo') return c.includes('klaviyo-oauth') || c.includes('klaviyo') || !!onb.steps?.klaviyo
@@ -215,12 +215,21 @@ export default function OnboardingTab() {
           <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
             {step.kind === 'shopify' && (
               isConnected('shopify') ? (
-                <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Store collegato. Puoi aggiornare il token rifacendo questo step.</div>
+                <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Store collegato.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
-                  <input style={input} placeholder="mio-store.myshopify.com" value={shopForm.shopify_store_url} onChange={e => setShopForm(f => ({ ...f, shopify_store_url: e.target.value }))} />
-                  <input style={input} type="password" placeholder="Admin API token (shpat_…)" value={shopForm.shopify_admin_token} onChange={e => setShopForm(f => ({ ...f, shopify_admin_token: e.target.value }))} />
-                  <button style={{ ...btn, opacity: saving ? 0.6 : 1, alignSelf: 'flex-start' }} disabled={saving} onClick={saveShopify}>{saving ? 'Salvo…' : 'Salva e collega Shopify'}</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 460 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <NangoConnectButton integrationId="shopify" label="Collega Shopify con un clic" />
+                    <span style={{ fontSize: 12, color: MUTED }}>Inserisci il dominio del tuo store e autorizzi: niente token da copiare.</span>
+                  </div>
+                  <details>
+                    <summary style={{ cursor: 'pointer', fontSize: 12.5, color: MUTED }}>Oppure inserisci il token manualmente (avanzato)</summary>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                      <input style={input} placeholder="mio-store.myshopify.com" value={shopForm.shopify_store_url} onChange={e => setShopForm(f => ({ ...f, shopify_store_url: e.target.value }))} />
+                      <input style={input} type="password" placeholder="Admin API token (shpat_…)" value={shopForm.shopify_admin_token} onChange={e => setShopForm(f => ({ ...f, shopify_admin_token: e.target.value }))} />
+                      <button style={{ ...btn, opacity: saving ? 0.6 : 1, alignSelf: 'flex-start' }} disabled={saving} onClick={saveShopify}>{saving ? 'Salvo…' : 'Salva e collega Shopify'}</button>
+                    </div>
+                  </details>
                 </div>
               )
             )}

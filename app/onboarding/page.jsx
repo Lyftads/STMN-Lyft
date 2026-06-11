@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import Icon from '../components/ui/Icon'
+import NangoConnectButton from '../components/NangoConnectButton'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const ACCENT = '#bf5af2'
@@ -236,6 +237,19 @@ function OnboardingInner() {
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+              {step.id === 'shopify' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Collega in un clic</div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: 0 }}>Inserisci il dominio del tuo store e autorizzi: niente token da copiare.</p>
+                  <NangoConnectButton integrationId="shopify" label="Collega Shopify con un clic"
+                    onConnected={() => {
+                      setStepStatus(p => ({ ...p, shopify: true }))
+                      if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
+                      else completeOnboarding()
+                    }} />
+                  <div style={{ fontSize: 11, color: 'var(--text4, #666)' }}>Oppure inserisci il token manualmente qui sotto (avanzato).</div>
+                </div>
+              )}
               {step.fields.map(f => (
                 <div key={f.key}>
                   <label style={{

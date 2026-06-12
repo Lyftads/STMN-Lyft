@@ -38,6 +38,7 @@ import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MetaKpiTab from './components/MetaKpiTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
+import GoogleDetailTab from './components/GoogleDetailTab'
 import LighthouseTab from './components/LighthouseTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
@@ -4299,7 +4300,11 @@ export default function App() {
   <GoogleKpiTab />
 )}
 
-{(tab === 'googleDetail' || tab === 'googleLighthouse' || tab === 'googleBudgetAdvisor') && (
+{tab === 'googleDetail' && (
+  <GoogleDetailTab />
+)}
+
+{(tab === 'googleLighthouse' || tab === 'googleBudgetAdvisor') && (
   <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
     <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>In arrivo</div>
     <div style={{ fontSize: 13, marginTop: 6 }}>Questa sezione Google è in fase di rilascio.</div>

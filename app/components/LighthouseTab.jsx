@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 
 // ─────────────────────────────────────────────────────────────
 //  Lighthouse — Alert Center (stile Triple Whale Lighthouse)
@@ -32,7 +34,8 @@ const SEVERITY_LABEL = {
 }
 
 export default function LighthouseTab() {
-  const [preset, setPreset] = useState('last_14d')
+  const [tf, setTf] = useState({ preset: 'last_14d' })
+  const preset = tf.preset
   const [filter, setFilter] = useState('all')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -40,14 +43,14 @@ export default function LighthouseTab() {
 
   const load = (force = false) => {
     let cancelled = false
-    const key = `lighthouse:${preset}`
+    const key = `lighthouse:${tfKey(tf)}`
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
     if (cached) setData(cached.data); else setLoading(true)
     setError(null)
     swrFetch({
       key, forceRefresh: force,
-      fetcher: () => fetch(`/api/lighthouse?preset=${encodeURIComponent(preset)}`).then(r => r.json()),
+      fetcher: () => fetch(`/api/lighthouse?${tfQuery(tf)}`).then(r => r.json()),
       onUpdate: fresh => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => { if (!cancelled) { if (j?.error) setError(j.error); setData(j) } })
@@ -56,7 +59,7 @@ export default function LighthouseTab() {
     return () => { cancelled = true }
   }
 
-  useEffect(() => { return load() }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { return load() }, [tf]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const alerts = Array.isArray(data?.alerts) ? data.alerts : []
   const proposals = Array.isArray(data?.proposals) ? data.proposals : []
@@ -83,18 +86,7 @@ export default function LighthouseTab() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select
-            value={preset}
-            onChange={e => setPreset(e.target.value)}
-            style={{
-              background: 'var(--glass)', border: '1px solid var(--border)',
-              color: 'var(--text)', borderRadius: 10, padding: '8px 14px',
-              fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer',
-              minWidth: 140,
-            }}
-          >
-            {PRESETS.map(o => <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>{o.label}</option>)}
-          </select>
+          <BmTimeframe value={tf} onChange={setTf} accent="#fbbf24" disabled={loading} />
           <button
             type="button" onClick={() => load(true)} disabled={loading}
             style={{

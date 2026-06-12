@@ -79,7 +79,7 @@ export async function GET(req) {
   if (!metaToken() || !metaAccount()) return NextResponse.json({ error: 'Meta non configurato', campaigns: [] }, { status: 200 })
   const { searchParams } = new URL(req.url)
   const preset = searchParams.get('preset') || 'last_28d'
-  const range = getRange(preset)
+  const range = getRange(preset, searchParams)
   const used = usedAccounts(searchParams.get('account'))
 
   try {

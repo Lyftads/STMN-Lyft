@@ -78,15 +78,25 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
   const [anchor, setAnchor] = useState(null) // primo click del range
   const [viewM, setViewM] = useState(() => { const d = parse(val.until || todayIso()); return { y: d.getFullYear(), m: d.getMonth() } })
   const [compare, setCompare] = useState(false)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
   const ref = useRef(null)
+  const triggerRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
     const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const close = () => setOpen(false)
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [open])
 
   const openPanel = () => {
@@ -95,6 +105,8 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
     setAnchor(null)
     const d = parse(val.until || todayIso())
     setViewM({ y: d.getFullYear(), m: d.getMonth() })
+    const r = triggerRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
     setOpen(true)
   }
 
@@ -126,7 +138,7 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" onClick={openPanel} disabled={disabled} style={{
+      <button ref={triggerRef} type="button" onClick={openPanel} disabled={disabled} style={{
         background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
         borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
@@ -139,9 +151,10 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
 
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 1000,
+          position: 'fixed', top: pos.top, right: pos.right, zIndex: 99999,
           background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 14,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.55)', display: 'flex', overflow: 'hidden', maxWidth: '94vw',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.55)', display: 'flex', overflow: 'hidden',
+          maxWidth: '94vw', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto',
         }}>
           {/* Sidebar preset */}
           <div style={{ width: 210, borderRight: '1px solid var(--border)', padding: '14px 10px', maxHeight: 420, overflowY: 'auto' }}>

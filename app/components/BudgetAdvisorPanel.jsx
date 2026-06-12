@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import FxCard from './ui/FxCard'
-import TimeframeSelector from './TimeframeSelector'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -47,7 +48,8 @@ export default function BudgetAdvisorPanel() {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
-  const [preset, setPreset] = useState('last_28d')
+  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const preset = tf.preset
   const [queued, setQueued] = useState({})
 
   const enqueue = async (key, body) => {
@@ -62,8 +64,8 @@ export default function BudgetAdvisorPanel() {
   useEffect(() => {
     let cancelled = false
     setError(null)
-    const url = `/api/budget-advisor?preset=${encodeURIComponent(preset)}${account ? `&account=${encodeURIComponent(account)}` : ''}`
-    const key = `budget-advisor:${preset}:${account}`
+    const url = `/api/budget-advisor?${tfQuery(tf)}${account ? `&account=${encodeURIComponent(account)}` : ''}`
+    const key = `budget-advisor:${tfKey(tf)}:${account}`
     const cached = getCached(key)
     if (cached) {
       setData(cached.data)
@@ -83,7 +85,7 @@ export default function BudgetAdvisorPanel() {
       .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled && !cached) setLoading(false) })
     return () => { cancelled = true }
-  }, [account, preset])
+  }, [account, tf])
 
   const accounts = data?.accounts || []
   const camps = data?.campaigns || []
@@ -109,7 +111,7 @@ export default function BudgetAdvisorPanel() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+            <BmTimeframe value={tf} onChange={setTf} accent="#2997ff" disabled={loading} />
             {accounts.length > 1 && (
               <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
                 <option value="" style={{ background: 'var(--surface)' }}>{t('flt.allAccounts')}</option>

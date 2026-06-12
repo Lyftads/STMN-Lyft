@@ -68,6 +68,7 @@ export default function VendroShell({
       items: [
         { id: 'onboarding', label: 'Onboarding', icon: <Icon name="rocket" /> },
         { id: 'dashboard', label: 'Dashboard', icon: <Icon name="grid" /> },
+        { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },

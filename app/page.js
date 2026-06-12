@@ -41,6 +41,7 @@ import LighthouseTab from './components/LighthouseTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import ActionQueueTab from './components/ActionQueueTab'
+import InventoryTab from './components/InventoryTab'
 import CreativeStudio from './components/CreativeStudio'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
@@ -4307,6 +4308,10 @@ export default function App() {
 {/* PRICE COMPARISON TAB */}
 {tab === 'priceComparison' && (
   <PriceComparisonTab />
+)}
+
+{tab === 'inventory' && (
+  <InventoryTab />
 )}
 
 {/* INTEGRATIONS TAB */}

@@ -24,11 +24,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     const spr = live?.shopifyPrevRange
     const mpr = live?.metaPrevRange
 
-    const compute = (s, m, googSpend = 0) => {
+    const compute = (s, m, g = {}) => {
       const fat = asNum(s?.revenue), ord = asNum(s?.orders)
       const nc = asNum(s?.nc), rc = asNum(s?.rc)
       const ses = asNum(s?.sessions)
-      const meta = asNum(m?.spend), goog = asNum(googSpend)
+      const meta = asNum(m?.spend), goog = asNum(g.spend)
       const spend = meta + goog
       const impr = asNum(m?.impressions), clicks = asNum(m?.clicks)
       const aov = safeDiv(fat, ord), roas = safeDiv(fat, meta), mer = safeDiv(fat, spend)
@@ -36,7 +36,15 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       const cpc = safeDiv(meta, clicks), cpm = impr > 0 ? (meta/impr)*1000 : null
       const repeatRate = nc + rc > 0 ? (rc/(nc+rc))*100 : null
       const ltv = aov ? (aov*cfg.freq*cfg.life*cfg.margin)/100 : null
-      return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv }
+      // Google Ads (dettaglio dal collegamento: impression/click/conversioni/valore)
+      const gImpr = asNum(g.impressions), gClicks = asNum(g.clicks)
+      const gConv = asNum(g.conversions), gConvVal = asNum(g.convValue)
+      const gRoas = safeDiv(gConvVal, goog)       // ROAS Google = valore conversioni / spesa
+      const gCtr = gImpr > 0 ? (gClicks/gImpr)*100 : null
+      const gCpc = safeDiv(goog, gClicks)
+      const gCpm = gImpr > 0 ? (goog/gImpr)*1000 : null
+      return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv,
+               gImpr,gClicks,gConv,gConvVal,gRoas,gCtr,gCpc,gCpm }
     }
 
     const range = live?.kpiBrain?.range
@@ -55,16 +63,23 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     // Google Ads spend per il periodo: somma googleSpend dei mesi del range
     // (il dato arriva automatico dal collegamento, iniettato nelle righe `data`
     // in page.js; coerente con come la Dashboard tratta Google).
-    const sumGoog = rows => rows.reduce((s, m) => s + asNum(m.googleSpend), 0)
-    const googCur = sumGoog(cur)
+    // Somma il dettaglio Google del periodo (spesa + impression/click/conversioni/valore).
+    const sumG = rows => rows.reduce((a, m) => ({
+      spend:       a.spend       + asNum(m.googleSpend),
+      impressions: a.impressions + asNum(m.googleImpressions),
+      clicks:      a.clicks      + asNum(m.googleClicks),
+      conversions: a.conversions + asNum(m.googleConversions),
+      convValue:   a.convValue   + asNum(m.googleConvValue),
+    }), { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 })
+    const gCur = sumG(cur)
     const prevSinceM = prevRange?.since?.slice(0, 7)
     const prevUntilM = prevRange?.until?.slice(0, 7)
     const prevMonths = (prevSinceM && prevUntilM)
       ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
       : []
-    const googPrev = sumGoog(prevMonths)
+    const gPrev = sumG(prevMonths)
 
-    return { current: compute(sr, mr, googCur), previous: compute(spr, mpr, googPrev), label, currentMonths: cur }
+    return { current: compute(sr, mr, gCur), previous: compute(spr, mpr, gPrev), label, currentMonths: cur }
   }, [data, live, cfg])
 
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
@@ -96,6 +111,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     if (key === 'ctr') return m.impressions > 0 ? (m.linkClicks / m.impressions) * 100 : 0
     if (key === 'cpc') return m.linkClicks > 0 ? m.metaSpend / m.linkClicks : 0
     if (key === 'cpm') return m.impressions > 0 ? (m.metaSpend / m.impressions) * 1000 : 0
+    if (key === 'gRoas') return m.googleSpend > 0 ? (m.googleConvValue || 0) / m.googleSpend : 0
+    if (key === 'gCtr') return m.googleImpressions > 0 ? (m.googleClicks / m.googleImpressions) * 100 : 0
+    if (key === 'gCpc') return m.googleClicks > 0 ? m.googleSpend / m.googleClicks : 0
+    if (key === 'gCpm') return m.googleImpressions > 0 ? (m.googleSpend / m.googleImpressions) * 1000 : 0
     return m[key] || 0
   })
 
@@ -115,6 +134,14 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Meta Ads', title:'CPM', value:money2(c.cpm), color:'#f59e0b', sparkKey:'cpm', curr:c.cpm, prev:p.cpm, lower:true },
     { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', sparkKey:'impressions', curr:c.impr, prev:p.impr },
     { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', sparkKey:'linkClicks', curr:c.clicks, prev:p.clicks },
+    { group:'Google Ads', title:'Spend', value:shortMoney(c.goog), color:'#eab308', sparkKey:'googleSpend', curr:c.goog, prev:p.goog },
+    { group:'Google Ads', title:'ROAS', value:ratio(c.gRoas), color:'#22c55e', sparkKey:'gRoas', curr:c.gRoas, prev:p.gRoas },
+    { group:'Google Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', sparkKey:'mer', curr:c.mer, prev:p.mer },
+    { group:'Google Ads', title:'CTR', value:pct(c.gCtr), color:'#eab308', sparkKey:'gCtr', curr:c.gCtr, prev:p.gCtr },
+    { group:'Google Ads', title:'CPC', value:money2(c.gCpc), color:'#ef4444', sparkKey:'gCpc', curr:c.gCpc, prev:p.gCpc, lower:true },
+    { group:'Google Ads', title:'CPM', value:money2(c.gCpm), color:'#f59e0b', sparkKey:'gCpm', curr:c.gCpm, prev:p.gCpm, lower:true },
+    { group:'Google Ads', title:'Impressions', value:shortNum(c.gImpr), color:'#eab308', sparkKey:'googleImpressions', curr:c.gImpr, prev:p.gImpr },
+    { group:'Google Ads', title:'Clicks', value:shortNum(c.gClicks), color:'#eab308', sparkKey:'googleClicks', curr:c.gClicks, prev:p.gClicks },
   ]
 
   // ── Top products: match images from store products.json ──
@@ -329,14 +356,18 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       {/* Key Metrics */}
       <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
         <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
-        <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads · {tfLabel}</div>
+        <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads + Google Ads · {tfLabel}</div>
         <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Shopify</div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Meta Ads</div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:20}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
+        </div>
+        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Google Ads</div>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
+          {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
       </div>
 

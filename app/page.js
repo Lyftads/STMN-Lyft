@@ -2266,8 +2266,18 @@ export default function App() {
     fetch('/api/google').then(r => r.json()).then(j => {
       if (!alive || !j?.configured || !Array.isArray(j.monthly)) return
       const byMonth = {}
-      for (const m of j.monthly) { if (m?.month) byMonth[m.month] = Number(m.spend) || 0 }
-      setGoogleAuto({ configured: true, byMonth, daily: Array.isArray(j.daily) ? j.daily : [] })
+      const byMonthDetail = {}
+      for (const m of j.monthly) {
+        if (!m?.month) continue
+        byMonth[m.month] = Number(m.spend) || 0
+        byMonthDetail[m.month] = {
+          impressions: Number(m.impressions) || 0,
+          clicks: Number(m.clicks) || 0,
+          conversions: Number(m.conversions) || 0,
+          convValue: Number(m.convValue) || 0,
+        }
+      }
+      setGoogleAuto({ configured: true, byMonth, byMonthDetail, daily: Array.isArray(j.daily) ? j.daily : [] })
     }).catch(() => {})
     return () => { alive = false }
   }, [])
@@ -2636,6 +2646,13 @@ export default function App() {
       const googleSpend = (googleAuto.configured && googleAuto.byMonth[row.month] != null)
         ? asNum(googleAuto.byMonth[row.month])
         : asNum(manual.googleSpend)
+      // Dettaglio Google Ads (impression/click/conversioni/valore) dal collegamento,
+      // per le card della sezione Google in KPI Brain. Solo automatico (no manuale).
+      const gDet = (googleAuto.configured && googleAuto.byMonthDetail) ? (googleAuto.byMonthDetail[row.month] || null) : null
+      const googleImpressions = asNum(gDet?.impressions)
+      const googleClicks = asNum(gDet?.clicks)
+      const googleConversions = asNum(gDet?.conversions)
+      const googleConvValue = asNum(gDet?.convValue)
       const totalSpend = metaSpend + googleSpend
 
       const aov = safeDiv(fatturato, ordini)
@@ -2672,6 +2689,10 @@ export default function App() {
 
         metaSpend,
         googleSpend,
+        googleImpressions,
+        googleClicks,
+        googleConversions,
+        googleConvValue,
         totalSpend,
 
         aov,
@@ -2831,7 +2852,7 @@ export default function App() {
               current={totRC} previous={prevTotals.rc} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(6, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(7, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.merBlended', null, 'MER blended')} value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
               current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
             <Stat label={t('dash.ltvGross', null, 'LTV lordo')} value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvSubData', { orders: lifeOrders, months: ltvAuto.months }, `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a`} />
@@ -2841,6 +2862,9 @@ export default function App() {
             <Stat label={t('dash.metaSpend', null, 'Spesa Meta')} value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
+            <Stat label={t('dash.googleSpendFull', null, 'Spesa Google')} value={totGoog>0?f0(totGoog):'—'} sources={['google']}
+              sparkData={gwCurrent.map(x=>x.spend)} sparkColor="var(--yellow)"
+              current={periodTotals.googleSpend} previous={prevTotals.googleSpend} />
             <Stat label={t('dash.totalSpend', null, 'Spesa totale')} value={totSpend>0?f0(totSpend):'—'} sources={['meta','google']} sub="Meta + Google" />
           </div>
 

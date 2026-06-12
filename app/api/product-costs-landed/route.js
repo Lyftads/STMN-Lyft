@@ -50,6 +50,41 @@ async function fetchVariants(store, token) {
   return { products, currency }
 }
 
+// Rileva i cambi di costo Shopify e li registra nello storico (note='shopify').
+// Prima volta = baseline silenziosa. Ritorna Map variant_id -> nuovo costo per
+// le variazioni rilevate (così la risposta riflette subito il cambiamento).
+async function syncShopifyCosts(admin, workspaceId, products) {
+  const changed = new Map()
+  if (!admin || !workspaceId) return changed
+  try {
+    // costo Shopify attuale per variante (solo dove definito)
+    const current = new Map()
+    for (const p of products) for (const v of p.variants) if (v.shopifyCost != null) current.set(v.variant_id, { cost: v.shopifyCost, product_id: p.productId, sku: v.sku })
+    if (!current.size) return changed
+
+    const { data: seenRows } = await admin.from('variant_cost_seen').select('variant_id, shopify_cost').eq('workspace_id', workspaceId)
+    const seen = new Map((seenRows || []).map(r => [String(r.variant_id), r.shopify_cost == null ? null : Number(r.shopify_cost)]))
+
+    const today = new Date().toISOString().slice(0, 10)
+    const histInserts = []   // cambi reali → storico
+    const seenUpserts = []   // baseline + aggiornamenti
+    for (const [vid, info] of current) {
+      const prev = seen.get(vid)
+      if (prev === undefined) {
+        // baseline silenziosa
+        seenUpserts.push({ workspace_id: workspaceId, variant_id: vid, shopify_cost: info.cost, synced_at: new Date().toISOString() })
+      } else if (prev == null || Math.abs(prev - info.cost) > 0.005) {
+        histInserts.push({ workspace_id: workspaceId, variant_id: vid, product_id: info.product_id, sku: info.sku, landed_cost: info.cost, effective_from: today, note: 'shopify' })
+        seenUpserts.push({ workspace_id: workspaceId, variant_id: vid, shopify_cost: info.cost, synced_at: new Date().toISOString() })
+        changed.set(vid, info.cost)
+      }
+    }
+    if (histInserts.length) await admin.from('product_landed_cost').insert(histInserts)
+    if (seenUpserts.length) await admin.from('variant_cost_seen').upsert(seenUpserts, { onConflict: 'workspace_id,variant_id' })
+  } catch {}
+  return changed
+}
+
 export async function GET(req) {
   return withTenantContext(req, async () => {
     const { storeUrl: store, adminToken: token } = getShopify()
@@ -72,6 +107,10 @@ export async function GET(req) {
 
     try {
       const { products, currency } = await fetchVariants(store, token)
+
+      // Sync automatico: registra nello storico i cambi di costo Shopify (tutti i tenant).
+      const changed = await syncShopifyCosts(admin, ws?.workspaceId, products)
+
       // override correnti + conteggio storico per variante
       const latest = new Map(), count = new Map()
       if (admin && ws) {
@@ -81,6 +120,8 @@ export async function GET(req) {
           for (const r of (data || [])) { const v = String(r.variant_id); count.set(v, (count.get(v) || 0) + 1); if (!latest.has(v)) latest.set(v, Number(r.landed_cost)) }
         } catch {}
       }
+      // riflette subito i cambi appena sincronizzati (sono ora il valore corrente)
+      for (const [v, cost] of changed) { latest.set(v, cost); if (!count.get(v)) count.set(v, 1) }
       const out = products.map(p => ({
         ...p,
         variants: p.variants.map(v => ({ ...v, landed: latest.has(v.variant_id) ? latest.get(v.variant_id) : null, historyCount: count.get(v.variant_id) || 0 })),

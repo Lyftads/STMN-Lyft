@@ -6,6 +6,7 @@ import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend } from '../../../lib/ads/campaignSpend'
+import { loadLatestLanded } from '../../../lib/cost/landed'
 
 // ── Performance prodotti (B2C) ──
 // P&L per prodotto: ricavo netto, COGS, ADS (Meta+Google allocati in proporzione
@@ -122,13 +123,16 @@ export async function GET(req) {
 
     try {
       const ws = await resolveWorkspace()
-      const [cur, prev, pmeta, campaigns, mapping] = await Promise.all([
+      const [cur, prev, pmeta, campaigns, mapping, landed] = await Promise.all([
         fetchOrders(store, token, since + 'T00:00:00Z', until + 'T23:59:59Z'),
         fetchOrders(store, token, prevSince + 'T00:00:00Z', prevUntil + 'T23:59:59Z'),
         fetchProductMeta(store, token),
         fetchAllCampaignSpend(since, until),
         loadMapping(ws?.workspaceId),
+        loadLatestLanded(ws?.workspaceId),
       ])
+      // COGS: override col costo landed manuale dove presente (modulo Costi prodotto)
+      if (landed.size) for (const [vid, c] of landed) pmeta.costByVariant.set(vid, c)
 
       // Attribuzione ADS: spesa per campagna mappata → prodotto (preciso);
       // campagne non mappate → ripartite in proporzione al ricavo (stima).

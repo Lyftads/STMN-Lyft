@@ -3,6 +3,8 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { resolveWorkspace } from '../../../lib/team/workspace'
+import { loadLatestLanded } from '../../../lib/cost/landed'
 
 // ── Inventario intelligence (read-only) ──
 // Unità operativa = variante (taglia/SKU): un prodotto può avere stock alto e
@@ -126,11 +128,13 @@ function addDaysISO(days) {
   return d.toISOString().slice(0, 10)
 }
 
-async function buildInventory(store, token) {
+async function buildInventory(store, token, landedMap) {
   const [{ variants, currency }, sales] = await Promise.all([
     fetchAllVariants(store, token),
     fetchSales(store, token),
   ])
+  // COGS: override col costo landed manuale dove presente (vedi modulo Costi prodotto)
+  if (landedMap && landedMap.size) for (const v of variants) if (landedMap.has(v.variantId)) v.cost = landedMap.get(v.variantId)
 
   let costCovered = 0
   const items = variants.map(v => {
@@ -209,7 +213,9 @@ export async function GET(req) {
       return NextResponse.json({ ...cached.data, cached: true })
     }
     try {
-      const data = await buildInventory(store, token)
+      const ws = await resolveWorkspace()
+      const landedMap = await loadLatestLanded(ws?.workspaceId)
+      const data = await buildInventory(store, token, landedMap)
       __cache.set(store, { exp: Date.now() + CACHE_TTL, data })
       return NextResponse.json(data)
     } catch (e) {

@@ -1548,11 +1548,41 @@ export async function GET(req) {
     // timeframe non la rifetcha. Stessi dati di prima (stesse query). ──
     const histKey = getTenantInfo().userId || 'env'
     let hist = (!force && historyCache.get(histKey)) || null
+    let historyStale = false // → il client farà un refresh in background (force)
+
+    // 1) Cross-istanza: se la memoria è fredda (cold start serverless), leggi da
+    //    Supabase. Serve SEMPRE il DB (anche se vecchio) → primo load VELOCE; se
+    //    è oltre il TTL marca historyStale così il client lo rinfresca in bg. Fail-safe.
+    if ((!hist || hist.expiresAt <= Date.now()) && !force) {
+      try {
+        const admin = getAdminSupabase()
+        if (admin) {
+          const { data: row } = await admin.from('metrics_history')
+            .select('weekly, monthly, updated_at').eq('tenant_id', histKey).maybeSingle()
+          if (row && Array.isArray(row.weekly) && row.weekly.length >= 5) {
+            const fresh = Date.now() - new Date(row.updated_at).getTime() < HISTORY_TTL_MS
+            hist = { shopifyWeekly: row.weekly, shopifyMonthly: Array.isArray(row.monthly) ? row.monthly : [], expiresAt: Date.now() + HISTORY_TTL_MS }
+            historyCache.set(histKey, hist)
+            if (!fresh) historyStale = true
+          }
+        }
+      } catch {}
+    }
+
+    // 2) Nessuna riga (primo accesso assoluto del tenant) o force → fetch live
+    //    (lento, UNA volta) e salva memoria + Supabase per tutte le volte successive.
     if (!hist || hist.expiresAt <= Date.now()) {
       const [sw, sm] = await Promise.all([fetchShopifyWeekly(), fetchShopifyMonthly()])
       const valid = Array.isArray(sw) && sw.length >= 5 // non cachiamo throttled-vuoto
       hist = { shopifyWeekly: sw, shopifyMonthly: sm, expiresAt: valid ? Date.now() + HISTORY_TTL_MS : 0 }
-      if (valid) historyCache.set(histKey, hist)
+      if (valid) {
+        historyCache.set(histKey, hist)
+        try {
+          const admin = getAdminSupabase()
+          if (admin) await admin.from('metrics_history')
+            .upsert({ tenant_id: histKey, weekly: sw, monthly: sm, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' })
+        } catch {}
+      }
     }
     const shopifyWeekly = hist.shopifyWeekly
     const shopifyMonthly = hist.shopifyMonthly
@@ -1634,6 +1664,7 @@ export async function GET(req) {
         meta: metaMonthly.length > 0 || metaWeekly.length > 0,
       },
 
+      historyStale, // true = il client deve rinfrescare la history in bg (force)
       updatedAt: new Date().toISOString(),
     }
 

@@ -93,6 +93,9 @@ function getMonths() {
   return out
 }
 
+// Refresh in background della history Shopify (metrics_history su Supabase): una
+// richiesta force dedicata che completa davvero. Guard per non spammare.
+let historyBgInflight = false
 const EMPTY  = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
 const WEMPTY = { fatturato:0, fatturNC:0, fatturRC:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
 const DEF   = { freq:1.69, life:1.57, margin:62 }
@@ -2345,6 +2348,13 @@ export default function App() {
       if (!cached || force) {
         setLive(data)
         setUpdated(new Date())
+      }
+      // History servita "stale" dal DB → rinfrescala in background (richiesta force
+      // dedicata che completa e riscrive metrics_history; il load corrente resta veloce).
+      if (data?.historyStale && !force && !historyBgInflight) {
+        historyBgInflight = true
+        fetch(`/api/metrics?preset=${encodeURIComponent(preset)}&force=1`)
+          .catch(() => {}).finally(() => { historyBgInflight = false })
       }
     } catch (e) { console.log(e.message) }
     finally {

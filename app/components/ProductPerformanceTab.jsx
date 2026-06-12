@@ -7,12 +7,15 @@ import Icon from './ui/Icon'
 
 const isoDay = (d) => d.toISOString().slice(0, 10)
 
+// Cache di modulo: sopravvive al cambio tab → riaprendo non rifà la fetch.
+let __ppCache = null // { key, payload }
+
 export default function ProductPerformanceTab() {
   const { t, intlLocale } = useI18n()
   const [since, setSince] = useState(isoDay(new Date(Date.now() - 90 * 86400000)))
   const [until, setUntil] = useState(isoDay(new Date()))
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => (__ppCache?.payload || null))
+  const [loading, setLoading] = useState(!__ppCache)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('margin') // margin | net | units
 
@@ -63,16 +66,21 @@ export default function ProductPerformanceTab() {
     } catch (e) { setMapErr(e.message) } finally { setMapSaving(false) }
   }
 
+  const keyOf = (s, u) => `${s}:${u}`
   const load = async (s = since, u = until, refresh = false) => {
+    const key = keyOf(s, u)
+    if (!refresh && __ppCache?.key === key) { setData(__ppCache.payload); setLoading(false); return }
     setLoading(true); setError('')
     try {
       const r = await fetch(`/api/product-performance?since=${s}&until=${u}${refresh ? '&refresh=1' : ''}`, { cache: 'no-store' })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Errore')
+      __ppCache = { key, payload: j }
       setData(j)
     } catch (e) { setError(e.message) } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [])
+  // Cache di modulo: al cambio tab non rifà la fetch (riapre istantaneo).
+  useEffect(() => { if (__ppCache?.key === keyOf(since, until)) { setData(__ppCache.payload); setLoading(false) } else load() }, []) // eslint-disable-line
 
   const cur = data?.currency || 'EUR'
   const fmtMoney = (n, d = 0) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))

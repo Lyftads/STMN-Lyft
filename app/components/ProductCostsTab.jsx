@@ -4,12 +4,17 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
+// Cache di modulo: al cambio tab non rifà la fetch.
+let __pcCache = null
+
+function draftsFrom(j) { const d = {}; for (const p of (j?.products || [])) for (const v of p.variants) if (v.landed != null) d[v.variant_id] = String(v.landed); return d }
+
 export default function ProductCostsTab() {
   const { t, intlLocale } = useI18n()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => __pcCache)
+  const [loading, setLoading] = useState(!__pcCache)
   const [error, setError] = useState('')
-  const [drafts, setDrafts] = useState({})       // variant_id -> string
+  const [drafts, setDrafts] = useState(() => draftsFrom(__pcCache))       // variant_id -> string
   const [selected, setSelected] = useState(() => new Set())
   const [pct, setPct] = useState('0')
   const [search, setSearch] = useState('')
@@ -18,19 +23,21 @@ export default function ProductCostsTab() {
   const [expanded, setExpanded] = useState(() => new Set())  // variant_id con storico aperto
   const [histCache, setHistCache] = useState({})             // variant_id -> history[]
 
-  const load = async () => {
+  const load = async (force = false) => {
+    if (!force && __pcCache) { setData(__pcCache); setDrafts(draftsFrom(__pcCache)); setLoading(false); return }
     setLoading(true); setError('')
     try {
       const r = await fetch('/api/product-costs-landed', { cache: 'no-store' })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Errore')
+      __pcCache = j
       setData(j)
-      const d = {}
-      for (const p of j.products) for (const v of p.variants) if (v.landed != null) d[v.variant_id] = String(v.landed)
-      setDrafts(d)
+      setDrafts(draftsFrom(j))
     } catch (e) { setError(e.message) } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (__pcCache) { setData(__pcCache); setLoading(false) } else load() }, []) // eslint-disable-line
+  // Mantieni la cache di modulo aggiornata (es. dopo i salvataggi).
+  useEffect(() => { if (data) __pcCache = data }, [data])
 
   const cur = data?.currency || 'EUR'
   const fmtMoney = (n, d = 2) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))

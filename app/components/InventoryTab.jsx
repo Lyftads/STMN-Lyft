@@ -22,10 +22,13 @@ const cellTone = (r) => {
   return { bg: 'rgba(34,197,94,0.14)', color: '#86efac' }
 }
 
+// Cache di modulo: al cambio tab non rifà la fetch.
+let __invCache = null
+
 export default function InventoryTab() {
   const { t, intlLocale } = useI18n()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => __invCache)
+  const [loading, setLoading] = useState(!__invCache)
   const [error, setError] = useState('')
   const [view, setView] = useState('urgent') // urgent | product | catalog
   const [chip, setChip] = useState('all')    // all | le7 | le30 | oos_sales | low
@@ -35,15 +38,17 @@ export default function InventoryTab() {
   const toggleExpand = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const load = async (refresh = false) => {
+    if (!refresh && __invCache) { setData(__invCache); setLoading(false); return }
     setLoading(true); setError('')
     try {
       const r = await fetch(`/api/inventory${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Errore')
+      __invCache = j
       setData(j)
     } catch (e) { setError(e.message) } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (__invCache) { setData(__invCache); setLoading(false) } else load() }, []) // eslint-disable-line
 
   const cur = data?.currency || 'EUR'
   const fmtMoney = (n, d = 0) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))

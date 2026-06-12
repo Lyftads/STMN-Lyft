@@ -3,6 +3,7 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // Tenant-aware getter (env-only mode di default)
 const metaToken   = () => getMeta().accessToken
@@ -911,61 +912,50 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const previousRange = getPreviousRange(range)
 
-    let rows = []
-
-    if (level === 'campaigns') {
-      rows = await getCampaignRows(accounts, range)
-    } else if (level === 'adsets') {
-      // Senza campaign_id → tutti gli adset dell'account in 2 chiamate (il client filtra).
-      rows = campaignId
-        ? await getAdsetRows(accounts, range, campaignId)
-        : await getAllAdsetRows(accounts, range)
-    } else if (level === 'ads') {
-      if (!adsetId) return jsonError('adset_id mancante', 400)
-      rows = await getAdRows(accounts, range, adsetId)
-    } else {
-      return jsonError(`level non valido: ${level}`, 400)
+    // Drill-down (adset/ad): live, NON cachato — user-triggered, molte combinazioni.
+    if (level !== 'campaigns') {
+      let rows = []
+      if (level === 'adsets') {
+        // Senza campaign_id → tutti gli adset dell'account in 2 chiamate (il client filtra).
+        rows = campaignId
+          ? await getAdsetRows(accounts, range, campaignId)
+          : await getAllAdsetRows(accounts, range)
+      } else if (level === 'ads') {
+        if (!adsetId) return jsonError('adset_id mancante', 400)
+        rows = await getAdRows(accounts, range, adsetId)
+      } else {
+        return jsonError(`level non valido: ${level}`, 400)
+      }
+      const summary = sumRows(rows)
+      const previousSummary = { spend: 0, roas: 0, cost_per_result: 0, ctr_link: 0 }
+      return NextResponse.json({
+        ok: true, preset, level, range, previousRange, accounts, allAccounts, accountFilter,
+        summary, previousSummary,
+        comparison: comparison(summary, previousSummary),
+        insight: insightText(range, summary), todos: todos(summary),
+        rows, dailySeries: [], sources: { meta: true },
+        updatedAt: new Date().toISOString(),
+      })
     }
 
-    const summary = sumRows(rows)
-
-    let previousSummary = {
-      spend: 0,
-      roas: 0,
-      cost_per_result: 0,
-      ctr_link: 0,
-    }
-
-    let dailySeries = []
-
-    if (level === 'campaigns') {
+    // Top-level (campagne): la prima apertura pesante → cache SWR per workspace+periodo+account.
+    return swrSnapshot(req, { tab: 'metaDetail', compute: async () => {
+      const rows = await getCampaignRows(accounts, range)
+      const summary = sumRows(rows)
       const [previousRows, daily] = await Promise.all([
         getCampaignRows(accounts, previousRange),
         fetchDailySeries(accounts, range).catch(() => []),
       ])
-      previousSummary = sumRows(previousRows)
-      dailySeries = daily
-    }
-
-    return NextResponse.json({
-      ok: true,
-      preset,
-      level,
-      range,
-      previousRange,
-      accounts,
-      allAccounts,
-      accountFilter,
-      summary,
-      previousSummary,
-      comparison: comparison(summary, previousSummary),
-      insight: insightText(range, summary),
-      todos: todos(summary),
-      rows,
-      dailySeries,
-      sources: { meta: true },
-      updatedAt: new Date().toISOString(),
-    })
+      const previousSummary = sumRows(previousRows)
+      return {
+        ok: true, preset, level, range, previousRange, accounts, allAccounts, accountFilter,
+        summary, previousSummary,
+        comparison: comparison(summary, previousSummary),
+        insight: insightText(range, summary), todos: todos(summary),
+        rows, dailySeries: daily, sources: { meta: true },
+        updatedAt: new Date().toISOString(),
+      }
+    } })
   } catch (err) {
     return jsonError(err.message || 'Errore Meta Detail', 500)
   }

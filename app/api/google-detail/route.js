@@ -4,6 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ============================================================================
 //  Google Detail — gerarchia drill-down Google Ads (gemella di /api/meta-detail).
@@ -39,6 +40,9 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const prevRange = previousRange(range)
 
+    // Solo il livello "campagne" (prima apertura pesante) è cachato; i drill-down
+    // adgroup/ad restano live (user-triggered, molte combinazioni).
+    return swrSnapshot(req, { tab: 'googleDetail', cacheable: level === 'campaigns', compute: async () => {
     try {
       const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
       const { GoogleAdsServiceClient } = await import('google-ads-node')
@@ -73,14 +77,14 @@ export async function GET(req) {
           }, mMap.get(String(r.campaign?.id)) || {})
         })
       } else if (level === 'adgroups') {
-        if (!campaignId) return NextResponse.json({ ok: false, error: 'campaign_id mancante' }, { status: 400 })
+        if (!campaignId) return { __noCache: true, ok: false, error: 'campaign_id mancante' }
         const resp = await search(`SELECT ad_group.id, ad_group.name, ad_group.status, ${METRICS} FROM ad_group WHERE campaign.id = ${campaignId} AND segments.date BETWEEN '${range.since}' AND '${range.until}'`)
         rows = resp.map(r => buildRow({
           id: String(r.adGroup?.id ?? r.ad_group?.id), level: 'adgroup', name: (r.adGroup ?? r.ad_group)?.name || `Gruppo ${(r.adGroup ?? r.ad_group)?.id}`,
           status: statusLabel((r.adGroup ?? r.ad_group)?.status), campaign_id: campaignId, has_children: true,
         }, r.metrics))
       } else if (level === 'ads') {
-        if (!adgroupId) return NextResponse.json({ ok: false, error: 'adgroup_id mancante' }, { status: 400 })
+        if (!adgroupId) return { __noCache: true, ok: false, error: 'adgroup_id mancante' }
         const resp = await search(`SELECT ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.ad.type, ad_group_ad.status, ${METRICS} FROM ad_group_ad WHERE ad_group.id = ${adgroupId} AND segments.date BETWEEN '${range.since}' AND '${range.until}'`)
         rows = resp.map(r => {
           const ad = (r.adGroupAd ?? r.ad_group_ad)?.ad || {}
@@ -90,7 +94,7 @@ export async function GET(req) {
           }, r.metrics)
         })
       } else {
-        return NextResponse.json({ ok: false, error: `level non valido: ${level}` }, { status: 400 })
+        return { __noCache: true, ok: false, error: `level non valido: ${level}` }
       }
 
       rows.sort((a, b) => b.spend - a.spend)
@@ -127,13 +131,14 @@ export async function GET(req) {
           }))
       }
 
-      return NextResponse.json({
+      return {
         ok: true, configured: true, preset, level, range, prevRange,
         rows, summary, previousSummary, dailySeries, updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({ ok: false, configured: true, error: String(err?.message || err), rows: [], summary: zeroSummary() }, { status: 200 })
+      return { __noCache: true, ok: false, configured: true, error: String(err?.message || err), rows: [], summary: zeroSummary() }
     }
+    } })
   })
 }
 

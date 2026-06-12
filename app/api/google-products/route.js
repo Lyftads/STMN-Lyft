@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 import { buildShopifyMaps, matchExternalId } from '../../../lib/ads/campaignProducts'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
@@ -50,12 +51,7 @@ export async function GET(req) {
     const until = sp.get('until') || isoDay(new Date())
     const since = sp.get('since') || isoDay(new Date(Date.now() - 30 * 86400000))
 
-    const cacheKey = `${customerId}:${since}:${until}`
-    if (sp.get('refresh') !== '1') {
-      const hit = __cache.get(cacheKey)
-      if (hit && hit.exp > Date.now()) return NextResponse.json({ ...hit.data, cached: true })
-    }
-
+    return swrSnapshot(req, { tab: 'googleProducts', compute: async () => {
     try {
       const tok = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -122,11 +118,10 @@ export async function GET(req) {
       for (const k of ['cost', 'convValue', 'conversions']) totals[k] = Math.round(totals[k] * 100) / 100
 
       const payload = { ok: true, currency: 'EUR', range: { since, until }, rows, totals, updatedAt: new Date().toISOString() }
-      if (__cache.size > 200) { const k = __cache.keys().next().value; if (k) __cache.delete(k) }
-      __cache.set(cacheKey, { exp: Date.now() + CACHE_TTL, data: payload })
-      return NextResponse.json(payload)
+      return payload
     } catch (e) {
-      return NextResponse.json({ ok: false, error: e.message || 'Errore Google Products' }, { status: 500 })
+      return { __noCache: true, ok: false, error: e.message || 'Errore Google Products' }
     }
+    } })
   })
 }

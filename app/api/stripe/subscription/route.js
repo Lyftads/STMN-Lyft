@@ -4,6 +4,7 @@ export const maxDuration = 15
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
+import { checkTenantShopifySubscription } from '../../../../lib/shopify/subscription'
 
 // Subscription + Payment Method read.
 //
@@ -61,11 +62,13 @@ export async function GET(req) {
     let resolvedCustomerId = customerId
     let compStatus = null, compPlan = null
     let shopStatus = null, shopPlan = null
+    let resolvedUserId = null
     if (!resolvedCustomerId) {
       try {
         const sb = getServerSupabase()
         const { data: { user } } = await sb.auth.getUser()
         if (user) {
+          resolvedUserId = user.id
           const admin = getAdminSupabase()
           if (admin) {
             const { data: company } = await admin
@@ -84,16 +87,9 @@ export async function GET(req) {
     }
 
     if (!resolvedCustomerId) {
-      // Abbonamento Shopify (App Store, policy 1.2.1) → accesso concesso.
-      if (shopStatus === 'active') {
-        return NextResponse.json({
-          customerId: null, email: null, name: null,
-          subscription: { id: 'shopify', status: 'active', planId: shopPlan || compPlan || 'scale', cancelAtPeriodEnd: false },
-          paymentMethod: null, invoices: [], shopify: true,
-        })
-      }
-      // Account "comp"/omaggio: nessun cliente Stripe ma stato attivo impostato a
-      // mano sulla riga companies → concedi accesso (usato per account demo/review).
+      // 1) Account "comp"/omaggio: stato attivo impostato a mano su companies
+      //    (account demo/review e owner STMN). Check prima per evitare chiamate
+      //    Shopify inutili per chi è già autorizzato via comp.
       if (compStatus === 'active' || compStatus === 'trialing') {
         return NextResponse.json({
           customerId: null, email: null, name: null,
@@ -101,7 +97,29 @@ export async function GET(req) {
           paymentMethod: null, invoices: [], comp: true,
         })
       }
-      // Utente non ancora associato a Stripe → ritorna empty stato
+      // 2) Shopify Managed Pricing → check LIVE dell'abbonamento gestito (fonte
+      //    autorevole). Vale per ogni store collegato via Nango, non solo STMN.
+      //    Se attivo → accesso concesso (policy 1.2.1: addebiti via Shopify).
+      try {
+        const shop = await checkTenantShopifySubscription(resolvedUserId)
+        if (shop?.active) {
+          return NextResponse.json({
+            customerId: null, email: null, name: null,
+            subscription: { id: 'shopify', status: 'active', planId: shop.plan || shopPlan || 'scale', cancelAtPeriodEnd: false },
+            paymentMethod: null, invoices: [], shopify: true,
+          })
+        }
+      } catch {}
+      // 3) Fallback: stato Shopify memorizzato su companies (se il check live è
+      //    fallito per un errore transitorio ma sappiamo che era attivo).
+      if (shopStatus === 'active') {
+        return NextResponse.json({
+          customerId: null, email: null, name: null,
+          subscription: { id: 'shopify', status: 'active', planId: shopPlan || compPlan || 'scale', cancelAtPeriodEnd: false },
+          paymentMethod: null, invoices: [], shopify: true,
+        })
+      }
+      // 4) Nessun abbonamento → stato empty (l'app mostra billing-required).
       return NextResponse.json({
         customerId: null, email: null, name: null,
         subscription: null, paymentMethod: null, invoices: [],

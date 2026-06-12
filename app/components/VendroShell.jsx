@@ -607,18 +607,8 @@ function WorkspacePill() {
     <span style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #2997ff, #bf5af2)', display: 'inline-block', flexShrink: 0 }} />
   )
 
-  if (!multi) {
-    return (
-      <div style={card}>
-        {avatar}
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-          <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
-        </span>
-      </div>
-    )
-  }
-
+  // Sempre interattivo: anche un utente singolo deve poter creare il PRIMO
+  // cliente (→ diventa agency). Lo switcher mostra le aziende + "Aggiungi cliente".
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen(o => !o)} disabled={busy} style={{ ...card, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}>

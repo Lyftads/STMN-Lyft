@@ -48,6 +48,11 @@ export default function VendroShell({
 }) {
   const { t } = useI18n()
 
+  // ── Modalità Notte/Giorno (light) — inverte solo l'area contenuti ──
+  const [day, setDay] = useState(false)
+  useEffect(() => { try { setDay(localStorage.getItem('lyft_theme') === 'day') } catch {} }, [])
+  const toggleTheme = () => setDay(d => { const nd = !d; try { localStorage.setItem('lyft_theme', nd ? 'day' : 'night') } catch {} ; return nd })
+
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
   useEffect(() => {
@@ -112,6 +117,16 @@ export default function VendroShell({
         { id: 'lighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'creativeFatigue', label: 'Creative Fatigue', icon: <Icon name="pulse" /> },
         { id: 'budgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
+      ],
+    },
+    {
+      title: 'Google',
+      color: '#eab308',
+      items: [
+        { id: 'googleDetail', label: 'Google Detail', icon: <Icon name="list" /> },
+        { id: 'googleKpi', label: 'Google KPI', icon: <Icon name="gauge" /> },
+        { id: 'googleLighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
+        { id: 'googleBudgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
       ],
     },
     {
@@ -376,7 +391,7 @@ export default function VendroShell({
       </aside>
 
       {/* Main */}
-      <main style={{
+      <main className={day ? 'lyft-day-content' : undefined} style={{
         flex: 1,
         minWidth: 0,
         height: '100vh',
@@ -419,6 +434,18 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              <button
+                onClick={toggleTheme}
+                title={day ? t('shell.switchNight', null, 'Passa a Notte') : t('shell.switchDay', null, 'Passa a Giorno')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)',
+                  borderRadius: 999, padding: '6px 12px', color: '#fff',
+                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                }}>
+                <Icon name={day ? 'star' : 'bulb'} size={14} />
+                {day ? t('shell.night', null, 'Notte') : t('shell.day', null, 'Giorno')}
+              </button>
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
@@ -427,7 +454,7 @@ export default function VendroShell({
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','competitorIntel'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','competitorIntel'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

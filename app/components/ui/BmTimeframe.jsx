@@ -65,10 +65,19 @@ function presetRange(id) {
 
 const fmtShort = (s) => { const d = parse(s); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}` }
 const fmtFull = (s) => `${fmtShort(s)} ${parse(s).getFullYear()}`
+
+// Etichette per TUTTI i preset noti (anche quelli del sistema globale: current_month,
+// ytd, last_90d…) così il pulsante mostra sempre il periodo attivo, non "Seleziona periodo".
+const PRESET_LABELS = {
+  today: 'Oggi', yesterday: 'Ieri', today_yesterday: 'Oggi e ieri',
+  last_7d: 'Ultimi 7 giorni', last_14d: 'Ultimi 14 giorni', last_28d: 'Ultimi 28 giorni',
+  last_30d: 'Ultimi 30 giorni', last_90d: 'Ultimi 90 giorni',
+  this_week: 'Questa settimana', last_week: 'Settimana scorsa',
+  this_month: 'Questo mese', current_month: 'Questo mese', last_month: 'Mese scorso', ytd: 'Da inizio anno',
+}
 function rangeLabel(value) {
+  if (value?.preset && value.preset !== 'custom' && PRESET_LABELS[value.preset]) return PRESET_LABELS[value.preset]
   if (!value?.since || !value?.until) return 'Seleziona periodo'
-  const p = PRESETS.find(x => x.id === value.preset)
-  if (p) return p.label
   return value.since === value.until ? fmtFull(value.since) : `${fmtShort(value.since)} - ${fmtFull(value.until)}`
 }
 

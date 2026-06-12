@@ -9,7 +9,7 @@ const RISK = {
   le7:      { color: '#ef4444', bg: 'rgba(239,68,68,0.15)', label: '≤ 7 GG' },
   le30:     { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', label: '≤ 30 GG' },
   oos_sales:{ color: '#ef4444', bg: 'rgba(239,68,68,0.15)', label: 'OOS' },
-  oos:      { color: 'var(--text3)', bg: 'rgba(255,255,255,0.06)', label: 'OOS' },
+  oos:      { color: 'rgba(255,255,255,0.78)', bg: 'rgba(255,255,255,0.06)', label: 'OOS' },
   ok:       { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'OK' },
 }
 
@@ -84,8 +84,8 @@ export default function InventoryTab() {
 
   // ── UI helpers ──
   const cardWrap = { background: 'var(--card,rgba(255,255,255,0.02))', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }
-  const cell = { padding: '12px 14px', fontSize: 13, color: 'var(--text2)', textAlign: 'right', whiteSpace: 'nowrap' }
-  const th = { padding: '11px 14px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', color: 'var(--text3)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'rgba(8,8,18,0.92)', backdropFilter: 'blur(12px)' }
+  const cell = { padding: '12px 14px', fontSize: 13, color: '#fff', textAlign: 'right', whiteSpace: 'nowrap' }
+  const th = { padding: '11px 14px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'rgba(8,8,18,0.92)', backdropFilter: 'blur(12px)' }
 
   const Badge = ({ risk }) => {
     const r = RISK[risk] || RISK.ok
@@ -97,9 +97,9 @@ export default function InventoryTab() {
 
   const kpiCard = (accent, label, value, sub) => (
     <div style={{ ...cardWrap, borderLeft: `3px solid ${accent}`, padding: '18px 20px' }}>
-      <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)' }}>{label}</div>
+      <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.78)' }}>{label}</div>
       <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>{value}</div>
-      <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{sub}</div>
+      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.78)' }}>{sub}</div>
     </div>
   )
 
@@ -109,7 +109,7 @@ export default function InventoryTab() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ maxWidth: 720 }}>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{t('inv.title', null, 'Inventario')}</h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--text3)', fontSize: 13, lineHeight: 1.5 }}>{t('inv.subtitle', null, 'Unità operativa = taglia/SKU. Un prodotto può avere stock alto e una sola taglia in esaurimento — guarda sempre la taglia critica. Quantità da Shopify; valore su COGS (cost per item).')}</p>
+          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.78)', fontSize: 13, lineHeight: 1.5 }}>{t('inv.subtitle', null, 'Unità operativa = taglia/SKU. Un prodotto può avere stock alto e una sola taglia in esaurimento — guarda sempre la taglia critica. Quantità da Shopify; valore su COGS (cost per item).')}</p>
         </div>
         <button onClick={() => load(true)} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--accent)', color: 'var(--accent)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>
           <Icon name="refresh" size={14} /> {loading ? t('inv.loading', null, 'Aggiorno…') : t('inv.refresh', null, 'Aggiorna (live)')}
@@ -121,10 +121,10 @@ export default function InventoryTab() {
       {data && (
         <>
           {/* Info bar */}
-          <div style={{ ...cardWrap, padding: '12px 18px', fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <span>{t('inv.updated', null, 'Aggiornato')}: <b style={{ color: 'var(--text2)' }}>{new Date(data.updatedAt).toLocaleString(intlLocale)}</b></span>
-            <span>{t('inv.catalog', null, 'Catalogo')}: <b style={{ color: 'var(--text2)' }}>{fmtInt(k.productCount)}</b> {t('inv.products', null, 'prodotti')} · <b style={{ color: 'var(--text2)' }}>{fmtInt(k.variantCount)}</b> {t('inv.variants', null, 'varianti')}</span>
-            <span>{t('inv.window', null, 'Finestra vendite')}: <b style={{ color: 'var(--text2)' }}>{data.periodDays}gg</b></span>
+          <div style={{ ...cardWrap, padding: '12px 18px', fontSize: 12, color: 'rgba(255,255,255,0.78)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <span>{t('inv.updated', null, 'Aggiornato')}: <b style={{ color: '#fff' }}>{new Date(data.updatedAt).toLocaleString(intlLocale)}</b></span>
+            <span>{t('inv.catalog', null, 'Catalogo')}: <b style={{ color: '#fff' }}>{fmtInt(k.productCount)}</b> {t('inv.products', null, 'prodotti')} · <b style={{ color: '#fff' }}>{fmtInt(k.variantCount)}</b> {t('inv.variants', null, 'varianti')}</span>
+            <span>{t('inv.window', null, 'Finestra vendite')}: <b style={{ color: '#fff' }}>{data.periodDays}gg</b></span>
             {k.costCoverage < 90 && <span style={{ color: '#f59e0b' }}>⚠ {t('inv.costCov', { n: k.costCoverage }, `Costo presente solo sul ${k.costCoverage}% delle varianti — il valore COGS è parziale`)}</span>}
           </div>
 
@@ -147,11 +147,11 @@ export default function InventoryTab() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                         <span style={{ fontWeight: 800, color: '#fff', fontSize: 12.5 }}>{i.size}</span>
                         <Badge risk={i.risk} />
-                        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text3)' }}>{fmtInt(i.stock)} {t('inv.stock', null, 'stock')}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.78)' }}>{fmtInt(i.stock)} {t('inv.stock', null, 'stock')}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.productTitle}</div>
-                      <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--text3)' }}>
-                        <span>{t('inv.perDay', null, 'Vendite/g')} <b style={{ color: 'var(--text2)' }}>{i.velocity}</b></span>
+                      <div style={{ fontSize: 12, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.productTitle}</div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.78)' }}>
+                        <span>{t('inv.perDay', null, 'Vendite/g')} <b style={{ color: '#fff' }}>{i.velocity}</b></span>
                         {i.brokenSize
                           ? <span style={{ color: '#fca5a5' }}>{t('inv.lost', null, 'Persi')} <b>{fmtMoney(i.lostRevPerDay * 7)}/{t('inv.week', null, 'sett')}</b></span>
                           : <span>{t('inv.days', null, 'Giorni')} <b style={{ color: i.risk === 'le7' ? '#ef4444' : '#f59e0b' }}>{i.daysToStockout} gg</b></span>}
@@ -169,7 +169,7 @@ export default function InventoryTab() {
             <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[['urgent', t('inv.tabUrgent', null, 'Urgenze'), urgentAll.length], ['product', t('inv.tabProduct', null, 'Per prodotto'), k.productCount], ['catalog', t('inv.tabCatalog', null, 'Catalogo'), k.variantCount]].map(([id, label, n]) => (
-                  <button key={id} onClick={() => setView(id)} style={{ padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: view === id ? '#fff' : 'var(--text3)', fontSize: 13.5, fontWeight: view === id ? 900 : 700, borderBottom: view === id ? '2px solid var(--accent)' : '2px solid transparent' }}>{label} <span style={{ opacity: 0.6, fontWeight: 700 }}>({n})</span></button>
+                  <button key={id} onClick={() => setView(id)} style={{ padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: view === id ? '#fff' : 'rgba(255,255,255,0.78)', fontSize: 13.5, fontWeight: view === id ? 900 : 700, borderBottom: view === id ? '2px solid var(--accent)' : '2px solid transparent' }}>{label} <span style={{ opacity: 0.6, fontWeight: 700 }}>({n})</span></button>
                 ))}
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 11px' }}>
@@ -181,7 +181,7 @@ export default function InventoryTab() {
             {view === 'urgent' && (
               <div style={{ padding: '12px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[['all', t('inv.fAll', null, 'Tutte urgenti')], ['le7', '≤ 7 gg'], ['le30', '≤ 30 gg'], ['oos_sales', t('inv.fBroken', null, 'OOS con vendite')], ['low', t('inv.fLow', null, 'Low stock (1-5)')]].map(([id, label]) => (
-                  <button key={id} onClick={() => setChip(id)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${chip === id ? 'var(--accent)' : 'var(--border)'}`, background: chip === id ? 'rgba(123,91,255,0.15)' : 'transparent', color: chip === id ? '#fff' : 'var(--text2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+                  <button key={id} onClick={() => setChip(id)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${chip === id ? 'var(--accent)' : 'var(--border)'}`, background: chip === id ? 'rgba(123,91,255,0.15)' : 'transparent', color: chip === id ? '#fff' : '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
                 ))}
               </div>
             )}
@@ -201,8 +201,8 @@ export default function InventoryTab() {
                     {byProduct.map(p => (
                       <tr key={p.productId} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td style={{ padding: '12px 14px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={p.image} /><span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{p.productTitle}</span></div></td>
-                        <td style={{ ...cell, color: p.critCount ? '#f59e0b' : 'var(--text3)', fontWeight: 800 }}>{p.critCount || '—'}</td>
-                        <td style={{ ...cell, color: p.brokenCount ? '#ef4444' : 'var(--text3)', fontWeight: 800 }}>{p.brokenCount || '—'}</td>
+                        <td style={{ ...cell, color: p.critCount ? '#f59e0b' : 'rgba(255,255,255,0.78)', fontWeight: 800 }}>{p.critCount || '—'}</td>
+                        <td style={{ ...cell, color: p.brokenCount ? '#ef4444' : 'rgba(255,255,255,0.78)', fontWeight: 800 }}>{p.brokenCount || '—'}</td>
                         <td style={cell}>{p.worst < 1e9 ? `${p.worst} gg` : '—'}</td>
                         <td style={cell}>{fmtInt(p.totalStock)}</td>
                         <td style={{ ...cell, color: '#fff', fontWeight: 800 }}>{fmtMoney(p.value)}</td>
@@ -225,15 +225,15 @@ export default function InventoryTab() {
                     {filtered.map(i => (
                       <tr key={i.variantId} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td style={{ padding: '12px 14px', maxWidth: 320 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={i.image} /><span style={{ color: '#fff', fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.productTitle}</span></div></td>
-                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ color: '#fff', fontWeight: 700, fontSize: 12.5 }}>{i.size}</span><Badge risk={i.risk} /></div><div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{i.sku || '—'}</div></td>
-                        <td style={{ ...cell, color: i.oos ? '#ef4444' : 'var(--text2)', fontWeight: 800 }}>{fmtInt(i.stock)}</td>
+                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ color: '#fff', fontWeight: 700, fontSize: 12.5 }}>{i.size}</span><Badge risk={i.risk} /></div><div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.78)' }}>{i.sku || '—'}</div></td>
+                        <td style={{ ...cell, color: i.oos ? '#ef4444' : '#fff', fontWeight: 800 }}>{fmtInt(i.stock)}</td>
                         <td style={cell}>{i.velocity || '—'}</td>
-                        <td style={{ ...cell, color: i.risk === 'le7' ? '#ef4444' : i.risk === 'le30' ? '#f59e0b' : 'var(--text3)', fontWeight: 700 }}>{i.oos ? t('inv.oos', null, 'Esaurito') : i.daysToStockout != null ? `${i.daysToStockout} gg` : '∞'}</td>
+                        <td style={{ ...cell, color: i.risk === 'le7' ? '#ef4444' : i.risk === 'le30' ? '#f59e0b' : 'rgba(255,255,255,0.78)', fontWeight: 700 }}>{i.oos ? t('inv.oos', null, 'Esaurito') : i.daysToStockout != null ? `${i.daysToStockout} gg` : '∞'}</td>
                         <td style={cell}>{fmtDate(i.stockoutDate)}</td>
                         <td style={{ ...cell, color: '#fff', fontWeight: 700 }}>{i.brokenSize ? <span style={{ color: '#fca5a5' }}>-{fmtMoney(i.lostRevPerDay * 7)}</span> : fmtMoney(i.value)}</td>
                       </tr>
                     ))}
-                    {filtered.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>{t('inv.empty', null, 'Nessun elemento.')}</td></tr>}
+                    {filtered.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('inv.empty', null, 'Nessun elemento.')}</td></tr>}
                   </tbody>
                 </table>
               )}
@@ -242,7 +242,7 @@ export default function InventoryTab() {
         </>
       )}
 
-      {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'var(--text3)' }}>{t('inv.loadingFull', null, 'Carico inventario da Shopify…')}</div>}
+      {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('inv.loadingFull', null, 'Carico inventario da Shopify…')}</div>}
     </div>
   )
 }

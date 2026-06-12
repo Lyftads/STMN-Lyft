@@ -1554,6 +1554,14 @@ function MockBarChart() {
 function Pricing({ t }) {
   const planAccents = ['#0ea5e9', ACCENT, GREEN, '#f59e0b']
   const [audience, setAudience] = useState('brand') // 'brand' | 'agency'
+  const [cadB, setCadB] = useState('annual')        // cadenza dei piani brand
+  const BRAND_CAD = [
+    { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
+    { id: 'semestral', label: 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: 'ogni 6 mesi' },
+    { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
+  ]
+  const bc = BRAND_CAD.find(x => x.id === cadB)
+  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
   return (
     <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
       <Reveal>
@@ -1583,9 +1591,30 @@ function Pricing({ t }) {
           <AgencyPricing />
         </div>
       ) : (
+      <>
+      {/* Founder banner brand */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', textAlign: 'center', padding: '12px 18px', borderRadius: 14, marginTop: 28, maxWidth: 760, marginLeft: 'auto', marginRight: 'auto', background: 'linear-gradient(90deg, rgba(34,197,94,0.16), rgba(41,151,255,0.16))', border: '1px solid rgba(34,197,94,0.35)' }}>
+        <span style={{ fontSize: 18 }}>🎉</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>Founder: −30% A VITA per le prime 100 aziende</span>
+        <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>· cumulabile con lo sconto annuale</span>
+      </div>
+      {/* Toggle cadenza brand */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
+        <div style={{ display: 'inline-flex', gap: 4, padding: 5, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {BRAND_CAD.map(x => {
+            const on = cadB === x.id
+            return (
+              <button key={x.id} type="button" onClick={() => setCadB(x.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'rgba(255,255,255,0.7)', fontSize: 13.5, fontWeight: 800 }}>
+                {x.label}
+                {x.off > 0 && <span style={{ fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999, background: on ? 'rgba(10,10,20,0.18)' : 'rgba(239,68,68,0.16)', color: on ? '#0a0a14' : '#ef4444' }}>−{x.off}%</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: 18, maxWidth: 1180, margin: '50px auto 0',
+        gap: 18, maxWidth: 1180, margin: '40px auto 0',
       }}>
         {t.plans.map((p, i) => {
           const hot = p.popular || p.best
@@ -1610,10 +1639,35 @@ function Pricing({ t }) {
               <div style={{ fontSize: 12, color: planAccents[i], fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 {p.name}
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14, marginBottom: 10 }}>
-                <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em' }}>{p.price}</span>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{p.period}</span>
-              </div>
+              {(() => {
+                const m = parseInt(String(p.price).replace(/[^0-9]/g, ''), 10)
+                if (!Number.isFinite(m)) {
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14, marginBottom: 10 }}>
+                      <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em' }}>{p.price}</span>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{p.period}</span>
+                    </div>
+                  )
+                }
+                const eff = Math.round(m * bc.factor)
+                const total = Math.round(eff * bc.months)
+                const save = Math.round((m - eff) * bc.months)
+                return (
+                  <div style={{ marginTop: 14, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em' }}>{eur0(eff)}</span>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{p.period}</span>
+                    </div>
+                    {bc.off > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'line-through' }}>{eur0(m)}{p.period}</span>
+                        <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>Risparmi {eur0(save)}</span>
+                      </div>
+                    )}
+                    {bc.off > 0 && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{eur0(total)} fatturato {bc.bill}</div>}
+                  </div>
+                )
+              })()}
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginBottom: 24, minHeight: 38 }}>{p.tagline}</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 26 }}>
                 {p.features.map(f => (
@@ -1636,6 +1690,7 @@ function Pricing({ t }) {
           )
         })}
       </div>
+      </>
       )}
     </section>
   )

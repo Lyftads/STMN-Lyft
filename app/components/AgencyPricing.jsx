@@ -64,7 +64,7 @@ export default function AgencyPricing({ compact = false }) {
                 {x.off > 0 && (
                   <span style={{
                     fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
-                    background: on ? 'rgba(10,10,20,0.18)' : 'rgba(34,197,94,0.16)', color: on ? '#0a0a14' : '#22c55e',
+                    background: on ? 'rgba(10,10,20,0.18)' : 'rgba(239,68,68,0.16)', color: on ? '#0a0a14' : '#ef4444',
                   }}>−{x.off}%</span>
                 )}
               </button>
@@ -73,7 +73,7 @@ export default function AgencyPricing({ compact = false }) {
         </div>
       </div>
       {c.off > 0 && (
-        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#22c55e', fontWeight: 700 }}>
+        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#ef4444', fontWeight: 700 }}>
           {cad === 'annual' ? 'Stai risparmiando 2,4 mensilità all’anno' : 'Stai risparmiando quasi 1 mensilità a semestre'}
         </div>
       )}
@@ -109,7 +109,7 @@ export default function AgencyPricing({ compact = false }) {
                   {c.off > 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{eur(p.price)}/mese</span>
-                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.16)', color: '#22c55e' }}>Risparmi {eur(savings)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>Risparmi {eur(savings)}</span>
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, color: 'var(--text3)' }}>fatturato mensilmente</div>

@@ -357,7 +357,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   return (
     <div>
       {/* Timeframe */}
-      <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+      <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
         {setPreset && <div style={{ marginLeft: 'auto' }}><BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} /></div>}
         {onRefresh && (
           <button onClick={onRefresh} disabled={loading} className="btn-glass" style={{

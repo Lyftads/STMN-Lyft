@@ -6,6 +6,7 @@ import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend } from '../../../lib/ads/campaignSpend'
+import { fetchGoogleProductCost, buildShopifyMaps } from '../../../lib/ads/campaignProducts'
 import { loadLatestLanded } from '../../../lib/cost/landed'
 
 // ── Performance prodotti (B2C) ──
@@ -51,6 +52,7 @@ async function fetchOrders(store, token, sinceISO, untilISO) {
 async function fetchProductMeta(store, token) {
   const costByVariant = new Map()
   const meta = new Map() // productId -> { title, image }
+  const catalog = []     // [{id, handle, variants:[{variant_id, sku}]}] per il matching ADS
   let cursor = null
   for (let page = 0; page < 30; page++) {
     const after = cursor ? `, after: "${cursor}"` : ''
@@ -62,8 +64,8 @@ async function fetchProductMeta(store, token) {
         products(first: 100${after}, query: "status:active") {
           pageInfo { hasNextPage endCursor }
           edges { node {
-            legacyResourceId title isGiftCard featuredImage { url }
-            variants(first: 100) { edges { node { legacyResourceId inventoryItem { unitCost { amount } requiresShipping } } } }
+            legacyResourceId title handle isGiftCard featuredImage { url }
+            variants(first: 100) { edges { node { legacyResourceId sku inventoryItem { unitCost { amount } requiresShipping } } } }
           }}
         }
       }` }),
@@ -73,17 +75,21 @@ async function fetchProductMeta(store, token) {
     const conn = json?.data?.products
     for (const { node: p } of (conn?.edges || [])) {
       if (p.isGiftCard) continue
-      meta.set(String(p.legacyResourceId), { title: p.title, image: p.featuredImage?.url || null })
+      const pid = String(p.legacyResourceId)
+      meta.set(pid, { title: p.title, image: p.featuredImage?.url || null })
+      const variants = []
       for (const { node: v } of (p.variants?.edges || [])) {
         if (v.inventoryItem?.requiresShipping === false) continue
+        variants.push({ variant_id: String(v.legacyResourceId), sku: v.sku || '' })
         const c = v.inventoryItem?.unitCost?.amount
         if (c != null) costByVariant.set(String(v.legacyResourceId), parseFloat(c))
       }
+      catalog.push({ id: pid, handle: p.handle, variants })
     }
     if (!conn?.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
   }
-  return { costByVariant, meta }
+  return { costByVariant, meta, catalog }
 }
 
 // ── Mappatura campagna → prodotto (Supabase) ──
@@ -134,16 +140,20 @@ export async function GET(req) {
       // COGS: override col costo landed manuale dove presente (modulo Costi prodotto)
       if (landed.size) for (const [vid, c] of landed) pmeta.costByVariant.set(vid, c)
 
-      // Attribuzione ADS: spesa per campagna mappata → prodotto (preciso);
-      // campagne non mappate → ripartite in proporzione al ricavo (stima).
+      // ── Attribuzione ADS ──
+      // META: spesa per campagna mappata → prodotto (preciso); non mappate → proporzionale.
+      // GOOGLE: costo ESATTO per prodotto da shopping_performance_view (Shopping/PMax);
+      //         la spesa Google non-prodotto (Search) resta proporzionale.
+      const shopMaps = buildShopifyMaps(pmeta.catalog)
+      const googleProduct = await fetchGoogleProductCost(since, until, shopMaps).catch(() => ({ byProduct: new Map(), total: 0 }))
+
       let metaSpend = 0, googleSpend = 0, unmappedSpend = 0
       const mappedByProduct = new Map()
       for (const c of campaigns) {
-        if (c.platform === 'google') googleSpend += c.spend; else metaSpend += c.spend
-        const ids = mapping.get(`${c.platform}:${c.campaign_id}`) || []
+        if (c.platform === 'google') { googleSpend += c.spend; continue } // Google gestito per prodotto sotto
+        metaSpend += c.spend
+        const ids = mapping.get(`meta:${c.campaign_id}`) || []
         if (!ids.length) { unmappedSpend += c.spend; continue }
-        // Spesa della campagna distribuita tra i prodotti del set, in proporzione
-        // al loro ricavo (campagna su 1 prodotto → tutto su quello = preciso).
         let sumRev = 0
         for (const id of ids) sumRev += (cur.get(id)?.revenue || 0)
         for (const id of ids) {
@@ -151,6 +161,10 @@ export async function GET(req) {
           mappedByProduct.set(id, (mappedByProduct.get(id) || 0) + share)
         }
       }
+      // Google esatto per prodotto + il resto (Search/non-prodotto) in proporzionale
+      for (const [pid, cost] of googleProduct.byProduct) mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost)
+      unmappedSpend += Math.max(0, googleSpend - googleProduct.total)
+
       const adsTotal = metaSpend + googleSpend
       const mappedSpend = adsTotal - unmappedSpend
       const totalRevenue = [...cur.values()].reduce((s, p) => s + p.revenue, 0)

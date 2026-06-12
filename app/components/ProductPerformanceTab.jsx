@@ -38,7 +38,9 @@ export default function ProductPerformanceTab() {
       const sel = {}
       for (const c of j.campaigns) {
         const key = `${c.platform}:${c.campaign_id}`
-        sel[key] = c.selected?.length ? c.selected.map(p => p.id) : (c.suggestedProductId ? [c.suggestedProductId] : [])
+        sel[key] = c.selected?.length ? c.selected.map(p => p.id)
+          : c.auto?.length ? c.auto.map(p => p.id)
+          : (c.suggestedProductId ? [c.suggestedProductId] : [])
       }
       setMapData(j); setMapSel(sel)
     } catch (e) { setMapErr(e.message) } finally { setMapLoading(false) }
@@ -194,7 +196,7 @@ export default function ProductPerformanceTab() {
             <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: 'var(--text)', fontWeight: 900, fontSize: 16 }}>{t('pp.mapTitle', null, 'Mappatura campagne → prodotto')}</div>
-                <div style={{ color: 'var(--text2)', fontSize: 12, marginTop: 2 }}>{t('pp.mapSub', null, 'Associa ogni campagna al prodotto che promuove: la sua spesa andrà su quel prodotto (dato preciso). Le non mappate restano in proporzionale.')}</div>
+                <div style={{ color: 'var(--text2)', fontSize: 12, marginTop: 2 }}>{t('pp.mapSub2', null, 'Solo Meta: prodotti pre-compilati in automatico (catalogo dai product set, dirette dal link). Google è già attribuito esatto per prodotto (Shopping/PMax). Correggi se serve e salva.')}</div>
               </div>
               <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer' }}><Icon name="close" size={18} /></button>
             </div>
@@ -237,6 +239,7 @@ export default function ProductPerformanceTab() {
                             <div style={{ display: 'flex', gap: 12, marginTop: 5, alignItems: 'center' }}>
                               <button onClick={() => setAllProducts(key, allIds)} style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapAllCatalog', null, 'Tutto il catalogo')}</button>
                               {sel.length > 0 && <button onClick={() => setAllProducts(key, [])} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapClear', null, 'Svuota')}</button>}
+                              {c.autoKind && <span style={{ fontSize: 10, fontWeight: 700, color: c.autoKind === 'catalog' ? '#60a5fa' : '#86efac', background: c.autoKind === 'catalog' ? 'rgba(96,165,250,0.12)' : 'rgba(134,239,172,0.12)', border: `1px solid ${c.autoKind === 'catalog' ? 'rgba(96,165,250,0.3)' : 'rgba(134,239,172,0.3)'}`, borderRadius: 999, padding: '2px 8px' }}>{c.autoKind === 'catalog' ? t('pp.kindCatalog', null, 'auto · catalogo') : t('pp.kindDirect', null, 'auto · diretta')}</span>}
                               {isSuggest && <span style={{ fontSize: 10, color: '#86efac', fontWeight: 700 }}>{t('pp.mapSuggested', null, 'suggerito')} {c.suggestedScore ? `${c.suggestedScore}%` : ''}</span>}
                             </div>
                           </td>

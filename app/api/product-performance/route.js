@@ -90,9 +90,14 @@ async function loadMapping(workspaceId) {
   const admin = getAdminSupabase()
   if (!admin || !workspaceId) return new Map()
   try {
-    const { data } = await admin.from('campaign_product_map').select('platform,campaign_id,product_id').eq('workspace_id', workspaceId)
+    const { data } = await admin.from('campaign_product_map').select('platform,campaign_id,product_id,products').eq('workspace_id', workspaceId)
     const m = new Map()
-    for (const r of (data || [])) m.set(`${r.platform}:${r.campaign_id}`, r.product_id || null)
+    for (const r of (data || [])) {
+      const ids = Array.isArray(r.products) && r.products.length
+        ? r.products.map(p => String(p.id)).filter(Boolean)
+        : (r.product_id ? [String(r.product_id)] : [])
+      m.set(`${r.platform}:${r.campaign_id}`, ids)
+    }
     return m
   } catch { return new Map() }
 }
@@ -131,9 +136,16 @@ export async function GET(req) {
       const mappedByProduct = new Map()
       for (const c of campaigns) {
         if (c.platform === 'google') googleSpend += c.spend; else metaSpend += c.spend
-        const pid = mapping.get(`${c.platform}:${c.campaign_id}`)
-        if (pid) mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + c.spend)
-        else unmappedSpend += c.spend
+        const ids = mapping.get(`${c.platform}:${c.campaign_id}`) || []
+        if (!ids.length) { unmappedSpend += c.spend; continue }
+        // Spesa della campagna distribuita tra i prodotti del set, in proporzione
+        // al loro ricavo (campagna su 1 prodotto → tutto su quello = preciso).
+        let sumRev = 0
+        for (const id of ids) sumRev += (cur.get(id)?.revenue || 0)
+        for (const id of ids) {
+          const share = sumRev > 0 ? c.spend * ((cur.get(id)?.revenue || 0) / sumRev) : c.spend / ids.length
+          mappedByProduct.set(id, (mappedByProduct.get(id) || 0) + share)
+        }
       }
       const adsTotal = metaSpend + googleSpend
       const mappedSpend = adsTotal - unmappedSpend

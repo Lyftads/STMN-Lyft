@@ -28,6 +28,13 @@ async function fetchProducts(store, token) {
   return out
 }
 
+// Normalizza i prodotti salvati di una riga → [{id, title}] (gestisce legacy)
+function normalizeProducts(row) {
+  if (Array.isArray(row?.products) && row.products.length) return row.products.map(p => ({ id: String(p.id), title: p.title || '' })).filter(p => p.id)
+  if (row?.product_id) return [{ id: String(row.product_id), title: row.product_title || '' }]
+  return []
+}
+
 // Mappatura salvata { "platform:campaign_id": row }
 async function loadMapping(workspaceId) {
   const admin = getAdminSupabase()
@@ -59,15 +66,15 @@ export async function GET(req) {
         .sort((a, b) => b.spend - a.spend)
         .map(c => {
           const saved = mapping.get(`${c.platform}:${c.campaign_id}`)
-          const sug = saved ? null : suggestProduct(c.campaign_name, products)
+          const selected = saved ? normalizeProducts(saved) : []
+          const sug = selected.length ? null : suggestProduct(c.campaign_name, products)
           return {
             platform: c.platform,
             campaign_id: c.campaign_id,
             campaign_name: c.campaign_name,
             spend: Math.round(c.spend * 100) / 100,
-            product_id: saved ? (saved.product_id || null) : null,
-            product_title: saved?.product_title || null,
-            mapped: !!saved,
+            selected,                       // [{id, title}] già mappati
+            mapped: selected.length > 0,
             suggestedProductId: sug?.id || null,
             suggestedTitle: sug?.title || null,
             suggestedScore: sug?.score || null,
@@ -91,15 +98,19 @@ export async function POST(req) {
     const mappings = Array.isArray(body.mappings) ? body.mappings : []
     const rows = mappings
       .filter(m => m && m.platform && m.campaign_id)
-      .map(m => ({
-        workspace_id: ws.workspaceId,
-        platform: String(m.platform),
-        campaign_id: String(m.campaign_id),
-        campaign_name: m.campaign_name || null,
-        product_id: m.product_id ? String(m.product_id) : null,
-        product_title: m.product_title || null,
-        updated_at: new Date().toISOString(),
-      }))
+      .map(m => {
+        const products = Array.isArray(m.products) ? m.products.filter(p => p && p.id).map(p => ({ id: String(p.id), title: p.title || '' })) : []
+        return {
+          workspace_id: ws.workspaceId,
+          platform: String(m.platform),
+          campaign_id: String(m.campaign_id),
+          campaign_name: m.campaign_name || null,
+          product_id: products[0]?.id || null,      // legacy (primo prodotto)
+          product_title: products[0]?.title || null,
+          products,
+          updated_at: new Date().toISOString(),
+        }
+      })
     if (!rows.length) return NextResponse.json({ ok: true, saved: 0 })
     try {
       const { error } = await admin.from('campaign_product_map').upsert(rows, { onConflict: 'workspace_id,platform,campaign_id' })

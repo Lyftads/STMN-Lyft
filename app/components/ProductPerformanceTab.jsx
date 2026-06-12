@@ -24,6 +24,11 @@ export default function ProductPerformanceTab() {
   const [mapSaving, setMapSaving] = useState(false)
   const [mapErr, setMapErr] = useState('')
 
+  // mapSel[key] = array di product id selezionati per la campagna
+  const addProduct = (key, id) => setMapSel(s => ({ ...s, [key]: (s[key] || []).includes(id) ? s[key] : [...(s[key] || []), id] }))
+  const removeProduct = (key, id) => setMapSel(s => ({ ...s, [key]: (s[key] || []).filter(x => x !== id) }))
+  const setAllProducts = (key, ids) => setMapSel(s => ({ ...s, [key]: ids }))
+
   const openMap = async () => {
     setMapOpen(true); setMapLoading(true); setMapErr('')
     try {
@@ -31,7 +36,10 @@ export default function ProductPerformanceTab() {
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Errore')
       const sel = {}
-      for (const c of j.campaigns) { const key = `${c.platform}:${c.campaign_id}`; sel[key] = c.product_id || (c.mapped ? '' : (c.suggestedProductId || '')) }
+      for (const c of j.campaigns) {
+        const key = `${c.platform}:${c.campaign_id}`
+        sel[key] = c.selected?.length ? c.selected.map(p => p.id) : (c.suggestedProductId ? [c.suggestedProductId] : [])
+      }
       setMapData(j); setMapSel(sel)
     } catch (e) { setMapErr(e.message) } finally { setMapLoading(false) }
   }
@@ -40,7 +48,11 @@ export default function ProductPerformanceTab() {
     setMapSaving(true); setMapErr('')
     try {
       const prodTitle = new Map(mapData.products.map(p => [p.id, p.title]))
-      const mappings = mapData.campaigns.map(c => { const key = `${c.platform}:${c.campaign_id}`; const pid = mapSel[key] || null; return { platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, product_id: pid, product_title: pid ? prodTitle.get(pid) : null } })
+      const mappings = mapData.campaigns.map(c => {
+        const key = `${c.platform}:${c.campaign_id}`
+        const ids = mapSel[key] || []
+        return { platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, products: ids.map(id => ({ id, title: prodTitle.get(id) || '' })) }
+      })
       const r = await fetch('/api/campaign-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) })
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'Errore salvataggio')
@@ -71,6 +83,7 @@ export default function ProductPerformanceTab() {
   }, [data, sortBy])
 
   const k = data?.totals
+  const mapProdTitle = new Map((mapData?.products || []).map(p => [p.id, p.title]))
   const cardWrap = { background: 'var(--card,rgba(255,255,255,0.02))', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }
   const cell = { padding: '12px 14px', fontSize: 13, color: '#fff', textAlign: 'right', whiteSpace: 'nowrap' }
   const th = { padding: '11px 14px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'rgba(8,8,18,0.92)', backdropFilter: 'blur(12px)' }
@@ -198,20 +211,34 @@ export default function ProductPerformanceTab() {
                   <tbody>
                     {mapData.campaigns.map(c => {
                       const key = `${c.platform}:${c.campaign_id}`
-                      const isSuggest = !c.mapped && c.suggestedProductId && mapSel[key] === c.suggestedProductId
+                      const sel = mapSel[key] || []
+                      const isSuggest = !c.mapped && c.suggestedProductId && sel.length === 1 && sel[0] === c.suggestedProductId
+                      const allIds = mapData.products.map(p => p.id)
                       return (
                         <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '10px 14px', maxWidth: 320 }}>
+                          <td style={{ padding: '10px 14px', maxWidth: 280, verticalAlign: 'top' }}>
                             <div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_name}</div>
                             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.platform}</div>
                           </td>
-                          <td style={{ ...cell, padding: '10px 14px' }}>{fmtMoney(c.spend)}</td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <select value={mapSel[key] ?? ''} onChange={e => setMapSel(s => ({ ...s, [key]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: 12.5, maxWidth: 360, width: '100%', colorScheme: 'dark' }}>
-                              <option value="">{t('pp.mapNone', null, '— Non attribuito —')}</option>
-                              {mapData.products.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                            </select>
-                            {isSuggest && <span style={{ marginLeft: 8, fontSize: 10, color: '#86efac', fontWeight: 700 }}>{t('pp.mapSuggested', null, 'suggerito')} {c.suggestedScore ? `${c.suggestedScore}%` : ''}</span>}
+                          <td style={{ ...cell, padding: '10px 14px', verticalAlign: 'top' }}>{fmtMoney(c.spend)}</td>
+                          <td style={{ padding: '10px 14px', minWidth: 360 }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                              {sel.map(id => (
+                                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(123,91,255,0.18)', border: '1px solid var(--accent)', color: '#fff', borderRadius: 999, padding: '3px 8px', fontSize: 11.5, fontWeight: 600, maxWidth: 200 }}>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mapProdTitle.get(id) || id}</span>
+                                  <span onClick={() => removeProduct(key, id)} style={{ cursor: 'pointer', opacity: 0.8, fontWeight: 800 }}>×</span>
+                                </span>
+                              ))}
+                              <select value="" onChange={e => { if (e.target.value) addProduct(key, e.target.value) }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', color: '#fff', fontSize: 12, colorScheme: 'dark', maxWidth: 220 }}>
+                                <option value="">{t('pp.mapAdd', null, '+ Aggiungi prodotto')}</option>
+                                {mapData.products.filter(p => !sel.includes(p.id)).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                              </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: 12, marginTop: 5, alignItems: 'center' }}>
+                              <button onClick={() => setAllProducts(key, allIds)} style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapAllCatalog', null, 'Tutto il catalogo')}</button>
+                              {sel.length > 0 && <button onClick={() => setAllProducts(key, [])} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapClear', null, 'Svuota')}</button>}
+                              {isSuggest && <span style={{ fontSize: 10, color: '#86efac', fontWeight: 700 }}>{t('pp.mapSuggested', null, 'suggerito')} {c.suggestedScore ? `${c.suggestedScore}%` : ''}</span>}
+                            </div>
                           </td>
                         </tr>
                       )

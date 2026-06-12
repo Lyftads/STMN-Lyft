@@ -28,7 +28,7 @@ const SEVERITY_COLORS = {
 const SEVERITY_LABEL = { high: 'Alto', medium: 'Medio', low: 'Basso' }
 
 export default function GoogleLighthouseTab() {
-  const [tf, setTf] = useState({ preset: 'last_14d' })
+  const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [filter, setFilter] = useState('all')
   const [data, setData] = useState(null)

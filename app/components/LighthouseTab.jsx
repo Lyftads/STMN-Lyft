@@ -34,7 +34,7 @@ const SEVERITY_LABEL = {
 }
 
 export default function LighthouseTab() {
-  const [tf, setTf] = useState({ preset: 'last_14d' })
+  const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [filter, setFilter] = useState('all')
   const [data, setData] = useState(null)

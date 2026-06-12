@@ -49,7 +49,7 @@ export default function GoogleBudgetAdvisorPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
-  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [queued, setQueued] = useState({})
 

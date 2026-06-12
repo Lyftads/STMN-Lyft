@@ -47,7 +47,7 @@ export default function CreativeFatiguePanel() {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
-  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const [tf, setTf] = useState({ preset: 'last_14d' })
   const preset = tf.preset
   const [queued, setQueued] = useState({})
 

@@ -69,6 +69,7 @@ export default function VendroShell({
         { id: 'onboarding', label: 'Onboarding', icon: <Icon name="rocket" /> },
         { id: 'dashboard', label: 'Dashboard', icon: <Icon name="grid" /> },
         { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
+        { id: 'productPerformance', label: 'Performance prodotti', icon: <Icon name="chart-bar" /> },
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
@@ -395,7 +396,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

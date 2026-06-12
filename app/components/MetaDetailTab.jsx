@@ -445,7 +445,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
       <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
-      <td style={{ ...cell, color: '#a78bfa', fontWeight: 800 }}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
+      <td style={cell}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>
         {fmtRatio(row.roas)}
@@ -525,7 +525,7 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
       <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
-      <td style={{ ...cell, color: '#a78bfa', fontWeight: 800 }}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
+      <td style={cell}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(row.roas)}</td>
       <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>

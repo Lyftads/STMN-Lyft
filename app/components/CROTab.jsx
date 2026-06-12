@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import CROAgent from './CROAgent'
+import BmTimeframe from './ui/BmTimeframe'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const ACCENT_GLOW = '#2997ff'
@@ -219,9 +220,7 @@ function FunnelChart({ funnel, delay = 0 }) {
 
 export default function CROTab({ data = [], live, onRefresh, loading }) {
   const { t } = useI18n()
-  const [tf, setTf] = useState('this_month')
-  const [customSince, setCustomSince] = useState('')
-  const [customUntil, setCustomUntil] = useState('')
+  const [tf, setTf] = useState({ preset: 'this_month' })
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const safeDiv = (a, b) => b > 0 ? a / b : null
@@ -230,19 +229,21 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
     const now = new Date()
     const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
     const thisM = fmtM(now), prevM = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
-    const m2ago = fmtM(new Date(now.getFullYear(), now.getMonth()-2, 1))
+
+    // I dati CRO sono mensili: mappiamo il range del selettore (since/until)
+    // ai mesi YYYY-MM e confrontiamo con un periodo precedente di pari lunghezza.
+    const sinceM = tf.since ? String(tf.since).slice(0, 7) : null
+    const untilM = tf.until ? String(tf.until).slice(0, 7) : null
 
     let cur = [], prev = [], label = ''
-    if (tf === 'this_month') { cur = data.filter(m => m.month === thisM); prev = data.filter(m => m.month === prevM); label = `${thisM} vs ${prevM}` }
-    else if (tf === 'last_month') { cur = data.filter(m => m.month === prevM); prev = data.filter(m => m.month === m2ago); label = `${prevM} vs ${m2ago}` }
-    else if (tf === 'custom' && customSince && customUntil) {
-      cur = data.filter(m => m.month >= customSince && m.month <= customUntil)
+    if (sinceM && untilM) {
+      cur = data.filter(m => m.month >= sinceM && m.month <= untilM)
       const span = cur.length || 1
-      const startD = new Date(customSince + '-01')
+      const startD = new Date(sinceM + '-01')
       const prevEnd = new Date(startD); prevEnd.setMonth(prevEnd.getMonth() - 1)
       const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
       prev = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
-      label = `${customSince} → ${customUntil} vs periodo prec.`
+      label = sinceM === untilM ? `${sinceM} vs ${fmtM(prevEnd)}` : `${sinceM} → ${untilM} vs periodo prec.`
     } else { cur = data.filter(m => m.month === thisM); prev = data.filter(m => m.month === prevM); label = `${thisM} vs ${prevM}` }
 
     const sum = (arr, k) => arr.reduce((s, m) => s + asNum(m[k]), 0)
@@ -251,7 +252,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       return { fat, ord, nc, rc, ses, cro: ses > 0 && ord > 0 ? (ord / ses) * 100 : null, aov: safeDiv(fat, ord), atc: Math.round(ord * 1.8), chk: Math.round(ord * 1.3) }
     }
     return { current: compute(cur), previous: compute(prev), tfLabel: label }
-  }, [data, tf, customSince, customUntil])
+  }, [data, tf])
 
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
   const prevCro = p.ses > 0 && p.ord > 0 ? (p.ord / p.ses) * 100 : null
@@ -297,70 +298,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         flexWrap: 'wrap',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
-        {[
-          { id: 'this_month', l: t('cro.tfThisMonth', null, 'Questo mese') },
-          { id: 'last_month', l: t('cro.tfLastMonth', null, 'Mese precedente') },
-          { id: 'custom', l: 'Custom' },
-        ].map(b => {
-          const active = tf === b.id
-          return (
-            <button
-              key={b.id}
-              onClick={() => setTf(b.id)}
-              style={{
-                background: active ? 'linear-gradient(135deg, rgba(41,151,255,0.28), rgba(30,58,138,0.22))' : 'rgba(255,255,255,0.04)',
-                border: active ? '1px solid rgba(41,151,255,0.55)' : '1px solid var(--border)',
-                color: active ? 'var(--text)' : 'var(--text2)',
-                borderRadius: 11,
-                padding: '9px 14px',
-                fontSize: 12.5,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: active ? `0 0 14px ${ACCENT_GLOW}33` : 'none',
-                transition: 'all .15s',
-              }}
-            >{b.l}</button>
-          )
-        })}
-        {tf === 'custom' && (
-          <>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>{t('cro.from', null, 'Da:')}</span>
-            <select
-              value={customSince}
-              onChange={e => setCustomSince(e.target.value)}
-              style={{
-                background: 'var(--glass)',
-                border: '1px solid var(--border)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                color: 'var(--text)',
-                fontSize: 12.5,
-                outline: 'none',
-              }}
-            >
-              <option value="">{t('cro.select', null, 'Seleziona')}</option>
-              {availableMonths.map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
-            </select>
-            <span style={{ color: 'var(--text3)' }}>→</span>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>{t('cro.to', null, 'A:')}</span>
-            <select
-              value={customUntil}
-              onChange={e => setCustomUntil(e.target.value)}
-              style={{
-                background: 'var(--glass)',
-                border: '1px solid var(--border)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                color: 'var(--text)',
-                fontSize: 12.5,
-                outline: 'none',
-              }}
-            >
-              <option value="">{t('cro.select', null, 'Seleziona')}</option>
-              {availableMonths.filter(m => !customSince || m.month >= customSince).map(m => <option key={m.month} value={m.month}>{m.month}</option>)}
-            </select>
-          </>
-        )}
+        <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={loading} />
         {onRefresh && (
           <button
             onClick={onRefresh}

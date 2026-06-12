@@ -8,6 +8,7 @@ import Icon from './ui/Icon'
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
   vatRate: 22, cogsPct: null, packagingPerOrder: 0, shippingPerOrder: 0, gatewayPct: 0, gatewayFixed: 0,
+  gatewayFees: {}, // % fee per gateway esterno (PayPal/Klarna/Scalapay/…)
   // righe OPEX suggerite (Shopify non espone piano/app via API → vanno qui)
   fixedCosts: [{ name: 'Shopify (piano)', amount: '' }, { name: 'App Shopify', amount: '' }],
 }
@@ -17,6 +18,13 @@ const eur2 = (n) => (n == null || !Number.isFinite(n)) ? '—' : `€${n.toLocal
 const pctv = (n) => (n == null || !Number.isFinite(n)) ? '—' : `${n.toFixed(1)}%`
 const MLAB = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 const MFULL = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+const GW_LABELS = {
+  shopify_payments: 'Shopify Payments', paypal: 'PayPal', paypal_express: 'PayPal', braintree: 'PayPal/Braintree',
+  klarna: 'Klarna', scalapay: 'Scalapay', revolut: 'Revolut', revolut_pay: 'Revolut', stripe: 'Stripe',
+  amazon_payments: 'Amazon Pay', shop_pay_installments: 'Shop Pay Installments', satispay: 'Satispay',
+  cash_on_delivery: 'Contrassegno', bank_deposit: 'Bonifico', manual: 'Manuale', gift_card: 'Gift Card', unknown: 'Sconosciuto',
+}
+const gwLabel = (g) => GW_LABELS[g] || String(g).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 const monthLabel = (m) => { const [y, mm] = m.split('-').map(Number); return `${MLAB[(mm || 1) - 1]} ${String(y).slice(2)}` }
 const monthFull = (m) => { const [y, mm] = m.split('-').map(Number); return `${MFULL[(mm || 1) - 1]} ${y}` }
 
@@ -122,9 +130,22 @@ export default function PnLTab({ data = [] }) {
         : (realCogs != null ? realCogs : (state.cogsRatio != null ? net * state.cogsRatio : null))
       const grossMargin = cogs != null ? net - cogs : null
       const ads = adByMonth[s.month] ?? 0
-      const fee = (state.feesByMonth && state.feesByMonth[s.month] != null)
-        ? state.feesByMonth[s.month]
-        : (s.totalSales * (cfg.gatewayPct || 0) / 100 + s.orders * (cfg.gatewayFixed || 0))
+      // Fee gateway: Shopify Payments = reale (o stima % sulla sua quota); gli altri
+      // gateway (PayPal/Klarna/Scalapay/…) = loro quota di fatturato × % impostata.
+      const base = s.totalSales
+      const realSP = (state.feesByMonth && state.feesByMonth[s.month] != null) ? state.feesByMonth[s.month] : null
+      const gwMix = state.gatewayMix?.mix, gwTotal = state.gatewayMix?.total || 0
+      let fee
+      if (gwMix && gwTotal > 0) {
+        const isSP = (g) => g === 'shopify_payments'
+        const spShare = Object.keys(gwMix).filter(isSP).reduce((a, g) => a + (gwMix[g] / gwTotal), 0)
+        const spFee = realSP != null ? realSP : base * spShare * ((cfg.gatewayPct || 0) / 100)
+        let otherFee = 0
+        for (const g of Object.keys(gwMix)) { if (isSP(g)) continue; otherFee += base * (gwMix[g] / gwTotal) * ((cfg.gatewayFees?.[g] || 0) / 100) }
+        fee = spFee + otherFee + s.orders * (cfg.gatewayFixed || 0)
+      } else {
+        fee = realSP != null ? realSP : (base * (cfg.gatewayPct || 0) / 100 + s.orders * (cfg.gatewayFixed || 0))
+      }
       const packaging = s.orders * (cfg.packagingPerOrder || 0)
       const shipCost = s.orders * (cfg.shippingPerOrder || 0)
       const contrib = grossMargin != null ? grossMargin - ads - fee - packaging - shipCost : null
@@ -134,7 +155,7 @@ export default function PnLTab({ data = [] }) {
       const fatturato = (fattByMonth[s.month] != null && fattByMonth[s.month] > 0) ? fattByMonth[s.month] : s.totalSales
       return { ...s, fatturato, net, cogs, grossMargin, ads, fee, packaging, shipCost, contrib, fixed: fixedTotal, ebit, ebitPct }
     })
-  }, [state.series, state.feesByMonth, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, fattByMonth, cfg, fixedTotal])
+  }, [state.series, state.feesByMonth, state.gatewayMix, state.cogsByMonth, state.cogsRatio, cogsRatio, adByMonth, fattByMonth, cfg, fixedTotal])
 
   const annual = useMemo(() => {
     if (!rows.length) return null
@@ -239,6 +260,28 @@ export default function PnLTab({ data = [] }) {
             <Field label={t('pnl.gatewayPctField', null, 'Fee gateway %')} value={cfg.gatewayPct} ph={state.feesSource === 'shopify-payments' ? t('pnl.autoShopifyPay', null, 'auto da Shopify Payments') : t('pnl.eg15', null, 'es. 1.5')} onChange={v => saveCfg({ ...cfg, gatewayPct: Number(v) || 0 })} />
             <Field label={t('pnl.gatewayFixedField', null, 'Fee gateway € fisso/ordine')} value={cfg.gatewayFixed} onChange={v => saveCfg({ ...cfg, gatewayFixed: Number(v) || 0 })} />
           </div>
+          {state.gatewayMix?.mix && Object.keys(state.gatewayMix.mix).length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{t('pnl.gwFeesTitle', null, 'Fee per metodo di pagamento (% sulla quota di fatturato · letta da Shopify)')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px,1fr))', gap: 10 }}>
+                {Object.entries(state.gatewayMix.mix).sort((a, b) => b[1] - a[1]).map(([g, rev]) => {
+                  const share = state.gatewayMix.total > 0 ? Math.round((rev / state.gatewayMix.total) * 100) : 0
+                  const isSP = g === 'shopify_payments'
+                  return (
+                    <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gwLabel(g)}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{share}% {t('pnl.gwOfRevenue', null, 'del fatturato')}</div>
+                      </div>
+                      {isSP
+                        ? <span style={{ fontSize: 10, fontWeight: 800, color: state.feesSource === 'shopify-payments' ? '#34d399' : '#f59e0b', background: state.feesSource === 'shopify-payments' ? 'rgba(52,211,153,0.12)' : 'rgba(245,158,11,0.12)', border: `1px solid ${state.feesSource === 'shopify-payments' ? 'rgba(52,211,153,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: 999, padding: '3px 8px', whiteSpace: 'nowrap' }}>{state.feesSource === 'shopify-payments' ? t('pnl.gwAuto', null, 'auto · reale') : t('pnl.gwSP', null, 'usa Fee %')}</span>
+                        : <input value={cfg.gatewayFees?.[g] ?? ''} type="number" placeholder="%" onChange={e => saveCfg({ ...cfg, gatewayFees: { ...(cfg.gatewayFees || {}), [g]: Number(e.target.value) || 0 } })} style={{ ...inp, width: 72, padding: '7px 9px', textAlign: 'right' }} />}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>{t('pnl.opex', null, 'Costi fissi mensili (OPEX)')}</div>
           {(cfg.fixedCosts || []).map((f, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>

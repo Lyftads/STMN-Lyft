@@ -86,6 +86,43 @@ async function fetchFeesByMonth(sinceISO) {
   } catch { return null }
 }
 
+// ── Ripartizione del fatturato per gateway di pagamento (ultimi ~60 giorni di
+//    ordini, limite Shopify senza read_all_orders). Usata per stimare le fee dei
+//    gateway esterni (PayPal/Klarna/Scalapay/…) per cui Shopify non dà la fee. ──
+async function fetchGatewayMix() {
+  if (!storeUrl() || !token()) return null
+  const sinceISO = new Date(Date.now() - 60 * 86400000).toISOString()
+  const mix = {}
+  let total = 0, pages = 0
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+  let url = `https://${storeUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&limit=250&fields=id,current_total_price,total_price,payment_gateway_names,gateway`
+  try {
+    while (url && pages < 60) {
+      pages++
+      let res = null
+      for (let a = 0; a < 5; a++) {
+        res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token() || '' } })
+        if (res.status === 429 || res.status === 430) { await sleep((Number(res.headers.get('Retry-After')) || 2) * 1000); continue }
+        break
+      }
+      if (!res || !res.ok) break
+      const j = await res.json().catch(() => null)
+      for (const o of (j?.orders || [])) {
+        const amt = num(o.current_total_price ?? o.total_price)
+        if (!amt) continue
+        const gws = (Array.isArray(o.payment_gateway_names) && o.payment_gateway_names.length) ? o.payment_gateway_names : [o.gateway || 'unknown']
+        const per = amt / gws.length // split equo se multi-gateway (raro)
+        for (const g of gws) { const k = String(g || 'unknown'); mix[k] = (mix[k] || 0) + per; total += per }
+      }
+      const link = res.headers.get('link') || ''
+      const next = /<([^>]+)>;\s*rel="next"/.exec(link)
+      url = next ? next[1] : null
+    }
+    for (const k in mix) mix[k] = r2(mix[k])
+    return total > 0 ? { mix, total: r2(total) } : null
+  } catch { return null }
+}
+
 // COGS reale mensile dalle analitiche Shopify. Provo i nomi metrica possibili
 // (variano per versione ShopifyQL); query SEPARATA → se un nome non esiste,
 // parseError isolato e non rompe la serie principale.
@@ -176,14 +213,15 @@ export async function GET(req) {
       const cogsRes = await fetchCogsByMonth(since, until)
       const cogsSource = cogsRes ? 'shopify' : (cogsRatio != null ? 'ratio' : 'none')
 
-      // Fee reali (best-effort)
-      const feesByMonth = await fetchFeesByMonth(since)
+      // Fee reali (best-effort) + ripartizione fatturato per gateway
+      const [feesByMonth, gatewayMix] = await Promise.all([fetchFeesByMonth(since), fetchGatewayMix()])
 
       return NextResponse.json({
         configured: true, months, since, until,
         series, metricRows,
         cogsByMonth: cogsRes?.map || null, cogsSource, cogsRatio, avgMargin,
         feesByMonth, feesSource: feesByMonth ? 'shopify-payments' : 'none',
+        gatewayMix,
         updatedAt: new Date().toISOString(),
       })
     } catch (err) {

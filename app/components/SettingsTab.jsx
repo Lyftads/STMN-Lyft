@@ -257,8 +257,9 @@ function brandLabel(brand) {
   return m[brand?.toLowerCase()] || (brand || 'CARD').toUpperCase()
 }
 
-function PlanCard({ plan, isCurrent }) {
+function PlanCard({ plan, isCurrent, cadence = null }) {
   const { t } = useI18n()
+  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const hot = !!plan.badge
@@ -303,14 +304,33 @@ function PlanCard({ plan, isCurrent }) {
         {plan.name}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
-        <span style={{ fontSize: 40, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>
-          {t(plan.priceLabelKey, null, plan.priceLabel)}
-        </span>
-        {plan.period && (
-          <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t(plan.periodKey, null, plan.period)}</span>
-        )}
-      </div>
+      {(cadence && cadence.off > 0 && typeof plan.price === 'number') ? (() => {
+        const eff = Math.round(plan.price * cadence.factor)
+        const total = Math.round(eff * cadence.months)
+        const save = Math.round((plan.price - eff) * cadence.months)
+        return (
+          <div style={{ marginTop: -4 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: 40, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>{eur0(eff)}</span>
+              <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t(plan.periodKey, null, plan.period)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{plan.priceLabel}{t(plan.periodKey, null, plan.period)}</span>
+              <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>Risparmi {eur0(save)}</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>{eur0(total)} fatturato {cadence.bill}</div>
+          </div>
+        )
+      })() : (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
+          <span style={{ fontSize: 40, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>
+            {t(plan.priceLabelKey, null, plan.priceLabel)}
+          </span>
+          {plan.period && (
+            <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t(plan.periodKey, null, plan.period)}</span>
+          )}
+        </div>
+      )}
 
       <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.5, minHeight: 38, marginTop: -6 }}>
         {t(plan.taglineKey, null, plan.tagline)}
@@ -340,6 +360,8 @@ function PlanCard({ plan, isCurrent }) {
         >
           {t(plan.ctaKey, null, plan.cta)}
         </a>
+      ) : (cadence && cadence.off > 0) ? (
+        <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>Disponibile a breve</button>
       ) : (
         <button
           type="button"
@@ -953,9 +975,17 @@ function InvoiceHistory({ invoices, loading }) {
   )
 }
 
+const BRAND_CAD = [
+  { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
+  { id: 'semestral', label: 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: 'ogni 6 mesi' },
+  { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
+]
+
 export default function SettingsTab() {
   const { t } = useI18n()
   const [audience, setAudience] = useState('brand') // 'brand' | 'agency'
+  const [cadB, setCadB] = useState('annual')        // cadenza piani brand
+  const bc = BRAND_CAD.find(x => x.id === cadB)
   const [customerId, setCustomerId] = useState(null)
   const [data, setData] = useState(null) // { subscription, paymentMethod, invoices, email, name }
   const [dataLoading, setDataLoading] = useState(true)
@@ -1055,11 +1085,31 @@ export default function SettingsTab() {
         {audience === 'agency' ? (
           <AgencyPricing />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
-            {PLANS.map(p => (
-              <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
-            ))}
-          </div>
+          <>
+            {/* Founder + toggle cadenza brand */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', textAlign: 'center', padding: '10px 16px', borderRadius: 12, marginBottom: 14, background: 'linear-gradient(90deg, rgba(34,197,94,0.14), rgba(41,151,255,0.14))', border: '1px solid rgba(34,197,94,0.3)' }}>
+              <span style={{ fontSize: 16 }}>🎉</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#86efac' }}>Founder: −30% A VITA per le prime 100 aziende</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+                {BRAND_CAD.map(x => {
+                  const on = cadB === x.id
+                  return (
+                    <button key={x.id} type="button" onClick={() => setCadB(x.id)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'var(--text2)', fontSize: 13, fontWeight: 800 }}>
+                      {x.label}
+                      {x.off > 0 && <span style={{ fontSize: 10, fontWeight: 900, padding: '2px 7px', borderRadius: 999, background: on ? 'rgba(10,10,20,0.18)' : 'rgba(239,68,68,0.16)', color: on ? '#0a0a14' : '#ef4444' }}>−{x.off}%</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
+              {PLANS.map(p => (
+                <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} />
+              ))}
+            </div>
+          </>
         )}
       </div>
 

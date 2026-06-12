@@ -51,13 +51,27 @@ function chColor(label, i) {
   return CH_COLORS[i % CH_COLORS.length]
 }
 
+// Cache client a livello di modulo (sopravvive a cambio tab / remount, come le
+// altre tab): { [preset]: { data, reloadKey } }. Così tornando sulla tab i dati
+// restano in memoria e non si rifà il caricamento da capo. Il refresh manuale
+// (reloadKey) invalida e rifetcha.
+let __attrCache = {}
+
 export default function AttributionPanel({ preset = 'last_28d', reloadKey, live }) {
   const { t: tr } = useI18n()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => __attrCache[preset]?.data || null)
+  const [loading, setLoading] = useState(() => !__attrCache[preset])
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    // Cache hit (stesso preset e nessun refresh manuale) → niente ricaricamento.
+    const cached = __attrCache[preset]
+    if (cached && cached.reloadKey === reloadKey) {
+      setData(cached.data)
+      setLoading(false)
+      setError(null)
+      return
+    }
     let cancelled = false
     setError(null)
     setLoading(true)
@@ -96,7 +110,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
         }).then(r => r.json())
         if (cancelled) return
         if (j.error && !j.totals) setError(j.error)
-        else setData(j)
+        else { __attrCache[preset] = { data: j, reloadKey }; setData(j) }
       } catch (e) {
         if (!cancelled) setError(e?.message || tr('agent.netError', null, 'Errore di rete'))
       } finally {

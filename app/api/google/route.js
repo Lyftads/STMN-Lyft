@@ -98,17 +98,22 @@ export async function GET(req) {
 
     const [response] = await client.search(request, callOptions)
 
+    // google-ads-node ritorna i campi in snake_case (cost_micros, conversions_value)
+    // e gli int64 grandi (cost_micros) possono arrivare come Long/stringa → num()
+    // gestisce number/stringa/Long. Leggiamo sia snake che camel per robustezza.
+    const num = (v) => (v == null ? 0 : (typeof v === 'object' ? Number(v.toString()) : Number(v)) || 0)
     const monthlyMap = {}
     for (const row of (response || [])) {
       const month = row?.segments?.month
       if (!month) continue
       const m = month.slice(0, 7)
+      const M = row.metrics || {}
       if (!monthlyMap[m]) monthlyMap[m] = { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 }
-      monthlyMap[m].spend += (Number(row.metrics?.costMicros) || 0) / 1_000_000
-      monthlyMap[m].impressions += Number(row.metrics?.impressions) || 0
-      monthlyMap[m].clicks += Number(row.metrics?.clicks) || 0
-      monthlyMap[m].conversions += Number(row.metrics?.conversions) || 0
-      monthlyMap[m].convValue += Number(row.metrics?.conversionsValue) || 0
+      monthlyMap[m].spend += num(M.cost_micros ?? M.costMicros) / 1_000_000
+      monthlyMap[m].impressions += num(M.impressions)
+      monthlyMap[m].clicks += num(M.clicks)
+      monthlyMap[m].conversions += num(M.conversions)
+      monthlyMap[m].convValue += num(M.conversions_value ?? M.conversionsValue)
     }
 
     const monthly = Object.entries(monthlyMap)

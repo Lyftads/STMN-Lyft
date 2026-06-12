@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { loadLatestLanded } from '../../../lib/cost/landed'
+import { getSnapshot, setSnapshot } from '../../../lib/cache/snapshot'
+
+const SNAP_TTL = 30 * 60 * 1000 // 30 min (cache L2 condivisa)
 
 // ── Inventario intelligence (read-only) ──
 // Unità operativa = variante (taglia/SKU): un prodotto può avere stock alto e
@@ -208,15 +211,21 @@ export async function GET(req) {
     }
     const url = new URL(req.url)
     const force = url.searchParams.get('refresh') === '1'
+    const ws = await resolveWorkspace()
     const cached = __cache.get(store)
     if (!force && cached && cached.exp > Date.now()) {
       return NextResponse.json({ ...cached.data, cached: true })
     }
+    // L2 (Supabase, cross-lambda): prima apertura veloce se già calcolato altrove
+    if (!force) {
+      const snap = await getSnapshot(ws?.workspaceId, 'inventory', SNAP_TTL)
+      if (snap) { __cache.set(store, { exp: Date.now() + CACHE_TTL, data: snap }); return NextResponse.json({ ...snap, cached: true }) }
+    }
     try {
-      const ws = await resolveWorkspace()
       const landedMap = await loadLatestLanded(ws?.workspaceId)
       const data = await buildInventory(store, token, landedMap)
       __cache.set(store, { exp: Date.now() + CACHE_TTL, data })
+      await setSnapshot(ws?.workspaceId, 'inventory', data)
       return NextResponse.json(data)
     } catch (e) {
       return NextResponse.json({ ok: false, error: e.message || 'Errore inventario' }, { status: 500 })

@@ -6,6 +6,9 @@ import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchVariantsForCost, syncShopifyCosts } from '../../../lib/cost/shopifySync'
+import { getSnapshot, setSnapshot } from '../../../lib/cache/snapshot'
+
+const SNAP_TTL = 30 * 60 * 1000 // 30 min (cache L2 condivisa)
 
 export async function GET(req) {
   return withTenantContext(req, async () => {
@@ -25,6 +28,12 @@ export async function GET(req) {
           .order('effective_from', { ascending: false }).order('created_at', { ascending: false })
         return NextResponse.json({ ok: true, history: data || [] })
       } catch { return NextResponse.json({ ok: true, history: [] }) }
+    }
+
+    const force = sp.get('refresh') === '1'
+    if (!force) {
+      const snap = await getSnapshot(ws?.workspaceId, 'productCosts', SNAP_TTL)
+      if (snap) return NextResponse.json({ ...snap, cached: true })
     }
 
     try {
@@ -48,7 +57,9 @@ export async function GET(req) {
         ...p,
         variants: p.variants.map(v => ({ ...v, landed: latest.has(v.variant_id) ? latest.get(v.variant_id) : null, historyCount: count.get(v.variant_id) || 0 })),
       }))
-      return NextResponse.json({ ok: true, currency, products: out, savedAvailable: !!ws })
+      const payload = { ok: true, currency, products: out, savedAvailable: !!ws }
+      await setSnapshot(ws?.workspaceId, 'productCosts', payload)
+      return NextResponse.json(payload)
     } catch (e) {
       return NextResponse.json({ ok: false, error: e.message || 'Errore' }, { status: 500 })
     }

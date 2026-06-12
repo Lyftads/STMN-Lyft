@@ -8,6 +8,9 @@ import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend, suggestProduct } from '../../../lib/ads/campaignSpend'
 import { fetchGoogleProductCost, buildShopifyMaps, deriveMetaProducts } from '../../../lib/ads/campaignProducts'
 import { loadLatestLanded } from '../../../lib/cost/landed'
+import { getSnapshot, setSnapshot } from '../../../lib/cache/snapshot'
+
+const SNAP_TTL = 30 * 60 * 1000 // 30 min (cache L2 condivisa)
 
 // ── Performance prodotti (B2C) ──
 // P&L per prodotto: ricavo netto, COGS, ADS (Meta+Google allocati in proporzione
@@ -139,8 +142,15 @@ export async function GET(req) {
     const clamped = since !== reqSince
     const force = sp.get('refresh') === '1'
     const cacheKey = `${store}:${since}:${until}`
+    const snapTab = `performance:${since}:${until}`
     const hit = __cache.get(cacheKey)
     if (!force && hit && hit.exp > Date.now()) return NextResponse.json({ ...hit.data, cached: true })
+    const ws = await resolveWorkspace()
+    // L2 (Supabase, cross-lambda): prima apertura veloce
+    if (!force) {
+      const snap = await getSnapshot(ws?.workspaceId, snapTab, SNAP_TTL)
+      if (snap) { __cache.set(cacheKey, { exp: Date.now() + CACHE_TTL, data: snap }); return NextResponse.json({ ...snap, cached: true }) }
+    }
 
     // periodo precedente di pari durata
     const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
@@ -148,7 +158,6 @@ export async function GET(req) {
     const prevSince = isoDay(new Date(new Date(since).getTime() - days * 86400000))
 
     try {
-      const ws = await resolveWorkspace()
       const [cur, pmeta, campaigns, mapping, landed] = await Promise.all([
         fetchOrders(store, token, since + 'T00:00:00Z', until + 'T23:59:59Z'),
         fetchProductMeta(store, token),
@@ -255,6 +264,7 @@ export async function GET(req) {
         products,
       }
       __cache.set(cacheKey, { exp: Date.now() + CACHE_TTL, data })
+      await setSnapshot(ws?.workspaceId, snapTab, data)
       return NextResponse.json(data)
     } catch (e) {
       return NextResponse.json({ ok: false, error: e.message || 'Errore performance prodotti' }, { status: 500 })

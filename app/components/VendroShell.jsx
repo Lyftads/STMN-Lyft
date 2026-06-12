@@ -555,39 +555,95 @@ function TabContent({ children }) {
 // nome azienda configurato.
 function WorkspacePill() {
   const [companyName, setCompanyName] = useState('LyftAI')
+  const [ws, setWs] = useState({ workspaces: [], activeId: null, isAgency: false })
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const ref = useRef(null)
 
   useEffect(() => {
     const supabase = getBrowserSupabase()
-    if (!supabase) return
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    if (supabase) supabase.auth.getUser().then(({ data: { user } }) => {
       const meta = user?.user_metadata || {}
       const name = meta.company_name || meta.companyName
       if (name) setCompanyName(name)
     })
+    fetch('/api/workspaces').then(r => r.ok ? r.json() : null).then(d => { if (d?.workspaces) setWs(d) }).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (!open) return
+    const onDoc = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  const active = ws.workspaces.find(w => w.id === ws.activeId)
+  const label = active?.label || companyName
+  const multi = ws.isAgency || ws.workspaces.length > 1
+
+  const switchTo = async (id) => {
+    if (id === ws.activeId) { setOpen(false); return }
+    setBusy(true)
+    try { await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) }); window.location.href = '/?tab=dashboard' }
+    catch { setBusy(false) }
+  }
+  const addClient = async () => {
+    const name = typeof window !== 'undefined' ? window.prompt('Nome del cliente / azienda:') : null
+    if (!name || !name.trim()) return
+    setBusy(true)
+    try {
+      const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name.trim(), companyName: name.trim() }) })
+      const j = await r.json()
+      if (j?.workspace?.id) await switchTo(j.workspace.id)
+      else { setBusy(false); alert(j?.error || 'Errore creazione cliente') }
+    } catch { setBusy(false) }
+  }
+
+  const card = {
+    background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12,
+    padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+  }
+  const avatar = (
+    <span style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #2997ff, #bf5af2)', display: 'inline-block', flexShrink: 0 }} />
+  )
+
+  if (!multi) {
+    return (
+      <div style={card}>
+        {avatar}
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
+        </span>
+      </div>
+    )
+  }
+
   return (
-    <div style={{
-      background: 'var(--glass)',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      padding: '10px 14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    }}>
-      <span style={{
-        width: 28, height: 28, borderRadius: 7,
-        background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-        display: 'inline-block', flexShrink: 0,
-      }} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
-          display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{companyName}</span>
-        <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
-      </span>
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button type="button" onClick={() => setOpen(o => !o)} disabled={busy} style={{ ...card, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+        {avatar}
+        <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Cambia azienda</span>
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--text3)' }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 12, padding: 6, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', maxHeight: 320, overflowY: 'auto' }}>
+          {ws.workspaces.map(w => {
+            const on = w.id === ws.activeId
+            return (
+              <button key={w.id} type="button" onClick={() => switchTo(w.id)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'transparent', color: on ? '#2997ff' : 'var(--text2)', fontSize: 13, fontWeight: on ? 800 : 600 }}>
+                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · tuo' : ''}</span>
+                {on && <span>✓</span>}
+              </button>
+            )
+          })}
+          <div style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />
+          <button type="button" onClick={addClient} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>+ Aggiungi cliente</button>
+        </div>
+      )}
     </div>
   )
 }

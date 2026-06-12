@@ -1,0 +1,51 @@
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+import { NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
+import { getCurrentUserId, invalidateMembership } from '../../../../lib/tenant/credentials'
+import { getAdminSupabase } from '../../../../lib/supabase/server'
+
+// Un'agency crea un nuovo workspace cliente: utente auth "shadow" (senza login)
+// → il trigger handle_new_user crea la riga companies → mapping agency_clients.
+// L'agency poi collega le integrazioni del cliente (Nango/Google) entrando nel
+// workspace e usando l'onboarding/integrazioni esistenti.
+export async function POST(req) {
+  const uid = await getCurrentUserId()
+  if (!uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ error: 'Servizio non disponibile' }, { status: 500 })
+
+  let body = {}
+  try { body = await req.json() } catch {}
+  const label = String(body.label || body.companyName || '').trim()
+  const companyName = String(body.companyName || body.label || '').trim()
+  if (!label) return NextResponse.json({ error: 'Nome cliente obbligatorio' }, { status: 400 })
+
+  try {
+    // 1) Utente shadow (email tecnica, mai usata per login).
+    const email = `ws_${randomUUID()}@workspaces.lyftai.io`
+    const { data: created, error: cErr } = await admin.auth.admin.createUser({
+      email, email_confirm: true, user_metadata: { company_name: companyName || label },
+    })
+    if (cErr || !created?.user) {
+      return NextResponse.json({ error: cErr?.message || 'Creazione workspace fallita' }, { status: 500 })
+    }
+    const clientId = created.user.id
+
+    // 2) Riga companies del workspace (upsert: il trigger l'ha già creata).
+    await admin.from('companies').upsert(
+      { user_id: clientId, company_name: companyName || label, is_client_workspace: true },
+      { onConflict: 'user_id' }
+    )
+
+    // 3) Mapping agency → cliente + marca l'agency.
+    await admin.from('agency_clients').insert({ agency_user_id: uid, client_user_id: clientId, label })
+    await admin.from('companies').update({ is_agency: true }).eq('user_id', uid)
+
+    invalidateMembership(uid)
+    return NextResponse.json({ ok: true, workspace: { id: clientId, label, isSelf: false } })
+  } catch (e) {
+    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 })
+  }
+}

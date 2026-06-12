@@ -426,7 +426,6 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
             }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
-              {row.budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.budget, 0)}/g</span> : (row.lifetime_budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.lifetime_budget, 0)}</span> : '')}
             </div>
           </div>
         </div>
@@ -446,6 +445,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
       <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: '#a78bfa', fontWeight: 800 }}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>
         {fmtRatio(row.roas)}
@@ -508,7 +508,6 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
             <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
-              {row.budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.budget, 0)}/g</span> : (row.lifetime_budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.lifetime_budget, 0)}</span> : '')}
             </div>
           </div>
         </div>
@@ -526,6 +525,7 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
       <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: '#a78bfa', fontWeight: 800 }}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(row.roas)}</td>
       <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
@@ -856,39 +856,6 @@ export default function MetaDetailTab() {
 
   return (
     <div>
-      {/* Status pill + Meta badge (titolo gestito dalla shell) */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 18,
-      }}>
-        <PlatformBadges sources={['meta']} size={18} />
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 14px',
-          borderRadius: 999,
-          background: 'rgba(48,209,88,0.12)',
-          border: '1px solid rgba(48,209,88,0.3)',
-          color: '#86efac',
-          fontSize: 11,
-          fontWeight: 800,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}>
-          <span style={{
-            width: 8, height: 8, borderRadius: 999,
-            background: '#30d158',
-            boxShadow: '0 0 10px #30d158',
-            animation: 'card-pulse 2s ease-in-out infinite',
-          }} />
-          {loading ? 'Sync…' : data?.sources?.meta ? 'Live' : 'Offline'}
-        </div>
-      </div>
-
       {/* Preset bar */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
@@ -903,6 +870,11 @@ export default function MetaDetailTab() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <PlatformBadges sources={['meta']} size={20} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(48,209,88,0.12)', border: '1px solid rgba(48,209,88,0.3)', color: '#86efac', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#30d158', boxShadow: '0 0 10px #30d158', animation: 'card-pulse 2s ease-in-out infinite' }} />
+            {loading ? 'Sync…' : data?.sources?.meta ? 'Live' : 'Offline'}
+          </div>
           <div style={{ marginLeft: 'auto' }}>
             <BmTimeframe
               value={{ preset, since: customSince, until: customUntil }}
@@ -1169,7 +1141,7 @@ export default function MetaDetailTab() {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
                 <thead>
                   <tr>
-                    {[bmLevel === 'campaign' ? t('meta.tabCampaigns', null, 'Campagna') : bmLevel === 'adset' ? t('meta.levelAdset', null, 'Ad set') : t('meta.levelAd', null, 'Inserzione'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
+                    {[bmLevel === 'campaign' ? t('meta.tabCampaigns', null, 'Campagna') : bmLevel === 'adset' ? t('meta.levelAdset', null, 'Ad set') : t('meta.levelAd', null, 'Inserzione'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.budget', null, 'Budget'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
                       <th key={h} style={{
                         position: 'sticky', top: 0, zIndex: 20,
                         padding: '14px 16px',
@@ -1237,6 +1209,7 @@ export default function MetaDetailTab() {
                         <td style={footCell}>{fmtMoney(bmTotals.cpc_link, 2)}</td>
                         <td style={footCell}>{fmtInt(bmTotals.link_clicks)}</td>
                         <td style={{ ...footCell, fontWeight: 900 }}>{fmtMoney(bmTotals.spend, 0)}</td>
+                        <td style={footCell}>—</td>
                         <td style={footCell}>{fmtMoney(bmTotals.cost_per_result, 2)}</td>
                         <td style={{ ...footCell, color: bmTotals.roas >= 2.5 ? '#22c55e' : bmTotals.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(bmTotals.roas)}</td>
                         <td style={footCell}>{bmTotals.purchases ? fmtInt(bmTotals.purchases) : '—'}</td>

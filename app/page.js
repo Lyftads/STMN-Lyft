@@ -1442,7 +1442,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 }
 
 // ── WeeklyTab ─────────────────────────────────────────────────
-function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, preset: presetProp, weeklyTF, setWeeklyTF, weeklyCustom, setWeeklyCustom, onRefresh, loading: loadingProp }) {
+function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpdate, cfg, S, preset: presetProp, weeklyTF, setWeeklyTF, weeklyCustom, setWeeklyCustom, onRefresh, loading: loadingProp }) {
   const { t } = useI18n()
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
@@ -1545,17 +1545,25 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, onUpdate, cfg, S, p
     shopifyMap[s.date] = s
   }
 
+  // Spesa Google per settimana (lunedì-key) dal collegamento /api/google — prima
+  // era solo manuale (input). Override del manuale quando c'è il dato automatico.
+  const googleMap = {}
+  for (const gg of googleWeekly || []) {
+    if (gg?.date) googleMap[gg.date] = gg
+  }
+
   const allWeeks = weeks.map(({ key, label }) => {
     const d = data[key] || WEMPTY
     const mw = metaMap[key] || {}
     const sw = shopifyMap[key] || {}
+    const gw = googleMap[key] || {}
 
     const fat = sw.fatturato > 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
     const fatNC = sw.fatturNC > 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
     const fatRC = sw.fatturRC > 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
 
     const meta = mw.spend > 0 ? asNum(mw.spend) : asNum(d.meta)
-    const google = asNum(d.google)
+    const google = gw.spend > 0 ? asNum(gw.spend) : asNum(d.google)
     const adv = meta + google
 
     const ord = sw.ordini > 0 ? asNum(sw.ordini) : asNum(d.ordini)
@@ -2200,7 +2208,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
   const [ltvAuto, setLtvAuto] = useState(null)  // LTV calcolato dai dati (coorti 24m)
-  const [googleAuto, setGoogleAuto] = useState({ configured: false, byMonth: {} }) // spesa Google Ads automatica dal collegamento (/api/google)
+  const [googleAuto, setGoogleAuto] = useState({ configured: false, byMonth: {}, daily: [] }) // spesa Google Ads automatica dal collegamento (/api/google)
   const [showCfg, setShowCfg] = useState(false)
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
@@ -2252,7 +2260,7 @@ export default function App() {
       if (!alive || !j?.configured || !Array.isArray(j.monthly)) return
       const byMonth = {}
       for (const m of j.monthly) { if (m?.month) byMonth[m.month] = Number(m.spend) || 0 }
-      setGoogleAuto({ configured: true, byMonth })
+      setGoogleAuto({ configured: true, byMonth, daily: Array.isArray(j.daily) ? j.daily : [] })
     }).catch(() => {})
     return () => { alive = false }
   }, [])
@@ -2430,6 +2438,19 @@ export default function App() {
   const swPrev = filterByRange(shopifyWeeklyAll, kpiPrevRange)
   const mwCurrent = filterByRange(metaWeeklyAll, kpiRange)
   const mwPrev = filterByRange(metaWeeklyAll, kpiPrevRange)
+  // Google Ads period-aware: somma i giorni dentro il range del preset (prima
+  // era mensile → sballava su "Oggi"/settimana). daily dal collegamento /api/google.
+  const googleDailyAll = googleAuto.daily || []
+  const gwCurrent = filterByRange(googleDailyAll, kpiRange, 'date')
+  const gwPrev = filterByRange(googleDailyAll, kpiPrevRange, 'date')
+  // Spesa Google per settimana (lunedì-key) per il Weekly tab — bucket dei giorni.
+  const googleWeekly = (() => {
+    if (!googleAuto.configured) return []
+    const mondayOf = (ds) => { const d = new Date(ds + 'T00:00:00Z'); const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10) }
+    const map = {}
+    for (const x of googleDailyAll) { if (!x?.date) continue; const k = mondayOf(x.date); map[k] = (map[k] || 0) + (Number(x.spend) || 0) }
+    return Object.entries(map).map(([date, spend]) => ({ date, spend: Math.round(spend * 100) / 100 }))
+  })()
 
   const sumField = (rows, field) => rows.reduce((s, r) => s + (Number(r[field]) || 0), 0)
 
@@ -2441,6 +2462,7 @@ export default function App() {
     sessions: sumField(swCurrent, 'uniqueSessions'),
     resi: sumField(swCurrent, 'resi'),
     metaSpend: sumField(mwCurrent, 'spend'),
+    googleSpend: googleAuto.configured ? sumField(gwCurrent, 'spend') : 0,
     impressions: sumField(mwCurrent, 'impressions'),
     clicks: sumField(mwCurrent, 'linkClicks'),
   }
@@ -2455,6 +2477,7 @@ export default function App() {
     sessions:Number(spr.sessions) || sumField(swPrev, 'uniqueSessions'),
     resi:    Number(spr.resi)     || sumField(swPrev, 'resi'),
     metaSpend:   Number(mpr.spend)       || sumField(mwPrev, 'spend'),
+    googleSpend: googleAuto.configured ? sumField(gwPrev, 'spend') : 0,
     impressions: Number(mpr.impressions) || sumField(mwPrev, 'impressions'),
     clicks:      Number(mpr.clicks)      || sumField(mwPrev, 'linkClicks'),
   }
@@ -2690,7 +2713,9 @@ export default function App() {
   const totSes = hasSr ? Number(sr.sessions || 0) : sumMonthly('sessioni')
 
   const totMeta  = hasMr ? Number(mr.spend || 0) : (periodTotals.metaSpend || sumMonthly('metaSpend'))
-  const totGoog  = sumMonthly('googleSpend')
+  // Google period-aware (somma giorni nel range del preset); fallback al mensile
+  // solo se NON collegato via API (vecchio comportamento manuale).
+  const totGoog  = googleAuto.configured ? (periodTotals.googleSpend || 0) : sumMonthly('googleSpend')
   const totSpend = totMeta + totGoog
 
   const avgAOV   = totOrd > 0 ? totFat   / totOrd : 0
@@ -3129,7 +3154,9 @@ export default function App() {
                         <td style={mTD}><MV value={m.resi||null} prev={p?.resi||null} kind="euro0" /></td>
                         <td style={mTD}><MV value={m.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
                         <td style={mTD}>
-                          <NumInput value={m.googleSpend} onChange={vn=>updateMonth(m.month,'googleSpend',vn)} placeholder="0" color="#eab308" />
+                          {googleAuto.configured
+                            ? <MV value={m.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" />
+                            : <NumInput value={m.googleSpend} onChange={vn=>updateMonth(m.month,'googleSpend',vn)} placeholder="0" color="#eab308" />}
                         </td>
                         <td style={mTD}><MV value={m.ordini} prev={p?.ordini} kind="int" /></td>
                         <td style={mTD}><MV value={m.nc} prev={p?.nc} kind="int" /></td>
@@ -3306,6 +3333,7 @@ export default function App() {
           data={weeks}
           metaWeekly={live?.metaWeekly || []}
           shopifyWeekly={live?.shopifyWeekly || []}
+          googleWeekly={googleWeekly}
           onUpdate={updateWeek}
           cfg={cfg}
           S={S}

@@ -129,9 +129,31 @@ export async function GET(req) {
 
     const totalSpend = monthly.reduce((s, m) => s + m.spend, 0)
 
+    // Daily (ultimi ~100 giorni) → spesa Google period-aware per dashboard ("Oggi"/
+    // settimana/mese) e per il breakdown settimanale (prima Google era manuale).
+    const dSince = new Date(Date.now() - 100 * 86400000).toISOString().slice(0, 10)
+    let daily = []
+    try {
+      const [dResp] = await client.search(
+        { customer_id: CUSTOMER_ID, query: `SELECT segments.date, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'` },
+        callOptions,
+      )
+      const dayMap = {}
+      for (const row of (dResp || [])) {
+        const date = row?.segments?.date
+        if (!date) continue
+        const M = row.metrics || {}
+        dayMap[date] = (dayMap[date] || 0) + num(M.cost_micros ?? M.costMicros) / 1_000_000
+      }
+      daily = Object.entries(dayMap)
+        .map(([date, spend]) => ({ date, spend: Math.round(spend * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+    } catch {}
+
     return NextResponse.json({
       totalSpend: Math.round(totalSpend * 100) / 100,
       monthly,
+      daily,
       configured: true,
       updatedAt: new Date().toISOString(),
     })

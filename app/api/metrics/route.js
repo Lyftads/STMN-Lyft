@@ -121,6 +121,14 @@ function getPresetRange(preset = 'last_90d') {
   const today = new Date()
   const until = toDateString(today)
 
+  // Range custom dal date-picker BM: codificato come "custom_<since>_<until>"
+  // (YYYY-MM-DD_YYYY-MM-DD) → così viaggia nella stringa preset senza plumbing.
+  if (typeof preset === 'string' && preset.startsWith('custom_')) {
+    const parts = preset.split('_')
+    const since = parts[1], untilC = parts[2]
+    if (since && untilC) return { since, until: untilC, label: `${since} → ${untilC}` }
+  }
+
   if (preset === 'today') {
     return { since: until, until, label: 'Oggi' }
   }

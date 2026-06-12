@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import EnqueueButton from './ui/EnqueueButton'
+import BmTimeframe from './ui/BmTimeframe'
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -99,7 +100,9 @@ export default function KlaviyoTab() {
   const [data, setData] = useState(null)
   const [breakdown, setBreakdown] = useState(null)  // revenue/OR/CR per campagna+flusso (caricato a parte)
   const [loading, setLoading] = useState(true)
-  const [days, setDays] = useState(30)
+  const [tf, setTf] = useState({ preset: 'last_30d' })
+  // I dati Klaviyo sono "ultimi N giorni": mappiamo lo span del range a N giorni.
+  const days = (tf.since && tf.until) ? Math.max(0, Math.round((new Date(tf.until) - new Date(tf.since)) / 86400000)) : 30
   const [chartTab, setChartTab] = useState('received')
   const [campTab, setCampTab] = useState('sent')
 
@@ -172,16 +175,7 @@ export default function KlaviyoTab() {
       {/* Header: saluto + selettore giorni */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <p style={{ color: '#9f93ad', fontSize: 13, margin: 0 }}>{greetMarino(tr)}</p>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[{ d: 0, label: tr('klaviyo.today', null, 'Oggi') }, { d: 7, label: '7g' }, { d: 14, label: '14g' }, { d: 30, label: '30g' }, { d: 60, label: '60g' }, { d: 90, label: '90g' }].map(o => (
-            <button key={o.d} onClick={() => setDays(o.d)} className="btn-glass" style={{
-              border: days === o.d ? '1px solid #8b5cf6' : '1px solid var(--border)',
-              background: days === o.d ? '#8b5cf622' : 'var(--glass)',
-              color: days === o.d ? '#c4b5fd' : '#9b90aa',
-              borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
-            }}>{o.label}</button>
-          ))}
-        </div>
+        <BmTimeframe value={tf} onChange={setTf} accent="#8b5cf6" disabled={loading} />
       </div>
 
       {/* Panoramica Email */}

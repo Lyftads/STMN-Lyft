@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import TimeframeSelector from './TimeframeSelector'
+import BmTimeframe from './ui/BmTimeframe'
+import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
@@ -434,7 +436,7 @@ export default function VendroShell({
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
               {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
-                <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+                <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} />
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}

@@ -7,7 +7,8 @@ import Sparkline from './Sparkline'
 import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
-import TimeframeSelector from './TimeframeSelector'
+import BmTimeframe from './ui/BmTimeframe'
+import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import DownloadReportButton from './DownloadReportButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -357,7 +358,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     <div>
       {/* Timeframe */}
       <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-        {setPreset && <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />}
+        {setPreset && <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} />}
         {onRefresh && (
           <button onClick={onRefresh} disabled={loading} className="btn-glass" style={{
             marginLeft:'auto', display:'flex', alignItems:'center', gap:6,

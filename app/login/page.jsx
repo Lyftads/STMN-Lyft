@@ -38,6 +38,16 @@ function LoginForm() {
         : error.message)
       return
     }
+    // Agency/freelance con più aziende → schermata di scelta workspace.
+    try {
+      const ws = await fetch('/api/workspaces').then(r => r.ok ? r.json() : null)
+      const multi = ws && (ws.isAgency || (ws.workspaces?.length || 0) > 1)
+      if (multi && (nextUrl === '/' || nextUrl.startsWith('/?'))) {
+        router.push('/select-workspace')
+        router.refresh()
+        return
+      }
+    } catch {}
     router.push(nextUrl)
     router.refresh()
   }

@@ -1617,6 +1617,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
       ltv,
       ratio,
       metaAuto: mw.spend > 0,
+      googleAuto: gw.spend > 0,
       shopifyAuto:
         sw.fatturato > 0 ||
         sw.fatturNC > 0 ||
@@ -1896,7 +1897,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
       </div>
 
       {/* Data entry table */}
-      <FxChartCard title={t('dash.weeklyData', null, 'Dati settimanali')} glowColor="#22c55e" subtitle={t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
+      <FxChartCard title={t('dash.weeklyData', null, 'Dati settimanali')} glowColor="#22c55e" subtitle={(googleWeekly && googleWeekly.length > 0) ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
         <div style={tableWrap}>
           <table style={{ width: '100%', minWidth: 1450, borderCollapse: 'collapse' }}>
             <thead>
@@ -1951,7 +1952,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
                     </td>
 
                     <td style={TD}>
-                      <InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={false} />
+                      <InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={w.googleAuto} />
                     </td>
 
                     <td style={TD}>
@@ -3132,7 +3133,7 @@ export default function App() {
           </div>
 
           {/* Data Entry Table */}
-          <FxChartCard title={t("dash.monthlyData", null, "Dati mensili")} glowColor="#22c55e" subtitle={t("dash.weeklyDataSub", null, "Shopify + Meta automatici · Google manuale")}>
+          <FxChartCard title={t("dash.monthlyData", null, "Dati mensili")} glowColor="#22c55e" subtitle={googleAuto.configured ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t("dash.weeklyDataSub", null, "Shopify + Meta automatici · Google manuale")}>
             <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
               <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
                 <thead>

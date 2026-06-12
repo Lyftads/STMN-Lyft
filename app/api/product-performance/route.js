@@ -2,11 +2,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend } from '../../../lib/ads/campaignSpend'
-import { fetchGoogleProductCost, buildShopifyMaps } from '../../../lib/ads/campaignProducts'
+import { fetchGoogleProductCost, buildShopifyMaps, deriveMetaProducts } from '../../../lib/ads/campaignProducts'
 import { loadLatestLanded } from '../../../lib/cost/landed'
 
 // ── Performance prodotti (B2C) ──
@@ -145,14 +145,21 @@ export async function GET(req) {
       // GOOGLE: costo ESATTO per prodotto da shopping_performance_view (Shopping/PMax);
       //         la spesa Google non-prodotto (Search) resta proporzionale.
       const shopMaps = buildShopifyMaps(pmeta.catalog)
-      const googleProduct = await fetchGoogleProductCost(since, until, shopMaps).catch(() => ({ byProduct: new Map(), total: 0 }))
+      const meta = getMeta()
+      const metaAccounts = String(meta.adAccountId || '').split(',').map(s => s.trim()).filter(Boolean).map(a => a.startsWith('act_') ? a : `act_${a}`)
+      const [googleProduct, metaDerived] = await Promise.all([
+        fetchGoogleProductCost(since, until, shopMaps).catch(() => ({ byProduct: new Map(), total: 0 })),
+        meta.accessToken ? deriveMetaProducts({ token: meta.accessToken, accounts: metaAccounts, products: pmeta.catalog }).catch(() => new Map()) : Promise.resolve(new Map()),
+      ])
 
       let metaSpend = 0, googleSpend = 0, unmappedSpend = 0
       const mappedByProduct = new Map()
       for (const c of campaigns) {
         if (c.platform === 'google') { googleSpend += c.spend; continue } // Google gestito per prodotto sotto
         metaSpend += c.spend
-        const ids = mapping.get(`meta:${c.campaign_id}`) || []
+        // Priorità: mappatura salvata; poi auto-derivata (catalogo/diretta); poi proporzionale
+        let ids = mapping.get(`meta:${c.campaign_id}`) || []
+        if (!ids.length) { const der = metaDerived.get(String(c.campaign_id)); if (der?.productIds?.size) ids = [...der.productIds] }
         if (!ids.length) { unmappedSpend += c.spend; continue }
         let sumRev = 0
         for (const id of ids) sumRev += (cur.get(id)?.revenue || 0)
@@ -161,9 +168,11 @@ export async function GET(req) {
           mappedByProduct.set(id, (mappedByProduct.get(id) || 0) + share)
         }
       }
-      // Google esatto per prodotto + il resto (Search/non-prodotto) in proporzionale
-      for (const [pid, cost] of googleProduct.byProduct) mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost)
-      unmappedSpend += Math.max(0, googleSpend - googleProduct.total)
+      // Google: costo ESATTO per prodotto abbinato; tutto il resto Google (Search +
+      // shopping non abbinato) → pool proporzionale (così nessuna spesa si perde).
+      let googleMatched = 0
+      for (const [pid, cost] of googleProduct.byProduct) { mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost); googleMatched += cost }
+      unmappedSpend += Math.max(0, googleSpend - googleMatched)
 
       const adsTotal = metaSpend + googleSpend
       const mappedSpend = adsTotal - unmappedSpend

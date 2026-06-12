@@ -60,6 +60,7 @@ export async function GET(req) {
     // dall'utente loggato (companies.stripe_customer_id).
     let resolvedCustomerId = customerId
     let compStatus = null, compPlan = null
+    let shopStatus = null, shopPlan = null
     if (!resolvedCustomerId) {
       try {
         const sb = getServerSupabase()
@@ -69,18 +70,28 @@ export async function GET(req) {
           if (admin) {
             const { data: company } = await admin
               .from('companies')
-              .select('stripe_customer_id, stripe_subscription_status, plan')
+              .select('stripe_customer_id, stripe_subscription_status, plan, shopify_subscription_status, shopify_subscription_plan')
               .eq('user_id', user.id)
               .maybeSingle()
             resolvedCustomerId = company?.stripe_customer_id || null
             compStatus = company?.stripe_subscription_status || null
             compPlan = company?.plan || null
+            shopStatus = company?.shopify_subscription_status || null
+            shopPlan = company?.shopify_subscription_plan || null
           }
         }
       } catch {}
     }
 
     if (!resolvedCustomerId) {
+      // Abbonamento Shopify (App Store, policy 1.2.1) → accesso concesso.
+      if (shopStatus === 'active') {
+        return NextResponse.json({
+          customerId: null, email: null, name: null,
+          subscription: { id: 'shopify', status: 'active', planId: shopPlan || compPlan || 'scale', cancelAtPeriodEnd: false },
+          paymentMethod: null, invoices: [], shopify: true,
+        })
+      }
       // Account "comp"/omaggio: nessun cliente Stripe ma stato attivo impostato a
       // mano sulla riga companies → concedi accesso (usato per account demo/review).
       if (compStatus === 'active' || compStatus === 'trialing') {

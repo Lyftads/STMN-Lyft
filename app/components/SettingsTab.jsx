@@ -182,6 +182,23 @@ async function startStripeCheckout({ planId, mode, setError, setLoading }) {
   try {
     setLoading?.(true)
     setError?.(null)
+    // Utenti Shopify (store collegato) → addebiti via Shopify Billing API
+    // (policy App Store 1.2.1), MAI Stripe. Stripe resta per i signup diretti.
+    let isShopify = false
+    try {
+      const st = await fetch('/api/integrations/status').then(r => r.json())
+      isShopify = Array.isArray(st?.connected) && st.connected.includes('shopify')
+    } catch {}
+    if (isShopify) {
+      const rs = await fetch('/api/shopify/billing/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      })
+      const js = await rs.json()
+      if (!rs.ok || !js?.confirmationUrl) { setError?.(js?.error || `Errore ${rs.status}`); setLoading?.(false); return }
+      window.location.href = js.confirmationUrl
+      return
+    }
     const r = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

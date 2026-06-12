@@ -52,20 +52,36 @@ function BillingContent() {
   const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(null)
   const [error, setError] = useState(null)
+  // Utenti arrivati da Shopify → addebiti via Shopify Billing API (policy 1.2.1),
+  // NON Stripe. Rilevati dal fatto che hanno lo store Shopify collegato.
+  const [isShopify, setIsShopify] = useState(false)
 
   useEffect(() => {
     const sb = getBrowserSupabase()
-    if (!sb) return
-    sb.auth.getUser().then(({ data: { user } }) => {
+    if (sb) sb.auth.getUser().then(({ data: { user } }) => {
       const meta = user?.user_metadata || {}
       setUserName(meta.name || meta.full_name || '')
     })
+    fetch('/api/integrations/status').then(r => r.json())
+      .then(j => { if (Array.isArray(j.connected) && j.connected.includes('shopify')) setIsShopify(true) })
+      .catch(() => {})
   }, [])
 
   const startTrial = async (planId) => {
     setLoading(planId)
     setError(null)
     try {
+      if (isShopify) {
+        // Shopify Billing: crea l'abbonamento e manda il merchant ad approvarlo su Shopify.
+        const res = await fetch('/api/shopify/billing/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId }),
+        })
+        const j = await res.json()
+        if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
+        window.location.href = j.confirmationUrl
+        return
+      }
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

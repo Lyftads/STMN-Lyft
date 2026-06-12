@@ -39,6 +39,7 @@ import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MetaKpiTab from './components/MetaKpiTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
+import GoogleLighthouseTab from './components/GoogleLighthouseTab'
 import LighthouseTab from './components/LighthouseTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
@@ -123,7 +124,7 @@ const ChartTip = ({ active, payload, label }) => {
       background: 'rgba(8,8,15,0.92)',
       backdropFilter: 'blur(24px) saturate(1.8)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      border: '1px solid var(--border2)',
       borderTopColor: 'rgba(255,255,255,0.20)',
       borderRadius: 12,
       padding: '10px 14px',
@@ -140,7 +141,7 @@ const ChartTip = ({ active, payload, label }) => {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.color, boxShadow: `0 0 10px ${p.color}, 0 0 4px ${p.color}` }} />
             {p.name}
           </span>
-          <span style={{ color: '#fff', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ color: 'var(--text)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
             {typeof p.value==='number' && p.value>100 ? f0(p.value) : p.value?.toFixed?.(2) ?? p.value}
           </span>
         </div>
@@ -150,7 +151,7 @@ const ChartTip = ({ active, payload, label }) => {
 }
 
 // Futuristic glowing dot with pulse
-const FxDot = ({ cx, cy, color = '#fff' }) => {
+const FxDot = ({ cx, cy, color = 'var(--text)' }) => {
   if (cx == null || cy == null) return null
   return (
     <g>
@@ -179,13 +180,13 @@ function FxChartCard({ title, glowColor = '#2997ff', subtitle, children }) {
   )
 }
 
-const FxActiveDot = ({ cx, cy, color = '#fff' }) => {
+const FxActiveDot = ({ cx, cy, color = 'var(--text)' }) => {
   if (cx == null || cy == null) return null
   return (
     <g>
       <circle cx={cx} cy={cy} r={12} fill={color} opacity={0.18} />
       <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.35} />
-      <circle cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={1.5} style={{ filter: `drop-shadow(0 0 8px ${color})` }} />
+      <circle cx={cx} cy={cy} r={4} fill={color} stroke="var(--text)" strokeWidth={1.5} style={{ filter: `drop-shadow(0 0 8px ${color})` }} />
     </g>
   )
 }
@@ -451,7 +452,7 @@ function Simulator({ cfg }) {
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.55)',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
@@ -505,7 +506,7 @@ function Simulator({ cfg }) {
         {fxBlock((
           <>
             <div style={{ marginBottom: 18 }}>
-              <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
                 {t('sim.title', null, 'Simulatore LTV:CAC')}
               </h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
@@ -525,7 +526,7 @@ function Simulator({ cfg }) {
                 <div key={k} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{l}</span>
-                    <span style={{ fontSize: 14, fontFamily: 'Barlow', fontWeight: 900, color: '#fff' }}>{fmt(s[k])}</span>
+                    <span style={{ fontSize: 14, fontFamily: 'Barlow', fontWeight: 900, color: 'var(--text)' }}>{fmt(s[k])}</span>
                   </div>
                   <div style={{ position: 'relative', height: 6, background: 'rgba(0,0,0,0.4)', borderRadius: 999, overflow: 'hidden', marginBottom: 4, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6)' }}>
                     <div style={{
@@ -552,7 +553,7 @@ function Simulator({ cfg }) {
           {fxBlock((
             <>
               <div style={{ marginBottom: 18 }}>
-                <h2 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 900 }}>
+                <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 16, fontWeight: 900 }}>
                   {t('sim.toReach3', null, 'Per raggiungere 3:1')}
                 </h2>
                 <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12 }}>
@@ -567,8 +568,8 @@ function Simulator({ cfg }) {
                 <div key={l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '14px 16px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--glass)',
+                  border: '1px solid var(--border)',
                   borderTopColor: 'rgba(255,255,255,0.10)',
                   borderBottomColor: 'rgba(0,0,0,0.4)',
                   borderRadius: 12,
@@ -591,7 +592,7 @@ function Simulator({ cfg }) {
     {fxBlock((
       <>
       <div style={{ marginBottom: 22 }}>
-        <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>
+        <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>
           Scenari Advertising
         </h2>
         <p style={{ margin: '6px 0 0', color: 'var(--text3)', fontSize: 13 }}>
@@ -610,7 +611,7 @@ function Simulator({ cfg }) {
                 background: `linear-gradient(180deg, ${color}1f 0%, rgba(8,8,18,0.65) 38%, rgba(0,0,0,0.95) 100%)`,
                 backdropFilter: 'blur(40px) saturate(2.2)',
                 WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-                border: '1.5px solid rgba(255,255,255,0.06)',
+                border: '1.5px solid var(--border)',
                 borderTopColor: `${color}55`,
                 borderBottomColor: 'rgba(0,0,0,0.65)',
                 borderRadius: 18,
@@ -658,7 +659,7 @@ function Simulator({ cfg }) {
                 <div style={{
                   width: 24, height: 24, borderRadius: 8,
                   background: `linear-gradient(135deg, ${color}, ${color}99)`,
-                  color: '#fff', fontSize: 11, fontWeight: 900,
+                  color: 'var(--text)', fontSize: 11, fontWeight: 900,
                   display: 'grid', placeItems: 'center',
                   boxShadow: `0 0 12px ${color}66`,
                 }}>{i+1}</div>
@@ -684,7 +685,7 @@ function Simulator({ cfg }) {
                     border: `1px solid ${color}33`,
                     borderRadius: 10,
                     padding: '11px 14px',
-                    color: '#fff',
+                    color: 'var(--text)',
                     fontSize: 16,
                     fontWeight: 900,
                     fontFamily: 'Barlow',
@@ -704,7 +705,7 @@ function Simulator({ cfg }) {
                   <div key={k} style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{l}</span>
-                      <span style={{ fontSize: 13, fontFamily: 'Barlow', fontWeight: 900, color: '#fff' }}>{fmt(sc[k])}</span>
+                      <span style={{ fontSize: 13, fontFamily: 'Barlow', fontWeight: 900, color: 'var(--text)' }}>{fmt(sc[k])}</span>
                     </div>
                     <div style={{
                       position: 'relative', height: 5,
@@ -740,7 +741,7 @@ function Simulator({ cfg }) {
           WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
           borderRadius: 22,
           overflow: 'hidden',
-          border: '1.5px solid rgba(255,255,255,0.06)',
+          border: '1.5px solid var(--border)',
           borderTopColor: 'rgba(255,255,255,0.12)',
           borderBottomColor: 'rgba(0,0,0,0.65)',
           boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
@@ -785,9 +786,9 @@ function Simulator({ cfg }) {
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr>
-              <th style={{padding:'14px 18px',textAlign:'left',color:'var(--text3)',fontWeight:800,fontSize:10.5,textTransform:'uppercase',letterSpacing:'0.12em',borderBottom:'1.5px solid rgba(255,255,255,0.08)'}}>{t('sim.metric', null, 'Metrica')}</th>
+              <th style={{padding:'14px 18px',textAlign:'left',color:'var(--text3)',fontWeight:800,fontSize:10.5,textTransform:'uppercase',letterSpacing:'0.12em',borderBottom:'1.5px solid var(--border)'}}>{t('sim.metric', null, 'Metrica')}</th>
               {scenarios.map((sc,i)=>(
-                <th key={i} style={{padding:'14px 18px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:13,borderBottom:'1.5px solid rgba(255,255,255,0.08)',fontFamily:'Inter',letterSpacing:'-0.01em'}}>{sc.name||`Scenario ${i+1}`}</th>
+                <th key={i} style={{padding:'14px 18px',textAlign:'right',color:scenarioColors[i],fontWeight:900,fontSize:13,borderBottom:'1.5px solid var(--border)',fontFamily:'Inter',letterSpacing:'-0.01em'}}>{sc.name||`Scenario ${i+1}`}</th>
               ))}
             </tr>
           </thead>
@@ -812,7 +813,7 @@ function Simulator({ cfg }) {
               {l:t('sim.netMarginPct', null, 'Net margin % (su lordo)'), f:c=>sp1(c.netMarginPct), bold:true, color:c=>c.netMarginPct>=0?'#30d158':'#ff453a'},
               {l:t('sim.breakEvenRoas', null, 'Break-even ROAS'), f:c=>`${c.breakEvenRoas.toFixed(2)}×`, muted:true},
             ].map((row,ri) => {
-              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:12,borderBottom:'1px solid rgba(255,255,255,0.04)'}} /></tr>
+              if (row.sep) return <tr key={ri}><td colSpan={4} style={{height:12,borderBottom:'1px solid var(--border)'}} /></tr>
               return (
               <tr key={ri} style={{background:ri%2===0?'transparent':'rgba(255,255,255,0.015)',transition:'background 0.15s'}}>
                 <td style={{padding:'11px 18px',color:'var(--text2)',fontWeight:row.bold?800:500,fontSize:row.bold?13:12.5,fontFamily:'Inter'}}>{row.l}</td>
@@ -841,7 +842,7 @@ function Simulator({ cfg }) {
             background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
             backdropFilter: 'blur(40px) saturate(2.2)',
             WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-            border: '1.5px solid rgba(255,255,255,0.06)',
+            border: '1.5px solid var(--border)',
             borderTopColor: 'rgba(255,255,255,0.12)',
             borderBottomColor: 'rgba(0,0,0,0.65)',
             borderRadius: 22,
@@ -942,7 +943,7 @@ function Simulator({ cfg }) {
             background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
             backdropFilter: 'blur(40px) saturate(2.2)',
             WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-            border: '1.5px solid rgba(255,255,255,0.06)',
+            border: '1.5px solid var(--border)',
             borderTopColor: 'rgba(255,255,255,0.12)',
             borderBottomColor: 'rgba(0,0,0,0.65)',
             borderRadius: 22,
@@ -994,11 +995,11 @@ function Simulator({ cfg }) {
             <BarChart data={scenarios.map((sc,i)=>{const c=calcScenario(sc);return{name:sc.name||`Sc.${i+1}`,iva:c.iva,cogs:c.cogsAmount,adv:sc.spend}})} margin={{top:12,right:8,left:0,bottom:4}} barGap={6}>
               <defs>
                 <linearGradient id="sim-bar-iva" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.32)" stopOpacity={1} />
+                  <stop offset="0%" stopColor="var(--text3)" stopOpacity={1} />
                   <stop offset="100%" stopColor="rgba(255,255,255,0.08)" stopOpacity={1} />
                 </linearGradient>
                 <linearGradient id="sim-bar-cogs" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.52)" stopOpacity={1} />
+                  <stop offset="0%" stopColor="var(--text2)" stopOpacity={1} />
                   <stop offset="100%" stopColor="rgba(255,255,255,0.18)" stopOpacity={1} />
                 </linearGradient>
                 <linearGradient id="sim-bar-adv" x1="0" y1="0" x2="0" y2="1">
@@ -1081,7 +1082,7 @@ function Simulator({ cfg }) {
               background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
               backdropFilter: 'blur(40px) saturate(2.2)',
               WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-              border: '1.5px solid rgba(255,255,255,0.06)',
+              border: '1.5px solid var(--border)',
               borderTopColor: 'rgba(255,255,255,0.12)',
               borderBottomColor: 'rgba(0,0,0,0.65)',
               borderRadius: 22,
@@ -1125,7 +1126,7 @@ function Simulator({ cfg }) {
             }} />
 
             <div style={{ marginBottom: 22 }}>
-              <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em' }}>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em' }}>
                 {t('sim.strategicAnalysis', null, 'Analisi strategica CMO + CFO')}
               </h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
@@ -1140,8 +1141,8 @@ function Simulator({ cfg }) {
               </p>
               {cashFlowAnalysis.map((r,i) => (
                 <div key={i} style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1.5px solid rgba(255,255,255,0.06)',
+                  background: 'var(--glass)',
+                  border: '1.5px solid var(--border)',
                   borderTopColor: 'rgba(255,255,255,0.10)',
                   borderBottomColor: 'rgba(0,0,0,0.4)',
                   borderLeftColor: scenarioColors[i],
@@ -1178,8 +1179,8 @@ function Simulator({ cfg }) {
                 color: 'var(--text)',
                 lineHeight: 1.7,
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1.5px solid rgba(255,255,255,0.06)',
+                background: 'var(--glass)',
+                border: '1.5px solid var(--border)',
                 borderTopColor: 'rgba(255,255,255,0.10)',
                 borderBottomColor: 'rgba(0,0,0,0.4)',
                 borderRadius: 12,
@@ -1213,8 +1214,8 @@ function Simulator({ cfg }) {
                 color: 'var(--text)',
                 lineHeight: 1.7,
                 fontWeight: 500,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1.5px solid rgba(255,255,255,0.06)',
+                background: 'var(--glass)',
+                border: '1.5px solid var(--border)',
                 borderTopColor: 'rgba(255,255,255,0.10)',
                 borderBottomColor: 'rgba(0,0,0,0.4)',
                 borderRadius: 12,
@@ -1241,8 +1242,8 @@ function Simulator({ cfg }) {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
                   <div key={i} style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1.5px solid rgba(255,255,255,0.06)',
+                    background: 'var(--glass)',
+                    border: '1.5px solid var(--border)',
                     borderTopColor: scenarioColors[i],
                     borderTopWidth: 2,
                     borderBottomColor: 'rgba(0,0,0,0.4)',
@@ -1256,7 +1257,7 @@ function Simulator({ cfg }) {
                       <div>{t('sim.annualAdv', null, 'Spesa ADV annua:')} <strong style={{color:'var(--text)'}}>{sm0(r.spend * 12)}</strong></div>
                       <div>{t('sim.annualCogs', null, 'COGS annuo:')} <strong style={{color:'var(--text)'}}>{sm0(r.cogsAmount * 12)}</strong></div>
                       <div>{t('sim.annualVat', null, 'IVA annua:')} <strong style={{color:'var(--text)'}}>{sm0(r.iva * 12)}</strong></div>
-                      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:8,paddingTop:8}}>
+                      <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:8}}>
                         {t('sim.annualNetProfit', null, 'Profitto netto annuo:')} <strong style={{color:r.annualProfit>=0?'#30d158':'#ff453a',fontSize:15,fontFamily:'Barlow'}}>{sm0(r.annualProfit)}</strong>
                       </div>
                       <div>{t('sim.annualOrders', null, 'Ordini annui:')} <strong style={{color:'var(--text)'}}>{si0(r.orders * 12)}</strong></div>
@@ -1268,8 +1269,8 @@ function Simulator({ cfg }) {
 
             {/* Bottom line */}
             <div style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1.5px solid rgba(255,255,255,0.06)',
+              background: 'var(--glass)',
+              border: '1.5px solid var(--border)',
               borderTopColor: 'rgba(255,255,255,0.10)',
               borderBottomColor: 'rgba(0,0,0,0.4)',
               borderLeftColor: ACCENT_GLOW,
@@ -2793,7 +2794,7 @@ export default function App() {
 
   const S = { // shared styles
     card: { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:10, padding:24 },
-    th:   { padding:'10px 14px', fontSize:11, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' },
+    th:   { padding:'10px 14px', fontSize:11, color:'var(--text)', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'left', fontWeight:700, fontFamily:'Barlow Condensed', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' },
     td:   { padding:'10px 14px', fontSize:14, borderBottom:'1px solid var(--surface)', fontFamily:'Barlow', fontWeight:500 },
   }
 
@@ -2939,16 +2940,16 @@ export default function App() {
           textTransform:'uppercase', letterSpacing:'0.10em',
           textAlign:'left', whiteSpace:'nowrap',
           color:'var(--text2)',
-          background:'rgba(255,255,255,0.025)',
+          background:'var(--glass)',
           backdropFilter:'blur(20px)',
-          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+          borderBottom:'1.5px solid var(--border)',
         }
         const mTHmonth = {
           ...mTH, color:'var(--text)', fontSize:13, letterSpacing:'-0.01em', textTransform:'none', fontWeight:700,
         }
         const mTD = {
           padding:'14px 20px', fontSize:15, fontWeight:500,
-          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)',
+          verticalAlign:'top', borderBottom:'1px solid var(--border)',
           color:'var(--text)',
         }
         const mVal = { fontWeight:800, fontSize:18, lineHeight:1.15, color:'var(--text)', letterSpacing:'-0.01em', fontVariantNumeric:'tabular-nums' }
@@ -3517,12 +3518,12 @@ export default function App() {
           padding:'18px 20px', fontSize:11, fontWeight:800,
           textTransform:'uppercase', letterSpacing:'0.10em',
           textAlign:'left', whiteSpace:'nowrap', color:'var(--text2)',
-          background:'rgba(255,255,255,0.025)', backdropFilter:'blur(20px)',
-          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+          background:'var(--glass)', backdropFilter:'blur(20px)',
+          borderBottom:'1.5px solid var(--border)',
         }
         const qTD = {
           padding:'14px 20px', fontSize:15, fontWeight:500,
-          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)', color:'var(--text)',
+          verticalAlign:'top', borderBottom:'1px solid var(--border)', color:'var(--text)',
         }
 
         const qDelta = (curr, prev, kind='euro0', inverse=false) => {
@@ -3963,12 +3964,12 @@ export default function App() {
           padding:'18px 20px', fontSize:11, fontWeight:800,
           textTransform:'uppercase', letterSpacing:'0.10em',
           textAlign:'left', whiteSpace:'nowrap', color:'var(--text2)',
-          background:'rgba(255,255,255,0.025)', backdropFilter:'blur(20px)',
-          borderBottom:'1.5px solid rgba(255,255,255,0.08)',
+          background:'var(--glass)', backdropFilter:'blur(20px)',
+          borderBottom:'1.5px solid var(--border)',
         }
         const qTD = {
           padding:'14px 20px', fontSize:15, fontWeight:500,
-          verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.04)', color:'var(--text)',
+          verticalAlign:'top', borderBottom:'1px solid var(--border)', color:'var(--text)',
         }
 
         const qDelta = (curr, prev, kind='euro0', inverse=false) => {
@@ -4304,9 +4305,13 @@ export default function App() {
   <GoogleDetailTab />
 )}
 
-{(tab === 'googleLighthouse' || tab === 'googleBudgetAdvisor') && (
+{tab === 'googleLighthouse' && (
+  <GoogleLighthouseTab />
+)}
+
+{tab === 'googleBudgetAdvisor' && (
   <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
-    <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>In arrivo</div>
+    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>In arrivo</div>
     <div style={{ fontSize: 13, marginTop: 6 }}>Questa sezione Google è in fase di rilascio.</div>
   </div>
 )}

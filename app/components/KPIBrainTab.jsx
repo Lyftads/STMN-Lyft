@@ -365,7 +365,6 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?t('shell.updating', null, 'Aggiorno…'):t('shell.refresh', null, 'Aggiorna')}</button>
         )}
-        <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
         <DownloadReportButton tab="KPI Brain" preset={preset} style={{ marginLeft: onRefresh ? 0 : 'auto' }} />
       </div>
 

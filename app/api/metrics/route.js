@@ -16,7 +16,7 @@ const METRICS_TTL_MS = 5 * 60_000
 // PRESET-INDIPENDENTE: keyed per tenant e condivisa fra tutti i preset, così
 // cambiare timeframe non la rifetcha ogni volta (era il collo di bottiglia).
 const historyCache = new Map()
-const HISTORY_TTL_MS = 10 * 60_000
+const HISTORY_TTL_MS = 30 * 60_000 // storico (cambia ~1 volta/giorno) → 30min ininfluente
 
 // Tenant-aware getter: leggono dal context AsyncLocalStorage settato da
 // withTenantContext() in GET. In env-only mode (default su Vercel finche'

@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
@@ -34,21 +35,23 @@ export async function GET(req) {
     const accountIds = String(adAccountId).split(',').map(s => s.trim()).filter(Boolean)
       .map(a => a.startsWith('act_') ? a : `act_${a}`)
 
-    try {
-      const prevRange = previousRange(range)
-      const [{ totals, daily }, prevAgg] = await Promise.all([
-        buildKpi({ accessToken, accountIds, range }),
-        buildKpiTotalsOnly({ accessToken, accountIds, range: prevRange }),
-      ])
-      return NextResponse.json({
-        preset, range, prevRange,
-        accounts: accountIds,
-        totals, prevTotals: prevAgg.totals, daily,
-        updatedAt: new Date().toISOString(),
-      })
-    } catch (err) {
-      return NextResponse.json({ error: err?.message || 'Errore Meta', totals: zeroBucket(), prevTotals: zeroBucket(), daily: [] }, { status: 200 })
-    }
+    return swrSnapshot(req, { tab: 'metaKpi', compute: async () => {
+      try {
+        const prevRange = previousRange(range)
+        const [{ totals, daily }, prevAgg] = await Promise.all([
+          buildKpi({ accessToken, accountIds, range }),
+          buildKpiTotalsOnly({ accessToken, accountIds, range: prevRange }),
+        ])
+        return {
+          preset, range, prevRange,
+          accounts: accountIds,
+          totals, prevTotals: prevAgg.totals, daily,
+          updatedAt: new Date().toISOString(),
+        }
+      } catch (err) {
+        return { __noCache: true, error: err?.message || 'Errore Meta', totals: zeroBucket(), prevTotals: zeroBucket(), daily: [] }
+      }
+    } })
   })
 }
 

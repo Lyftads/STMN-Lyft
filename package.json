@@ -11,6 +11,7 @@
     "@elevenlabs/client": "^1.10.0",
     "@nangohq/frontend": "^0.70.6",
     "@supabase/ssr": "^0.10.3",
+    "@vercel/functions": "^3.7.1",
     "date-fns": "^3.6.0",
     "google-ads-api": "^23.0.0",
     "livekit-client": "^2.19.2",

@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
@@ -51,42 +52,45 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const prevRange = previousRange(range)
 
-    try {
-      const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
-      const { GoogleAdsServiceClient } = await import('google-ads-node')
-      const grpc = await import('@grpc/grpc-js')
-      const client = new GoogleAdsServiceClient({
-        sslCreds: grpc.credentials.createSsl(),
-        servicePath: 'googleads.googleapis.com',
-        port: 443,
-      })
-      const callOptions = {
-        otherArgs: {
-          headers: {
-            'authorization': `Bearer ${accessToken}`,
-            'developer-token': DEVELOPER_TOKEN,
-            ...(MCC_ID ? { 'login-customer-id': MCC_ID } : {}),
+    return swrSnapshot(req, { tab: 'googleKpi', compute: async () => {
+      try {
+        const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
+        const { GoogleAdsServiceClient } = await import('google-ads-node')
+        const grpc = await import('@grpc/grpc-js')
+        const client = new GoogleAdsServiceClient({
+          sslCreds: grpc.credentials.createSsl(),
+          servicePath: 'googleads.googleapis.com',
+          port: 443,
+        })
+        const callOptions = {
+          otherArgs: {
+            headers: {
+              'authorization': `Bearer ${accessToken}`,
+              'developer-token': DEVELOPER_TOKEN,
+              ...(MCC_ID ? { 'login-customer-id': MCC_ID } : {}),
+            },
           },
-        },
+        }
+
+        const [{ totals, daily }, prevTotals] = await Promise.all([
+          buildKpi({ client, CUSTOMER_ID, callOptions, range }),
+          buildTotalsOnly({ client, CUSTOMER_ID, callOptions, range: prevRange }),
+        ])
+
+        return {
+          configured: true, preset, range, prevRange,
+          totals, prevTotals, daily,
+          updatedAt: new Date().toISOString(),
+        }
+      } catch (err) {
+        return {
+          __noCache: true,
+          configured: true, preset, range, prevRange,
+          totals: zeroBucket(), prevTotals: zeroBucket(), daily: [],
+          error: String(err?.message || err),
+        }
       }
-
-      const [{ totals, daily }, prevTotals] = await Promise.all([
-        buildKpi({ client, CUSTOMER_ID, callOptions, range }),
-        buildTotalsOnly({ client, CUSTOMER_ID, callOptions, range: prevRange }),
-      ])
-
-      return NextResponse.json({
-        configured: true, preset, range, prevRange,
-        totals, prevTotals, daily,
-        updatedAt: new Date().toISOString(),
-      })
-    } catch (err) {
-      return NextResponse.json({
-        configured: true, preset, range, prevRange,
-        totals: zeroBucket(), prevTotals: zeroBucket(), daily: [],
-        error: String(err?.message || err),
-      }, { status: 200 })
-    }
+    } })
   })
 }
 

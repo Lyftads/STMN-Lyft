@@ -159,7 +159,11 @@ export default function PnLTab({ data = [] }) {
     { label: t('pnl.lineFee', null, 'Fee gateway'), key: 'fee', neg: true },
     { label: t('pnl.linePackaging', null, 'Packaging'), key: 'packaging', neg: true },
     { label: t('pnl.lineShipping', null, 'Spedizione (corriere)'), key: 'shipCost', neg: true },
-    { label: t('pnl.lineFixed', null, 'Costi fissi (OPEX)'), key: 'fixed', neg: true },
+    // Costi fissi: una riga per ogni voce inserita a mano + sottototale
+    ...(cfg.fixedCosts || []).filter(f => Number(f.amount) > 0).map((f, i) => ({
+      label: f.name || t('pnl.fixedUnnamed', null, 'Costo fisso'), key: `fx${i}`, fixedVal: Number(f.amount) || 0, neg: true, noMoM: true, sub: true,
+    })),
+    { label: t('pnl.lineFixed', null, 'Costi fissi (OPEX)'), key: 'fixed', neg: true, strong: true },
     { label: t('pnl.lineContrib', null, 'Margine contribuzione'), key: 'contrib', strong: true },
     { label: t('pnl.lineEbit', null, 'EBIT (utile)'), key: 'ebit', ebit: true },
     { label: t('pnl.lineEbitPct', null, 'EBIT %'), key: 'ebitPct', pct: true },
@@ -289,20 +293,20 @@ export default function PnLTab({ data = [] }) {
             </thead>
             <tbody>
               {lines.map(line => {
-                const total = totalOf(line.key)
+                const total = line.fixedVal != null ? line.fixedVal * asc.length : totalOf(line.key)
                 const baseTd = { ...td, ...(line.strong ? { fontWeight: 700 } : {}) }
                 const colorOf = (v) => line.ebit ? (v >= 0 ? '#30d158' : '#ff375f') : undefined
                 return (
                   <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'var(--glass)' } : undefined}>
-                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', fontWeight: line.strong || line.ebit ? 700 : 500 }}>{line.label}</td>
+                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', paddingLeft: line.sub ? 28 : undefined, color: line.sub ? 'var(--text2)' : undefined, fontWeight: line.strong || line.ebit ? 700 : line.sub ? 500 : 500 }}>{line.label}</td>
                     {asc.map((r) => {
-                      const cur = r[line.key]
+                      const cur = line.fixedVal != null ? line.fixedVal : r[line.key]
                       const prevRow = prevOf[r.month]
-                      const prev = prevRow ? prevRow[line.key] : null
+                      const prev = (!line.noMoM && prevRow) ? prevRow[line.key] : null
                       return (
-                        <td key={r.month} style={{ ...baseTd, color: colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
+                        <td key={r.month} style={{ ...baseTd, color: line.sub ? 'var(--text2)' : colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
                           <div>{fmtCell(line, cur)}</div>
-                          {!line.pct && !line.int && prev != null && <MoM cur={cur} prev={prev} lowerBetter={line.neg} />}
+                          {!line.pct && !line.int && !line.noMoM && prev != null && <MoM cur={cur} prev={prev} lowerBetter={line.neg} />}
                         </td>
                       )
                     })}

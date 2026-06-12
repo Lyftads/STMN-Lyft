@@ -135,7 +135,7 @@ export async function GET(req) {
     let daily = []
     try {
       const [dResp] = await client.search(
-        { customer_id: CUSTOMER_ID, query: `SELECT segments.date, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'` },
+        { customer_id: CUSTOMER_ID, query: `SELECT segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'` },
         callOptions,
       )
       const dayMap = {}
@@ -143,10 +143,22 @@ export async function GET(req) {
         const date = row?.segments?.date
         if (!date) continue
         const M = row.metrics || {}
-        dayMap[date] = (dayMap[date] || 0) + num(M.cost_micros ?? M.costMicros) / 1_000_000
+        if (!dayMap[date]) dayMap[date] = { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 }
+        dayMap[date].spend += num(M.cost_micros ?? M.costMicros) / 1_000_000
+        dayMap[date].impressions += num(M.impressions)
+        dayMap[date].clicks += num(M.clicks)
+        dayMap[date].conversions += num(M.conversions)
+        dayMap[date].convValue += num(M.conversions_value ?? M.conversionsValue)
       }
       daily = Object.entries(dayMap)
-        .map(([date, spend]) => ({ date, spend: Math.round(spend * 100) / 100 }))
+        .map(([date, d]) => ({
+          date,
+          spend: Math.round(d.spend * 100) / 100,
+          impressions: d.impressions,
+          clicks: d.clicks,
+          conversions: Math.round(d.conversions * 100) / 100,
+          convValue: Math.round(d.convValue * 100) / 100,
+        }))
         .sort((a, b) => a.date.localeCompare(b.date))
     } catch {}
 

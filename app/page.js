@@ -2909,6 +2909,7 @@ export default function App() {
     S={S}
     shopifyWeeklyAll={shopifyWeeklyAll}
     metaWeeklyAll={metaWeeklyAll}
+    googleDailyAll={googleDailyAll}
     onRefresh={() => fetchLive(true)}
     loading={loading}
     preset={preset}

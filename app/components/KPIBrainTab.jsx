@@ -11,7 +11,7 @@ import TimeframeSelector from './TimeframeSelector'
 import DownloadReportButton from './DownloadReportButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
-export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
+export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], googleDailyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
   const { t } = useI18n()
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
@@ -63,24 +63,39 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     // Google Ads spend per il periodo: somma googleSpend dei mesi del range
     // (il dato arriva automatico dal collegamento, iniettato nelle righe `data`
     // in page.js; coerente con come la Dashboard tratta Google).
-    // Somma il dettaglio Google del periodo (spesa + impression/click/conversioni/valore).
-    const sumG = rows => rows.reduce((a, m) => ({
+    const prevSinceM = prevRange?.since?.slice(0, 7)
+    const prevUntilM = prevRange?.until?.slice(0, 7)
+    const prevMonths = (prevSinceM && prevUntilM)
+      ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
+      : []
+
+    // Dettaglio Google del periodo. Preferiamo il GIORNALIERO (/api/google `daily`,
+    // con impression/click/conv/valore per giorno): è period-accurate per QUALSIASI
+    // preset (oggi/ieri/7gg/mese). Fallback alla somma MENSILE solo se il range cade
+    // fuori dalla finestra daily (~100 giorni), es. mesi vecchi.
+    const sumGMonthly = rows => rows.reduce((a, m) => ({
       spend:       a.spend       + asNum(m.googleSpend),
       impressions: a.impressions + asNum(m.googleImpressions),
       clicks:      a.clicks      + asNum(m.googleClicks),
       conversions: a.conversions + asNum(m.googleConversions),
       convValue:   a.convValue   + asNum(m.googleConvValue),
     }), { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 })
-    const gCur = sumG(cur)
-    const prevSinceM = prevRange?.since?.slice(0, 7)
-    const prevUntilM = prevRange?.until?.slice(0, 7)
-    const prevMonths = (prevSinceM && prevUntilM)
-      ? data.filter(m => m.month >= prevSinceM && m.month <= prevUntilM)
-      : []
-    const gPrev = sumG(prevMonths)
+    const dailyInRange = (since, until) => (Array.isArray(googleDailyAll) ? googleDailyAll : [])
+      .filter(d => d?.date && since && until && d.date >= since && d.date <= until)
+    const sumGDaily = rows => rows.reduce((a, d) => ({
+      spend:       a.spend       + asNum(d.spend),
+      impressions: a.impressions + asNum(d.impressions),
+      clicks:      a.clicks      + asNum(d.clicks),
+      conversions: a.conversions + asNum(d.conversions),
+      convValue:   a.convValue   + asNum(d.convValue),
+    }), { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 })
+    const curDaily = dailyInRange(range?.since, range?.until)
+    const prevDaily = dailyInRange(prevRange?.since, prevRange?.until)
+    const gCur = curDaily.length ? sumGDaily(curDaily) : sumGMonthly(cur)
+    const gPrev = prevDaily.length ? sumGDaily(prevDaily) : sumGMonthly(prevMonths)
 
     return { current: compute(sr, mr, gCur), previous: compute(spr, mpr, gPrev), label, currentMonths: cur }
-  }, [data, live, cfg])
+  }, [data, live, cfg, googleDailyAll])
 
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
 

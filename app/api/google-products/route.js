@@ -66,7 +66,7 @@ export async function GET(req) {
       if (mcc) headers['login-customer-id'] = mcc
 
       const query = `SELECT segments.product_item_id, segments.product_title, metrics.clicks, metrics.impressions, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM shopping_performance_view WHERE segments.date BETWEEN '${since}' AND '${until}'`
-      const res = await fetch(`https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`, {
+      const res = await fetch(`https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`, {
         method: 'POST', headers, cache: 'no-store', body: JSON.stringify({ query }),
       })
       if (!res.ok) {

@@ -6,6 +6,8 @@ import CreativeAgent from './CreativeAgent'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery } from '../../lib/tfQuery'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'cr.presetToday' },
@@ -779,7 +781,8 @@ function CopyBlock({ index, text }) {
 
 export default function CreativeTab() {
   const { t } = useI18n()
-  const [preset, setPreset] = useState('last_7d')
+  const [tf, setTf] = useState({ preset: 'last_7d' })
+  const preset = tf.preset
   const [accountFilter, setAccountFilter] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -791,7 +794,7 @@ export default function CreativeTab() {
       try {
         setLoading(true)
 
-        const params = new URLSearchParams({ preset })
+        const params = new URLSearchParams(tfQuery(tf))
         if (accountFilter) params.set('account_id', accountFilter)
         const res = await fetch(`/api/creative?${params.toString()}`, {
           cache: 'no-store',
@@ -820,7 +823,7 @@ export default function CreativeTab() {
     return () => {
       active = false
     }
-  }, [preset, accountFilter])
+  }, [tf, accountFilter])
 
   const rawRows = Array.isArray(data?.rows) ? data.rows : []
 
@@ -947,25 +950,7 @@ export default function CreativeTab() {
         }}
       >
         <PlatformBadges sources={['meta']} size={18} />
-        <select
-          value={preset}
-          onChange={(e) => setPreset(e.target.value)}
-          style={{
-            background: 'var(--glass)',
-            color: 'var(--text)',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: '12px 16px',
-            fontSize: 14,
-            outline: 'none',
-          }}
-        >
-          {PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {t(p.labelKey, null, p.label)}
-            </option>
-          ))}
-        </select>
+        <BmTimeframe value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
       </div>
 
       <div

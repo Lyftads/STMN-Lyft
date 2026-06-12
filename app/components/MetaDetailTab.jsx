@@ -8,6 +8,7 @@ import DownloadReportButton from './DownloadReportButton'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import BmTimeframe from './ui/BmTimeframe'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'meta.today' },
@@ -898,28 +899,12 @@ export default function MetaDetailTab() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          {PRESETS.map(p => {
-            const active = preset === p.id
-            return (
-              <button
-                key={p.id}
-                onClick={() => setPreset(p.id)}
-                disabled={loading}
-                style={{
-                  background: active ? 'linear-gradient(135deg, rgba(91,44,255,0.25), rgba(41,151,255,0.18))' : 'rgba(255,255,255,0.04)',
-                  border: active ? '1px solid rgba(91,44,255,0.55)' : '1px solid var(--border)',
-                  color: active ? 'var(--text)' : 'var(--text2)',
-                  borderRadius: 11,
-                  padding: '9px 14px',
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  cursor: loading ? 'wait' : 'pointer',
-                  transition: 'all .15s',
-                  boxShadow: active ? '0 0 14px rgba(91,44,255,0.25)' : 'none',
-                }}
-              >{t(p.labelKey, null, p.label)}</button>
-            )
-          })}
+          <BmTimeframe
+            value={{ preset, since: customSince, until: customUntil }}
+            onChange={(v) => { setPreset('custom'); setCustomSince(v.since || ''); setCustomUntil(v.until || '') }}
+            accent="#5b2cff"
+            disabled={loading}
+          />
 
           <button
             onClick={fetchMain}
@@ -944,38 +929,6 @@ export default function MetaDetailTab() {
           />
         </div>
 
-        {preset === 'custom' && (
-          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-            <input
-              type="date"
-              value={customSince}
-              onChange={e => setCustomSince(e.target.value)}
-              style={{
-                background: 'var(--glass)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                borderRadius: 10,
-                padding: '10px 14px',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-            <input
-              type="date"
-              value={customUntil}
-              onChange={e => setCustomUntil(e.target.value)}
-              style={{
-                background: 'var(--glass)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                borderRadius: 10,
-                padding: '10px 14px',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-          </div>
-        )}
       </div>
 
       {error && (

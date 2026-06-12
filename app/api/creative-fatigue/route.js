@@ -151,7 +151,7 @@ export async function GET(req) {
   }
   const { searchParams } = new URL(req.url)
   const preset = searchParams.get('preset') || 'last_28d'
-  const range = getRange(preset)
+  const range = getRange(preset, searchParams)
   const used = usedAccounts(searchParams.get('account'))
 
   try {

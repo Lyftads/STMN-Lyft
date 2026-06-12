@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 // ============================================================================
 //  BmTimeframe — selettore periodo stile Meta Business Manager.
@@ -81,10 +82,14 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
   const [pos, setPos] = useState({ top: 0, right: 0 })
   const ref = useRef(null)
   const triggerRef = useRef(null)
+  const popoverRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const onDoc = (e) => {
+      if (ref.current?.contains(e.target) || popoverRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
     const close = () => setOpen(false)
     document.addEventListener('mousedown', onDoc)
@@ -149,9 +154,9 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
         <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
       </button>
 
-      {open && (
-        <div style={{
-          position: 'fixed', top: pos.top, right: pos.right, zIndex: 99999,
+      {open && typeof document !== 'undefined' && createPortal((
+        <div ref={popoverRef} style={{
+          position: 'fixed', top: pos.top, right: pos.right, zIndex: 2147483000,
           background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 14,
           boxShadow: '0 20px 60px rgba(0,0,0,0.55)', display: 'flex', overflow: 'hidden',
           maxWidth: '94vw', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto',
@@ -203,7 +208,7 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   )
 }

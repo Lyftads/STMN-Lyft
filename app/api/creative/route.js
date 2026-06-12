@@ -101,8 +101,13 @@ function ymd(date) {
   return date.toISOString().slice(0, 10)
 }
 
-function getRange(preset) {
+function getRange(preset, sp = null) {
   const today = new Date(todayYMD())
+
+  if (preset === 'custom' && sp && typeof sp.get === 'function') {
+    const since = sp.get('since'), until = sp.get('until')
+    if (since && until) return { since, until }
+  }
 
   if (preset === 'today') {
     return {
@@ -820,7 +825,7 @@ export async function GET(req) {
     const debug = searchParams.get('debug') === '1'
     const accountFilter = searchParams.get('account_id') || null
 
-    const range = getRange(preset)
+    const range = getRange(preset, searchParams)
     const allAccounts = getAccountIds()
     const accounts = accountFilter
       ? allAccounts.filter(a => a === accountFilter)

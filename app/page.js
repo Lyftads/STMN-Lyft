@@ -40,6 +40,7 @@ import MetaKpiTab from './components/MetaKpiTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
 import GoogleLighthouseTab from './components/GoogleLighthouseTab'
+import GoogleBudgetAdvisorPanel from './components/GoogleBudgetAdvisorPanel'
 import LighthouseTab from './components/LighthouseTab'
 import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
@@ -4310,10 +4311,7 @@ export default function App() {
 )}
 
 {tab === 'googleBudgetAdvisor' && (
-  <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
-    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>In arrivo</div>
-    <div style={{ fontSize: 13, marginTop: 6 }}>Questa sezione Google è in fase di rilascio.</div>
-  </div>
+  <GoogleBudgetAdvisorPanel />
 )}
 
 {tab === 'lighthouse' && (

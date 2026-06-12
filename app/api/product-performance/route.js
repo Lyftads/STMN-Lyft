@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/credentials'
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
-import { fetchAllCampaignSpend } from '../../../lib/ads/campaignSpend'
+import { fetchAllCampaignSpend, suggestProduct } from '../../../lib/ads/campaignSpend'
 import { fetchGoogleProductCost, buildShopifyMaps, deriveMetaProducts } from '../../../lib/ads/campaignProducts'
 import { loadLatestLanded } from '../../../lib/cost/landed'
 
@@ -157,14 +157,19 @@ export async function GET(req) {
         meta.accessToken ? deriveMetaProducts({ token: meta.accessToken, accounts: metaAccounts, products: pmeta.catalog }).catch(() => new Map()) : Promise.resolve(new Map()),
       ])
 
+      // Lista prodotti (id+titolo) per il match-per-nome delle campagne mirate.
+      const productList = [...pmeta.meta.entries()].map(([id, m]) => ({ id, title: m.title }))
+
       let metaSpend = 0, googleSpend = 0, unmappedSpend = 0
       const mappedByProduct = new Map()
       for (const c of campaigns) {
         if (c.platform === 'google') { googleSpend += c.spend; continue } // Google gestito per prodotto sotto
         metaSpend += c.spend
-        // Priorità: mappatura salvata; poi auto-derivata (catalogo/diretta); poi proporzionale
+        // Priorità: mappatura salvata → catalogo (product set) → nome campagna → proporzionale
         let ids = mapping.get(`meta:${c.campaign_id}`) || []
         if (!ids.length) { const der = metaDerived.get(String(c.campaign_id)); if (der?.productIds?.size) ids = [...der.productIds] }
+        // Campagne MIRATE: il nome contiene il prodotto (es. "Paracalli HYBRID") → match esatto
+        if (!ids.length) { const sug = suggestProduct(c.campaign_name, productList); if (sug) ids = [sug.id] }
         if (!ids.length) { unmappedSpend += c.spend; continue }
         let sumRev = 0
         for (const id of ids) sumRev += (cur.get(id)?.revenue || 0)

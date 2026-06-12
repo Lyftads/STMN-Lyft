@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ============================================================================
 //  Forecast — proiezione revenue + spesa + MER (stile Triple Whale Forecast)
@@ -24,6 +25,7 @@ export async function GET(req) {
     const horizon = Math.min(90, Math.max(7, parseInt(searchParams.get('horizon') || '30', 10)))
     const historyDays = Math.min(180, Math.max(30, parseInt(searchParams.get('history_days') || '90', 10)))
 
+    return swrSnapshot(req, { tab: 'forecast', compute: async () => {
     try {
       const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const cookieHeader = req.headers.get('cookie') || ''
@@ -46,13 +48,13 @@ export async function GET(req) {
       // Merge per date.
       const merged = mergeDailySeries(shopifyDaily, metaDaily, historyDays)
       if (merged.length < 14) {
-        return NextResponse.json({
+        return {
           horizon, history_days: historyDays,
           history: merged,
           forecast: [],
           warning: 'Dati insufficienti: servono almeno 14 giorni di storia',
           updatedAt: new Date().toISOString(),
-        })
+        }
       }
 
       const forecastRevenue = forecastSeries(merged.map(d => d.revenue), horizon)
@@ -85,7 +87,7 @@ export async function GET(req) {
       const recentRevenue = merged.slice(-horizon).reduce((s, d) => s + d.revenue, 0)
       const recentSpend = merged.slice(-horizon).reduce((s, d) => s + d.spend, 0)
 
-      return NextResponse.json({
+      return {
         horizon, history_days: historyDays,
         history: merged,
         forecast,
@@ -98,13 +100,15 @@ export async function GET(req) {
           revenue_change_pct: recentRevenue > 0 ? +(((proj_revenue - recentRevenue) / recentRevenue) * 100).toFixed(1) : 0,
         },
         updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({
+      return {
+        __noCache: true,
         error: err?.message || 'Errore',
         history: [], forecast: [],
-      }, { status: 200 })
+      }
     }
+    } })
   })
 }
 

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // Tenant-aware: Google OAuth creds + GA4 property id risolti per-request
 async function getAccessToken() {
@@ -49,6 +50,7 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const days = parseInt(searchParams.get('days') || '30', 10)
 
+  return swrSnapshot(request, { tab: 'ga4', compute: async () => {
   try {
     const token = await getAccessToken()
     if (!token) throw new Error('Google OAuth failed')
@@ -125,16 +127,17 @@ export async function GET(request) {
       parseRow(r, geo.dimensionHeaders, geo.metricHeaders)
     )
 
-    return NextResponse.json({
+    return {
       configured: true,
       summary: summaryObj,
       channels: channelRows,
       topPages: pageRows,
       topCountries: geoRows,
       updatedAt: new Date().toISOString(),
-    })
+    }
   } catch (e) {
-    return NextResponse.json({ configured: false, error: e.message }, { status: 500 })
+    return { __noCache: true, configured: false, error: e.message }
   }
+  } })
   })
 }

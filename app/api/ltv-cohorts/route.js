@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ── LTV & Coorti (additivo, isolato, tenant-aware) ──────────────────────────
 // Usa la Admin GraphQL `customers` (aggregati LIFETIME: createdAt, numberOfOrders,
@@ -67,6 +68,7 @@ export async function GET(req) {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1))
     const sinceStr = start.toISOString().slice(0, 10)
 
+    return swrSnapshot(req, { tab: 'ltvCohorts', compute: async () => {
     try {
       const { customers, truncated } = await fetchCustomers(start.getTime())
 
@@ -126,13 +128,14 @@ export async function GET(req) {
         { label: '4+ ordini', count: dist.fourPlus },
       ]
 
-      return NextResponse.json({
+      return {
         months, since: sinceStr, truncated,
         summary, cohorts, distribution,
         updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({ error: err?.message || 'Errore', cohorts: [] }, { status: 200 })
+      return { __noCache: true, error: err?.message || 'Errore', cohorts: [] }
     }
+    } })
   })
 }

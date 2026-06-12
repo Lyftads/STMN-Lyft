@@ -76,7 +76,7 @@ export default function VendroShell({
     const WARM = [
       '/api/meta-kpi?preset=last_7d',
       '/api/google-kpi?preset=last_7d',
-      '/api/klaviyo?days=30&part=main',
+      '/api/klaviyo?days=30',
       '/api/meta-detail?preset=last_7d',
       '/api/google-detail?preset=last_7d',
     ]

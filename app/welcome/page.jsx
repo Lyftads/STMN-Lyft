@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import Icon from '../components/ui/Icon'
+import AgencyPricing from '../components/AgencyPricing'
 import dynamic from 'next/dynamic'
 import LogoMark from '../components/LogoMark'
 import { browserToLocale } from '../../lib/i18n/geoLocale'
@@ -1552,14 +1553,36 @@ function MockBarChart() {
 
 function Pricing({ t }) {
   const planAccents = ['#0ea5e9', ACCENT, GREEN, '#f59e0b']
+  const [audience, setAudience] = useState('brand') // 'brand' | 'agency'
   return (
     <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
       <Reveal>
         <SectionHeader eyebrow={t.pricingTitle.eyebrow} title={t.pricingTitle.title} />
         <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
-          {t.pricingSub}
+          {audience === 'agency' ? 'Gestisci tutti i tuoi clienti da un unico posto. Paghi per numero di aziende, switch immediato tra una e l’altra.' : t.pricingSub}
         </p>
       </Reveal>
+
+      {/* Toggle pubblico: Aziende vs Agenzie & Freelance */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
+        <div style={{ display: 'inline-flex', gap: 4, padding: 5, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {[{ id: 'brand', l: 'Aziende' }, { id: 'agency', l: 'Agenzie & Freelance' }].map(o => {
+            const on = audience === o.id
+            return (
+              <button key={o.id} type="button" onClick={() => setAudience(o.id)} style={{
+                padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 800,
+              }}>{o.l}</button>
+            )
+          })}
+        </div>
+      </div>
+
+      {audience === 'agency' ? (
+        <div style={{ maxWidth: 1180, margin: '40px auto 0' }}>
+          <AgencyPricing />
+        </div>
+      ) : (
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
         gap: 18, maxWidth: 1180, margin: '50px auto 0',
@@ -1613,6 +1636,7 @@ function Pricing({ t }) {
           )
         })}
       </div>
+      )}
     </section>
   )
 }

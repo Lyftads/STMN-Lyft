@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Icon from './ui/Icon'
+import AgencyPricing from './AgencyPricing'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
@@ -954,6 +955,7 @@ function InvoiceHistory({ invoices, loading }) {
 
 export default function SettingsTab() {
   const { t } = useI18n()
+  const [audience, setAudience] = useState('brand') // 'brand' | 'agency'
   const [customerId, setCustomerId] = useState(null)
   const [data, setData] = useState(null) // { subscription, paymentMethod, invoices, email, name }
   const [dataLoading, setDataLoading] = useState(true)
@@ -1027,25 +1029,38 @@ export default function SettingsTab() {
 
       {/* Change Plan section */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
               {subActive ? t('settings.changePlan', null, 'Change Plan') : t('settings.choosePlan', null, 'Scegli un piano')}
             </div>
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
-              {subActive ? t('settings.changePlanTitle', null, 'Cambia il piano della tua subscription') : t('settings.choosePlanTitle', null, 'Scegli il piano giusto per la tua crescita')}
+              {audience === 'agency' ? 'Piani per agenzie e freelance' : (subActive ? t('settings.changePlanTitle', null, 'Cambia il piano della tua subscription') : t('settings.choosePlanTitle', null, 'Scegli il piano giusto per la tua crescita'))}
             </div>
           </div>
+          {/* Toggle pubblico: Aziende vs Agenzie */}
+          <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+            {[{ id: 'brand', l: 'Aziende' }, { id: 'agency', l: 'Agenzie & Freelance' }].map(o => {
+              const on = audience === o.id
+              return (
+                <button key={o.id} type="button" onClick={() => setAudience(o.id)} style={{
+                  padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                  background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'var(--text2)', fontSize: 13, fontWeight: 800,
+                }}>{o.l}</button>
+              )
+            })}
+          </div>
         </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))',
-          gap: 16,
-        }}>
-          {PLANS.map(p => (
-            <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
-          ))}
-        </div>
+
+        {audience === 'agency' ? (
+          <AgencyPricing />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
+            {PLANS.map(p => (
+              <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Comparison Table */}

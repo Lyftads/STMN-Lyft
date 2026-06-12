@@ -35,7 +35,7 @@ export default function PendingActionsBanner({ onOpen }) {
       <button onClick={onOpen} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
-        background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', fontSize: 12.5, fontWeight: 800,
+        background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: 'var(--text)', fontSize: 12.5, fontWeight: 800,
       }}>
         {t('aqbanner.cta')} <span style={{ fontWeight: 900 }}>→</span>
       </button>

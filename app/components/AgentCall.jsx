@@ -75,7 +75,7 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
   return (
     <>
       <button type="button" onClick={startCall} title="Chiama in vivavoce"
-        style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
+        style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
         {label}
       </button>
 
@@ -86,7 +86,7 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
               opacity: call.mode === 'speaking' ? 0.9 : 0.3, animation: call.status === 'connected' ? 'lyftPulse 1.2s ease-out infinite' : 'none' }} />
             <CallAvatar a={agent} size={120} />
           </div>
-          <div style={{ textAlign: 'center', color: '#fff' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text)' }}>
             <div style={{ fontSize: 22, fontWeight: 800 }}>{agent.name}</div>
             <div style={{ color: agent.color, fontSize: 14, fontWeight: 600 }}>{agent.role}</div>
             <div style={{ marginTop: 8, fontSize: 13, color: '#c7c7cf' }}>
@@ -96,8 +96,8 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
             </div>
           </div>
           {call.status === 'ended'
-            ? <button type="button" onClick={() => setCall(null)} style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
-            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: '#fff', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>📵 Riaggancia</button>}
+            ? <button type="button" onClick={() => setCall(null)} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
+            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>📵 Riaggancia</button>}
           <style>{`@keyframes lyftPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}`}</style>
         </div>
       )}

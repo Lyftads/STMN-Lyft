@@ -88,18 +88,18 @@ export default function NotificationsBell({ onNavigate }) {
       >
         <Icon name="bell" size={18} />
         {unread > 0 && (
-          <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#ff375f', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread > 99 ? '99+' : unread}</span>
+          <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#ff375f', color: 'var(--text)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread > 99 ? '99+' : unread}</span>
         )}
       </button>
 
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 46, width: 340, maxHeight: 460, overflowY: 'auto', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 1000, fontFamily: 'Barlow' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #3d3d4c' }}>
-            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: '#fff' }}>Notifiche</span>
+            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: 'var(--text)' }}>Notifiche</span>
             {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Segna tutte lette</button>}
           </div>
           {pushSupported && (
-            <div style={{ padding: '9px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12 }}>
+            <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
               {pushOn
                 ? <span style={{ color: '#30d158', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> Notifiche push attive su questo dispositivo</span>
                 : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> Attiva le notifiche push su questo dispositivo</button>}
@@ -108,11 +108,11 @@ export default function NotificationsBell({ onNavigate }) {
           {items.length === 0 ? (
             <div style={{ padding: 20, color: '#b0b0bd', fontSize: 13 }}>Nessuna notifica.</div>
           ) : items.map(n => (
-            <div key={n.id} onClick={() => openItem(n)} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', background: n.read ? 'transparent' : 'rgba(123,91,255,0.10)' }}>
+            <div key={n.id} onClick={() => openItem(n)} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.read ? 'transparent' : 'rgba(123,91,255,0.10)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 {!n.read && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff', marginTop: 5, flexShrink: 0 }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, color: '#fff', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
+                  <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
                   {n.body && <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 2 }}>{n.body}</div>}
                   <div style={{ fontSize: 11, color: '#6b6b78', marginTop: 3 }}>{new Date(n.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>

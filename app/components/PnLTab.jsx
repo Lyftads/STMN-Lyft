@@ -176,7 +176,7 @@ export default function PnLTab({ data = [] }) {
           <option value="24">{t('pnl.view24', null, '24 mesi')}</option>
         </select>
         <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="gear" size={13} /> {t('pnl.costsSettings', null, 'Costi & impostazioni')}</button>
-        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
+        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: 'var(--text)', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
       </div>
 
       {showCfg && (
@@ -246,7 +246,7 @@ export default function PnLTab({ data = [] }) {
                 const baseTd = { ...td, ...(line.strong ? { fontWeight: 700 } : {}) }
                 const colorOf = (v) => line.ebit ? (v >= 0 ? '#30d158' : '#ff375f') : undefined
                 return (
-                  <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
+                  <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'var(--glass)' } : undefined}>
                     <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', fontWeight: line.strong || line.ebit ? 700 : 500 }}>{line.label}</td>
                     {asc.map((r) => {
                       const cur = r[line.key]

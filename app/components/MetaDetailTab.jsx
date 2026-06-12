@@ -96,7 +96,7 @@ function PerfDot({ roas }) {
   )
 }
 
-function Sparkline({ data, dataKey, color = '#fff', width = 110, height = 32 }) {
+function Sparkline({ data, dataKey, color = 'var(--text)', width = 110, height = 32 }) {
   const vals = (data || []).map(d => Number(d[dataKey] || 0))
   if (vals.length < 2 || vals.every(v => v === 0)) return null
   const max = Math.max(...vals), min = Math.min(...vals)
@@ -133,7 +133,7 @@ function Sparkline({ data, dataKey, color = '#fff', width = 110, height = 32 }) 
 // Stessa palette/effetti del Simulatore
 const ACCENT_GLOW = '#2997ff'
 
-function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', daily, dataKey, delay = 0 }) {
+function KpiCard({ label, value, prevDelta, inverse = false, accent = 'var(--text)', daily, dataKey, delay = 0 }) {
   const good = deltaGood(prevDelta, inverse)
   return (
     <div
@@ -144,7 +144,7 @@ function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', da
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
@@ -199,7 +199,7 @@ function KpiCard({ label, value, prevDelta, inverse = false, accent = '#fff', da
           <div style={{
             fontSize: 26,
             fontWeight: 900,
-            color: '#fff',
+            color: 'var(--text)',
             letterSpacing: '-0.02em',
           }}>{value}</div>
           {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}
@@ -232,7 +232,7 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
@@ -276,7 +276,7 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
           <div style={{ marginBottom: subtitle ? 4 : 18 }}>
             <h2 style={{
               margin: 0,
-              color: '#fff',
+              color: 'var(--text)',
               fontSize: 17,
               fontWeight: 900,
               letterSpacing: '-0.01em',
@@ -362,8 +362,8 @@ function Thumb({ url, products, isDpa }) {
       <div style={{
         width: 50, height: 50,
         borderRadius: 10,
-        border: '1px solid rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid var(--border)',
+        background: 'var(--glass)',
         display: 'grid', placeItems: 'center',
         color: 'var(--text3)', fontSize: 13,
       }}>—</div>
@@ -373,7 +373,7 @@ function Thumb({ url, products, isDpa }) {
     <img src={url} alt="" style={{
       width: 50, height: 50,
       objectFit: 'cover', borderRadius: 10,
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: '1px solid var(--border)',
       display: 'block',
     }} />
   )
@@ -386,7 +386,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
 
   return (
     <tr style={{
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid var(--border)',
       background: row.level === 'campaign' ? 'rgba(34,197,94,0.04)' : 'transparent',
     }}>
       <td style={{ padding: '14px 16px', minWidth: 360 }}>
@@ -420,7 +420,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
               <PerfDot roas={row.roas} />
             </div>
             <div style={{
-              color: '#fff', fontWeight: 800, fontSize: 13.5,
+              color: 'var(--text)', fontWeight: 800, fontSize: 13.5,
               lineHeight: 1.35, marginBottom: 3,
             }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
@@ -443,7 +443,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
       <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
-      <td style={{ ...cell, color: '#fff', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>
         {fmtRatio(row.roas)}
@@ -474,7 +474,7 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
   return (
     <tr
       onClick={() => onOpen(row)}
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.12s', background: checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
+      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.12s', background: checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
       onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
       onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
     >
@@ -503,7 +503,7 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
           >{drillable ? '›' : <Icon name="eye" size={14} />}</button>
           <PerfDot roas={row.roas} />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ color: '#fff', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
+            <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>{row.status ? `${row.status} · ` : ''}{row.id}</div>
           </div>
         </div>
@@ -520,7 +520,7 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
       <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
-      <td style={{ ...cell, color: '#fff', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
       <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(row.roas)}</td>
       <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
@@ -541,7 +541,7 @@ function AdPreviewModal({ ad, onClose }) {
   const stat = (label, value) => (
     <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
       <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{label}</div>
-      <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginTop: 2 }}>{value}</div>
+      <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginTop: 2 }}>{value}</div>
     </div>
   )
   return createPortal(
@@ -556,20 +556,20 @@ function AdPreviewModal({ ad, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('meta.levelAd', null, 'Inserzione')}</span>
             <div style={{ flex: 1 }} />
-            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }}>×</button>
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 950, color: '#fff', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
+          <div style={{ fontSize: 16, fontWeight: 950, color: 'var(--text)', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {stat(t('meta.spent', null, 'Speso'), fmtMoney(ad.spend, 0))}
             {stat('ROAS', fmtRatio(ad.roas))}
             {stat(t('meta.ctrLink', null, 'CTR link'), fmtPct(ad.ctr_link, 2))}
             {stat(t('meta.purchases', null, 'Acquisti'), ad.purchases ? fmtInt(ad.purchases) : '—')}
           </div>
-          {ad.headline && (<div><div style={lab}>{t('meta.adHeadline', null, 'Titolo')}</div><div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{ad.headline}</div></div>)}
+          {ad.headline && (<div><div style={lab}>{t('meta.adHeadline', null, 'Titolo')}</div><div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{ad.headline}</div></div>)}
           {ad.body && (<div><div style={lab}>{t('meta.adCopy', null, 'Copy')}</div><div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' }}>{ad.body}</div></div>)}
           {ad.description && (<div><div style={lab}>{t('meta.adDescription', null, 'Descrizione')}</div><div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{ad.description}</div></div>)}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {ad.cta && <span style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 8, background: '#0866FF', color: '#fff', fontSize: 12.5, fontWeight: 800, textTransform: 'capitalize' }}>{(ad.cta || '').toLowerCase()}</span>}
+            {ad.cta && <span style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 8, background: '#0866FF', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, textTransform: 'capitalize' }}>{(ad.cta || '').toLowerCase()}</span>}
             {ad.link_url && <a href={ad.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.link_url}</a>}
           </div>
           {(!ad.body && !ad.headline && !ad.description) && (<div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('meta.noCopy', null, 'Nessun testo disponibile (probabile catalogo dinamico).')}</div>)}
@@ -889,7 +889,7 @@ export default function MetaDetailTab() {
         background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
         backdropFilter: 'blur(40px) saturate(2.2)',
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         borderRadius: 22,
@@ -907,8 +907,8 @@ export default function MetaDetailTab() {
                 disabled={loading}
                 style={{
                   background: active ? 'linear-gradient(135deg, rgba(91,44,255,0.25), rgba(41,151,255,0.18))' : 'rgba(255,255,255,0.04)',
-                  border: active ? '1px solid rgba(91,44,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
-                  color: active ? '#fff' : 'var(--text2)',
+                  border: active ? '1px solid rgba(91,44,255,0.55)' : '1px solid var(--border)',
+                  color: active ? 'var(--text)' : 'var(--text2)',
                   borderRadius: 11,
                   padding: '9px 14px',
                   fontSize: 12.5,
@@ -951,9 +951,9 @@ export default function MetaDetailTab() {
               value={customSince}
               onChange={e => setCustomSince(e.target.value)}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#fff',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: 13,
@@ -965,9 +965,9 @@ export default function MetaDetailTab() {
               value={customUntil}
               onChange={e => setCustomUntil(e.target.value)}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#fff',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: 13,
@@ -1002,10 +1002,10 @@ export default function MetaDetailTab() {
       }}>
         <KpiCard label={t('meta.amountSpent', null, 'Importo speso')} value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" delay={0} />
         <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" delay={0.3} />
-        <KpiCard label={t('meta.costPerResult', null, 'Costo risultato')} value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#fff" daily={daily} dataKey="cost_per_result" delay={0.6} />
+        <KpiCard label={t('meta.costPerResult', null, 'Costo risultato')} value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="var(--text)" daily={daily} dataKey="cost_per_result" delay={0.6} />
         <KpiCard label={t('meta.purchases', null, 'Acquisti')} value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" delay={0.9} />
         <KpiCard label={t('meta.ctrLink', null, 'CTR link')} value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" delay={1.2} />
-        <KpiCard label={t('meta.frequency', null, 'Frequenza')} value={n(summary.frequency).toFixed(2)} accent="#fff" daily={daily} dataKey="frequency" delay={1.5} />
+        <KpiCard label={t('meta.frequency', null, 'Frequenza')} value={n(summary.frequency).toFixed(2)} accent="var(--text)" daily={daily} dataKey="frequency" delay={1.5} />
       </div>
 
       {/* Comparazione + Insight */}
@@ -1037,7 +1037,7 @@ export default function MetaDetailTab() {
                 <div key={it.label} style={{
                   padding: '12px 14px',
                   background: 'rgba(0,0,0,0.45)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border)',
                   borderTopColor: 'rgba(255,255,255,0.10)',
                   borderBottomColor: 'rgba(0,0,0,0.55)',
                   borderRadius: 12,
@@ -1075,7 +1075,7 @@ export default function MetaDetailTab() {
         background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
         backdropFilter: 'blur(40px) saturate(2.2)',
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         borderRadius: 22,
@@ -1094,9 +1094,9 @@ export default function MetaDetailTab() {
           onChange={e => setSearch(e.target.value)}
           style={{
             flex: '1 1 280px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fff',
+            background: 'var(--glass)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
             borderRadius: 11,
             padding: '11px 14px',
             fontSize: 13.5,
@@ -1119,8 +1119,8 @@ export default function MetaDetailTab() {
                 disabled={loading}
                 style={{
                   background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
-                  border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
-                  color: active ? '#fff' : 'var(--text2)',
+                  border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                  color: active ? 'var(--text)' : 'var(--text2)',
                   borderRadius: 10,
                   padding: '8px 12px',
                   fontSize: 12,
@@ -1162,23 +1162,23 @@ export default function MetaDetailTab() {
         ]
         const tabBtn = (tab) => ({
           padding: '12px 18px', border: 'none', background: 'transparent', cursor: tab.enabled ? 'pointer' : 'not-allowed',
-          color: bmLevel === tab.id ? '#fff' : tab.enabled ? 'var(--text2)' : 'var(--text3)',
+          color: bmLevel === tab.id ? 'var(--text)' : tab.enabled ? 'var(--text2)' : 'var(--text3)',
           fontSize: 13.5, fontWeight: bmLevel === tab.id ? 900 : 700, position: 'relative',
           borderBottom: bmLevel === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
           opacity: tab.enabled ? 1 : 0.5,
         })
         const crumb = (label, onClick, active) => (
-          <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? '#fff' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 12.5, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
+          <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? 'var(--text)' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 12.5, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
         )
         return (
           <FxCard glow={ACCENT_GLOW} padding={0} delay={1.6}>
             {/* Header (con padding proprio: niente titolo tagliato dal bordo) */}
             <div style={{ padding: '22px 24px 14px' }}>
-              <h2 style={{ margin: 0, color: '#fff', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Gerarchia Meta')}</h2>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Gerarchia Meta')}</h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5, fontWeight: 500 }}>{t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')}</p>
             </div>
             {/* Tab bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid var(--border)' }}>
               {TABS.map(tab => (
                 <button key={tab.id} onClick={() => tab.enabled && setBmLevel(tab.id)} disabled={!tab.enabled} style={tabBtn(tab)}>
                   {tab.label}{tab.count != null && <span style={{ marginLeft: 7, fontSize: 11, color: 'var(--text3)', fontWeight: 700, fontFamily: 'Barlow' }}>{tab.count}</span>}
@@ -1201,7 +1201,7 @@ export default function MetaDetailTab() {
                 <span style={{ fontSize: 12.5, fontWeight: 800, color: '#c4b5fd' }}>{t('meta.bmSelectedN', { n: bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size }, `${bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size} selezionate`)}</span>
                 <button onClick={() => bmLevel === 'campaign' ? setCheckCampaigns(new Set()) : setCheckAdsets(new Set())} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 11px', color: 'var(--text2)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{t('meta.bmClear', null, 'Deseleziona')}</button>
                 <div style={{ flex: 1 }} />
-                <button onClick={bmLevel === 'campaign' ? openMultiAdsets : openMultiAds} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 16px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
+                <button onClick={bmLevel === 'campaign' ? openMultiAdsets : openMultiAds} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 16px', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
                   {bmLevel === 'campaign' ? t('meta.bmViewAdsets', null, 'Vedi gruppi di inserzioni') : t('meta.bmViewAds', null, 'Vedi inserzioni')} →
                 </button>
               </div>
@@ -1219,9 +1219,9 @@ export default function MetaDetailTab() {
                         textTransform: 'uppercase', letterSpacing: '0.12em',
                         textAlign: 'left', whiteSpace: 'nowrap',
                         color: 'var(--text2)',
-                        background: 'rgba(8,8,18,0.92)',
+                        background: 'var(--surface)',
                         backdropFilter: 'blur(20px)',
-                        borderBottom: '1.5px solid rgba(255,255,255,0.08)',
+                        borderBottom: '1.5px solid var(--border)',
                       }}>{h}</th>
                     ))}
                   </tr>
@@ -1246,7 +1246,7 @@ export default function MetaDetailTab() {
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                               <div style={{ color: '#fca5a5', fontWeight: 700, maxWidth: 560 }}>{t('meta.bmLoadError', null, 'Meta non ha risposto (probabile limite di richieste). Riprova tra qualche secondo.')}</div>
                               <div style={{ color: 'var(--text3)', fontSize: 12 }}>{bmError}</div>
-                              <button onClick={retryBm} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 18px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{t('meta.bmRetry', null, 'Riprova')}</button>
+                              <button onClick={retryBm} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 18px', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{t('meta.bmRetry', null, 'Riprova')}</button>
                             </div>
                           )
                           : bmLevel === 'adset' && !viewCampaignIds.length ? t('meta.bmPickCampaign', null, 'Seleziona una o più campagne (checkbox) e premi “Vedi gruppi di inserzioni”.')
@@ -1260,14 +1260,14 @@ export default function MetaDetailTab() {
                   const lvl = bmLevel === 'campaign' ? t('meta.bmResultsCampaigns', { n: bmTotals.count }, `${bmTotals.count} campagne`)
                     : bmLevel === 'adset' ? t('meta.bmResultsAdsets', { n: bmTotals.count }, `${bmTotals.count} gruppi di inserzioni`)
                     : t('meta.bmResultsAds', { n: bmTotals.count }, `${bmTotals.count} inserzioni`)
-                  const footCell = { padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap', color: '#fff', fontWeight: 800, fontSize: 13 }
+                  const footCell = { padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text)', fontWeight: 800, fontSize: 13 }
                   return (
                     <tfoot>
-                      <tr style={{ position: 'sticky', bottom: 0, zIndex: 15, background: 'rgba(8,8,18,0.96)', backdropFilter: 'blur(20px)', borderTop: '1.5px solid rgba(123,91,255,0.35)' }}>
+                      <tr style={{ position: 'sticky', bottom: 0, zIndex: 15, background: 'var(--surface)', backdropFilter: 'blur(20px)', borderTop: '1.5px solid rgba(123,91,255,0.35)' }}>
                         <td style={{ ...footCell, minWidth: 340 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{t('meta.bmResultsLabel', null, 'Risultati di')}</span>
-                            <span style={{ color: '#fff', fontWeight: 900 }}>{lvl}</span>
+                            <span style={{ color: 'var(--text)', fontWeight: 900 }}>{lvl}</span>
                           </div>
                         </td>
                         <td style={footCell}><span style={cellMuted}>—</span></td>
@@ -1304,7 +1304,7 @@ export default function MetaDetailTab() {
                 display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '14px 18px',
                 background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--border)',
                 borderTopColor: 'rgba(255,255,255,0.10)',
                 borderBottomColor: 'rgba(0,0,0,0.55)',
                 borderRadius: 12,
@@ -1313,7 +1313,7 @@ export default function MetaDetailTab() {
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
                   background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                  color: '#fff',
+                  color: 'var(--text)',
                   display: 'grid', placeItems: 'center',
                   fontSize: 12, fontWeight: 900,
                   flexShrink: 0,

@@ -44,7 +44,7 @@ function BrandLogo({ domain, size = 40 }) {
     return (
       <div style={{
         width: size, height: size, borderRadius: 12,
-        background: entry.dark ? 'var(--glass)' : '#fff',
+        background: entry.dark ? 'var(--glass)' : 'var(--text)',
         display: 'grid', placeItems: 'center', flexShrink: 0,
         padding: Math.round(size * 0.18),
       }}>
@@ -67,7 +67,7 @@ function BrandLogo({ domain, size = 40 }) {
         alt=""
         width={size}
         height={size}
-        style={{ borderRadius: 12, objectFit: 'contain', background: '#fff', flexShrink: 0 }}
+        style={{ borderRadius: 12, objectFit: 'contain', background: '#ffffff', flexShrink: 0 }}
         onError={() => setErr(true)}
       />
     )
@@ -226,7 +226,7 @@ function ConnectModal({ integration, onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
           <BrandLogo domain={domain} size={48} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 950, color: '#fff' }}>{name}</div>
+            <div style={{ fontSize: 20, fontWeight: 950, color: 'var(--text)' }}>{name}</div>
             <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
           </div>
           <button
@@ -260,20 +260,20 @@ function ConnectModal({ integration, onClose }) {
             display: 'grid', placeItems: 'center',
           }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="7" stroke="#fff" strokeWidth="1.5"/>
-              <path d="M6 8h4M8 6v4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="8" cy="8" r="7" stroke="var(--text)" strokeWidth="1.5"/>
+              <path d="M6 8h4M8 6v4" stroke="var(--text)" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t('integrations.connectWithOauth', null, 'Connect with OAuth')}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{t('integrations.connectWithOauth', null, 'Connect with OAuth')}</div>
+            <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
               {t('integrations.oauthSub', null, 'Secure, one-click authentication')}
             </div>
           </div>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 4 }}>
-            <path d="M5 2h7v7M12 2L2 12" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M5 2h7v7M12 2L2 12" stroke="var(--text)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ color: 'rgba(255,255,255,.5)', fontSize: 16 }}>›</span>
+          <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
         </a>
 
         {envVars?.length > 0 && (

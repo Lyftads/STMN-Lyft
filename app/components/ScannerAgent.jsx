@@ -107,7 +107,7 @@ export default function ScannerAgent({ scan }) {
             height: 64,
             borderRadius: '50%',
             background: 'linear-gradient(140deg, #06b6d4 0%, #0e7490 100%)',
-            border: '2px solid rgba(255,255,255,0.18)',
+            border: '2px solid var(--border3)',
             cursor: 'pointer',
             zIndex: 50,
             padding: 0,
@@ -160,7 +160,7 @@ export default function ScannerAgent({ scan }) {
           background: 'rgba(8,8,15,0.85)',
           backdropFilter: 'blur(40px) saturate(1.8)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
-          borderLeft: '1.5px solid rgba(255,255,255,0.08)',
+          borderLeft: '1.5px solid var(--border)',
           boxShadow: '-12px 0 60px rgba(0,0,0,0.7)',
           zIndex: 50,
           display: 'flex',
@@ -182,7 +182,7 @@ export default function ScannerAgent({ scan }) {
               width: 38, height: 38, borderRadius: 10,
               background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
               display: 'grid', placeItems: 'center',
-              fontSize: 16, fontWeight: 900, color: '#fff',
+              fontSize: 16, fontWeight: 900, color: 'var(--text)',
             }}>◎</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Scanner Agent</div>
@@ -221,7 +221,7 @@ export default function ScannerAgent({ scan }) {
           {messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: '12px 16px',
@@ -244,7 +244,7 @@ export default function ScannerAgent({ scan }) {
                       disabled={loading}
                       style={{
                         textAlign: 'left',
-                        background: 'rgba(255,255,255,0.03)',
+                        background: 'var(--glass)',
                         border: '1px solid var(--border)',
                         color: 'var(--text2)',
                         borderRadius: 10,
@@ -270,7 +270,7 @@ export default function ScannerAgent({ scan }) {
                   ? 'linear-gradient(135deg, #06b6d4, #0e7490)'
                   : 'rgba(255,255,255,0.04)',
                 border: m.role === 'user' ? 'none' : (m.isError ? '1px solid #ef444455' : '1px solid var(--border)'),
-                color: m.isError ? '#fecaca' : (m.role === 'user' ? '#fff' : 'var(--text)'),
+                color: m.isError ? '#fecaca' : (m.role === 'user' ? 'var(--text)' : 'var(--text)'),
                 borderRadius: 14,
                 padding: '11px 15px',
                 fontSize: 13.5,
@@ -286,7 +286,7 @@ export default function ScannerAgent({ scan }) {
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: '11px 15px',
@@ -327,7 +327,7 @@ export default function ScannerAgent({ scan }) {
               disabled={loading || !hasScan}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 borderRadius: 11,
@@ -343,7 +343,7 @@ export default function ScannerAgent({ scan }) {
                 background: loading || !input.trim() || !hasScan
                   ? 'rgba(255,255,255,0.05)'
                   : 'linear-gradient(135deg, #06b6d4, #0e7490)',
-                color: loading || !input.trim() || !hasScan ? 'var(--text3)' : '#fff',
+                color: loading || !input.trim() || !hasScan ? 'var(--text3)' : 'var(--text)',
                 border: 'none',
                 borderRadius: 11,
                 padding: '0 18px',
@@ -410,7 +410,7 @@ function AvatarSvg() {
       <circle cx="34" cy="27.5" r="3.2" fill="none" stroke="#a5f3fc" strokeWidth="1.4" />
       <line x1="36.2" y1="29.7" x2="38.5" y2="32" stroke="#a5f3fc" strokeWidth="1.4" strokeLinecap="round" />
       <ellipse cx="26.2" cy="27.5" rx="1.1" ry="0.7" fill="#1a1410" />
-      <circle cx="26.5" cy="27.3" r="0.25" fill="#fff" />
+      <circle cx="26.5" cy="27.3" r="0.25" fill="var(--text)" />
       <path d="M27.5 34.5q2.5 1.5 5 0" stroke="#22d3ee" strokeWidth="1.1" strokeLinecap="round" fill="none" />
     </svg>
   )

@@ -78,7 +78,7 @@ export default function LighthouseTab() {
             </div>
             <PlatformBadges sources={['meta']} size={14} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             Alert center · {summary.total} anomalie rilevate ({data?.baseline_window || 14}gg baseline)
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function LighthouseTab() {
             onChange={e => setPreset(e.target.value)}
             style={{
               background: 'var(--glass)', border: '1px solid var(--border)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px',
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px',
               fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer',
               minWidth: 140,
             }}
@@ -99,7 +99,7 @@ export default function LighthouseTab() {
             type="button" onClick={() => load(true)} disabled={loading}
             style={{
               border: '1px solid var(--border)', background: 'var(--glass)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px',
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px',
               fontSize: 13, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
               display: 'flex', alignItems: 'center', gap: 6,
@@ -128,7 +128,7 @@ export default function LighthouseTab() {
       {/* Summary + filter pills */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <SummaryPill active={filter === 'all'} onClick={() => setFilter('all')}
-          label="Tutti" count={summary.total} color="#fff" />
+          label="Tutti" count={summary.total} color="var(--text)" />
         <SummaryPill active={filter === 'high'} onClick={() => setFilter('high')}
           label="Alta" count={summary.high} color={SEVERITY_COLORS.high.stripe} />
         <SummaryPill active={filter === 'medium'} onClick={() => setFilter('medium')}
@@ -149,7 +149,7 @@ export default function LighthouseTab() {
       {filtered.length === 0 && data && !loading && (
         <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>
           <div style={{ fontSize: 24, marginBottom: 12 }}><Icon name="check" size={24} /></div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Nessuna anomalia in questo filtro</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Nessuna anomalia in questo filtro</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>L'account è sotto controllo nel periodo selezionato.</div>
         </div>
       )}
@@ -207,7 +207,7 @@ function ProposalCard({ proposal }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 20 }}>{proposal.icon}</span>
-        <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{proposal.title}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{proposal.title}</span>
         <span style={{
           fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em',
           background: c.chip, color: '#0a0a14',
@@ -218,7 +218,7 @@ function ProposalCard({ proposal }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '6px 14px', fontSize: 13, lineHeight: 1.5 }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Cosa</div>
-        <div style={{ color: '#fff', fontWeight: 600 }}>{proposal.what}</div>
+        <div style={{ color: 'var(--text)', fontWeight: 600 }}>{proposal.what}</div>
         <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Perché</div>
         <div style={{ color: 'var(--text2)' }}>{proposal.why}</div>
         <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Come</div>
@@ -248,7 +248,7 @@ function AlertCard({ alert }) {
         }}>
           {SEVERITY_LABEL[alert.severity]}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{alert.metric}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{alert.metric}</span>
         <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{alert.date}</span>
         <span style={{ flex: 1 }} />
         <div style={{ fontSize: 12, color: c.text, fontWeight: 700 }}>
@@ -258,7 +258,7 @@ function AlertCard({ alert }) {
       <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 8 }}>
         <div>
           <span style={{ color: 'var(--text3)' }}>Valore: </span>
-          <span style={{ color: '#fff', fontWeight: 800 }}>{alert.current_fmt}</span>
+          <span style={{ color: 'var(--text)', fontWeight: 800 }}>{alert.current_fmt}</span>
         </div>
         <div>
           <span style={{ color: 'var(--text3)' }}>Baseline: </span>
@@ -266,10 +266,10 @@ function AlertCard({ alert }) {
         </div>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 6 }}>
-        <strong style={{ color: '#fff', fontWeight: 800 }}>Causa probabile:</strong> {alert.cause}
+        <strong style={{ color: 'var(--text)', fontWeight: 800 }}>Causa probabile:</strong> {alert.cause}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
-        <strong style={{ color: '#fff', fontWeight: 800 }}>Azione:</strong> {alert.suggestion}
+        <strong style={{ color: 'var(--text)', fontWeight: 800 }}>Azione:</strong> {alert.suggestion}
       </div>
     </div>
   )

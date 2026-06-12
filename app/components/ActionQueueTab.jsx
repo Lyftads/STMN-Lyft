@@ -69,7 +69,7 @@ function LaunchComposer({ t, onQueued }) {
           <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('aq.launch.placeholder')} rows={3}
             style={{ width: '100%', resize: 'vertical', borderRadius: 10, padding: '10px 12px', background: 'var(--glass2, rgba(255,255,255,0.04))', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit' }} />
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button onClick={generate} disabled={drafting || !prompt.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', cursor: drafting ? 'wait' : 'pointer', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', fontSize: 12.5, fontWeight: 800 }}>
+            <button onClick={generate} disabled={drafting || !prompt.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', cursor: drafting ? 'wait' : 'pointer', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: 'var(--text)', fontSize: 12.5, fontWeight: 800 }}>
               <Icon name="sparkle" size={13} /> {drafting ? t('aq.launch.generating') : t('aq.launch.generate')}
             </button>
           </div>
@@ -77,7 +77,7 @@ function LaunchComposer({ t, onQueued }) {
 
           {draft && (
             <div className="glass-panel" style={{ marginTop: 12, padding: 14, borderRadius: 12, borderLeft: '3px solid #7b5bff' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{draft.name}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>{draft.name}</div>
               {row(t('aq.launch.objective'), draft.objective)}
               {row(t('aq.launch.budget'), `€${draft.daily_budget_eur}`)}
               {row(t('aq.launch.audience'), draft.audience || '—')}
@@ -198,7 +198,7 @@ function SuggestPanel({ t, metrics, existing, onQueued }) {
             <div key={idx} className="glass-panel" style={{ borderRadius: 12, padding: 12, borderLeft: `3px solid ${PRIO_COLOR[s.priority] || '#2997ff'}` }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{s.summary}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3 }}>{s.summary}</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 5, fontSize: 11, color: 'var(--text3)' }}>
                     <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, color: '#a78bfa' }}>{s.channel}</span>
                     <span style={{ color: PRIO_COLOR[s.priority] || '#2997ff', fontWeight: 700 }}>· {s.priority}</span>
@@ -267,7 +267,7 @@ function RecapPanel({ t, actions }) {
         {rows.map(([k, n]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
             <span style={{ minWidth: 96, color: 'var(--text2)', textTransform: 'capitalize' }}>{String(k).replace(/_/g, ' ')}</span>
-            <span style={{ flex: 1, height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <span style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--glass2)', overflow: 'hidden' }}>
               <span style={{ display: 'block', width: `${Math.max(8, n / max * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#64d2ff)' }} />
             </span>
             <span style={{ color: 'var(--text3)', fontWeight: 700, minWidth: 18, textAlign: 'right' }}>{n}</span>
@@ -368,7 +368,7 @@ export default function ActionQueueTab({ metrics }) {
               padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 700,
               border: active ? '1px solid #7b5bff' : '1px solid var(--border)',
               background: active ? 'rgba(123,91,255,0.15)' : 'transparent',
-              color: active ? '#fff' : 'var(--text3)',
+              color: active ? 'var(--text)' : 'var(--text3)',
             }}>
               {t('aq.filter.' + id)} {n > 0 && <span style={{ opacity: 0.7 }}>· {n}</span>}
             </button>
@@ -393,11 +393,11 @@ export default function ActionQueueTab({ metrics }) {
             return (
               <div key={a.id} className="glass-panel" style={{ borderRadius: 14, padding: 16, borderLeft: `3px solid ${s.color}` }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.05)', color: 'var(--text2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--glass)', color: 'var(--text2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                     <Icon name={TYPE_ICON[a.type] || 'bolt'} size={16} />
                   </span>
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{a.summary}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3 }}>{a.summary}</div>
                     {a.payload?.why && <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 4, lineHeight: 1.45 }}>{a.payload.why}</div>}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 7, fontSize: 11, color: 'var(--text3)' }}>
                       <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, color: '#a78bfa' }}>{a.channel}</span>
@@ -439,7 +439,7 @@ export default function ActionQueueTab({ metrics }) {
 const ghostBtn = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '7px 12px', borderRadius: 9, cursor: 'pointer',
-  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+  background: 'var(--glass)', border: '1px solid var(--border)',
   color: 'var(--text3)', fontSize: 12, fontWeight: 700,
 }
 const btn = (c) => ({

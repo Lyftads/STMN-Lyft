@@ -125,7 +125,7 @@ export default function LtvCohortsTab() {
                 </thead>
                 <tbody>
                   {cohorts.map(c => (
-                    <tr key={c.cohort} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <tr key={c.cohort} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text)', fontWeight: 700 }}>{c.label}</td>
                       <td style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text2)', fontWeight: 700 }}>{nf(c.size)}</td>
                       <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 800, color: repeatColor(c.repeatRate) }}>{c.repeatRate}%</td>
@@ -201,7 +201,7 @@ export default function LtvCohortsTab() {
                   <li><strong style={{ color: 'var(--text)' }}>Ordini/cliente</strong> ({s.avgOrders}) e <strong style={{ color: 'var(--text)' }}>clienti monouso</strong> ({s.oneTimeRate}%) — quanto il fatturato dipende da chi compra una volta sola.</li>
                   <li><strong style={{ color: 'var(--text)' }}>Distribuzione per n° ordini</strong> — quanti clienti si fermano a 1, 2, 3 o 4+ ordini: la "scala" della fedeltà.</li>
                 </ul>
-                <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', color: 'var(--text3)' }}>
+                <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid var(--border)', color: 'var(--text3)' }}>
                   <Icon name="warning" size={12} /> <strong style={{ color: 'var(--text2)' }}>Effetto maturità</strong>: le coorti più recenti (in alto) hanno repeat rate e LTV <em>fisiologicamente più bassi</em> perché hanno avuto meno tempo per riacquistare. Per il potenziale reale guarda le coorti più vecchie. {months <= 6
                     ? `Con una finestra di ${months} mesi vedi soprattutto l'acquisizione recente: allarga a 12–24 mesi per valutare la retention matura.`
                     : `Con ${months} mesi includi anche coorti mature: confronta le righe vecchie (LTV/repeat consolidati) con le recenti per stimare dove arriveranno.`}

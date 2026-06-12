@@ -204,7 +204,7 @@ export default function DashboardInsights({ preset }) {
               cursor: 'pointer',
               background: 'linear-gradient(135deg, #2997ff, #6366f1)',
               border: 'none',
-              color: '#fff',
+              color: 'var(--text)',
               fontWeight: 700,
             }}
           >

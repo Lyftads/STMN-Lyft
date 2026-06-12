@@ -66,7 +66,7 @@ export default function LiveStatsCards() {
                 </span>
                 <span style={{ opacity: 0.6 }}>{l.activeUsers}</span>
               </div>
-              <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ height: 4, borderRadius: 2, background: 'var(--glass2)' }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
                   width: `${(l.activeUsers / max) * 100}%`,

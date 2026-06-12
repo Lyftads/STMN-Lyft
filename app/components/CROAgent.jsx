@@ -105,7 +105,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
             height: 64,
             borderRadius: '50%',
             background: 'linear-gradient(140deg, #2997ff 0%, #1e3a8a 100%)',
-            border: '2px solid rgba(255,255,255,0.18)',
+            border: '2px solid var(--border3)',
             cursor: 'pointer',
             zIndex: 50,
             padding: 0,
@@ -158,7 +158,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
           background: 'rgba(8,8,15,0.85)',
           backdropFilter: 'blur(40px) saturate(1.8)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
-          borderLeft: '1.5px solid rgba(255,255,255,0.08)',
+          borderLeft: '1.5px solid var(--border)',
           boxShadow: '-12px 0 60px rgba(0,0,0,0.7)',
           zIndex: 50,
           display: 'flex',
@@ -180,7 +180,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
               width: 38, height: 38, borderRadius: 10,
               background: 'linear-gradient(135deg, #2997ff, #1e3a8a)',
               display: 'grid', placeItems: 'center',
-              fontSize: 16, fontWeight: 900, color: '#fff',
+              fontSize: 16, fontWeight: 900, color: 'var(--text)',
             }}>↑</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>CRO Agent</div>
@@ -219,7 +219,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
           {messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: '12px 16px',
@@ -239,7 +239,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
                     disabled={loading}
                     style={{
                       textAlign: 'left',
-                      background: 'rgba(255,255,255,0.03)',
+                      background: 'var(--glass)',
                       border: '1px solid var(--border)',
                       color: 'var(--text2)',
                       borderRadius: 10,
@@ -264,7 +264,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
                   ? 'linear-gradient(135deg, #2997ff, #1e3a8a)'
                   : 'rgba(255,255,255,0.04)',
                 border: m.role === 'user' ? 'none' : (m.isError ? '1px solid #ef444455' : '1px solid var(--border)'),
-                color: m.isError ? '#fecaca' : (m.role === 'user' ? '#fff' : 'var(--text)'),
+                color: m.isError ? '#fecaca' : (m.role === 'user' ? 'var(--text)' : 'var(--text)'),
                 borderRadius: 14,
                 padding: '11px 15px',
                 fontSize: 13.5,
@@ -280,7 +280,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: '11px 15px',
@@ -321,7 +321,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
               disabled={loading}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 borderRadius: 11,
@@ -337,7 +337,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
                 background: loading || !input.trim()
                   ? 'rgba(255,255,255,0.05)'
                   : 'linear-gradient(135deg, #2997ff, #1e3a8a)',
-                color: loading || !input.trim() ? 'var(--text3)' : '#fff',
+                color: loading || !input.trim() ? 'var(--text3)' : 'var(--text)',
                 border: 'none',
                 borderRadius: 11,
                 padding: '0 18px',
@@ -402,8 +402,8 @@ function AvatarSvg() {
       <path d="M19 22c0-7 5-12 11-12s11 5 11 12c0 1-.1 2-.3 3-.6-1.5-2-3.5-4-4.5-1.5 1-3.7 1.8-6.7 1.8s-5.2-.8-6.7-1.8c-2 1-3.4 3-4 4.5-.2-1-.3-2-.3-3z" fill="url(#croHair)" />
       <ellipse cx="26.2" cy="27.5" rx="1.1" ry="0.7" fill="#1a1410" />
       <ellipse cx="33.8" cy="27.5" rx="1.1" ry="0.7" fill="#1a1410" />
-      <circle cx="26.5" cy="27.3" r="0.25" fill="#fff" />
-      <circle cx="34.1" cy="27.3" r="0.25" fill="#fff" />
+      <circle cx="26.5" cy="27.3" r="0.25" fill="var(--text)" />
+      <circle cx="34.1" cy="27.3" r="0.25" fill="var(--text)" />
       <path d="M27.5 34.5q2.5 1.5 5 0" stroke="#60a5fa" strokeWidth="1.1" strokeLinecap="round" fill="none" />
       {/* Up-arrow growth icon on chest */}
       <path d="M27 50l3-4 3 4-1.5 0v3h-3v-3z" fill="#bfdbfe" opacity="0.85" />

@@ -37,8 +37,8 @@ export default function LogoMark({ size = 32, withGlow = true }) {
             <stop offset="100%" stopColor={BLUE} />
           </linearGradient>
           <linearGradient id={`logoGradLight-${size}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="var(--text)" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="var(--text)" stopOpacity="0.3" />
           </linearGradient>
         </defs>
 
@@ -57,7 +57,7 @@ export default function LogoMark({ size = 32, withGlow = true }) {
         </g>
 
         {/* "L" stilizzata al centro */}
-        <g transform="translate(50 50)" fill="#fff">
+        <g transform="translate(50 50)" fill="var(--text)">
           <rect x="-9" y="-14" width="5" height="28" rx="2" />
           <rect x="-9" y="9" width="18" height="5" rx="2" />
         </g>

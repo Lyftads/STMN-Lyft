@@ -95,7 +95,7 @@ export default function AgentMemoryInspector() {
           <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
             Memorie Agent
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
             {memories.total} memorie apprese
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
@@ -108,8 +108,8 @@ export default function AgentMemoryInspector() {
           onClick={load}
           style={{
             padding: '8px 14px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--glass)',
+            border: '1px solid var(--border2)',
             color: 'var(--text3)', fontSize: 11, fontWeight: 700,
             cursor: 'pointer',
           }}
@@ -125,9 +125,9 @@ export default function AgentMemoryInspector() {
           onChange={e => setAgentFilter(e.target.value)}
           style={{
             padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fff', fontSize: 12.5, fontWeight: 600,
+            background: 'var(--glass)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)', fontSize: 12.5, fontWeight: 600,
             outline: 'none', cursor: 'pointer', minWidth: 180,
           }}
         >
@@ -146,9 +146,9 @@ export default function AgentMemoryInspector() {
           style={{
             flex: 1, minWidth: 200,
             padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fff', fontSize: 12.5,
+            background: 'var(--glass)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)', fontSize: 12.5,
             outline: 'none',
           }}
         />
@@ -209,7 +209,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
         <span style={{
           fontSize: 10, color: 'var(--text4, #666)', fontWeight: 600,
           padding: '3px 8px', borderRadius: 6,
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--glass)',
         }}>
           {agentLabel}
         </span>
@@ -237,7 +237,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
         </span>
       </div>
 
-      <div style={{ fontSize: 13, color: '#fff', lineHeight: 1.45 }}>
+      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>
         {memory.content}
       </div>
 
@@ -251,7 +251,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
           style={{ flex: 1, maxWidth: 160, accentColor: ACCENT }}
         />
         <span style={{
-          fontSize: 11, color: '#fff', fontWeight: 700,
+          fontSize: 11, color: 'var(--text)', fontWeight: 700,
           minWidth: 24, textAlign: 'center',
         }}>
           {memory.importance}
@@ -316,8 +316,8 @@ function ExportImportButtons({ onImported }) {
         title="Scarica tutte le memorie come file JSON"
         style={{
           padding: '8px 12px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--glass)',
+          border: '1px solid var(--border2)',
           color: 'var(--text3)', fontSize: 11, fontWeight: 700,
           cursor: 'pointer',
         }}
@@ -331,8 +331,8 @@ function ExportImportButtons({ onImported }) {
         title="Carica un file JSON di memorie precedentemente esportato"
         style={{
           padding: '8px 12px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--glass)',
+          border: '1px solid var(--border2)',
           color: 'var(--text3)', fontSize: 11, fontWeight: 700,
           cursor: importing ? 'wait' : 'pointer',
         }}

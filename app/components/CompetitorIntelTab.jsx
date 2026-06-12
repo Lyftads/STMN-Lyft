@@ -354,7 +354,7 @@ function ProductCard({ product }) {
             top: 10,
             right: 10,
             background: 'var(--red)',
-            color: '#fff',
+            color: 'var(--text)',
             padding: '4px 10px',
             borderRadius: 8,
             fontSize: 11,
@@ -920,7 +920,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 <StatMini
                   label={t('ci.statProducts', null, 'Prodotti')}
                   value={stats.totalProducts}
-                  tone="#fff"
+                  tone="var(--text)"
                 />
                 <StatMini
                   label={t('ci.statAvgPrice', null, 'Prezzo medio')}

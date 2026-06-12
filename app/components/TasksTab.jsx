@@ -33,10 +33,10 @@ const PRIORITY_ROWS = [
 ]
 
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
+const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
 const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, padding: 18 }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
+const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
 
 export default function TasksTab() {
   const [projects, setProjects] = useState([])
@@ -192,7 +192,7 @@ export default function TasksTab() {
   }
 
   return (
-    <div style={{ fontFamily: 'Barlow', color: '#fff' }}>
+    <div style={{ fontFamily: 'Barlow', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <div>
@@ -572,7 +572,7 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
             {comments.map(c => (
               <div key={c.id} style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
                 <div style={{ fontSize: 12, color: '#b0b0bd', marginBottom: 2 }}>
-                  <b style={{ color: '#fff' }}>{c.author_name || 'Utente'}</b> · {new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  <b style={{ color: 'var(--text)' }}>{c.author_name || 'Utente'}</b> · {new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </div>
                 <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{c.body}</div>
               </div>
@@ -662,7 +662,7 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onCl
           {created && (
             <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
               <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}><Icon name="check" size={13} /> Accesso pronto per {created.email}</div>
-              <div style={{ fontSize: 14 }}>Password temporanea: <b style={{ fontFamily: 'monospace', userSelect: 'all', background: '#0d0d16', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
+              <div style={{ fontSize: 14 }}>Password temporanea: <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
               <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
                 {created.emailSent ? 'Inviata anche via email. ' : 'Email non inviata: comunica tu queste credenziali. '}
                 Il collaboratore accede da /login e può cambiare la password dalla pagina di reset.
@@ -736,7 +736,7 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
             </div>
             {p.description && <div style={{ fontSize: 13, color: '#b0b0bd', marginTop: 4 }}>{p.description}</div>}
             <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12, color: '#b0b0bd', flexWrap: 'wrap' }}>
-              <span><b style={{ color: '#fff' }}>{s.total}</b> task</span>
+              <span><b style={{ color: 'var(--text)' }}>{s.total}</b> task</span>
               {s.review > 0 && <span style={{ color: '#ff9f0a' }}>{s.review} in revisione</span>}
               <span style={{ color: '#30d158' }}>{s.done} completati</span>
             </div>
@@ -746,7 +746,7 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
       {noProject > 0 && (
         <div onClick={() => onOpen('all')} style={{ ...card, cursor: 'pointer', borderTop: '3px solid #48484a' }}>
           <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 700 }}>Senza progetto</div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12, color: '#b0b0bd' }}><span><b style={{ color: '#fff' }}>{noProject}</b> task</span></div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12, color: '#b0b0bd' }}><span><b style={{ color: 'var(--text)' }}>{noProject}</b> task</span></div>
         </div>
       )}
       <div onClick={onAdd} style={{ ...card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0bd', border: '1px dashed var(--border)', minHeight: 90 }}>+ Nuovo progetto</div>
@@ -755,7 +755,7 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
 }
 
 // Card statistica compatta (numero grande + sottotitolo).
-function MiniStat({ label, value, sub, color = '#fff' }) {
+function MiniStat({ label, value, sub, color = 'var(--text)' }) {
   return (
     <div style={{ ...card }}>
       <div style={{ fontSize: 11.5, color: '#b0b0bd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
@@ -780,7 +780,7 @@ function DonutLegend({ data = [], total = 0, size = 150 }) {
           acc += frac
           return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth="14" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} transform={`rotate(-90 ${cx} ${cy})`} />
         })}
-        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff">{sum}</text>
+        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="22" fontWeight="800" fill="var(--text)">{sum}</text>
         <text x={cx} y={cy + 15} textAnchor="middle" fontSize="10" fill="#b0b0bd">totale</text>
       </svg>
       <div style={{ flex: 1, minWidth: 150, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -833,7 +833,7 @@ function SideItem({ label, count, color, active, onClick, onDelete }) {
   return (
     <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: active ? 'rgba(123,91,255,0.18)' : 'transparent', border: active ? '1px solid rgba(123,91,255,0.5)' : '1px solid transparent', marginBottom: 2 }}>
       {color && <span style={{ width: 8, height: 8, borderRadius: 3, background: color, flexShrink: 0 }} />}
-      <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#fff' : '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--text)' : '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
       <span style={{ fontSize: 11, color: '#b0b0bd' }}>{count}</span>
       {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete() }} title="Elimina progetto" style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>}
     </div>

@@ -165,7 +165,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
                       allowEscapeViewBox={{ x: true, y: true }}
                       wrapperStyle={{ zIndex: 50, pointerEvents: 'none' }}
                       contentStyle={{ background: 'rgba(0,0,0,0.92)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, whiteSpace: 'nowrap' }}
-                      itemStyle={{ color: '#fff' }}
+                      itemStyle={{ color: 'var(--text)' }}
                       formatter={(v) => eur2(v)}
                     />
                   </PieChart>

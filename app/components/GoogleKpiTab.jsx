@@ -137,7 +137,7 @@ export default function GoogleKpiTab() {
             </div>
             <PlatformBadges sources={['google']} size={16} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             {t('gkpi.header', null, 'Performance Google Ads')} · {data?.range?.since} → {data?.range?.until}
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function GoogleKpiTab() {
             value={preset}
             onChange={e => setPreset(e.target.value)}
             style={{
-              background: 'var(--glass)', border: '1px solid var(--border)', color: '#fff',
+              background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
               borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
               outline: 'none', cursor: 'pointer', minWidth: 160,
             }}
@@ -163,7 +163,7 @@ export default function GoogleKpiTab() {
             disabled={loading}
             style={{
               border: '1px solid var(--border)', background: 'var(--glass)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
               display: 'flex', alignItems: 'center', gap: 6,
             }}
@@ -244,7 +244,7 @@ function KpiCard({ kpi, value, prev, daily }) {
         <PlatformBadges sources={['google']} size={14} />
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>
           {kpi.fmt(value)}
         </div>
         <Sparkline data={daily} dataKey={kpi.key} color={GOOGLE} />
@@ -278,7 +278,7 @@ function SeparateChart({ chart, daily }) {
           <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             {t('mkpi.trend', null, 'Andamento')}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
         </div>
         <PlatformBadges sources={['google']} size={16} />
       </div>
@@ -295,7 +295,7 @@ function SeparateChart({ chart, daily }) {
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={50} />
             <Tooltip
-              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid var(--border2)', borderRadius: 8, fontSize: 11 }}
               formatter={v => [chart.fmt(v), t(chart.labelKey, null, chart.label)]}
             />
             <Area type="monotone" dataKey="v" stroke={GOOGLE} fill={`url(#ggrad-${chart.key})`} strokeWidth={1.5} />

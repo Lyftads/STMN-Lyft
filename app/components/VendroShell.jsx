@@ -48,6 +48,21 @@ export default function VendroShell({
 }) {
   const { t } = useI18n()
 
+  // ── Tema Notte/Giorno (light) via variabili CSS (data-theme su <html>) ──
+  const [day, setDay] = useState(false)
+  useEffect(() => {
+    let d = false
+    try { d = localStorage.getItem('lyft_theme') === 'day' } catch {}
+    setDay(d)
+    try { document.documentElement.setAttribute('data-theme', d ? 'day' : 'night') } catch {}
+  }, [])
+  const toggleTheme = () => setDay(d => {
+    const nd = !d
+    try { localStorage.setItem('lyft_theme', nd ? 'day' : 'night') } catch {}
+    try { document.documentElement.setAttribute('data-theme', nd ? 'day' : 'night') } catch {}
+    return nd
+  })
+
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
   useEffect(() => {
@@ -183,7 +198,7 @@ export default function VendroShell({
   return (
     <div style={{
       height: '100vh',
-      background: '#000',
+      background: 'var(--bg)',
       color: 'var(--text)',
       display: 'flex',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
@@ -239,7 +254,7 @@ export default function VendroShell({
       </div>
 
       {/* Sidebar */}
-      <aside style={{
+      <aside className="theme-dark-fixed" style={{
         width: 240,
         minWidth: 240,
         height: '100vh',
@@ -261,7 +276,7 @@ export default function VendroShell({
               fontSize: 22,
               fontWeight: 800,
               letterSpacing: '-0.04em',
-              color: '#fff',
+              color: 'var(--text)',
             }}>
               LyftAI
             </span>
@@ -290,15 +305,15 @@ export default function VendroShell({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: isOpen || hasActive ? '#fff' : '#c7c7cf',
+                  color: isOpen || hasActive ? 'var(--text)' : '#c7c7cf',
                   fontSize: 14,
                   fontWeight: 800,
                   textTransform: 'uppercase',
                   letterSpacing: '0.10em',
                   transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? '#fff' : '#c7c7cf' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = (isOpen || hasActive) ? 'var(--text)' : '#c7c7cf' }}
               >
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%',
@@ -342,7 +357,7 @@ export default function VendroShell({
                         gap: 10,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        color: active ? '#fff' : '#c7c7cf',
+                        color: active ? 'var(--text)' : '#c7c7cf',
                         background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                         fontSize: 13,
                         fontWeight: active ? 600 : 500,
@@ -354,7 +369,7 @@ export default function VendroShell({
                     >
                       <span style={{
                         width: 20,
-                        color: active ? '#fff' : group.color,
+                        color: active ? 'var(--text)' : group.color,
                         fontSize: 14,
                         display: 'inline-flex',
                         justifyContent: 'center',
@@ -429,6 +444,18 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              <button
+                onClick={toggleTheme}
+                title={day ? t('shell.switchNight', null, 'Passa a Notte') : t('shell.switchDay', null, 'Passa a Giorno')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'var(--glass2)', border: '1px solid var(--border)',
+                  borderRadius: 999, padding: '6px 12px', color: 'var(--text)',
+                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                }}>
+                <Icon name={day ? 'star' : 'bulb'} size={14} />
+                {day ? t('shell.night', null, 'Notte') : t('shell.day', null, 'Giorno')}
+              </button>
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
@@ -580,7 +607,7 @@ function WorkspacePill() {
       }} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{
-          display: 'block', fontSize: 13, fontWeight: 700, color: '#fff',
+          display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{companyName}</span>
         <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Shopify + Meta</span>
@@ -651,11 +678,11 @@ function UserSection() {
           width: 32, height: 32, borderRadius: '50%',
           display: 'grid', placeItems: 'center',
           background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-          color: '#fff', fontSize: 11, fontWeight: 700,
+          color: 'var(--text)', fontSize: 11, fontWeight: 700,
           flexShrink: 0,
         }}>{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {company?.name || '…'}
           </div>
           <div style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -670,7 +697,7 @@ function UserSection() {
           position: 'absolute', bottom: 'calc(100% + 6px)', left: 14, right: 14,
           background: 'rgba(10,10,22,0.96)',
           backdropFilter: 'blur(40px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--border2)',
           borderRadius: 11,
           boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
           padding: 6,
@@ -679,7 +706,7 @@ function UserSection() {
           <div style={{
             padding: '8px 12px',
             fontSize: 11, color: 'var(--text3)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--border)',
             marginBottom: 4,
           }}>{company?.email || ''}</div>
           <button

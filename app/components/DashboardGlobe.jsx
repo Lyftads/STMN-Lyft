@@ -115,7 +115,7 @@ export default function DashboardGlobe() {
     width: 38, height: 38, borderRadius: 10, cursor: 'pointer',
     background: 'rgba(8,8,15,0.72)', backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255,255,255,0.18)', color: '#fff',
+    border: '1px solid var(--border3)', color: 'var(--text)',
     fontSize: 22, fontWeight: 700, lineHeight: 1, display: 'flex',
     alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 8px 20px rgba(0,0,0,0.45)',

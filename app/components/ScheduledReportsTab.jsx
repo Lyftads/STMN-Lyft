@@ -70,7 +70,7 @@ export default function ScheduledReportsTab() {
             </div>
             <PlatformBadges sources={['shopify', 'meta']} size={14} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             Digest automatici via email · Weekly · Monthly
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
@@ -91,9 +91,9 @@ export default function ScheduledReportsTab() {
           placeholder="es. tuonome@brand.com"
           style={{
             width: '100%',
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--glass)',
             border: '1px solid var(--border)',
-            color: '#fff',
+            color: 'var(--text)',
             borderRadius: 10,
             padding: '12px 14px',
             fontSize: 14, fontWeight: 600,
@@ -101,7 +101,7 @@ export default function ScheduledReportsTab() {
           }}
         />
         <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-          Salvato in locale. Per i cron job automatici, configura su Vercel <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>REPORT_RECIPIENT</code> (o REPORT_RECIPIENTS comma-separated per multipli).
+          Salvato in locale. Per i cron job automatici, configura su Vercel <code style={{ background: 'var(--glass2)', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>REPORT_RECIPIENT</code> (o REPORT_RECIPIENTS comma-separated per multipli).
         </div>
       </div>
 
@@ -134,14 +134,14 @@ function ReportCard({ title, subtitle, description, nextRun, onSend, sending, fe
   return (
     <div className="glass-card-static" style={{ padding: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{title}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{title}</div>
         <PlatformBadges sources={['shopify', 'meta']} size={14} />
       </div>
       <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 12 }}>{subtitle}</div>
       <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 14 }}>{description}</div>
       <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--glass)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
         padding: '10px 14px',
         marginBottom: 14,
@@ -149,7 +149,7 @@ function ReportCard({ title, subtitle, description, nextRun, onSend, sending, fe
         <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>
           Prossimo invio automatico
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{nextRun}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{nextRun}</div>
       </div>
       <button
         type="button"

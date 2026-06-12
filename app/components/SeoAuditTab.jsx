@@ -615,7 +615,7 @@ function GSCPanel() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
                 <span style={{ flex: 1 }}>{t('seo.withBrand', null, 'Con brand')}</span><span style={{ fontWeight: 700 }}>{data.branded.brandedPct}%</span>
               </div>
-              <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 4, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
+              <div style={{ height: 8, borderRadius: 4, background: 'var(--glass2)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 4, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
               <div style={{ fontSize: 11, opacity: 0.5 }}>{nf(data.branded.brandedClicks)} {t('seo.clickBrand', null, 'click brand')} · {nf(data.branded.nonBrandedClicks)} {t('seo.nonBrand', null, 'non-brand')} · token: {data.branded.tokens.join(', ')}</div>
             </Block>
             <Block title={t('seo.topCountries', null, 'Paesi principali (click)')}>
@@ -770,11 +770,11 @@ function Pill({ active, onClick, children, small }) {
   return (
     <button onClick={onClick} style={{
       padding: small ? '7px 14px' : '9px 18px', borderRadius: 10, cursor: 'pointer', fontSize: small ? 13 : 14, fontWeight: 600,
-      background: active ? 'var(--accent)' : 'var(--glass)', color: active ? '#fff' : 'var(--text)',
+      background: active ? 'var(--accent)' : 'var(--glass)', color: active ? 'var(--text)' : 'var(--text)',
       border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
     }}>{children}</button>
   )
 }
 
 const inputStyle = { flex: 1, minWidth: 240, padding: '14px 16px', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, outline: 'none' }
-const btnStyle = (loading) => ({ padding: '14px 28px', borderRadius: 12, border: 'none', cursor: loading ? 'wait' : 'pointer', background: loading ? 'rgba(41,151,255,0.4)' : 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 15 })
+const btnStyle = (loading) => ({ padding: '14px 28px', borderRadius: 12, border: 'none', cursor: loading ? 'wait' : 'pointer', background: loading ? 'rgba(41,151,255,0.4)' : 'var(--accent)', color: 'var(--text)', fontWeight: 600, fontSize: 15 })

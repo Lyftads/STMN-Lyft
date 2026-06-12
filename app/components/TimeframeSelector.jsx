@@ -132,7 +132,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             background: 'rgba(8,8,15,0.95)',
             backdropFilter: 'blur(30px) saturate(1.8)',
             WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
-            border: '1.5px solid rgba(255,255,255,0.10)',
+            border: '1.5px solid var(--border2)',
             borderTopColor: 'rgba(255,255,255,0.16)',
             borderRadius: 14,
             boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.5)',
@@ -146,7 +146,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
               {DATE_RANGE.map(opt => (
                 <Option key={opt.value} label={opt.label} selected={value === opt.value} onClick={() => handleSelect(opt.value)} />
               ))}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '14px 18px' }} />
+              <div style={{ height: 1, background: 'var(--glass2)', margin: '14px 18px' }} />
             </>
           )}
 

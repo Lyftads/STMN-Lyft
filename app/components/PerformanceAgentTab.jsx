@@ -34,7 +34,7 @@ function formatMessage(text) {
     const parts = line.split(/(\*\*[^*]+\*\*)/g).map((seg, j) => {
       if (seg.startsWith('**') && seg.endsWith('**')) {
         return (
-          <strong key={j} style={{ color: '#fff' }}>
+          <strong key={j} style={{ color: 'var(--text)' }}>
             {seg.slice(2, -2)}
           </strong>
         )
@@ -335,7 +335,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               flex: 1,
               background: 'var(--glass)',
               border: `1px solid ${palette.border}`,
-              color: '#fff',
+              color: 'var(--text)',
               borderRadius: 12,
               padding: '12px 16px',
               fontSize: 14,
@@ -351,7 +351,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
               background: loading || !input.trim()
                 ? 'var(--glass)'
                 : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-              color: '#fff',
+              color: 'var(--text)',
               border: 'none',
               borderRadius: 12,
               padding: '0 22px',

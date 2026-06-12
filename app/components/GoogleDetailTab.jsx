@@ -131,17 +131,17 @@ export default function GoogleDetailTab() {
             <div style={{ fontSize: 9.5, color: GOOGLE, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Google Detail</div>
             <PlatformBadges sources={['google']} size={16} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             {t('gdet.header', null, 'Gerarchia campagne Google Ads')} · {data?.range?.since} → {data?.range?.until}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <select value={preset} onChange={e => setPreset(e.target.value)}
-            style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer', minWidth: 160 }}>
+            style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer', minWidth: 160 }}>
             {PRESETS.map(o => <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>{t(o.labelKey, null, o.label)}</option>)}
           </select>
           <button type="button" onClick={() => load(true)} disabled={loading}
-            style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
@@ -172,7 +172,7 @@ export default function GoogleDetailTab() {
               return (
                 <div key={s.key} className="glass-card" style={{ padding: '16px 18px' }}>
                   <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                  <div style={{ fontSize: 23, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{s.fmt(summary[s.key])}</div>
+                  <div style={{ fontSize: 23, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{s.fmt(summary[s.key])}</div>
                   {delta != null && Math.abs(delta) >= 0.05 && (
                     <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: pos ? '#22c55e' : '#f87171' }}>
                       {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
@@ -237,7 +237,7 @@ function thStyle(align) {
 
 function Row({ row, depth, expandable, open, onToggle, loadingNode }) {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
       <td style={{ padding: '11px 14px', minWidth: 280 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: depth * 22 }}>
           {expandable ? (
@@ -245,14 +245,14 @@ function Row({ row, depth, expandable, open, onToggle, loadingNode }) {
               {loadingNode ? '…' : (open ? '▾' : '▸')}
             </button>
           ) : <span style={{ width: 20, display: 'inline-block' }} />}
-          <span style={{ fontSize: depth === 0 ? 13 : 12.5, fontWeight: depth === 0 ? 800 : 600, color: depth === 0 ? '#fff' : 'var(--text2)' }}>{row.name}</span>
+          <span style={{ fontSize: depth === 0 ? 13 : 12.5, fontWeight: depth === 0 ? 800 : 600, color: depth === 0 ? 'var(--text)' : 'var(--text2)' }}>{row.name}</span>
         </div>
       </td>
       <td style={{ padding: '11px 14px' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: statusColor(row.status) }}>{row.status || '—'}</span>
       </td>
       {COLS.map(c => (
-        <td key={c.key} style={{ padding: '11px 14px', textAlign: 'right', fontSize: 12.5, fontWeight: c.key === 'spend' || c.key === 'roas' ? 800 : 600, color: c.key === 'roas' ? (row.roas >= 3 ? '#22c55e' : row.roas >= 1 ? '#f59e0b' : '#ef4444') : '#fff', whiteSpace: 'nowrap' }}>
+        <td key={c.key} style={{ padding: '11px 14px', textAlign: 'right', fontSize: 12.5, fontWeight: c.key === 'spend' || c.key === 'roas' ? 800 : 600, color: c.key === 'roas' ? (row.roas >= 3 ? '#22c55e' : row.roas >= 1 ? '#f59e0b' : '#ef4444') : 'var(--text)', whiteSpace: 'nowrap' }}>
           {c.fmt(row[c.key])}
         </td>
       ))}

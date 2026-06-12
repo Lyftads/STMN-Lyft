@@ -140,7 +140,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" />
             <path d="M12 7v12M9 10h6M9 14h6" />
           </svg>
@@ -152,17 +152,17 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           width: 'min(420px, calc(100vw - 32px))', height: 'min(640px, calc(100vh - 48px))',
-          background: '#0f0f16', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18,
+          background: '#0f0f16', border: '1px solid var(--border2)', borderRadius: 18,
           boxShadow: '0 24px 60px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #7c5cff, #5b3df0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" /></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" /></svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: '#fff', fontWeight: 600, fontSize: 14, lineHeight: 1.1 }}>{t('brain.title', {}, 'Cervello')}</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 14, lineHeight: 1.1 }}>{t('brain.title', {}, 'Cervello')}</div>
+              <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t('brain.context', {}, 'Tutti i dati')} · {tabLabel}
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           {/* Messages */}
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {msgs.length === 0 && (
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.5, marginTop: 4 }}>
+              <div style={{ color: 'var(--text3)', fontSize: 13, lineHeight: 1.5, marginTop: 4 }}>
                 {t('brain.greeting', {}, 'Ciao, sono il tuo cervello operativo. Vedo tutti i tuoi dati (Shopify, Meta, Klaviyo, GA4, SEO…) e so dove sei. Chiedimi qualsiasi cosa.')}
               </div>
             )}
@@ -191,13 +191,13 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
                 <div style={{
                   padding: '10px 13px', borderRadius: 13, fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                   background: m.role === 'user' ? 'linear-gradient(135deg, #7c5cff, #5b3df0)' : 'rgba(255,255,255,0.06)',
-                  color: m.role === 'user' ? '#fff' : 'rgba(255,255,255,0.92)',
-                  border: m.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                  color: m.role === 'user' ? 'var(--text)' : 'var(--text)',
+                  border: m.role === 'user' ? 'none' : '1px solid var(--border)',
                 }}>{m.content}</div>
               </div>
             ))}
             {loading && (
-              <div style={{ alignSelf: 'flex-start', color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '6px 2px' }}>
+              <div style={{ alignSelf: 'flex-start', color: 'var(--text3)', fontSize: 13, padding: '6px 2px' }}>
                 {t('brain.thinking', {}, 'Sto ragionando…')}
               </div>
             )}
@@ -205,23 +205,23 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
 
           {/* Azioni proposte dalla conversazione → Coda Azioni */}
           {(actLoading || actions.length > 0) && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: 12, maxHeight: 210, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ borderTop: '1px solid var(--border)', padding: 12, maxHeight: 210, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {t('brain.actionsTitle', {}, 'Azioni proposte')}
               </div>
-              {actLoading && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{t('brain.thinking', {}, 'Sto ragionando…')}</div>}
-              {!actLoading && actions.length === 0 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{t('brain.noActions', {}, 'Nessuna azione concreta emersa.')}</div>}
+              {actLoading && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.thinking', {}, 'Sto ragionando…')}</div>}
+              {!actLoading && actions.length === 0 && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.noActions', {}, 'Nessuna azione concreta emersa.')}</div>}
               {actions.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 10px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 10px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#fff', fontSize: 12.5, lineHeight: 1.35 }}>{a.summary}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 10.5, marginTop: 2 }}>{a.channel} · {a.type}{a.target_name ? ` · ${a.target_name}` : ''}</div>
+                    <div style={{ color: 'var(--text)', fontSize: 12.5, lineHeight: 1.35 }}>{a.summary}</div>
+                    <div style={{ color: 'var(--text3)', fontSize: 10.5, marginTop: 2 }}>{a.channel} · {a.type}{a.target_name ? ` · ${a.target_name}` : ''}</div>
                   </div>
                   <button onClick={() => enqueue(a, i)} disabled={!!added[i]} style={{
                     flex: '0 0 auto', fontSize: 11.5, fontWeight: 600, padding: '6px 10px', borderRadius: 8, border: 'none',
                     cursor: added[i] ? 'default' : 'pointer', whiteSpace: 'nowrap',
                     background: added[i] ? 'rgba(48,209,88,0.16)' : 'linear-gradient(135deg, #7c5cff, #5b3df0)',
-                    color: added[i] ? '#30d158' : '#fff',
+                    color: added[i] ? '#30d158' : 'var(--text)',
                   }}>{added[i] ? t('brain.added', {}, '✓ Aggiunta') : t('brain.addToQueue', {}, 'Aggiungi')}</button>
                 </div>
               ))}
@@ -229,7 +229,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           )}
 
           {/* Input */}
-          <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
               value={input}
@@ -239,8 +239,8 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
               placeholder={t('brain.placeholder', {}, 'Chiedi qualsiasi cosa…')}
               style={{
                 flex: 1, resize: 'none', maxHeight: 120, padding: '10px 12px', borderRadius: 11,
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', fontSize: 13.5, lineHeight: 1.4, outline: 'none', fontFamily: 'inherit',
+                background: 'var(--glass)', border: '1px solid var(--border2)',
+                color: 'var(--text)', fontSize: 13.5, lineHeight: 1.4, outline: 'none', fontFamily: 'inherit',
               }}
             />
             <button onClick={send} disabled={loading || !input.trim()} style={{
@@ -250,7 +250,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
               background: 'linear-gradient(135deg, #7c5cff, #5b3df0)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
             </button>
           </div>
         </div>
@@ -262,6 +262,6 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
 
 const iconBtn = {
   flex: '0 0 auto', width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
-  background: 'transparent', color: 'rgba(255,255,255,0.5)',
+  background: 'transparent', color: 'var(--text3)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 }

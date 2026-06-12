@@ -59,7 +59,7 @@ function Section({ title, subtitle, color = '#8b5cf6', children, style }) {
     <div className="glass-section reveal-zoom" style={{ ...sectionStyle, ...style }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: subtitle ? 6 : 20 }}>
         <span style={{ width: 4, height: 20, borderRadius: 99, background: color, boxShadow: `0 0 14px ${color}, 0 0 4px ${color}` }} />
-        <span style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</span>
+        <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</span>
       </div>
       {subtitle && <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 20 }}>{subtitle}</div>}
       {children}
@@ -79,7 +79,7 @@ function Card({ title, value, badge, color = '#8b5cf6' }) {
           }}>{badge}</span>
         )}
       </div>
-      <div style={{ fontSize: 26, fontWeight: 950, color: '#fff', letterSpacing: '-0.03em' }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--text)', letterSpacing: '-0.03em' }}>{value}</div>
     </div>
   )
 }

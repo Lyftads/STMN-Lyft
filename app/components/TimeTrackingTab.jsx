@@ -11,10 +11,10 @@ import Avatar from './Avatar'
 // Fetch verso /api/time-entries, /api/projects, /api/tasks.
 
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 18px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
+const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 18px', color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
 const btnStop = { ...btn, background: 'linear-gradient(135deg,#ff375f,#ff5f7a)' }
-const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
+const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
 const MUTED = '#8e8e9e'
 
 function fmtHMS(sec) {
@@ -410,7 +410,7 @@ export default function TimeTrackingTab({ standalone = false }) {
             ) : (() => {
               const max = Math.max(1, ...summary.members.map(m => m.weekSec || 0))
               return summary.members.map((m, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < summary.members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < summary.members.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <Avatar name={m.name} url={m.avatar} size={36} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
@@ -436,7 +436,7 @@ export default function TimeTrackingTab({ standalone = false }) {
               const recent = entries.slice(0, 6)
               const max = Math.max(1, ...recent.map(e => e.duration_seconds || 0))
               return recent.map((e, i) => (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < recent.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < recent.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: e.project_color || '#3d3d4c', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || e.task_title || e.project_name || 'Attività'}</div>
@@ -504,7 +504,7 @@ export default function TimeTrackingTab({ standalone = false }) {
             Resoconto per persona <span style={{ color: MUTED, fontWeight: 400, fontSize: 12 }}>· ore totali per progetto</span>
           </div>
           {memberRows.map((m, i) => (
-            <div key={i} style={{ padding: '14px 16px', borderBottom: i < memberRows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div key={i} style={{ padding: '14px 16px', borderBottom: i < memberRows.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <Avatar name={m.name} url={m.avatar} size={38} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -543,12 +543,12 @@ export default function TimeTrackingTab({ standalone = false }) {
       ) : (
         groups.map(g => (
           <div key={g.key} style={{ ...card, padding: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--glass)' }}>
               <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{g.label}</span>
               <span style={{ color: MUTED, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(g.sec)}</span>
             </div>
             {g.items.map(e => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.project_color || '#3d3d4c', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || 'Senza descrizione'}</div>
@@ -573,7 +573,7 @@ export default function TimeTrackingTab({ standalone = false }) {
           {!(summary?.members || []).length ? (
             <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessuna attività nei 7 giorni.</div>
           ) : summary.members.map((m, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < summary.members.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < summary.members.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <Avatar name={m.name} url={m.avatar} size={40} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
@@ -597,7 +597,7 @@ export default function TimeTrackingTab({ standalone = false }) {
           ) : (() => {
             const tot = Math.max(1, summary.projects.reduce((s, p) => s + (p.sec || 0), 0))
             return summary.projects.map((p, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < summary.projects.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < summary.projects.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ width: 11, height: 11, borderRadius: '50%', background: p.color || '#7b5bff', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
@@ -670,7 +670,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                     <span>{grpLabel}</span><span style={{ textAlign: 'right' }}>Voci</span><span style={{ textAlign: 'right' }}>Tempo</span><span style={{ textAlign: 'right' }}>%</span>
                   </div>
                   {groups.map((g, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 90px 60px', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 90px 60px', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid var(--border)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: g.color, flexShrink: 0 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</span></span>
                       <span style={{ textAlign: 'right', color: MUTED, fontSize: 13 }}>{g.count}</span>
                       <span style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(g.sec)}</span>
@@ -687,7 +687,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                     <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
                       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>Tempo di lavoro per persona</div>
                       {people.map((g, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < people.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < people.length - 1 ? '1px solid var(--border)' : 'none' }}>
                           <Avatar name={g.label} size={32} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</div>
@@ -739,11 +739,11 @@ export default function TimeTrackingTab({ standalone = false }) {
                   : r.budget_amount && r.cost ? Math.min(100, Math.round(r.cost / r.budget_amount * 100)) : 0
                 const over = (r.budget_hours && spentH > r.budget_hours) || (r.budget_amount && r.cost > r.budget_amount)
                 return (
-                  <div key={r.id} style={{ padding: '13px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={r.id} style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color || '#7b5bff', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, fontSize: 14, flex: 1, minWidth: 120 }}>{r.name}</span>
-                      <span style={{ fontSize: 13, color: MUTED }}>speso <b style={{ color: '#fff' }}>{fmtDur(r.sec)}</b>{r.anyRate ? ` · ${euro(r.cost)}` : ''}</span>
+                      <span style={{ fontSize: 13, color: MUTED }}>speso <b style={{ color: 'var(--text)' }}>{fmtDur(r.sec)}</b>{r.anyRate ? ` · ${euro(r.cost)}` : ''}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                         budget
                         {isAdmin ? <input key={'h' + r.id} type="number" min="0" defaultValue={r.budget_hours ?? ''} placeholder="ore" onBlur={e => saveProjectBudget(r.id, { budget_hours: e.target.value })} style={{ ...input, width: 64, padding: '5px 7px' }} /> : <b>{r.budget_hours ?? '—'}</b>}h
@@ -767,7 +767,7 @@ export default function TimeTrackingTab({ standalone = false }) {
             <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>Tariffe orarie {!isAdmin && <span style={{ color: MUTED, fontWeight: 400, fontSize: 12 }}>· solo l'Admin può modificare</span>}</div>
               {members.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessun membro.</div> : members.map(m => (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)' }}>
                   <Avatar name={m.full_name || m.email} url={m.avatar_url} size={32} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.full_name || m.email}</div>
@@ -806,7 +806,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                   const st = r.approval?.status || null
                   const bd = badge(st)
                   return (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap' }}>
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
                       <Avatar name={r.name} url={r.avatar} size={36} />
                       <div style={{ flex: 1, minWidth: 120 }}>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{r.name}</div>
@@ -848,7 +848,7 @@ export default function TimeTrackingTab({ standalone = false }) {
               {!attendance.loaded ? <div style={{ padding: 20, color: MUTED }}>Caricamento…</div>
                 : attendance.rows.length === 0 ? <div style={{ padding: 20, color: MUTED, fontSize: 13 }}>Nessuna presenza registrata in questa data.</div>
                 : attendance.rows.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)' }}>
                     <Avatar name={r.name} url={r.avatar} size={34} online={r.running ? true : undefined} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
@@ -869,7 +869,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                 : timeoff.map(o => {
                   const tb = tBadge(o.type), sb = sBadge(o.status)
                   return (
-                    <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap' }}>
+                    <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: tb.c, background: tb.c + '22', padding: '4px 10px', borderRadius: 20 }}>{tb.t}</span>
                       <div style={{ flex: 1, minWidth: 140 }}>
                         {isAdmin && <div style={{ fontWeight: 600, fontSize: 13 }}>{o.member_name || '—'}</div>}
@@ -960,7 +960,7 @@ function LyftSidebar({ section, setSection }) {
             padding: '10px 12px', marginBottom: 2, borderRadius: 9, border: 'none', cursor: 'pointer',
             fontFamily: 'Barlow', fontSize: 14, fontWeight: active ? 700 : 500,
             background: active ? 'linear-gradient(135deg,rgba(123,91,255,0.22),rgba(91,139,255,0.22))' : 'transparent',
-            color: active ? '#fff' : '#b9b9c8',
+            color: active ? 'var(--text)' : '#b9b9c8',
           }}
             onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
             onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
@@ -1024,7 +1024,7 @@ function Donut({ data = [], size = 140 }) {
           strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off}
           transform={`rotate(-90 ${cx} ${cy})`} />
       })}
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">{fmtDur(total)}</text>
+      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--text)">{fmtDur(total)}</text>
       <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10" fill="#8e8e9e">totale</text>
     </svg>
   )
@@ -1096,12 +1096,12 @@ function LyftimerLogo({ size = 32 }) {
         </linearGradient>
       </defs>
       <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#lt-g)" />
-      <line x1="24" y1="6.5" x2="24" y2="10.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-      <circle cx="24" cy="26" r="13" stroke="#fff" strokeWidth="2.4" fill="none" opacity="0.55" />
+      <line x1="24" y1="6.5" x2="24" y2="10.5" stroke="var(--text)" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="24" cy="26" r="13" stroke="var(--text)" strokeWidth="2.4" fill="none" opacity="0.55" />
       {/* lancette: ore (corta) + freccia ascendente (Lyft) */}
-      <path d="M24 26 L24 18" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M24 26 L31 23 L27.5 27.5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="24" cy="26" r="2.4" fill="#fff" />
+      <path d="M24 26 L24 18" stroke="var(--text)" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M24 26 L31 23 L27.5 27.5" stroke="var(--text)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="24" cy="26" r="2.4" fill="var(--text)" />
     </svg>
   )
 }

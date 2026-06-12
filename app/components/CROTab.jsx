@@ -21,7 +21,7 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
@@ -66,7 +66,7 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
   )
 }
 
-function KpiCard({ label, value, accent = '#fff', curr, prev, delay = 0, isLowerBetter = false }) {
+function KpiCard({ label, value, accent = 'var(--text)', curr, prev, delay = 0, isLowerBetter = false }) {
   let pct = null
   let good = null
   if (typeof prev === 'number' && prev > 0 && typeof curr === 'number') {
@@ -126,7 +126,7 @@ function FunnelChart({ funnel, delay = 0 }) {
     <GlassCard padding={28} delay={delay}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
             Purchase Journey
           </h2>
           <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
@@ -160,11 +160,11 @@ function FunnelChart({ funnel, delay = 0 }) {
             <div key={i} style={{
               flex: 1,
               padding: '0 10px',
-              borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
             }}>
               <div style={{ fontSize: 9.5, color: 'var(--text3)', fontWeight: 800, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step {i + 1}</div>
               <div style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 700, lineHeight: 1.3 }}>{s.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginTop: 6, letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.02em' }}>
                 {i === 0 ? '100%' : fmtP(pct)}
               </div>
             </div>
@@ -178,7 +178,7 @@ function FunnelChart({ funnel, delay = 0 }) {
           const pct = maxVal > 0 ? (s.value / maxVal) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ fontSize: 11.5, color: '#fff', fontWeight: 900, marginBottom: 6, fontFamily: 'Barlow' }}>{fmtN(s.value)}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text)', fontWeight: 900, marginBottom: 6, fontFamily: 'Barlow' }}>{fmtN(s.value)}</div>
               <div style={{
                 width: '78%',
                 background: `linear-gradient(180deg, ${ACCENT_GLOW} 0%, #1e3a8a 100%)`,
@@ -285,7 +285,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
         backdropFilter: 'blur(40px) saturate(2.2)',
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         borderRadius: 22,
@@ -309,8 +309,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
               onClick={() => setTf(b.id)}
               style={{
                 background: active ? 'linear-gradient(135deg, rgba(41,151,255,0.28), rgba(30,58,138,0.22))' : 'rgba(255,255,255,0.04)',
-                border: active ? '1px solid rgba(41,151,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
-                color: active ? '#fff' : 'var(--text2)',
+                border: active ? '1px solid rgba(41,151,255,0.55)' : '1px solid var(--border)',
+                color: active ? 'var(--text)' : 'var(--text2)',
                 borderRadius: 11,
                 padding: '9px 14px',
                 fontSize: 12.5,
@@ -329,11 +329,11 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
               value={customSince}
               onChange={e => setCustomSince(e.target.value)}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
                 borderRadius: 10,
                 padding: '8px 12px',
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 12.5,
                 outline: 'none',
               }}
@@ -347,11 +347,11 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
               value={customUntil}
               onChange={e => setCustomUntil(e.target.value)}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--glass)',
+                border: '1px solid var(--border)',
                 borderRadius: 10,
                 padding: '8px 12px',
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 12.5,
                 outline: 'none',
               }}
@@ -418,7 +418,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       {insights.length > 0 && (
         <GlassCard padding={26} delay={2.1}>
           <div style={{ marginBottom: 18 }}>
-            <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
               CRO Insights
             </h2>
             <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
@@ -431,7 +431,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
                 display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '14px 18px',
                 background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--border)',
                 borderTopColor: 'rgba(255,255,255,0.10)',
                 borderBottomColor: 'rgba(0,0,0,0.55)',
                 borderRadius: 12,
@@ -440,7 +440,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
                   background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
-                  color: '#fff',
+                  color: 'var(--text)',
                   display: 'grid', placeItems: 'center',
                   fontSize: 12, fontWeight: 900,
                   flexShrink: 0,

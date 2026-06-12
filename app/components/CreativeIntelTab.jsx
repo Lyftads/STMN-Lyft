@@ -87,7 +87,7 @@ function AdCard({ ad, onOpen }) {
           <img src={ad.thumbnail || ad.image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', padding: '34px 16px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(34,34,48,0.4))' }}>
-            {ad.headline && <div style={{ fontSize: 13.5, fontWeight: 900, color: '#fff', lineHeight: 1.3, maxHeight: 54, overflow: 'hidden' }}>{ad.headline}</div>}
+            {ad.headline && <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--text)', lineHeight: 1.3, maxHeight: 54, overflow: 'hidden' }}>{ad.headline}</div>}
             <div style={{ fontSize: 11.5, color: '#c8c0d6', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || 'Catalogo prodotti / DCO'}</div>
           </div>
         )}
@@ -99,7 +99,7 @@ function AdCard({ ad, onOpen }) {
           </div>
         </div>
         {ad.format === 'VIDEO' && ad.videoDuration > 0 && (
-          <span style={{ position: 'absolute', bottom: 8, right: 8, background: '#000a', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, fontFamily: 'Barlow' }}>{fmtDur(ad.videoDuration)}</span>
+          <span style={{ position: 'absolute', bottom: 8, right: 8, background: '#000a', color: 'var(--text)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5, fontFamily: 'Barlow' }}>{fmtDur(ad.videoDuration)}</span>
         )}
       </div>
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -107,7 +107,7 @@ function AdCard({ ad, onOpen }) {
           <span style={{ fontWeight: 800, color: '#c8c0d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.brand}</span>
           {ad.platforms[0] && <><span style={{ color: '#4a4060' }}>·</span><span>{ad.platforms[0]}</span></>}
         </div>
-        {ad.headline && <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', lineHeight: 1.3, maxHeight: 34, overflow: 'hidden' }}>{ad.headline}</div>}
+        {ad.headline && <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3, maxHeight: 34, overflow: 'hidden' }}>{ad.headline}</div>}
         {ad.body && <div style={{ fontSize: 11.5, color: '#8b8aa0', lineHeight: 1.45, maxHeight: 50, overflow: 'hidden' }}>{ad.body}</div>}
         <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: '#6b6580', marginTop: 2, fontFamily: 'Barlow' }}>
           {ad.runningDays != null && <span><span style={{ color: '#22c55e', fontWeight: 800 }}>{ad.runningDays}g</span> attiva</span>}
@@ -135,17 +135,17 @@ function DetailModal({ ad, onClose }) {
             {ad.live && <Badge color="#22c55e">LIVE</Badge>}
             {f && <Badge color={f.color}>{f.label}</Badge>}
             <div style={{ flex: 1 }} />
-            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }}>×</button>
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
           <div>
             <div style={{ fontSize: 12, color: '#8b8aa0', fontWeight: 700 }}>{ad.brand}</div>
-            {ad.headline && <div style={{ fontSize: 18, fontWeight: 950, color: '#fff', lineHeight: 1.25, marginTop: 4 }}>{ad.headline}</div>}
+            {ad.headline && <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--text)', lineHeight: 1.25, marginTop: 4 }}>{ad.headline}</div>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[['Attiva da', ad.runningDays != null ? `${ad.runningDays} giorni` : '—'], ['Formato', ad.format], ['CTA', ad.cta || '—'], ['Piattaforme', ad.platforms.join(', ') || '—']].map(([k, v]) => (
               <div key={k} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
                 <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{k}</div>
-                <div style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginTop: 2 }}>{v}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginTop: 2 }}>{v}</div>
               </div>
             ))}
           </div>
@@ -159,7 +159,7 @@ function DetailModal({ ad, onClose }) {
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#c4b5fd', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.linkUrl}</a>
           )}
           {ad.snapshotUrl && (
-            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: '#fff', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>↗ Apri nella Ad Library</a>
+            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: 'var(--text)', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>↗ Apri nella Ad Library</a>
           )}
         </div>
       </div>
@@ -205,9 +205,9 @@ export default function CreativeIntelTab() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
             <Icon name="search" size={16} />
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()} placeholder={t('ci.searchPh', null, 'Cerca brand o keyword (es. supplement, nike, longevity)…')} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 14, fontWeight: 600 }} />
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()} placeholder={t('ci.searchPh', null, 'Cerca brand o keyword (es. supplement, nike, longevity)…')} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 600 }} />
           </div>
-          <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : '#fff', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
+          <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : 'var(--text)', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{c.label}</button>)}</div>
@@ -229,7 +229,7 @@ export default function CreativeIntelTab() {
       {ads.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-            <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900 }}>{t('ci.results', null, 'Creatività trovate')}</h2>
+            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18, fontWeight: 900 }}>{t('ci.results', null, 'Creatività trovate')}</h2>
             <span style={{ marginLeft: 10, color: '#6b6580', fontSize: 12, fontFamily: 'Barlow' }}>{ads.length}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>

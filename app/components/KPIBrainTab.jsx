@@ -329,7 +329,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         <PlatformBadges sources={groupSources(item.group)} size={16} />
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-        <div style={{color:'#fff',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
+        <div style={{color:'var(--text)',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
         {item.sparkKey && <Sparkline data={sparkFor(item.sparkKey)} color={item.color} width={80} height={32} />}
       </div>
       <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8}}>
@@ -370,17 +370,17 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
       {/* Key Metrics */}
       <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:6}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
+        <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:6}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
         <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads + Google Ads · {tfLabel}</div>
-        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Shopify</div>
+        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Shopify</div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Meta Ads</div>
+        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Meta Ads</div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:20}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{fontSize:13,color:'#fff',fontWeight:900,marginBottom:12}}>Google Ads</div>
+        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Google Ads</div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
@@ -389,7 +389,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
       {/* Breakdowns */}
       <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-        <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>{t('kpi.breakdowns', null, 'Breakdowns')}</div>
+        <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:18}}>{t('kpi.breakdowns', null, 'Breakdowns')}</div>
 
         {/* Row 1: Top Products + Day Breakdown (affiancati) */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
@@ -456,12 +456,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       {/* Top Performers */}
       {topProducts.length > 0 && (
         <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-          <div style={{fontSize:18,fontWeight:900,color:'#fff',marginBottom:18}}>{t('kpi.topPerformers', null, 'Top Performers')}</div>
+          <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:18}}>{t('kpi.topPerformers', null, 'Top Performers')}</div>
           <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
             {topProducts.slice(0,4).map((item,i) => (
               <div key={item.label} className="glass-card" style={{...card,display:'flex',flexDirection:'column',gap:12}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <div style={{width:28,height:28,borderRadius:999,background:'#ffffff22',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,flexShrink:0}}>{i+1}</div>
+                  <div style={{width:28,height:28,borderRadius:999,background:'#ffffff22',color:'var(--text)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,flexShrink:0}}>{i+1}</div>
                   {item.image && <img src={item.image} alt="" style={{width:40,height:40,borderRadius:10,objectFit:'cover',border:'1px solid var(--border)'}} onError={e=>{e.target.style.display='none'}} />}
                 </div>
                 <div style={{color:'var(--text)',fontWeight:900,fontSize:14,lineHeight:1.3}}>{item.label}</div>
@@ -484,7 +484,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           WebkitBackdropFilter:'blur(40px) saturate(2.2)',
           borderRadius:22,
           overflow:'hidden',
-          border:'1.5px solid rgba(255,255,255,0.06)',
+          border:'1.5px solid var(--border)',
           borderTopColor:'rgba(255,255,255,0.12)',
           borderBottomColor:'rgba(0,0,0,0.65)',
           boxShadow:'0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
@@ -516,11 +516,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 width:42,height:42,borderRadius:11,
                 background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',
                 display:'grid',placeItems:'center',
-                color:'#fff',
+                color:'var(--text)',
                 boxShadow:'0 0 24px rgba(14,165,233,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
               }}><Icon name="globe" size={22} /></div>
               <div>
-                <div style={{fontSize:18,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{t('kpi.billingCountries', null, 'Paesi di fatturazione')}</div>
+                <div style={{fontSize:18,fontWeight:900,color:'var(--text)',letterSpacing:'-0.01em'}}>{t('kpi.billingCountries', null, 'Paesi di fatturazione')}</div>
                 <div style={{color:'var(--text3)',fontSize:12,marginTop:2}}>
                   {countriesLoading
                     ? t('kpi.loadingShopifyOrders', null, 'Caricamento ordini Shopify…')
@@ -534,7 +534,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
           {countriesLoading && (
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 20px',gap:12,color:'var(--text3)'}}>
-              <div style={{width:24,height:24,border:'3px solid rgba(255,255,255,0.1)',borderTopColor:'#0ea5e9',borderRadius:999,animation:'spin 1s linear infinite'}} />
+              <div style={{width:24,height:24,border:'3px solid var(--border2)',borderTopColor:'#0ea5e9',borderRadius:999,animation:'spin 1s linear infinite'}} />
               <div style={{fontSize:12,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}}>{t('kpi.loading', null, 'Caricamento…')}</div>
             </div>
           )}
@@ -570,7 +570,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       padding:'14px 16px',
                       borderRadius:14,
                       background:'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.18))',
-                      border:'1px solid rgba(255,255,255,0.05)',
+                      border:'1px solid var(--border)',
                       borderTopColor:'rgba(255,255,255,0.10)',
                       borderBottomColor:'rgba(0,0,0,0.4)',
                       boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
@@ -591,13 +591,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                     <div style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto auto auto',alignItems:'center',gap:14}}>
                       <div style={{fontSize:28,lineHeight:1,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'}}>{countryFlag(row.country_code)}</div>
                       <div style={{minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
-                        <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'rgba(255,255,255,0.04)',overflow:'hidden'}}>
+                        <div style={{fontSize:14,fontWeight:800,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
+                        <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'var(--glass)',overflow:'hidden'}}>
                           <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
                         </div>
                       </div>
                       <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:14,fontWeight:900,color:'#fff',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
+                        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',letterSpacing:'-0.01em'}}>{money(row.revenue)}</div>
                         <div style={{fontSize:10.5,color:'#0ea5e9',fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}>{pct.toFixed(1)}%</div>
                       </div>
                       <div style={{
@@ -637,8 +637,8 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       <div style={{
                         width:32,height:32,borderRadius:8,
                         display:'grid',placeItems:'center',
-                        background:'rgba(255,255,255,0.04)',
-                        border:'1px solid rgba(255,255,255,0.08)',
+                        background:'var(--glass)',
+                        border:'1px solid var(--border)',
                         color:'#0ea5e9',fontSize:14,fontWeight:900,
                         boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
                       }}>↗</div>
@@ -731,8 +731,8 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
   const dEur = revPrev > 0 ? fmtDeltaEur(revCurr, revPrev) : (revCurr > 0 ? `+${money(revCurr)}` : '€0')
   const dColor = deltaColor(revCurr, revPrev)
   const cards = [
-    { label: t('kpi.orders', null, 'Ordini'), value: int0(ordersCurr), color: '#fff' },
-    { label: 'Revenue', value: money(revCurr), color: '#fff' },
+    { label: t('kpi.orders', null, 'Ordini'), value: int0(ordersCurr), color: 'var(--text)' },
+    { label: 'Revenue', value: money(revCurr), color: 'var(--text)' },
     { label: 'Delta %', value: dPct || '—', color: dColor },
     { label: 'Delta €', value: dEur, color: dColor },
   ]
@@ -757,7 +757,7 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
             padding: '7px 8px',
             borderRadius: 8,
             background: 'rgba(0,0,0,0.30)',
-            border: '1px solid rgba(255,255,255,0.04)',
+            border: '1px solid var(--border)',
             borderTopColor: 'rgba(255,255,255,0.08)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
             minWidth: 0,
@@ -848,7 +848,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           backdropFilter:'blur(40px) saturate(2.2)',
           WebkitBackdropFilter:'blur(40px) saturate(2.2)',
           borderRadius:26,
-          border:'1.5px solid rgba(255,255,255,0.08)',
+          border:'1.5px solid var(--border)',
           borderTopColor:'rgba(255,255,255,0.16)',
           borderBottomColor:'rgba(0,0,0,0.7)',
           boxShadow:'0 60px 120px rgba(0,0,0,0.85), 0 0 100px rgba(14,165,233,0.18), inset 0 1.5px 0 rgba(255,255,255,0.08)',
@@ -869,14 +869,14 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               <div style={{fontSize:54, lineHeight:1, filter:'drop-shadow(0 6px 12px rgba(0,0,0,0.5))'}}>{countryFlag(row.country_code)}</div>
               <div>
                 <div style={{fontSize:9.5, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.16em', textTransform:'uppercase'}}>{t('kpi.countryCap', null, 'Paese')} · {tfLabel}</div>
-                <div style={{fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-0.02em', marginTop:4}}>{row.country}</div>
+                <div style={{fontSize:28, fontWeight:900, color:'var(--text)', letterSpacing:'-0.02em', marginTop:4}}>{row.country}</div>
                 <div style={{fontSize:13, color:'var(--text3)', marginTop:6}}>{money(row.revenue)} {t('kpi.revenueWord', null, 'fatturato')} · {int0(row.orders)} {t('kpi.ordersWord', null, 'ordini')}</div>
               </div>
             </div>
             <button onClick={onClose} style={{
-              background:'rgba(255,255,255,0.06)',
-              border:'1px solid rgba(255,255,255,0.10)',
-              color:'#fff',
+              background:'var(--glass2)',
+              border:'1px solid var(--border2)',
+              color:'var(--text)',
               width:38, height:38,
               borderRadius:11,
               cursor:'pointer',
@@ -895,7 +895,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
             <div style={{
               padding:18, borderRadius:16,
               background:'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.20))',
-              border:'1px solid rgba(255,255,255,0.06)',
+              border:'1px solid var(--border)',
               borderTopColor:'rgba(255,255,255,0.10)',
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
@@ -936,7 +936,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                         <Cell fill={`url(#pieRC-${safeCode})`} filter={`url(#pieGlow-${safeCode})`}/>
                       </Pie>
                       <Tooltip
-                        contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid rgba(255,255,255,0.10)', borderRadius:8, fontSize:12, fontWeight:700}}
+                        contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid var(--border2)', borderRadius:8, fontSize:12, fontWeight:700}}
                         formatter={v => money(v)}
                         cursor={{fill:'rgba(255,255,255,0.04)'}}
                       />
@@ -962,7 +962,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
             <div style={{
               padding:18, borderRadius:16,
               background:'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.20))',
-              border:'1px solid rgba(255,255,255,0.06)',
+              border:'1px solid var(--border)',
               borderTopColor:'rgba(255,255,255,0.10)',
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
@@ -971,7 +971,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               <div style={{fontSize:10, fontWeight:800, color:'#0ea5e9', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.dailyRevenueTrend', null, 'Trend giornaliero fatturato')}</div>
               {loading ? (
                 <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:240, gap:12, color:'var(--text3)'}}>
-                  <div style={{width:24, height:24, border:'3px solid rgba(255,255,255,0.1)', borderTopColor:'#0ea5e9', borderRadius:999, animation:'spin 1s linear infinite'}} />
+                  <div style={{width:24, height:24, border:'3px solid var(--border2)', borderTopColor:'#0ea5e9', borderRadius:999, animation:'spin 1s linear infinite'}} />
                   <div style={{fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase'}}>{t('kpi.loadingShort', null, 'Caricamento')}</div>
                 </div>
               ) : daily.length === 0 ? (
@@ -993,17 +993,17 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                         <stop offset="100%" stopColor="#a855f7" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={{stroke:'rgba(255,255,255,0.08)'}} tickFormatter={d => d.slice(5)} />
-                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `€${Math.round(v)}`} />
+                    <XAxis dataKey="date" stroke="var(--text3)" fontSize={10} tickLine={false} axisLine={{stroke:'rgba(255,255,255,0.08)'}} tickFormatter={d => d.slice(5)} />
+                    <YAxis stroke="var(--text3)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `€${Math.round(v)}`} />
                     <Tooltip
-                      contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid rgba(255,255,255,0.10)', borderRadius:8, fontSize:12, fontWeight:700}}
+                      contentStyle={{background:'rgba(0,0,0,0.92)', border:'1px solid var(--border2)', borderRadius:8, fontSize:12, fontWeight:700}}
                       labelStyle={{color:'#0ea5e9'}}
                       formatter={(v, n) => [money(v), n === 'revenue' ? t('kpi.total', null, 'Totale') : n === 'ncRevenue' ? t('kpi.new', null, 'Nuovi') : t('kpi.returning', null, 'Ritorno')]}
                       cursor={{stroke:'rgba(14,165,233,0.4)', strokeWidth:1, strokeDasharray:'3 3'}}
                     />
                     <Area type="monotone" dataKey="ncRevenue" stackId="seg" stroke="#22d3ee" strokeWidth={1.5} fill={`url(#areaNC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
                     <Area type="monotone" dataKey="rcRevenue" stackId="seg" stroke="#c084fc" strokeWidth={1.5} fill={`url(#areaRC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
-                    <Area type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2.5} fill="none" isAnimationActive animationDuration={1600} animationEasing="ease-out" dot={{r:3, fill:'#0ea5e9', stroke:'#fff', strokeWidth:1}}/>
+                    <Area type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2.5} fill="none" isAnimationActive animationDuration={1600} animationEasing="ease-out" dot={{r:3, fill:'#0ea5e9', stroke:'var(--text)', strokeWidth:1}}/>
                   </AreaChart>
                 </ResponsiveContainer>
               )}

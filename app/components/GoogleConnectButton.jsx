@@ -48,7 +48,7 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
 
 const btn = {
   padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
-  border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', cursor: 'pointer',
+  border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', cursor: 'pointer',
 }
 
 function Ga4PropertyModal({ onClose }) {
@@ -93,7 +93,7 @@ function Ga4PropertyModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Seleziona proprietà GA4</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona proprietà GA4</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>La proprietà Analytics usata da questo tenant</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
@@ -177,7 +177,7 @@ function AdsAccountModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Seleziona account Google Ads</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona account Google Ads</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>L'account pubblicitario usato da questo tenant</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>

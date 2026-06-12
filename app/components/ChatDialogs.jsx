@@ -4,9 +4,9 @@ import { useState } from 'react'
 import Avatar from './Avatar'
 
 const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, padding: 20 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none' }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 16px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const ghost = { background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow' }
+const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '10px 12px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none' }
+const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 16px', color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const ghost = { background: 'transparent', border: '1px solid #3d3d4c', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow' }
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'Barlow' }
 
 function MemberRow({ mem, checked, onToggle }) {
@@ -40,13 +40,13 @@ export function NewChannelDialog({ members, onClose, onCreate }) {
     <div onClick={onClose} style={overlay}>
       <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(460px,100%)', maxHeight: '86vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: '#fff' }}>Nuovo canale</h3>
+          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Nuovo canale</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22 }}>×</button>
         </div>
         <input style={input} placeholder="nome-canale (es. marketing)" value={name} onChange={e => setName(e.target.value)} />
         <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-          <button onClick={() => setPriv(false)} style={{ ...ghost, flex: 1, ...(priv ? {} : { borderColor: '#7b5bff', color: '#fff' }) }}># Pubblico</button>
-          <button onClick={() => setPriv(true)} style={{ ...ghost, flex: 1, ...(priv ? { borderColor: '#7b5bff', color: '#fff' } : {}) }}>🔒 Privato</button>
+          <button onClick={() => setPriv(false)} style={{ ...ghost, flex: 1, ...(priv ? {} : { borderColor: '#7b5bff', color: 'var(--text)' }) }}># Pubblico</button>
+          <button onClick={() => setPriv(true)} style={{ ...ghost, flex: 1, ...(priv ? { borderColor: '#7b5bff', color: 'var(--text)' } : {}) }}>🔒 Privato</button>
         </div>
         {priv && (
           <>
@@ -83,7 +83,7 @@ export function ChannelMembersDialog({ channel, members, memberIds, onClose, onT
     <div onClick={onClose} style={overlay}>
       <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(460px,100%)', maxHeight: '86vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: '#fff' }}>Membri di {channel?.is_private ? '🔒' : '#'} {channel?.name}</h3>
+          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Membri di {channel?.is_private ? '🔒' : '#'} {channel?.name}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22 }}>×</button>
         </div>
         <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, padding: 6 }}>

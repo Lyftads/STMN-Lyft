@@ -98,7 +98,7 @@ export default function RecommendationsFeed({ metrics, preset }) {
           <div style={{ fontSize: 10, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
             {t('rec.eyebrow')}
           </div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 3, letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginTop: 3, letterSpacing: '-0.01em' }}>
             {loading ? t('rec.analyzing')
               : visibleRecs.length === 0 ? t('rec.none')
               : (visibleRecs.length === 1 ? t('rec.countOne', { n: visibleRecs.length }) : t('rec.countMany', { n: visibleRecs.length })) + (urgentCount > 0 ? t('rec.urgentSuffix', { n: urgentCount }) : '')}
@@ -115,8 +115,8 @@ export default function RecommendationsFeed({ metrics, preset }) {
           disabled={loading}
           style={{
             padding: '7px 11px', borderRadius: 9,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--glass)',
+            border: '1px solid var(--border2)',
             color: 'var(--text3)', fontSize: 11, fontWeight: 700,
             cursor: loading ? 'wait' : 'pointer',
           }}
@@ -129,7 +129,7 @@ export default function RecommendationsFeed({ metrics, preset }) {
           style={{
             padding: '7px 12px', borderRadius: 9,
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.10)',
+            border: '1px solid var(--border2)',
             color: 'var(--text3)', fontSize: 11, fontWeight: 700,
             cursor: 'pointer',
           }}
@@ -206,13 +206,13 @@ function RecCard({ rec, onDismiss }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', flex: 1, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', flex: 1, lineHeight: 1.3 }}>
               {rec.title}
             </div>
             <span style={{
               fontSize: 9.5, color: 'var(--text3)',
               padding: '3px 8px', borderRadius: 5,
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--glass)',
               fontWeight: 600,
             }}>
               {catLabel}

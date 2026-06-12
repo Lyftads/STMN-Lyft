@@ -272,7 +272,7 @@ export default function BrandIdentityPanel() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
         background: 'rgba(10,10,22,0.92)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        border: '1.5px solid rgba(255,255,255,0.08)', borderTopColor: 'rgba(255,255,255,0.14)',
+        border: '1.5px solid var(--border)', borderTopColor: 'rgba(255,255,255,0.14)',
         borderRadius: 16, padding: '14px 18px',
         boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
       }}>
@@ -290,7 +290,7 @@ export default function BrandIdentityPanel() {
           style={{
             padding: '10px 20px', borderRadius: 12, border: 'none', cursor: saving ? 'wait' : 'pointer',
             background: `linear-gradient(135deg, ${ACCENT}, #2997ff)`,
-            color: '#fff', fontWeight: 800, fontSize: 13, letterSpacing: '-0.01em',
+            color: 'var(--text)', fontWeight: 800, fontSize: 13, letterSpacing: '-0.01em',
             opacity: saving ? 0.6 : 1,
           }}
         >
@@ -329,7 +329,7 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
         <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
           {eyebrow}
         </div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+        <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
           {title}
         </div>
         {subtitle && <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>{subtitle}</div>}
@@ -364,7 +364,7 @@ function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
           boxShadow: `0 0 14px ${ACCENT}2e, inset 0 1px 0 rgba(255,255,255,0.10)`,
         }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>{subtitle}</div>
         </div>
         <span style={{ color: 'var(--text3)', fontSize: 18, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>›</span>
@@ -372,7 +372,7 @@ function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
       {open && (
         <div style={{
           padding: '4px 22px 22px',
-          borderTop: '1px solid rgba(255,255,255,0.04)',
+          borderTop: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column', gap: 14,
           position: 'relative', zIndex: 2,
         }}>
@@ -405,9 +405,9 @@ function Field({ label, hint, children }) {
 
 const inputBase = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  color: '#fff', fontSize: 13, fontFamily: 'inherit',
+  background: 'var(--glass)',
+  border: '1px solid var(--border)',
+  color: 'var(--text)', fontSize: 13, fontFamily: 'inherit',
   outline: 'none', transition: 'border-color .15s',
 }
 
@@ -474,7 +474,7 @@ function TagInput({ tags = [], onChange, placeholder }) {
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '4px 10px', borderRadius: 999,
           background: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`,
-          fontSize: 11.5, color: '#fff', fontWeight: 600,
+          fontSize: 11.5, color: 'var(--text)', fontWeight: 600,
         }}>
           {t}
           <button type="button" onClick={() => removeTag(t)} style={{
@@ -493,7 +493,7 @@ function TagInput({ tags = [], onChange, placeholder }) {
         placeholder={placeholder}
         style={{
           flex: 1, minWidth: 100, background: 'transparent', border: 'none',
-          color: '#fff', fontSize: 13, outline: 'none', padding: '4px 0',
+          color: 'var(--text)', fontSize: 13, outline: 'none', padding: '4px 0',
         }}
       />
     </div>
@@ -514,7 +514,7 @@ function ToneChips({ selected, onToggle }) {
               padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
               background: isSelected ? `${ACCENT}33` : 'rgba(255,255,255,0.04)',
               border: `1px solid ${isSelected ? ACCENT : 'rgba(255,255,255,0.10)'}`,
-              color: isSelected ? '#fff' : 'var(--text3)',
+              color: isSelected ? 'var(--text)' : 'var(--text3)',
               fontSize: 12, fontWeight: 600, transition: 'all .15s',
             }}
           >{t(TONE_KEYS[tag], null, tag)}</button>
@@ -540,12 +540,12 @@ function ColorPicker({ colors = [], onChange }) {
       {colors.map(c => (
         <div key={c} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10,
+          background: 'var(--glass)',
+          border: '1px solid var(--border2)', borderRadius: 10,
           padding: '6px 10px',
         }}>
-          <span style={{ width: 22, height: 22, borderRadius: 6, background: c, border: '1px solid rgba(255,255,255,0.15)' }} />
-          <span style={{ fontSize: 12, color: '#fff', fontFamily: 'monospace' }}>{c}</span>
+          <span style={{ width: 22, height: 22, borderRadius: 6, background: c, border: '1px solid var(--border2)' }} />
+          <span style={{ fontSize: 12, color: 'var(--text)', fontFamily: 'monospace' }}>{c}</span>
           <button type="button" onClick={() => removeColor(c)} style={{
             background: 'transparent', border: 'none', color: ACCENT, cursor: 'pointer',
             fontSize: 14, padding: 0,
@@ -556,11 +556,11 @@ function ColorPicker({ colors = [], onChange }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input
             type="color" value={draft} onChange={e => setDraft(e.target.value)}
-            style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.10)', background: 'transparent', cursor: 'pointer' }}
+            style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border2)', background: 'transparent', cursor: 'pointer' }}
           />
           <button type="button" onClick={addColor} style={{
             padding: '8px 12px', borderRadius: 10, background: `${ACCENT}33`,
-            border: `1px solid ${ACCENT}`, color: '#fff', cursor: 'pointer',
+            border: `1px solid ${ACCENT}`, color: 'var(--text)', cursor: 'pointer',
             fontSize: 12, fontWeight: 700,
           }}>{t('bi.colorAdd', null, '+ Aggiungi')}</button>
         </div>
@@ -643,7 +643,7 @@ function AssetsManager({ assets, onChange }) {
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{t(ASSET_LABEL_KEYS[at.id], null, at.label)}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{t(ASSET_LABEL_KEYS[at.id], null, at.label)}</span>
                 <button
                   type="button"
                   onClick={() => inputRefs.current[at.id]?.click()}
@@ -651,7 +651,7 @@ function AssetsManager({ assets, onChange }) {
                   style={{
                     padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
                     background: `${ACCENT}33`, border: `1px solid ${ACCENT}66`,
-                    color: '#fff', cursor: isUploading ? 'wait' : 'pointer',
+                    color: 'var(--text)', cursor: isUploading ? 'wait' : 'pointer',
                   }}
                 >
                   {isUploading ? '…' : t('bi.assetAdd', null, '+ Carica')}
@@ -677,13 +677,13 @@ function AssetsManager({ assets, onChange }) {
                   {list.map(a => (
                     <div key={a.path} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--glass)',
+                      border: '1px solid var(--border)',
                       borderRadius: 10, padding: 8,
                     }}>
                       <img src={a.url} alt={a.name} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, background: '#000' }} onError={e => { e.currentTarget.style.display = 'none' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
                         <div style={{ fontSize: 10, color: 'var(--text4, #555)' }}>{(a.size / 1024).toFixed(1)} KB</div>
                       </div>
                       <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: ACCENT, textDecoration: 'none' }}>↗</a>
@@ -798,7 +798,7 @@ function CompetitorList({ competitors, onChange }) {
         style={{
           padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
           background: `${ACCENT}22`, border: `1px dashed ${ACCENT}66`,
-          color: '#fff', fontSize: 13, fontWeight: 700,
+          color: 'var(--text)', fontSize: 13, fontWeight: 700,
         }}
       >
         {t('bi.compAdd', null, '+ Aggiungi competitor')}

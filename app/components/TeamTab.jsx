@@ -187,7 +187,7 @@ export default function TeamTab() {
               {/* Chiamata 1-a-1: stopPropagation per non aprire la chat */}
               <span onClick={e => e.stopPropagation()} style={{ flex: 'none' }}>
                 <AgentCall agent={a} label={<Icon name="phone" size={17} />}
-                  buttonStyle={{ cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: a.color, border: 'none', color: '#fff' }} />
+                  buttonStyle={{ cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: a.color, border: 'none', color: 'var(--text)' }} />
               </span>
             </div>
           ))}
@@ -215,9 +215,9 @@ export default function TeamTab() {
         </span>
         {speaking
           ? <button type="button" onClick={stopSpeak} title="Ferma voce"
-              style={{ cursor: 'pointer', background: agent.color, border: 'none', color: '#fff', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>⏹ Stop</button>
+              style={{ cursor: 'pointer', background: agent.color, border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>⏹ Stop</button>
           : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
-              style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? '#fff' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
+              style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? 'var(--text)' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
               {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
         <AgentCall agent={agent} label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Chiama</span>} />
       </div>
@@ -234,7 +234,7 @@ export default function TeamTab() {
           <div key={i} style={{ display: 'flex', gap: 9, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
             {m.role === 'assistant' && <Avatar a={agent} size={30} />}
             <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-              color: m.role === 'user' ? '#fff' : 'var(--text)',
+              color: m.role === 'user' ? 'var(--text)' : 'var(--text)',
               background: m.role === 'user' ? 'linear-gradient(135deg, #6d28d9, #2a1746)' : 'var(--glass)',
               border: m.role === 'user' ? 'none' : '1px solid var(--border)' }}>
               {bubbleText(m.content)}
@@ -258,7 +258,7 @@ export default function TeamTab() {
         <button type="button" onClick={recording ? stopRec : startRec} disabled={transcribing || busy}
           title={recording ? 'Ferma e invia' : 'Parla'}
           style={{ cursor: transcribing || busy ? 'default' : 'pointer', border: `1px solid ${recording ? '#ff453a' : 'var(--border)'}`, borderRadius: 10, width: 44, height: 44, flexShrink: 0, fontSize: 18,
-            background: recording ? '#ff453a' : 'var(--surface)', color: recording ? '#fff' : 'var(--text2)' }}>
+            background: recording ? '#ff453a' : 'var(--surface)', color: recording ? 'var(--text)' : 'var(--text2)' }}>
           {transcribing ? '…' : recording ? '⏺' : '🎤'}</button>
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
@@ -266,7 +266,7 @@ export default function TeamTab() {
           style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 14px', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
         <button type="button" onClick={() => send()} disabled={busy || !input.trim()}
           style={{ cursor: busy || !input.trim() ? 'default' : 'pointer', border: 'none', borderRadius: 10, padding: '0 18px', height: 44,
-            background: busy || !input.trim() ? 'var(--border)' : agent.color, color: '#fff', fontWeight: 700, fontSize: 14 }}>
+            background: busy || !input.trim() ? 'var(--border)' : agent.color, color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>
           {t('team.send', null, 'Invia')}
         </button>
       </div>

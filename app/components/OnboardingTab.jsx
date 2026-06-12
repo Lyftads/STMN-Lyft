@@ -15,9 +15,9 @@ import BrandIdentityPanel from './BrandIdentityPanel'
 
 const MUTED = '#8e8e9e'
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 22 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 9, padding: '11px 18px', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 16px', color: '#fff', fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow' }
+const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '10px 12px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
+const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 9, padding: '11px 18px', color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 16px', color: 'var(--text)', fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow' }
 const SKIP_KEY = 'lyft_onb_skipped'
 
 const STEPS = [
@@ -152,7 +152,7 @@ export default function OnboardingTab() {
   const allHandled = STEPS.every(s => isDone(s.id))
 
   return (
-    <div style={{ color: '#fff', fontFamily: 'Barlow', maxWidth: 1040 }}>
+    <div style={{ color: 'var(--text)', fontFamily: 'Barlow', maxWidth: 1040 }}>
       {/* Header + progress */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}><Icon name="rocket" size={22} /> Onboarding</h2>
@@ -178,9 +178,9 @@ export default function OnboardingTab() {
                 padding: '11px 12px', marginBottom: 3, borderRadius: 10, border: 'none', cursor: 'pointer',
                 fontFamily: 'Barlow', background: active ? 'rgba(123,91,255,0.16)' : 'transparent',
               }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: conn || sk ? '#fff' : markColor, background: conn ? '#30d158' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', border: conn || sk || active ? 'none' : `1.5px solid ${MUTED}` }}>{mark}</span>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: conn || sk ? 'var(--text)' : markColor, background: conn ? '#30d158' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', border: conn || sk || active ? 'none' : `1.5px solid ${MUTED}` }}>{mark}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? '#fff' : '#d0d0d8', overflow: 'hidden', whiteSpace: 'nowrap' }}>{s.logo ? <PlatformIcon platform={s.logo} size={16} /> : <span>{s.icon}</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span></span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? 'var(--text)' : '#d0d0d8', overflow: 'hidden', whiteSpace: 'nowrap' }}>{s.logo ? <PlatformIcon platform={s.logo} size={16} /> : <span>{s.icon}</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span></span>
                   <span style={{ fontSize: 11, color: conn ? '#30d158' : sk ? MUTED : MUTED }}>{conn ? 'Collegato' : sk ? 'Saltato' : 'Da fare'}</span>
                 </span>
               </button>

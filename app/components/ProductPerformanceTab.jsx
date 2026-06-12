@@ -85,21 +85,21 @@ export default function ProductPerformanceTab() {
   const k = data?.totals
   const mapProdTitle = new Map((mapData?.products || []).map(p => [p.id, p.title]))
   const cardWrap = { background: 'var(--card,rgba(255,255,255,0.02))', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }
-  const cell = { padding: '12px 14px', fontSize: 13, color: '#fff', textAlign: 'right', whiteSpace: 'nowrap' }
-  const th = { padding: '11px 14px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', color: 'rgba(255,255,255,0.78)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'rgba(8,8,18,0.92)', backdropFilter: 'blur(12px)' }
+  const cell = { padding: '12px 14px', fontSize: 13, color: 'var(--text)', textAlign: 'right', whiteSpace: 'nowrap' }
+  const th = { padding: '11px 14px', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', color: 'var(--text2)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface)', backdropFilter: 'blur(12px)' }
   const Thumb = ({ url }) => url
-    ? <img src={url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: 'rgba(255,255,255,0.04)' }} />
-    : <div style={{ width: 38, height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Icon name="box" size={16} /></div>
+    ? <img src={url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: 'var(--glass)' }} />
+    : <div style={{ width: 38, height: 38, borderRadius: 8, background: 'var(--glass)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Icon name="box" size={16} /></div>
 
-  const inputStyle = { background: 'var(--glass,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 10px', color: '#fff', fontSize: 13, colorScheme: 'dark' }
+  const inputStyle = { background: 'var(--glass,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 10px', color: 'var(--text)', fontSize: 13, colorScheme: 'dark' }
   const sortBtn = (id, label) => (
-    <button key={id} onClick={() => setSortBy(id)} style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer', color: sortBy === id ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 12.5, fontWeight: sortBy === id ? 900 : 700, borderBottom: sortBy === id ? '2px solid var(--accent)' : '2px solid transparent' }}>{label}</button>
+    <button key={id} onClick={() => setSortBy(id)} style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer', color: sortBy === id ? 'var(--text)' : 'var(--text2)', fontSize: 12.5, fontWeight: sortBy === id ? 900 : 700, borderBottom: sortBy === id ? '2px solid var(--accent)' : '2px solid transparent' }}>{label}</button>
   )
   const kpi = (label, value, sub) => (
     <div style={{ ...cardWrap, padding: '16px 18px' }}>
-      <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.78)' }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: '5px 0 2px' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.7)' }}>{sub}</div>}
+      <div style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)' }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text)', margin: '5px 0 2px' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>{sub}</div>}
     </div>
   )
 
@@ -107,8 +107,8 @@ export default function ProductPerformanceTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ maxWidth: 760 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{t('pp.title', null, 'Performance prodotti')}</h1>
-          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.78)', fontSize: 13 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('pp.title', null, 'Performance prodotti')}</h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text2)', fontSize: 13 }}>
             {t('pp.subtitle', null, 'P&L per prodotto (B2C) · ricavo netto, COGS, ADS allocati in proporzione al ricavo, margine operativo e ROAS.')}
             {data && <> · {data.range.since} → {data.range.until}</>}
           </p>
@@ -120,12 +120,12 @@ export default function ProductPerformanceTab() {
 
       {/* Controlli */}
       <div style={{ ...cardWrap, display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.78)', fontWeight: 700 }}>{t('pp.from', null, 'Da')}<input type="date" value={since} onChange={e => setSince(e.target.value)} style={inputStyle} /></label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'rgba(255,255,255,0.78)', fontWeight: 700 }}>{t('pp.to', null, 'A')}<input type="date" value={until} onChange={e => setUntil(e.target.value)} style={inputStyle} /></label>
-        <button onClick={() => load(since, until, true)} disabled={loading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? t('pp.loading', null, 'Carico…') : t('pp.update', null, 'Aggiorna')}</button>
-        <button onClick={() => { const s = isoDay(new Date(Date.now() - 90 * 86400000)), u = isoDay(new Date()); setSince(s); setUntil(u); load(s, u, true) }} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.reset', null, 'Reset')}</button>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.from', null, 'Da')}<input type="date" value={since} onChange={e => setSince(e.target.value)} style={inputStyle} /></label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.to', null, 'A')}<input type="date" value={until} onChange={e => setUntil(e.target.value)} style={inputStyle} /></label>
+        <button onClick={() => load(since, until, true)} disabled={loading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? t('pp.loading', null, 'Carico…') : t('pp.update', null, 'Aggiorna')}</button>
+        <button onClick={() => { const s = isoDay(new Date(Date.now() - 90 * 86400000)), u = isoDay(new Date()); setSince(s); setUntil(u); load(s, u, true) }} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.reset', null, 'Reset')}</button>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 700, marginRight: 4 }}>{t('pp.sortBy', null, 'Ordina per')}</span>
+          <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 700, marginRight: 4 }}>{t('pp.sortBy', null, 'Ordina per')}</span>
           {sortBtn('margin', t('pp.sortMargin', null, 'Margine'))}
           {sortBtn('net', t('pp.sortNet', null, 'Netto'))}
           {sortBtn('units', t('pp.sortUnits', null, 'Unità'))}
@@ -144,7 +144,7 @@ export default function ProductPerformanceTab() {
             {kpi('ROAS', k.roas != null ? `${k.roas}×` : '—', t('pp.blended', null, 'blended B2C'))}
           </div>
 
-          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text2)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {k.adsMappedPct >= 100
               ? <span style={{ color: '#34d399' }}>✓ {t('pp.allMapped', null, 'ADS attribuiti per campagna (dato preciso) su tutta la spesa.')}</span>
               : <span><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#34d399', marginRight: 5 }} />{t('pp.mappedNote', { n: k.adsMappedPct }, `${k.adsMappedPct}% della spesa ADS è mappata per campagna (preciso); il resto è ripartito in proporzione al ricavo. Mappa le campagne per il dato esatto.`)}</span>}
@@ -167,40 +167,40 @@ export default function ProductPerformanceTab() {
               </tr></thead>
               <tbody>
                 {products.map(p => (
-                  <tr key={p.productId} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '12px 14px', maxWidth: 360 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={p.image} /><span style={{ color: '#fff', fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span></div></td>
+                  <tr key={p.productId} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 14px', maxWidth: 360 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={p.image} /><span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span></div></td>
                     <td style={cell}>{fmtInt(p.units)}</td>
                     <td style={{ ...cell, fontWeight: 800 }}>{fmtMoney(p.netRevenue)}</td>
-                    <td style={{ ...cell, color: p.hasCost ? '#fff' : 'rgba(255,255,255,0.4)' }}>{p.hasCost ? fmtMoney(p.cogs) : '—'}</td>
+                    <td style={{ ...cell, color: p.hasCost ? 'var(--text)' : 'var(--text3)' }}>{p.hasCost ? fmtMoney(p.cogs) : '—'}</td>
                     <td style={cell} title={p.adsExact ? t('pp.adsExact', null, 'Attribuito per campagna (preciso)') : t('pp.adsEstimate', null, 'Stima proporzionale')}>{p.adsExact && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#34d399', marginRight: 5, verticalAlign: 'middle' }} />}{fmtMoney(p.ads)}</td>
                     <td style={{ ...cell, color: p.marginOp >= 0 ? '#34d399' : '#ef4444', fontWeight: 900 }}>{fmtMoney(p.marginOp)}</td>
                     <td style={{ ...cell, color: p.marginPct >= 40 ? '#34d399' : p.marginPct >= 0 ? '#fcd34d' : '#ef4444', fontWeight: 700 }}>{p.marginPct}%</td>
-                    <td style={{ ...cell, color: p.adsExact ? '#fff' : 'rgba(255,255,255,0.45)' }} title={p.adsExact ? undefined : t('pp.roasEstimate', null, 'ROAS stimato = ROAS blended, uguale per tutti finché non mappi la campagna su questo prodotto')}>{p.roas != null ? `${p.adsExact ? '' : '~'}${p.roas}×` : '—'}</td>
-                    <td style={{ ...cell, color: p.deltaNet == null ? 'rgba(255,255,255,0.4)' : p.deltaNet >= 0 ? '#34d399' : '#ef4444', fontWeight: 700 }}>{p.deltaNet == null ? '—' : `${p.deltaNet >= 0 ? '↑ +' : '↓ '}${p.deltaNet}%`}</td>
+                    <td style={{ ...cell, color: p.adsExact ? 'var(--text)' : 'var(--text3)' }} title={p.adsExact ? undefined : t('pp.roasEstimate', null, 'ROAS stimato = ROAS blended, uguale per tutti finché non mappi la campagna su questo prodotto')}>{p.roas != null ? `${p.adsExact ? '' : '~'}${p.roas}×` : '—'}</td>
+                    <td style={{ ...cell, color: p.deltaNet == null ? 'var(--text3)' : p.deltaNet >= 0 ? '#34d399' : '#ef4444', fontWeight: 700 }}>{p.deltaNet == null ? '—' : `${p.deltaNet >= 0 ? '↑ +' : '↓ '}${p.deltaNet}%`}</td>
                   </tr>
                 ))}
-                {products.length === 0 && <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pp.empty', null, 'Nessuna vendita nel periodo.')}</td></tr>}
+                {products.length === 0 && <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>{t('pp.empty', null, 'Nessuna vendita nel periodo.')}</td></tr>}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('pp.loadingFull', null, 'Calcolo performance prodotti…')}</div>}
+      {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'var(--text2)' }}>{t('pp.loadingFull', null, 'Calcolo performance prodotti…')}</div>}
 
       {mapOpen && typeof document !== 'undefined' && createPortal(
         <div onClick={() => setMapOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#0d0d16', border: '1px solid var(--border)', borderRadius: 16, width: 'min(900px,100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, width: 'min(900px,100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontWeight: 900, fontSize: 16 }}>{t('pp.mapTitle', null, 'Mappatura campagne → prodotto')}</div>
-                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>{t('pp.mapSub', null, 'Associa ogni campagna al prodotto che promuove: la sua spesa andrà su quel prodotto (dato preciso). Le non mappate restano in proporzionale.')}</div>
+                <div style={{ color: 'var(--text)', fontWeight: 900, fontSize: 16 }}>{t('pp.mapTitle', null, 'Mappatura campagne → prodotto')}</div>
+                <div style={{ color: 'var(--text2)', fontSize: 12, marginTop: 2 }}>{t('pp.mapSub', null, 'Associa ogni campagna al prodotto che promuove: la sua spesa andrà su quel prodotto (dato preciso). Le non mappate restano in proporzionale.')}</div>
               </div>
-              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><Icon name="close" size={18} /></button>
+              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer' }}><Icon name="close" size={18} /></button>
             </div>
             <div style={{ overflowY: 'auto', padding: '8px 0' }}>
-              {mapLoading ? <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pp.mapLoading', null, 'Carico campagne…')}</div>
-              : !mapData?.campaigns?.length ? <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pp.mapEmpty', null, 'Nessuna campagna con spesa nel periodo.')}</div>
+              {mapLoading ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>{t('pp.mapLoading', null, 'Carico campagne…')}</div>
+              : !mapData?.campaigns?.length ? <div style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>{t('pp.mapEmpty', null, 'Nessuna campagna con spesa nel periodo.')}</div>
               : (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead><tr>
@@ -215,28 +215,28 @@ export default function ProductPerformanceTab() {
                       const isSuggest = !c.mapped && c.suggestedProductId && sel.length === 1 && sel[0] === c.suggestedProductId
                       const allIds = mapData.products.map(p => p.id)
                       return (
-                        <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '10px 14px', maxWidth: 280, verticalAlign: 'top' }}>
-                            <div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_name}</div>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.platform}</div>
+                            <div style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_name}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.platform}</div>
                           </td>
                           <td style={{ ...cell, padding: '10px 14px', verticalAlign: 'top' }}>{fmtMoney(c.spend)}</td>
                           <td style={{ padding: '10px 14px', minWidth: 360 }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                               {sel.map(id => (
-                                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(123,91,255,0.18)', border: '1px solid var(--accent)', color: '#fff', borderRadius: 999, padding: '3px 8px', fontSize: 11.5, fontWeight: 600, maxWidth: 200 }}>
+                                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(123,91,255,0.18)', border: '1px solid var(--accent)', color: 'var(--text)', borderRadius: 999, padding: '3px 8px', fontSize: 11.5, fontWeight: 600, maxWidth: 200 }}>
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mapProdTitle.get(id) || id}</span>
                                   <span onClick={() => removeProduct(key, id)} style={{ cursor: 'pointer', opacity: 0.8, fontWeight: 800 }}>×</span>
                                 </span>
                               ))}
-                              <select value="" onChange={e => { if (e.target.value) addProduct(key, e.target.value) }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', color: '#fff', fontSize: 12, colorScheme: 'dark', maxWidth: 220 }}>
+                              <select value="" onChange={e => { if (e.target.value) addProduct(key, e.target.value) }} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', color: 'var(--text)', fontSize: 12, colorScheme: 'dark', maxWidth: 220 }}>
                                 <option value="">{t('pp.mapAdd', null, '+ Aggiungi prodotto')}</option>
                                 {mapData.products.filter(p => !sel.includes(p.id)).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
                               </select>
                             </div>
                             <div style={{ display: 'flex', gap: 12, marginTop: 5, alignItems: 'center' }}>
                               <button onClick={() => setAllProducts(key, allIds)} style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapAllCatalog', null, 'Tutto il catalogo')}</button>
-                              {sel.length > 0 && <button onClick={() => setAllProducts(key, [])} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapClear', null, 'Svuota')}</button>}
+                              {sel.length > 0 && <button onClick={() => setAllProducts(key, [])} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapClear', null, 'Svuota')}</button>}
                               {isSuggest && <span style={{ fontSize: 10, color: '#86efac', fontWeight: 700 }}>{t('pp.mapSuggested', null, 'suggerito')} {c.suggestedScore ? `${c.suggestedScore}%` : ''}</span>}
                             </div>
                           </td>
@@ -250,8 +250,8 @@ export default function ProductPerformanceTab() {
             <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
               {mapErr && <span style={{ color: '#fca5a5', fontSize: 12 }}>{mapErr}</span>}
               <div style={{ flex: 1 }} />
-              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.mapCancel', null, 'Annulla')}</button>
-              <button onClick={saveMap} disabled={mapSaving || mapLoading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: mapSaving ? 'default' : 'pointer', opacity: mapSaving ? 0.6 : 1 }}>{mapSaving ? t('pp.mapSaving', null, 'Salvo…') : t('pp.mapSave', null, 'Salva mappatura')}</button>
+              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.mapCancel', null, 'Annulla')}</button>
+              <button onClick={saveMap} disabled={mapSaving || mapLoading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: mapSaving ? 'default' : 'pointer', opacity: mapSaving ? 0.6 : 1 }}>{mapSaving ? t('pp.mapSaving', null, 'Salvo…') : t('pp.mapSave', null, 'Salva mappatura')}</button>
             </div>
           </div>
         </div>, document.body)}

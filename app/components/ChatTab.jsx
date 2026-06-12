@@ -21,8 +21,8 @@ const SQUAD_AGENTS = [
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
-const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 10, padding: '10px 12px', color: '#fff', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none', resize: 'none' }
-const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
+const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 10, padding: '10px 12px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none', resize: 'none' }
+const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const MUTED = '#8b8b9a'
 const EMOJIS = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
@@ -474,7 +474,7 @@ export default function ChatTab({ standalone = false }) {
       <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
         <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url || agentAvatars[m.author_name]} size={30} online={mem ? isOnline(mem) : undefined} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
           {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
           {m.audio_url && <AudioMsg src={m.audio_url} />}
           {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
@@ -487,10 +487,10 @@ export default function ChatTab({ standalone = false }) {
 
   if (loading) return <div style={{ padding: 40, color: MUTED, fontFamily: 'Barlow' }}>Caricamento chat…</div>
 
-  const itemStyle = (on) => ({ padding: '7px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: on ? 700 : 500, color: on ? '#fff' : '#c9c9d6', background: on ? 'rgba(123,91,255,0.16)' : 'transparent', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 })
+  const itemStyle = (on) => ({ padding: '7px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: on ? 700 : 500, color: on ? 'var(--text)' : '#c9c9d6', background: on ? 'rgba(123,91,255,0.16)' : 'transparent', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 })
 
   return (
-    <div style={{ fontFamily: 'Barlow', color: '#fff' }}>
+    <div style={{ fontFamily: 'Barlow', color: 'var(--text)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 16px', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="tipwrap" style={{ display: 'flex', gap: 8, position: 'relative' }}>
@@ -519,11 +519,11 @@ export default function ChatTab({ standalone = false }) {
               {groupChannels.map(c => (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
                   <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? '#fff' : undefined }}>{c.name}</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? 'var(--text)' : undefined }}>{c.name}</span>
                   {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
                 </div>
               ))}
-              <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: '#fff', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ Nuovo canale</button>
+              <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: 'var(--text)', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ Nuovo canale</button>
               {dmChannels.length > 0 && <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>Messaggi diretti</div>}
               {dmChannels.map(c => { const o = dmOther(c); return (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
@@ -573,7 +573,7 @@ export default function ChatTab({ standalone = false }) {
               {unreadList.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Tutto letto 🎉</div> : unreadList.map(c => { const o = c.is_dm ? dmOther(c) : null; return (
                 <div key={c.id} onClick={() => { setActive(c.id); setRail('home') }} style={itemStyle(false)}>
                   {c.is_dm ? <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} /> : <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>}
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800, color: '#fff' }}>{c.is_dm ? (o?.full_name || o?.email || 'Diretto') : c.name}</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800, color: 'var(--text)' }}>{c.is_dm ? (o?.full_name || o?.email || 'Diretto') : c.name}</span>
                   <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />
                 </div>
               ) })}
@@ -584,8 +584,8 @@ export default function ChatTab({ standalone = false }) {
               {allFiles.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>Nessun file.</div> : allFiles.map(f => {
                 const isImg = (/^image\//.test(f.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''))
                 return (
-                  <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, textDecoration: 'none', color: '#fff' }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 15 }}>{f.audio_url ? <Icon name="mic" size={16} /> : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}</div>
+                  <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, textDecoration: 'none', color: 'var(--text)' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 15 }}>{f.audio_url ? <Icon name="mic" size={16} /> : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.audio_url ? 'Vocale' : (f.file_name || 'Allegato')}</div>
                       <div style={{ fontSize: 11, color: MUTED }}>#{f.channel_name} · {f.author_name || ''}</div>
@@ -599,7 +599,7 @@ export default function ChatTab({ standalone = false }) {
           <div onClick={() => setShowProfile(true)} title="Modifica profilo" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderTop: '1px solid var(--border, rgba(255,255,255,0.08))', marginTop: 8, cursor: 'pointer' }}>
             <Avatar name={profile?.full_name || profile?.email} url={profile?.avatar_url} size={32} online />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name || 'Il mio profilo'}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name || 'Il mio profilo'}</div>
               <div style={{ fontSize: 11, color: '#7b5bff' }}>Modifica profilo</div>
             </div>
           </div>
@@ -617,7 +617,7 @@ export default function ChatTab({ standalone = false }) {
               {active && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[['messages', 'Messaggi'], ['files', 'File']].map(([v, l]) => (
-                    <button key={v} onClick={() => setChannelView(v)} style={{ background: channelView === v ? 'rgba(123,91,255,0.16)' : 'transparent', border: 'none', borderRadius: 8, padding: '5px 10px', color: channelView === v ? '#fff' : MUTED, cursor: 'pointer', fontSize: 13, fontWeight: channelView === v ? 700 : 500, fontFamily: 'Barlow' }}>{l}</button>
+                    <button key={v} onClick={() => setChannelView(v)} style={{ background: channelView === v ? 'rgba(123,91,255,0.16)' : 'transparent', border: 'none', borderRadius: 8, padding: '5px 10px', color: channelView === v ? 'var(--text)' : MUTED, cursor: 'pointer', fontSize: 13, fontWeight: channelView === v ? 700 : 500, fontFamily: 'Barlow' }}>{l}</button>
                   ))}
                 </div>
               )}
@@ -639,10 +639,10 @@ export default function ChatTab({ standalone = false }) {
                 <AgentCall
                   agent={{ id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
                   label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Squadra AI</span>}
-                  buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
+                  buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
                 />
                 <button type="button" onClick={() => setGroupCall(true)} title="Call di gruppo: team + agent insieme"
-                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="users" size={14} />Call di gruppo</button>
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="users" size={14} />Call di gruppo</button>
               </div>
             )}
           </div>
@@ -670,7 +670,7 @@ export default function ChatTab({ standalone = false }) {
                   <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url || agentAvatars[m.author_name]} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
-                      <b style={{ color: '#fff' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      <b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || 'Utente'}</b> · {new Date(m.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       {m.pinned && <span style={{ marginLeft: 6, color: '#7b5bff', fontWeight: 600 }}><Icon name="pin" size={11} /> fissato</span>}
                     </div>
                     {m.reply_excerpt && (
@@ -682,12 +682,12 @@ export default function ChatTab({ standalone = false }) {
                     {m.audio_url && <AudioMsg src={m.audio_url} />}
                     {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
                       ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 10, display: 'block' }} /></a>
-                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: '#fff', textDecoration: 'none', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || 'Allegato'}</a>
+                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: 'var(--text)', textDecoration: 'none', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || 'Allegato'}</a>
                     )}
                     {Object.keys(reactions).length > 0 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                         {Object.entries(reactions).map(([em, ids]) => (
-                          <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '1px 8px', fontSize: 12.5, color: '#fff', cursor: 'pointer', border: (ids || []).includes(me?.memberId) ? '1px solid #7b5bff' : '1px solid var(--border, rgba(255,255,255,0.12))' }}>{em} {(ids || []).length}</button>
+                          <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'var(--glass2)', borderRadius: 12, padding: '1px 8px', fontSize: 12.5, color: 'var(--text)', cursor: 'pointer', border: (ids || []).includes(me?.memberId) ? '1px solid #7b5bff' : '1px solid var(--border, rgba(255,255,255,0.12))' }}>{em} {(ids || []).length}</button>
                         ))}
                       </div>
                     )}
@@ -732,11 +732,11 @@ export default function ChatTab({ standalone = false }) {
                     const isImg = (/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
                     return (
                       <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 10 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', fontSize: 18 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 18 }}>
                           {m.audio_url ? <Icon name="mic" size={18} /> : (isImg ? <img src={m.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? 'Messaggio vocale' : (m.file_name || 'Allegato')}</div>
+                          <div style={{ fontSize: 13.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? 'Messaggio vocale' : (m.file_name || 'Allegato')}</div>
                           <div style={{ fontSize: 11.5, color: MUTED }}>{mem?.full_name || m.author_name || 'Utente'} · {new Date(m.created_at).toLocaleDateString('it-IT')}</div>
                         </div>
                         <a href={m.file_url || m.audio_url} target="_blank" rel="noopener" style={{ color: '#7b9cff', fontSize: 13, textDecoration: 'none' }}>Apri</a>
@@ -752,7 +752,7 @@ export default function ChatTab({ standalone = false }) {
           <div style={{ padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
             {replyTo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 12.5 }}>
-                <span style={{ color: MUTED }}>↩︎ Rispondi a <b style={{ color: '#fff' }}>{replyTo.author}</b>: {replyTo.excerpt.slice(0, 60)}</span>
+                <span style={{ color: MUTED }}>↩︎ Rispondi a <b style={{ color: 'var(--text)' }}>{replyTo.author}</b>: {replyTo.excerpt.slice(0, 60)}</span>
                 <button onClick={() => setReplyTo(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 14 }}>×</button>
               </div>
             )}
@@ -795,7 +795,7 @@ export default function ChatTab({ standalone = false }) {
                     }
                   }}
                   placeholder={activeChannel ? `Messaggio ${activeChannel.is_dm ? `a ${channelLabel(activeChannel)}` : `in ${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}`}…` : 'Messaggio…'}
-                  style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: 'transparent', caretColor: '#fff' }}
+                  style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: 'transparent', caretColor: 'var(--text)' }}
                 />
               </div>
               {/* Bottom row */}
@@ -811,7 +811,7 @@ export default function ChatTab({ standalone = false }) {
                 <button onClick={send} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title="Invia"><Icon name="send" size={16} /></button>
 
                 {emojiOpen && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 8, width: 320, zIndex: 10 }}>
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid var(--border2)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 8, width: 320, zIndex: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, color: MUTED }}>Emoji</span>
                       <button onClick={() => setEmojiOpen(false)} title="Chiudi" style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
@@ -822,7 +822,7 @@ export default function ChatTab({ standalone = false }) {
                   </div>
                 )}
                 {mentionOpen && mentionList.length > 0 && (
-                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 30 }}>
+                  <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid var(--border2)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 30 }}>
                     {mentionList.map(mem => (
                       <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
                         <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={mem.isAgent ? true : isOnline(mem)} />
@@ -891,7 +891,7 @@ export default function ChatTab({ standalone = false }) {
             <label style={{ fontSize: 12, color: MUTED }}>Collegamento</label>
             <input style={{ ...FIELD, marginTop: 4 }} value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === 'Enter') saveLink() }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
-              <button onClick={() => setLinkOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: '9px 14px', color: '#fff', cursor: 'pointer', fontFamily: 'Barlow' }}>Annulla</button>
+              <button onClick={() => setLinkOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: '9px 14px', color: 'var(--text)', cursor: 'pointer', fontFamily: 'Barlow' }}>Annulla</button>
               <button onClick={saveLink} style={{ ...BTN }}>Salva</button>
             </div>
           </div>
@@ -911,15 +911,15 @@ function Tip({ children, right }) {
 }
 
 function ActBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function HBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function TB({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#b9b9c8', cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function MenuItem({ onClick, danger, children }) {
@@ -928,10 +928,10 @@ function MenuItem({ onClick, danger, children }) {
 
 function RailBtn({ active, onClick, title, badge, children }) {
   return (
-    <button type="button" onClick={onClick} aria-label={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? '#fff' : '#b9b9c8' }}
+    <button type="button" onClick={onClick} aria-label={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? 'var(--text)' : '#b9b9c8' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
-      {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
+      {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: 'var(--text)', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
     </button>
   )
 }
@@ -985,7 +985,7 @@ function AudioMsg({ src }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, padding: '7px 12px 7px 7px', background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, maxWidth: 300 }}>
       <audio ref={ref} src={src} preload="metadata" onTimeUpdate={e => setCur(e.target.currentTime)} onLoadedMetadata={e => setDur(e.target.duration || 0)} onEnded={() => { setPlaying(false); setCur(0) }} style={{ display: 'none' }} />
-      <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
+      <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
       <div onClick={e => { const a = ref.current; if (!a || !dur) return; const r = e.currentTarget.getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur }} style={{ flex: 1, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.16)', cursor: 'pointer', position: 'relative' }}>
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', borderRadius: 2 }} />
       </div>

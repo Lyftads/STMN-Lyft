@@ -564,27 +564,27 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     : t('cs.placeholder', null, 'Es: il nostro best-seller su sfondo minimal, luce da studio…')
   const txLabel = (reason) => ({ purchase: t('cs.txPurchase', null, 'Acquisto'), spend: t('cs.txSpend', null, 'Generazione'), refund: t('cs.txRefund', null, 'Rimborso'), grant: t('cs.txGrant', null, 'Omaggio') }[reason] || reason)
 
-  const tool = (active) => ({ background: active ? 'rgba(123,91,255,0.22)' : 'transparent', border: 'none', borderRadius: 9, width: 34, height: 34, color: active ? '#fff' : 'var(--text2,#9aa)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' })
+  const tool = (active) => ({ background: active ? 'rgba(123,91,255,0.22)' : 'transparent', border: 'none', borderRadius: 9, width: 34, height: 34, color: active ? 'var(--text)' : 'var(--text2,#9aa)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' })
 
   return (
-    <div style={{ color: '#fff', fontFamily: 'Barlow', height: standalone ? '100dvh' : '78vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ color: 'var(--text)', fontFamily: 'Barlow', height: standalone ? '100dvh' : '78vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: standalone ? '12px 18px' : '0 0 12px', flexWrap: 'wrap', flexShrink: 0 }}>
         {onExit && (
-          <button onClick={onExit} title={t('cs.backToBoards', null, 'Progetti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 13px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="grid" size={14} /> {t('cs.boards', null, 'Progetti')}</button>
+          <button onClick={onExit} title={t('cs.backToBoards', null, 'Progetti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 13px', color: 'var(--text)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="grid" size={14} /> {t('cs.boards', null, 'Progetti')}</button>
         )}
         <CreativeStudioLogo size={26} showText={!boardTitle} />
-        {boardTitle && <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{boardTitle}</div>}
+        {boardTitle && <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{boardTitle}</div>}
         <div style={{ flex: 1 }} />
         {!standalone && (
-          <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>
+          <a href="/creative-studio" target="_blank" rel="noopener" style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 14px', color: 'var(--text)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>↗ {t('cs.openApp', null, 'Apri come app')}</a>
         )}
-        <button onClick={() => setShowHistory(true)} title={t('cs.historyTitle', null, 'Storico crediti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, width: 34, height: 34, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} /></button>
+        <button onClick={() => setShowHistory(true)} title={t('cs.historyTitle', null, 'Storico crediti')} style={{ background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, width: 34, height: 34, color: 'var(--text)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} /></button>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--glass,#14141d)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 13px' }}>
           <Icon name="sparkles" size={14} /><span style={{ fontWeight: 800, fontSize: 14 }}>{balance == null ? '—' : balance}</span>
           <span style={{ fontSize: 12, color: 'var(--text2,#9aa)' }}>{t('cs.credits', null, 'crediti')}</span>
         </div>
-        <button onClick={() => setShowRecharge(true)} style={{ background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 999, padding: '7px 15px', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="plus" size={12} /> {t('cs.recharge', null, 'Ricarica')}</button>
+        <button onClick={() => setShowRecharge(true)} style={{ background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 999, padding: '7px 15px', color: 'var(--text)', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="plus" size={12} /> {t('cs.recharge', null, 'Ricarica')}</button>
       </div>
 
       {/* Body: ambienti (sinistra) + lavagna + chat */}
@@ -602,7 +602,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
             />
           </div>
         ) : (
-          <button onClick={() => setStudiosOpen(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={{ width: 40, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'rgba(10,10,18,0.45)', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 12, border: 'none' }}>
+          <button onClick={() => setStudiosOpen(true)} title={t('cs.studios', null, 'Studios — ambienti')} style={{ width: 40, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'rgba(10,10,18,0.45)', color: 'var(--text)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 12, border: 'none' }}>
             <Icon name="grid" size={18} />
           </button>
         )}
@@ -646,8 +646,8 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, padding: 8, flexWrap: 'wrap' }}>
-                    <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 50, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: '#fff', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
-                    {it.type === 'image' && <button onClick={() => animate(it)} title={t('cs.animate', null, 'Anima')} style={{ background: 'rgba(123,91,255,0.18)', border: '1px solid #7b5bff', borderRadius: 8, padding: '6px 10px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>}
+                    <a href={it.url} download target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 50, textAlign: 'center', textDecoration: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 0', color: 'var(--text)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><Icon name="download" size={12} /></a>
+                    {it.type === 'image' && <button onClick={() => animate(it)} title={t('cs.animate', null, 'Anima')} style={{ background: 'rgba(123,91,255,0.18)', border: '1px solid #7b5bff', borderRadius: 8, padding: '6px 10px', color: 'var(--text)', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="sparkles" size={12} /> {t('cs.animate', null, 'Anima')}</button>}
                   </div>
                 </div>
               ))}
@@ -678,7 +678,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                 <button onClick={() => runBatch('upscale', '2x')} disabled={!selected.size || !!batch} style={{ ...miniBtn, opacity: !selected.size || batch ? 0.5 : 1 }}><Icon name="scan" size={12} /> {t('cs.upscale2x', null, 'Upscale 2×')}</button>
                 <span style={sep} />
                 {/* Edit */}
-                <input value={batchInstr} onChange={e => setBatchInstr(e.target.value)} placeholder={t('cs.editPlaceholder', null, 'Modifica… es: sfondo nero')} style={{ background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: '#fff', fontSize: 12.5, fontFamily: 'Barlow', width: 180 }} />
+                <input value={batchInstr} onChange={e => setBatchInstr(e.target.value)} placeholder={t('cs.editPlaceholder', null, 'Modifica… es: sfondo nero')} style={{ background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: 'var(--text)', fontSize: 12.5, fontFamily: 'Barlow', width: 180 }} />
                 <button onClick={() => runBatch('edit')} disabled={!selected.size || !batchInstr.trim() || !!batch} style={{ ...miniBtn, opacity: !selected.size || !batchInstr.trim() || batch ? 0.5 : 1 }}>{t('cs.applyAll', null, 'Applica a tutte')}</button>
                 {batch && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#7b5bff' }}>{batch.done}/{batch.total}</span>}
                 {selected.size > 0 && !batch && <span style={{ fontSize: 11.5, color: 'var(--text2,#9aa)' }}>{t('cs.cost', { n: selected.size * 2 }, `${selected.size * 2} cr`)}</span>}
@@ -689,7 +689,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
           {/* Controllo zoom (basso-sinistra) */}
           <div onMouseDown={e => e.stopPropagation()} className="glass-card-static" style={{ position: 'absolute', left: 16, bottom: 16, display: 'inline-flex', alignItems: 'center', gap: 4, padding: 5, borderRadius: 999, border: '1px solid var(--border)' }}>
             <button onClick={() => zoomBy(1 / 1.2)} style={tool(false)} title="Zoom -"><Icon name="minus" size={15} /></button>
-            <button onClick={resetView} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, minWidth: 44 }}>{Math.round(zoom * 100)}%</button>
+            <button onClick={resetView} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, minWidth: 44 }}>{Math.round(zoom * 100)}%</button>
             <button onClick={() => zoomBy(1.2)} style={tool(false)} title="Zoom +"><Icon name="plus" size={15} /></button>
           </div>
 
@@ -724,7 +724,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
             {messages.length === 0 && <div style={{ fontSize: 13, color: 'var(--text2,#9aa)', lineHeight: 1.6 }}>{t('cs.agentHello', null, 'Descrivimi cosa creare. Conosco brand, prodotti e performance. Puoi anche parlare o allegare immagini di riferimento.')}</div>}
             {messages.map(m => (
               <div key={m.id} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
-                <div style={{ borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.45, background: m.role === 'user' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : (m.error ? 'rgba(255,69,58,0.14)' : 'var(--glass2,rgba(255,255,255,0.05))'), border: m.role === 'user' ? 'none' : '1px solid var(--border)', color: m.error ? '#ff8095' : '#fff' }}>
+                <div style={{ borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.45, background: m.role === 'user' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : (m.error ? 'rgba(255,69,58,0.14)' : 'var(--glass2,rgba(255,255,255,0.05))'), border: m.role === 'user' ? 'none' : '1px solid var(--border)', color: m.error ? '#ff8095' : 'var(--text)' }}>
                   {m.pending ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span className="csDot" />{m.text}</span> : m.text}
                   {m.media?.length > 0 && (
                     <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
@@ -746,7 +746,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: 6, borderRadius: 9, background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)' }}>
                 <img src={sourceImage} alt="" style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover' }} />
                 <span style={{ flex: 1, fontSize: 11.5, color: 'var(--text2,#9aa)' }}>{t('cs.sourceImage', null, 'Immagine di partenza')}</span>
-                <button onClick={() => setSourceImage(null)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 8px', color: '#fff', cursor: 'pointer', fontSize: 11 }}>×</button>
+                <button onClick={() => setSourceImage(null)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 8px', color: 'var(--text)', cursor: 'pointer', fontSize: 11 }}>×</button>
               </div>
             )}
             {refImages.length > 0 && (
@@ -757,7 +757,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                   return (
                     <div key={i} style={{ position: 'relative', width: 40 }}>
                       <img src={r.dataUrl || r.url} alt="" style={{ width: 40, height: 40, borderRadius: 7, objectFit: 'cover', border: isStyle ? '1.5px solid #7b5bff' : '1px solid var(--border)' }} />
-                      <button onClick={() => setRefImages(refImages.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: 8, border: 'none', background: '#000', color: '#fff', cursor: 'pointer', fontSize: 10, lineHeight: 1 }}>×</button>
+                      <button onClick={() => setRefImages(refImages.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, borderRadius: 8, border: 'none', background: '#000', color: 'var(--text)', cursor: 'pointer', fontSize: 10, lineHeight: 1 }}>×</button>
                       <button onClick={toggleRole} title={t('cs.refRoleToggle', null, 'Soggetto / Stile')} style={{ marginTop: 3, width: '100%', padding: '2px 0', borderRadius: 6, border: isStyle ? '1px solid #7b5bff' : '1px solid var(--border)', background: isStyle ? 'rgba(123,91,255,0.18)' : 'var(--glass2,rgba(255,255,255,0.05))', color: isStyle ? '#c4b5fd' : 'var(--text2,#9aa)', fontSize: 9, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow' }}>{isStyle ? t('cs.refStyle', null, 'STILE') : t('cs.refSubject', null, 'SOGG.')}</button>
                     </div>
                   )
@@ -771,7 +771,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                   <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.aiModelActive', null, 'Modello AI attivo')}</div>
                   <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAiModel.name}</div>
                 </div>
-                <button onClick={() => setActiveAiModel(null)} title={t('cs.aiModelRemove', null, 'Disattiva modello')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13 }}>×</button>
+                <button onClick={() => setActiveAiModel(null)} title={t('cs.aiModelRemove', null, 'Disattiva modello')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>×</button>
               </div>
             )}
             {(() => {
@@ -779,15 +779,15 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               if (!st) return null
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8, padding: '6px 8px', borderRadius: 10, background: 'rgba(123,91,255,0.10)', border: '1px solid #7b5bff' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: st.swatch, border: '1px solid rgba(255,255,255,0.18)', overflow: 'hidden', display: 'inline-block' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: st.swatch, border: '1px solid var(--border3)', overflow: 'hidden', display: 'inline-block' }}>
                     {st.preview && <img src={st.preview} alt="" draggable={false} onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 10, color: '#b9a8ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{t('cs.studioApplied', null, 'Ambiente applicato')}</div>
                     <div style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</div>
                   </div>
-                  <button onClick={() => setStudiosOpen(true)} title={t('cs.studioChange', null, 'Cambia ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 9px', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{t('cs.studioChangeBtn', null, 'Cambia')}</button>
-                  <button onClick={() => setActiveStudio(null)} title={t('cs.studioRemove', null, 'Rimuovi ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13 }}>×</button>
+                  <button onClick={() => setStudiosOpen(true)} title={t('cs.studioChange', null, 'Cambia ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 9px', color: 'var(--text)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{t('cs.studioChangeBtn', null, 'Cambia')}</button>
+                  <button onClick={() => setActiveStudio(null)} title={t('cs.studioRemove', null, 'Rimuovi ambiente')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, width: 26, height: 26, color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>×</button>
                 </div>
               )
             })()}
@@ -801,15 +801,15 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               )
             })()}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 12, padding: 8 }}>
-              <textarea ref={taRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown} rows={2} placeholder={placeholder} style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 13.5, fontFamily: 'Barlow', lineHeight: 1.4 }} />
+              <textarea ref={taRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown} rows={2} placeholder={placeholder} style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13.5, fontFamily: 'Barlow', lineHeight: 1.4 }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
               <button onClick={() => fileRef.current?.click()} title={t('cs.attach', null, 'Allega riferimento')} style={iconBtn}><Icon name="paperclip" size={16} /></button>
               <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPickFiles} style={{ display: 'none' }} />
-              <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...iconBtn, color: recording ? '#ff453a' : '#fff', borderColor: recording ? '#ff453a' : 'var(--border)' }}><Icon name="mic" size={16} /></button>
+              <button onClick={toggleRec} title={t('cs.voice', null, 'Vocale')} style={{ ...iconBtn, color: recording ? '#ff453a' : 'var(--text)', borderColor: recording ? '#ff453a' : 'var(--border)' }}><Icon name="mic" size={16} /></button>
               <span style={{ fontSize: 11.5, color: 'var(--text2,#9aa)' }}>{t('cs.cost', { n: cost }, `${cost} cr`)}</span>
               <div style={{ flex: 1 }} />
-              <button onClick={generate} disabled={busy || !canGenerate} style={{ background: busy || !canGenerate ? '#3a3a48' : 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, width: 40, height: 38, color: '#fff', cursor: busy || !canGenerate ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={16} /></button>
+              <button onClick={generate} disabled={busy || !canGenerate} style={{ background: busy || !canGenerate ? '#3a3a48' : 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, width: 40, height: 38, color: 'var(--text)', cursor: busy || !canGenerate ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={16} /></button>
             </div>
           </div>
         </div>
@@ -836,7 +836,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
         const close = () => setCtxMenu(null)
         const run = (fn) => { close(); fn() }
         const mi = (label, icon, fn, danger) => (
-          <button onMouseDown={e => e.stopPropagation()} onClick={() => run(fn)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 12px', background: 'transparent', border: 'none', borderRadius: 7, color: danger ? '#ff8095' : '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap', textAlign: 'left' }}><Icon name={icon} size={13} /> {label}</button>
+          <button onMouseDown={e => e.stopPropagation()} onClick={() => run(fn)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 12px', background: 'transparent', border: 'none', borderRadius: 7, color: danger ? '#ff8095' : 'var(--text)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap', textAlign: 'left' }}><Icon name={icon} size={13} /> {label}</button>
         )
         const studioStr = studioPresets.find(s => s.id === activeStudio)?.prompt
         const X = Math.min(ctxMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 230)
@@ -910,7 +910,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               </div>
 
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 6 }}>{t('cs.editByText', null, 'Modifica a parole')}</div>
-              <textarea value={editInstr} onChange={e => setEditInstr(e.target.value)} rows={3} placeholder={t('cs.editPlaceholder', null, 'Es: sfondo nero, togli la persona, luce più calda…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
+              <textarea value={editInstr} onChange={e => setEditInstr(e.target.value)} rows={3} placeholder={t('cs.editPlaceholder', null, 'Es: sfondo nero, togli la persona, luce più calda…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={() => doLightboxEdit('edit')} disabled={editing || !editInstr.trim()} style={{ ...miniBtn, opacity: editing || !editInstr.trim() ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}>{editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.apply', null, 'Applica')} · 2 cr`}</button>
 
               {/* Upscaler creativo (Magnific-style) */}
@@ -923,7 +923,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
 
               {/* Relight (Magnific Relight) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '8px 0 6px' }}>{t('cs.relight', null, 'Relight — illuminazione')}</div>
-              <textarea value={relightInstr} onChange={e => setRelightInstr(e.target.value)} rows={2} placeholder={activeStudio ? t('cs.relightStudioPh', { name: studioPresets.find(s => s.id === activeStudio)?.label }, `Vuoto = usa la luce dello Studio "${studioPresets.find(s => s.id === activeStudio)?.label}"`) : t('cs.relightPh', null, 'Es: luce calda da sinistra al tramonto, ombre morbide…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: '#fff', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
+              <textarea value={relightInstr} onChange={e => setRelightInstr(e.target.value)} rows={2} placeholder={activeStudio ? t('cs.relightStudioPh', { name: studioPresets.find(s => s.id === activeStudio)?.label }, `Vuoto = usa la luce dello Studio "${studioPresets.find(s => s.id === activeStudio)?.label}"`) : t('cs.relightPh', null, 'Es: luce calda da sinistra al tramonto, ombre morbide…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={doLightboxRelight} disabled={editing || (!relightInstr.trim() && !activeStudio)} style={{ ...miniBtn, opacity: editing || (!relightInstr.trim() && !activeStudio) ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="bulb" size={13} /> {editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.relightApply', null, 'Riaccendi')} · ${RELIGHT_COST} cr`}</button>
 
               {/* Inpainting con maschera (Weave-style) */}
@@ -942,7 +942,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
                 {RECIPES.map(r => (
                   <button key={r.id} onClick={() => runRecipe(r)} disabled={!!recipe || editing} style={{ ...chip, opacity: recipe || editing ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left' }}>
                     <Icon name="bolt" size={12} />
-                    <span style={{ fontWeight: 800, color: '#fff' }}>{r.label}</span>
+                    <span style={{ fontWeight: 800, color: 'var(--text)' }}>{r.label}</span>
                     <span style={{ fontSize: 10.5, color: 'var(--text2,#9aa)' }}>{r.desc}</span>
                     {recipe?.label === r.label && <span style={{ marginLeft: 'auto', color: '#7b5bff', fontWeight: 800 }}>{recipe.done}/{recipe.total}</span>}
                   </button>
@@ -969,12 +969,12 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               <div style={{ fontSize: 17, fontWeight: 800, flex: 1 }}>{t('cs.productTitle', null, 'Scegli un prodotto')}</div>
               <button onClick={() => setShowProducts(false)} style={xBtn}>×</button>
             </div>
-            <input value={productQuery} onChange={e => setProductQuery(e.target.value)} placeholder={t('cs.productSearch', null, 'Cerca prodotto…')} style={{ width: '100%', marginBottom: 12, background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 12px', color: '#fff', fontSize: 13, fontFamily: 'Barlow' }} />
+            <input value={productQuery} onChange={e => setProductQuery(e.target.value)} placeholder={t('cs.productSearch', null, 'Cerca prodotto…')} style={{ width: '100%', marginBottom: 12, background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 12px', color: 'var(--text)', fontSize: 13, fontFamily: 'Barlow' }} />
             <div style={{ overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
               {products === null && <div style={{ color: 'var(--text2,#9aa)', fontSize: 13, gridColumn: '1/-1' }}>{t('cs.loading', null, 'Carico…')}</div>}
               {products && products.length === 0 && <div style={{ color: 'var(--text2,#9aa)', fontSize: 13, gridColumn: '1/-1' }}>{t('cs.noProducts', null, 'Nessun prodotto trovato (collega Shopify).')}</div>}
               {(products || []).filter(p => !productQuery || p.title.toLowerCase().includes(productQuery.toLowerCase())).map(p => (
-                <button key={p.id} onClick={() => pickProduct(p)} style={{ background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 10, padding: 8, cursor: 'pointer', textAlign: 'left', color: '#fff', fontFamily: 'Barlow' }}>
+                <button key={p.id} onClick={() => pickProduct(p)} style={{ background: 'var(--glass2,rgba(255,255,255,0.04))', border: '1px solid var(--border)', borderRadius: 10, padding: 8, cursor: 'pointer', textAlign: 'left', color: 'var(--text)', fontFamily: 'Barlow' }}>
                   <img src={p.image} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 7, marginBottom: 6 }} />
                   <div style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                 </button>
@@ -995,7 +995,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
             <div style={{ fontSize: 13, color: 'var(--text2,#9aa)', marginBottom: 16 }}>{t('cs.rechargeHint', null, 'I crediti non scadono. Pagamento sicuro via Stripe.')}</div>
             <div style={{ display: 'grid', gap: 10 }}>
               {packs.map(p => (
-                <button key={p.id} onClick={() => buyPack(p.id)} disabled={!!buying} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '14px 16px', borderRadius: 12, border: p.best ? '1.5px solid #7b5bff' : '1px solid var(--border)', background: p.best ? 'rgba(123,91,255,0.10)' : 'var(--glass2,rgba(255,255,255,0.04))', color: '#fff', cursor: buying ? 'wait' : 'pointer', fontFamily: 'Barlow' }}>
+                <button key={p.id} onClick={() => buyPack(p.id)} disabled={!!buying} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '14px 16px', borderRadius: 12, border: p.best ? '1.5px solid #7b5bff' : '1px solid var(--border)', background: p.best ? 'rgba(123,91,255,0.10)' : 'var(--glass2,rgba(255,255,255,0.04))', color: 'var(--text)', cursor: buying ? 'wait' : 'pointer', fontFamily: 'Barlow' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 16, fontWeight: 800 }}>{p.credits} {t('cs.credits', null, 'crediti')} {p.best && <span style={{ fontSize: 10.5, color: '#7b5bff', fontWeight: 800, marginLeft: 6 }}>{t('cs.bestValue', null, 'MIGLIOR PREZZO')}</span>}</div>
                     <div style={{ fontSize: 12, color: 'var(--text2,#9aa)' }}>≈ {Math.floor(p.credits / 2)} {t('cs.images', null, 'immagini')}</div>
@@ -1042,7 +1042,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
           background: #0b0b12; color: #fff; font-size: 12px; font-weight: 600; font-family: Barlow;
           padding: 6px 11px; border-radius: 9px; white-space: nowrap; pointer-events: none;
           opacity: 0; transition: opacity .12s ease, transform .12s ease; z-index: 60;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid var(--border);
         }
         .cs-tt::before {
           content: ''; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(4px);
@@ -1054,11 +1054,11 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   )
 }
 
-const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '6px 8px', color: '#fff', fontSize: 12, fontFamily: 'Barlow', cursor: 'pointer', maxWidth: 150 }
+const selStyle = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 9, padding: '6px 8px', color: 'var(--text)', fontSize: 12, fontFamily: 'Barlow', cursor: 'pointer', maxWidth: 150 }
 const chip = { background: 'var(--glass2,#1a1a24)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 11px', color: 'var(--text2,#9aa)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const chipOn = { background: 'rgba(123,91,255,0.18)', borderColor: '#7b5bff', color: '#fff' }
+const chipOn = { background: 'rgba(123,91,255,0.18)', borderColor: '#7b5bff', color: 'var(--text)' }
 const sep = { width: 1, height: 22, background: 'var(--border)', margin: '0 2px' }
-const miniBtn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 9, padding: '7px 14px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 5 }
-const iconBtn = { background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 9, width: 38, height: 38, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
+const miniBtn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 9, padding: '7px 14px', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', gap: 5 }
+const iconBtn = { background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 9, width: 38, height: 38, color: 'var(--text)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 const modalBg = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 2000, display: 'grid', placeItems: 'center', padding: 20 }
-const xBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: 16 }
+const xBtn = { width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }

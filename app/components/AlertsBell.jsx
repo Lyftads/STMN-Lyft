@@ -68,8 +68,8 @@ export default function AlertsBell() {
           position: 'relative',
           width: 38, height: 38, borderRadius: 11,
           background: open ? `${ACCENT}1f` : 'rgba(255,255,255,0.04)',
-          border: open ? `1px solid ${ACCENT}66` : '1px solid rgba(255,255,255,0.08)',
-          color: '#fff', fontSize: 16, cursor: 'pointer',
+          border: open ? `1px solid ${ACCENT}66` : '1px solid var(--border)',
+          color: 'var(--text)', fontSize: 16, cursor: 'pointer',
           display: 'grid', placeItems: 'center',
           transition: 'all .15s',
         }}
@@ -81,7 +81,7 @@ export default function AlertsBell() {
             minWidth: 18, height: 18, padding: '0 5px',
             borderRadius: 9,
             background: badgeColor,
-            color: '#fff', fontSize: 10, fontWeight: 800,
+            color: 'var(--text)', fontSize: 10, fontWeight: 800,
             display: 'grid', placeItems: 'center',
             border: '1.5px solid #000',
           }}>
@@ -97,7 +97,7 @@ export default function AlertsBell() {
           background: 'rgba(10,10,22,0.98)',
           backdropFilter: 'blur(40px) saturate(2.5)',
           WebkitBackdropFilter: 'blur(40px) saturate(2.5)',
-          border: '1.5px solid rgba(255,255,255,0.10)',
+          border: '1.5px solid var(--border2)',
           borderRadius: 16,
           boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.55)',
           zIndex: 1000,
@@ -106,13 +106,13 @@ export default function AlertsBell() {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginBottom: 12, paddingBottom: 12,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--border)',
           }}>
             <div>
               <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
                 Alert center
               </div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginTop: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginTop: 4 }}>
                 {totalBadge === 0 ? 'Tutto sotto controllo' : `${totalBadge} alert attivi`}
               </div>
             </div>
@@ -172,8 +172,8 @@ function AlertItem({ alert, onDismiss }) {
   return (
     <div style={{
       padding: 12, borderRadius: 10,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--glass)',
+      border: '1px solid var(--border)',
       borderLeft: `3px solid ${cfg.color}`,
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
@@ -197,7 +197,7 @@ function AlertItem({ alert, onDismiss }) {
           }}
         >×</button>
       </div>
-      <div style={{ fontSize: 12, color: '#fff', lineHeight: 1.4 }}>
+      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>
         {alert.content}
       </div>
     </div>

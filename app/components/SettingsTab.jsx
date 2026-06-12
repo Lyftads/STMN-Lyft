@@ -151,7 +151,7 @@ function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         boxShadow:
@@ -290,7 +290,7 @@ function PlanCard({ plan, isCurrent }) {
         <div style={{
           position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
           padding: '4px 14px', borderRadius: 999, whiteSpace: 'nowrap',
-          background: plan.accent, color: '#fff',
+          background: plan.accent, color: 'var(--text)',
           fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase',
           boxShadow: `0 8px 20px ${plan.accent}66`,
         }}>
@@ -303,7 +303,7 @@ function PlanCard({ plan, isCurrent }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
-        <span style={{ fontSize: 40, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
+        <span style={{ fontSize: 40, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>
           {t(plan.priceLabelKey, null, plan.priceLabel)}
         </span>
         {plan.period && (
@@ -330,8 +330,8 @@ function PlanCard({ plan, isCurrent }) {
           style={{
             width: '100%', boxSizing: 'border-box', textAlign: 'center', textDecoration: 'none',
             padding: '13px 16px', borderRadius: 12,
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
-            color: '#fff', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
+            background: 'var(--glass2)', border: '1px solid var(--border2)',
+            color: 'var(--text)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
             transition: 'transform 0.2s ease',
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
@@ -353,7 +353,7 @@ function PlanCard({ plan, isCurrent }) {
             background: isCurrent
               ? 'rgba(255,255,255,0.05)'
               : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
-            color: isCurrent ? 'var(--text3)' : '#fff',
+            color: isCurrent ? 'var(--text3)' : 'var(--text)',
             fontSize: 13.5, fontWeight: 800,
             letterSpacing: '0.04em',
             boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
@@ -368,8 +368,8 @@ function PlanCard({ plan, isCurrent }) {
             <>
               <span style={{
                 display: 'inline-block', width: 14, height: 14,
-                border: '2px solid rgba(255,255,255,0.4)',
-                borderTopColor: '#fff', borderRadius: 999,
+                border: '2px solid var(--border3)',
+                borderTopColor: 'var(--text)', borderRadius: 999,
                 animation: 'spin 1s linear infinite',
               }} />
               {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
@@ -394,26 +394,26 @@ function ComparisonTable() {
     <div style={{
       borderRadius: 16,
       overflow: 'hidden',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border)',
       borderTopColor: 'rgba(255,255,255,0.10)',
       background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25))',
     }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <tr style={{ background: 'var(--glass)' }}>
             <th style={{
               textAlign: 'left', padding: '14px 16px',
               fontSize: 10.5, fontWeight: 800, color: 'var(--text3)',
               letterSpacing: '0.14em', textTransform: 'uppercase',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid var(--border)',
             }}>{t('settings.feature', null, 'Feature')}</th>
             {['Starter','Growth','Scale','Enterprise'].map((p, i) => (
               <th key={p} style={{
                 textAlign: 'center', padding: '14px 16px', minWidth: 96,
-                fontSize: 11, fontWeight: 900, color: '#fff',
+                fontSize: 11, fontWeight: 900, color: 'var(--text)',
                 letterSpacing: '0.10em', textTransform: 'uppercase',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                borderLeft: '1px solid rgba(255,255,255,0.04)',
+                borderBottom: '1px solid var(--border)',
+                borderLeft: '1px solid var(--border)',
                 background: i === 1 ? 'rgba(191,90,242,0.06)' : 'transparent',
               }}>{p}</th>
             ))}
@@ -427,7 +427,7 @@ function ComparisonTable() {
               <td style={{
                 padding: '12px 16px',
                 fontSize: 12.5, color: 'var(--text)',
-                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                borderBottom: '1px solid var(--border)',
               }}>{t(row.featureKey, null, row.feature)}</td>
               {['starter','growth','scale','enterprise'].map((tier, j) => {
                 const v = row[tier]
@@ -436,14 +436,14 @@ function ComparisonTable() {
                     textAlign: 'center',
                     padding: '12px 16px',
                     fontSize: 12.5, fontWeight: 700,
-                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                    borderLeft: '1px solid rgba(255,255,255,0.04)',
+                    borderBottom: '1px solid var(--border)',
+                    borderLeft: '1px solid var(--border)',
                     background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent',
                   }}>
                     {typeof v === 'boolean'
                       ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}><Icon name="check" size={14} /></span>
                            : <span style={{ color: 'var(--text3)', opacity: 0.5 }}>—</span>)
-                      : <span style={{ color: '#fff' }}>{t(FM_VALUE_KEYS[v], null, v)}</span>}
+                      : <span style={{ color: 'var(--text)' }}>{t(FM_VALUE_KEYS[v], null, v)}</span>}
                   </td>
                 )
               })}
@@ -481,16 +481,16 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <span style={{
           width: 28, height: 28, borderRadius: 8,
-          background: 'rgba(255,255,255,0.05)',
+          background: 'var(--glass)',
           display: 'grid', placeItems: 'center',
           fontSize: 14, color: 'var(--text2)',
         }}>◧</span>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.subStatus', null, 'Subscription Status')}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('settings.subStatus', null, 'Subscription Status')}</div>
       </div>
 
       {loading && (
         <div style={{ padding: '20px 0', color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.15)', borderTopColor:'#fff', borderRadius:999, animation:'spin 1s linear infinite' }} />
+          <span style={{ display:'inline-block', width:16, height:16, border:'2px solid var(--border2)', borderTopColor:'var(--text)', borderRadius:999, animation:'spin 1s linear infinite' }} />
           {t('settings.loadingSub', null, 'Caricamento subscription…')}
         </div>
       )}
@@ -515,11 +515,11 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
                 width: 44, height: 44, borderRadius: 12,
                 background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
                 display: 'grid', placeItems: 'center',
-                fontSize: 20, color: '#fff',
+                fontSize: 20, color: 'var(--text)',
                 boxShadow: `0 0 24px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
               }}><Icon name="crown" size={20} /></div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{plan.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{plan.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                   {subscription?.amount != null
                     ? `€${(subscription.amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? t('settings.intervalMonth', null, 'mese') : subscription.interval || 'periodo'}`
@@ -536,19 +536,19 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
-            <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: 14, borderRadius: 11, background: 'var(--glass)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
                 {t('settings.currentPeriod', null, 'Periodo corrente')}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
                 {fmtDate(subscription.currentPeriodStart)} → {fmtDate(subscription.currentPeriodEnd)}
               </div>
             </div>
-            <div style={{ padding: 14, borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: 14, borderRadius: 11, background: 'var(--glass)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
                 {subscription.cancelAtPeriodEnd ? t('settings.endsOn', null, 'Termina il') : t('settings.nextRenewal', null, 'Prossimo rinnovo')}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
                 {fmtDate(subscription.currentPeriodEnd)} {daysLeft != null && <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 12 }}>{t('settings.daysLeft', { n: daysLeft }, `(${daysLeft} giorni)`)}</span>}
               </div>
             </div>
@@ -574,7 +574,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
             marginTop: 18,
             padding: '11px 20px', borderRadius: 10,
             background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-            border: 'none', color: '#fff',
+            border: 'none', color: 'var(--text)',
             fontSize: 13, fontWeight: 800,
             cursor: 'pointer',
             letterSpacing: '0.04em',
@@ -597,7 +597,7 @@ const PAYMENT_ICONS = [
     svg: (
       <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Visa">
         <rect width="52" height="32" rx="5" fill="#1A1F71"/>
-        <text x="26" y="22" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif" letterSpacing="0.5">VISA</text>
+        <text x="26" y="22" textAnchor="middle" fill="var(--text)" fontSize="13" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif" letterSpacing="0.5">VISA</text>
       </svg>
     ),
   },
@@ -617,7 +617,7 @@ const PAYMENT_ICONS = [
     svg: (
       <svg width="52" height="32" viewBox="0 0 52 32" aria-label="American Express">
         <rect width="52" height="32" rx="5" fill="#016FD0"/>
-        <text x="26" y="21" textAnchor="middle" fill="#fff" fontSize="10.5" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="0.8">AMEX</text>
+        <text x="26" y="21" textAnchor="middle" fill="var(--text)" fontSize="10.5" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="0.8">AMEX</text>
       </svg>
     ),
   },
@@ -625,7 +625,7 @@ const PAYMENT_ICONS = [
     id: 'paypal',
     svg: (
       <svg width="52" height="32" viewBox="0 0 52 32" aria-label="PayPal">
-        <rect width="52" height="32" rx="5" fill="#fff"/>
+        <rect width="52" height="32" rx="5" fill="var(--text)"/>
         <text x="14" y="22" textAnchor="middle" fill="#003087" fontSize="12" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">Pay</text>
         <text x="36" y="22" textAnchor="middle" fill="#009cde" fontSize="12" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">Pal</text>
       </svg>
@@ -635,11 +635,11 @@ const PAYMENT_ICONS = [
     id: 'bancomat',
     svg: (
       <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Bancomat">
-        <rect width="52" height="32" rx="5" fill="#fff"/>
+        <rect width="52" height="32" rx="5" fill="var(--text)"/>
         <rect x="4" y="10" width="22" height="12" rx="1.5" fill="#E2001A"/>
         <rect x="26" y="10" width="22" height="12" rx="1.5" fill="#005EAA"/>
-        <text x="15" y="19.5" textAnchor="middle" fill="#fff" fontSize="7.5" fontWeight="900" fontFamily="Arial, sans-serif">PAGO</text>
-        <text x="37" y="19.5" textAnchor="middle" fill="#fff" fontSize="7" fontWeight="900" fontFamily="Arial, sans-serif">BANCO</text>
+        <text x="15" y="19.5" textAnchor="middle" fill="var(--text)" fontSize="7.5" fontWeight="900" fontFamily="Arial, sans-serif">PAGO</text>
+        <text x="37" y="19.5" textAnchor="middle" fill="var(--text)" fontSize="7" fontWeight="900" fontFamily="Arial, sans-serif">BANCO</text>
       </svg>
     ),
   },
@@ -670,7 +670,7 @@ const PAYMENT_ICONS = [
     svg: (
       <svg width="52" height="32" viewBox="0 0 52 32" aria-label="Revolut">
         <rect width="52" height="32" rx="5" fill="#000"/>
-        <text x="26" y="23" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="900" fontFamily="Helvetica, Arial, sans-serif" letterSpacing="-0.5">Revolut</text>
+        <text x="26" y="23" textAnchor="middle" fill="var(--text)" fontSize="14" fontWeight="900" fontFamily="Helvetica, Arial, sans-serif" letterSpacing="-0.5">Revolut</text>
       </svg>
     ),
   },
@@ -699,7 +699,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
             fontSize: 13, color: '#fcd34d',
           }}>▭</span>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.paymentMethod', null, 'Metodo di pagamento')}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('settings.paymentMethod', null, 'Metodo di pagamento')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
               {t('settings.paymentSub', null, 'Salva la carta per gli addebiti automatici. Tokenizzata in modo sicuro.')}
             </div>
@@ -711,19 +711,19 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
         <div style={{
           padding: '28px 24px',
           borderRadius: 14,
-          background: 'rgba(255,255,255,0.02)',
+          background: 'var(--glass)',
           border: '1px dashed rgba(255,255,255,0.10)',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           textAlign: 'center', gap: 14,
         }}>
           <div style={{
             width: 56, height: 56, borderRadius: 14,
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--glass)',
             display: 'grid', placeItems: 'center',
             fontSize: 24, color: 'var(--text3)',
           }}>▭</div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{t('settings.noPaymentMethod', null, 'Nessun metodo di pagamento')}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('settings.noPaymentMethod', null, 'Nessun metodo di pagamento')}</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, maxWidth: 420, lineHeight: 1.5 }}>
               {t('settings.noPaymentDesc', null, 'Aggiungi una carta per abilitare la fatturazione automatica. Gestione sicura via Stripe (PCI-DSS).')}
             </div>
@@ -735,7 +735,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
             style={{
               padding: '11px 22px', borderRadius: 11,
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              border: 'none', color: '#fff',
+              border: 'none', color: 'var(--text)',
               fontSize: 13.5, fontWeight: 800,
               cursor: loading ? 'wait' : 'pointer',
               boxShadow: '0 8px 24px rgba(245,158,11,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
@@ -747,8 +747,8 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
               <>
                 <span style={{
                   display: 'inline-block', width: 14, height: 14,
-                  border: '2px solid rgba(255,255,255,0.4)',
-                  borderTopColor: '#fff', borderRadius: 999,
+                  border: '2px solid var(--border3)',
+                  borderTopColor: 'var(--text)', borderRadius: 999,
                   animation: 'spin 1s linear infinite',
                 }} />
                 {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
@@ -780,13 +780,13 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
               width: 48, height: 32, borderRadius: 7,
               background: 'linear-gradient(135deg, #1f2937, #0f172a)',
               display: 'grid', placeItems: 'center',
-              fontSize: 10, fontWeight: 900, color: '#fff',
+              fontSize: 10, fontWeight: 900, color: 'var(--text)',
               letterSpacing: '0.04em',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid var(--border2)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
             }}>{savedCard.brand}</div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '0.06em', fontFamily: 'ui-monospace, monospace' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', letterSpacing: '0.06em', fontFamily: 'ui-monospace, monospace' }}>
                 •••• •••• •••• {savedCard.last4}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
@@ -801,7 +801,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
             style={{
               padding: '7px 14px', borderRadius: 9,
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
+              border: '1px solid var(--border2)',
               color: 'var(--text2)', fontSize: 11.5, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer',
             }}
@@ -831,7 +831,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
                 borderRadius: 6,
                 overflow: 'hidden',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 lineHeight: 0,
               }}
@@ -881,7 +881,7 @@ function InvoiceHistory({ invoices, loading }) {
           display: 'grid', placeItems: 'center',
           fontSize: 13, color: '#86efac',
         }}>⌗</span>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>{t('settings.invoiceHistory', null, 'Invoice History')}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('settings.invoiceHistory', null, 'Invoice History')}</div>
       </div>
 
       {loading && (
@@ -891,7 +891,7 @@ function InvoiceHistory({ invoices, loading }) {
       {!loading && list.length === 0 && (
         <div style={{
           padding: 18, borderRadius: 12,
-          background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.10)',
+          background: 'var(--glass)', border: '1px dashed rgba(255,255,255,0.10)',
           color: 'var(--text3)', fontSize: 13, textAlign: 'center',
         }}>
           {t('settings.noInvoices', null, 'Nessuna fattura. Apparirà qui dopo il primo addebito.')}
@@ -902,17 +902,17 @@ function InvoiceHistory({ invoices, loading }) {
         <div style={{
           borderRadius: 12,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid var(--border)',
         }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
+              <tr style={{ background: 'var(--glass)' }}>
                 {[t('settings.colDate', null, 'Data'), t('settings.colAmount', null, 'Importo'), t('settings.colStatus', null, 'Status'), t('settings.colInvoice', null, 'Fattura')].map(h => (
                   <th key={h} style={{
                     textAlign: 'left', padding: '12px 16px',
                     fontSize: 10, fontWeight: 800, color: 'var(--text3)',
                     letterSpacing: '0.10em', textTransform: 'uppercase',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    borderBottom: '1px solid var(--border)',
                   }}>{h}</th>
                 ))}
               </tr>
@@ -922,11 +922,11 @@ function InvoiceHistory({ invoices, loading }) {
                 const sb = statusBadge(inv.status)
                 return (
                   <tr key={inv.id}>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>{fmtDate(inv.date)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{fmtDate(inv.date)}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
                       {fmtMoney(inv.amount, inv.currency)} <span style={{ color: 'var(--text3)', fontSize: 11 }}>{inv.currency?.toUpperCase() || ''}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                       <span style={{
                         padding: '3px 10px', borderRadius: 999,
                         background: sb.bg, border: `1px solid ${sb.border}`,
@@ -934,7 +934,7 @@ function InvoiceHistory({ invoices, loading }) {
                         letterSpacing: '0.04em',
                       }}>● {sb.label}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                       {inv.pdfUrl
                         ? <a href={inv.pdfUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>PDF ↗</a>
                         : inv.hostedUrl
@@ -1032,7 +1032,7 @@ export default function SettingsTab() {
             <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
               {subActive ? t('settings.changePlan', null, 'Change Plan') : t('settings.choosePlan', null, 'Scegli un piano')}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginTop: 4 }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
               {subActive ? t('settings.changePlanTitle', null, 'Cambia il piano della tua subscription') : t('settings.choosePlanTitle', null, 'Scegli il piano giusto per la tua crescita')}
             </div>
           </div>
@@ -1057,7 +1057,7 @@ export default function SettingsTab() {
             display: 'grid', placeItems: 'center',
             fontSize: 13, color: ACCENT,
           }}>▦</span>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
             {t('settings.comparePlans', null, 'Comparativa piani')}
           </div>
         </div>

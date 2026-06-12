@@ -25,14 +25,14 @@ function Tile({ p, muted }) {
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {p.avatar
           ? <img src={p.avatar} alt="" style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${ring}66` }} />
-          : <div style={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 800, color: '#fff', background: p.isAgent ? '#7c5cff33' : '#30d15833', border: `2px solid ${ring}66` }}>{initial}</div>}
+          : <div style={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 800, color: 'var(--text)', background: p.isAgent ? '#7c5cff33' : '#30d15833', border: `2px solid ${ring}66` }}>{initial}</div>}
       </div>
       <div style={{ position: 'absolute', left: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', borderRadius: 9, padding: '4px 10px', maxWidth: 'calc(100% - 20px)' }}>
         {p.isAgent && <span style={{ fontSize: 10, color: '#b9a6ff', fontWeight: 800, letterSpacing: '.04em' }}>AI</span>}
-        <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}{p.isLocal ? ' (tu)' : ''}</span>
+        <span style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}{p.isLocal ? ' (tu)' : ''}</span>
       </div>
       {p.isLocal && muted && (
-        <div style={{ position: 'absolute', right: 10, bottom: 10, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,69,58,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+        <div style={{ position: 'absolute', right: 10, bottom: 10, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,69,58,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
           <Icon name="mic-off" size={15} />
         </div>
       )}
@@ -137,7 +137,7 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
 
   const overlay = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(8,6,20,0.97)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 24px 22px', overflowY: 'auto' }}>
-      <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>{title}</div>
+      <div style={{ color: 'var(--text)', fontSize: 18, fontWeight: 800 }}>{title}</div>
       <div style={{ color: '#c7c7cf', fontSize: 13, marginTop: 4 }}>
         {status === 'connecting' && 'Connessione alla stanza…'}
         {status === 'connected' && `${n} in stanza`}
@@ -165,7 +165,7 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
               const disabled = inviting || (agentLocked && st !== 'calling' && st !== 'sent')
               return (
                 <button key={a.id} type="button" disabled={disabled} onClick={() => inviteAgent(a.id)}
-                  style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', gap: 7, background: st === 'sent' ? 'rgba(124,92,255,0.32)' : 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.45)', color: '#fff', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 12.5 }}>
+                  style={{ cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', gap: 7, background: st === 'sent' ? 'rgba(124,92,255,0.32)' : 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.45)', color: 'var(--text)', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 12.5 }}>
                   {a.avatar && <img src={a.avatar} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />}
                   {a.name}{st === 'calling' ? ' …' : st === 'sent' ? ' ✓' : ''}
                 </button>
@@ -184,7 +184,7 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
               const st = invited[m.id]
               return (
                 <button key={m.id} type="button" disabled={st === 'sending' || st === 'sent'} onClick={() => invitePerson(m)}
-                  style={{ cursor: st ? 'default' : 'pointer', background: st === 'sent' ? 'rgba(48,209,88,0.18)' : 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: '#fff', borderRadius: 999, padding: '6px 12px', fontSize: 12.5 }}>
+                  style={{ cursor: st ? 'default' : 'pointer', background: st === 'sent' ? 'rgba(48,209,88,0.18)' : 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 999, padding: '6px 12px', fontSize: 12.5 }}>
                   {st === 'sent' ? '✓ invitato' : st === 'sending' ? '…' : '+ ' + (m.full_name || m.email?.split('@')[0] || 'membro')}
                 </button>
               )
@@ -196,12 +196,12 @@ export default function GroupCall({ room, channelId, title = 'Call di gruppo', a
       <div style={{ display: 'flex', gap: 12 }}>
         {status === 'connected' && (
           <button type="button" onClick={toggleMute} title={muted ? 'Riattiva microfono' : 'Disattiva microfono'}
-            style={{ cursor: 'pointer', borderRadius: 999, width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', background: muted ? '#ff453a' : 'var(--glass)', color: '#fff' }}>
+            style={{ cursor: 'pointer', borderRadius: 999, width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', background: muted ? '#ff453a' : 'var(--glass)', color: 'var(--text)' }}>
             <Icon name={muted ? 'mic-off' : 'mic'} size={22} />
           </button>
         )}
         <button type="button" onClick={leave} title={status === 'ended' || status === 'error' ? 'Chiudi' : 'Esci dalla call'}
-          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, background: status === 'ended' || status === 'error' ? 'var(--glass)' : '#ff453a', border: status === 'ended' || status === 'error' ? '1px solid var(--border)' : 'none', color: '#fff', borderRadius: 999, padding: '0 26px', height: 54, fontSize: 15, fontWeight: 800 }}>
+          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, background: status === 'ended' || status === 'error' ? 'var(--glass)' : '#ff453a', border: status === 'ended' || status === 'error' ? '1px solid var(--border)' : 'none', color: 'var(--text)', borderRadius: 999, padding: '0 26px', height: 54, fontSize: 15, fontWeight: 800 }}>
           {status === 'ended' || status === 'error' ? 'Chiudi' : <><Icon name="phone-off" size={18} />Esci</>}
         </button>
       </div>

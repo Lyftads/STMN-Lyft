@@ -90,7 +90,7 @@ export default function MetaConnectButton() {
 
 const btn = {
   padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
-  border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', cursor: 'pointer',
+  border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', cursor: 'pointer',
 }
 
 // ── Pop-up selezione ad account ──────────────────────────────────────────
@@ -148,7 +148,7 @@ function AdAccountModal({ onClose }) {
       }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Seleziona ad account Meta</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona ad account Meta</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>Scegli gli account usati da questo tenant</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>

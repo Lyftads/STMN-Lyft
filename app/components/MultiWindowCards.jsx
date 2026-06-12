@@ -94,7 +94,7 @@ export default function MultiWindowCards() {
           <div style={{ fontSize: 9.5, color: '#bf5af2', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
             Rolling Windows
           </div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 3 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginTop: 3 }}>
             Performance ultimi 3 / 7 / 30 giorni
           </div>
         </div>
@@ -131,8 +131,8 @@ function MetricRow({ metric, data, loading }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '14px 12px',
-        background: 'rgba(255,255,255,0.02)', borderRadius: 10,
-        fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
+        background: 'var(--glass)', borderRadius: 10,
+        fontSize: 12.5, fontWeight: 700, color: 'var(--text)',
       }}>
         <span style={{ color: metric.color, display: 'inline-flex' }}>{metric.icon}</span>
         {metric.label}
@@ -155,7 +155,7 @@ function MetricRow({ metric, data, loading }) {
             ) : (
               <>
                 <div style={{
-                  fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em',
+                  fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em',
                 }}>
                   {metric.format(value)}
                 </div>

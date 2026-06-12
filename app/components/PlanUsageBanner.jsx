@@ -37,7 +37,7 @@ export default function PlanUsageBanner({ onGoSettings }) {
       </div>
       <button onClick={() => (onGoSettings ? onGoSettings() : null)} style={{
         background: 'linear-gradient(135deg,#ff9f0a,#ff375f)', border: 'none', borderRadius: 9,
-        padding: '9px 16px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap',
+        padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap',
       }}>Passa a {data.recommended.label}</button>
       <button onClick={dismiss} title="Nascondi per questo mese" style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
     </div>

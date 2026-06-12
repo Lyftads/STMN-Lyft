@@ -150,7 +150,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             </div>
             <PlatformBadges sources={['meta']} size={16} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             {t('mkpi.header', null, 'Performance Meta Ads')} · {data?.range?.since} → {data?.range?.until}
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             style={{
               background: 'var(--glass)',
               border: '1px solid var(--border)',
-              color: '#fff',
+              color: 'var(--text)',
               borderRadius: 10,
               padding: '8px 14px',
               fontSize: 13, fontWeight: 700,
@@ -182,7 +182,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             disabled={loading}
             style={{
               border: '1px solid var(--border)', background: 'var(--glass)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
               display: 'flex', alignItems: 'center', gap: 6,
             }}
@@ -282,7 +282,7 @@ function KpiCard({ kpi, value, prev, daily }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
         <div style={{
-          fontSize: 24, fontWeight: 900, color: '#fff',
+          fontSize: 24, fontWeight: 900, color: 'var(--text)',
           letterSpacing: '-0.02em',
         }}>
           {kpi.fmt(value)}
@@ -328,7 +328,7 @@ function SeparateChart({ chart, daily }) {
           <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             {t('mkpi.trend', null, 'Andamento')}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
         </div>
         <PlatformBadges sources={['meta']} size={16} />
       </div>
@@ -337,18 +337,18 @@ function SeparateChart({ chart, daily }) {
           <AreaChart data={series}>
             <defs>
               <linearGradient id={`grad-${chart.key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor="#ffffff" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                <stop offset="0%"  stopColor="var(--text)" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="var(--text)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={50} />
             <Tooltip
-              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid var(--border2)', borderRadius: 8, fontSize: 11 }}
               formatter={v => [chart.fmt(v), t(chart.labelKey, null, chart.label)]}
             />
-            <Area type="monotone" dataKey="v" stroke="#ffffff" fill={`url(#grad-${chart.key})`} strokeWidth={1.5} />
+            <Area type="monotone" dataKey="v" stroke="var(--text)" fill={`url(#grad-${chart.key})`} strokeWidth={1.5} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

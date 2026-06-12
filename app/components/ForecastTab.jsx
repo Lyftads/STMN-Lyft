@@ -89,7 +89,7 @@ export default function ForecastTab() {
             </div>
             <PlatformBadges sources={['meta', 'shopify']} size={14} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             Proiezione revenue · spesa · MER · {data?.history_days || 90}gg storia → {horizon}gg futuro
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function ForecastTab() {
             onChange={e => setHorizon(parseInt(e.target.value, 10))}
             style={{
               background: 'var(--glass)', border: '1px solid var(--border)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px',
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px',
               fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer',
               minWidth: 180,
             }}
@@ -110,7 +110,7 @@ export default function ForecastTab() {
             type="button" onClick={() => load(true)} disabled={loading}
             style={{
               border: '1px solid var(--border)', background: 'var(--glass)',
-              color: '#fff', borderRadius: 10, padding: '8px 14px',
+              color: 'var(--text)', borderRadius: 10, padding: '8px 14px',
               fontSize: 13, fontWeight: 700,
               cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
               display: 'flex', alignItems: 'center', gap: 6,
@@ -146,7 +146,7 @@ export default function ForecastTab() {
             <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>
               Revenue Shopify
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>
               Storia + Forecast (banda confidenza ±2σ)
             </div>
             <div style={{ height: 320 }}>
@@ -162,7 +162,7 @@ export default function ForecastTab() {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={60} />
                   <Tooltip
-                    contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+                    contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid var(--border2)', borderRadius: 8, fontSize: 11 }}
                     formatter={(v, name) => {
                       if (Array.isArray(v)) return [`${eur(v[0])} – ${eur(v[1])}`, 'Banda']
                       const labels = {
@@ -172,9 +172,9 @@ export default function ForecastTab() {
                       return [eur(v), labels[name] || name]
                     }}
                   />
-                  {lastHistoryDate && <ReferenceLine x={lastHistoryDate} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 3" label={{ value: 'Oggi', fill: 'var(--text3)', fontSize: 10, position: 'top' }} />}
+                  {lastHistoryDate && <ReferenceLine x={lastHistoryDate} stroke="var(--text3)" strokeDasharray="4 3" label={{ value: 'Oggi', fill: 'var(--text3)', fontSize: 10, position: 'top' }} />}
                   <Area type="monotone" dataKey="revenue_band" stroke="none" fill="url(#band-revenue)" />
-                  <Line type="monotone" dataKey="revenue_history" stroke="#ffffff" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="revenue_history" stroke="var(--text)" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="revenue_forecast" stroke="#22c55e" strokeWidth={2} strokeDasharray="5 3" dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -186,7 +186,7 @@ export default function ForecastTab() {
             <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>
               Spesa Meta Ads
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>
               Storia + Forecast
             </div>
             <div style={{ height: 280 }}>
@@ -202,7 +202,7 @@ export default function ForecastTab() {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={60} />
                   <Tooltip
-                    contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+                    contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid var(--border2)', borderRadius: 8, fontSize: 11 }}
                     formatter={(v, name) => {
                       if (Array.isArray(v)) return [`${eur(v[0])} – ${eur(v[1])}`, 'Banda']
                       const labels = {
@@ -212,9 +212,9 @@ export default function ForecastTab() {
                       return [eur(v), labels[name] || name]
                     }}
                   />
-                  {lastHistoryDate && <ReferenceLine x={lastHistoryDate} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 3" />}
+                  {lastHistoryDate && <ReferenceLine x={lastHistoryDate} stroke="var(--text3)" strokeDasharray="4 3" />}
                   <Area type="monotone" dataKey="spend_band" stroke="none" fill="url(#band-spend)" />
-                  <Line type="monotone" dataKey="spend_history" stroke="#ffffff" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="spend_history" stroke="var(--text)" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="spend_forecast" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 3" dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -235,7 +235,7 @@ function ForecastCard({ label, value, delta, muted }) {
       }}>
         {label}
       </div>
-      <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>
+      <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>
         {value}
       </div>
       {delta != null && Number.isFinite(delta) && Math.abs(delta) > 0.1 && (

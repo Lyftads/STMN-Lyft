@@ -19,7 +19,7 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
         overflow: 'hidden',
-        border: '1.5px solid rgba(255,255,255,0.06)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
@@ -95,7 +95,7 @@ function ScoreGauge({ score = 0, label }) {
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'Barlow', lineHeight: 1, letterSpacing: '-0.04em' }}>{v}</div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--text)', fontFamily: 'Barlow', lineHeight: 1, letterSpacing: '-0.04em' }}>{v}</div>
         <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginTop: 4 }}>{useI18n().t('ws.scoreCro', null, 'Score CRO')}</div>
         {label && <div style={{ fontSize: 10, color, fontWeight: 800, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>}
       </div>
@@ -150,7 +150,7 @@ function Section({ title, subtitle, dotColor, children, delay = 0 }) {
           marginTop: 7,
         }} />
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>{title}</h2>
+          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>{title}</h2>
           {subtitle && <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>{subtitle}</p>}
         </div>
       </div>
@@ -164,7 +164,7 @@ function InnerCard({ children, accent }) {
     <div style={{
       padding: '16px 18px',
       background: 'rgba(0,0,0,0.45)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border)',
       borderTopColor: 'rgba(255,255,255,0.10)',
       borderBottomColor: 'rgba(0,0,0,0.55)',
       borderLeft: accent ? `3px solid ${accent}` : undefined,
@@ -240,8 +240,8 @@ export default function WebsiteScannerTab() {
                 style={{
                   flex: 1,
                   background: 'rgba(0,0,0,0.45)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#fff',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
                   borderRadius: 12,
                   padding: '13px 16px',
                   fontSize: 14,
@@ -256,7 +256,7 @@ export default function WebsiteScannerTab() {
                   background: scanning
                     ? 'rgba(255,255,255,0.05)'
                     : `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
-                  color: scanning ? 'var(--text3)' : '#fff',
+                  color: scanning ? 'var(--text3)' : 'var(--text)',
                   border: 'none',
                   borderRadius: 12,
                   padding: '0 24px',
@@ -274,8 +274,8 @@ export default function WebsiteScannerTab() {
                   <>
                     <span style={{
                       display: 'inline-block', width: 12, height: 12,
-                      border: '2px solid rgba(255,255,255,0.4)',
-                      borderTopColor: '#fff', borderRadius: 999,
+                      border: '2px solid var(--border3)',
+                      borderTopColor: 'var(--text)', borderRadius: 999,
                       animation: 'spin 1s linear infinite',
                     }} />
                     {t('ws.analyzing', null, 'Analizzando…')}
@@ -292,7 +292,7 @@ export default function WebsiteScannerTab() {
               <div style={{
                 display: 'inline-flex',
                 background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 borderRadius: 999,
                 padding: 3,
                 gap: 2,
@@ -309,7 +309,7 @@ export default function WebsiteScannerTab() {
                       disabled={scanning}
                       style={{
                         background: active ? `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)` : 'transparent',
-                        color: active ? '#fff' : 'var(--text3)',
+                        color: active ? 'var(--text)' : 'var(--text3)',
                         border: 'none',
                         borderRadius: 999,
                         padding: '6px 14px',
@@ -353,7 +353,7 @@ export default function WebsiteScannerTab() {
           <GlassCard padding={0} delay={0}>
             <div style={{
               padding: '16px 20px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -423,7 +423,7 @@ export default function WebsiteScannerTab() {
                 }}>
                   <div style={{
                     width: 32, height: 32,
-                    border: '3px solid rgba(255,255,255,0.1)',
+                    border: '3px solid var(--border2)',
                     borderTopColor: ACCENT_GLOW,
                     borderRadius: 999,
                     animation: 'spin 1s linear infinite',
@@ -461,13 +461,13 @@ export default function WebsiteScannerTab() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
                   <div style={{
                     width: 28, height: 28,
-                    border: '3px solid rgba(255,255,255,0.1)',
+                    border: '3px solid var(--border2)',
                     borderTopColor: ACCENT_GLOW,
                     borderRadius: 999,
                     animation: 'spin 1s linear infinite',
                   }} />
                   <div>
-                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 900 }}>{t('ws.aiWorking', null, 'AI Senior CRO al lavoro…')}</div>
+                    <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 900 }}>{t('ws.aiWorking', null, 'AI Senior CRO al lavoro…')}</div>
                     <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 2 }}>
                       {t('ws.aiWorkingSub', null, 'Sto analizzando hero, CTA, trust signals, copy e visual hierarchy')}
                     </div>
@@ -510,7 +510,7 @@ export default function WebsiteScannerTab() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
                     <ScoreGauge score={analysis.overallScore} label={analysis.scoreLabel} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em', marginBottom: 6 }}>
+                      <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em', marginBottom: 6 }}>
                         {t('ws.analysisDone', null, 'Analisi completata')}
                       </h2>
                       <p style={{ margin: 0, color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55 }}>
@@ -542,7 +542,7 @@ export default function WebsiteScannerTab() {
                       {analysis.works.map((w, i) => (
                         <InnerCard key={i} accent="#22c55e">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-                            <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800 }}><Icon name="check" size={13} /> {w.title}</div>
+                            <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 800 }}><Icon name="check" size={13} /> {w.title}</div>
                             <ImpactPill impact={w.impact} />
                           </div>
                           <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55 }}>{w.details}</div>
@@ -564,7 +564,7 @@ export default function WebsiteScannerTab() {
                       {analysis.improve.map((it, i) => (
                         <InnerCard key={i} accent="#f59e0b">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-                            <div style={{ color: '#fff', fontSize: 14, fontWeight: 900 }}>{i + 1}. {it.title}</div>
+                            <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 900 }}>{i + 1}. {it.title}</div>
                             <PrioPill priority={it.priority} />
                           </div>
                           {it.current && (
@@ -622,7 +622,7 @@ export default function WebsiteScannerTab() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {analysis.remove.map((r, i) => (
                         <InnerCard key={i} accent="#ef4444">
-                          <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}><Icon name="close" size={13} /> {r.title}</div>
+                          <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}><Icon name="close" size={13} /> {r.title}</div>
                           <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55, marginBottom: r.alternative ? 8 : 0 }}>{r.reason}</div>
                           {r.alternative && (
                             <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginTop: 6 }}>
@@ -649,7 +649,7 @@ export default function WebsiteScannerTab() {
                           display: 'flex', alignItems: 'flex-start', gap: 12,
                           padding: '12px 14px',
                           background: 'rgba(0,0,0,0.45)',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          border: '1px solid var(--border)',
                           borderTopColor: 'rgba(255,255,255,0.10)',
                           borderBottomColor: 'rgba(0,0,0,0.55)',
                           borderRadius: 10,
@@ -657,7 +657,7 @@ export default function WebsiteScannerTab() {
                           <div style={{
                             width: 22, height: 22, borderRadius: 6,
                             background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
-                            color: '#fff', fontSize: 11, fontWeight: 900,
+                            color: 'var(--text)', fontSize: 11, fontWeight: 900,
                             display: 'grid', placeItems: 'center',
                             flexShrink: 0,
                             boxShadow: `0 0 10px ${ACCENT_GLOW}66`,
@@ -676,7 +676,7 @@ export default function WebsiteScannerTab() {
                       <div style={{ fontSize: 10, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
                         {t('ws.ctaMain', null, 'CTA principale')}
                       </div>
-                      <div style={{ color: '#fff', fontSize: 14, fontWeight: 900, marginBottom: 10, fontFamily: 'Barlow', letterSpacing: '-0.01em' }}>
+                      <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 900, marginBottom: 10, fontFamily: 'Barlow', letterSpacing: '-0.01em' }}>
                         "{analysis.ctaAnalysis.primaryCta}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5, marginBottom: 10 }}>
@@ -714,7 +714,7 @@ export default function WebsiteScannerTab() {
                       <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
                         {t('ws.copyVp', null, 'Copy & value proposition')}
                       </div>
-                      <div style={{ color: '#fff', fontSize: 13.5, fontWeight: 900, fontFamily: 'Barlow', letterSpacing: '-0.01em', marginBottom: 10 }}>
+                      <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 900, fontFamily: 'Barlow', letterSpacing: '-0.01em', marginBottom: 10 }}>
                         "{analysis.copyAnalysis.headline}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5 }}>
@@ -737,7 +737,7 @@ export default function WebsiteScannerTab() {
               fontSize: 64, marginBottom: 18,
               filter: `drop-shadow(0 0 24px ${ACCENT_GLOW}55)`,
             }}><Icon name="search" size={22} /></div>
-            <h2 style={{ margin: 0, color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 10 }}>
+            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 10 }}>
               {t('ws.emptyTitle', null, 'Analizza qualsiasi landing page')}
             </h2>
             <p style={{ margin: 0, color: 'var(--text3)', fontSize: 13.5, lineHeight: 1.6 }}>

@@ -38,7 +38,7 @@ export function AuthShell({ title, subtitle, children }) {
         backdropFilter: 'blur(40px) saturate(2.2)',
         WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
         borderRadius: 22,
-        border: '1.5px solid rgba(255,255,255,0.08)',
+        border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.16)',
         borderBottomColor: 'rgba(0,0,0,0.7)',
         boxShadow: '0 40px 100px rgba(0,0,0,0.80), 0 0 80px rgba(191,90,242,0.10), inset 0 1.5px 0 rgba(255,255,255,0.06)',
@@ -63,12 +63,12 @@ export function AuthShell({ title, subtitle, children }) {
               <rect x="28" y="1" width="6" height="26" rx="2" fill="#2997ff" />
             </svg>
             <span style={{
-              fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: '#fff',
+              fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text)',
             }}>Lyft</span>
           </div>
 
           <div style={{
-            fontSize: 22, fontWeight: 900, color: '#fff',
+            fontSize: 22, fontWeight: 900, color: 'var(--text)',
             letterSpacing: '-0.02em', marginBottom: 8,
           }}>{title}</div>
           {subtitle && (
@@ -103,8 +103,8 @@ export function AuthInput({ label, hint, type, ...props }) {
           padding: isPassword ? '12px 46px 12px 14px' : '12px 14px',
           borderRadius: 10,
           background: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          color: '#fff',
+          border: '1px solid var(--border2)',
+          color: 'var(--text)',
           fontSize: 14,
           outline: 'none',
           fontFamily: 'inherit',
@@ -150,7 +150,7 @@ export function AuthButton({ loading, children }) {
       background: loading
         ? 'rgba(255,255,255,0.06)'
         : 'linear-gradient(135deg, #bf5af2, #8b5cf6)',
-      color: loading ? 'var(--text3, #6b7280)' : '#fff',
+      color: loading ? 'var(--text3, #6b7280)' : 'var(--text)',
       fontSize: 14, fontWeight: 800,
       cursor: loading ? 'wait' : 'pointer',
       letterSpacing: '0.02em',
@@ -162,7 +162,7 @@ export function AuthButton({ loading, children }) {
       {loading && (
         <span style={{
           display: 'inline-block', width: 14, height: 14,
-          border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+          border: '2px solid var(--border3)', borderTopColor: 'var(--text)',
           borderRadius: 999, animation: 'spin 1s linear infinite',
         }} />
       )}

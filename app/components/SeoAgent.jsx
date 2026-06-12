@@ -127,13 +127,13 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
             height: 64,
             borderRadius: '50%',
             background: `linear-gradient(140deg, ${ACCENT} 0%, ${ACCENT2} 100%)`,
-            border: '2px solid rgba(255,255,255,0.18)',
+            border: '2px solid var(--border3)',
             cursor: 'pointer',
             zIndex: 50,
             padding: 0,
             display: 'grid',
             placeItems: 'center',
-            color: '#fff',
+            color: 'var(--text)',
             fontSize: 24,
             fontWeight: 900,
             boxShadow: '0 16px 40px rgba(0,0,0,0.45), 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18)',
@@ -179,7 +179,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
           background: 'rgba(8,8,15,0.85)',
           backdropFilter: 'blur(40px) saturate(1.8)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
-          borderLeft: '1.5px solid rgba(255,255,255,0.08)',
+          borderLeft: '1.5px solid var(--border)',
           boxShadow: '-12px 0 60px rgba(0,0,0,0.7)',
           zIndex: 50,
           display: 'flex', flexDirection: 'column',
@@ -198,7 +198,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
               width: 38, height: 38, borderRadius: 10,
               background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
               display: 'grid', placeItems: 'center',
-              fontSize: 16, fontWeight: 900, color: '#fff',
+              fontSize: 16, fontWeight: 900, color: 'var(--text)',
             }}><Icon name="sparkle" size={18} /></div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Esperto SEO</div>
@@ -228,7 +228,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
           {messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14, padding: '12px 16px',
                 color: 'var(--text)', fontSize: 14, lineHeight: 1.5,
@@ -245,7 +245,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
                     disabled={loading}
                     style={{
                       textAlign: 'left',
-                      background: 'rgba(255,255,255,0.03)',
+                      background: 'var(--glass)',
                       border: '1px solid var(--border)',
                       color: 'var(--text2)',
                       borderRadius: 10, padding: '10px 14px', fontSize: 12.5,
@@ -266,7 +266,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
                 maxWidth: '88%',
                 background: m.role === 'user' ? `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` : 'rgba(255,255,255,0.04)',
                 border: m.role === 'user' ? 'none' : (m.isError ? '1px solid #ef444455' : '1px solid var(--border)'),
-                color: m.isError ? '#fecaca' : (m.role === 'user' ? '#fff' : 'var(--text)'),
+                color: m.isError ? '#fecaca' : (m.role === 'user' ? 'var(--text)' : 'var(--text)'),
                 borderRadius: 14, padding: '11px 15px',
                 fontSize: 13.5, lineHeight: 1.55,
                 whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -279,7 +279,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 14, padding: '11px 15px',
                 color: 'var(--text2)', fontSize: 13,
@@ -314,7 +314,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
               disabled={loading}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--glass)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 borderRadius: 11, padding: '11px 14px', fontSize: 13.5,
@@ -328,7 +328,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
                 background: loading || !input.trim()
                   ? 'rgba(255,255,255,0.05)'
                   : `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`,
-                color: loading || !input.trim() ? 'var(--text3)' : '#fff',
+                color: loading || !input.trim() ? 'var(--text3)' : 'var(--text)',
                 border: 'none',
                 borderRadius: 11, padding: '0 18px',
                 fontSize: 13.5, fontWeight: 700,

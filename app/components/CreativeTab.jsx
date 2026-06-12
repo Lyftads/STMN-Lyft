@@ -36,7 +36,7 @@ const chipStyle = {
 const selectStyle = {
   background: 'var(--glass)',
   border: '1px solid var(--border)',
-  color: '#fff',
+  color: 'var(--text)',
   borderRadius: 11,
   padding: '10px 14px',
   fontSize: 13,
@@ -86,7 +86,7 @@ function getCreativeName(row) {
   )
 }
 
-function Sparkline({ data, dataKey, color = '#fff', width = 80, height = 26 }) {
+function Sparkline({ data, dataKey, color = 'var(--text)', width = 80, height = 26 }) {
   const vals = (data || []).map(d => Number(d[dataKey] || 0))
   if (vals.length < 2 || vals.every(v => v === 0)) return null
   const max = Math.max(...vals), min = Math.min(...vals)
@@ -120,7 +120,7 @@ function DeltaBadge({ curr, prev, isLowerBetter = false }) {
   )
 }
 
-function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter = false, curr }) {
+function Stat({ label, value, tone = 'var(--text)', prev, daily, dataKey, isLowerBetter = false, curr }) {
   return (
     <div
       className="glass-card"
@@ -144,7 +144,7 @@ function Stat({ label, value, tone = '#fff', prev, daily, dataKey, isLowerBetter
         <PlatformBadges sources={['meta']} size={14} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)' }}>
           {value}
         </div>
         {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={tone} />}
@@ -191,7 +191,7 @@ function CreativeCard({ row, index, onClick }) {
       style={{
         position: 'relative',
         background: 'linear-gradient(155deg, rgba(20,16,40,0.85) 0%, rgba(8,8,18,0.95) 100%)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border)',
         borderRadius: 22,
         overflow: 'hidden',
         cursor: 'pointer',
@@ -229,7 +229,7 @@ function CreativeCard({ row, index, onClick }) {
           <div style={{
             position: 'absolute', top: 10, left: 10, zIndex: 2,
             padding: '4px 9px', borderRadius: 999,
-            background: 'rgba(91,44,255,0.85)', color: '#fff',
+            background: 'rgba(91,44,255,0.85)', color: 'var(--text)',
             fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
@@ -261,7 +261,7 @@ function CreativeCard({ row, index, onClick }) {
                   background: 'rgba(0,0,0,0.4)',
                 }}>
                   <div style={{
-                    color: '#fff', fontSize: 11, fontWeight: 800,
+                    color: 'var(--text)', fontSize: 11, fontWeight: 800,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{p.name || t('cr.product', null, 'Prodotto')}</div>
                   {p.price && (
@@ -312,7 +312,7 @@ function CreativeCard({ row, index, onClick }) {
             }}><Icon name="image" size={26} /></div>
             <div style={{
               padding: '4px 10px', borderRadius: 999,
-              background: 'rgba(91,44,255,0.85)', color: '#fff',
+              background: 'rgba(91,44,255,0.85)', color: 'var(--text)',
               fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>Advantage+ Catalog</div>
@@ -344,7 +344,7 @@ function CreativeCard({ row, index, onClick }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
+              color: 'var(--text)',
               fontSize: 12,
               fontWeight: 900,
               flex: '0 0 auto',
@@ -357,7 +357,7 @@ function CreativeCard({ row, index, onClick }) {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
-                color: '#fff',
+                color: 'var(--text)',
                 fontWeight: 900,
                 fontSize: 14,
                 lineHeight: 1.35,
@@ -443,7 +443,7 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
           : 'rgba(255,255,255,0.025)',
         border: highlight && tone
           ? `1px solid ${tone}55`
-          : '1px solid rgba(255,255,255,0.05)',
+          : '1px solid var(--border)',
         borderRadius: 12,
         padding: '10px 12px',
         overflow: 'hidden',
@@ -468,7 +468,7 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
         flexWrap: 'wrap',
       }}>
         <div style={{
-          color: '#fff',
+          color: 'var(--text)',
           fontSize: 13,
           fontWeight: 900,
           letterSpacing: '-0.01em',
@@ -545,7 +545,7 @@ function CreativeDetailModal({ row, onClose }) {
         style={{
           background: 'rgba(8,8,15,0.95)',
           backdropFilter: 'blur(40px) saturate(1.8)',
-          border: '1.5px solid rgba(255,255,255,0.08)',
+          border: '1.5px solid var(--border)',
           borderRadius: 22,
           width: 'min(960px, 100%)',
           maxHeight: '90vh',
@@ -583,7 +583,7 @@ function CreativeDetailModal({ row, onClose }) {
                     }} />
                   </div>
                   <div style={{ padding: '8px 10px' }}>
-                    <div style={{ color: '#fff', fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                    <div style={{ color: 'var(--text)', fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                     {p.price && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{p.price}</div>}
                   </div>
                 </div>
@@ -608,7 +608,7 @@ function CreativeDetailModal({ row, onClose }) {
             zIndex: 2,
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginBottom: 4 }}>{name}</div>
+              <div style={{ color: 'var(--text)', fontSize: 17, fontWeight: 900, marginBottom: 4 }}>{name}</div>
               <div style={{ color: 'var(--text3)', fontSize: 12 }}>{row.campaign_name || t('cr.noCampaign', null, 'Senza campagna')}</div>
               {row.adset_name && (
                 <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{row.adset_name}</div>
@@ -636,7 +636,7 @@ function CreativeDetailModal({ row, onClose }) {
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: 10,
               padding: 14,
-              background: 'rgba(255,255,255,0.025)',
+              background: 'var(--glass)',
               borderRadius: 14,
               border: '1px solid var(--border)',
             }}>
@@ -717,7 +717,7 @@ const lineStyle = {
   alignItems: 'flex-start',
   gap: 10,
   padding: '10px 14px',
-  background: 'rgba(255,255,255,0.025)',
+  background: 'var(--glass)',
   border: '1px solid var(--border)',
   borderRadius: 10,
   color: 'var(--text)',
@@ -753,7 +753,7 @@ function MiniStat({ label, value }) {
   return (
     <div>
       <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>{value}</div>
+      <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text)' }}>{value}</div>
     </div>
   )
 }
@@ -762,7 +762,7 @@ function CopyBlock({ index, text }) {
   return (
     <div style={{
       padding: '12px 14px',
-      background: 'rgba(255,255,255,0.025)',
+      background: 'var(--glass)',
       border: '1px solid var(--border)',
       borderRadius: 10,
       color: 'var(--text)',
@@ -952,7 +952,7 @@ export default function CreativeTab() {
           onChange={(e) => setPreset(e.target.value)}
           style={{
             background: 'var(--glass)',
-            color: '#fff',
+            color: 'var(--text)',
             border: '1px solid var(--border)',
             borderRadius: 12,
             padding: '12px 16px',
@@ -1011,7 +1011,7 @@ export default function CreativeTab() {
             <h2
               style={{
                 margin: 0,
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 20,
                 fontWeight: 900,
               }}
@@ -1048,7 +1048,7 @@ export default function CreativeTab() {
               border: '1px solid var(--border)',
               borderRadius: 12,
               padding: '13px 16px',
-              color: '#fff',
+              color: 'var(--text)',
               fontSize: 14,
               outline: 'none',
               marginBottom: 12,
@@ -1116,8 +1116,8 @@ export default function CreativeTab() {
                   disabled={loading}
                   style={{
                     background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
-                    border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid rgba(255,255,255,0.07)',
-                    color: active ? '#fff' : 'var(--text2)',
+                    border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                    color: active ? 'var(--text)' : 'var(--text2)',
                     borderRadius: 10,
                     padding: '8px 12px',
                     fontSize: 12,

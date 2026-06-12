@@ -74,7 +74,7 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
           padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
           border: '1px solid var(--border)',
           background: done ? 'rgba(48,209,88,0.15)' : 'var(--glass)',
-          color: done ? 'var(--green)' : '#fff',
+          color: done ? 'var(--green)' : 'var(--text)',
           cursor: loading || done ? 'default' : 'pointer',
           ...style,
         }}

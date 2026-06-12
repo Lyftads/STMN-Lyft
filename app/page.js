@@ -2852,13 +2852,16 @@ export default function App() {
               current={totRC} previous={prevTotals.rc} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(7, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.merBlended', null, 'MER blended')} value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
               current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
             <Stat label={t('dash.ltvGross', null, 'LTV lordo')} value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvSubData', { orders: lifeOrders, months: ltvAuto.months }, `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a`} />
             <Stat label={t('dash.ltvNet', null, 'LTV netto')} value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvNetSubData', { orders: lifeOrders, margin: cfg.margin, months: ltvAuto.months }, `${lifeOrders} ord. · ${cfg.margin}% margine · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}
               current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
+          </div>
+
+          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.metaSpend', null, 'Spesa Meta')} value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />

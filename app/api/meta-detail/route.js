@@ -445,7 +445,7 @@ function todos(summary) {
 
 async function fetchActiveCampaigns(accountId) {
   return graphAll(`${accountId}/campaigns`, {
-    fields: 'id,name,status,effective_status',
+    fields: 'id,name,status,effective_status,daily_budget,lifetime_budget',
     effective_status: JSON.stringify(['ACTIVE']),
     limit: '100',
   })
@@ -598,6 +598,10 @@ async function getCampaignRows(accounts, range) {
             status: campaign.effective_status || campaign.status || null,
             thumbnail_url: null,
             has_children: true,
+            // Budget impostato a livello campagna (CBO). In centesimi → euro.
+            // daily_budget = budget giornaliero; lifetime_budget = budget totale.
+            budget: campaign.daily_budget ? num(campaign.daily_budget) / 100 : null,
+            lifetime_budget: campaign.lifetime_budget ? num(campaign.lifetime_budget) / 100 : null,
           },
           insight
         )

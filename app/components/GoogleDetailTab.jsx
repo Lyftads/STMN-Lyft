@@ -32,6 +32,7 @@ const PRESETS = [
 
 // Colonne metriche della tabella (oltre a Nome/Stato).
 const COLS = [
+  { key: 'budget',      label: 'Budget/g',    fmt: eur2, labelKey: 'gdet.dailyBudget' },
   { key: 'spend',       label: 'Spesa',       fmt: eur2, labelKey: 'meta.spend' },
   { key: 'impressions', label: 'Impr.',       fmt: int0, labelKey: 'mkpi.impressions' },
   { key: 'clicks',      label: 'Click',       fmt: int0, labelKey: 'gkpi.clicks' },

@@ -59,14 +59,19 @@ export async function GET(req) {
         // pausa/Bozza mostra tutto). Escludiamo solo le REMOVED.
         const [metricsResp, listResp] = await Promise.all([
           search(`SELECT campaign.id, ${METRICS} FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`),
-          search(`SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.status != 'REMOVED'`),
+          search(`SELECT campaign.id, campaign.name, campaign.status, campaign.bidding_strategy_type, campaign_budget.amount_micros FROM campaign WHERE campaign.status != 'REMOVED'`),
         ])
         const mMap = new Map()
         for (const r of metricsResp) { const id = String(r.campaign?.id); if (id) mMap.set(id, r.metrics) }
-        rows = listResp.map(r => buildRow({
-          id: String(r.campaign?.id), level: 'campaign', name: r.campaign?.name || `Campagna ${r.campaign?.id}`,
-          status: statusLabel(r.campaign?.status), has_children: true,
-        }, mMap.get(String(r.campaign?.id)) || {}))
+        rows = listResp.map(r => {
+          const cb = r.campaignBudget ?? r.campaign_budget
+          const budget = num(cb?.amountMicros ?? cb?.amount_micros) / 1e6
+          return buildRow({
+            id: String(r.campaign?.id), level: 'campaign', name: r.campaign?.name || `Campagna ${r.campaign?.id}`,
+            status: statusLabel(r.campaign?.status), has_children: true,
+            budget: budget > 0 ? +budget.toFixed(2) : null,
+          }, mMap.get(String(r.campaign?.id)) || {})
+        })
       } else if (level === 'adgroups') {
         if (!campaignId) return NextResponse.json({ ok: false, error: 'campaign_id mancante' }, { status: 400 })
         const resp = await search(`SELECT ad_group.id, ad_group.name, ad_group.status, ${METRICS} FROM ad_group WHERE campaign.id = ${campaignId} AND segments.date BETWEEN '${range.since}' AND '${range.until}'`)

@@ -426,6 +426,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
             }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
             <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
+              {row.budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.budget, 0)}/g</span> : (row.lifetime_budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.lifetime_budget, 0)}</span> : '')}
             </div>
           </div>
         </div>
@@ -505,7 +506,10 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
           <PerfDot roas={row.roas} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
-            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>{row.status ? `${row.status} · ` : ''}{row.id}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
+              {row.status ? `${row.status} · ` : ''}{row.id}
+              {row.budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.budget, 0)}/g</span> : (row.lifetime_budget ? <span style={{ color: '#a78bfa', fontWeight: 700 }}> · {t('meta.budget', null, 'Budget')} {fmtMoney(row.lifetime_budget, 0)}</span> : '')}
+            </div>
           </div>
         </div>
       </td>

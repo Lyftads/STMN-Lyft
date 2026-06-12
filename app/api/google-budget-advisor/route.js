@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
@@ -33,6 +34,7 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const prevRange = previousRange(range)
 
+    return swrSnapshot(req, { tab: 'googleBudgetAdvisor', compute: async () => {
     try {
       const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
       const { GoogleAdsServiceClient } = await import('google-ads-node')
@@ -88,7 +90,7 @@ export async function GET(req) {
       const prevRevenue = prevResp.reduce((s, r) => s + num(r.metrics?.conversions_value ?? r.metrics?.conversionsValue), 0)
       const prevMer = prevSpend > 0 ? prevRevenue / prevSpend : 0
 
-      return NextResponse.json({
+      return {
         configured: true, preset, range, accounts: [], campaigns,
         totalSpend: Math.round(totalSpend * 100) / 100,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
@@ -107,10 +109,11 @@ export async function GET(req) {
           forecastDelta: forecastDelta > 0 ? forecastDelta : 0,
         },
         updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({ configured: true, error: err?.message || 'Errore Google', campaigns: [] }, { status: 200 })
+      return { __noCache: true, configured: true, error: err?.message || 'Errore Google', campaigns: [] }
     }
+    } })
   })
 }
 

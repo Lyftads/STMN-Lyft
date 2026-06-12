@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
@@ -20,6 +21,7 @@ export async function GET(req) {
     const baseline_window = Math.min(30, Math.max(7, parseInt(searchParams.get('baseline_window') || '14', 10)))
     const range = getRange(preset, searchParams)
 
+    return swrSnapshot(req, { tab: 'googleLighthouse', compute: async () => {
     try {
       const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const cookieHeader = req.headers.get('cookie') || ''
@@ -32,12 +34,12 @@ export async function GET(req) {
       const inRange = allDaily.filter(d => d.date >= range.since && d.date <= range.until)
 
       if (allDaily.length < 7) {
-        return NextResponse.json({
+        return {
           preset, range, alerts: [], proposals: [],
           summary: { high: 0, medium: 0, low: 0, total: 0 },
           warning: 'Dati insufficienti: servono almeno 7 giorni di storia Google Ads',
           updatedAt: new Date().toISOString(),
-        })
+        }
       }
 
       const effectiveBaseline = Math.min(baseline_window, allDaily.length - inRange.length)
@@ -46,17 +48,19 @@ export async function GET(req) {
       const alerts = detectAnomalies(allDaily, usableBaseline, range)
       const proposals = buildProposals(alerts, inRange)
       const summary = summarize(alerts)
-      return NextResponse.json({
+      return {
         preset, range, alerts, proposals, summary,
         baseline_window: usableBaseline, days_analyzed: inRange.length,
         updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({
+      return {
+        __noCache: true,
         error: err?.message || 'Errore', alerts: [], proposals: [],
         summary: { high: 0, medium: 0, low: 0, total: 0 },
-      }, { status: 200 })
+      }
     }
+    } })
   })
 }
 

@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getKlaviyo, getTenantInfo } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // Cache server-side: la tab fa molte chiamate Klaviyo (lente). 5 min TTL così
 // riaprire la tab è istantaneo. ?force=1 bypassa.
@@ -298,43 +299,37 @@ export async function GET(request) {
   // I value-report (revenue breakdown) sono LENTI → serviti su una chiamata
   // separata (?part=breakdown) così la tab carica subito i dati veloci.
   const part = searchParams.get('part') || 'main'
-  const cacheKey = `${getTenantInfo().userId || 'env'}:${days}:${part}`
-  if (searchParams.get('force') !== '1') {
-    const hit = klaviyoCache.get(cacheKey)
-    if (hit && hit.exp > Date.now()) return NextResponse.json(hit.payload)
-  }
 
-  try {
-    if (part === 'breakdown') {
-      const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])
-      const revenueBreakdown = await getRevenueBreakdown(sent, flows, days, metrics).catch(() => null)
-      const payload = { revenueBreakdown }
-      if (revenueBreakdown) klaviyoCache.set(cacheKey, { payload, exp: Date.now() + KLAVIYO_TTL_MS })
-      return NextResponse.json(payload)
+  return swrSnapshot(request, { tab: 'klaviyo', compute: async () => {
+    try {
+      if (part === 'breakdown') {
+        const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])
+        const revenueBreakdown = await getRevenueBreakdown(sent, flows, days, metrics).catch(() => null)
+        // breakdown nullo (timeout/limite) → non cachare, così si riprova
+        return revenueBreakdown ? { revenueBreakdown } : { __noCache: true, revenueBreakdown: null }
+      }
+
+      // MAIN: solo dati veloci (niente value-report)
+      const [account, lists, segments, sent, draft, scheduled, flows, metrics] = await Promise.all([
+        getAccount(),
+        getLists(),
+        getSegments(),
+        getCampaigns('Sent'),
+        getCampaigns('Draft'),
+        getCampaigns('Scheduled'),
+        getFlows(),
+        getMetrics(),
+      ])
+      const kpis = await getEmailKPIs(days, metrics)
+
+      return {
+        account, lists, segments,
+        campaigns: { sent, draft, scheduled },
+        flows, metrics, kpis,
+      }
+    } catch (e) {
+      return { __noCache: true, error: e.message }
     }
-
-    // MAIN: solo dati veloci (niente value-report)
-    const [account, lists, segments, sent, draft, scheduled, flows, metrics] = await Promise.all([
-      getAccount(),
-      getLists(),
-      getSegments(),
-      getCampaigns('Sent'),
-      getCampaigns('Draft'),
-      getCampaigns('Scheduled'),
-      getFlows(),
-      getMetrics(),
-    ])
-    const kpis = await getEmailKPIs(days, metrics)
-
-    const payload = {
-      account, lists, segments,
-      campaigns: { sent, draft, scheduled },
-      flows, metrics, kpis,
-    }
-    klaviyoCache.set(cacheKey, { payload, exp: Date.now() + KLAVIYO_TTL_MS })
-    return NextResponse.json(payload)
-  } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
-  }
+  } })
   })
 }

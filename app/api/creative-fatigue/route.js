@@ -4,6 +4,7 @@ export const maxDuration = 45
 import { NextResponse } from 'next/server'
 import { getRange, prevRange } from '../../../lib/metaRange'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ── Creative Fatigue Tracker (additivo, isolato, tenant-aware) ────
 // Legge gli insights Meta a livello AD e calcola un fatigue score per
@@ -154,6 +155,7 @@ export async function GET(req) {
   const range = getRange(preset, searchParams)
   const used = usedAccounts(searchParams.get('account'))
 
+  return swrSnapshot(req, { tab: 'creativeFatigue', compute: async () => {
   try {
     const raw = []
     for (const acc of used) raw.push(...(await fetchAdInsights(acc, range)))
@@ -216,7 +218,7 @@ export async function GET(req) {
 
     const accountsList = await accountNames(allAccounts())
 
-    return NextResponse.json({
+    return {
       preset, range,
       accounts: accountsList,
       account: used.length === 1 ? used[0] : '',
@@ -229,9 +231,10 @@ export async function GET(req) {
       toRefresh: ads.filter(a => a.refresh).length,
       ads: top,
       updatedAt: new Date().toISOString(),
-    })
+    }
   } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore Meta', ads: [] }, { status: 200 })
+    return { __noCache: true, error: err?.message || 'Errore Meta', ads: [] }
   }
+  } })
   })
 }

@@ -4,6 +4,7 @@ export const maxDuration = 30
 import { NextResponse } from 'next/server'
 import { getRange, prevRange } from '../../../lib/metaRange'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ── Budget Advisor (additivo, isolato, CONSULENZIALE, tenant-aware) ─────────
 // Legge gli insights Meta a livello CAMPAGNA e suggerisce riallocazioni di
@@ -82,6 +83,7 @@ export async function GET(req) {
   const range = getRange(preset, searchParams)
   const used = usedAccounts(searchParams.get('account'))
 
+  return swrSnapshot(req, { tab: 'budgetAdvisor', compute: async () => {
   try {
     // ID campagne ATTIVE sugli account usati (il Budget Advisor lavora solo su queste)
     const activeIds = new Set()
@@ -157,7 +159,7 @@ export async function GET(req) {
 
     const accountsList = await accountNames(allAccounts())
 
-    return NextResponse.json({
+    return {
       preset, range,
       accounts: accountsList,
       account: used.length === 1 ? used[0] : '',
@@ -179,9 +181,10 @@ export async function GET(req) {
       },
       campaigns,
       updatedAt: new Date().toISOString(),
-    })
+    }
   } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore Meta', campaigns: [] }, { status: 200 })
+    return { __noCache: true, error: err?.message || 'Errore Meta', campaigns: [] }
   }
+  } })
   })
 }

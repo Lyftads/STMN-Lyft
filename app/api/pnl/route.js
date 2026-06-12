@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 const storeUrl = () => getShopify().storeUrl
 const token = () => getShopify().adminToken
@@ -162,6 +163,7 @@ export async function GET(req) {
     const origin = new URL(req.url).origin
     const cookie = req.headers.get('cookie') || '' // sessione utente → fetch interni autenticati (post-fix multi-tenant)
 
+    return swrSnapshot(req, { tab: 'pnl', compute: async () => {
     try {
       // Interrogo OGNI metrica separatamente (query a singola metrica = robuste:
       // se un nome non è valido in questa versione ShopifyQL non azzera le altre).
@@ -216,16 +218,17 @@ export async function GET(req) {
       // Fee reali (best-effort) + ripartizione fatturato per gateway
       const [feesByMonth, gatewayMix] = await Promise.all([fetchFeesByMonth(since), fetchGatewayMix()])
 
-      return NextResponse.json({
+      return {
         configured: true, months, since, until,
         series, metricRows,
         cogsByMonth: cogsRes?.map || null, cogsSource, cogsRatio, avgMargin,
         feesByMonth, feesSource: feesByMonth ? 'shopify-payments' : 'none',
         gatewayMix,
         updatedAt: new Date().toISOString(),
-      })
+      }
     } catch (err) {
-      return NextResponse.json({ configured: false, error: err?.message || 'Errore' }, { status: 200 })
+      return { __noCache: true, configured: false, error: err?.message || 'Errore' }
     }
+    } })
   })
 }

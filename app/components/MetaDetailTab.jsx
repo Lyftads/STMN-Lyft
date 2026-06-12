@@ -903,19 +903,20 @@ export default function MetaDetailTab() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe
-            value={{ preset, since: customSince, until: customUntil }}
-            onChange={(v) => { setPreset('custom'); setCustomSince(v.since || ''); setCustomUntil(v.until || '') }}
-            accent="#5b2cff"
-            disabled={loading}
-          />
+          <div style={{ marginLeft: 'auto' }}>
+            <BmTimeframe
+              value={{ preset, since: customSince, until: customUntil }}
+              onChange={(v) => { setPreset('custom'); setCustomSince(v.since || ''); setCustomUntil(v.until || '') }}
+              accent="#5b2cff"
+              disabled={loading}
+            />
+          </div>
 
           <button
             onClick={fetchMain}
             disabled={loading}
             className="btn-glass"
             style={{
-              marginLeft: 'auto',
               display: 'flex', alignItems: 'center', gap: 6,
               cursor: loading ? 'wait' : 'pointer',
               opacity: loading ? 0.5 : 1,

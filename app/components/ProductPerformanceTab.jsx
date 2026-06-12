@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
@@ -14,6 +15,39 @@ export default function ProductPerformanceTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('margin') // margin | net | units
+
+  // ── Mappatura campagne → prodotto ──
+  const [mapOpen, setMapOpen] = useState(false)
+  const [mapData, setMapData] = useState(null)
+  const [mapLoading, setMapLoading] = useState(false)
+  const [mapSel, setMapSel] = useState({}) // `${platform}:${campaign_id}` -> product_id | ''
+  const [mapSaving, setMapSaving] = useState(false)
+  const [mapErr, setMapErr] = useState('')
+
+  const openMap = async () => {
+    setMapOpen(true); setMapLoading(true); setMapErr('')
+    try {
+      const r = await fetch(`/api/campaign-map?since=${since}&until=${until}`, { cache: 'no-store' })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Errore')
+      const sel = {}
+      for (const c of j.campaigns) { const key = `${c.platform}:${c.campaign_id}`; sel[key] = c.product_id || (c.mapped ? '' : (c.suggestedProductId || '')) }
+      setMapData(j); setMapSel(sel)
+    } catch (e) { setMapErr(e.message) } finally { setMapLoading(false) }
+  }
+  const saveMap = async () => {
+    if (!mapData) return
+    setMapSaving(true); setMapErr('')
+    try {
+      const prodTitle = new Map(mapData.products.map(p => [p.id, p.title]))
+      const mappings = mapData.campaigns.map(c => { const key = `${c.platform}:${c.campaign_id}`; const pid = mapSel[key] || null; return { platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, product_id: pid, product_title: pid ? prodTitle.get(pid) : null } })
+      const r = await fetch('/api/campaign-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Errore salvataggio')
+      setMapOpen(false)
+      load(since, until, true) // ricalcola la performance con l'attribuzione precisa
+    } catch (e) { setMapErr(e.message) } finally { setMapSaving(false) }
+  }
 
   const load = async (s = since, u = until, refresh = false) => {
     setLoading(true); setError('')
@@ -58,12 +92,17 @@ export default function ProductPerformanceTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{t('pp.title', null, 'Performance prodotti')}</h1>
-        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.78)', fontSize: 13 }}>
-          {t('pp.subtitle', null, 'P&L per prodotto (B2C) · ricavo netto, COGS, ADS allocati in proporzione al ricavo, margine operativo e ROAS.')}
-          {data && <> · {data.range.since} → {data.range.until}</>}
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: 760 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{t('pp.title', null, 'Performance prodotti')}</h1>
+          <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.78)', fontSize: 13 }}>
+            {t('pp.subtitle', null, 'P&L per prodotto (B2C) · ricavo netto, COGS, ADS allocati in proporzione al ricavo, margine operativo e ROAS.')}
+            {data && <> · {data.range.since} → {data.range.until}</>}
+          </p>
+        </div>
+        <button onClick={openMap} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--accent)', color: 'var(--accent)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <Icon name="link" size={14} /> {t('pp.mapBtn', null, 'Mappa campagne ADS')}
+        </button>
       </div>
 
       {/* Controlli */}
@@ -93,7 +132,9 @@ export default function ProductPerformanceTab() {
           </div>
 
           <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <span>ℹ {t('pp.allocNote', null, 'ADS allocati per prodotto in proporzione al ricavo (stima): il ROAS per prodotto è indicativo.')}</span>
+            {k.adsMappedPct >= 100
+              ? <span style={{ color: '#34d399' }}>✓ {t('pp.allMapped', null, 'ADS attribuiti per campagna (dato preciso) su tutta la spesa.')}</span>
+              : <span><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#34d399', marginRight: 5 }} />{t('pp.mappedNote', { n: k.adsMappedPct }, `${k.adsMappedPct}% della spesa ADS è mappata per campagna (preciso); il resto è ripartito in proporzione al ricavo. Mappa le campagne per il dato esatto.`)}</span>}
             {k.costCoverage < 90 && <span style={{ color: '#f59e0b' }}>⚠ {t('pp.costCovNote', { n: k.costCoverage }, `COGS presente sul ${k.costCoverage}% dei prodotti venduti — il margine è parziale dove manca il costo`)}</span>}
           </div>
 
@@ -118,7 +159,7 @@ export default function ProductPerformanceTab() {
                     <td style={cell}>{fmtInt(p.units)}</td>
                     <td style={{ ...cell, fontWeight: 800 }}>{fmtMoney(p.netRevenue)}</td>
                     <td style={{ ...cell, color: p.hasCost ? '#fff' : 'rgba(255,255,255,0.4)' }}>{p.hasCost ? fmtMoney(p.cogs) : '—'}</td>
-                    <td style={cell}>{fmtMoney(p.ads)}</td>
+                    <td style={cell} title={p.adsExact ? t('pp.adsExact', null, 'Attribuito per campagna (preciso)') : t('pp.adsEstimate', null, 'Stima proporzionale')}>{p.adsExact && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#34d399', marginRight: 5, verticalAlign: 'middle' }} />}{fmtMoney(p.ads)}</td>
                     <td style={{ ...cell, color: p.marginOp >= 0 ? '#34d399' : '#ef4444', fontWeight: 900 }}>{fmtMoney(p.marginOp)}</td>
                     <td style={{ ...cell, color: p.marginPct >= 40 ? '#34d399' : p.marginPct >= 0 ? '#fcd34d' : '#ef4444', fontWeight: 700 }}>{p.marginPct}%</td>
                     <td style={cell}>{p.roas != null ? `${p.roas}×` : '—'}</td>
@@ -133,6 +174,60 @@ export default function ProductPerformanceTab() {
       )}
 
       {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('pp.loadingFull', null, 'Calcolo performance prodotti…')}</div>}
+
+      {mapOpen && typeof document !== 'undefined' && createPortal(
+        <div onClick={() => setMapOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#0d0d16', border: '1px solid var(--border)', borderRadius: 16, width: 'min(900px,100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#fff', fontWeight: 900, fontSize: 16 }}>{t('pp.mapTitle', null, 'Mappatura campagne → prodotto')}</div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>{t('pp.mapSub', null, 'Associa ogni campagna al prodotto che promuove: la sua spesa andrà su quel prodotto (dato preciso). Le non mappate restano in proporzionale.')}</div>
+              </div>
+              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><Icon name="close" size={18} /></button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '8px 0' }}>
+              {mapLoading ? <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pp.mapLoading', null, 'Carico campagne…')}</div>
+              : !mapData?.campaigns?.length ? <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pp.mapEmpty', null, 'Nessuna campagna con spesa nel periodo.')}</div>
+              : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr>
+                    <th style={{ ...th, textAlign: 'left', position: 'static' }}>{t('pp.mapCampaign', null, 'Campagna')}</th>
+                    <th style={{ ...th, position: 'static' }}>{t('pp.mapSpend', null, 'Spesa')}</th>
+                    <th style={{ ...th, textAlign: 'left', position: 'static' }}>{t('pp.mapProduct', null, 'Prodotto')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {mapData.campaigns.map(c => {
+                      const key = `${c.platform}:${c.campaign_id}`
+                      const isSuggest = !c.mapped && c.suggestedProductId && mapSel[key] === c.suggestedProductId
+                      return (
+                        <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '10px 14px', maxWidth: 320 }}>
+                            <div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_name}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.platform}</div>
+                          </td>
+                          <td style={{ ...cell, padding: '10px 14px' }}>{fmtMoney(c.spend)}</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <select value={mapSel[key] ?? ''} onChange={e => setMapSel(s => ({ ...s, [key]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: 12.5, maxWidth: 360, width: '100%', colorScheme: 'dark' }}>
+                              <option value="">{t('pp.mapNone', null, '— Non attribuito —')}</option>
+                              {mapData.products.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                            </select>
+                            {isSuggest && <span style={{ marginLeft: 8, fontSize: 10, color: '#86efac', fontWeight: 700 }}>{t('pp.mapSuggested', null, 'suggerito')} {c.suggestedScore ? `${c.suggestedScore}%` : ''}</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              {mapErr && <span style={{ color: '#fca5a5', fontSize: 12 }}>{mapErr}</span>}
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setMapOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.mapCancel', null, 'Annulla')}</button>
+              <button onClick={saveMap} disabled={mapSaving || mapLoading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: mapSaving ? 'default' : 'pointer', opacity: mapSaving ? 0.6 : 1 }}>{mapSaving ? t('pp.mapSaving', null, 'Salvo…') : t('pp.mapSave', null, 'Salva mappatura')}</button>
+            </div>
+          </div>
+        </div>, document.body)}
     </div>
   )
 }

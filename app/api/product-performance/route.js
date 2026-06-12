@@ -2,7 +2,10 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getShopify, getMeta, getGoogle } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { resolveWorkspace } from '../../../lib/team/workspace'
+import { getAdminSupabase } from '../../../lib/supabase/server'
+import { fetchAllCampaignSpend } from '../../../lib/ads/campaignSpend'
 
 // ── Performance prodotti (B2C) ──
 // P&L per prodotto: ricavo netto, COGS, ADS (Meta+Google allocati in proporzione
@@ -81,52 +84,16 @@ async function fetchProductMeta(store, token) {
   return { costByVariant, meta }
 }
 
-// ── Meta: spesa totale account nel range ──
-async function fetchMetaSpend(since, until) {
-  const { accessToken, adAccountId } = getMeta()
-  if (!accessToken || !adAccountId) return 0
-  const accounts = String(adAccountId).split(',').map(s => s.trim()).filter(Boolean).map(a => a.startsWith('act_') ? a : `act_${a}`)
-  let total = 0
-  for (const acc of accounts) {
-    try {
-      const u = new URL(`https://graph.facebook.com/v19.0/${acc}/insights`)
-      u.searchParams.set('fields', 'spend')
-      u.searchParams.set('level', 'account')
-      u.searchParams.set('time_range', JSON.stringify({ since, until }))
-      u.searchParams.set('access_token', accessToken)
-      const r = await fetch(u, { cache: 'no-store' })
-      const j = await r.json()
-      total += num(j?.data?.[0]?.spend)
-    } catch {}
-  }
-  return total
-}
-
-// ── Google Ads: spesa totale nel range (REST searchStream, no grpc) ──
-async function fetchGoogleSpend(since, until) {
-  const g = getGoogle()
-  const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
-  const customerId = (g.adsCustomerId || '').replace(/-/g, '')
-  const mcc = (g.adsMccId || '').replace(/-/g, '')
-  if (!devToken || !customerId || !g.refreshToken || !g.clientId || !g.clientSecret) return 0
+// ── Mappatura campagna → prodotto (Supabase) ──
+async function loadMapping(workspaceId) {
+  const admin = getAdminSupabase()
+  if (!admin || !workspaceId) return new Map()
   try {
-    const tok = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: g.clientId, client_secret: g.clientSecret, refresh_token: g.refreshToken, grant_type: 'refresh_token' }),
-    }).then(r => r.json())
-    if (!tok.access_token) return 0
-    const headers = { Authorization: `Bearer ${tok.access_token}`, 'developer-token': devToken, 'Content-Type': 'application/json' }
-    if (mcc) headers['login-customer-id'] = mcc
-    const res = await fetch(`https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:searchStream`, {
-      method: 'POST', headers, cache: 'no-store',
-      body: JSON.stringify({ query: `SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${since}' AND '${until}'` }),
-    })
-    if (!res.ok) return 0
-    const arr = await res.json()
-    let micros = 0
-    for (const chunk of (Array.isArray(arr) ? arr : [])) for (const row of (chunk.results || [])) micros += num(row.metrics?.costMicros ?? row.metrics?.cost_micros)
-    return micros / 1e6
-  } catch { return 0 }
+    const { data } = await admin.from('campaign_product_map').select('platform,campaign_id,product_id').eq('workspace_id', workspaceId)
+    const m = new Map()
+    for (const r of (data || [])) m.set(`${r.platform}:${r.campaign_id}`, r.product_id || null)
+    return m
+  } catch { return new Map() }
 }
 
 export async function GET(req) {
@@ -148,15 +115,27 @@ export async function GET(req) {
     const prevSince = isoDay(new Date(new Date(since).getTime() - days * 86400000))
 
     try {
-      const [cur, prev, pmeta, metaSpend, googleSpend] = await Promise.all([
+      const ws = await resolveWorkspace()
+      const [cur, prev, pmeta, campaigns, mapping] = await Promise.all([
         fetchOrders(store, token, since + 'T00:00:00Z', until + 'T23:59:59Z'),
         fetchOrders(store, token, prevSince + 'T00:00:00Z', prevUntil + 'T23:59:59Z'),
         fetchProductMeta(store, token),
-        fetchMetaSpend(since, until),
-        fetchGoogleSpend(since, until),
+        fetchAllCampaignSpend(since, until),
+        loadMapping(ws?.workspaceId),
       ])
 
+      // Attribuzione ADS: spesa per campagna mappata → prodotto (preciso);
+      // campagne non mappate → ripartite in proporzione al ricavo (stima).
+      let metaSpend = 0, googleSpend = 0, unmappedSpend = 0
+      const mappedByProduct = new Map()
+      for (const c of campaigns) {
+        if (c.platform === 'google') googleSpend += c.spend; else metaSpend += c.spend
+        const pid = mapping.get(`${c.platform}:${c.campaign_id}`)
+        if (pid) mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + c.spend)
+        else unmappedSpend += c.spend
+      }
       const adsTotal = metaSpend + googleSpend
+      const mappedSpend = adsTotal - unmappedSpend
       const totalRevenue = [...cur.values()].reduce((s, p) => s + p.revenue, 0)
 
       let costCovered = 0, costTotal = 0
@@ -168,7 +147,8 @@ export async function GET(req) {
           if (c != null) { cogs += c * qty; hasCost = true }
         }
         costTotal++; if (hasCost) costCovered++
-        const allocAds = totalRevenue > 0 ? adsTotal * (p.revenue / totalRevenue) : 0
+        const mapped = mappedByProduct.get(p.productId) || 0
+        const allocAds = mapped + (totalRevenue > 0 ? unmappedSpend * (p.revenue / totalRevenue) : 0)
         const marginOp = p.revenue - cogs - allocAds
         const prevRev = prev.get(p.productId)?.revenue || 0
         const deltaNet = prevRev > 0 ? ((p.revenue - prevRev) / prevRev) * 100 : null
@@ -185,6 +165,7 @@ export async function GET(req) {
           roas: allocAds > 0 ? Math.round((p.revenue / allocAds) * 100) / 100 : null,
           deltaNet: deltaNet != null ? Math.round(deltaNet * 10) / 10 : null,
           hasCost,
+          adsExact: mapped > 0,
         }
       })
 
@@ -202,6 +183,7 @@ export async function GET(req) {
           units: products.reduce((s, p) => s + p.units, 0),
           roas: adsTotal > 0 ? Math.round((totalRevenue / adsTotal) * 100) / 100 : null,
           costCoverage: costTotal ? Math.round((costCovered / costTotal) * 100) : 0,
+          adsMappedPct: adsTotal > 0 ? Math.round((mappedSpend / adsTotal) * 100) : 0,
         },
         products,
       }

@@ -55,6 +55,8 @@ async function fetchAllVariants(store, token) {
     const conn = json?.data?.products
     const edges = conn?.edges || []
     for (const { node: p } of edges) {
+      // Solo prodotti ATTIVI: escludi bozze e archiviati (oltre al filtro query).
+      if (p.status && p.status !== 'ACTIVE') continue
       const image = p.featuredImage?.url || null
       for (const { node: v } of (p.variants?.edges || [])) {
         const cost = v.inventoryItem?.unitCost?.amount != null ? parseFloat(v.inventoryItem.unitCost.amount) : null

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Sparkline from './Sparkline'
 import Icon from './ui/Icon'
-import { PlatformBadges } from './PlatformIcon'
+import PlatformIcon, { PlatformBadges } from './PlatformIcon'
 import KpiBrainAgent from './KpiBrainAgent'
 import BmTimeframe from './ui/BmTimeframe'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
@@ -369,18 +369,22 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       </div>
 
       {/* Key Metrics */}
-      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
-        <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:6}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
-        <div style={{fontSize:12,color:'var(--text3)',marginBottom:20}}>Shopify + Meta Ads + Google Ads · {tfLabel}</div>
-        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Shopify</div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:20}}>
+      <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:28,marginBottom:28}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:28}}>
+          <div style={{fontSize:18,fontWeight:900,color:'#fff'}}>{t('kpi.keyMetrics', null, 'Key Metrics')}</div>
+          <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:800,color:'#22c55e',background:'rgba(34,197,94,0.12)',border:'1px solid rgba(34,197,94,0.3)',borderRadius:999,padding:'2px 9px'}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e'}} /> Live
+          </span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="shopify" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Shopify</span></div>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:38}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Meta Ads</div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="meta" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Meta Ads</span></div>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:38}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{fontSize:13,color:'var(--text)',fontWeight:900,marginBottom:12}}>Google Ads</div>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Google Ads</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>

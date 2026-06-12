@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
@@ -16,8 +15,8 @@ export default function ProductCostsTab() {
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
-  const [histFor, setHistFor] = useState(null)    // {variant_id, title}
-  const [histData, setHistData] = useState(null)
+  const [expanded, setExpanded] = useState(() => new Set())  // variant_id con storico aperto
+  const [histCache, setHistCache] = useState({})             // variant_id -> history[]
 
   const load = async () => {
     setLoading(true); setError('')
@@ -35,7 +34,8 @@ export default function ProductCostsTab() {
 
   const cur = data?.currency || 'EUR'
   const fmtMoney = (n, d = 2) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))
-  const fmtDate = (s) => s ? new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString(intlLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  const fmtDate = (s) => s ? new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const fmtDateTime = (s) => s ? new Date(s).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
   // indice variante → {product, v} per lookup veloce
   const vIndex = useMemo(() => {
@@ -85,16 +85,23 @@ export default function ProductCostsTab() {
       if (!j.ok) throw new Error(j.error || 'Errore salvataggio')
       // aggiorna lo stato locale: landed corrente + storico +1
       setData(d => ({ ...d, products: d.products.map(p => ({ ...p, variants: p.variants.map(v => entries.find(e => e.variant_id === v.variant_id) ? { ...v, landed: parseFloat(drafts[v.variant_id]), historyCount: (v.historyCount || 0) + 1 } : v) })) }))
+      // storico cambiato → invalida cache e ricarica quelli aperti
+      const savedIds = entries.map(e => e.variant_id)
+      setHistCache(c => { const n = { ...c }; for (const id of savedIds) delete n[id]; return n })
+      for (const id of savedIds) if (expanded.has(id)) loadHist(id)
       setToast(t('pc.saved', { n: j.saved }, `${j.saved} costi salvati`)); setTimeout(() => setToast(''), 2500)
     } catch (e) { setError(e.message) } finally { setSaving(false) }
   }
 
-  const openHistory = async (v) => {
-    setHistFor(v); setHistData(null)
+  const loadHist = async (vid) => {
     try {
-      const r = await fetch(`/api/product-costs-landed?variant_id=${encodeURIComponent(v.variant_id)}`, { cache: 'no-store' })
-      const j = await r.json(); setHistData(j.history || [])
-    } catch { setHistData([]) }
+      const r = await fetch(`/api/product-costs-landed?variant_id=${encodeURIComponent(vid)}`, { cache: 'no-store' })
+      const j = await r.json(); setHistCache(c => ({ ...c, [vid]: j.history || [] }))
+    } catch { setHistCache(c => ({ ...c, [vid]: [] })) }
+  }
+  const toggleHistory = (vid) => {
+    setExpanded(s => { const n = new Set(s); n.has(vid) ? n.delete(vid) : n.add(vid); return n })
+    if (!histCache[vid]) loadHist(vid)
   }
 
   const cardWrap = { background: 'var(--card,rgba(255,255,255,0.02))', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }
@@ -149,21 +156,47 @@ export default function ProductCostsTab() {
               <tbody>
                 {p.variants.map(v => {
                   const changed = isChanged(v.variant_id)
+                  const open = expanded.has(v.variant_id)
+                  const hist = histCache[v.variant_id]
                   return (
-                    <tr key={v.variant_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: changed ? 'rgba(123,91,255,0.06)' : 'transparent' }}>
-                      <td style={{ padding: '10px 14px' }}><input type="checkbox" checked={selected.has(v.variant_id)} onChange={() => toggleSel(v.variant_id)} style={{ width: 15, height: 15, accentColor: '#7b5bff', cursor: 'pointer' }} /></td>
-                      <td style={{ padding: '10px 14px' }}><div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600 }}>{v.sku || '—'}</div><div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10.5 }}>{v.size}</div></td>
-                      <td style={cell}>{fmtMoney(v.shopifyCost)}</td>
-                      <td style={{ ...cell, padding: '8px 14px' }}>
-                        <input value={drafts[v.variant_id] ?? ''} onChange={e => setDraft(v.variant_id, e.target.value)} type="number" placeholder={v.shopifyCost != null ? String(v.shopifyCost) : '0'} style={{ width: 110, textAlign: 'right', background: 'rgba(255,255,255,0.05)', border: `1px solid ${changed ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: 13, colorScheme: 'dark' }} />
-                      </td>
-                      <td style={cell}>
-                        <button onClick={() => openHistory(v)} disabled={!v.historyCount} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 9px', color: v.historyCount ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, cursor: v.historyCount ? 'pointer' : 'default' }}><Icon name="clock" size={12} /> {v.historyCount || 0}</button>
-                      </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <button onClick={() => saveRows([v.variant_id])} disabled={!changed || saving} title={t('pc.save', null, 'Salva')} style={{ background: changed ? 'rgba(123,91,255,0.18)' : 'transparent', border: `1px solid ${changed ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '6px 8px', color: changed ? '#fff' : 'rgba(255,255,255,0.35)', cursor: changed ? 'pointer' : 'default', display: 'grid', placeItems: 'center' }}><Icon name="download" size={13} /></button>
-                      </td>
-                    </tr>
+                    <Fragment key={v.variant_id}>
+                      <tr style={{ borderBottom: open ? 'none' : '1px solid rgba(255,255,255,0.04)', background: changed ? 'rgba(123,91,255,0.06)' : 'transparent' }}>
+                        <td style={{ padding: '10px 14px' }}><input type="checkbox" checked={selected.has(v.variant_id)} onChange={() => toggleSel(v.variant_id)} style={{ width: 15, height: 15, accentColor: '#7b5bff', cursor: 'pointer' }} /></td>
+                        <td onClick={() => toggleHistory(v.variant_id)} title={t('pc.histOpen', null, 'Mostra storico')} style={{ padding: '10px 14px', cursor: 'pointer' }}><div style={{ color: '#fff', fontSize: 12.5, fontWeight: 600 }}>{v.sku || '—'}</div><div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10.5 }}>{v.size}</div></td>
+                        <td style={cell}>{fmtMoney(v.shopifyCost)}</td>
+                        <td style={{ ...cell, padding: '8px 14px' }}>
+                          <input value={drafts[v.variant_id] ?? ''} onChange={e => setDraft(v.variant_id, e.target.value)} type="number" placeholder={v.shopifyCost != null ? String(v.shopifyCost) : '0'} style={{ width: 110, textAlign: 'right', background: 'rgba(255,255,255,0.05)', border: `1px solid ${changed ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 9px', color: '#fff', fontSize: 13, colorScheme: 'dark' }} />
+                        </td>
+                        <td style={cell}>
+                          <button onClick={() => toggleHistory(v.variant_id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: open ? 'rgba(123,91,255,0.12)' : 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 9px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                            <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s', color: 'rgba(255,255,255,0.6)' }}>▸</span>
+                            <Icon name="clock" size={12} /> {v.historyCount || 0}
+                          </button>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <button onClick={() => saveRows([v.variant_id])} disabled={!changed || saving} title={t('pc.save', null, 'Salva')} style={{ background: changed ? 'rgba(123,91,255,0.18)' : 'transparent', border: `1px solid ${changed ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '6px 8px', color: changed ? '#fff' : 'rgba(255,255,255,0.35)', cursor: changed ? 'pointer' : 'default', display: 'grid', placeItems: 'center' }}><Icon name="download" size={13} /></button>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr style={{ background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td colSpan={6} style={{ padding: '2px 18px 14px 48px' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', margin: '8px 0 6px' }}>{t('pc.histTitle2', null, 'Storico costo di acquisto (valido dalla data indicata)')}</div>
+                            {hist == null ? <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, padding: '6px 0' }}>{t('pc.histLoading', null, 'Carico…')}</div>
+                            : !hist.length ? <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, padding: '6px 0' }}>{t('pc.histEmpty', null, 'Nessuna modifica registrata.')}</div>
+                            : hist.map((h, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderTop: i ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                                  <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12.5 }}>{fmtDate(h.effective_from)}</span>
+                                  <span style={{ color: '#fff', fontWeight: 800, fontSize: 13.5 }}>{fmtMoney(Number(h.landed_cost))}</span>
+                                  {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: '#86efac', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 999, padding: '2px 8px' }}>{hist.length === 1 ? t('pc.baseline', null, 'Baseline oggi') : t('pc.current', null, 'attuale')}</span>}
+                                </div>
+                                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{t('pc.recorded', null, 'registrato')} {fmtDateTime(h.created_at)}</span>
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   )
                 })}
               </tbody>
@@ -174,26 +207,6 @@ export default function ProductCostsTab() {
 
       {loading && !data && <div style={{ ...cardWrap, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('pc.loading', null, 'Carico costi da Shopify…')}</div>}
       {data && products.length === 0 && <div style={{ ...cardWrap, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('pc.empty', null, 'Nessun prodotto.')}</div>}
-
-      {histFor && typeof document !== 'undefined' && createPortal(
-        <div onClick={() => setHistFor(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#0d0d16', border: '1px solid var(--border)', borderRadius: 16, width: 'min(520px,100%)', maxHeight: '80vh', overflow: 'auto' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ flex: 1 }}><div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{t('pc.histTitle', null, 'Storico costo')}</div><div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{histFor.sku || histFor.size}</div></div>
-              <button onClick={() => setHistFor(null)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><Icon name="close" size={18} /></button>
-            </div>
-            <div style={{ padding: '8px 0' }}>
-              {!histData ? <div style={{ padding: 30, textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>{t('pc.histLoading', null, 'Carico…')}</div>
-              : !histData.length ? <div style={{ padding: 30, textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>{t('pc.histEmpty', null, 'Nessuna modifica registrata.')}</div>
-              : histData.map((h, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div><div style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>{fmtMoney(Number(h.landed_cost))}</div><div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{h.note || 'manuale'}</div></div>
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{i === 0 && <span style={{ color: '#86efac', fontWeight: 700, marginRight: 6 }}>{t('pc.current', null, 'attuale')}</span>}{t('pc.from', null, 'dal')} {fmtDate(h.effective_from)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>, document.body)}
     </div>
   )
 }

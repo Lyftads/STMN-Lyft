@@ -133,7 +133,6 @@ export async function GET(req) {
     // settimana/mese) e per il breakdown settimanale (prima Google era manuale).
     const dSince = new Date(Date.now() - 100 * 86400000).toISOString().slice(0, 10)
     let daily = []
-    let dailyError = null
     try {
       const [dResp] = await client.search(
         { customer_id: CUSTOMER_ID, query: `SELECT segments.date, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'` },
@@ -149,13 +148,12 @@ export async function GET(req) {
       daily = Object.entries(dayMap)
         .map(([date, spend]) => ({ date, spend: Math.round(spend * 100) / 100 }))
         .sort((a, b) => a.date.localeCompare(b.date))
-    } catch (de) { dailyError = String(de?.message || de?.details || de).slice(0, 300) }
+    } catch {}
 
     return NextResponse.json({
       totalSpend: Math.round(totalSpend * 100) / 100,
       monthly,
       daily,
-      dailyError,
       configured: true,
       updatedAt: new Date().toISOString(),
     })

@@ -845,3 +845,17 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.35; transform: scale(0.7); }
 }
+
+/* ── Modalità Giorno (light) — inverte SOLO l'area contenuti (<main>), la
+   sidebar resta invariata. Le immagini/video/canvas vengono ri-invertiti per
+   restare a colori naturali. Hack a filtro: niente refactor dei colori inline. */
+.lyft-day-content {
+  background: #0b0b13;
+  filter: invert(1) hue-rotate(180deg);
+}
+.lyft-day-content img,
+.lyft-day-content video,
+.lyft-day-content canvas,
+.lyft-day-content [data-keep-color] {
+  filter: invert(1) hue-rotate(180deg);
+}

@@ -35,8 +35,19 @@ export default function PnLTab({ data = [] }) {
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
   const monthLabelL = (m) => { const [y, mm] = m.split('-').map(Number); return `${cap(new Date(y, (mm || 1) - 1, 1).toLocaleDateString(intlLocale, { month: 'short' }))} ${String(y).slice(2)}` }
   const monthFullL = (m) => { const [y, mm] = m.split('-').map(Number); return `${cap(new Date(y, (mm || 1) - 1, 1).toLocaleDateString(intlLocale, { month: 'long' }))} ${y}` }
-  const [view, setView] = useState('12')   // 'last' | 'prev' | '6' | '12' | '24'
-  const fetchMonths = (view === 'last' || view === 'prev') ? 3 : Number(view)
+  // Timeframe: questo mese / mese scorso / anno (dinamico) / personalizzato
+  const now = new Date()
+  const curY = now.getFullYear()
+  const YEARS = [curY, curY - 1, curY - 2]
+  const [tf, setTf] = useState({ kind: 'year', year: curY })
+  const [tfOpen, setTfOpen] = useState(false)
+  const [cSince, setCSince] = useState('')
+  const [cUntil, setCUntil] = useState('')
+  const monthsBackTo = (y, m) => Math.max(1, (curY - y) * 12 + (now.getMonth() + 1 - m) + 1)
+  const fetchMonths = tf.kind === 'this_month' || tf.kind === 'last_month' ? 3
+    : tf.kind === 'year' ? Math.min(48, monthsBackTo(tf.year, 1))
+    : tf.kind === 'custom' && tf.since ? Math.min(48, monthsBackTo(Number(tf.since.slice(0, 4)), Number(tf.since.slice(5, 7))))
+    : 12
   const [state, setState] = useState({ loading: true })
   const [cfg, setCfg] = useState(DEF_CFG)
   const [showCfg, setShowCfg] = useState(false)
@@ -158,7 +169,11 @@ export default function PnLTab({ data = [] }) {
   const prevOf = {}
   rows.forEach((r, i) => { prevOf[r.month] = i > 0 ? rows[i - 1] : null })
   // mesi mostrati: tutti (finestra) oppure solo ultimo / precedente
-  const asc = view === 'last' ? rows.slice(-1) : view === 'prev' ? rows.slice(-2, -1) : rows
+  const asc = tf.kind === 'this_month' ? rows.slice(-1)
+    : tf.kind === 'last_month' ? rows.slice(-2, -1)
+    : tf.kind === 'year' ? rows.filter(r => r.month.startsWith(`${tf.year}-`))
+    : tf.kind === 'custom' ? rows.filter(r => { const s = tf.since?.slice(0, 7), u = tf.until?.slice(0, 7); return (!s || r.month >= s) && (!u || r.month <= u) })
+    : rows
   const totSum = (key) => asc.reduce((a, r) => a + (Number(r[key]) || 0), 0)
   const totalOf = (key) => key === 'ebitPct' ? (totSum('net') > 0 ? totSum('ebit') / totSum('net') * 100 : null) : totSum(key)
   const showTotal = asc.length > 1
@@ -168,13 +183,45 @@ export default function PnLTab({ data = [] }) {
     <div style={{ maxWidth: 1280 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>{t('pnl.desc', null, 'Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.')}</div>
-        <select value={view} onChange={e => setView(e.target.value)} style={inp}>
-          <option value="last">{t('pnl.viewLast', null, 'Mese attuale')}</option>
-          <option value="prev">{t('pnl.viewPrev', null, 'Mese precedente')}</option>
-          <option value="6">{t('pnl.view6', null, '6 mesi')}</option>
-          <option value="12">{t('pnl.view12', null, '12 mesi')}</option>
-          <option value="24">{t('pnl.view24', null, '24 mesi')}</option>
-        </select>
+        {(() => {
+          const tfLabel = tf.kind === 'this_month' ? t('pnl.tfThisMonth', null, 'Questo mese')
+            : tf.kind === 'last_month' ? t('pnl.tfLastMonth', null, 'Mese scorso')
+            : tf.kind === 'year' ? String(tf.year)
+            : (tf.since && tf.until) ? `${tf.since} → ${tf.until}` : t('pnl.tfCustom', null, 'Personalizzato')
+          const presets = [
+            { id: 'this_month', label: t('pnl.tfThisMonth', null, 'Questo mese'), on: tf.kind === 'this_month', set: () => setTf({ kind: 'this_month' }) },
+            { id: 'last_month', label: t('pnl.tfLastMonth', null, 'Mese scorso'), on: tf.kind === 'last_month', set: () => setTf({ kind: 'last_month' }) },
+            ...YEARS.map(y => ({ id: 'y' + y, label: String(y), on: tf.kind === 'year' && tf.year === y, set: () => setTf({ kind: 'year', year: y }) })),
+          ]
+          return (
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setTfOpen(o => !o)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 150, justifyContent: 'space-between' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Icon name="calendar" size={13} /> {tfLabel}</span>
+                <span style={{ fontSize: 9, opacity: 0.6 }}>▼</span>
+              </button>
+              {tfOpen && (
+                <>
+                  <div onClick={() => setTfOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 8, minWidth: 240, boxShadow: '0 18px 44px rgba(0,0,0,0.5)' }}>
+                    {presets.map(p => (
+                      <button key={p.id} onClick={() => { p.set(); setTfOpen(false) }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: p.on ? 'rgba(123,91,255,0.15)' : 'transparent', border: 'none', borderRadius: 9, padding: '9px 11px', color: 'var(--text)', fontSize: 13, fontWeight: p.on ? 800 : 600, cursor: 'pointer' }}>
+                        {p.label}{p.on && <Icon name="check" size={13} />}
+                      </button>
+                    ))}
+                    <div style={{ borderTop: '1px solid var(--border)', margin: '8px 4px', paddingTop: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', padding: '0 7px 8px' }}>{t('pnl.tfCustom', null, 'Personalizzato')}</div>
+                      <div style={{ display: 'flex', gap: 8, padding: '0 7px' }}>
+                        <input type="date" value={cSince} onChange={e => setCSince(e.target.value)} style={{ ...inp, padding: '7px 9px', fontSize: 12, flex: 1, colorScheme: 'dark' }} />
+                        <input type="date" value={cUntil} onChange={e => setCUntil(e.target.value)} style={{ ...inp, padding: '7px 9px', fontSize: 12, flex: 1, colorScheme: 'dark' }} />
+                      </div>
+                      <button disabled={!cSince || !cUntil} onClick={() => { setTf({ kind: 'custom', since: cSince, until: cUntil }); setTfOpen(false) }} style={{ width: 'calc(100% - 14px)', margin: '8px 7px 0', background: cSince && cUntil ? 'var(--accent)' : 'var(--glass)', border: 'none', borderRadius: 9, padding: '8px', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: cSince && cUntil ? 'pointer' : 'default', opacity: cSince && cUntil ? 1 : 0.5 }}>{t('pnl.tfApply', null, 'Applica periodo')}</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
         <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="gear" size={13} /> {t('pnl.costsSettings', null, 'Costi & impostazioni')}</button>
         <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: 'var(--text)', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
       </div>

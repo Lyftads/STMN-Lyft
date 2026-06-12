@@ -70,7 +70,9 @@ export async function GET(req) {
 
       // Auto-derivazione Meta: product set (catalogo) + link creatività (dirette)
       const maps = buildShopifyMaps(products)
-      const metaProducts = metaToken ? await fetchMetaCampaignProducts(metaToken, accounts, maps).catch(() => new Map()) : new Map()
+      // lite=true: solo catalogo (product set), niente query ads pesante → carica veloce.
+      // Le campagne dirette hanno comunque il suggerimento per nome.
+      const metaProducts = metaToken ? await fetchMetaCampaignProducts(metaToken, accounts, maps, true).catch(() => new Map()) : new Map()
       const titleById = new Map(products.map(p => [String(p.id), p.title]))
 
       const rows = metaCampaigns

@@ -54,11 +54,19 @@ export async function GET(req) {
       let rows = []
 
       if (level === 'campaigns') {
-        const resp = await search(`SELECT campaign.id, campaign.name, campaign.status, ${METRICS} FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`)
-        rows = resp.map(r => buildRow({
+        // Due query: (a) metriche del periodo, (b) elenco completo campagne con
+        // stato (anche quelle senza spesa nel range, così il filtro Attive/In
+        // pausa/Bozza mostra tutto). Escludiamo solo le REMOVED.
+        const [metricsResp, listResp] = await Promise.all([
+          search(`SELECT campaign.id, ${METRICS} FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`),
+          search(`SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.status != 'REMOVED'`),
+        ])
+        const mMap = new Map()
+        for (const r of metricsResp) { const id = String(r.campaign?.id); if (id) mMap.set(id, r.metrics) }
+        rows = listResp.map(r => buildRow({
           id: String(r.campaign?.id), level: 'campaign', name: r.campaign?.name || `Campagna ${r.campaign?.id}`,
           status: statusLabel(r.campaign?.status), has_children: true,
-        }, r.metrics))
+        }, mMap.get(String(r.campaign?.id)) || {}))
       } else if (level === 'adgroups') {
         if (!campaignId) return NextResponse.json({ ok: false, error: 'campaign_id mancante' }, { status: 400 })
         const resp = await search(`SELECT ad_group.id, ad_group.name, ad_group.status, ${METRICS} FROM ad_group WHERE campaign.id = ${campaignId} AND segments.date BETWEEN '${range.since}' AND '${range.until}'`)
@@ -94,14 +102,24 @@ export async function GET(req) {
         const dayMap = new Map()
         for (const r of dailyResp) {
           const d = r.segments?.date; if (!d) continue
-          const cur = dayMap.get(d) || { date: d, spend: 0, conversions: 0, convValue: 0 }
+          const cur = dayMap.get(d) || { date: d, spend: 0, conversions: 0, convValue: 0, impressions: 0, clicks: 0 }
           cur.spend += num(r.metrics?.cost_micros ?? r.metrics?.costMicros) / 1e6
           cur.conversions += num(r.metrics?.conversions)
           cur.convValue += num(r.metrics?.conversions_value ?? r.metrics?.conversionsValue)
+          cur.impressions += num(r.metrics?.impressions)
+          cur.clicks += num(r.metrics?.clicks)
           dayMap.set(d, cur)
         }
         dailySeries = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date))
-          .map(d => ({ ...d, spend: +d.spend.toFixed(2), roas: d.spend > 0 ? +(d.convValue / d.spend).toFixed(2) : 0 }))
+          .map(d => ({
+            date: d.date,
+            spend: +d.spend.toFixed(2),
+            conversions: +d.conversions.toFixed(2),
+            convValue: +d.convValue.toFixed(2),
+            roas: d.spend > 0 ? +(d.convValue / d.spend).toFixed(2) : 0,
+            cpa: d.conversions > 0 ? +(d.spend / d.conversions).toFixed(2) : 0,
+            ctr: d.impressions > 0 ? +((d.clicks / d.impressions) * 100).toFixed(2) : 0,
+          }))
       }
 
       return NextResponse.json({

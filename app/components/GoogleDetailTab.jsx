@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
@@ -41,6 +42,17 @@ const COLS = [
   { key: 'convRate',    label: 'Conv. rate',  fmt: pct, labelKey: 'gkpi.convRate' },
 ]
 
+// Metriche selezionabili nel grafico multi-linea (stile Google Ads). Ogni linea
+// ha la sua scala (asse Y nascosto dedicato) così sono tutte leggibili insieme.
+const CHART_METRICS = [
+  { key: 'spend',       label: 'Costo',        color: '#34A853', fmt: eur2 },
+  { key: 'convValue',   label: 'Valore conv.', color: '#EA4335', fmt: eur2 },
+  { key: 'conversions', label: 'Conversioni',  color: '#FBBC04', fmt: v => Number(v || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }) },
+  { key: 'roas',        label: 'ROAS',         color: '#4285F4', fmt: mul },
+  { key: 'cpa',         label: 'CPA',          color: '#A142F4', fmt: eur2 },
+  { key: 'ctr',         label: 'CTR',          color: '#00ACC1', fmt: pct },
+]
+
 const statusColor = (s) => {
   const v = String(s || '').toUpperCase()
   if (v === 'ENABLED') return '#22c55e'
@@ -55,6 +67,8 @@ export default function GoogleDetailTab() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [chartSel, setChartSel] = useState(['spend', 'convValue', 'conversions', 'roas'])
 
   // Drill-down state
   const [openCampaigns, setOpenCampaigns] = useState({})
@@ -110,7 +124,30 @@ export default function GoogleDetailTab() {
   const summary = data?.summary || {}
   const prev = data?.previousSummary || {}
   const rows = Array.isArray(data?.rows) ? data.rows : []
+  const dailySeries = Array.isArray(data?.dailySeries) ? data.dailySeries : []
   const notConfigured = data && data.configured === false
+
+  // Filtro stato campagna: tutte / attive (ENABLED) / in pausa (PAUSED) / bozza (altro)
+  const statusOf = r => String(r.status || '').toUpperCase()
+  const STATUS_FILTERS = [
+    { id: 'all',     label: t('gdet.fAll', null, 'Tutte') },
+    { id: 'enabled', label: t('gdet.fEnabled', null, 'Attive') },
+    { id: 'paused',  label: t('gdet.fPaused', null, 'In pausa') },
+    { id: 'draft',   label: t('gdet.fDraft', null, 'Bozza') },
+  ]
+  const matchStatus = (r) => {
+    if (statusFilter === 'all') return true
+    if (statusFilter === 'enabled') return statusOf(r) === 'ENABLED'
+    if (statusFilter === 'paused') return statusOf(r) === 'PAUSED'
+    return !['ENABLED', 'PAUSED'].includes(statusOf(r)) // draft / altro
+  }
+  const filteredRows = rows.filter(matchStatus)
+  const countFor = (id) => rows.filter(r => {
+    if (id === 'all') return true
+    if (id === 'enabled') return statusOf(r) === 'ENABLED'
+    if (id === 'paused') return statusOf(r) === 'PAUSED'
+    return !['ENABLED', 'PAUSED'].includes(statusOf(r))
+  }).length
 
   const SUMMARY = [
     { key: 'spend', label: t('meta.spend', null, 'Spesa'), fmt: eur, lower: false },
@@ -183,6 +220,61 @@ export default function GoogleDetailTab() {
             })}
           </div>
 
+          {/* Grafico multi-linea stile Google Ads (metriche delle card) */}
+          {dailySeries.length > 1 && (
+            <div className="glass-card-static" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                {CHART_METRICS.map(m => {
+                  const on = chartSel.includes(m.key)
+                  return (
+                    <button key={m.key} type="button"
+                      onClick={() => setChartSel(s => s.includes(m.key) ? (s.length > 1 ? s.filter(k => k !== m.key) : s) : [...s, m.key])}
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: `1px solid ${on ? m.color : 'var(--border)'}`, background: on ? `${m.color}1f` : 'var(--glass)', color: on ? m.color : 'var(--text3)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: on ? m.color : 'var(--text3)' }} />
+                      {m.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dailySeries} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="date" tickFormatter={d => (d || '').slice(5)} tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} minTickGap={24} />
+                    {CHART_METRICS.filter(m => chartSel.includes(m.key)).map(m => (
+                      <YAxis key={m.key} yAxisId={m.key} hide domain={['auto', 'auto']} />
+                    ))}
+                    <Tooltip
+                      contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+                      labelFormatter={d => d}
+                      formatter={(value, name) => {
+                        const m = CHART_METRICS.find(x => x.key === name)
+                        return [m ? m.fmt(value) : value, m ? m.label : name]
+                      }}
+                    />
+                    {CHART_METRICS.filter(m => chartSel.includes(m.key)).map(m => (
+                      <Line key={m.key} yAxisId={m.key} type="monotone" dataKey={m.key} name={m.key} stroke={m.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Filtro stato campagna */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {STATUS_FILTERS.map(f => {
+              const active = statusFilter === f.id
+              return (
+                <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
+                  style={{ background: active ? `${GOOGLE}22` : 'var(--glass)', border: `1px solid ${active ? GOOGLE : 'var(--border)'}`, color: active ? GOOGLE : 'var(--text2)', borderRadius: 999, padding: '7px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {f.label}
+                  <span style={{ background: active ? GOOGLE : 'rgba(255,255,255,0.06)', color: active ? '#0a0a14' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>{countFor(f.id)}</span>
+                </button>
+              )
+            })}
+          </div>
+
           {/* Tabella gerarchica */}
           <div className="glass-card-static" style={{ padding: 0, overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100 }}>
@@ -194,10 +286,10 @@ export default function GoogleDetailTab() {
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 && (
+                {filteredRows.length === 0 && (
                   <tr><td colSpan={2 + COLS.length} style={{ padding: 24, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>{t('gdet.noData', null, 'Nessuna campagna nel periodo.')}</td></tr>
                 )}
-                {rows.map(camp => {
+                {filteredRows.map(camp => {
                   const cOpen = !!openCampaigns[camp.id]
                   const cKey = `campaign:${camp.id}`
                   const adgroups = children[cKey] || []

@@ -407,7 +407,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleDetail' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

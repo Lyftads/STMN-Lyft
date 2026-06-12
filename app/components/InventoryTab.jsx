@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
@@ -13,6 +13,15 @@ const RISK = {
   ok:       { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'OK' },
 }
 
+const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL']
+const sizeRank = (s) => { const i = SIZE_ORDER.indexOf(String(s || '').toUpperCase().trim()); return i === -1 ? 99 : i }
+// Tono cella matrice in base al rischio della variante
+const cellTone = (r) => {
+  if (r.oos || r.risk === 'le7') return { bg: 'rgba(239,68,68,0.16)', color: '#fca5a5' }
+  if (r.risk === 'le30') return { bg: 'rgba(245,158,11,0.16)', color: '#fcd34d' }
+  return { bg: 'rgba(34,197,94,0.14)', color: '#86efac' }
+}
+
 export default function InventoryTab() {
   const { t, intlLocale } = useI18n()
   const [data, setData] = useState(null)
@@ -20,7 +29,10 @@ export default function InventoryTab() {
   const [error, setError] = useState('')
   const [view, setView] = useState('urgent') // urgent | product | catalog
   const [chip, setChip] = useState('all')    // all | le7 | le30 | oos_sales | low
+  const [catChip, setCatChip] = useState('problems') // problems | instock | nocogs | all
+  const [expanded, setExpanded] = useState(() => new Set())
   const [search, setSearch] = useState('')
+  const toggleExpand = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const load = async (refresh = false) => {
     setLoading(true); setError('')
@@ -62,8 +74,8 @@ export default function InventoryTab() {
     return list
   }, [items, urgentAll, view, chip, search])
 
-  // Vista "Per prodotto": raggruppa le varianti sotto il prodotto
-  const byProduct = useMemo(() => {
+  // Raggruppa le varianti sotto il prodotto, con sintesi taglie/rischio.
+  const productGroups = useMemo(() => {
     const m = new Map()
     for (const i of items) {
       if (!m.has(i.productId)) m.set(i.productId, { productId: i.productId, productTitle: i.productTitle, image: i.image, rows: [] })
@@ -71,14 +83,48 @@ export default function InventoryTab() {
     }
     const q = search.trim().toLowerCase()
     let arr = [...m.values()].map(p => {
-      const crit = p.rows.filter(r => r.risk !== 'ok' && r.risk !== 'oos')
-      const broken = p.rows.filter(r => r.brokenSize)
-      const worst = p.rows.reduce((acc, r) => Math.min(acc, r.daysToStockout ?? 1e9), 1e9)
-      return { ...p, totalStock: p.rows.reduce((s, r) => s + Math.max(r.stock, 0), 0), value: p.rows.reduce((s, r) => s + (r.value || 0), 0), critCount: crit.length, brokenCount: broken.length, worst }
+      const rows = [...p.rows].sort((a, b) => sizeRank(a.size) - sizeRank(b.size) || (a.size || '').localeCompare(b.size || ''))
+      const atRisk = rows.filter(r => r.risk === 'le7' || r.risk === 'le30').sort((a, b) => (a.daysToStockout ?? 1e9) - (b.daysToStockout ?? 1e9))
+      const oosCount = rows.filter(r => r.stock <= 0).length
+      const lowCount = rows.filter(r => r.stock >= 1 && r.stock <= 5).length
+      const broken = rows.filter(r => r.brokenSize)
+      return {
+        ...p, rows,
+        sizeTotal: rows.length,
+        inStock: rows.filter(r => r.stock > 0).length,
+        oosCount, lowCount, atRiskCount: atRisk.length, brokenCount: broken.length,
+        totalStock: rows.reduce((s, r) => s + Math.max(r.stock, 0), 0),
+        vendite: Math.round(rows.reduce((s, r) => s + r.velocity, 0) * 100) / 100,
+        value: rows.reduce((s, r) => s + (r.value || 0), 0),
+        hasCogs: rows.some(r => r.cost != null),
+        critica: atRisk[0]?.size || null,
+        worstDays: atRisk[0]?.daysToStockout ?? null,
+        worstDate: atRisk[0]?.stockoutDate ?? null,
+        oosState: oosCount === 0 ? null : oosCount === rows.length ? 'totale' : 'parziale',
+        hasProblem: oosCount > 0 || atRisk.length > 0 || broken.length > 0,
+      }
     })
-    if (q) arr = arr.filter(p => (p.productTitle || '').toLowerCase().includes(q))
-    return arr.sort((a, b) => (b.critCount + b.brokenCount) - (a.critCount + a.brokenCount) || a.worst - b.worst)
+    if (q) arr = arr.filter(p => p.productTitle.toLowerCase().includes(q) || p.rows.some(r => (r.sku || '').toLowerCase().includes(q)))
+    return arr.sort((a, b) => (b.atRiskCount + b.oosCount + b.brokenCount) - (a.atRiskCount + a.oosCount + a.brokenCount) || (a.worstDays ?? 1e9) - (b.worstDays ?? 1e9))
   }, [items, search])
+
+  // Per prodotto (matrice taglie): solo prodotti con ≥2 varianti (apparel/accessori)
+  const matrixProducts = useMemo(() => productGroups.filter(p => p.rows.length >= 2), [productGroups])
+
+  const catalogList = useMemo(() => {
+    if (catChip === 'problems') return productGroups.filter(p => p.hasProblem)
+    if (catChip === 'instock') return productGroups.filter(p => p.totalStock > 0)
+    if (catChip === 'nocogs') return productGroups.filter(p => !p.hasCogs)
+    return productGroups
+  }, [productGroups, catChip])
+  const catCounts = useMemo(() => ({
+    problems: productGroups.filter(p => p.hasProblem).length,
+    instock: productGroups.filter(p => p.totalStock > 0).length,
+    nocogs: productGroups.filter(p => !p.hasCogs).length,
+    all: productGroups.length,
+  }), [productGroups])
+  const allExpanded = catalogList.length > 0 && catalogList.every(p => expanded.has(p.productId))
+  const expandToggleAll = () => setExpanded(allExpanded ? new Set() : new Set(catalogList.map(p => p.productId)))
 
   const k = data?.kpis
 
@@ -168,7 +214,7 @@ export default function InventoryTab() {
           <FxCard padding={0}>
             <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 4 }}>
-                {[['urgent', t('inv.tabUrgent', null, 'Urgenze'), urgentAll.length], ['product', t('inv.tabProduct', null, 'Per prodotto'), k.productCount], ['catalog', t('inv.tabCatalog', null, 'Catalogo'), k.variantCount]].map(([id, label, n]) => (
+                {[['urgent', t('inv.tabUrgent', null, 'Urgenze'), urgentAll.length], ['product', t('inv.tabProduct', null, 'Per prodotto'), matrixProducts.length], ['catalog', t('inv.tabCatalog', null, 'Catalogo'), productGroups.length]].map(([id, label, n]) => (
                   <button key={id} onClick={() => setView(id)} style={{ padding: '9px 14px', border: 'none', background: 'transparent', cursor: 'pointer', color: view === id ? '#fff' : 'rgba(255,255,255,0.78)', fontSize: 13.5, fontWeight: view === id ? 900 : 700, borderBottom: view === id ? '2px solid var(--accent)' : '2px solid transparent' }}>{label} <span style={{ opacity: 0.6, fontWeight: 700 }}>({n})</span></button>
                 ))}
               </div>
@@ -178,39 +224,28 @@ export default function InventoryTab() {
               </div>
             </div>
 
+            {/* Filtri (Urgenze) */}
             {view === 'urgent' && (
               <div style={{ padding: '12px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[['all', t('inv.fAll', null, 'Tutte urgenti')], ['le7', '≤ 7 gg'], ['le30', '≤ 30 gg'], ['oos_sales', t('inv.fBroken', null, 'OOS con vendite')], ['low', t('inv.fLow', null, 'Low stock (1-5)')]].map(([id, label]) => (
-                  <button key={id} onClick={() => setChip(id)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${chip === id ? 'var(--accent)' : 'var(--border)'}`, background: chip === id ? 'rgba(123,91,255,0.15)' : 'transparent', color: chip === id ? '#fff' : '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+                  <button key={id} onClick={() => setChip(id)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${chip === id ? 'var(--accent)' : 'var(--border)'}`, background: chip === id ? 'rgba(123,91,255,0.15)' : 'transparent', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
                 ))}
               </div>
             )}
 
-            <div style={{ padding: '14px 20px 20px', overflowX: 'auto', maxHeight: '70vh' }}>
-              {view === 'product' ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr>
-                    <th style={{ ...th, textAlign: 'left' }}>{t('inv.colProduct', null, 'Prodotto')}</th>
-                    <th style={th}>{t('inv.colSizes', null, 'Taglie crit.')}</th>
-                    <th style={th}>{t('inv.colBroken', null, 'OOS vend.')}</th>
-                    <th style={th}>{t('inv.colWorst', null, 'Peggiore')}</th>
-                    <th style={th}>{t('inv.colStock', null, 'Stock')}</th>
-                    <th style={th}>{t('inv.colValue', null, 'Valore')}</th>
-                  </tr></thead>
-                  <tbody>
-                    {byProduct.map(p => (
-                      <tr key={p.productId} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '12px 14px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={p.image} /><span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{p.productTitle}</span></div></td>
-                        <td style={{ ...cell, color: p.critCount ? '#f59e0b' : 'rgba(255,255,255,0.78)', fontWeight: 800 }}>{p.critCount || '—'}</td>
-                        <td style={{ ...cell, color: p.brokenCount ? '#ef4444' : 'rgba(255,255,255,0.78)', fontWeight: 800 }}>{p.brokenCount || '—'}</td>
-                        <td style={cell}>{p.worst < 1e9 ? `${p.worst} gg` : '—'}</td>
-                        <td style={cell}>{fmtInt(p.totalStock)}</td>
-                        <td style={{ ...cell, color: '#fff', fontWeight: 800 }}>{fmtMoney(p.value)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
+            {/* Filtri (Catalogo) */}
+            {view === 'catalog' && (
+              <div style={{ padding: '12px 20px 0', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {[['problems', t('inv.cWithProblems', null, 'Con problemi'), catCounts.problems], ['instock', t('inv.cWithStock', null, 'Con stock'), catCounts.instock], ['nocogs', t('inv.cNoCogs', null, 'Senza COGS'), catCounts.nocogs], ['all', t('inv.cAll', null, 'Tutti'), catCounts.all]].map(([id, label, n]) => (
+                  <button key={id} onClick={() => setCatChip(id)} style={{ padding: '6px 12px', borderRadius: 999, border: `1px solid ${catChip === id ? 'var(--accent)' : 'var(--border)'}`, background: catChip === id ? 'rgba(123,91,255,0.15)' : 'transparent', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{label} ({n})</button>
+                ))}
+                <button onClick={expandToggleAll} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{allExpanded ? t('inv.collapseAll', null, 'Comprimi tutti') : t('inv.expandAll', null, 'Espandi tutti')}</button>
+              </div>
+            )}
+
+            {/* ── Urgenze: lista piatta per variante ── */}
+            {view === 'urgent' && (
+              <div style={{ padding: '14px 20px 20px', overflowX: 'auto', maxHeight: '70vh' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead><tr>
                     <th style={{ ...th, textAlign: 'left' }}>{t('inv.colProduct', null, 'Prodotto')}</th>
@@ -236,8 +271,119 @@ export default function InventoryTab() {
                     {filtered.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('inv.empty', null, 'Nessun elemento.')}</td></tr>}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* ── Per prodotto: matrice taglie ── */}
+            {view === 'product' && (
+              <div style={{ padding: '12px 20px 20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                <p style={{ margin: '0 0 12px', color: 'rgba(255,255,255,0.78)', fontSize: 12.5 }}>{t('inv.matrixSub', null, 'Matrice taglie per prodotto — ideale per apparel e accessori.')}</p>
+                {matrixProducts.map(p => {
+                  const open = expanded.has(p.productId)
+                  return (
+                    <div key={p.productId} style={{ border: '1px solid var(--border)', borderRadius: 12, marginBottom: 8, overflow: 'hidden' }}>
+                      <button onClick={() => toggleExpand(p.productId)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s', color: 'rgba(255,255,255,0.6)', width: 12 }}>▸</span>
+                        <Thumb url={p.image} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ color: '#fff', fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.productTitle}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11.5, marginTop: 2 }}>
+                            {p.inStock}/{p.sizeTotal} {t('inv.sizesInStock', null, 'taglie in stock')}
+                            {p.oosState && <> · <span style={{ color: '#ef4444' }}>OOS {p.oosState}</span></>}
+                            {p.atRiskCount > 0 && <> · <span style={{ color: '#f59e0b' }}>{p.atRiskCount} {t('inv.atRisk', null, 'a rischio')}</span></>}
+                            {p.critica && <> · {t('inv.criticalLabel', null, 'critica')}: <b style={{ color: '#fff' }}>{p.critica}</b></>}
+                          </div>
+                        </div>
+                        <span style={{ color: '#fff', fontWeight: 700, fontSize: 12.5, whiteSpace: 'nowrap' }}>{fmtInt(p.totalStock)} {t('inv.pcs', null, 'pz')}</span>
+                      </button>
+                      {open && (
+                        <div style={{ padding: '4px 14px 16px 38px', overflowX: 'auto', background: 'rgba(255,255,255,0.015)' }}>
+                          <table style={{ borderCollapse: 'separate', borderSpacing: 6 }}>
+                            <thead><tr>
+                              <th></th>
+                              {p.rows.map(r => <th key={r.variantId} style={{ fontSize: 11, fontWeight: 800, color: '#fff', textAlign: 'center', padding: '2px 8px', whiteSpace: 'nowrap' }}>{r.size}</th>)}
+                            </tr></thead>
+                            <tbody>
+                              <tr>
+                                <td style={{ fontSize: 10.5, fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', paddingRight: 8 }}>{t('inv.stockRow', null, 'Stock')}</td>
+                                {p.rows.map(r => { const tn = cellTone(r); return <td key={r.variantId} style={{ textAlign: 'center', minWidth: 50, background: tn.bg, color: tn.color, fontWeight: 800, fontSize: 13, borderRadius: 8, padding: '7px 6px' }}>{fmtInt(r.stock)}</td> })}
+                              </tr>
+                              <tr>
+                                <td style={{ fontSize: 10.5, fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', paddingRight: 8 }}>{t('inv.days', null, 'Giorni')}</td>
+                                {p.rows.map(r => { const tn = cellTone(r); return <td key={r.variantId} style={{ textAlign: 'center', background: tn.bg, color: tn.color, fontWeight: 700, fontSize: 11.5, borderRadius: 8, padding: '7px 6px' }}>{r.oos ? 'OOS' : r.daysToStockout != null ? `${r.daysToStockout}g` : 'OK'}</td> })}
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {matrixProducts.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>{t('inv.empty', null, 'Nessun elemento.')}</div>}
+              </div>
+            )}
+
+            {/* ── Catalogo: prodotto espandibile → tabella SKU ── */}
+            {view === 'catalog' && (
+              <div style={{ padding: '12px 20px 20px', overflowX: 'auto', maxHeight: '70vh' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr>
+                    <th style={{ ...th, textAlign: 'left' }}>{t('inv.colProduct', null, 'Prodotto')}</th>
+                    <th style={th}>{t('inv.colStock', null, 'Stock')}</th>
+                    <th style={th}>{t('inv.perDay', null, 'Vendite/g')}</th>
+                    <th style={th}>{t('inv.colStockout', null, 'Stockout')}</th>
+                    <th style={th}>OOS</th>
+                    <th style={th}>{t('inv.colLow', null, 'Low')}</th>
+                    <th style={th}>{t('inv.colValueCogs', null, 'Valore COGS')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {catalogList.map(p => {
+                      const open = expanded.has(p.productId)
+                      return (
+                        <Fragment key={p.productId}>
+                          <tr onClick={() => toggleExpand(p.productId)} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                            <td style={{ padding: '12px 14px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ color: 'rgba(255,255,255,0.6)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s', width: 12, display: 'inline-block' }}>▸</span><Thumb url={p.image} /><span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{p.productTitle}</span></div></td>
+                            <td style={{ ...cell, color: p.totalStock > 0 ? '#fff' : '#ef4444', fontWeight: 800 }}>{fmtInt(p.totalStock)}</td>
+                            <td style={cell}>{p.vendite || '—'}</td>
+                            <td style={{ ...cell, color: p.worstDate ? (p.worstDays <= 7 ? '#ef4444' : '#f59e0b') : 'rgba(255,255,255,0.6)' }}>{p.worstDate ? fmtDate(p.worstDate) : t('inv.na', null, 'N/D')}</td>
+                            <td style={{ ...cell, color: p.oosCount ? '#ef4444' : 'rgba(255,255,255,0.6)', fontWeight: 800 }}>{p.oosCount || '—'}</td>
+                            <td style={{ ...cell, color: p.lowCount ? '#f59e0b' : 'rgba(255,255,255,0.6)', fontWeight: 800 }}>{p.lowCount || '—'}</td>
+                            <td style={{ ...cell, color: '#fff', fontWeight: 800 }}>{fmtMoney(p.value)}</td>
+                          </tr>
+                          {open && (
+                            <tr><td colSpan={7} style={{ padding: 0, background: 'rgba(255,255,255,0.015)' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead><tr>
+                                  <th style={{ ...th, textAlign: 'left', paddingLeft: 48, position: 'static' }}>{t('inv.colSku', null, 'SKU / Variante')}</th>
+                                  <th style={{ ...th, position: 'static' }}>{t('inv.colQty', null, 'Qty')}</th>
+                                  <th style={{ ...th, position: 'static' }}>{t('inv.colSold30', null, 'Vendite/g (30g)')}</th>
+                                  <th style={{ ...th, position: 'static' }}>{t('inv.colStockoutEst', null, 'Stockout stim.')}</th>
+                                  <th style={{ ...th, position: 'static' }}>{t('inv.colCogsUnit', null, 'COGS unit.')}</th>
+                                  <th style={{ ...th, position: 'static' }}>{t('inv.colStockValue', null, 'Valore stock')}</th>
+                                </tr></thead>
+                                <tbody>
+                                  {p.rows.map(r => (
+                                    <tr key={r.variantId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                      <td style={{ padding: '10px 14px 10px 48px' }}><div style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{r.sku || '—'}</div><div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10.5 }}>{r.size}</div></td>
+                                      <td style={{ ...cell, color: r.oos ? '#ef4444' : '#fff', fontWeight: 800 }}>{fmtInt(r.stock)}</td>
+                                      <td style={cell}>{r.velocity || 0}</td>
+                                      <td style={{ ...cell, color: r.oos ? '#ef4444' : r.risk === 'le7' ? '#ef4444' : r.risk === 'le30' ? '#f59e0b' : 'rgba(255,255,255,0.6)' }}>{r.oos ? t('inv.oos', null, 'Esaurito') : r.stockoutDate ? fmtDate(r.stockoutDate) : t('inv.na', null, 'N/D')}</td>
+                                      <td style={cell}>{r.cost != null ? fmtMoney(r.cost, 2) : '—'}</td>
+                                      <td style={{ ...cell, color: '#fff', fontWeight: 700 }}>{r.value ? fmtMoney(r.value) : '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </td></tr>
+                          )}
+                        </Fragment>
+                      )
+                    })}
+                    {catalogList.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.78)' }}>{t('inv.empty', null, 'Nessun elemento.')}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </FxCard>
         </>
       )}

@@ -4,6 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { format, subDays } from 'date-fns'
 import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+import { getAdminSupabase } from '../../../lib/supabase/server'
 
 // ── Cache server-side della risposta /api/metrics ──────────────────────────
 // La route è pesante (decine di query Shopify). Senza cache, ogni cambio tab /

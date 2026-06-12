@@ -43,11 +43,11 @@ async function fetchAllVariants(store, token) {
       products(first: 100${after}, query: "status:active") {
         pageInfo { hasNextPage endCursor }
         edges { node {
-          id title productType status
+          id title productType status isGiftCard
           featuredImage { url }
           variants(first: 100) { edges { node {
             legacyResourceId title sku inventoryQuantity price
-            inventoryItem { unitCost { amount currencyCode } }
+            inventoryItem { unitCost { amount currencyCode } requiresShipping }
           }}}
         }}
       }
@@ -57,8 +57,12 @@ async function fetchAllVariants(store, token) {
     for (const { node: p } of edges) {
       // Solo prodotti ATTIVI: escludi bozze e archiviati (oltre al filtro query).
       if (p.status && p.status !== 'ACTIVE') continue
+      // Escludi gift card e prodotti digitali/servizi (niente inventario fisico).
+      if (p.isGiftCard) continue
       const image = p.featuredImage?.url || null
       for (const { node: v } of (p.variants?.edges || [])) {
+        // Variante digitale/servizio (non richiede spedizione) → fuori inventario.
+        if (v.inventoryItem?.requiresShipping === false) continue
         const cost = v.inventoryItem?.unitCost?.amount != null ? parseFloat(v.inventoryItem.unitCost.amount) : null
         if (v.inventoryItem?.unitCost?.currencyCode) currency = v.inventoryItem.unitCost.currencyCode
         out.push({

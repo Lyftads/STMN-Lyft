@@ -12,7 +12,7 @@ let __ppCache = null // { key, payload }
 
 export default function ProductPerformanceTab() {
   const { t, intlLocale } = useI18n()
-  const [since, setSince] = useState(isoDay(new Date(Date.now() - 90 * 86400000)))
+  const [since, setSince] = useState(isoDay(new Date(Date.now() - 30 * 86400000)))
   const [until, setUntil] = useState(isoDay(new Date()))
   const [data, setData] = useState(() => (__ppCache?.payload || null))
   const [loading, setLoading] = useState(!__ppCache)
@@ -133,7 +133,7 @@ export default function ProductPerformanceTab() {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.from', null, 'Da')}<input type="date" value={since} onChange={e => setSince(e.target.value)} style={inputStyle} /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.to', null, 'A')}<input type="date" value={until} onChange={e => setUntil(e.target.value)} style={inputStyle} /></label>
         <button onClick={() => load(since, until, true)} disabled={loading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? t('pp.loading', null, 'Carico…') : t('pp.update', null, 'Aggiorna')}</button>
-        <button onClick={() => { const s = isoDay(new Date(Date.now() - 90 * 86400000)), u = isoDay(new Date()); setSince(s); setUntil(u); load(s, u, true) }} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.reset', null, 'Reset')}</button>
+        <button onClick={() => { const s = isoDay(new Date(Date.now() - 30 * 86400000)), u = isoDay(new Date()); setSince(s); setUntil(u); load(s, u, true) }} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.reset', null, 'Reset')}</button>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 700, marginRight: 4 }}>{t('pp.sortBy', null, 'Ordina per')}</span>
           {sortBtn('margin', t('pp.sortMargin', null, 'Margine'))}
@@ -155,6 +155,7 @@ export default function ProductPerformanceTab() {
           </div>
 
           <div style={{ fontSize: 11.5, color: 'var(--text2)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {data.clamped && <span style={{ color: '#f59e0b' }}>⚠ {t('pp.clampedNote', { d: data.range.since }, `Shopify limita gli ordini agli ultimi 60 giorni — analisi dal ${data.range.since} (per finestre più lunghe serve lo scope read_all_orders).`)}</span>}
             {k.adsMappedPct >= 100
               ? <span style={{ color: '#34d399' }}>✓ {t('pp.allMapped', null, 'ADS attribuiti per campagna (dato preciso) su tutta la spesa.')}</span>
               : <span><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#34d399', marginRight: 5 }} />{t('pp.mappedNote', { n: k.adsMappedPct }, `${k.adsMappedPct}% della spesa ADS è mappata per campagna (preciso); il resto è ripartito in proporzione al ricavo. Mappa le campagne per il dato esatto.`)}</span>}

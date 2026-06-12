@@ -116,7 +116,12 @@ export async function GET(req) {
 
     const sp = new URL(req.url).searchParams
     const until = sp.get('until') || isoDay(new Date())
-    const since = sp.get('since') || isoDay(new Date(Date.now() - 90 * 86400000))
+    const reqSince = sp.get('since') || isoDay(new Date(Date.now() - 30 * 86400000))
+    // Shopify senza scope read_all_orders restituisce SOLO gli ultimi 60 giorni:
+    // limito l'intera finestra (ordini + ADS) per tenere i margini coerenti.
+    const floor60 = isoDay(new Date(new Date(until + 'T00:00:00Z').getTime() - 59 * 86400000))
+    const since = reqSince < floor60 ? floor60 : reqSince
+    const clamped = since !== reqSince
     const force = sp.get('refresh') === '1'
     const cacheKey = `${store}:${since}:${until}`
     const hit = __cache.get(cacheKey)
@@ -212,6 +217,7 @@ export async function GET(req) {
       const data = {
         ok: true,
         range: { since, until }, prevRange: { since: prevSince, until: prevUntil },
+        clamped, requestedSince: reqSince,
         currency: 'EUR',
         updatedAt: new Date().toISOString(),
         totals: {

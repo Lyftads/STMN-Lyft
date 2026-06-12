@@ -17,7 +17,7 @@ const NANGO_PROVIDERS = [
 const LOGO_MAP = {
   'shopify.com':          { slug: 'shopify',          color: '95BF47' },
   'meta.com':             { slug: 'meta',             color: '0081FB' },
-  'klaviyo.com':          { slug: 'klaviyo',          color: '29B473' },
+  'klaviyo.com':          { slug: 'klaviyo',          color: '20A762' },
   'ads.google.com':       { slug: 'googleads',        color: '4285F4' },
   'analytics.google.com': { slug: 'googleanalytics',  color: 'E37400' },
   'tiktok.com':           { slug: 'tiktok',           color: '000000', dark: true },

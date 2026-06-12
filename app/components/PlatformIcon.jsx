@@ -1,14 +1,23 @@
 'use client'
 
+import { useState } from 'react'
+
+// Loghi brand resi dal logo UFFICIALE (SimpleIcons CDN) con fallback alla favicon
+// reale del brand. Più affidabile dei path disegnati a mano (Shopify/Klaviyo).
+const CDN_BRANDS = {
+  shopify: { slug: 'shopify', color: '95BF47', domain: 'shopify.com' },
+  klaviyo: { slug: 'klaviyo', color: '20A762', domain: 'klaviyo.com' },
+}
+
+function CdnLogo({ slug, color, domain, size }) {
+  const [err, setErr] = useState(false)
+  const style = { width: size, height: size, display: 'block', objectFit: 'contain' }
+  if (err) return <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} alt="" style={style} />
+  return <img src={`https://cdn.simpleicons.org/${slug}/${color}`} alt="" style={style} onError={() => setErr(true)} />
+}
+
 // Higher-quality, more recognizable brand marks
 const ICONS = {
-  shopify: ({ s }) => (
-    <svg width={s} height={s} viewBox="0 0 109 124" fill="none">
-      <path d="M74.7 23.7c-.1-.5-.5-.8-.9-.8-.3 0-7.4-.5-7.4-.5s-4.9-4.9-5.5-5.4c-.5-.5-1.5-.4-1.9-.3-.1 0-1.1.3-2.8.9-1.6-4.8-4.5-9.2-9.6-9.2h-.5C44.7 5.5 42.9 5 41.4 5 29.5 5 23.8 19.9 22 27.5c-4.6 1.4-7.9 2.4-8.3 2.6-2.6.8-2.7.9-3 3.3-.3 1.9-7 53.6-7 53.6L56.9 100l28.1-6.1S74.8 24.2 74.7 23.7zM52 28.8c-2.5.8-5.3 1.6-8 2.5 0-2.6 0-5.2-.6-7.6-1.4-.4-2.7-.5-3.9-.5C30.6 23.2 23.1 32 21 47c0 1.4.1 2.8.3 4.1l-9.4 2.9C12 47.9 14 41.3 17 36c2.8-5 6.5-9 10.7-11.7 4.8-3.1 10-4.7 15.6-4.7 5.4 0 9.7 1.3 12.7 3.8-.7 2-1.7 3.9-2 5.4-.5-.1-1.1-.1-1.7-.1-.2 0-.3.1-.3.1zm-9.2-7.2c-.4 1.5-1 3.3-1.6 5.1-2-.5-4.1-.9-6-.9-1.9 0-3.5.2-5 .5C30.1 18 33.1 13.9 36 13.9c1.4 0 2.7.7 3.8 2 1.7 2.1 2.8 4.4 3 5.7zm5.5-.5c-2.1-.6-4.4-1-6.8-1-.3 0-.5 0-.8.1.3-1.4.8-3.3 1.4-5.1.8-2 1.7-4 2.7-5.5.4-.6.9-1.3 1.4-1.8.8-.5 1.6-.7 2.4-.7 1.4 0 2.7.3 4 .9-.6 5.4-1.2 9.2-3.5 12.7-.3.2-.6.3-.8.4zm5.1-1.6c1.9-3.2 3-7.4 3-13.1-.1-.1-.2-.2-.3-.3 1.3.2 2.6.7 3.7 1.7C56.5 9.7 53.4 16.7 53.4 19.5zM82 119.7L56.9 124l29.1-21.4z" fill="#95BF47"/>
-      <path d="M73.7 22.9c-.4 0-7.4-.5-7.4-.5s-4.9-4.9-5.5-5.4c-.2-.2-.5-.3-.8-.4l-2.2 107.1L82 119.7s-8-67.4-7.4-71l-.9-.1.1-25.7z" fill="#5E8E3E"/>
-      <path d="M44.5 53.2L41.4 63s-2.9-1.6-6.5-1.6c-5.3 0-5.5 3.3-5.5 4.1 0 4.5 11.9 6.3 11.9 17 0 8.4-5.4 13.9-12.6 13.9-8.7 0-13.1-5.4-13.1-5.4l2.3-7.7s4.6 3.9 8.4 3.9c2.5 0 3.6-2 3.6-3.5 0-5.9-9.8-6.1-9.8-15.9 0-8.2 5.9-16.2 17.8-16.2 4.5.1 6.6 1.6 6.6 1.6z" fill="var(--text)"/>
-    </svg>
-  ),
   meta: ({ s }) => (
     <svg width={s} height={s} viewBox="0 0 287 191" fill="none">
       <path d="M31.06 117.95c0 11.41 2.51 20.18 5.79 25.49 4.3 6.96 10.72 9.91 17.26 9.91 8.44 0 16.16-2.09 31.05-22.69 11.93-16.51 25.99-39.7 35.45-54.23l16.03-24.62c11.12-17.08 23.99-36.07 38.74-48.95C187.43 2.39 200.39-2.49 213.44-2.49c21.91 0 42.78 12.7 58.75 36.51 17.48 26.07 25.95 58.92 25.95 92.83 0 20.16-3.97 34.97-10.73 46.67-6.53 11.31-19.27 22.59-40.69 22.59v-32.29c18.34 0 22.92-16.86 22.92-36.16 0-27.51-6.41-58.04-20.53-79.85-10.02-15.47-23-24.92-37.28-24.92-15.45 0-27.88 11.65-41.85 32.43-7.43 11.04-15.05 24.51-23.59 39.7l-9.46 16.78c-19.02 33.71-23.84 41.39-33.36 54.07-16.66 22.18-30.89 30.59-49.62 30.59-22.12 0-36.11-9.58-44.78-24.02C2.99 159.95 0 145.4 0 128.81l31.06-10.86z" fill="#0081FB"/>
@@ -30,11 +39,6 @@ const ICONS = {
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-    </svg>
-  ),
-  klaviyo: ({ s }) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-      <path d="M12 4C7 4 3.5 7.5 2 12c1.5 4.5 5 8 10 8s8.5-3.5 10-8c-1.5-4.5-5-8-10-8zm0 13.5c-3 0-5.5-2.5-5.5-5.5S9 6.5 12 6.5s5.5 2.5 5.5 5.5-2.5 5.5-5.5 5.5zm0-3c1.4 0 2.5-1.1 2.5-2.5S13.4 9.5 12 9.5 9.5 10.6 9.5 12s1.1 2.5 2.5 2.5z" fill="#29B473"/>
     </svg>
   ),
   ga4: ({ s }) => (
@@ -72,8 +76,9 @@ const ICONS = {
 const BG_DARK = new Set(['tiktok', 'openai'])
 
 export default function PlatformIcon({ platform, size = 20 }) {
+  const cdn = CDN_BRANDS[platform]
   const Icon = ICONS[platform]
-  if (!Icon) return null
+  if (!cdn && !Icon) return null
   const dark = BG_DARK.has(platform)
   return (
     <span
@@ -90,7 +95,7 @@ export default function PlatformIcon({ platform, size = 20 }) {
         boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
       }}
     >
-      <Icon s={size} />
+      {cdn ? <CdnLogo slug={cdn.slug} color={cdn.color} domain={cdn.domain} size={size} /> : <Icon s={size} />}
     </span>
   )
 }

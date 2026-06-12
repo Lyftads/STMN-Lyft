@@ -128,21 +128,12 @@ export default function GoogleKpiTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
       <div className="glass-card-static" style={{ padding: 22, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <span style={{
-          width: 42, height: 42, borderRadius: 11,
-          background: 'rgba(234,179,8,0.14)', color: GOOGLE,
-          display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 900,
-        }}>G</span>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 9.5, color: GOOGLE, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-              Google KPI
-            </div>
-            <PlatformBadges sources={['google']} size={16} />
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
-            {t('gkpi.header', null, 'Performance Google Ads')} · {data?.range?.since} → {data?.range?.until}
-          </div>
+        <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <PlatformBadges sources={['google']} size={26} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            LIVE
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <BmTimeframe value={tf} onChange={setTf} accent={GOOGLE} disabled={loading} />

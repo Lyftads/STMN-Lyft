@@ -27,6 +27,7 @@ async function fetchOrders(store, token, sinceISO, untilISO) {
     const data = await res.json()
     for (const o of (data.orders || [])) {
       for (const li of (o.line_items || [])) {
+        if (li.gift_card) continue // escludi gift card dal P&L prodotto
         const pid = li.product_id != null ? String(li.product_id) : null
         if (!pid) continue
         const qty = num(li.quantity)

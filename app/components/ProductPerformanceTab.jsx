@@ -162,7 +162,7 @@ export default function ProductPerformanceTab() {
                     <td style={cell} title={p.adsExact ? t('pp.adsExact', null, 'Attribuito per campagna (preciso)') : t('pp.adsEstimate', null, 'Stima proporzionale')}>{p.adsExact && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#34d399', marginRight: 5, verticalAlign: 'middle' }} />}{fmtMoney(p.ads)}</td>
                     <td style={{ ...cell, color: p.marginOp >= 0 ? '#34d399' : '#ef4444', fontWeight: 900 }}>{fmtMoney(p.marginOp)}</td>
                     <td style={{ ...cell, color: p.marginPct >= 40 ? '#34d399' : p.marginPct >= 0 ? '#fcd34d' : '#ef4444', fontWeight: 700 }}>{p.marginPct}%</td>
-                    <td style={cell}>{p.roas != null ? `${p.roas}×` : '—'}</td>
+                    <td style={{ ...cell, color: p.adsExact ? '#fff' : 'rgba(255,255,255,0.45)' }} title={p.adsExact ? undefined : t('pp.roasEstimate', null, 'ROAS stimato = ROAS blended, uguale per tutti finché non mappi la campagna su questo prodotto')}>{p.roas != null ? `${p.adsExact ? '' : '~'}${p.roas}×` : '—'}</td>
                     <td style={{ ...cell, color: p.deltaNet == null ? 'rgba(255,255,255,0.4)' : p.deltaNet >= 0 ? '#34d399' : '#ef4444', fontWeight: 700 }}>{p.deltaNet == null ? '—' : `${p.deltaNet >= 0 ? '↑ +' : '↓ '}${p.deltaNet}%`}</td>
                   </tr>
                 ))}

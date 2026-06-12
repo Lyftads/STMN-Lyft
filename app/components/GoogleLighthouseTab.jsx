@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 
 // ─────────────────────────────────────────────────────────────
 //  Google Lighthouse — Alert Center per Google Ads (gemella Meta Lighthouse)
@@ -26,7 +28,8 @@ const SEVERITY_COLORS = {
 const SEVERITY_LABEL = { high: 'Alto', medium: 'Medio', low: 'Basso' }
 
 export default function GoogleLighthouseTab() {
-  const [preset, setPreset] = useState('last_14d')
+  const [tf, setTf] = useState({ preset: 'last_14d' })
+  const preset = tf.preset
   const [filter, setFilter] = useState('all')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -34,14 +37,14 @@ export default function GoogleLighthouseTab() {
 
   const load = (force = false) => {
     let cancelled = false
-    const key = `google-lighthouse:${preset}`
+    const key = `google-lighthouse:${tfKey(tf)}`
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
     if (cached) setData(cached.data); else setLoading(true)
     setError(null)
     swrFetch({
       key, forceRefresh: force,
-      fetcher: () => fetch(`/api/google-lighthouse?preset=${encodeURIComponent(preset)}`).then(r => r.json()),
+      fetcher: () => fetch(`/api/google-lighthouse?${tfQuery(tf)}`).then(r => r.json()),
       onUpdate: fresh => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => { if (!cancelled) { if (j?.error) setError(j.error); setData(j) } })
@@ -50,7 +53,7 @@ export default function GoogleLighthouseTab() {
     return () => { cancelled = true }
   }
 
-  useEffect(() => { return load() }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { return load() }, [tf]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const alerts = Array.isArray(data?.alerts) ? data.alerts : []
   const proposals = Array.isArray(data?.proposals) ? data.proposals : []
@@ -71,10 +74,7 @@ export default function GoogleLighthouseTab() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={preset} onChange={e => setPreset(e.target.value)}
-            style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer', minWidth: 140 }}>
-            {PRESETS.map(o => <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>{o.label}</option>)}
-          </select>
+          <BmTimeframe value={tf} onChange={setTf} accent="#fbbf24" disabled={loading} />
           <button type="button" onClick={() => load(true)} disabled={loading}
             style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>

@@ -6,6 +6,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const GOOGLE = '#eab308'
@@ -63,7 +65,8 @@ const statusColor = (s) => {
 
 export default function GoogleDetailTab() {
   const { t } = useI18n()
-  const [preset, setPreset] = useState('last_28d')
+  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const preset = tf.preset
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -78,7 +81,7 @@ export default function GoogleDetailTab() {
 
   const load = (force = false) => {
     let cancelled = false
-    const key = `google-detail:${preset}`
+    const key = `google-detail:${tfKey(tf)}`
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
     if (cached) setData(cached.data)
@@ -88,7 +91,7 @@ export default function GoogleDetailTab() {
     setOpenCampaigns({}); setOpenAdgroups({}); setChildren({})
     swrFetch({
       key, forceRefresh: force,
-      fetcher: () => fetch(`/api/google-detail?preset=${encodeURIComponent(preset)}&level=campaigns`).then(r => r.json()),
+      fetcher: () => fetch(`/api/google-detail?${tfQuery(tf)}&level=campaigns`).then(r => r.json()),
       onUpdate: fresh => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => {
@@ -101,7 +104,7 @@ export default function GoogleDetailTab() {
     return () => { cancelled = true }
   }
 
-  useEffect(() => { const c = load(); return c }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const c = load(); return c }, [tf]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function drill(node, level, parentParam, openState, setOpen) {
     const key = `${level}:${node.id}`
@@ -109,7 +112,7 @@ export default function GoogleDetailTab() {
     if (children[key]) { setOpen(p => ({ ...p, [node.id]: true })); return }
     setLoadingNode(p => ({ ...p, [key]: true }))
     try {
-      const res = await fetch(`/api/google-detail?preset=${encodeURIComponent(preset)}&level=${level === 'campaign' ? 'adgroups' : 'ads'}&${parentParam}=${node.id}`, { cache: 'no-store' })
+      const res = await fetch(`/api/google-detail?${tfQuery(tf)}&level=${level === 'campaign' ? 'adgroups' : 'ads'}&${parentParam}=${node.id}`, { cache: 'no-store' })
       const j = await res.json()
       if (!j.ok) throw new Error(j.error || 'Errore caricamento')
       setChildren(p => ({ ...p, [key]: j.rows || [] }))
@@ -173,10 +176,7 @@ export default function GoogleDetailTab() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={preset} onChange={e => setPreset(e.target.value)}
-            style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, outline: 'none', cursor: 'pointer', minWidth: 160 }}>
-            {PRESETS.map(o => <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>{t(o.labelKey, null, o.label)}</option>)}
-          </select>
+          <BmTimeframe value={tf} onChange={setTf} accent={GOOGLE} disabled={loading} />
           <button type="button" onClick={() => load(true)} disabled={loading}
             style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import FxCard from './ui/FxCard'
-import TimeframeSelector from './TimeframeSelector'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -48,7 +49,8 @@ export default function GoogleBudgetAdvisorPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
-  const [preset, setPreset] = useState('last_28d')
+  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const preset = tf.preset
   const [queued, setQueued] = useState({})
 
   const enqueue = async (key, body) => {
@@ -63,8 +65,8 @@ export default function GoogleBudgetAdvisorPanel() {
   useEffect(() => {
     let cancelled = false
     setError(null)
-    const url = `/api/google-budget-advisor?preset=${encodeURIComponent(preset)}`
-    const key = `google-budget-advisor:${preset}`
+    const url = `/api/google-budget-advisor?${tfQuery(tf)}`
+    const key = `google-budget-advisor:${tfKey(tf)}`
     const cached = getCached(key)
     if (cached) setData(cached.data); else setLoading(true)
     swrFetch({
@@ -80,7 +82,7 @@ export default function GoogleBudgetAdvisorPanel() {
       .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
       .finally(() => { if (!cancelled && !cached) setLoading(false) })
     return () => { cancelled = true }
-  }, [preset])
+  }, [tf])
 
   const camps = data?.campaigns || []
   const delta = data?.delta || {}
@@ -105,7 +107,7 @@ export default function GoogleBudgetAdvisorPanel() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['google']} size={18} />
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TimeframeSelector value={preset} onChange={setPreset} disabled={loading} />
+            <BmTimeframe value={tf} onChange={setTf} accent="#eab308" disabled={loading} />
           </div>
         </div>
         {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('ba.loading')}</div>}

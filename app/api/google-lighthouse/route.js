@@ -18,7 +18,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_14d'
     const baseline_window = Math.min(30, Math.max(7, parseInt(searchParams.get('baseline_window') || '14', 10)))
-    const range = getRange(preset)
+    const range = getRange(preset, searchParams)
 
     try {
       const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'

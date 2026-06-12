@@ -9,6 +9,8 @@ import {
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
+import BmTimeframe from './ui/BmTimeframe'
+import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const GOOGLE = '#eab308'
@@ -83,14 +85,15 @@ const CHARTS = [
 
 export default function GoogleKpiTab() {
   const { t } = useI18n()
-  const [preset, setPreset] = useState('last_28d')
+  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const preset = tf.preset
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const load = (force = false) => {
     let cancelled = false
-    const key = `google-kpi:${preset}`
+    const key = `google-kpi:${tfKey(tf)}`
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
     if (cached) setData(cached.data)
@@ -98,7 +101,7 @@ export default function GoogleKpiTab() {
     setError(null)
     swrFetch({
       key, forceRefresh: force,
-      fetcher: () => fetch(`/api/google-kpi?preset=${encodeURIComponent(preset)}`).then(r => r.json()),
+      fetcher: () => fetch(`/api/google-kpi?${tfQuery(tf)}`).then(r => r.json()),
       onUpdate: fresh => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => {
@@ -114,7 +117,7 @@ export default function GoogleKpiTab() {
   useEffect(() => {
     const cleanup = load()
     return cleanup
-  }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tf]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = data?.totals || {}
   const prevTotals = data?.prevTotals || {}
@@ -142,21 +145,7 @@ export default function GoogleKpiTab() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select
-            value={preset}
-            onChange={e => setPreset(e.target.value)}
-            style={{
-              background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
-              borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
-              outline: 'none', cursor: 'pointer', minWidth: 160,
-            }}
-          >
-            {PRESETS.map(o => (
-              <option key={o.value} value={o.value} style={{ background: '#0a0a14' }}>
-                {t(o.labelKey, null, o.label)}
-              </option>
-            ))}
-          </select>
+          <BmTimeframe value={tf} onChange={setTf} accent={GOOGLE} disabled={loading} />
           <button
             type="button"
             onClick={() => load(true)}

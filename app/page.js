@@ -39,6 +39,7 @@ import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MetaKpiTab from './components/MetaKpiTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
+import GoogleProductsTab from './components/GoogleProductsTab'
 import GoogleLighthouseTab from './components/GoogleLighthouseTab'
 import GoogleBudgetAdvisorPanel from './components/GoogleBudgetAdvisorPanel'
 import LighthouseTab from './components/LighthouseTab'
@@ -4304,6 +4305,10 @@ export default function App() {
 
 {tab === 'googleDetail' && (
   <GoogleDetailTab />
+)}
+
+{tab === 'googleProducts' && (
+  <GoogleProductsTab />
 )}
 
 {tab === 'googleLighthouse' && (

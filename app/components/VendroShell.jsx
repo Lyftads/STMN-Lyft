@@ -119,6 +119,7 @@ export default function VendroShell({
       color: '#eab308',
       items: [
         { id: 'googleDetail', label: 'Google Detail', icon: <Icon name="list" /> },
+        { id: 'googleProducts', label: 'Prodotti', icon: <Icon name="bag" /> },
         { id: 'googleKpi', label: 'Google KPI', icon: <Icon name="gauge" /> },
         { id: 'googleLighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'googleBudgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
@@ -407,7 +408,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

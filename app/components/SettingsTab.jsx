@@ -411,8 +411,10 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
   )
 }
 
-function ComparisonTable() {
+function ComparisonTable({ cadence = null }) {
   const { t } = useI18n()
+  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+  const prices = [69, 149, 299, null] // Starter / Growth / Scale / Enterprise
   return (
     <div style={{
       borderRadius: 16,
@@ -443,6 +445,28 @@ function ComparisonTable() {
           </tr>
         </thead>
         <tbody>
+          {/* Riga prezzo — riflette la cadenza selezionata */}
+          <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
+            <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 800, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
+              {t('settings.priceRow', null, 'Prezzo')}{cadence?.bill ? <span style={{ color: 'var(--text3)', fontWeight: 600 }}> · {cadence.bill}</span> : ''}
+            </td>
+            {prices.map((m, j) => {
+              const f = cadence?.factor ?? 1
+              const eff = m == null ? null : Math.round(m * f)
+              return (
+                <td key={j} style={{ textAlign: 'center', padding: '12px 16px', fontSize: 12.5, fontWeight: 800, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent' }}>
+                  {m == null ? (
+                    <span style={{ color: 'var(--text2)' }}>Su misura</span>
+                  ) : (
+                    <span style={{ color: 'var(--text)' }}>
+                      {eur0(eff)}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>/m</span>
+                      {cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#ef4444' }}>−{cadence.off}%</span>}
+                    </span>
+                  )}
+                </td>
+              )
+            })}
+          </tr>
           {FEATURE_MATRIX.map((row, i) => (
             <tr key={i} style={{
               background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
@@ -1126,7 +1150,7 @@ export default function SettingsTab() {
             {t('settings.comparePlans', null, 'Comparativa piani')}
           </div>
         </div>
-        <ComparisonTable />
+        <ComparisonTable cadence={audience === 'agency' ? null : bc} />
       </GlassCard>
 
       <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />

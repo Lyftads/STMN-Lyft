@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import AddClientModal from '../components/AddClientModal'
 
 // Login picker: l'agency/freelance sceglie quale azienda aprire.
 // Se l'utente ha un solo workspace, redirect diretto in dashboard.
@@ -10,6 +11,9 @@ export default function SelectWorkspacePage() {
   const [data, setData] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addBusy, setAddBusy] = useState(false)
+  const [addError, setAddError] = useState(null)
 
   useEffect(() => {
     fetch('/api/workspaces')
@@ -30,16 +34,14 @@ export default function SelectWorkspacePage() {
     } catch { setBusy(false); setError('Impossibile aprire questa azienda') }
   }
 
-  const addClient = async () => {
-    const name = window.prompt('Nome del cliente / azienda:')
-    if (!name || !name.trim()) return
-    setBusy(true)
+  const createClient = async (name) => {
+    setAddBusy(true); setAddError(null)
     try {
-      const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name.trim(), companyName: name.trim() }) })
+      const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name, companyName: name }) })
       const j = await r.json()
       if (j?.workspace?.id) await open(j.workspace.id)
-      else { setBusy(false); setError(j?.error || 'Errore creazione cliente') }
-    } catch { setBusy(false); setError('Errore creazione cliente') }
+      else { setAddBusy(false); setAddError(j?.error || 'Errore creazione cliente') }
+    } catch { setAddBusy(false); setAddError('Errore di rete') }
   }
 
   return (
@@ -72,7 +74,7 @@ export default function SelectWorkspacePage() {
             ))}
 
             {data.isAgency && (
-              <button type="button" disabled={busy} onClick={addClient} style={{
+              <button type="button" disabled={busy} onClick={() => { setAddError(null); setAddOpen(true) }} style={{
                 cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
                 background: 'transparent', border: '1px dashed rgba(34,197,94,0.5)', color: '#22c55e',
                 borderRadius: 16, padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 800,
@@ -81,6 +83,7 @@ export default function SelectWorkspacePage() {
           </div>
         )}
       </div>
+      <AddClientModal open={addOpen} busy={addBusy} error={addError} onClose={() => setAddOpen(false)} onSubmit={createClient} />
     </div>
   )
 }

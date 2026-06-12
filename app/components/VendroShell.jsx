@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import TimeframeSelector from './TimeframeSelector'
 import BmTimeframe from './ui/BmTimeframe'
+import AddClientModal from './AddClientModal'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import DownloadReportButton from './DownloadReportButton'
@@ -558,6 +559,9 @@ function WorkspacePill() {
   const [ws, setWs] = useState({ workspaces: [], activeId: null, isAgency: false })
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addBusy, setAddBusy] = useState(false)
+  const [addError, setAddError] = useState(null)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -587,16 +591,14 @@ function WorkspacePill() {
     try { await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) }); window.location.href = '/?tab=dashboard' }
     catch { setBusy(false) }
   }
-  const addClient = async () => {
-    const name = typeof window !== 'undefined' ? window.prompt('Nome del cliente / azienda:') : null
-    if (!name || !name.trim()) return
-    setBusy(true)
+  const createClient = async (name) => {
+    setAddBusy(true); setAddError(null)
     try {
-      const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name.trim(), companyName: name.trim() }) })
+      const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name, companyName: name }) })
       const j = await r.json()
-      if (j?.workspace?.id) await switchTo(j.workspace.id)
-      else { setBusy(false); alert(j?.error || 'Errore creazione cliente') }
-    } catch { setBusy(false) }
+      if (j?.workspace?.id) { await switchTo(j.workspace.id) }
+      else { setAddBusy(false); setAddError(j?.error || 'Errore creazione cliente') }
+    } catch { setAddBusy(false); setAddError('Errore di rete') }
   }
 
   const card = {
@@ -631,9 +633,10 @@ function WorkspacePill() {
             )
           })}
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />
-          <button type="button" onClick={addClient} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>+ Aggiungi cliente</button>
+          <button type="button" onClick={() => { setOpen(false); setAddError(null); setAddOpen(true) }} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>+ Aggiungi cliente</button>
         </div>
       )}
+      <AddClientModal open={addOpen} busy={addBusy} error={addError} onClose={() => setAddOpen(false)} onSubmit={createClient} />
     </div>
   )
 }

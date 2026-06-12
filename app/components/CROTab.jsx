@@ -298,24 +298,33 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         flexWrap: 'wrap',
         boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
-        <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={loading} />
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            className="btn-glass"
-            style={{
-              marginLeft: 'auto',
-              display: 'flex', alignItems: 'center', gap: 6,
-              cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
-        )}
-        <span style={{ fontSize: 11, color: 'var(--text3)' }}>{tfLabel}</span>
+        {/* Sinistra: badge Live (dove prima c'era il timeframe) */}
+        <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            LIVE
+          </span>
+        </div>
+        {/* Destra: confronto + Aggiorna + timeframe */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>{tfLabel}</span>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="btn-glass"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                cursor: loading ? 'wait' : 'pointer',
+                opacity: loading ? 0.5 : 1,
+              }}
+            >
+              <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+              {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
+            </button>
+          )}
+          <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={loading} />
+        </div>
       </div>
 
       {/* KPI Cards */}

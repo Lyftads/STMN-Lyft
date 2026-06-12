@@ -18,14 +18,29 @@ const __cache = new Map()
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const isoDay = (d) => d.toISOString().slice(0, 10)
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+// Fetch Shopify resiliente al rate limit (429): aspetta e riprova invece di
+// troncare la paginazione (causa di ricavi sotto-conteggiati).
+async function shopFetch(url, token) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token }, cache: 'no-store' })
+    if (res.status === 429 || res.status === 430) {
+      const wait = (Number(res.headers.get('Retry-After')) || 2) * 1000
+      await sleep(wait); continue
+    }
+    return res
+  }
+  return null
+}
 
 // ── Shopify: ordini con line items nel range ──
 async function fetchOrders(store, token, sinceISO, untilISO) {
   const byProduct = new Map() // productId -> { units, revenue, cogsUnits:Map(variantId->qty) }
   let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&created_at_max=${encodeURIComponent(untilISO)}&limit=250&fields=id,created_at,line_items`
-  for (let page = 0; page < 120 && url; page++) {
-    const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token }, cache: 'no-store' })
-    if (!res.ok) break
+  for (let page = 0; page < 400 && url; page++) {
+    const res = await shopFetch(url, token)
+    if (!res || !res.ok) break
     const data = await res.json()
     for (const o of (data.orders || [])) {
       for (const li of (o.line_items || [])) {
@@ -134,14 +149,15 @@ export async function GET(req) {
 
     try {
       const ws = await resolveWorkspace()
-      const [cur, prev, pmeta, campaigns, mapping, landed] = await Promise.all([
+      const [cur, pmeta, campaigns, mapping, landed] = await Promise.all([
         fetchOrders(store, token, since + 'T00:00:00Z', until + 'T23:59:59Z'),
-        fetchOrders(store, token, prevSince + 'T00:00:00Z', prevUntil + 'T23:59:59Z'),
         fetchProductMeta(store, token),
         fetchAllCampaignSpend(since, until),
         loadMapping(ws?.workspaceId),
         loadLatestLanded(ws?.workspaceId),
       ])
+      // Periodo precedente DOPO (sequenziale) per non saturare il rate limit Shopify
+      const prev = await fetchOrders(store, token, prevSince + 'T00:00:00Z', prevUntil + 'T23:59:59Z')
       // COGS: override col costo landed manuale dove presente (modulo Costi prodotto)
       if (landed.size) for (const [vid, c] of landed) pmeta.costByVariant.set(vid, c)
 

@@ -1,11 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import CROAgent from './CROAgent'
 import BmTimeframe from './ui/BmTimeframe'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const ACCENT_GLOW = '#2997ff'
+
+// Cache client a livello di modulo (sopravvive a cambio tab / remount): i dati
+// CRO restano in memoria per ogni range, niente ricaricamento al rientro.
+// Chiave = 'since:until'. Il refresh manuale rifetcha con ?refresh=1.
+let __croCache = {}
 
 const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT') : '—'
 const fmtP = n => n != null ? `${n.toFixed(1)}%` : '—'
@@ -220,44 +225,69 @@ function FunnelChart({ funnel, delay = 0 }) {
 
 export default function CROTab({ data = [], live, onRefresh, loading }) {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'this_month' })
+  const isoDay = d => d.toISOString().slice(0, 10)
+  const [tf, setTf] = useState(() => ({ preset: 'last_30d', since: isoDay(new Date(Date.now() - 30 * 86400000)), until: isoDay(new Date()) }))
 
-  const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
-  const safeDiv = (a, b) => b > 0 ? a / b : null
+  // Range giorno-preciso dal selettore (custom o preset). Fallback a 30gg.
+  const since = tf.since || isoDay(new Date(Date.now() - 30 * 86400000))
+  const until = tf.until || isoDay(new Date())
+  const cacheKey = `${since}:${until}`
 
-  const { current: c, previous: p, tfLabel } = useMemo(() => {
-    const now = new Date()
-    const fmtM = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-    const thisM = fmtM(now), prevM = fmtM(new Date(now.getFullYear(), now.getMonth()-1, 1))
+  // Dati CRO giorno-precisi da /api/cro (sessioni e funnel reali da GA4 + ordini
+  // Shopify per i giorni esatti) — così qualsiasi periodo, anche custom, cambia
+  // davvero i dati. Cache di modulo + persistenza al cambio tab.
+  const [resp, setResp] = useState(() => __croCache[cacheKey] || null)
+  const [busy, setBusy] = useState(() => !__croCache[cacheKey])
 
-    // I dati CRO sono mensili: mappiamo il range del selettore (since/until)
-    // ai mesi YYYY-MM e confrontiamo con un periodo precedente di pari lunghezza.
-    const sinceM = tf.since ? String(tf.since).slice(0, 7) : null
-    const untilM = tf.until ? String(tf.until).slice(0, 7) : null
+  useEffect(() => {
+    const cached = __croCache[cacheKey]
+    if (cached) { setResp(cached); setBusy(false); return }
+    let cancelled = false
+    setBusy(true)
+    fetch(`/api/cro?since=${since}&until=${until}`)
+      .then(r => r.json())
+      .then(j => { if (cancelled) return; __croCache[cacheKey] = j; setResp(j); setBusy(false) })
+      .catch(() => { if (!cancelled) setBusy(false) })
+    return () => { cancelled = true }
+  }, [cacheKey])
 
-    let cur = [], prev = [], label = ''
-    if (sinceM && untilM) {
-      cur = data.filter(m => m.month >= sinceM && m.month <= untilM)
-      const span = cur.length || 1
-      const startD = new Date(sinceM + '-01')
-      const prevEnd = new Date(startD); prevEnd.setMonth(prevEnd.getMonth() - 1)
-      const prevStart = new Date(prevEnd); prevStart.setMonth(prevStart.getMonth() - span + 1)
-      prev = data.filter(m => m.month >= fmtM(prevStart) && m.month <= fmtM(prevEnd))
-      label = sinceM === untilM ? `${sinceM} vs ${fmtM(prevEnd)}` : `${sinceM} → ${untilM} vs periodo prec.`
-    } else { cur = data.filter(m => m.month === thisM); prev = data.filter(m => m.month === prevM); label = `${thisM} vs ${prevM}` }
+  const refresh = () => {
+    setBusy(true)
+    fetch(`/api/cro?since=${since}&until=${until}&refresh=1`)
+      .then(r => r.json())
+      .then(j => { __croCache[cacheKey] = j; setResp(j); setBusy(false) })
+      .catch(() => setBusy(false))
+  }
 
-    const sum = (arr, k) => arr.reduce((s, m) => s + asNum(m[k]), 0)
-    const compute = arr => {
-      const fat = sum(arr,'fatturato'), ord = sum(arr,'ordini'), nc = sum(arr,'nc'), rc = sum(arr,'rc'), ses = sum(arr,'sessioni')
-      return { fat, ord, nc, rc, ses, cro: ses > 0 && ord > 0 ? (ord / ses) * 100 : null, aov: safeDiv(fat, ord), atc: Math.round(ord * 1.8), chk: Math.round(ord * 1.3) }
-    }
-    return { current: compute(cur), previous: compute(prev), tfLabel: label }
-  }, [data, tf])
+  const f = resp?.funnel || {}
+  const c = {
+    ses: Math.round(resp?.sessions ?? f.sessions ?? 0),
+    ord: resp?.totalOrders ?? 0,
+    fat: resp?.totalRevenue ?? 0,
+    nc: resp?.newCustomers ?? 0,
+    rc: resp?.returningCustomers ?? 0,
+    atc: Math.round(f.addToCart ?? 0),
+    chk: Math.round(f.checkout ?? 0),
+  }
+  c.cro = c.ses > 0 && c.ord > 0 ? (c.ord / c.ses) * 100 : null
+  c.aov = c.ord > 0 ? c.fat / c.ord : null
+  const pv = resp?.prev || {}
+  const p = {
+    ses: Math.round(pv.sessions ?? 0), ord: pv.orders ?? 0, fat: pv.revenue ?? 0,
+    nc: pv.newCustomers ?? 0, rc: pv.returningCustomers ?? 0,
+  }
+  p.cro = p.ses > 0 && p.ord > 0 ? (p.ord / p.ses) * 100 : null
+  p.aov = p.ord > 0 ? p.fat / p.ord : null
+  const prevCro = p.cro
 
-  const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
-  const prevCro = p.ses > 0 && p.ord > 0 ? (p.ord / p.ses) * 100 : null
-
-  const funnel = { visitors: c.ses, addToCart: c.atc, checkout: c.chk, purchase: c.ord, source: t('cro.sourceMonthly', null, 'Shopify · mensile') }
+  const tfLabel = resp?.range ? `${resp.range.since} → ${resp.range.until}` : ''
+  const funnel = {
+    visitors: c.ses,
+    addToCart: c.atc,
+    checkout: c.chk,
+    purchase: c.ord,
+    source: resp?.hasGA4 ? t('cro.sourceGA4', null, 'GA4 + Shopify') : t('cro.sourceEstimated', null, 'Shopify (stimato)'),
+  }
 
   const insights = useMemo(() => {
     const ins = []
@@ -308,22 +338,20 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         {/* Destra: confronto + Aggiorna + timeframe */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>{tfLabel}</span>
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={loading}
-              className="btn-glass"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                cursor: loading ? 'wait' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-              {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-            </button>
-          )}
-          <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={loading} />
+          <button
+            onClick={refresh}
+            disabled={busy}
+            className="btn-glass"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              cursor: busy ? 'wait' : 'pointer',
+              opacity: busy ? 0.5 : 1,
+            }}
+          >
+            <span style={{ animation: busy ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+            {busy ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
+          </button>
+          <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={busy} />
         </div>
       </div>
 
@@ -351,7 +379,17 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         </div>
       )}
 
-      {c.ses === 0 && (
+      {busy && c.ses === 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <GlassCard padding={40} delay={1.8}>
+            <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
+              {t('shell.updating', null, 'Aggiorno…')}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {!busy && c.ses === 0 && (
         <div style={{ marginBottom: 18 }}>
           <GlassCard padding={40} delay={1.8}>
             <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>

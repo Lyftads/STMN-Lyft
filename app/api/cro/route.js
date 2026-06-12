@@ -3,6 +3,7 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle } from '../../../lib/tenant/credentials'
+import { swrSnapshot } from '../../../lib/cache/swr'
 
 async function shopifyRest(path) {
   const { storeUrl: STORE, adminToken: TOKEN } = getShopify()
@@ -62,12 +63,10 @@ function getMetricVal(report, metric) {
   return parseFloat(report.rows[0].metricValues[idx].value || '0')
 }
 
-async function getGA4Data(days) {
+async function getGA4Data(token, startDate, endDate) {
   const propertyId = getGoogle().ga4PropertyId
-  if (!propertyId) return null
-  const token = await getGoogleToken()
-  if (!token) return null
-  const dateRange = { startDate: `${days}daysAgo`, endDate: 'today' }
+  if (!propertyId || !token) return null
+  const dateRange = { startDate, endDate }
 
   try {
     const [overview, topPages, pageEcom, userFlow] = await Promise.all([
@@ -129,17 +128,49 @@ async function getGA4Data(days) {
   }
 }
 
-async function getAllOrders(since) {
-  let all = [], url = `orders.json?status=any&created_at_min=${since}&limit=250&fields=id,created_at,total_price,landing_site,line_items`
+async function getAllOrders(since, until) {
+  const FIELDS = 'id,created_at,total_price,landing_site,line_items,customer'
+  const maxParam = until ? `&created_at_max=${encodeURIComponent(until)}` : ''
+  let all = [], url = `orders.json?status=any&created_at_min=${encodeURIComponent(since)}${maxParam}&limit=250&fields=${FIELDS}`
   while (url && all.length < 2000) {
     const data = await shopifyRest(url)
     if (!data?.orders) break
     all = all.concat(data.orders)
     if (data.orders.length === 250) {
-      url = `orders.json?status=any&created_at_min=${since}&limit=250&since_id=${data.orders[data.orders.length - 1].id}&fields=id,created_at,total_price,landing_site,line_items`
+      url = `orders.json?status=any&created_at_min=${encodeURIComponent(since)}${maxParam}&limit=250&since_id=${data.orders[data.orders.length - 1].id}&fields=${FIELDS}`
     } else url = null
   }
   return all
+}
+
+// Classifica gli ordini in nuovi vs ritornanti rispetto alla finestra:
+// "nuovo" = cliente il cui account è stato creato dentro la finestra selezionata.
+function splitCustomers(orders, windowSinceISO) {
+  const nc = new Set(), rc = new Set()
+  const ws = new Date(windowSinceISO).getTime()
+  for (const o of orders) {
+    const c = o.customer
+    if (!c?.id) continue
+    if (c.created_at && new Date(c.created_at).getTime() >= ws) nc.add(c.id)
+    else rc.add(c.id)
+  }
+  return { newCustomers: nc.size, returningCustomers: rc.size }
+}
+
+// Overview GA4 leggero (solo metriche totali) per il periodo di confronto.
+async function getGA4Overview(token, startDate, endDate) {
+  const propertyId = getGoogle().ga4PropertyId
+  if (!propertyId || !token) return null
+  const r = await ga4Report(token, propertyId, {
+    dateRanges: [{ startDate, endDate }],
+    metrics: [{ name: 'sessions' }, { name: 'ecommercePurchases' }, { name: 'totalRevenue' }],
+  }).catch(() => null)
+  if (!r) return null
+  return {
+    sessions: getMetricVal(r, 'sessions'),
+    purchases: getMetricVal(r, 'ecommercePurchases'),
+    revenue: getMetricVal(r, 'totalRevenue'),
+  }
 }
 
 export async function GET(request) {
@@ -148,14 +179,36 @@ export async function GET(request) {
   if (!STORE || !TOKEN) return NextResponse.json({ error: 'Shopify not configured' }, { status: 500 })
 
   const { searchParams } = new URL(request.url)
-  const days = parseInt(searchParams.get('days') || '30', 10)
-  const since = daysAgo(days)
 
+  // Range giorno-preciso: since/until espliciti (ISO YYYY-MM-DD) oppure fallback
+  // ?days=N (ultimi N giorni fino a oggi).
+  const sinceP = searchParams.get('since'), untilP = searchParams.get('until')
+  let since, until, gaStart, gaEnd, days
+  if (sinceP && untilP) {
+    since = new Date(`${sinceP}T00:00:00Z`).toISOString()
+    until = new Date(`${untilP}T23:59:59Z`).toISOString()
+    gaStart = sinceP; gaEnd = untilP
+    days = Math.max(1, Math.round((new Date(`${untilP}T00:00:00Z`) - new Date(`${sinceP}T00:00:00Z`)) / 86400000) + 1)
+  } else {
+    days = parseInt(searchParams.get('days') || '30', 10)
+    since = daysAgo(days); until = new Date().toISOString()
+    gaStart = `${days}daysAgo`; gaEnd = 'today'
+  }
+  // Periodo precedente di pari lunghezza, subito prima.
+  const prevUntilD = new Date(new Date(since).getTime() - 1)
+  const prevSinceD = new Date(prevUntilD.getTime() - (days - 1) * 86400000)
+  const prevSince = prevSinceD.toISOString(), prevUntil = prevUntilD.toISOString()
+  const prevGaStart = prevSinceD.toISOString().slice(0, 10), prevGaEnd = prevUntilD.toISOString().slice(0, 10)
+
+  return swrSnapshot(request, { tab: 'cro', compute: async () => {
   try {
-    const [orders, abandonedRes, ga4, collectionsRes, smartCollRes, productsRes] = await Promise.all([
-      getAllOrders(since),
+    const token = await getGoogleToken()
+    const [orders, prevOrders, abandonedRes, ga4, ga4Prev, collectionsRes, smartCollRes, productsRes] = await Promise.all([
+      getAllOrders(since, until),
+      getAllOrders(prevSince, prevUntil),
       shopifyRest(`abandoned_checkouts.json?created_at_min=${since}&limit=250&status=open`).catch(() => null),
-      getGA4Data(days),
+      getGA4Data(token, gaStart, gaEnd),
+      getGA4Overview(token, prevGaStart, prevGaEnd),
       shopifyRest('custom_collections.json?limit=50&fields=id,title,handle'),
       shopifyRest('smart_collections.json?limit=50&fields=id,title,handle'),
       shopifyRest('products.json?limit=250&fields=id,title,handle,product_type'),
@@ -300,24 +353,45 @@ export async function GET(request) {
     const flow = buildFlow()
     const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_price || '0'), 0)
 
-    return NextResponse.json({
+    // Nuovi vs ritornanti (per la finestra corrente e quella di confronto)
+    const { newCustomers, returningCustomers } = splitCustomers(orders, since)
+    const prevSplit = splitCustomers(prevOrders, prevSince)
+    const prevRevenue = prevOrders.reduce((s, o) => s + parseFloat(o.total_price || '0'), 0)
+    const prevSessions = ga4Prev?.sessions ?? Math.round(prevOrders.length / 0.028)
+
+    return {
       funnel, topPages, flow,
       totalRevenue: Math.round(totalRevenue),
       totalOrders: orders.length,
       shopifyOrders: orders.length,
+      sessions: totalSessions,
+      newCustomers, returningCustomers,
+      prev: {
+        revenue: Math.round(prevRevenue),
+        orders: prevOrders.length,
+        sessions: prevSessions,
+        newCustomers: prevSplit.newCustomers,
+        returningCustomers: prevSplit.returningCustomers,
+      },
+      range: { since: since.slice(0, 10), until: until.slice(0, 10) },
+      prevRange: { since: prevGaStart, until: prevGaEnd },
       days, hasGA4,
       updatedAt: new Date().toISOString(),
-    })
+    }
   } catch (e) {
     console.error('CRO route error:', e.message)
-    return NextResponse.json({
+    return {
+      __noCache: true,
       error: e.message,
       funnel: { sessions:0, visitors:0, pageViews:0, addToCart:0, checkout:0, purchase:0,
         addToCartRate:0, checkoutRate:0, purchaseRate:0, cartToCheckout:0, checkoutToPurchase:0,
         dropoffs:{}, source:'Errore' },
       topPages: [], flow: { nodes:[], links:[] },
-      totalRevenue:0, totalOrders:0, days, hasGA4: false,
-    })
+      totalRevenue:0, totalOrders:0, sessions:0, newCustomers:0, returningCustomers:0,
+      prev: { revenue:0, orders:0, sessions:0, newCustomers:0, returningCustomers:0 },
+      days, hasGA4: false,
+    }
   }
+  } })
   })
 }

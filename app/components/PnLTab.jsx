@@ -156,7 +156,7 @@ export default function PnLTab({ data = [] }) {
     { label: t('pnl.lineCogs', null, 'COGS (costo prodotti)'), key: 'cogs', neg: true },
     { label: t('pnl.lineGrossMargin', null, 'Margine lordo'), key: 'grossMargin', strong: true },
     { label: t('pnl.lineAds', null, 'Advertising'), key: 'ads', neg: true },
-    { label: t('pnl.lineFee', null, 'Fee gateway'), key: 'fee', neg: true },
+    { label: t('pnl.lineFee', null, 'Fee gateway'), key: 'fee', neg: true, badge: state.feesSource === 'shopify-payments' ? { text: t('pnl.badgeReal', null, 'reale'), real: true } : { text: t('pnl.badgeEst', null, 'stima'), real: false } },
     { label: t('pnl.linePackaging', null, 'Packaging'), key: 'packaging', neg: true },
     { label: t('pnl.lineShipping', null, 'Spedizione (corriere)'), key: 'shipCost', neg: true },
     // Costi fissi: una riga per ogni voce inserita a mano + sottototale
@@ -298,7 +298,7 @@ export default function PnLTab({ data = [] }) {
                 const colorOf = (v) => line.ebit ? (v >= 0 ? '#30d158' : '#ff375f') : undefined
                 return (
                   <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'var(--glass)' } : undefined}>
-                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', paddingLeft: line.sub ? 28 : undefined, color: line.sub ? 'var(--text2)' : undefined, fontWeight: line.strong || line.ebit ? 700 : line.sub ? 500 : 500 }}>{line.label}</td>
+                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', paddingLeft: line.sub ? 28 : undefined, color: line.sub ? 'var(--text2)' : undefined, fontWeight: line.strong || line.ebit ? 700 : line.sub ? 500 : 500 }}>{line.label}{line.badge && <span style={{ marginLeft: 8, fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 999, color: line.badge.real ? '#34d399' : '#f59e0b', background: line.badge.real ? 'rgba(52,211,153,0.12)' : 'rgba(245,158,11,0.12)', border: `1px solid ${line.badge.real ? 'rgba(52,211,153,0.3)' : 'rgba(245,158,11,0.3)'}` }}>{line.badge.text}</span>}</td>
                     {asc.map((r) => {
                       const cur = line.fixedVal != null ? line.fixedVal : r[line.key]
                       const prevRow = prevOf[r.month]

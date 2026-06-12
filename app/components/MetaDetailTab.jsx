@@ -587,7 +587,7 @@ function AdPreviewModal({ ad, onClose }) {
 
 export default function MetaDetailTab() {
   const { t } = useI18n()
-  const [preset, setPreset] = useState('last_28d')
+  const [preset, setPreset] = useState('last_7d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
   const [data, setData] = useState(null)

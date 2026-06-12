@@ -11,7 +11,7 @@ let __gpCache = null // { key, payload }
 
 export default function GoogleProductsTab() {
   const { t, intlLocale } = useI18n()
-  const [since, setSince] = useState(isoDay(new Date(Date.now() - 30 * 86400000)))
+  const [since, setSince] = useState(isoDay(new Date(Date.now() - 7 * 86400000)))
   const [until, setUntil] = useState(isoDay(new Date()))
   const [data, setData] = useState(() => (__gpCache?.payload || null))
   const [loading, setLoading] = useState(false)

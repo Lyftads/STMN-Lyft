@@ -66,7 +66,7 @@ const statusColor = (s) => {
 
 export default function GoogleDetailTab() {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

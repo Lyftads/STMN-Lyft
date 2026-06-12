@@ -26,6 +26,8 @@ export default function ProductPerformanceTab() {
   const [mapSel, setMapSel] = useState({}) // `${platform}:${campaign_id}` -> product_id | ''
   const [mapSaving, setMapSaving] = useState(false)
   const [mapErr, setMapErr] = useState('')
+  const [pickerFor, setPickerFor] = useState(null) // campaign key con picker aperto
+  const [pickerQuery, setPickerQuery] = useState('')
 
   // mapSel[key] = array di product id selezionati per la campagna
   const addProduct = (key, id) => setMapSel(s => ({ ...s, [key]: (s[key] || []).includes(id) ? s[key] : [...(s[key] || []), id] }))
@@ -240,11 +242,30 @@ export default function ProductPerformanceTab() {
                                   <span onClick={() => removeProduct(key, id)} style={{ cursor: 'pointer', opacity: 0.8, fontWeight: 800 }}>×</span>
                                 </span>
                               ))}
-                              <select value="" onChange={e => { if (e.target.value) addProduct(key, e.target.value) }} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px', color: 'var(--text)', fontSize: 12, colorScheme: 'dark', maxWidth: 220 }}>
-                                <option value="">{t('pp.mapAdd', null, '+ Aggiungi prodotto')}</option>
-                                {mapData.products.filter(p => !sel.includes(p.id)).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                              </select>
+                              <button onClick={() => { setPickerFor(pickerFor === key ? null : key); setPickerQuery('') }} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: pickerFor === key ? 'rgba(123,91,255,0.15)' : 'var(--glass)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', color: 'var(--text)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                <Icon name="plus" size={11} /> {t('pp.mapAdd2', null, 'Aggiungi prodotti')}
+                              </button>
                             </div>
+                            {pickerFor === key && (
+                              <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', overflow: 'hidden', maxWidth: 380 }}>
+                                <input value={pickerQuery} onChange={e => setPickerQuery(e.target.value)} autoFocus placeholder={t('pp.mapSearch', null, 'Cerca prodotto…')} style={{ width: '100%', background: 'var(--glass)', border: 'none', borderBottom: '1px solid var(--border)', padding: '9px 11px', color: 'var(--text)', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' }} />
+                                <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                                  {mapData.products.filter(p => p.title.toLowerCase().includes(pickerQuery.trim().toLowerCase())).map(p => {
+                                    const on = sel.includes(p.id)
+                                    return (
+                                      <div key={p.id} onClick={() => on ? removeProduct(key, p.id) : addProduct(key, p.id)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 11px', cursor: 'pointer', background: on ? 'rgba(123,91,255,0.12)' : 'transparent', fontSize: 12.5, color: 'var(--text)' }}>
+                                        <span style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, color: '#fff' }}>{on && <Icon name="check" size={11} />}</span>
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                                <div style={{ padding: '7px 11px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('pp.mapSelN', { n: sel.length }, `${sel.length} selezionati`)}</span>
+                                  <button onClick={() => setPickerFor(null)} style={{ background: 'var(--accent)', border: 'none', borderRadius: 7, padding: '5px 14px', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{t('pp.mapDone', null, 'Fatto')}</button>
+                                </div>
+                              </div>
+                            )}
                             <div style={{ display: 'flex', gap: 12, marginTop: 5, alignItems: 'center' }}>
                               <button onClick={() => setAllProducts(key, allIds)} style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapAllCatalog', null, 'Tutto il catalogo')}</button>
                               {sel.length > 0 && <button onClick={() => setAllProducts(key, [])} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{t('pp.mapClear', null, 'Svuota')}</button>}

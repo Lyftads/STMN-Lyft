@@ -950,7 +950,13 @@ export default function CreativeTab() {
         }}
       >
         <PlatformBadges sources={['meta']} size={18} />
-        <BmTimeframe value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          LIVE
+        </span>
+        <div style={{ marginLeft: 'auto' }}>
+          <BmTimeframe value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
+        </div>
       </div>
 
       <div

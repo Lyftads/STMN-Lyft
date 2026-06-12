@@ -358,10 +358,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     <div>
       {/* Timeframe */}
       <div style={{...panel, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-        {setPreset && <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} />}
+        {setPreset && <div style={{ marginLeft: 'auto' }}><BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} /></div>}
         {onRefresh && (
           <button onClick={onRefresh} disabled={loading} className="btn-glass" style={{
-            marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
+            marginLeft: setPreset ? 0 : 'auto', display:'flex', alignItems:'center', gap:6,
             cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
           }}><span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>{loading?t('shell.updating', null, 'Aggiorno…'):t('shell.refresh', null, 'Aggiorna')}</button>
         )}

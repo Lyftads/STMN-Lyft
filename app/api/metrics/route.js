@@ -12,6 +12,11 @@ import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../
 // dati), mai i throttled-vuoti (così un throttle non resta "congelato" 5 min).
 const metricsCache = new Map()
 const METRICS_TTL_MS = 5 * 60_000
+// Cache della serie storica Shopify (weekly ~23 query + monthly ~17), che è
+// PRESET-INDIPENDENTE: keyed per tenant e condivisa fra tutti i preset, così
+// cambiare timeframe non la rifetcha ogni volta (era il collo di bottiglia).
+const historyCache = new Map()
+const HISTORY_TTL_MS = 10 * 60_000
 
 // Tenant-aware getter: leggono dal context AsyncLocalStorage settato da
 // withTenantContext() in GET. In env-only mode (default su Vercel finche'
@@ -1537,10 +1542,22 @@ export async function GET(req) {
     const range = getPresetRange(preset)
     const previousRange = getPreviousRange(range, preset)
 
+    // ── Serie storica Shopify (preset-INDIPENDENTE, la parte PESANTE: ~23 query
+    // weekly + ~17 monthly). Cache per tenant condivisa fra i preset → cambiare
+    // timeframe non la rifetcha. Stessi dati di prima (stesse query). ──
+    const histKey = getTenantInfo().userId || 'env'
+    let hist = (!force && historyCache.get(histKey)) || null
+    if (!hist || hist.expiresAt <= Date.now()) {
+      const [sw, sm] = await Promise.all([fetchShopifyWeekly(), fetchShopifyMonthly()])
+      const valid = Array.isArray(sw) && sw.length >= 5 // non cachiamo throttled-vuoto
+      hist = { shopifyWeekly: sw, shopifyMonthly: sm, expiresAt: valid ? Date.now() + HISTORY_TTL_MS : 0 }
+      if (valid) historyCache.set(histKey, hist)
+    }
+    const shopifyWeekly = hist.shopifyWeekly
+    const shopifyMonthly = hist.shopifyMonthly
+
     const [
       aovData,
-      shopifyWeekly,
-      shopifyMonthly,
       metaMonthly,
       metaWeekly,
       shopifyTopProducts,
@@ -1555,8 +1572,6 @@ export async function GET(req) {
       metaPrevRange,
     ] = await Promise.all([
       fetchAOV(),
-      fetchShopifyWeekly(),
-      fetchShopifyMonthly(),
       fetchMeta(),
       fetchMetaWeekly(),
       safeShopifyTopProducts(range),

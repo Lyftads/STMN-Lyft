@@ -64,6 +64,36 @@ export default function VendroShell({
     return () => { alive = false; clearInterval(id) }
   }, [tab])
 
+  // Pre-riscaldamento snapshot (una volta per sessione): mentre l'utente guarda
+  // la dashboard, scaldiamo in background le tab analitiche pesanti ai loro
+  // default, così la PRIMA apertura di ognuna è istantanea. Le richieste portano
+  // i cookie → il server cacha per il workspace dell'utente (vale per ogni account).
+  // Sequenziali con pausa per non saturare i rate limit (es. Meta error 17).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { if (sessionStorage.getItem('lyft_prewarm') === '1') return } catch {}
+    let cancelled = false
+    const WARM = [
+      '/api/meta-kpi?preset=last_7d',
+      '/api/google-kpi?preset=last_7d',
+      '/api/klaviyo?days=30&part=main',
+      '/api/meta-detail?preset=last_7d',
+      '/api/google-detail?preset=last_7d',
+    ]
+    const sleep = ms => new Promise(r => setTimeout(r, ms))
+    const run = async () => {
+      await sleep(3000) // lascia caricare prima la dashboard
+      try { sessionStorage.setItem('lyft_prewarm', '1') } catch {}
+      for (const url of WARM) {
+        if (cancelled) return
+        try { await fetch(url, { cache: 'no-store', keepalive: true }) } catch {}
+        await sleep(1200) // scaglionato: gentile coi rate limit
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [])
+
   const navGroups = [
     {
       title: 'Commerce',

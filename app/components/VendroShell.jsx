@@ -48,21 +48,6 @@ export default function VendroShell({
 }) {
   const { t } = useI18n()
 
-  // ── Tema Notte/Giorno (light) via variabili CSS (data-theme su <html>) ──
-  const [day, setDay] = useState(false)
-  useEffect(() => {
-    let d = false
-    try { d = localStorage.getItem('lyft_theme') === 'day' } catch {}
-    setDay(d)
-    try { document.documentElement.setAttribute('data-theme', d ? 'day' : 'night') } catch {}
-  }, [])
-  const toggleTheme = () => setDay(d => {
-    const nd = !d
-    try { localStorage.setItem('lyft_theme', nd ? 'day' : 'night') } catch {}
-    try { document.documentElement.setAttribute('data-theme', nd ? 'day' : 'night') } catch {}
-    return nd
-  })
-
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
   useEffect(() => {
@@ -254,7 +239,7 @@ export default function VendroShell({
       </div>
 
       {/* Sidebar */}
-      <aside className="theme-dark-fixed" style={{
+      <aside style={{
         width: 240,
         minWidth: 240,
         height: '100vh',
@@ -444,18 +429,6 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
-              <button
-                onClick={toggleTheme}
-                title={day ? t('shell.switchNight', null, 'Passa a Notte') : t('shell.switchDay', null, 'Passa a Giorno')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'var(--glass2)', border: '1px solid var(--border)',
-                  borderRadius: 999, padding: '6px 12px', color: 'var(--text)',
-                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-                }}>
-                <Icon name={day ? 'star' : 'bulb'} size={14} />
-                {day ? t('shell.night', null, 'Notte') : t('shell.day', null, 'Giorno')}
-              </button>
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />

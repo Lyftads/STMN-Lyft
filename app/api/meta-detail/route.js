@@ -567,20 +567,25 @@ async function fetchInsightsByIds(accountId, level, ids, range) {
   })
 }
 
-// Nome leggibile degli account (act_123 → "Brand Srl"). Parallelo, best-effort,
-// con fetch diretto (niente throw del wrapper) così un singolo errore non azzera
-// gli altri e i nomi compaiono comunque.
+// Nome leggibile degli account (act_123 → "Brand Srl"). SEQUENZIALE e best-effort,
+// con piccolo retry sul rate limit: va chiamato PRIMA delle query pesanti, così
+// non finisce nel burst (che lo faceva tornare vuoto → restavano i codici).
 async function fetchAccountNames(accounts) {
   const out = {}
   const tok = metaToken()
   if (!tok) return out
-  await Promise.all((accounts || []).map(async (id) => {
-    try {
-      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(tok)}`, { cache: 'no-store' })
-      const d = await res.json().catch(() => ({}))
-      if (d && d.name) out[id] = d.name
-    } catch {}
-  }))
+  for (const id of (accounts || [])) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(tok)}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+        const d = await res.json().catch(() => ({}))
+        if (d && d.name) { out[id] = d.name; break }
+        // throttling Meta (codice 17/4/32/613) → attendi e riprova
+        if (d?.error && isRateLimit(res.status, d.error) && attempt < 2) { await sleep(1500 * (attempt + 1)); continue }
+        break
+      } catch { if (attempt < 2) { await sleep(1000 * (attempt + 1)); continue } }
+    }
+  }
   return out
 }
 
@@ -954,13 +959,14 @@ export async function GET(req) {
     }
 
     // Top-level (campagne): la prima apertura pesante → cache SWR per workspace+periodo+account.
-    return swrSnapshot(req, { tab: 'metaDetail3', compute: async () => {
+    return swrSnapshot(req, { tab: 'metaDetail4', compute: async () => {
+      // Nomi account PRIMA (sequenziale, fuori dal burst) → non vengono throttlati.
+      const accountNames = await fetchAccountNames(allAccounts).catch(() => ({}))
       const rows = await getCampaignRows(accounts, range)
       const summary = sumRows(rows)
-      const [previousRows, daily, accountNames] = await Promise.all([
+      const [previousRows, daily] = await Promise.all([
         getCampaignRows(accounts, previousRange),
         fetchDailySeries(accounts, range).catch(() => []),
-        fetchAccountNames(allAccounts).catch(() => ({})),
       ])
       const previousSummary = sumRows(previousRows)
       return {

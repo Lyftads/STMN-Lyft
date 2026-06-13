@@ -84,7 +84,7 @@ export default function GoogleProductsTab() {
             ))}
           </div>
 
-          <div style={{ ...cardWrap, padding: 0, overflowX: 'auto' }}>
+          <div style={{ ...cardWrap, padding: 0, overflowX: 'auto', overflowY: 'auto', maxHeight: '70vh' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
               <thead><tr>
                 <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>{t('gp.colProduct', null, 'Prodotto')}</th>

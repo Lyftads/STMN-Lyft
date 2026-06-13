@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { getAdminSupabase } from '../../../lib/supabase/server'
 
 // ── Ads attive di UNA pagina (advertiser) dalla Meta Ad Library ──
 // Endpoint AGGIUNTIVO e isolato: NON tocca /api/competitor-intel.
@@ -213,6 +214,38 @@ async function viaBrowserless(pageId, country) {
 const PAGE_CACHE = new Map()
 const PAGE_TTL_MS = 6 * 60 * 60 * 1000
 
+// Cache DUREVOLE su Supabase (condivisa fra istanze/utenti): la in-memory su
+// Vercel è effimera (ogni cold start riparte da zero → Browserless ogni volta).
+// Qui sopravvive: la prima richiesta della settimana scrapa, tutte le altre
+// (qualsiasi utente, qualsiasi istanza) tornano istantanee. TTL 7g, allineato
+// al refresh automatico del lunedì. Tabella: supabase/competitor_ad_cache.sql
+const DURABLE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+async function readDurable(pageId, country) {
+  const sb = getAdminSupabase()
+  if (!sb) return null
+  try {
+    const { data } = await sb
+      .from('competitor_ad_cache')
+      .select('payload, fetched_at')
+      .eq('page_id', pageId).eq('country', country)
+      .maybeSingle()
+    if (!data?.payload?.ads?.length) return null
+    const age = Date.now() - new Date(data.fetched_at).getTime()
+    return { payload: data.payload, stale: age > DURABLE_TTL_MS }
+  } catch { return null }
+}
+
+async function writeDurable(pageId, country, payload) {
+  const sb = getAdminSupabase()
+  if (!sb) return
+  try {
+    await sb.from('competitor_ad_cache').upsert({
+      page_id: pageId, country, payload, fetched_at: new Date().toISOString(),
+    }, { onConflict: 'page_id,country' })
+  } catch {}
+}
+
 export async function GET(request) {
   return withTenantContext(request, async () => {
   const { searchParams } = new URL(request.url)
@@ -225,6 +258,17 @@ export async function GET(request) {
   const cached = PAGE_CACHE.get(cacheKey)
   if (!force && cached && Date.now() - cached.ts < PAGE_TTL_MS && cached.payload?.ads?.length) {
     return NextResponse.json({ ...cached.payload, cached: true })
+  }
+
+  // Cache durevole (Supabase): condivisa fra istanze → evita Browserless.
+  // Servita anche se leggermente stale (i creativi competitor cambiano lenti):
+  // il refresh avviene col cron del lunedì o con "Aggiorna" (force).
+  if (!force) {
+    const durable = await readDurable(pageId, country)
+    if (durable?.payload?.ads?.length) {
+      PAGE_CACHE.set(cacheKey, { ts: Date.now(), payload: durable.payload })
+      return NextResponse.json({ ...durable.payload, cached: true, durable: true })
+    }
   }
 
   let result = await viaApi(pageId, country)
@@ -245,8 +289,11 @@ export async function GET(request) {
     libraryUrl: pageUrlFor(pageId, country),
     fetchedAt: new Date().toISOString(),
   }
-  // Cache solo risposte utili (con ads)
-  if (ads.length) PAGE_CACHE.set(cacheKey, { ts: Date.now(), payload })
+  // Cache solo risposte utili (con ads): in-memory + durevole (write-through)
+  if (ads.length) {
+    PAGE_CACHE.set(cacheKey, { ts: Date.now(), payload })
+    await writeDurable(pageId, country, payload)
+  }
   return NextResponse.json({ ...payload, cached: false })
   })
 }

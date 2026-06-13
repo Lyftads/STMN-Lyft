@@ -73,7 +73,14 @@ export default function VendroShell({
     if (typeof window === 'undefined') return
     try { if (sessionStorage.getItem('lyft_prewarm') === '1') return } catch {}
     let cancelled = false
+    const iso = d => d.toISOString().slice(0, 10)
+    const ppSince = iso(new Date(Date.now() - 30 * 86400000)), ppUntil = iso(new Date())
+    // Commerce (Shopify, le più pesanti a freddo) PER PRIME → l'utente le apre
+    // e le trova già calcolate. Poi le tab ads (Meta/Google) e Klaviyo.
     const WARM = [
+      '/api/inventory',
+      `/api/product-performance?since=${ppSince}&until=${ppUntil}`,
+      '/api/product-costs-landed',
       '/api/meta-kpi?preset=last_7d',
       '/api/google-kpi?preset=last_7d',
       '/api/klaviyo?days=30',
@@ -82,12 +89,12 @@ export default function VendroShell({
     ]
     const sleep = ms => new Promise(r => setTimeout(r, ms))
     const run = async () => {
-      await sleep(3000) // lascia caricare prima la dashboard
+      await sleep(1500) // lascia partire prima il caricamento della dashboard
       try { sessionStorage.setItem('lyft_prewarm', '1') } catch {}
       for (const url of WARM) {
         if (cancelled) return
         try { await fetch(url, { cache: 'no-store', keepalive: true }) } catch {}
-        await sleep(1200) // scaglionato: gentile coi rate limit
+        await sleep(800) // scaglionato: gentile coi rate limit
       }
     }
     run()

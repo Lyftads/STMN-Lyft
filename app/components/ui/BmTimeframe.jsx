@@ -52,9 +52,12 @@ function presetRange(id) {
     case 'last_14d': return { since: addDays(t, -14), until: t }
     case 'last_28d': return { since: addDays(t, -28), until: t }
     case 'last_30d': return { since: addDays(t, -30), until: t }
+    case 'last_90d': return { since: addDays(t, -90), until: t }
     case 'this_week': return { since: mondayOf(t), until: t }
     case 'last_week': { const e = addDays(mondayOf(t), -1); return { since: addDays(e, -6), until: e } }
-    case 'this_month': return { since: firstOfMonth(t), until: t }
+    case 'this_month':
+    case 'current_month': return { since: firstOfMonth(t), until: t }
+    case 'ytd': return { since: `${parse(t).getFullYear()}-01-01`, until: t }
     case 'last_month': {
       const d = parse(firstOfMonth(t)); d.setDate(0)
       return { since: firstOfMonth(iso(d)), until: iso(d) }
@@ -82,7 +85,12 @@ function rangeLabel(value) {
 }
 
 export default function BmTimeframe({ value, onChange, accent = '#2997ff', disabled = false }) {
-  const val = typeof value === 'string' ? { preset: value, ...presetRange(value) } : (value || { preset: 'last_28d', ...presetRange('last_28d') })
+  const val = (() => {
+    if (typeof value === 'string') return { preset: value, ...presetRange(value) }
+    if (value && value.since && value.until) return value
+    if (value && value.preset) return { ...value, ...presetRange(value.preset) } // risolvi il range per evitare NaN
+    return { preset: 'last_28d', ...presetRange('last_28d') }
+  })()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(val)
   const [anchor, setAnchor] = useState(null) // primo click del range
@@ -100,16 +108,19 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
       setOpen(false)
     }
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
-    const close = () => setOpen(false)
+    // Chiudi sullo scroll della PAGINA, ma NON quando si scrolla DENTRO il popover
+    // (sidebar preset / calendario hanno overflow proprio).
+    const onScroll = (e) => { if (popoverRef.current?.contains(e.target)) return; setOpen(false) }
+    const onResize = () => setOpen(false)
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
     return () => {
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
     }
   }, [open])
 

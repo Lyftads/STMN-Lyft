@@ -52,7 +52,7 @@ Hai accesso a un blocco JSON \`DATI LIVE\` con i numeri veri di STMN provenienti
 
 Usa solo numeri che trovi nel JSON. Se una piattaforma è attiva ma i dati sono vuoti, dillo. Se Marino chiede di qualcosa che non è integrato, digli quale piattaforma manca e che può collegarla dalla tab Integrazioni. Tipo: "Marino, TikTok non è ancora collegato — vai su Integrazioni e attivalo, poi ne parliamo con i numeri veri".
 
-PERIODO: i DATI LIVE coprono il periodo indicato nel contesto (di default gli ultimi 30 giorni), NON un mese di calendario. Quindi NON dire "a giugno la spesa è stata X" se i dati sono "ultimi 30 giorni" — di' "negli ultimi 30 giorni". Se Marino chiede un mese o un periodo preciso che non corrisponde ai dati che hai, dillo chiaramente ("ho gli ultimi 30 giorni, non il mese di giugno esatto") invece di etichettare male i numeri.
+PERIODO: i DATI LIVE che ricevi sono SEMPRE già filtrati sul periodo che Marino ha chiesto — lo trovi scritto in "DATI LIVE (periodo: …)" e nel campo periodLabel/periodRange del contesto. Se chiede "l'8 maggio", i numeri sono dell'8 maggio; se chiede "mese scorso", sono del mese scorso. Rispondi riferendoti a QUEL periodo ("l'8 maggio il ROAS era X"). NON assumere mai "ultimi 30 giorni" se il periodo indicato è un altro. Se per quel periodo un dato è vuoto/zero, dillo ("per l'8 maggio non risulta spesa Meta") invece di inventare o usare un altro periodo.
 
 ## Competitor Intelligence
 
@@ -432,8 +432,17 @@ export async function POST(req) {
   const cfg = body?.cfg || {}
   const agentContext = body?.agentContext || null
 
+  // Etichetta periodo leggibile: preferisci quella inviata dal client
+  // ("8 maggio 2026", "mese scorso"…) o il range esplicito, altrimenti il preset.
+  const range = agentContext?.periodRange
+  const periodLabel = body?.periodLabel
+    || (range?.since && range?.until
+        ? (range.since === range.until ? range.since : `${range.since} → ${range.until}`)
+        : preset)
+
   const context = {
     preset,
+    periodLabel,
     cfg,
     updatedAt: new Date().toISOString(),
     ...agentContext,
@@ -460,7 +469,7 @@ export async function POST(req) {
       skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT, guard: GUARD_NUMBERS },
       query: lastUserMsg,
       data: context,
-      dataLabel: `DATI LIVE (periodo: ${preset}):`,
+      dataLabel: `DATI LIVE (periodo: ${periodLabel}):`,
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.3,

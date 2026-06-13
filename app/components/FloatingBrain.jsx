@@ -27,6 +27,101 @@ function renderRich(text) {
   )
 }
 
+// ── Rilevamento del periodo dalla domanda (IT) ──────────────────────────────
+// Permette al Cervello di rispondere su QUALSIASI time frame: una data precisa
+// ("8 maggio"), un mese ("a maggio"), un range ("dal 1 al 10 maggio") o un
+// preset ("ieri", "ultimi 7 giorni", "mese scorso"). Se non trova nulla → null
+// (il chiamante usa il default last_30d).
+const MESI = {
+  gennaio: 1, febbraio: 2, marzo: 3, aprile: 4, maggio: 5, giugno: 6,
+  luglio: 7, agosto: 8, settembre: 9, ottobre: 10, novembre: 11, dicembre: 12,
+}
+const pad = (n) => String(n).padStart(2, '0')
+const ymd = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`
+const lastDayOfMonth = (y, m) => new Date(y, m, 0).getDate()
+
+// Anno di default: se la data costruita risultasse nel futuro, usa l'anno prima.
+function resolveYear(month, day, explicitYear) {
+  if (explicitYear) return explicitYear
+  const now = new Date()
+  const y = now.getFullYear()
+  const candidate = new Date(`${ymd(y, month, day || 1)}T00:00:00`)
+  return candidate > now ? y - 1 : y
+}
+
+function detectPeriod(raw) {
+  const text = ` ${String(raw).toLowerCase()} `
+
+  // 1) ISO esplicita: 2026-05-08
+  const iso = text.match(/(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) { const d = `${iso[1]}-${iso[2]}-${iso[3]}`; return { since: d, until: d, label: d } }
+
+  // 2) Range "dal 1 (maggio) al 10 maggio"
+  const range = text.match(/\bdal?\s+(\d{1,2})\s*([a-zà]+)?\s+al?\s+(\d{1,2})\s+([a-zà]+)(?:\s+(\d{4}))?/)
+  if (range) {
+    const m2 = MESI[range[4]]
+    if (m2) {
+      const m1 = MESI[range[2]] || m2
+      const yr = resolveYear(m2, Number(range[3]), range[5] && Number(range[5]))
+      return { since: ymd(yr, m1, Number(range[1])), until: ymd(yr, m2, Number(range[3])), label: `${range[1]} → ${range[3]} ${range[4]}` }
+    }
+  }
+
+  // 3) Data singola "8 maggio" / "8 maggio 2026"
+  const single = text.match(/\b(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+(\d{4}))?/)
+  if (single) {
+    const m = MESI[single[2]], day = Number(single[1])
+    const yr = resolveYear(m, day, single[3] && Number(single[3]))
+    const d = ymd(yr, m, day)
+    return { since: d, until: d, label: `${day} ${single[2]} ${yr}` }
+  }
+
+  // 4) Data numerica "8/5" o "08/05/2026"
+  const num = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)
+  if (num) {
+    const day = Number(num[1]), m = Number(num[2])
+    if (m >= 1 && m <= 12 && day >= 1 && day <= 31) {
+      let yr = num[3] ? Number(num[3]) : resolveYear(m, day)
+      if (yr < 100) yr += 2000
+      const d = ymd(yr, m, day)
+      return { since: d, until: d, label: d }
+    }
+  }
+
+  // 5) Mese intero "a maggio" / "nel mese di maggio" / "maggio 2026"
+  const month = text.match(/\b(?:di\s+|nel mese di\s+|mese di\s+|a\s+|in\s+)?(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+(\d{4}))?\b/)
+  if (month) {
+    const m = MESI[month[1]]
+    const yr = resolveYear(m, 1, month[2] && Number(month[2]))
+    return { since: ymd(yr, m, 1), until: ymd(yr, m, lastDayOfMonth(yr, m)), label: `${month[1]} ${yr}` }
+  }
+
+  // 6) Preset a parole
+  if (/\boggi\b/.test(text)) return { preset: 'today', label: 'oggi' }
+  if (/\bieri\b/.test(text)) return { preset: 'yesterday', label: 'ieri' }
+  if (/ultim[io]\s+7\s+giorni|ultima settimana|settimana scorsa/.test(text)) return { preset: 'last_7d', label: 'ultimi 7 giorni' }
+  if (/ultim[io]\s+14\s+giorni|due settimane/.test(text)) return { preset: 'last_14d', label: 'ultimi 14 giorni' }
+  if (/ultim[io]\s+(28|30)\s+giorni|ultimo mese/.test(text)) return { preset: 'last_30d', label: 'ultimi 30 giorni' }
+  if (/ultim[io]\s+90\s+giorni|ultimo trimestre/.test(text)) return { preset: 'last_90d', label: 'ultimi 90 giorni' }
+  if (/questo mese|mese corrente|questo mese\b/.test(text)) return { preset: 'this_month', label: 'questo mese' }
+  if (/mese scorso|scorso mese|mese passato/.test(text)) return { preset: 'last_month', label: 'mese scorso' }
+  if (/quest'anno|quest anno|anno corrente|da inizio anno|ytd/.test(text)) return { preset: 'ytd', label: "quest'anno" }
+
+  return null
+}
+
+// Costruisce la query string per /api/agent-context dal periodo rilevato.
+function periodToQuery(p) {
+  if (!p) return { qs: 'preset=last_30d&days=30', label: 'ultimi 30 giorni' }
+  if (p.since && p.until) {
+    const days = Math.max(1, Math.round((new Date(`${p.until}T00:00:00`) - new Date(`${p.since}T00:00:00`)) / 86400000) + 1)
+    // metrics legge custom_<since>_<until>; meta-detail/creative leggono since/until + preset=custom
+    return { qs: `preset=custom_${p.since}_${p.until}&since=${p.since}&until=${p.until}&days=${days}`, label: p.label }
+  }
+  const daysByPreset = { today: 1, yesterday: 1, last_7d: 7, last_14d: 14, last_30d: 30, last_90d: 90, this_month: 31, last_month: 31, ytd: 200 }
+  return { qs: `preset=${p.preset}&days=${daysByPreset[p.preset] || 30}`, label: p.label }
+}
+
 function loadMsgs() {
   try {
     const raw = localStorage.getItem(STORE_KEY)
@@ -72,21 +167,27 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     setInput('')
     setLoading(true)
     try {
-      // Dati cross-dominio (tutte le piattaforme collegate)
+      // Periodo richiesto nella domanda (data precisa, mese, range o preset).
+      // Default: ultimi 30 giorni. Così il Cervello risponde su QUALSIASI time frame.
+      const period = detectPeriod(text)
+      const { qs, label: periodLabel } = periodToQuery(period)
+      // Dati cross-dominio (tutte le piattaforme collegate) per quel periodo
       let agentContext = null
       try {
-        const ctxRes = await fetch('/api/agent-context?preset=last_30d&days=30', { cache: 'no-store' })
+        const ctxRes = await fetch(`/api/agent-context?${qs}`, { cache: 'no-store' })
         if (ctxRes.ok) agentContext = await ctxRes.json()
       } catch {}
-      // Consapevolezza della tab: il cervello sa dove sei.
-      const ctx = { ...(agentContext || {}), _currentTab: tabLabel }
+      // Consapevolezza della tab + del periodo: il cervello sa dove sei e che
+      // finestra temporale stai guardando (così non sballa l'etichetta).
+      const ctx = { ...(agentContext || {}), _currentTab: tabLabel, _periodLabel: periodLabel }
       const r = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: next.map(m => ({ role: m.role, content: m.content })),
           agentContext: ctx,
-          preset: 'last_30d',
+          preset: period && period.preset ? period.preset : (period ? `custom_${period.since}_${period.until}` : 'last_30d'),
+          periodLabel,
           locale: getClientLocale(),
         }),
       })

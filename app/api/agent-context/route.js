@@ -25,6 +25,21 @@ export async function GET(request) {
   const preset = searchParams.get('preset') || 'last_28d'
   const days = searchParams.get('days') || '30'
   const base = new URL(request.url).origin
+
+  // Range custom (data precisa / mese / intervallo dalla domanda del Cervello).
+  // metrics legge il preset "custom_<since>_<until>"; meta-detail e creative
+  // vogliono invece preset=custom + since/until separati. Normalizziamo qui.
+  let since = searchParams.get('since')
+  let until = searchParams.get('until')
+  if (preset.startsWith('custom_')) {
+    const parts = preset.split('_')
+    since = since || parts[1]
+    until = until || parts[2]
+  }
+  // Query da passare alle API che usano since/until separati.
+  const detailQs = (since && until)
+    ? `preset=custom&since=${encodeURIComponent(since)}&until=${encodeURIComponent(until)}`
+    : `preset=${encodeURIComponent(preset)}`
   // Auth da inoltrare ai fetch interni: cookie di sessione (utente loggato) o,
   // se assente, il segreto cron (standup automatico → creds STMN via isAuthorizedCron).
   const cron = request.headers.get('x-internal-cron') || ''
@@ -33,8 +48,8 @@ export async function GET(request) {
   const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`, cookie),
-      safeFetch(`${base}/api/meta-detail?preset=${encodeURIComponent(preset)}&level=campaigns`, cookie),
-      safeFetch(`${base}/api/creative?preset=${encodeURIComponent(preset)}`, cookie),
+      safeFetch(`${base}/api/meta-detail?${detailQs}&level=campaigns`, cookie),
+      safeFetch(`${base}/api/creative?${detailQs}`, cookie),
       safeFetch(`${base}/api/klaviyo?days=${days}`, cookie),
       safeFetch(`${base}/api/google`, cookie),
       safeFetch(`${base}/api/ga4?days=${days}`, cookie),
@@ -75,6 +90,7 @@ export async function GET(request) {
     sources,
     activeIntegrations: activeCount,
     preset,
+    periodRange: (since && until) ? { since, until } : null,
     updatedAt: new Date().toISOString(),
   }
 

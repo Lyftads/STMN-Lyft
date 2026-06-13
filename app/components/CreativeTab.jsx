@@ -779,15 +779,25 @@ function CopyBlock({ index, text }) {
   )
 }
 
+// Cache di modulo: sopravvive al cambio tab → riaprendo Creative non rifà la
+// fetch. Chiave = periodo + account selezionato.
+let __creativeCache = {}
+
 export default function CreativeTab() {
   const { t } = useI18n()
   const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [accountFilter, setAccountFilter] = useState('')
-  const [data, setData] = useState(null)
+  const ckey = `${tfQuery(tf)}|${accountFilter}`
+  // Inizializza dalla cache di modulo → tornando sulla tab i dati restano,
+  // niente ricaricamento da capo.
+  const [data, setData] = useState(() => __creativeCache[ckey] || null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    const key = `${tfQuery(tf)}|${accountFilter}`
+    // Cache hit → mostra subito, nessuna fetch.
+    if (__creativeCache[key]) { setData(__creativeCache[key]); setLoading(false); return }
     let active = true
 
     async function loadCreative() {
@@ -803,6 +813,7 @@ export default function CreativeTab() {
         const json = await res.json()
 
         if (active) {
+          if (json && json.ok !== false) __creativeCache[key] = json // non cachare gli errori
           setData(json)
         }
       } catch (e) {

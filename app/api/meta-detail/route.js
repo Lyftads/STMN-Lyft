@@ -567,22 +567,29 @@ async function fetchInsightsByIds(accountId, level, ids, range) {
   })
 }
 
-async function getCampaignRows(accounts, range) {
-  const allRows = []
+// Nome leggibile degli account (act_123 → "Brand Srl"). Parallelo, best-effort.
+async function fetchAccountNames(accounts) {
+  const out = {}
+  await Promise.all((accounts || []).map(async (id) => {
+    try { const d = await graph(id, { fields: 'name' }); if (d?.name) out[id] = d.name } catch {}
+  }))
+  return out
+}
 
-  for (const accountId of accounts) {
+async function getCampaignRows(accounts, range) {
+  // Account in PARALLELO (dentro l'account, campagne→insights restano in ordine
+  // per dipendenza). Per i tenant multi-account è ~Nx più veloce a freddo.
+  const perAccount = await Promise.all(accounts.map(async (accountId) => {
     const campaigns = await fetchActiveCampaigns(accountId)
     const ids = campaigns.map(x => x.id)
-
-    if (!ids.length) continue
+    if (!ids.length) return []
 
     const insights = await fetchInsightsByIds(accountId, 'campaign', ids, range)
     const insightMap = new Map(insights.map(x => [x.campaign_id, x]))
 
-    for (const campaign of campaigns) {
+    return campaigns.map(campaign => {
       const insight = insightMap.get(campaign.id) || {}
-
-      allRows.push(
+      return (
         calcRow(
           {
             id: campaign.id,
@@ -607,10 +614,10 @@ async function getCampaignRows(accounts, range) {
           insight
         )
       )
-    }
-  }
+    })
+  }))
 
-  return allRows
+  return perAccount.flat()
 }
 
 async function getAdsetRows(accounts, range, campaignId) {
@@ -939,16 +946,17 @@ export async function GET(req) {
     }
 
     // Top-level (campagne): la prima apertura pesante → cache SWR per workspace+periodo+account.
-    return swrSnapshot(req, { tab: 'metaDetail', compute: async () => {
+    return swrSnapshot(req, { tab: 'metaDetail2', compute: async () => {
       const rows = await getCampaignRows(accounts, range)
       const summary = sumRows(rows)
-      const [previousRows, daily] = await Promise.all([
+      const [previousRows, daily, accountNames] = await Promise.all([
         getCampaignRows(accounts, previousRange),
         fetchDailySeries(accounts, range).catch(() => []),
+        fetchAccountNames(allAccounts).catch(() => ({})),
       ])
       const previousSummary = sumRows(previousRows)
       return {
-        ok: true, preset, level, range, previousRange, accounts, allAccounts, accountFilter,
+        ok: true, preset, level, range, previousRange, accounts, allAccounts, accountNames, accountFilter,
         summary, previousSummary,
         comparison: comparison(summary, previousSummary),
         insight: insightText(range, summary), todos: todos(summary),

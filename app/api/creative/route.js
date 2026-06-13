@@ -722,12 +722,15 @@ async function fetchAccountSummary(accounts, range) {
   let spend = 0, purchaseValue = 0, linkClicks = 0, impressions = 0, orders = 0
   // Anche valori CPC/CTR pesati come fallback se i click non arrivano
   let cpcLinkWeighted = 0, ctrLinkWeighted = 0
-  for (const account of accounts) {
-    const rows = await metaGetAll(`${account}/insights`, {
+  // Account in PARALLELO (le pagine di ogni account restano sequenziali).
+  const perAccount = await Promise.all(accounts.map(account =>
+    metaGetAll(`${account}/insights`, {
       level: 'account',
       fields: 'spend,impressions,clicks,unique_clicks,inline_link_clicks,unique_inline_link_clicks,cpc,cost_per_inline_link_click,cost_per_action_type,ctr,inline_link_click_ctr,actions,action_values',
       time_range: range,
-    }, 100)
+    }, 100).catch(() => [])
+  ))
+  for (const rows of perAccount) {
     for (const r of rows) {
       const rSpend = toNum(r.spend)
       spend += rSpend
@@ -772,13 +775,16 @@ async function fetchAccountSummary(accounts, range) {
 
 async function fetchDailySeries(accounts, range) {
   const byDay = new Map()
-  for (const account of accounts) {
-    const rows = await metaGetAll(`${account}/insights`, {
+  // Account in PARALLELO.
+  const perAccount = await Promise.all(accounts.map(account =>
+    metaGetAll(`${account}/insights`, {
       level: 'account',
       fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,actions,action_values',
       time_range: range,
       time_increment: 1,
-    }, 500)
+    }, 500).catch(() => [])
+  ))
+  for (const rows of perAccount) {
     for (const r of rows) {
       const date = r.date_start
       if (!date) continue
@@ -875,24 +881,58 @@ export async function GET(req) {
       'action_values',
     ].join(',')
 
-    let allRows = []
+    const prevRange = getPrevRange(range)
 
-    for (const account of accounts) {
-      const rows = await metaGetAll(
-        `${account}/insights`,
-        {
-          level: 'ad',
-          fields,
-          time_range: range,
-        },
-        500
-      )
-
-      allRows = allRows.concat(rows.map(r => normalizeInsight(r, account)))
+    // Insights ad-level del periodo PRECEDENTE per il confronto per-creative
+    // (ad_id → metrics). Account in PARALLELO.
+    const fetchPrevAdMap = async () => {
+      const prevFields = [
+        'ad_id','spend','impressions','clicks','inline_link_clicks',
+        'cpc','cost_per_inline_link_click','ctr','inline_link_click_ctr',
+        'actions','action_values',
+      ].join(',')
+      const map = {}
+      const perAccount = await Promise.all(accounts.map(account =>
+        metaGetAll(`${account}/insights`, { level: 'ad', fields: prevFields, time_range: prevRange }, 500)
+          .then(rows => ({ account, rows })).catch(() => ({ account, rows: [] }))
+      ))
+      for (const { account, rows } of perAccount) {
+        for (const r of rows) {
+          if (!r.ad_id) continue
+          const normalized = normalizeInsight(r, account)
+          map[r.ad_id] = {
+            spend: normalized.spend, revenue: normalized.purchase_value, orders: normalized.orders,
+            roas: normalized.roas, cpc_link: normalized.cpc_link, ctr_link: normalized.ctr_link,
+            link_clicks: normalized.link_clicks, impressions: normalized.impressions,
+          }
+        }
+      }
+      return map
     }
 
-    let merged = mergeByAd(allRows)
+    // I riepiloghi account-level + periodo precedente partono SUBITO, in
+    // CONCORRENZA col fetch ad-level qui sotto → più veloce a freddo anche con
+    // un solo account (prima giravano in sequenza dopo l'ad-level).
+    const summariesP = Promise.all([
+      fetchAccountSummary(accounts, range).catch(() => null),
+      fetchAccountSummary(accounts, prevRange).catch(() => null),
+      fetchDailySeries(accounts, range).catch(() => []),
+      debug ? metaGetAll(`${accounts[0]}/insights`, {
+        level: 'account',
+        fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values,cost_per_action_type',
+        time_range: range,
+      }, 5).catch(e => ({ error: e?.message })) : Promise.resolve(null),
+      fetchPrevAdMap(),
+    ])
 
+    // Fetch ad-level: account in PARALLELO.
+    const perAccountRows = await Promise.all(accounts.map(account =>
+      metaGetAll(`${account}/insights`, { level: 'ad', fields, time_range: range }, 500)
+        .then(rows => rows.map(r => normalizeInsight(r, account))).catch(() => [])
+    ))
+    let allRows = perAccountRows.flat()
+
+    let merged = mergeByAd(allRows)
     merged = await hydrateCreatives(merged)
 
     if (activeOnly) {
@@ -913,56 +953,7 @@ export async function GET(req) {
       }))
       .sort((a, b) => b.spend - a.spend)
 
-    const prevRange = getPrevRange(range)
-
-    // Insights ad-level del periodo PRECEDENTE per fare comparazione
-    // per-creative: ad_id → metrics. Restano usabili solo se l'ad era
-    // attivo nel periodo precedente (Meta non ritorna righe per ad
-    // senza spesa).
-    async function fetchPrevAdMap() {
-      const prevFields = [
-        'ad_id','spend','impressions','clicks','inline_link_clicks',
-        'cpc','cost_per_inline_link_click','ctr','inline_link_click_ctr',
-        'actions','action_values',
-      ].join(',')
-      const map = {}
-      for (const account of accounts) {
-        try {
-          const rows = await metaGetAll(`${account}/insights`, {
-            level: 'ad',
-            fields: prevFields,
-            time_range: prevRange,
-          }, 500)
-          for (const r of rows) {
-            if (!r.ad_id) continue
-            const normalized = normalizeInsight(r, account)
-            map[r.ad_id] = {
-              spend: normalized.spend,
-              revenue: normalized.purchase_value,
-              orders: normalized.orders,
-              roas: normalized.roas,
-              cpc_link: normalized.cpc_link,
-              ctr_link: normalized.ctr_link,
-              link_clicks: normalized.link_clicks,
-              impressions: normalized.impressions,
-            }
-          }
-        } catch {}
-      }
-      return map
-    }
-
-    const [accountSummary, prevSummary, dailySeries, rawAccountRows, prevAdMap] = await Promise.all([
-      fetchAccountSummary(accounts, range).catch(() => null),
-      fetchAccountSummary(accounts, prevRange).catch(() => null),
-      fetchDailySeries(accounts, range).catch(() => []),
-      debug ? metaGetAll(`${accounts[0]}/insights`, {
-        level: 'account',
-        fields: 'spend,impressions,clicks,inline_link_clicks,cpc,cost_per_inline_link_click,ctr,inline_link_click_ctr,actions,action_values,cost_per_action_type',
-        time_range: range,
-      }, 5).catch(e => ({ error: e?.message })) : Promise.resolve(null),
-      fetchPrevAdMap(),
-    ])
+    const [accountSummary, prevSummary, dailySeries, rawAccountRows, prevAdMap] = await summariesP
 
     // Aggancia il previous a ogni row se esiste (l'ad era attivo nel
     // periodo precedente). Se manca → niente confronto (richiesta utente).

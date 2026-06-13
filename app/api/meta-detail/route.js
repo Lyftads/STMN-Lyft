@@ -567,11 +567,19 @@ async function fetchInsightsByIds(accountId, level, ids, range) {
   })
 }
 
-// Nome leggibile degli account (act_123 → "Brand Srl"). Parallelo, best-effort.
+// Nome leggibile degli account (act_123 → "Brand Srl"). Parallelo, best-effort,
+// con fetch diretto (niente throw del wrapper) così un singolo errore non azzera
+// gli altri e i nomi compaiono comunque.
 async function fetchAccountNames(accounts) {
   const out = {}
+  const tok = metaToken()
+  if (!tok) return out
   await Promise.all((accounts || []).map(async (id) => {
-    try { const d = await graph(id, { fields: 'name' }); if (d?.name) out[id] = d.name } catch {}
+    try {
+      const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${id}?fields=name&access_token=${encodeURIComponent(tok)}`, { cache: 'no-store' })
+      const d = await res.json().catch(() => ({}))
+      if (d && d.name) out[id] = d.name
+    } catch {}
   }))
   return out
 }
@@ -946,7 +954,7 @@ export async function GET(req) {
     }
 
     // Top-level (campagne): la prima apertura pesante → cache SWR per workspace+periodo+account.
-    return swrSnapshot(req, { tab: 'metaDetail2', compute: async () => {
+    return swrSnapshot(req, { tab: 'metaDetail3', compute: async () => {
       const rows = await getCampaignRows(accounts, range)
       const summary = sumRows(rows)
       const [previousRows, daily, accountNames] = await Promise.all([

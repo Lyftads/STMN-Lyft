@@ -779,25 +779,45 @@ function CopyBlock({ index, text }) {
   )
 }
 
-// Cache di modulo: sopravvive al cambio tab → riaprendo Creative non rifà la
-// fetch. Chiave = periodo + account selezionato.
-let __creativeCache = {}
+// Cache su localStorage (7 giorni): le creative restano in memoria a lungo →
+// sopravvivono al cambio tab E al refresh della pagina. Chiave = periodo+account.
+const CREATIVE_LS = 'lyft_creative_cache_v1'
+const CREATIVE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 giorni
+
+function readCreativeCache() {
+  if (typeof window === 'undefined') return {}
+  try { return JSON.parse(localStorage.getItem(CREATIVE_LS) || '{}') || {} } catch { return {} }
+}
+function getCreativeCached(key) {
+  const e = readCreativeCache()[key]
+  if (!e || (Date.now() - e.ts) > CREATIVE_TTL) return null
+  return e.payload
+}
+function setCreativeCached(key, payload) {
+  if (typeof window === 'undefined') return
+  const entry = { payload, ts: Date.now() }
+  try {
+    const o = readCreativeCache(); o[key] = entry
+    localStorage.setItem(CREATIVE_LS, JSON.stringify(o))
+  } catch {
+    // quota piena → tieni solo l'ultima vista
+    try { localStorage.setItem(CREATIVE_LS, JSON.stringify({ [key]: entry })) } catch {}
+  }
+}
 
 export default function CreativeTab() {
   const { t } = useI18n()
   const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [accountFilter, setAccountFilter] = useState('')
-  const ckey = `${tfQuery(tf)}|${accountFilter}`
-  // Inizializza dalla cache di modulo → tornando sulla tab i dati restano,
-  // niente ricaricamento da capo.
-  const [data, setData] = useState(() => __creativeCache[ckey] || null)
+  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const key = `${tfQuery(tf)}|${accountFilter}`
-    // Cache hit → mostra subito, nessuna fetch.
-    if (__creativeCache[key]) { setData(__creativeCache[key]); setLoading(false); return }
+    // Cache hit (anche dopo refresh, da localStorage) → mostra subito, niente fetch.
+    const cached = getCreativeCached(key)
+    if (cached) { setData(cached); setLoading(false); return }
     let active = true
 
     async function loadCreative() {
@@ -813,7 +833,7 @@ export default function CreativeTab() {
         const json = await res.json()
 
         if (active) {
-          if (json && json.ok !== false) __creativeCache[key] = json // non cachare gli errori
+          if (json && json.ok !== false) setCreativeCached(key, json) // non cachare gli errori
           setData(json)
         }
       } catch (e) {

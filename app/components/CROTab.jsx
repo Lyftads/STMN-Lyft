@@ -286,7 +286,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
     addToCart: c.atc,
     checkout: c.chk,
     purchase: c.ord,
-    source: resp?.hasGA4 ? t('cro.sourceGA4', null, 'GA4 + Shopify') : t('cro.sourceEstimated', null, 'Shopify (stimato)'),
+    source: resp?.funnel?.source || 'Shopify',
   }
 
   const insights = useMemo(() => {

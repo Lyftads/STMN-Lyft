@@ -17,6 +17,16 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 
 const STORE_KEY = 'lyft_brain_msgs'
 
+// Render leggero del markdown: **grassetto** → bold (niente più ** a schermo).
+// Mantiene i newline (il bubble ha whiteSpace pre-wrap).
+function renderRich(text) {
+  return String(text).split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? <strong key={i} style={{ fontWeight: 700 }}>{p.slice(2, -2)}</strong>
+      : <span key={i}>{p}</span>
+  )
+}
+
 function loadMsgs() {
   try {
     const raw = localStorage.getItem(STORE_KEY)
@@ -193,7 +203,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
                   background: m.role === 'user' ? 'linear-gradient(135deg, #7c5cff, #5b3df0)' : 'rgba(255,255,255,0.06)',
                   color: m.role === 'user' ? 'var(--text)' : 'var(--text)',
                   border: m.role === 'user' ? 'none' : '1px solid var(--border)',
-                }}>{m.content}</div>
+                }}>{m.role === 'assistant' ? renderRich(m.content) : m.content}</div>
               </div>
             ))}
             {loading && (

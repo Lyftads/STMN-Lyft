@@ -51,8 +51,9 @@ export async function GET(request) {
   let gsc = null
   try {
     const gscSites = await safeFetch(`${base}/api/gsc?action=sites`, cookie)
-    const firstSite = gscSites?.sites?.[0]?.siteUrl
-    if (firstSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(firstSite)}&days=${days}`, cookie)
+    // sito scelto dal cliente (companies.gsc_site_url) → fallback al primo verificato
+    const chosenSite = gscSites?.saved || gscSites?.sites?.[0]?.siteUrl
+    if (chosenSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(chosenSite)}&days=${days}`, cookie)
   } catch {}
 
   const sources = {

@@ -58,7 +58,10 @@ export async function GET(request) {
       const r = await gscFetch(auth.token, '/sites')
       if (!r.ok) return NextResponse.json(debug ? { configured: true, apiStatus: r.status, apiError: r.errText } : { configured: false, reason: 'api', status: r.status })
       const sites = (r.json?.siteEntry || []).filter(s => s.permissionLevel !== 'siteUnverifiedUser').map(s => ({ siteUrl: s.siteUrl, permission: s.permissionLevel }))
-      return NextResponse.json({ configured: true, sites })
+      // `saved` = sito scelto dal cliente (companies.gsc_site_url) → il pannello
+      // lo pre-seleziona invece di ripartire sempre dal primo.
+      const saved = g.gscSiteUrl && sites.some(s => s.siteUrl === g.gscSiteUrl) ? g.gscSiteUrl : null
+      return NextResponse.json({ configured: true, sites, saved })
     }
 
     const site = searchParams.get('site')

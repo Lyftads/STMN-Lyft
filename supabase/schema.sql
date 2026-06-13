@@ -25,6 +25,7 @@ create table if not exists public.companies (
   meta_account_id           text,
   meta_access_token         text,
   ga4_property_id           text,
+  gsc_site_url              text,
   google_client_id          text,
   google_client_secret      text,
   google_refresh_token      text,
@@ -40,6 +41,7 @@ create table if not exists public.companies (
 alter table public.companies add column if not exists meta_account_id        text;
 alter table public.companies add column if not exists meta_access_token      text;
 alter table public.companies add column if not exists ga4_property_id        text;
+alter table public.companies add column if not exists gsc_site_url           text;
 alter table public.companies add column if not exists google_client_id       text;
 alter table public.companies add column if not exists google_client_secret   text;
 alter table public.companies add column if not exists google_refresh_token   text;

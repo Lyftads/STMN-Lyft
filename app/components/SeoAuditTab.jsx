@@ -487,18 +487,16 @@ const pct = (c) => `${(Number(c || 0) * 100).toFixed(1)}%`
 function SetupGSC() {
   const { t } = useI18n()
   return (
-    <div className="glass-card" style={{ padding: 24 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>{t('seo.gscSetupTitle', null, 'Collega Google Search Console')}</div>
-      <div style={{ fontSize: 13.5, opacity: 0.8, lineHeight: 1.7 }}>
-        {t('seo.gscSetupIntro', null, 'Per mostrare le keyword e le posizioni reali servono 3 step una tantum:')}
-        <ol style={{ margin: '12px 0', paddingLeft: 20 }}>
-          <li dangerouslySetInnerHTML={{ __html: t('seo.gscStep1', null, 'Google Cloud (progetto <b>lyftai</b>) → <i>API e servizi</i> → abilita <b>Google Search Console API</b>.') }} />
-          <li>{t('seo.gscStep2', null, 'OAuth Playground → rigenera il refresh token includendo entrambi gli scope:')}<br />
-            <code style={{ fontSize: 12 }}>https://www.googleapis.com/auth/analytics.readonly</code><br />
-            <code style={{ fontSize: 12 }}>https://www.googleapis.com/auth/webmasters.readonly</code></li>
-          <li dangerouslySetInnerHTML={{ __html: t('seo.gscStep3', null, 'Aggiorna <b>GOOGLE_REFRESH_TOKEN</b> su Vercel (Production) → Redeploy.') }} />
-        </ol>
-        {t('seo.gscSetupWarn', null, 'Includi entrambi gli scope, così GA4 (globo) continua a funzionare e si attiva anche GSC.')}
+    <div className="glass-card" style={{ padding: 28, textAlign: 'center' }}>
+      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>{t('seo.gscSetupTitle', null, 'Collega Google Search Console')}</div>
+      <div style={{ fontSize: 13.5, opacity: 0.8, lineHeight: 1.6, maxWidth: 540, margin: '0 auto 18px' }}>
+        {t('seo.gscConnectIntro', null, 'Un solo collegamento Google abilita Search Console, GA4 e Google Ads. Clicca qui sotto e autorizza l’accesso in sola lettura.')}
+      </div>
+      <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={{ padding: '11px 24px', fontWeight: 800, fontSize: 14, borderRadius: 12, border: 'none', background: '#2997ff', color: '#fff', cursor: 'pointer' }}>
+        {t('seo.gscConnectBtn', null, 'Collega Google')}
+      </button>
+      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 14, lineHeight: 1.5, maxWidth: 540, marginInline: 'auto' }}>
+        {t('seo.gscReconnectNote', null, 'Hai già collegato Google in passato? Clicca comunque: serve riautorizzare una volta per attivare Search Console.')}
       </div>
     </div>
   )
@@ -539,7 +537,9 @@ function GSCPanel() {
       try {
         const r = await fetch('/api/gsc?action=sites'); const j = await r.json()
         setState({ loading: false, configured: !!j.configured, sites: j.sites || [] })
-        if (j.sites?.length) setSite(j.sites[0].siteUrl)
+        // Pre-seleziona il sito salvato dal cliente (companies.gsc_site_url),
+        // altrimenti il primo verificato.
+        if (j.sites?.length) setSite(j.saved || j.sites[0].siteUrl)
       } catch { setState({ loading: false, configured: false }) }
     })()
   }, [])
@@ -568,7 +568,7 @@ function GSCPanel() {
   return (
     <div>
       <Row>
-        <select value={site} onChange={e => setSite(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+        <select value={site} onChange={e => { const s = e.target.value; setSite(s); fetch('/api/integrations/gsc-site', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: s }) }).catch(() => {}) }} style={{ ...inputStyle, flex: 1 }}>
           {state.sites.map(s => <option key={s.siteUrl} value={s.siteUrl} style={{ background: 'var(--surface)' }}>{s.siteUrl}</option>)}
         </select>
         <select value={days} onChange={e => setDays(+e.target.value)} style={{ ...inputStyle, flex: 'none', width: 150 }}>

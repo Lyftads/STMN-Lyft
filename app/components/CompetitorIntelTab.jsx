@@ -494,7 +494,9 @@ function PromoTag({ promo }) {
 
 function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const { t } = useI18n()
-  const [section, setSection] = useState('ads')
+  // Default su "Catalogo & Prezzi": i prodotti caricano subito mentre le creative
+  // (più lente) si popolano in background. Passando alla tab creative le trovi pronte.
+  const [section, setSection] = useState('products')
   const [showAllProducts, setShowAllProducts] = useState(false)
   const [productSearch, setProductSearch] = useState('')
 
@@ -699,8 +701,8 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
         }}
       >
         {[
-          { id: 'ads', label: t('ci.tabAds', null, 'Creative Attive'), icon: '▧' },
           { id: 'products', label: t('ci.tabProducts', null, 'Catalogo & Prezzi'), icon: '◎' },
+          { id: 'ads', label: t('ci.tabAds', null, 'Creative Attive'), icon: '▧' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1089,23 +1091,33 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   )
 }
 
+// Cache di modulo (vive quanto la sessione/JS): { [country]: json }.
+// Tornando sulla tab Competitor Intel i dati sono già pronti, niente refetch.
+const __ciCache = {}
+
 export default function CompetitorIntelTab() {
   const { t } = useI18n()
-  const [data, setData] = useState(null)
+  // Cache di modulo per-paese: cambiando tab dell'app e tornando, i dati (e le
+  // chiamate a valle) NON si rifanno. "Aggiorna" forza comunque il refresh.
+  const [data, setData] = useState(() => __ciCache['IT'] || null)
   const [loading, setLoading] = useState(false)
   const [country, setCountry] = useState('IT')
 
   useEffect(() => {
+    // Se ho già i dati di questo paese in cache, mostrali senza rifare le chiamate.
+    if (__ciCache[country]) { setData(__ciCache[country]); return }
     fetchData()
-  }, [country])
+  }, [country]) // eslint-disable-line
 
-  async function fetchData() {
+  async function fetchData(force = false) {
+    if (!force && __ciCache[country]) { setData(__ciCache[country]); return }
     setLoading(true)
     try {
       const res = await fetch(`/api/competitor-intel?country=${encodeURIComponent(country)}`, {
         cache: 'no-store',
       })
       const json = await res.json()
+      __ciCache[country] = json
       setData(json)
     } catch (e) {
       console.error('Competitor intel fetch error:', e)
@@ -1191,7 +1203,7 @@ export default function CompetitorIntelTab() {
           </select>
 
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             disabled={loading}
             className="btn-glass"
             style={{

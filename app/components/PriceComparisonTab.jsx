@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
+import CompetitorsEmptyNotice from './CompetitorsEmptyNotice'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
@@ -118,7 +119,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
   )
 }
 
-export default function PriceComparisonTab() {
+export default function PriceComparisonTab({ onNavigate }) {
   const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -244,6 +245,11 @@ export default function PriceComparisonTab() {
 
   if (loading) {
     return <div style={{ color: 'var(--text2)', padding: 40, fontSize: 15, fontWeight: 700 }}>{t('price.loading', null, 'Carico comparazione prezzi…')}</div>
+  }
+
+  // Cliente senza competitor configurati → avviso a compilare Brand Identity
+  if (data?.needsCompetitors) {
+    return <CompetitorsEmptyNotice onNavigate={onNavigate} />
   }
 
   if (!comparison.length) {

@@ -1039,7 +1039,7 @@ export default function MetaDetailTab() {
             fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
             letterSpacing: '0.12em', fontWeight: 800,
           }}>{t('meta.account', null, 'Account')}</span>
-          {[{ id: '', label: t('meta.all', null, 'Tutti') }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a }))].map(opt => {
+          {[{ id: '', label: t('meta.all', null, 'Tutti') }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: (data?.accountNames && data.accountNames[a]) || a }))].map(opt => {
             const active = accountFilter === opt.id
             return (
               <button

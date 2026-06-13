@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
+import CompetitorsEmptyNotice from './CompetitorsEmptyNotice'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const COMPETITOR_META = {
@@ -1095,7 +1096,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
 // Tornando sulla tab Competitor Intel i dati sono già pronti, niente refetch.
 const __ciCache = {}
 
-export default function CompetitorIntelTab() {
+export default function CompetitorIntelTab({ onNavigate }) {
   const { t } = useI18n()
   // Cache di modulo per-paese: cambiando tab dell'app e tornando, i dati (e le
   // chiamate a valle) NON si rifanno. "Aggiorna" forza comunque il refresh.
@@ -1246,6 +1247,9 @@ export default function CompetitorIntelTab() {
           </div>
         </div>
       )}
+
+      {/* Cliente senza competitor configurati → avviso a compilare Brand Identity */}
+      {data?.needsCompetitors && <CompetitorsEmptyNotice onNavigate={onNavigate} />}
 
       {/* ── Ricerca Ad Library per keyword (additivo) ── */}
       <div

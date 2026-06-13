@@ -238,9 +238,10 @@ function buildPriceComparison(ownProducts, competitorProductsMap) {
   return categories.filter(c => c.own.count > 0 || Object.values(c.competitors).some(v => v.count > 0))
 }
 
-// In-memory cache — survives across requests within same serverless instance
-let cachedData = null
-let cachedAt = null
+// In-memory cache — survives across requests within same serverless instance.
+// KEYED PER TENANT (userId+country): senza chiave un cliente vedrebbe i
+// competitor di un altro tenant (data leak). Map<`${userId}:${country}`, {data,at}>.
+const CACHE = new Map()
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
 function sanitize(v) {
@@ -783,7 +784,13 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
 // beta). Normalizza la shape per essere consumabile dal resto del codice.
 async function resolveCompetitors() {
   const userList = await getUserCompetitors()
-  if (userList.length === 0) return COMPETITORS
+  if (userList.length === 0) {
+    // Fallback ai competitor hardcoded SOLO per il tenant owner/beta (STMN).
+    // Un cliente reale che non ha compilato i competitor in Brand Identity NON
+    // deve vedere quelli di STMN → lista vuota (la tab mostra l'avviso a compilare).
+    const { isBeta } = getTenantInfo()
+    return isBeta ? COMPETITORS : []
+  }
 
   return userList.map(c => {
     // Estrae username Instagram da URL completo se necessario
@@ -864,23 +871,25 @@ export async function GET(request) {
       ? ['IT', 'ES', 'US', 'AU', 'GB', 'FR', 'DE']
       : [country]
 
-  const cacheKey = `${country}-all`
+  const { userId } = getTenantInfo()
+  const cacheKey = `${userId || 'anon'}:${country}`
+  const entry = CACHE.get(cacheKey)
   const cacheValid =
     !forceRefresh &&
     !isCron &&
-    cachedData &&
-    cachedAt &&
-    Date.now() - cachedAt < CACHE_TTL_MS
+    entry &&
+    Date.now() - entry.at < CACHE_TTL_MS
 
   let results
+  let cachedAt = entry?.at || null
 
   if (cacheValid && !competitorId) {
-    results = cachedData
+    results = entry.data
   } else {
     results = await fetchAllCompetitors(countries)
     if (!competitorId) {
-      cachedData = results
       cachedAt = Date.now()
+      CACHE.set(cacheKey, { data: results, at: cachedAt })
     }
   }
 
@@ -916,6 +925,9 @@ export async function GET(request) {
   return NextResponse.json(
     {
       competitors: results,
+      // Cliente senza competitor configurati in Brand Identity → la tab mostra
+      // l'avviso a compilare la sezione dedicata (niente competitor di STMN).
+      needsCompetitors: results.length === 0,
       priceComparison,
       ownStoreName: ownStore().name,
       countries,

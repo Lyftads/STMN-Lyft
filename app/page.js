@@ -4363,7 +4363,7 @@ export default function App() {
 
 {/* COMPETITOR INTEL TAB */}
 {tab === 'competitorIntel' && (
-  <CompetitorIntelTab />
+  <CompetitorIntelTab onNavigate={setTab} />
 )}
 
 {tab === 'creativeIntel' && (
@@ -4372,7 +4372,7 @@ export default function App() {
 
 {/* PRICE COMPARISON TAB */}
 {tab === 'priceComparison' && (
-  <PriceComparisonTab />
+  <PriceComparisonTab onNavigate={setTab} />
 )}
 
 {tab === 'inventory' && (

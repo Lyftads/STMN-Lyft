@@ -90,38 +90,64 @@ async function fetchAllVariants(store, token) {
   return { variants: out, currency }
 }
 
+// Pagina UNA finestra temporale di ordini (Link header) con retry sul rate
+// limit; chiama onOrder per ogni ordine. Usata in parallelo su più finestre.
+async function fetchOrdersWindow(store, token, sinceISO, untilISO, onOrder) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&created_at_max=${encodeURIComponent(untilISO)}&limit=250&fields=id,created_at,line_items`
+  for (let page = 0; page < 40 && url; page++) {
+    let res = null
+    for (let a = 0; a < 5; a++) {
+      res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token }, cache: 'no-store' })
+      if (res.status === 429 || res.status === 430 || res.status >= 500) { await sleep((Number(res.headers.get('Retry-After')) || 1.5) * 1000); continue }
+      break
+    }
+    if (!res || !res.ok) break
+    const data = await res.json().catch(() => null)
+    for (const o of (data?.orders || [])) onOrder(o)
+    const link = res.headers.get('Link') || res.headers.get('link') || ''
+    const m = /<([^>]+)>;\s*rel="next"/.exec(link)
+    url = m ? m[1] : null
+  }
+}
+
 // Quantità vendute per variante negli ultimi PERIOD_DAYS giorni (+ finestra recente).
+// La finestra è divisa in blocchi scaricati IN PARALLELO (le pagine di un singolo
+// blocco restano sequenziali, ma i blocchi no) → caricamento a freddo ~3× più veloce.
 async function fetchSales(store, token) {
   const now = Date.now()
-  const sinceISO = new Date(now - PERIOD_DAYS * 86400000).toISOString()
   const recentCutoff = now - RECENT_DAYS * 86400000
 
   const sold30 = new Map() // variantId -> qty
   const sold7 = new Map()
   const sold30Sku = new Map() // fallback per sku quando manca variant_id
 
-  let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&limit=250&fields=id,created_at,line_items`
-  for (let page = 0; page < 50 && url; page++) {
-    const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token }, cache: 'no-store' })
-    if (!res.ok) break
-    const data = await res.json()
-    for (const o of (data.orders || [])) {
-      const recent = new Date(o.created_at).getTime() >= recentCutoff
-      for (const li of (o.line_items || [])) {
-        const qty = Number(li.quantity) || 0
-        if (!qty) continue
-        const vid = li.variant_id != null ? String(li.variant_id) : null
-        if (vid) {
-          sold30.set(vid, (sold30.get(vid) || 0) + qty)
-          if (recent) sold7.set(vid, (sold7.get(vid) || 0) + qty)
-        }
-        if (li.sku) sold30Sku.set(li.sku, (sold30Sku.get(li.sku) || 0) + qty)
+  const onOrder = (o) => {
+    const recent = new Date(o.created_at).getTime() >= recentCutoff
+    for (const li of (o.line_items || [])) {
+      const qty = Number(li.quantity) || 0
+      if (!qty) continue
+      const vid = li.variant_id != null ? String(li.variant_id) : null
+      if (vid) {
+        sold30.set(vid, (sold30.get(vid) || 0) + qty)
+        if (recent) sold7.set(vid, (sold7.get(vid) || 0) + qty)
       }
+      if (li.sku) sold30Sku.set(li.sku, (sold30Sku.get(li.sku) || 0) + qty)
     }
-    const link = res.headers.get('Link') || res.headers.get('link')
-    const m = link && link.includes('rel="next"') ? link.match(/<([^>]+)>;\s*rel="next"/) : null
-    url = m ? m[1] : null
   }
+
+  // Blocchi contigui non sovrapposti che coprono [now-PERIOD_DAYS, now].
+  const CHUNKS = 3
+  const spanMs = (PERIOD_DAYS / CHUNKS) * 86400000
+  const bounds = []
+  for (let i = 0; i <= CHUNKS; i++) bounds.push(now - i * spanMs)
+  const windows = []
+  for (let i = 0; i < CHUNKS; i++) {
+    const maxMs = bounds[i]
+    const minMs = (i === CHUNKS - 1) ? bounds[CHUNKS] : bounds[i + 1] + 1 // +1ms = niente doppio conteggio al bordo
+    windows.push([new Date(minMs).toISOString(), new Date(maxMs).toISOString()])
+  }
+  await Promise.all(windows.map(([s, u]) => fetchOrdersWindow(store, token, s, u, onOrder)))
   return { sold30, sold7, sold30Sku }
 }
 

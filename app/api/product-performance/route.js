@@ -37,32 +37,52 @@ async function shopFetch(url, token) {
   return null
 }
 
-// ── Shopify: ordini con line items nel range ──
-async function fetchOrders(store, token, sinceISO, untilISO) {
-  const byProduct = new Map() // productId -> { units, revenue, cogsUnits:Map(variantId->qty) }
+// Pagina UNA finestra temporale (Link header, con retry via shopFetch).
+async function fetchOrdersWindow(store, token, sinceISO, untilISO, onOrder) {
   let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&created_at_max=${encodeURIComponent(untilISO)}&limit=250&fields=id,created_at,line_items`
-  for (let page = 0; page < 400 && url; page++) {
+  for (let page = 0; page < 200 && url; page++) {
     const res = await shopFetch(url, token)
     if (!res || !res.ok) break
-    const data = await res.json()
-    for (const o of (data.orders || [])) {
-      for (const li of (o.line_items || [])) {
-        if (li.gift_card) continue // escludi gift card dal P&L prodotto
-        const pid = li.product_id != null ? String(li.product_id) : null
-        if (!pid) continue
-        const qty = num(li.quantity)
-        const rev = num(li.price) * qty - num(li.total_discount)
-        if (!byProduct.has(pid)) byProduct.set(pid, { productId: pid, title: li.title || '', units: 0, revenue: 0, variantQty: new Map() })
-        const p = byProduct.get(pid)
-        p.units += qty
-        p.revenue += rev
-        if (li.variant_id != null) { const vid = String(li.variant_id); p.variantQty.set(vid, (p.variantQty.get(vid) || 0) + qty) }
-      }
-    }
-    const link = res.headers.get('Link') || res.headers.get('link')
-    const m = link && link.includes('rel="next"') ? link.match(/<([^>]+)>;\s*rel="next"/) : null
+    const data = await res.json().catch(() => null)
+    for (const o of (data?.orders || [])) onOrder(o)
+    const link = res.headers.get('Link') || res.headers.get('link') || ''
+    const m = /<([^>]+)>;\s*rel="next"/.exec(link)
     url = m ? m[1] : null
   }
+}
+
+// ── Shopify: ordini con line items nel range ──
+// Il range è diviso in blocchi (~10gg) scaricati IN PARALLELO → ~3× più veloce
+// a freddo. JS è single-thread: le scritture su `byProduct` restano sicure
+// (avvengono in modo sincrono tra un await e l'altro).
+async function fetchOrders(store, token, sinceISO, untilISO) {
+  const byProduct = new Map() // productId -> { units, revenue, variantQty:Map(variantId->qty) }
+  const onOrder = (o) => {
+    for (const li of (o.line_items || [])) {
+      if (li.gift_card) continue // escludi gift card dal P&L prodotto
+      const pid = li.product_id != null ? String(li.product_id) : null
+      if (!pid) continue
+      const qty = num(li.quantity)
+      const rev = num(li.price) * qty - num(li.total_discount)
+      if (!byProduct.has(pid)) byProduct.set(pid, { productId: pid, title: li.title || '', units: 0, revenue: 0, variantQty: new Map() })
+      const p = byProduct.get(pid)
+      p.units += qty
+      p.revenue += rev
+      if (li.variant_id != null) { const vid = String(li.variant_id); p.variantQty.set(vid, (p.variantQty.get(vid) || 0) + qty) }
+    }
+  }
+
+  const startMs = new Date(sinceISO).getTime(), endMs = new Date(untilISO).getTime()
+  const totalDays = Math.max(1, (endMs - startMs) / 86400000)
+  const CHUNKS = Math.min(6, Math.max(1, Math.ceil(totalDays / 10)))
+  const spanMs = (endMs - startMs) / CHUNKS
+  const windows = []
+  for (let i = 0; i < CHUNKS; i++) {
+    const wMin = startMs + i * spanMs + (i > 0 ? 1 : 0) // +1ms: niente doppio conteggio al bordo
+    const wMax = (i === CHUNKS - 1) ? endMs : startMs + (i + 1) * spanMs
+    windows.push([new Date(wMin).toISOString(), new Date(wMax).toISOString()])
+  }
+  await Promise.all(windows.map(([s, u]) => fetchOrdersWindow(store, token, s, u, onOrder)))
   return byProduct
 }
 

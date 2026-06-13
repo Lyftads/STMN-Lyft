@@ -96,7 +96,7 @@ function KpiCard({ label, value, accent = 'var(--text)', curr, prev, delay = 0, 
       <div style={{
         fontSize: 26,
         fontWeight: 900,
-        color: accent,
+        color: 'var(--text)',
         letterSpacing: '-0.02em',
         marginBottom: pct != null ? 8 : 0,
       }}>{value}</div>
@@ -120,17 +120,26 @@ function KpiCard({ label, value, accent = 'var(--text)', curr, prev, delay = 0, 
 function FunnelChart({ funnel, delay = 0 }) {
   const { t } = useI18n()
   const steps = [
-    { name: t('cro.stepVisitors', null, 'Visitatori unici'), value: funnel.visitors },
-    { name: t('cro.stepViewProduct', null, 'Visualizza prodotto'), value: Math.round(funnel.visitors * 0.65) },
+    { name: t('cro.stepVisitors', null, 'Visitatori'), value: funnel.visitors },
     { name: t('cro.stepAddToCart', null, 'Aggiungi al carrello'), value: funnel.addToCart },
     { name: 'Checkout', value: funnel.checkout },
     { name: t('cro.stepPurchase', null, 'Acquista'), value: funnel.purchase },
   ]
   const maxVal = steps[0].value || 1
+  const hasData = steps[0].value > 0
+
+  // Drop-off per transizione → il collo di bottiglia è la transizione con il
+  // calo % più alto. Si ricalcola coi dati, quindi cambia col time frame.
+  const trans = steps.slice(1).map((s, i) => {
+    const prev = steps[i].value
+    const drop = Math.max(0, prev - s.value)
+    return { to: i + 1, from: i, drop, dropPct: prev > 0 ? (drop / prev) * 100 : 0 }
+  })
+  const bottleneck = hasData && trans.length ? trans.reduce((a, b) => (b.dropPct > a.dropPct ? b : a)) : null
 
   return (
     <GlassCard padding={28} delay={delay}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
             Purchase Journey
@@ -141,80 +150,60 @@ function FunnelChart({ funnel, delay = 0 }) {
         </div>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 12px', borderRadius: 999,
-          background: 'rgba(48,209,88,0.12)',
-          border: '1px solid rgba(48,209,88,0.3)',
-          color: '#86efac',
-          fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}>
-          <span style={{
-            width: 6, height: 6, borderRadius: 999,
-            background: '#30d158',
-            boxShadow: '0 0 8px #30d158',
-            animation: 'card-pulse 2s ease-in-out infinite',
-          }} />
-          {funnel.source}
-        </span>
+          padding: '5px 11px', borderRadius: 999,
+          background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+          color: 'var(--text3)', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>{funnel.source}</span>
       </div>
 
-      {/* Step labels e percentuali */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
-        {steps.map((s, i) => {
-          const pct = steps[0].value > 0 ? (s.value / steps[0].value) * 100 : 0
-          return (
-            <div key={i} style={{
-              flex: 1,
-              padding: '0 10px',
-              borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
-            }}>
-              <div style={{ fontSize: 9.5, color: 'var(--text3)', fontWeight: 800, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step {i + 1}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 700, lineHeight: 1.3 }}>{s.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.02em' }}>
-                {i === 0 ? '100%' : fmtP(pct)}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {/* Collo di bottiglia — cambia in base al time frame */}
+      {bottleneck && bottleneck.dropPct > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', marginBottom: 20, borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#f59e0b', boxShadow: '0 0 8px #f59e0b', flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, lineHeight: 1.45 }}>
+            <strong style={{ color: '#f59e0b', fontWeight: 900 }}>{t('cro.bottleneck', null, 'Collo di bottiglia')}:</strong>{' '}
+            {steps[bottleneck.from].name} → {steps[bottleneck.to].name} ·{' '}
+            <strong style={{ fontWeight: 900 }}>−{fmtP(bottleneck.dropPct)}</strong>{' '}
+            <span style={{ color: 'var(--text3)' }}>({fmtN(bottleneck.drop)} {t('cro.lost', null, 'persi')})</span>
+          </div>
+        </div>
+      )}
 
-      {/* Bar chart */}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', height: 220, marginBottom: 18, padding: '0 10px' }}>
+      {/* Barre minimali (collo di bottiglia evidenziato in ambra) */}
+      <div style={{ display: 'flex', gap: 18, alignItems: 'flex-end', height: 160, padding: '0 4px' }}>
         {steps.map((s, i) => {
           const pct = maxVal > 0 ? (s.value / maxVal) * 100 : 0
+          const isBottleneck = bottleneck && bottleneck.to === i
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text)', fontWeight: 900, marginBottom: 6, fontFamily: 'Barlow' }}>{fmtN(s.value)}</div>
+              <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 900, marginBottom: 8 }}>{fmtN(s.value)}</div>
               <div style={{
-                width: '78%',
-                background: `linear-gradient(180deg, ${ACCENT_GLOW} 0%, #1e3a8a 100%)`,
-                borderRadius: '8px 8px 0 0',
-                height: `${Math.max(pct, 2)}%`,
+                width: '100%', maxWidth: 92,
+                height: `${Math.max(pct, 1.5)}%`,
+                borderRadius: '6px 6px 0 0',
+                background: isBottleneck ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.13)',
+                border: `1px solid ${isBottleneck ? 'rgba(245,158,11,0.7)' : 'rgba(255,255,255,0.10)'}`,
                 transition: 'height .8s cubic-bezier(0.16,1,0.3,1)',
-                boxShadow: `0 0 16px ${ACCENT_GLOW}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
               }} />
             </div>
           )
         })}
       </div>
 
-      {/* Drop-off per step */}
-      <div style={{ display: 'flex', gap: 14, padding: '0 10px' }}>
+      {/* Etichette step + % + abbandono */}
+      <div style={{ display: 'flex', gap: 18, marginTop: 12, padding: '0 4px' }}>
         {steps.map((s, i) => {
-          if (i === 0) return <div key={i} style={{ flex: 1 }} />
-          const drop = steps[i - 1].value - s.value
-          const dropPct = steps[i - 1].value > 0 ? (drop / steps[i - 1].value) * 100 : 0
+          const stepPct = steps[0].value > 0 ? (s.value / steps[0].value) * 100 : 0
+          const isBottleneck = bottleneck && bottleneck.to === i
           return (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{t('cro.dropoff', null, 'Abbandono')}</div>
-              <div style={{
-                fontSize: 12.5,
-                fontWeight: 900,
-                color: drop > 0 ? '#ef4444' : '#22c55e',
-                fontFamily: 'Barlow',
-              }}>
-                {fmtN(Math.abs(drop))} · {fmtP(dropPct)}
-              </div>
+              <div style={{ fontSize: 12, color: isBottleneck ? '#f59e0b' : 'var(--text2)', fontWeight: 700, lineHeight: 1.3 }}>{s.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginTop: 3 }}>{i === 0 ? '100%' : fmtP(stepPct)}</div>
+              {i > 0 && (
+                <div style={{ fontSize: 10.5, marginTop: 4, fontWeight: 800, color: isBottleneck ? '#f59e0b' : 'var(--text3)' }}>
+                  ↓ {fmtP(trans[i - 1].dropPct)}
+                </div>
+              )}
             </div>
           )
         })}

@@ -81,7 +81,10 @@ export async function GET(request) {
       try {
         const salesQ = (s, u) => `FROM sales SHOW orders, total_sales SINCE ${s} UNTIL ${u}`
         const sessQ = (s, u) => `FROM sessions SHOW sessions, sessions_with_cart_additions, sessions_that_reached_checkout, sessions_that_completed_checkout SINCE ${s} UNTIL ${u}`
-        const custQ = (s, u) => `FROM customers SHOW new_customers, returning_customers SINCE ${s} UNTIL ${u}`
+        // Su questo store le colonne new_customers/returning_customers di FROM
+        // customers non esistono: uso FROM sales (customers totali + ritornanti)
+        // e ricavo i nuovi per differenza. Stessa fonte della Dashboard.
+        const custQ = (s, u) => `FROM sales SHOW customers, returning_customers SINCE ${s} UNTIL ${u}`
 
         const [sales, sess, cust, salesP, sessP, custP] = await Promise.all([
           shopifyQL(salesQ(sinceDate, untilDate)),
@@ -111,13 +114,13 @@ export async function GET(request) {
           totalRevenue: Math.round(totalSales),
           totalOrders: orders,
           sessions,
-          newCustomers: Math.round(num(c0.new_customers)),
+          newCustomers: Math.max(0, Math.round(num(c0.customers)) - Math.round(num(c0.returning_customers))),
           returningCustomers: Math.round(num(c0.returning_customers)),
           prev: {
             revenue: Math.round(num(sp.total_sales)),
             orders: Math.round(num(sp.orders)),
             sessions: Math.round(num(sep.sessions)),
-            newCustomers: Math.round(num(cp.new_customers)),
+            newCustomers: Math.max(0, Math.round(num(cp.customers)) - Math.round(num(cp.returning_customers))),
             returningCustomers: Math.round(num(cp.returning_customers)),
           },
           range: { since: sinceDate, until: untilDate },

@@ -69,17 +69,15 @@ export default function MetaConnectButton() {
 
   return (
     <>
-      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-        {connected && (
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}><Icon name="check" size={11} /> Collegato</span>
-        )}
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={openConnect} disabled={connecting} style={btn}>
             {connecting ? 'Collegamento…' : (connected ? 'Ricollega' : 'Collega')}
           </button>
           <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
             Ad account
           </button>
+          {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> Collegato</span>}
         </div>
         {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
       </div>

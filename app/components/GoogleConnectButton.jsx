@@ -22,28 +22,26 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
 
   return (
     <>
-      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-        {connected && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)' }}><Icon name="check" size={11} /> Collegato</span>}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={btn}>
-            {connected ? 'Ricollega' : 'Collega'}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={btn}>
+          {connected ? 'Ricollega' : 'Collega'}
+        </button>
+        {service === 'ga4' && (
+          <button onClick={() => setModal('ga4')} style={{ ...btn, background: 'transparent' }}>
+            Proprietà GA4
           </button>
-          {service === 'ga4' && (
-            <button onClick={() => setModal('ga4')} style={{ ...btn, background: 'transparent' }}>
-              Proprietà GA4
-            </button>
-          )}
-          {service === 'ga4' && (
-            <button onClick={() => setModal('gsc')} style={{ ...btn, background: 'transparent' }}>
-              Sito Search Console
-            </button>
-          )}
-          {service === 'ads' && connected && (
-            <button onClick={() => setModal('ads')} style={{ ...btn, background: 'transparent' }}>
-              Account Ads
-            </button>
-          )}
-        </div>
+        )}
+        {service === 'ga4' && (
+          <button onClick={() => setModal('gsc')} style={{ ...btn, background: 'transparent' }}>
+            Sito Search Console
+          </button>
+        )}
+        {service === 'ads' && connected && (
+          <button onClick={() => setModal('ads')} style={{ ...btn, background: 'transparent' }}>
+            Account Ads
+          </button>
+        )}
+        {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> Collegato</span>}
       </div>
       {mounted && modal === 'ga4' && createPortal(<Ga4PropertyModal onClose={() => setModal(null)} />, document.body)}
       {mounted && modal === 'gsc' && createPortal(<GscSiteModal onClose={() => setModal(null)} />, document.body)}

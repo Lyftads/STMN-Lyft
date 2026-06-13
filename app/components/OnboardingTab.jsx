@@ -78,6 +78,16 @@ const STEPS = [
   },
 ]
 
+// Riga di sotto-stato per le selezioni opzionali (GA4 property / sito GSC / account Ads).
+function SubStatus({ on, label, doneText, todoText }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 900, color: on ? '#0a0a14' : '#8a8a99', background: on ? '#30d158' : 'transparent', border: on ? 'none' : '1.5px solid #44444f' }}>{on ? '✓' : ''}</span>
+      <span style={{ color: on ? '#d0d0d8' : '#8a8a99' }}><b style={{ color: on ? '#30d158' : '#c8c8d2', fontWeight: 700 }}>{label}</b> · {on ? doneText : todoText}</span>
+    </span>
+  )
+}
+
 export default function OnboardingTab() {
   const [status, setStatus] = useState({ connected: [], googleConnected: false })
   const [onb, setOnb] = useState({ steps: {}, completed: false })
@@ -120,6 +130,17 @@ export default function OnboardingTab() {
     if (id === 'brand') return brandDone
     return false
   }
+  // "Pronto" = collegato E con la selezione necessaria fatta, quindi mostra dati.
+  // Meta richiede l'ad account. Google è un bundle (GA4/GSC/Ads opzionali a
+  // seconda di cosa usa il cliente) → pronto appena collegato. Shopify/Klaviyo
+  // pronti al collegamento.
+  const isReady = (id) => {
+    if (!isConnected(id)) return false
+    if (id === 'meta') return !!status.metaAccountId
+    return true
+  }
+  // Collegato ma non ancora operativo (manca una selezione richiesta).
+  const isIncomplete = (id) => isConnected(id) && !isReady(id)
   const isSkipped = (id) => skipped.has(id)
   const isDone = (id) => isConnected(id) || isSkipped(id)
 
@@ -170,19 +191,22 @@ export default function OnboardingTab() {
         {/* Stepper */}
         <aside style={{ ...card, width: 250, flexShrink: 0, padding: 10 }}>
           {STEPS.map((s, i) => {
-            const conn = isConnected(s.id), sk = isSkipped(s.id), active = i === current
-            const mark = conn ? <Icon name="check" size={13} /> : sk ? '⏭' : active ? '●' : (i + 1)
-            const markColor = conn ? '#30d158' : sk ? MUTED : active ? '#7b5bff' : MUTED
+            const ready = isReady(s.id), incomplete = isIncomplete(s.id), sk = isSkipped(s.id), active = i === current
+            const filled = ready || incomplete || sk
+            const mark = ready ? <Icon name="check" size={13} /> : incomplete ? '!' : sk ? '⏭' : active ? '●' : (i + 1)
+            const dotBg = ready ? '#30d158' : incomplete ? '#f59e0b' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent'
+            const subLabel = ready ? 'Collegato' : incomplete ? (s.id === 'meta' ? 'Manca ad account' : 'Manca selezione') : sk ? 'Saltato' : 'Da fare'
+            const subColor = ready ? '#30d158' : incomplete ? '#f59e0b' : MUTED
             return (
               <button key={s.id} onClick={() => setCurrent(i)} style={{
                 display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
                 padding: '11px 12px', marginBottom: 3, borderRadius: 10, border: 'none', cursor: 'pointer',
                 fontFamily: 'Barlow', background: active ? 'rgba(123,91,255,0.16)' : 'transparent',
               }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: conn || sk ? 'var(--text)' : markColor, background: conn ? '#30d158' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', border: conn || sk || active ? 'none' : `1.5px solid ${MUTED}` }}>{mark}</span>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: filled || active ? 'var(--text)' : MUTED, background: dotBg, border: filled || active ? 'none' : `1.5px solid ${MUTED}` }}>{mark}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? 'var(--text)' : '#d0d0d8', overflow: 'hidden', whiteSpace: 'nowrap' }}>{s.logo ? <PlatformIcon platform={s.logo} size={16} /> : <span>{s.icon}</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span></span>
-                  <span style={{ fontSize: 11, color: conn ? '#30d158' : sk ? MUTED : MUTED }}>{conn ? 'Collegato' : sk ? 'Saltato' : 'Da fare'}</span>
+                  <span style={{ fontSize: 11, color: subColor }}>{subLabel}</span>
                 </span>
               </button>
             )
@@ -201,7 +225,8 @@ export default function OnboardingTab() {
               <div style={{ fontSize: 20, fontWeight: 800 }}>{step.label}</div>
               <div style={{ color: MUTED, fontSize: 13 }}>Step {current + 1} di {STEPS.length} · {step.short}</div>
             </div>
-            {isConnected(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}><Icon name="check" size={13} /> Collegato</span>}
+            {isReady(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}><Icon name="check" size={13} /> Collegato</span>}
+            {isIncomplete(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#f59e0b22', padding: '5px 12px', borderRadius: 20 }}>Collegato · manca selezione</span>}
             {!isConnected(step.id) && isSkipped(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, background: '#3d3d4c55', padding: '5px 12px', borderRadius: 20 }}>Saltato</span>}
           </div>
 
@@ -234,11 +259,27 @@ export default function OnboardingTab() {
                 </div>
               )
             )}
-            {step.kind === 'meta' && (isConnected('meta') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Meta collegato.</div> : <MetaConnectButton />)}
+            {step.kind === 'meta' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Sempre visibile (anche da collegato) così l'ad account resta scegliibile/cambiabile */}
+                <MetaConnectButton />
+                {isConnected('meta') && (
+                  status.metaAccountId
+                    ? <span style={{ color: '#30d158', fontSize: 13 }}><Icon name="check" size={13} /> Ad account selezionato.</span>
+                    : <span style={{ color: '#f59e0b', fontSize: 13 }}>Collegato. Scegli l’ad account dal pulsante “Ad account” per vedere i dati.</span>
+                )}
+              </div>
+            )}
             {step.kind === 'google' && (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <GoogleConnectButton service="ga4" />
-                {isConnected('ga4') && <span style={{ color: '#30d158', fontSize: 13 }}><Icon name="check" size={13} /> Google collegato</span>}
+                {isConnected('ga4') && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, marginTop: 2 }}>
+                    <SubStatus on={!!status.ga4PropertyId} label="GA4" doneText="property selezionata" todoText="scegli la property (solo se usi Analytics)" />
+                    <SubStatus on={!!status.gscSiteUrl} label="Search Console" doneText="sito selezionato" todoText="scegli il sito (solo se usi Search Console)" />
+                    <SubStatus on={!!status.adsCustomerId} label="Google Ads" doneText="account selezionato" todoText="scegli l’account (solo se fai campagne Google)" />
+                  </div>
+                )}
               </div>
             )}
             {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Klaviyo collegato.</div> : <NangoConnectButton integrationId="klaviyo-oauth" label="Collega Klaviyo" />)}

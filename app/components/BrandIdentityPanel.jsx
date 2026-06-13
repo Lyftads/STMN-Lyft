@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import Icon from './ui/Icon'
 import AgentMemoryInspector from './AgentMemoryInspector'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -58,7 +58,10 @@ const DEFAULT_IDENTITY = {
   competitors: [],
 }
 
-export default function BrandIdentityPanel() {
+// embedded: usato dentro l'onboarding → nasconde la save bar interna e le
+// memorie agent; il salvataggio è guidato dal bottone "Salva e continua"
+// dell'onboarding via ref.save(). onSaved: callback dopo salvataggio riuscito.
+const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = false, onSaved } = {}, ref) {
   const { t } = useI18n()
   const [identity, setIdentity] = useState(DEFAULT_IDENTITY)
   const [assets, setAssets] = useState([])
@@ -107,12 +110,18 @@ export default function BrandIdentityPanel() {
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
       setSavedAt(new Date())
+      if (onSaved) onSaved(identity)
+      return true
     } catch (e) {
       setError(e?.message || t('bi.saveError', null, 'Errore salvataggio'))
+      return false
     } finally {
       setSaving(false)
     }
   }
+
+  // Espone save() all'onboarding (il suo bottone "Salva e continua" lo richiama).
+  useImperativeHandle(ref, () => ({ save }))
 
   if (loading) {
     return (
@@ -264,9 +273,10 @@ export default function BrandIdentityPanel() {
       </SectionBlock>
 
       {/* Memorie degli agent — separato dal form principale (read+modify, no save) */}
-      <AgentMemoryInspector />
+      {!embedded && <AgentMemoryInspector />}
 
-      {/* Save bar */}
+      {/* Save bar — nascosta in onboarding (il salvataggio è guidato dal bottone del wizard) */}
+      {!embedded && (
       <div style={{
         position: 'sticky', bottom: 16, zIndex: 5,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
@@ -297,9 +307,12 @@ export default function BrandIdentityPanel() {
           {saving ? t('bi.saving', null, 'Salvataggio…') : t('bi.saveBtn', null, 'Salva modifiche')}
         </button>
       </div>
+      )}
     </div>
   )
-}
+})
+
+export default BrandIdentityPanel
 
 // ─────────────────────────────────────────────────────────────
 // Building blocks

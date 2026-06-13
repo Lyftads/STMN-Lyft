@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import Icon from '../components/ui/Icon'
 import NangoConnectButton from '../components/NangoConnectButton'
+import BrandIdentityPanel from '../components/BrandIdentityPanel'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const ACCENT = '#bf5af2'
@@ -45,6 +46,14 @@ const STEPS = [
       { key: 'klaviyo_api_key', label: 'Private API Key', placeholder: 'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'password', hint: 'Account → Settings → API Keys → Create Private API Key. Scope: read_all' },
     ],
   },
+  {
+    id: 'brandIdentity',
+    label: 'Brand Identity',
+    icon: <Icon name="star" size={22} />,
+    description: 'Il profilo del tuo brand: identità, prodotti, tone of voice, visual e competitor. Alimenta gli agenti AI e i moduli Competitor.',
+    component: 'brandIdentity',
+    fields: [],
+  },
 ]
 
 export default function OnboardingPage() {
@@ -65,6 +74,7 @@ function OnboardingInner() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const biRef = useRef(null) // handle save() del BrandIdentityPanel embedded
 
   const loadStatus = useCallback(() => {
     fetch('/api/onboarding')
@@ -95,6 +105,18 @@ function OnboardingInner() {
   const setField = (k, v) => setValues(prev => ({ ...prev, [k]: v }))
 
   const handleSaveStep = async () => {
+    // Step Brand Identity: il salvataggio è delegato al pannello (POST /api/brand-identity)
+    if (step.component === 'brandIdentity') {
+      setSaving(true)
+      setError(null)
+      const ok = await biRef.current?.save()
+      setSaving(false)
+      if (!ok) { setError('Errore salvataggio Brand Identity'); return }
+      setStepStatus(prev => ({ ...prev, brandIdentity: true }))
+      if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
+      else await completeOnboarding()
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -165,7 +187,7 @@ function OnboardingInner() {
       color: 'var(--text)',
       padding: '40px 20px',
     }}>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ maxWidth: step?.component === 'brandIdentity' ? 860 : 720, margin: '0 auto', transition: 'max-width .2s' }}>
         {/* Header */}
         <div style={{ marginBottom: 32, textAlign: 'center' }}>
           <div style={{
@@ -178,7 +200,7 @@ function OnboardingInner() {
             Collega le tue integrazioni
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text3)', marginTop: 12, lineHeight: 1.5 }}>
-            4 step per portare i dati del tuo brand dentro LyftAI. Puoi saltare uno step e completarlo dopo da Brand Identity.
+            {STEPS.length} step per portare i dati del tuo brand dentro LyftAI. Puoi saltare uno step e completarlo dopo da Brand Identity.
           </p>
         </div>
 
@@ -228,7 +250,11 @@ function OnboardingInner() {
           </div>
 
           {/* Fields o OAuth step */}
-          {step.oauth ? (
+          {step.component === 'brandIdentity' ? (
+            <div style={{ marginTop: 8 }}>
+              <BrandIdentityPanel ref={biRef} embedded onSaved={() => setStepStatus(p => ({ ...p, brandIdentity: true }))} />
+            </div>
+          ) : step.oauth ? (
             <GA4OAuthStep
               values={values}
               setField={setField}

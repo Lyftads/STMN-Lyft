@@ -5,16 +5,29 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
 
-async function shopifyRest(path) {
+// Fetch Shopify con retry/backoff sul rate limit (429/430) e sui 5xx. SENZA
+// questo, un singolo 429 a metà paginazione faceva interrompere la raccolta
+// ordini → fatturato/ordini SOTTOSTIMATI (stesso bug già visto in pnl e
+// product-performance). Ritorna null solo dopo aver esaurito i tentativi.
+async function shopifyRest(path, retries = 5) {
   const { storeUrl: STORE, adminToken: TOKEN } = getShopify()
-  try {
-    const res = await fetch(`https://${STORE}/admin/api/2026-04/${path}`, {
-      headers: { 'X-Shopify-Access-Token': TOKEN },
-      cache: 'no-store',
-    })
-    if (!res.ok) return null
-    return res.json()
-  } catch { return null }
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  for (let a = 0; a <= retries; a++) {
+    try {
+      const res = await fetch(`https://${STORE}/admin/api/2026-04/${path}`, {
+        headers: { 'X-Shopify-Access-Token': TOKEN },
+        cache: 'no-store',
+      })
+      if (res.status === 429 || res.status === 430 || res.status >= 500) {
+        const ra = Number(res.headers.get('Retry-After')) || (0.6 * (a + 1))
+        await sleep(ra * 1000)
+        continue
+      }
+      if (!res.ok) return null
+      return res.json()
+    } catch { await sleep(600 * (a + 1)) }
+  }
+  return null
 }
 
 function daysAgo(n) {
@@ -132,7 +145,7 @@ async function getAllOrders(since, until) {
   const FIELDS = 'id,created_at,total_price,landing_site,line_items,customer'
   const maxParam = until ? `&created_at_max=${encodeURIComponent(until)}` : ''
   let all = [], url = `orders.json?status=any&created_at_min=${encodeURIComponent(since)}${maxParam}&limit=250&fields=${FIELDS}`
-  while (url && all.length < 2000) {
+  while (url && all.length < 10000) {
     const data = await shopifyRest(url)
     if (!data?.orders) break
     all = all.concat(data.orders)

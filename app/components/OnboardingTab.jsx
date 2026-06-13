@@ -51,6 +51,7 @@ const STEPS = [
       'Premi "Collega Google" e accedi con l\'account che ha accesso a GA4 / Google Ads / Search Console.',
       'Concedi tutti gli scope mostrati: sono necessari per attivare le rispettive sezioni.',
       'Dopo il collegamento, scegli la proprietà GA4 da usare dal selettore "Proprietà GA4".',
+      'Scegli il sito Search Console dal selettore "Sito Search Console" (necessario per keyword e posizionamento organico).',
       'Google Ads richiede un\'ulteriore abilitazione lato nostro (developer token): se non è ancora attiva, la spesa Ads comparirà appena approvata.',
     ],
   },

@@ -77,7 +77,10 @@ export async function GET(request) {
     const prevSinceD = new Date(prevUntilD.getTime() - (days - 1) * 86400000)
     const prevSinceDate = isoD(prevSinceD), prevUntilDate = isoD(prevUntilD)
 
-    return swrSnapshot(request, { tab: 'cro', compute: async () => {
+    // tab key versionata: 'cro2' invalida gli snapshot vecchi (calcolati quando
+    // i nuovi clienti erano a 0) → l'auto-load mostra subito il dato corretto
+    // senza dover premere Aggiorna.
+    return swrSnapshot(request, { tab: 'cro2', compute: async () => {
       try {
         const salesQ = (s, u) => `FROM sales SHOW orders, total_sales SINCE ${s} UNTIL ${u}`
         const sessQ = (s, u) => `FROM sessions SHOW sessions, sessions_with_cart_additions, sessions_that_reached_checkout, sessions_that_completed_checkout SINCE ${s} UNTIL ${u}`

@@ -13,8 +13,11 @@ const META_EXECUTOR_ON = process.env.ACTIONS_META_EXECUTOR === 'true' || process
 // Coda Azioni (Fase 1). Workspace-scoped, service-role + filtro workspace_id.
 // Le mutazioni di stato (approva/rifiuta/esegui/elimina) sono riservate all'admin.
 
-const CHANNELS = ['meta', 'klaviyo', 'tiktok', 'instagram', 'google', 'shopify', 'other']
-const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'reply_comment', 'custom']
+// Canali social rimossi dal core (non c'è più la tab Social): le azioni social
+// non si creano più e quelle eventualmente già in coda vengono filtrate.
+const SOCIAL_CHANNELS = new Set(['tiktok', 'instagram'])
+const CHANNELS = ['meta', 'klaviyo', 'google', 'shopify', 'other']
+const TYPES = ['pause_campaign', 'resume_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'create_ad', 'custom']
 const STATUSES = ['pending', 'approved', 'executed', 'rejected', 'failed']
 
 export async function GET(req) {
@@ -35,10 +38,12 @@ export async function GET(req) {
     if (status && STATUSES.includes(status)) q = q.eq('status', status)
     const { data, error } = await q
     if (error) throw error
+    // Escludi le azioni social (tab Social rimossa) → non compaiono più in coda.
+    const rows = (data || []).filter(a => !SOCIAL_CHANNELS.has(a.channel))
     const counts = { pending: 0, approved: 0, executed: 0, rejected: 0, failed: 0 }
-    for (const a of data || []) if (counts[a.status] != null) counts[a.status]++
+    for (const a of rows) if (counts[a.status] != null) counts[a.status]++
     return NextResponse.json({
-      actions: data || [],
+      actions: rows,
       counts,
       me: { memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin },
     })

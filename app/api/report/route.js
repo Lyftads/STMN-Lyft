@@ -357,6 +357,141 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
   </div></body></html>`
 }
 
+// ── Report COMPLETO: una pagina con tutte le sezioni del periodo ──
+function buildFullHtml({ label, range, narrative, S }) {
+  const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+  const grid = (arr) => `<div class="kpis">${arr.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')}</div>`
+  const RISK_LABEL = { le7: 'Stockout < 7gg', le30: 'A rischio < 30gg', oos_sales: 'Broken size', oos: 'Esaurito' }
+
+  // KPI Brain (Shopify + Meta + Google)
+  const kb = S.kpiBrain
+  const kbSection = kb ? `
+    <h2>📊 KPI Brain — panoramica</h2>
+    ${grid(kb.kpis)}
+    ${kb.daily?.length ? `<div class="chart">${barChart(kb.daily, 'revenue')}</div>` : ''}` : ''
+
+  // Problemi & soluzioni (Lighthouse Meta + Google)
+  const alerts = [...(S.lighthouse?.meta || []), ...(S.lighthouse?.google || [])]
+  const problemsSection = alerts.length ? `
+    <h2>🚨 Problemi rilevati e soluzioni</h2>
+    ${alerts.slice(0, 12).map(a => `
+      <div class="alert">
+        <div class="alert-h"><span class="sev ${esc(a.severity || 'medium')}">${esc((a.severity || 'media').toUpperCase())}</span> <b>${esc(a.title || a.metric || 'Anomalia')}</b></div>
+        ${a.why ? `<div class="alert-r"><span>Perché</span> ${esc(a.why)}</div>` : ''}
+        ${a.action || (a.proposals && a.proposals[0]) ? `<div class="alert-r"><span>Soluzione</span> ${esc(a.action || a.proposals[0])}</div>` : ''}
+      </div>`).join('')}` : ''
+
+  // Meta KPI
+  const mk = S.metaKpi
+  const metaKpiSection = mk ? `<h2>🔵 Meta KPI</h2>${grid(mk.kpis)}` : ''
+
+  // Meta Detail (campagne + insight + todo)
+  const md = S.metaDetail
+  const metaDetailSection = md ? `
+    <h2>🔵 Meta Detail — campagne</h2>
+    ${md.topCampaigns?.length ? `<table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>Acquisti</th></tr></thead><tbody>
+      ${md.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
+      </tbody></table>` : ''}
+    ${(md.insight || md.todos?.length) ? `<div class="cols">
+      ${md.insight ? `<div><h3>Insight</h3><p class="muted">${esc(md.insight)}</p></div>` : ''}
+      ${md.todos?.length ? `<div><h3>To-do proattivi</h3><ul>${md.todos.map(x => `<li>${esc(typeof x === 'string' ? x : (x.text || x.label || ''))}</li>`).join('')}</ul></div>` : ''}
+    </div>` : ''}` : ''
+
+  // Google KPI
+  const gk = S.googleKpi
+  const googleKpiSection = gk ? `<h2>🟡 Google KPI</h2>${grid(gk.kpis)}` : ''
+
+  // Google Detail (campagne + andamento)
+  const gd = S.googleDetail
+  const googleDetailSection = gd ? `
+    <h2>🟡 Google Detail — campagne</h2>
+    ${gd.daily?.length ? `<div class="chart">${barChart(gd.daily, 'revenue', '#eab308')}</div>` : ''}
+    ${gd.topCampaigns?.length ? `<table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>Conv.</th><th>Valore conv.</th></tr></thead><tbody>
+      ${gd.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
+      </tbody></table>` : ''}` : ''
+
+  // Performance Prodotti (con foto)
+  const pp = S.productPerf
+  const ppSection = pp ? `
+    <h2>📦 Performance prodotti</h2>
+    ${grid(pp.kpis)}
+    ${pp.rows?.length ? `<table><thead><tr><th>Prodotto</th><th>Unità</th><th>Netto</th><th>COGS</th><th>ADS</th><th>Margine op.</th><th>%</th><th>ROAS</th></tr></thead><tbody>
+      ${pp.rows.map(p => `<tr><td>${p.image ? `<img class="prodimg" src="${esc(p.image)}"/>` : ''}${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td></tr>`).join('')}
+      </tbody></table>` : ''}` : ''
+
+  // Inventario
+  const inv = S.inventory
+  const invSection = inv ? `
+    <h2>🏷️ Inventario</h2>
+    ${grid(inv.kpis)}
+    ${inv.rows?.length ? `<h3>Prodotti a rischio stockout</h3><table><thead><tr><th>Prodotto</th><th>Taglia/SKU</th><th>Stock</th><th>Vendite/g</th><th>Giorni a stockout</th><th>Rischio</th></tr></thead><tbody>
+      ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
+      </tbody></table>` : ''}` : ''
+
+  // Klaviyo
+  const kl = S.klaviyo
+  const klSection = kl ? `
+    <h2>✉️ Klaviyo — email marketing</h2>
+    ${grid(kl.kpis)}
+    ${kl.flows?.length ? `<h3>Flow attivi</h3><table><thead><tr><th>Flow</th><th>Stato</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''}` : ''
+
+  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; margin: 0; padding: 0; }
+    .page { padding: 36px 40px; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 22px; }
+    .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand span { color: #2997ff; }
+    .head .sub { font-size: 12px; color: #666; margin-top: 4px; }
+    .period { text-align: right; font-size: 12px; color: #444; }
+    .period b { display:block; font-size: 15px; color: #111; }
+    h2 { font-size: 16px; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #ddd; break-after: avoid; }
+    h3 { font-size: 12.5px; margin: 14px 0 6px; color: #333; }
+    .summary { font-size: 13px; line-height: 1.6; color: #222; background: #f6f8fc; border-left: 3px solid #2997ff; padding: 12px 16px; border-radius: 6px; }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
+    .kpi { border: 1px solid #e5e7eb; border-radius: 8px; padding: 11px 13px; break-inside: avoid; }
+    .kpi-l { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #888; font-weight: 700; }
+    .kpi-v { font-size: 20px; font-weight: 800; margin: 3px 0; letter-spacing: -0.02em; }
+    .kpi-d { font-size: 10px; color: #888; display: flex; gap: 6px; align-items: center; }
+    .delta { font-weight: 800; } .delta.up { color: #16a34a; } .delta.down { color: #dc2626; } .delta.neutral { color: #999; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px; }
+    ul { margin: 6px 0; padding-left: 18px; } li { font-size: 12px; line-height: 1.6; margin-bottom: 4px; }
+    p.muted { font-size: 12px; line-height: 1.6; color: #555; }
+    .chart { border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-top: 8px; break-inside: avoid; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+    th { text-align: left; background: #f3f4f6; padding: 7px 9px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+    td { padding: 7px 9px; border-bottom: 1px solid #eee; }
+    .prodimg { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; vertical-align: middle; margin-right: 7px; }
+    .alert { border: 1px solid #fde68a; background: #fffbeb; border-radius: 8px; padding: 10px 13px; margin-bottom: 8px; break-inside: avoid; }
+    .alert-h { font-size: 12.5px; margin-bottom: 4px; }
+    .alert-r { font-size: 11.5px; color: #444; margin-top: 3px; } .alert-r span { font-weight: 800; color: #888; text-transform: uppercase; font-size: 9px; letter-spacing: .06em; margin-right: 6px; }
+    .sev { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 999px; }
+    .sev.high, .sev.alta { background: #fee2e2; color: #b91c1c; } .sev.medium, .sev.media { background: #fef3c7; color: #b45309; } .sev.low, .sev.bassa { background: #e5e7eb; color: #555; }
+    .muted { color: #999; font-size: 11px; }
+    .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
+  </style></head><body><div class="page">
+    <div class="head">
+      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · Report completo</div></div>
+      <div class="period"><span>Periodo</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>Generato il ${today}</span></div>
+    </div>
+    ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}
+    ${(narrative?.insights?.length || narrative?.todos?.length) ? `<div class="cols">
+      <div><h2>Insight</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
+      <div><h2>Azioni consigliate</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+    </div>` : ''}
+    ${kbSection}
+    ${problemsSection}
+    ${metaKpiSection}
+    ${metaDetailSection}
+    ${googleKpiSection}
+    ${googleDetailSection}
+    ${ppSection}
+    ${invSection}
+    ${klSection}
+    <div class="foot">LyftAI · report completo generato automaticamente · dati del periodo selezionato</div>
+  </div></body></html>`
+}
+
 async function renderPdf(html) {
   const token = process.env.BROWSERLESS_TOKEN
   if (!token) return { error: 'BROWSERLESS_TOKEN mancante' }
@@ -395,6 +530,141 @@ export async function GET(req) {
   const campaignId = searchParams.get('campaignId') || null
   if (!since || !until) return NextResponse.json({ error: 'since/until obbligatori' }, { status: 400 })
   const range = { since, until, prevSince, prevUntil }
+  const presetParam = searchParams.get('preset') || null
+
+  // ── REPORT COMPLETO: aggrega KPI Brain, Inventario, Performance, Klaviyo,
+  //    Meta KPI/Detail, Google KPI/Detail, Problemi (Lighthouse) in un solo PDF.
+  if (/completo|full|tutto|dashboard generale/i.test(tab)) {
+    const J = (path, ms = 45000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
+    const customQ = `preset=custom&since=${since}&until=${until}`
+    const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
+    const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR] = await Promise.all([
+      presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`, 55000) : null,
+      J('/api/inventory', 50000),
+      J(`/api/product-performance?since=${since}&until=${until}`, 55000),
+      J(`/api/klaviyo?days=${days}`, 35000),
+      J(`/api/meta-kpi?${customQ}`, 45000),
+      J(`/api/google-kpi?${customQ}`, 45000),
+      J(`/api/meta-detail?level=campaigns&${customQ}`, 50000),
+      J(`/api/google-detail?level=campaigns&${customQ}`, 50000),
+      J(`/api/lighthouse?${customQ}`, 40000),
+      J(`/api/google-lighthouse?${customQ}`, 40000),
+    ])
+
+    // KPI Brain (Shopify da metrics + Meta/Google dai rispettivi KPI)
+    const sr = metricsR?.shopifyRange || {}, spr = metricsR?.shopifyPrevRange || {}
+    const mt = metaKpiR?.totals || {}, mtp = metaKpiR?.prevTotals || {}
+    const gt = googleKpiR?.totals || {}, gtp = googleKpiR?.prevTotals || {}
+    const fat = num(sr.revenue), fatP = num(spr.revenue), ord = num(sr.orders), ordP = num(spr.orders)
+    const adsSpend = num(mt.spend) + num(gt.spend), adsSpendP = num(mtp.spend) + num(gtp.spend)
+    const aov = ord > 0 ? fat / ord : 0, aovP = ordP > 0 ? fatP / ordP : 0
+    const mer = adsSpend > 0 ? fat / adsSpend : 0, merP = adsSpendP > 0 ? fatP / adsSpendP : 0
+    const kbDaily = (metricsR?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until).map(w => ({ date: w.date, revenue: num(w.fatturato) }))
+    const kpiBrain = (metricsR || metaKpiR || googleKpiR) ? {
+      daily: kbDaily,
+      kpis: [
+        { label: 'Fatturato', value: money(fat), prevValue: money(fatP), cur: fat, prev: fatP },
+        { label: 'Ordini', value: intf(ord), prevValue: intf(ordP), cur: ord, prev: ordP },
+        { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
+        { label: 'Nuovi clienti', value: intf(num(sr.nc)), prevValue: intf(num(spr.nc)), cur: num(sr.nc), prev: num(spr.nc) },
+        { label: 'MER (blended)', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
+        { label: 'Spesa Meta', value: money(num(mt.spend)), prevValue: money(num(mtp.spend)), cur: num(mt.spend), prev: num(mtp.spend) },
+        { label: 'ROAS Meta', value: `${num(mt.roas).toFixed(2)}x`, prevValue: `${num(mtp.roas).toFixed(2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
+        { label: 'Acquisti Meta', value: intf(num(mt.purchases)), prevValue: intf(num(mtp.purchases)), cur: num(mt.purchases), prev: num(mtp.purchases) },
+        { label: 'Spesa Google', value: money(num(gt.spend)), prevValue: money(num(gtp.spend)), cur: num(gt.spend), prev: num(gtp.spend) },
+        { label: 'ROAS Google', value: `${num(gt.roas).toFixed(2)}x`, prevValue: `${num(gtp.roas).toFixed(2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
+        { label: 'Conversioni Google', value: intf(num(gt.conversions)), prevValue: intf(num(gtp.conversions)), cur: num(gt.conversions), prev: num(gtp.conversions) },
+        { label: 'Sessioni', value: intf(num(sr.sessions)), prevValue: intf(num(spr.sessions)), cur: num(sr.sessions), prev: num(spr.sessions) },
+      ],
+    } : null
+
+    const metaKpi = metaKpiR?.totals ? { kpis: [
+      { label: 'Spesa', value: money2(mt.spend), prevValue: money2(mtp.spend), cur: num(mt.spend), prev: num(mtp.spend) },
+      { label: 'Revenue (Meta)', value: money2(mt.revenue), prevValue: money2(mtp.revenue), cur: num(mt.revenue), prev: num(mtp.revenue) },
+      { label: 'ROAS', value: `${num(mt.roas).toFixed(2)}x`, prevValue: `${num(mtp.roas).toFixed(2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
+      { label: 'Acquisti', value: intf(mt.purchases), prevValue: intf(mtp.purchases), cur: num(mt.purchases), prev: num(mtp.purchases) },
+      { label: 'CTR link', value: `${num(mt.ctr_link).toFixed(2)}%`, prevValue: `${num(mtp.ctr_link).toFixed(2)}%`, cur: num(mt.ctr_link), prev: num(mtp.ctr_link) },
+      { label: 'CPC link', value: money2(mt.cpc_link), prevValue: money2(mtp.cpc_link), cur: num(mt.cpc_link), prev: num(mtp.cpc_link), lowerBetter: true },
+      { label: 'CPM', value: money2(mt.cpm), prevValue: money2(mtp.cpm), cur: num(mt.cpm), prev: num(mtp.cpm), lowerBetter: true },
+      { label: 'Frequenza', value: num(mt.frequency).toFixed(2), prevValue: num(mtp.frequency).toFixed(2), cur: num(mt.frequency), prev: num(mtp.frequency), lowerBetter: true },
+    ] } : null
+
+    const mdRows = Array.isArray(metaDetR?.rows) ? metaDetR.rows : []
+    const metaDetail = mdRows.length || metaDetR?.insight ? {
+      insight: metaDetR?.insight || '',
+      todos: Array.isArray(metaDetR?.todos) ? metaDetR.todos : [],
+      topCampaigns: mdRows.slice().sort((a, b) => num(b.spend) - num(a.spend)).slice(0, 12).map(c => ({
+        name: c.name || c.campaign_name || '—', spend: num(c.spend), roas: num(c.roas),
+        ctr: num(c.ctr_link ?? c.ctr), cpa: num(c.cost_per_result ?? c.cpa), purchases: num(c.results ?? c.purchases ?? c.conversions),
+      })),
+    } : null
+
+    const googleKpi = googleKpiR?.totals ? { kpis: [
+      { label: 'Spesa', value: money2(gt.spend), prevValue: money2(gtp.spend), cur: num(gt.spend), prev: num(gtp.spend) },
+      { label: 'Valore conv.', value: money2(gt.convValue), prevValue: money2(gtp.convValue), cur: num(gt.convValue), prev: num(gtp.convValue) },
+      { label: 'ROAS', value: `${num(gt.roas).toFixed(2)}x`, prevValue: `${num(gtp.roas).toFixed(2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
+      { label: 'Conversioni', value: intf(gt.conversions), prevValue: intf(gtp.conversions), cur: num(gt.conversions), prev: num(gtp.conversions) },
+      { label: 'CPA', value: money2(gt.cpa), prevValue: money2(gtp.cpa), cur: num(gt.cpa), prev: num(gtp.cpa), lowerBetter: true },
+      { label: 'CTR', value: `${num(gt.ctr).toFixed(2)}%`, prevValue: `${num(gtp.ctr).toFixed(2)}%`, cur: num(gt.ctr), prev: num(gtp.ctr) },
+      { label: 'CPC', value: money2(gt.cpc), prevValue: money2(gtp.cpc), cur: num(gt.cpc), prev: num(gtp.cpc), lowerBetter: true },
+      { label: 'Impression', value: intf(gt.impressions), prevValue: intf(gtp.impressions), cur: num(gt.impressions), prev: num(gtp.impressions) },
+    ] } : null
+
+    const gdRows = Array.isArray(googleDetR?.rows) ? googleDetR.rows : []
+    const googleDetail = gdRows.length ? {
+      daily: (googleDetR?.dailySeries || []).map(d => ({ date: d.date, revenue: num(d.convValue) })),
+      topCampaigns: gdRows.filter(r => num(r.spend) > 0).sort((a, b) => num(b.spend) - num(a.spend)).slice(0, 12).map(c => ({
+        name: c.name || '—', spend: num(c.spend), roas: num(c.roas), ctr: num(c.ctr), cpc: num(c.cpc), conversions: num(c.conversions), convValue: num(c.convValue),
+      })),
+    } : null
+
+    const ik = invR?.kpis || {}
+    const inventory = invR ? { kpis: [
+      { label: 'Valore magazzino', value: money(ik.inventoryValueCogs) },
+      { label: 'Pezzi a stock', value: intf(ik.qtyOnHand) },
+      { label: 'Stockout < 7gg', value: intf(ik.countLe7) },
+      { label: 'A rischio < 30gg', value: intf(ik.countLe30) },
+      { label: 'Broken sizes', value: intf(ik.brokenCount) },
+      { label: 'Vendite perse/sett.', value: money(ik.lostRevenueWeek) },
+    ], rows: (invR?.items || []).filter(i => ['le7', 'le30', 'oos_sales'].includes(i.risk)).sort((a, b) => num(b.priorityScore) - num(a.priorityScore)).slice(0, 20) } : null
+
+    const pt = ppR?.totals || {}
+    const productPerf = ppR ? { kpis: [
+      { label: 'Fatturato netto', value: money(pt.netRevenue) },
+      { label: 'Margine op.', value: money(pt.marginOp) },
+      { label: 'ADS totali', value: money(pt.ads) },
+      { label: 'ROAS', value: pt.roas != null ? `${num(pt.roas).toFixed(2)}x` : '—' },
+      { label: 'Unità', value: intf(pt.units) },
+      { label: 'Copertura costi', value: `${num(pt.costCoverage)}%` },
+    ], rows: (ppR?.products || []).slice(0, 25) } : null
+
+    const kk = klavR?.kpis || {}
+    const klaviyo = klavR?.kpis ? { kpis: [
+      { label: 'Email inviate', value: intf(kk.received?.total) },
+      { label: 'Aperture', value: intf(kk.opened?.total) },
+      { label: 'Click', value: intf(kk.clicked?.total) },
+      { label: 'Open rate', value: `${num(kk.openRate).toFixed(1)}%` },
+      { label: 'Click rate', value: `${num(kk.clickRate).toFixed(1)}%` },
+      { label: 'Revenue email', value: money(kk.revenue?.total) },
+    ], flows: klavR?.flows || [] } : null
+
+    const lighthouse = { meta: Array.isArray(lhMetaR?.alerts) ? lhMetaR.alerts : [], google: Array.isArray(lhGoogleR?.alerts) ? lhGoogleR.alerts : [] }
+
+    const S = { kpiBrain, metaKpi, metaDetail, googleKpi, googleDetail, inventory, productPerf, klaviyo, lighthouse }
+    const narrative = await aiNarrative({
+      tab: 'Completo', label, range,
+      kpiBrain: kpiBrain?.kpis?.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })),
+      meta: metaKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
+      google: googleKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
+      problemi: lighthouse.meta.concat(lighthouse.google).slice(0, 6).map(a => a.title || a.metric),
+    }, searchParams.get('locale'))
+
+    const html = buildFullHtml({ label, range, narrative, S })
+    if (searchParams.get('format') === 'html') return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+    const { buf: pdf, error: pdfErr } = await renderPdf(html)
+    if (!pdf) return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-PDF-Error': (pdfErr || 'unknown').slice(0, 120) } })
+    return new NextResponse(pdf, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="LyftAI_Completo_${since}_${until}.pdf"`, 'Cache-Control': 'no-store' } })
+  }
 
   const isMeta = /meta/i.test(tab)
   const isGoogle = /google/i.test(tab)

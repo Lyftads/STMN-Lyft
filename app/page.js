@@ -2829,6 +2829,9 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {tab==='dashboard' && (
         <>
+          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14 }}>
+            <DownloadReportButton tab="Completo" preset={preset} />
+          </div>
           <div className="dash-live-hero">
             <div className="dash-live-globe"><DashboardGlobe /></div>
             <div className="dash-live-left">

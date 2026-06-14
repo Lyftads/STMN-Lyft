@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { swrFetch, getCached } from '../../lib/clientCache'
 import MetaAdsAgent from './MetaAdsAgent'
@@ -544,6 +544,46 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
   )
 }
 
+// Sotto-riga per segmento di pubblico (toggle on-demand): KPI allineati alle
+// colonne della tabella campagne. Dato reale Meta (breakdown user_segment_key).
+const SEG_SUB = [
+  { key: 'new', label: 'Nuovo pubblico', color: '#30d158' },
+  { key: 'returning', label: 'Clienti esistenti', color: '#2997ff' },
+  { key: 'engaged', label: 'Interagito', color: '#ff9f0a' },
+  { key: 'unknown', label: 'Sconosciuto', color: '#8b8b9a' },
+]
+function SegmentSubRow({ seg, label, color }) {
+  if (!seg) return null
+  const convAcq = seg.link_clicks > 0 ? (seg.purchases / seg.link_clicks) * 100 : null
+  const aov = seg.purchases > 0 ? seg.revenue / seg.purchases : null
+  return (
+    <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.015)' }}>
+      <td style={{ padding: '9px 16px 9px 56px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+          <span style={{ color: 'var(--text2)', fontWeight: 700, fontSize: 12 }}>{label}</span>
+        </div>
+      </td>
+      <td style={cellMuted}>—</td>
+      <td style={cell}>{fmtInt(seg.impressions)}</td>
+      <td style={cell}>{fmtInt(seg.reach)}</td>
+      <td style={cell}>{seg.frequency != null ? n(seg.frequency).toFixed(2) : '—'}</td>
+      <td style={cell}>{fmtMoney(seg.cpm, 2)}</td>
+      <td style={cell}>{fmtPct(seg.ctr_link, 2)}</td>
+      <td style={cell}>{fmtMoney(seg.cpc_link, 2)}</td>
+      <td style={cell}>{fmtInt(seg.link_clicks)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(seg.spend, 0)}</td>
+      <td style={cellMuted}>—</td>
+      <td style={cell}>{fmtMoney(seg.cpo, 2)}</td>
+      <td style={{ ...cell, color: seg.roas >= 2.5 ? '#22c55e' : seg.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 800 }}>{fmtRatio(seg.roas)}</td>
+      <td style={cell}>{seg.purchases ? fmtInt(seg.purchases) : '—'}</td>
+      <td style={cell}>{fmtPct(convAcq, 2)}</td>
+      <td style={cellMuted}>—</td>
+      <td style={cell}>{fmtMoney(aov, 2)}</td>
+    </tr>
+  )
+}
+
 const lab = { fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 5 }
 
 // Anteprima inserzione: creatività (immagine/prodotti) + copy, descrizione, CTA.
@@ -612,6 +652,10 @@ export default function MetaDetailTab() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('active') // active | paused | draft | all
   const [sortKey, setSortKey] = useState('') // '' = ordine API (spesa); altrimenti campo desc
+  // Segmenti di pubblico per campagna (toggle on-demand: chiamata SOLO se attivo)
+  const [showSegments, setShowSegments] = useState(false)
+  const [segByCampaign, setSegByCampaign] = useState(null)
+  const [segLoading, setSegLoading] = useState(false)
 
   const qs = useCallback(
     extra => {
@@ -629,6 +673,19 @@ export default function MetaDetailTab() {
     },
     [preset, customSince, customUntil, accountFilter]
   )
+
+  // Segmenti per campagna: chiamata SOLO quando il toggle è attivo; si rifà al
+  // cambio di timeframe/account (qs cambia). Spenta = nessuna chiamata extra.
+  useEffect(() => {
+    if (!showSegments) return
+    let cancelled = false
+    setSegLoading(true); setSegByCampaign(null)
+    fetch(`/api/meta-segments?${qs({ level: 'campaign' })}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { if (!cancelled) { setSegByCampaign(j?.ok ? (j.campaigns || {}) : {}); setSegLoading(false) } })
+      .catch(() => { if (!cancelled) { setSegByCampaign({}); setSegLoading(false) } })
+    return () => { cancelled = true }
+  }, [showSegments, qs])
 
   const fetchMain = useCallback(async (force = false) => {
     setError('')
@@ -1149,6 +1206,18 @@ export default function MetaDetailTab() {
                     })}
                   </div>
 
+                  {/* Toggle segmenti di pubblico: chiama l'API SOLO se attivo */}
+                  <button type="button" onClick={() => setShowSegments(v => !v)} title="Mostra i KPI per segmento di pubblico sotto ogni campagna (dato reale Meta)"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                      background: showSegments ? 'rgba(8,102,255,0.22)' : 'rgba(255,255,255,0.04)',
+                      border: showSegments ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                      color: showSegments ? 'var(--text)' : 'var(--text2)', whiteSpace: 'nowrap',
+                    }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 4, border: `1.5px solid ${showSegments ? '#2997ff' : 'var(--text3)'}`, background: showSegments ? '#2997ff' : 'transparent', display: 'grid', placeItems: 'center', fontSize: 10, color: '#fff', lineHeight: 1 }}>{showSegments ? '✓' : ''}</span>
+                    {t('meta.segToggle', null, 'Segmenti di pubblico')}{segLoading && showSegments ? ' · carico…' : ''}
+                  </button>
+
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
                     <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>{t('meta.sortBy', null, 'Ordina per')}</span>
                     <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{
@@ -1219,16 +1288,21 @@ export default function MetaDetailTab() {
                 </thead>
                 <tbody>
                   {bmRows.length > 0 ? (
-                    bmRows.map(row => (
-                      <BMRow
-                        key={`${bmLevel}:${row.id}`}
-                        row={row}
-                        level={bmLevel}
-                        onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : setSelAd}
-                        checked={bmLevel === 'campaign' ? checkCampaigns.has(row.id) : bmLevel === 'adset' ? checkAdsets.has(row.id) : false}
-                        onCheck={bmLevel === 'campaign' ? toggleCheckCampaign : bmLevel === 'adset' ? toggleCheckAdset : undefined}
-                      />
-                    ))
+                    bmRows.map(row => {
+                      const segs = showSegments && bmLevel === 'campaign' && segByCampaign ? segByCampaign[row.id]?.segments : null
+                      return (
+                        <Fragment key={`${bmLevel}:${row.id}`}>
+                          <BMRow
+                            row={row}
+                            level={bmLevel}
+                            onOpen={bmLevel === 'campaign' ? openCampaign : bmLevel === 'adset' ? openAdset : setSelAd}
+                            checked={bmLevel === 'campaign' ? checkCampaigns.has(row.id) : bmLevel === 'adset' ? checkAdsets.has(row.id) : false}
+                            onCheck={bmLevel === 'campaign' ? toggleCheckCampaign : bmLevel === 'adset' ? toggleCheckAdset : undefined}
+                          />
+                          {segs && SEG_SUB.map(s => <SegmentSubRow key={`${row.id}:${s.key}`} seg={segs[s.key]} label={s.label} color={s.color} />)}
+                        </Fragment>
+                      )
+                    })
                   ) : (
                     <tr>
                       <td colSpan="16" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>

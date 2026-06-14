@@ -118,6 +118,32 @@ async function segDetailed(since, until) {
   return { totalsAgg, dailyAgg }
 }
 
+// Per-CAMPAGNA: insights level=campaign + breakdown segmento → mappa
+// campaignId → { name, segments: { new/returning/engaged/unknown: KPI } }.
+// On-demand (toggle in Meta Detail): una sola chiamata per account.
+async function byCampaign(since, until) {
+  const map = {} // campaignId → { name, agg: { seg → acc } }
+  for (const acc of accounts()) {
+    let rows = []
+    try { rows = await fb(`${acc}/insights`, { level: 'campaign', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', fields: 'campaign_id,campaign_name,spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '500' }) } catch {}
+    for (const row of rows) {
+      const cid = row.campaign_id || row.campaign_name
+      if (!cid) continue
+      const b = SEG_MAP[row.user_segment_key] || 'unknown'
+      if (!map[cid]) map[cid] = { name: row.campaign_name || cid, agg: {} }
+      if (!map[cid].agg[b]) map[cid].agg[b] = zero()
+      addRow(map[cid].agg[b], row)
+    }
+  }
+  const out = {}
+  for (const [cid, v] of Object.entries(map)) {
+    const segments = {}
+    for (const key of ['new', 'returning', 'engaged', 'unknown']) segments[key] = finalize(v.agg[key] || zero())
+    out[cid] = { name: v.name, segments }
+  }
+  return out
+}
+
 export async function GET(req) {
   return withTenantContext(req, async () => {
     if (!metaToken() || !metaAccount()) {
@@ -125,7 +151,16 @@ export async function GET(req) {
     }
     const { searchParams } = new URL(req.url)
     const preset = searchParams.get('preset') || 'last_28d'
+    const level = searchParams.get('level') || 'account'
     const range = getRange(preset, searchParams)
+
+    // Modalità per-campagna (toggle Meta Detail): più leggera, niente daily/prev.
+    if (level === 'campaign') {
+      return swrSnapshot(req, { tab: 'metaSegmentsByCampaign', ttlMs: 30 * 60 * 1000, compute: async () => {
+        const campaigns = await byCampaign(range.since, range.until)
+        return { ok: true, configured: true, level: 'campaign', preset, range, campaigns, updatedAt: new Date().toISOString() }
+      } })
+    }
     // periodo precedente, stessa lunghezza
     const d0 = new Date(`${range.since}T00:00:00Z`), d1 = new Date(`${range.until}T00:00:00Z`)
     const len = Math.round((d1 - d0) / 86400000) + 1

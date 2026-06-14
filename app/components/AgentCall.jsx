@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 
 // ============================================================================
@@ -19,11 +19,17 @@ function CallAvatar({ a, size = 120 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.42, background: `${a.color}22`, border: `2px solid ${a.color}55` }}>{a.emoji || '🤖'}</span>
 }
 
-export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle }) {
+export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, autoStart = false, hideButton = false, onClose }) {
   const [call, setCall] = useState(null) // { status, mode, error? }
   const convRef = useRef(null)
   const convIdRef = useRef(null)
   const finalizedRef = useRef(false)
+
+  // Avvio programmatico (es. dal picker "Squadra AI"): parte la call appena montato.
+  useEffect(() => {
+    if (autoStart) startCall()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // A fine call: trascrizione + estrazione/esecuzione azioni + memoria (server).
   function finalize() {
@@ -70,14 +76,18 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
     finalize()
     convRef.current = null
     setCall(null)
+    onClose?.()
   }
+  function closeOverlay() { setCall(null); onClose?.() }
 
   return (
     <>
-      <button type="button" onClick={startCall} title="Chiama in vivavoce"
-        style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
-        {label}
-      </button>
+      {!hideButton && (
+        <button type="button" onClick={startCall} title="Chiama in vivavoce"
+          style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
+          {label}
+        </button>
+      )}
 
       {call && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
@@ -96,7 +106,7 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle })
             </div>
           </div>
           {call.status === 'ended'
-            ? <button type="button" onClick={() => setCall(null)} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
+            ? <button type="button" onClick={closeOverlay} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
             : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>📵 Riaggancia</button>}
           <style>{`@keyframes lyftPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}`}</style>
         </div>

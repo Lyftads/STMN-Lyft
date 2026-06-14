@@ -6,17 +6,16 @@ import ProfileModal from './ProfileModal'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
 import AgentCall from './AgentCall'
-import GroupCall from './GroupCall'
 
 const SQUAD_AGENTS = [
-  { id: 'ceo', name: 'Chiara', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-  { id: 'cfo', name: 'Marco', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-  { id: 'cmo', name: 'Luigi', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
-  { id: 'ads', name: 'Sofia', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
-  { id: 'seo', name: 'Davide', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
-  { id: 'cro', name: 'Giulia', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
-  { id: 'data', name: 'Alessandro', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
-  { id: 'creative', name: 'Valentina', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+  { id: 'ceo', name: 'Chiara', role: 'CEO', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#30d158', emoji: '📊', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { id: 'cmo', name: 'Luigi', role: 'CMO', color: '#2997ff', emoji: '🎯', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
+  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ff453a', emoji: '🚀', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { id: 'seo', name: 'Davide', role: 'SEO Specialist', color: '#ffd60a', emoji: '🔍', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
+  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: '#bf5af2', emoji: '🧪', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: '#64d2ff', emoji: '📈', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
+  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#ff9f0a', emoji: '🎨', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
 ]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
@@ -74,7 +73,8 @@ export default function ChatTab({ standalone = false }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [menuFor, setMenuFor] = useState(null)
   const [callMenu, setCallMenu] = useState(false)
-  const [groupCall, setGroupCall] = useState(false)
+  const [squadPicker, setSquadPicker] = useState(false) // popup scelta agente per la call
+  const [callAgent, setCallAgent] = useState(null)       // agente selezionato → avvia AgentCall
   const [savedIds, setSavedIds] = useState([])
   const [threadRoot, setThreadRoot] = useState(null)
   const [threadMsgs, setThreadMsgs] = useState([])
@@ -629,20 +629,42 @@ export default function ChatTab({ standalone = false }) {
                 <div style={{ position: 'relative' }}>
                   <HBtn onClick={() => setCallMenu(o => !o)} title="Incontro: avvia o copia link"><Icon name="headset" size={16} /></HBtn>
                   {callMenu && (
-                    <div style={{ position: 'absolute', top: 38, right: 0, ...PANEL, padding: 6, width: 240, zIndex: 30 }}>
+                    <div style={{ position: 'absolute', top: 38, right: 0, ...PANEL, background: 'rgba(16,16,24,0.98)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)', padding: 6, width: 240, zIndex: 30 }}>
                       <MenuItem onClick={() => { startCall(); setCallMenu(false) }}><Icon name="headset" size={14} style={{ marginRight: 8 }} />Avvia incontro</MenuItem>
                       <MenuItem onClick={() => { copyMeetLink(); setCallMenu(false) }}><Icon name="link" size={14} style={{ marginRight: 8 }} />Copia link all'incontro</MenuItem>
                     </div>
                   )}
                 </div>
                 {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title="Membri · aggiungi persone"><Icon name="users" size={16} /></HBtn>}
-                <AgentCall
-                  agent={{ id: 'ceo', name: 'Chiara', role: 'Squadra AI', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }}
-                  label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Squadra AI</span>}
-                  buttonStyle={{ cursor: 'pointer', background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}
-                />
-                <button type="button" onClick={() => setGroupCall(true)} title="Call di gruppo: team + agent insieme"
-                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(48,209,88,0.16)', border: '1px solid rgba(48,209,88,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="users" size={14} />Call di gruppo</button>
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={() => setSquadPicker(o => !o)} title="Chiama un agente della Squadra AI"
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="phone" size={14} />Squadra AI</button>
+                  {squadPicker && (
+                    <>
+                      <div onClick={() => setSquadPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                      <div style={{ position: 'absolute', top: 40, right: 0, ...PANEL, background: 'rgba(16,16,24,0.98)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)', padding: 8, width: 290, maxHeight: 380, overflowY: 'auto', zIndex: 41 }}>
+                        <div style={{ padding: '6px 8px 8px' }}>
+                          <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13 }}>Chiama la Squadra AI</div>
+                          <div style={{ color: MUTED, fontSize: 11.5, marginTop: 2 }}>Scegli un agente. La call è 1:1, con un solo agente alla volta.</div>
+                        </div>
+                        {SQUAD_AGENTS.map(a => (
+                          <button key={a.id} type="button"
+                            onClick={() => { setCallAgent(a); setSquadPicker(false) }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px', background: 'transparent', border: 'none', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <img src={a.avatar} alt={a.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${a.color}55` }} />
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', color: 'var(--text)', fontWeight: 700, fontSize: 13 }}>{a.name}</span>
+                              <span style={{ display: 'block', color: MUTED, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</span>
+                            </span>
+                            <Icon name="phone" size={15} style={{ marginLeft: 'auto', color: a.color }} />
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -899,8 +921,9 @@ export default function ChatTab({ standalone = false }) {
       )}
 
       <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
-      {groupCall && active && (
-        <GroupCall room={`channel-${active}`} channelId={active} title="Call di gruppo" agents={SQUAD_AGENTS} onClose={() => setGroupCall(false)} />
+      {/* Call 1:1 con l'agente scelto dal picker (un solo agente alla volta) */}
+      {callAgent && (
+        <AgentCall key={callAgent.id} agent={callAgent} autoStart hideButton onClose={() => setCallAgent(null)} />
       )}
     </div>
   )

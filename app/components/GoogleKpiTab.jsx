@@ -11,6 +11,7 @@ import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
 import BmTimeframe from './ui/BmTimeframe'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
+import GoogleSegmentsPanel from './GoogleSegmentsPanel'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const GOOGLE = '#eab308'
@@ -179,6 +180,9 @@ export default function GoogleKpiTab() {
               <KpiCard key={k.key} kpi={k} value={totals[k.key]} prev={prevTotals[k.key]} daily={daily} />
             ))}
           </div>
+
+          {/* Nuovi vs Ritornanti (segmento nativo Google) */}
+          <GoogleSegmentsPanel since={data?.range?.since} until={data?.range?.until} />
 
           {/* GRAFICI SEPARATI */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16 }}>

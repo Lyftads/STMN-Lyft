@@ -10,6 +10,8 @@ import KpiBrainAgent from './KpiBrainAgent'
 import BmTimeframe from './ui/BmTimeframe'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import DownloadReportButton from './DownloadReportButton'
+import MetaSegmentsPanel from './MetaSegmentsPanel'
+import GoogleSegmentsPanel from './GoogleSegmentsPanel'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], googleDailyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
@@ -392,13 +394,15 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="meta" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Meta Ads</span></div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:38}}>
+        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:14}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
+        <div style={{marginBottom:38}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Google Ads</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
+        <GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} />
       </div>
 
 

@@ -133,9 +133,32 @@ export default function MetaKpiTab({ live, globalPreset }) {
     return cleanup
   }, [tf]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const totals = data?.totals || {}
-  const prevTotals = data?.prevTotals || {}
-  const daily = Array.isArray(data?.daily) ? data.daily : []
+  // ── Segmenti di pubblico (Tutti / Nuovo / Esistenti / Interagito / Sconosciuto) ──
+  const [seg, setSeg] = useState('all')
+  const [segData, setSegData] = useState(null)
+  const range = data?.range
+  useEffect(() => {
+    if (!range?.since || !range?.until) return
+    let cancelled = false
+    setSegData(null)
+    fetch(`/api/meta-segments?preset=custom&since=${range.since}&until=${range.until}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { if (!cancelled && j?.ok) setSegData(j.segments) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [range?.since, range?.until])
+
+  const SEG_TABS = [
+    { id: 'all', label: 'Tutti', color: '#2997ff' },
+    { id: 'new', label: 'Nuovo pubblico', color: '#30d158' },
+    { id: 'returning', label: 'Clienti esistenti', color: '#2997ff' },
+    { id: 'engaged', label: 'Interagito', color: '#ff9f0a' },
+    { id: 'unknown', label: 'Sconosciuto', color: '#8b8b9a' },
+  ]
+  const segView = seg !== 'all' ? (segData?.[seg] || null) : null
+  const totals = segView ? segView.totals : (data?.totals || {})
+  const prevTotals = segView ? segView.prevTotals : (data?.prevTotals || {})
+  const daily = segView ? (segView.daily || []) : (Array.isArray(data?.daily) ? data.daily : [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -180,6 +203,25 @@ export default function MetaKpiTab({ live, globalPreset }) {
 
       {data && (
         <>
+          {/* Tab segmenti di pubblico (dato reale Meta) */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {SEG_TABS.map(s => {
+              const active = seg === s.id
+              const disabled = s.id !== 'all' && !segData
+              return (
+                <button key={s.id} type="button" onClick={() => setSeg(s.id)} disabled={disabled}
+                  style={{
+                    padding: '8px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 800, cursor: disabled ? 'default' : 'pointer',
+                    background: active ? `${s.color}22` : 'rgba(255,255,255,0.04)',
+                    border: active ? `1px solid ${s.color}` : '1px solid var(--border)',
+                    color: active ? 'var(--text)' : 'var(--text2)', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap',
+                  }}>{s.label}</button>
+              )
+            })}
+            {seg !== 'all' && !segData && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>carico segmenti…</span>}
+            {seg !== 'all' && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>dato reale Meta per segmento di pubblico</span>}
+          </div>
+
           {/* CARD KPI */}
           <div style={{
             display: 'grid',

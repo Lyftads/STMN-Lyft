@@ -514,7 +514,7 @@ async function renderPdf(html) {
     const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
     browser = await puppeteer.connect({ browserWSEndpoint: `wss://${endpoint}/?token=${encodeURIComponent(token)}` })
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'load', timeout: 30000 })
+    await page.setContent(html, { waitUntil: 'load', timeout: 20000 }).catch(() => {}) // immagini lente → genera comunque il PDF
     await page.emulateMediaType('screen')
     const buf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: false, margin: { top: '14px', bottom: '14px', left: '0', right: '0' } })
     return { buf }
@@ -549,20 +549,23 @@ export async function GET(req) {
   // ── REPORT COMPLETO: aggrega KPI Brain, Inventario, Performance, Klaviyo,
   //    Meta KPI/Detail, Google KPI/Detail, Problemi (Lighthouse) in un solo PDF.
   if (/completo|full|tutto|dashboard generale/i.test(tab)) {
-    const J = (path, ms = 45000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
+    // Timeout BREVE per ogni fetch (16s): il PDF aggrega 10 fonti; se una è lenta/
+    // fredda la si salta (sezione vuota) invece di far scadere l'intera funzione
+    // (FUNCTION_INVOCATION_TIMEOUT). Con le cache calde rispondono tutte in ms.
+    const J = (path, ms = 16000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
     const customQ = `preset=custom&since=${since}&until=${until}`
     const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
     const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR] = await Promise.all([
-      presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`, 55000) : null,
-      J('/api/inventory', 50000),
-      J(`/api/product-performance?since=${since}&until=${until}`, 55000),
-      J(`/api/klaviyo?days=${days}`, 35000),
-      J(`/api/meta-kpi?${customQ}`, 45000),
-      J(`/api/google-kpi?${customQ}`, 45000),
-      J(`/api/meta-detail?level=campaigns&${customQ}`, 50000),
-      J(`/api/google-detail?level=campaigns&${customQ}`, 50000),
-      J(`/api/lighthouse?${customQ}`, 40000),
-      J(`/api/google-lighthouse?${customQ}`, 40000),
+      presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`) : null,
+      J('/api/inventory'),
+      J(`/api/product-performance?since=${since}&until=${until}`),
+      J(`/api/klaviyo?days=${days}`),
+      J(`/api/meta-kpi?${customQ}`),
+      J(`/api/google-kpi?${customQ}`),
+      J(`/api/meta-detail?level=campaigns&${customQ}`),
+      J(`/api/google-detail?level=campaigns&${customQ}`),
+      J(`/api/lighthouse?${customQ}`),
+      J(`/api/google-lighthouse?${customQ}`),
     ])
 
     // KPI Brain (Shopify da metrics + Meta/Google dai rispettivi KPI)
@@ -650,7 +653,7 @@ export async function GET(req) {
       { label: 'ROAS', value: pt.roas != null ? `${num(pt.roas).toFixed(2)}x` : '—' },
       { label: 'Unità', value: intf(pt.units) },
       { label: 'Copertura costi', value: `${num(pt.costCoverage)}%` },
-    ], rows: (ppR?.products || []).slice(0, 25) } : null
+    ], rows: (ppR?.products || []).slice(0, 12) } : null
 
     const kk = klavR?.kpis || {}
     const klaviyo = klavR?.kpis ? { kpis: [
@@ -665,13 +668,17 @@ export async function GET(req) {
     const lighthouse = { meta: Array.isArray(lhMetaR?.alerts) ? lhMetaR.alerts : [], google: Array.isArray(lhGoogleR?.alerts) ? lhGoogleR.alerts : [] }
 
     const S = { kpiBrain, metaKpi, metaDetail, googleKpi, googleDetail, inventory, productPerf, klaviyo, lighthouse }
-    const narrative = await aiNarrative({
-      tab: 'Completo', label, range,
-      kpiBrain: kpiBrain?.kpis?.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })),
-      meta: metaKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
-      google: googleKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
-      problemi: lighthouse.meta.concat(lighthouse.google).slice(0, 6).map(a => a.title || a.metric),
-    }, searchParams.get('locale'))
+    // AI con cap a 12s: se è lenta, il PDF esce comunque (senza executive summary).
+    const narrative = await Promise.race([
+      aiNarrative({
+        tab: 'Completo', label, range,
+        kpiBrain: kpiBrain?.kpis?.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })),
+        meta: metaKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
+        google: googleKpi?.kpis?.slice(0, 4).map(k => ({ label: k.label, valore: k.value })),
+        problemi: lighthouse.meta.concat(lighthouse.google).slice(0, 6).map(a => a.title || a.metric),
+      }, searchParams.get('locale')).catch(() => null),
+      new Promise(res => setTimeout(() => res(null), 12000)),
+    ])
 
     const html = buildFullHtml({ label, range, narrative, S })
     if (searchParams.get('format') === 'html') return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })

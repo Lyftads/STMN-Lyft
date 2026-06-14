@@ -333,23 +333,13 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
 
   return (
     <div>
-      {/* Timeframe bar — black glass */}
+      {/* Timeframe bar — senza riquadro */}
       <div style={{
-        position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        border: '1.5px solid var(--border)',
-        borderTopColor: 'rgba(255,255,255,0.12)',
-        borderBottomColor: 'rgba(0,0,0,0.65)',
-        borderRadius: 22,
-        padding: 16,
         marginBottom: 18,
         display: 'flex',
         alignItems: 'center',
         gap: 10,
         flexWrap: 'wrap',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
       }}>
         {/* Sinistra: badge Live (dove prima c'era il timeframe) */}
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>

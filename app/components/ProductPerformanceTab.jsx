@@ -131,7 +131,7 @@ export default function ProductPerformanceTab() {
       </div>
 
       {/* Controlli */}
-      <div style={{ ...cardWrap, display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.from', null, 'Da')}<input type="date" value={since} onChange={e => setSince(e.target.value)} style={inputStyle} /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.to', null, 'A')}<input type="date" value={until} onChange={e => setUntil(e.target.value)} style={inputStyle} /></label>
         <button onClick={() => load(since, until, true)} disabled={loading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? t('pp.loading', null, 'Carico…') : t('pp.update', null, 'Aggiorna')}</button>

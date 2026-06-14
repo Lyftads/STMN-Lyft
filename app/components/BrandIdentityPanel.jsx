@@ -102,15 +102,22 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
     setSaving(true)
     setError(null)
     try {
+      // Pulizia al salvataggio: gli array di testo (es. copyExamples) NON vengono
+      // trimmati durante la digitazione (altrimenti non si potrebbe scrivere lo
+      // spazio tra le parole), ma solo qui prima di persistere.
+      const cleanIdentity = {
+        ...identity,
+        copyExamples: (identity.copyExamples || []).map(s => s.trim()).filter(Boolean),
+      }
       const res = await fetch('/api/brand-identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity }),
+        body: JSON.stringify({ identity: cleanIdentity }),
       })
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
       setSavedAt(new Date())
-      if (onSaved) onSaved(identity)
+      if (onSaved) onSaved(cleanIdentity)
       return true
     } catch (e) {
       setError(e?.message || t('bi.saveError', null, 'Errore salvataggio'))
@@ -224,7 +231,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           </Field>
         </FieldRow>
         <Field label={t('bi.copyLabel', null, 'Esempi di copy che ti piacciono')} hint={t('bi.copyHint', null, '3-5 esempi (uno per riga)')}>
-          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n').map(s => s.trim()).filter(Boolean))} rows={4} placeholder={t('bi.copyPh', null, "Es: 'Costruiti per chi non molla mai'")} />
+          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n'))} rows={4} placeholder={t('bi.copyPh', null, "Es: 'Costruiti per chi non molla mai'")} />
         </Field>
         <Field label={t('bi.personaLabel', null, 'Brand persona')} hint={t('bi.personaHint', null, 'Se il brand fosse una persona, chi sarebbe?')}>
           <Textarea value={identity.brandPersona} onChange={v => setField('brandPersona', v)} rows={3} placeholder={t('bi.personaPh', null, 'Es: Coach pragmatico, ex-atleta, parla schietto e tecnico, niente fronzoli')} />

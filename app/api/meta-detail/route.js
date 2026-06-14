@@ -476,10 +476,12 @@ function todos(summary) {
 }
 
 async function fetchActiveCampaigns(accountId) {
+  // Ritorna campagne ATTIVE, NON attive (in pausa) e BOZZE/in lavorazione, così
+  // la tab può filtrarle lato client. Escludiamo solo ARCHIVED/DELETED (rumore).
   return graphAll(`${accountId}/campaigns`, {
     fields: 'id,name,status,effective_status,daily_budget,lifetime_budget',
-    effective_status: JSON.stringify(['ACTIVE']),
-    limit: '100',
+    effective_status: JSON.stringify(['ACTIVE', 'PAUSED', 'CAMPAIGN_PAUSED', 'ADSET_PAUSED', 'IN_PROCESS', 'WITH_ISSUES', 'PENDING_REVIEW', 'PENDING_BILLING_INFO', 'PREAPPROVED', 'DISAPPROVED']),
+    limit: '200',
   })
 }
 

@@ -79,6 +79,14 @@ function levelBadge(level) {
   return { label: 'Ad', color: '#bf5af2', bg: 'rgba(191,90,242,0.15)' }
 }
 
+// Bucket dello stato campagna Meta → attive / non attive (in pausa) / bozze.
+function statusBucket(status) {
+  const v = String(status || '').toUpperCase()
+  if (v === 'ACTIVE') return 'active'
+  if (v.includes('PAUSED')) return 'paused'
+  return 'draft' // IN_PROCESS, WITH_ISSUES, PENDING_*, PREAPPROVED, DISAPPROVED…
+}
+
 // Sparkline simbolico per "performance" (usa ROAS)
 function PerfDot({ roas }) {
   const v = n(roas)
@@ -602,6 +610,8 @@ export default function MetaDetailTab() {
   // Filtri client-side
   const [accountFilter, setAccountFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('active') // active | paused | draft | all
+  const [sortKey, setSortKey] = useState('') // '' = ordine API (spesa); altrimenti campo desc
 
   const qs = useCallback(
     extra => {
@@ -791,8 +801,14 @@ export default function MetaDetailTab() {
     }
     else list = viewAdsetIds.flatMap(id => children[`adset:${id}`] || [])
     if (q) list = list.filter(r => (r.name || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q))
+    // Filtro stato (solo a livello campagna: attive / non attive / bozze)
+    if (bmLevel === 'campaign' && statusFilter !== 'all') {
+      list = list.filter(r => statusBucket(r.status) === statusFilter)
+    }
+    // Ordinamento dal + alto al + basso sul campo scelto
+    if (sortKey) list = [...list].sort((a, b) => n(b[sortKey]) - n(a[sortKey]))
     return list
-  }, [bmLevel, data, children, viewCampaignIds, viewAdsetIds, search])
+  }, [bmLevel, data, children, viewCampaignIds, viewAdsetIds, search, statusFilter, sortKey])
 
   // Riga riepilogo (stile BM Meta): aggrega tutte le righe visualizzate.
   const bmTotals = useMemo(() => {
@@ -1104,8 +1120,50 @@ export default function MetaDetailTab() {
           <FxCard glow={ACCENT_GLOW} padding={0} delay={1.6}>
             {/* Header (con padding proprio: niente titolo tagliato dal bordo) */}
             <div style={{ padding: '22px 24px 14px' }}>
-              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Gerarchia Meta')}</h2>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Campagne Meta Ads')}</h2>
               <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5, fontWeight: 500 }}>{t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')}</p>
+
+              {/* Filtri stato + ordinamento (solo livello Campagne) */}
+              {bmLevel === 'campaign' && (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>{t('meta.status', null, 'Stato')}</span>
+                    {[
+                      { id: 'active', label: t('meta.statusActive', null, 'Attive') },
+                      { id: 'paused', label: t('meta.statusPaused', null, 'Non attive') },
+                      { id: 'draft', label: t('meta.statusDraft', null, 'Bozze') },
+                      { id: 'all', label: t('meta.all', null, 'Tutte') },
+                    ].map(opt => {
+                      const active = statusFilter === opt.id
+                      return (
+                        <button key={opt.id} type="button" onClick={() => setStatusFilter(opt.id)} style={{
+                          background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
+                          border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                          color: active ? 'var(--text)' : 'var(--text2)',
+                          borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                        }}>{opt.label}</button>
+                      )
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>{t('meta.sortBy', null, 'Ordina per')}</span>
+                    <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{
+                      background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
+                      borderRadius: 10, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', outline: 'none',
+                    }}>
+                      <option value="" style={{ background: 'var(--surface)' }}>{t('meta.sortDefault', null, 'Spesa (default)')}</option>
+                      <option value="roas" style={{ background: 'var(--surface)' }}>{t('meta.sortRoas', null, 'ROAS (alto → basso)')}</option>
+                      <option value="purchases" style={{ background: 'var(--surface)' }}>{t('meta.sortPurchases', null, 'Acquisti (alto → basso)')}</option>
+                      <option value="cost_per_result" style={{ background: 'var(--surface)' }}>{t('meta.sortCpr', null, 'Costo per risultato (alto → basso)')}</option>
+                      <option value="cpc_link" style={{ background: 'var(--surface)' }}>{t('meta.sortCpc', null, 'CPC (alto → basso)')}</option>
+                      <option value="ctr_link" style={{ background: 'var(--surface)' }}>{t('meta.sortCtr', null, 'CTR (alto → basso)')}</option>
+                      <option value="frequency" style={{ background: 'var(--surface)' }}>{t('meta.sortFreq', null, 'Frequenza (alto → basso)')}</option>
+                      <option value="conversione_acquisti" style={{ background: 'var(--surface)' }}>{t('meta.sortConv', null, 'Conversione acquisti (alto → basso)')}</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
             {/* Tab bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid var(--border)' }}>

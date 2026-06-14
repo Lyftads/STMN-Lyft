@@ -88,6 +88,10 @@ function AdCard({ ad, index }) {
   const title = ad.titles?.[0] || ''
   const caption = ad.captions?.[0] || ''
   const description = ad.descriptions?.[0] || ''
+  const cta = ad.cta || ''
+
+  // Modale dettaglio creative (immagine + titolo + descrizione + CTA full)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   // ── Reverse-engineering on-brand (additivo) ──
   const [reOpen, setReOpen] = useState(false)
@@ -147,14 +151,18 @@ function AdCard({ ad, index }) {
         flexDirection: 'column',
       }}
     >
-      {/* Creative preview */}
+      {/* Creative preview — cliccabile: apre il dettaglio (immagine + copy + CTA) */}
       {hasMedia && (
-        <div style={{
+        <div
+          onClick={() => setDetailOpen(true)}
+          title={t('ci.openCreative', null, 'Apri creative')}
+          style={{
           position: 'relative',
           aspectRatio: '1 / 1',
           background: 'var(--surface)',
           borderBottom: '1px solid var(--border)',
           overflow: 'hidden',
+          cursor: 'pointer',
         }}>
           {ad.videoUrl ? (
             <video
@@ -209,13 +217,24 @@ function AdCard({ ad, index }) {
           )}
         </div>
 
-        {/* Title */}
+        {/* Title — cliccabile: apre il dettaglio */}
         {title && (
-          <div style={{
-            color: 'var(--text)', fontSize: 14, fontWeight: 900, lineHeight: 1.35,
-          }}>
+          <div
+            onClick={() => setDetailOpen(true)}
+            style={{
+              color: 'var(--text)', fontSize: 14, fontWeight: 900, lineHeight: 1.35, cursor: 'pointer',
+            }}>
             {title}
           </div>
+        )}
+
+        {/* CTA reale dell'inserzione */}
+        {cta && (
+          <span style={{
+            alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: 'var(--accent)',
+            background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.25)',
+            borderRadius: 8, padding: '4px 10px', textTransform: 'capitalize',
+          }}>{cta}</span>
         )}
 
         {/* Body / Copy */}
@@ -267,6 +286,79 @@ function AdCard({ ad, index }) {
           </button>
         )}
       </div>
+
+      {/* Modale DETTAGLIO creative: immagine grande + titolo, descrizione, CTA, copy completo */}
+      {detailOpen && (
+        <div
+          onClick={() => setDetailOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-section"
+            style={{ width: 'min(560px, 100%)', maxHeight: '90vh', overflowY: 'auto', padding: 0, background: 'rgba(10,10,20,0.95)', borderRadius: 18, overflow: 'hidden' }}
+          >
+            {/* Media grande */}
+            {hasMedia && (
+              <div style={{ position: 'relative', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                {ad.videoUrl ? (
+                  <video src={ad.videoUrl} poster={ad.imageUrl || undefined} controls playsInline preload="metadata" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block', background: '#000' }} />
+                ) : (
+                  <img src={ad.imageUrl} alt="" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} onError={e => { e.target.style.display = 'none' }} />
+                )}
+                <button onClick={() => setDetailOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: '#000a', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>×</button>
+              </div>
+            )}
+
+            <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Header: pagina + piattaforme + data */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {ad.pageName && <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13 }}>{ad.pageName}</span>}
+                  <div style={{ display: 'flex', gap: 6 }}>{(ad.platforms || []).map(p => <PlatformBadge key={p} platform={p} />)}</div>
+                </div>
+                {startDate && <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{startDate}</span>}
+                {!hasMedia && <button onClick={() => setDetailOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}>×</button>}
+              </div>
+
+              {cta && (
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailCta', null, 'Call to action')}</div>
+                  <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 800, color: 'var(--accent)', background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 9, padding: '6px 14px', textTransform: 'capitalize' }}>{cta}</span>
+                </div>
+              )}
+
+              {title && (
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailTitle', null, 'Titolo')}</div>
+                  <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>{title}</div>
+                </div>
+              )}
+
+              {(description || caption) && (
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailDescription', null, 'Descrizione')}</div>
+                  <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>{description || caption}</div>
+                </div>
+              )}
+
+              {body && (
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailCopy', null, 'Testo')}</div>
+                  <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{body}</div>
+                </div>
+              )}
+
+              {ad.snapshotUrl && (
+                <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
+                  {t('ci.seeOnAdLibrary', null, 'Vedi su Ad Library')}
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2h6v6M10 2L2 10" stroke="#2997ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {reOpen && (
         <div

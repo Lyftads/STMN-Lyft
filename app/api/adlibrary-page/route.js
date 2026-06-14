@@ -59,6 +59,9 @@ function adFromSnapshotNode(node) {
     titles: title ? [title] : [],
     captions: s.caption ? [sanitize(s.caption)] : [],
     descriptions: s.link_description ? [sanitize(s.link_description)] : [],
+    // CTA reale dell'inserzione (es. "Acquista ora", "Scopri di più") + link di destinazione
+    cta: sanitize(s.cta_text || cards[0]?.cta_text || (s.cta_type ? String(s.cta_type).replace(/_/g, ' ').toLowerCase() : '') || ''),
+    linkUrl: s.link_url || cards[0]?.link_url || null,
     startDate,
     snapshotUrl: adId ? `https://www.facebook.com/ads/library/?id=${adId}` : null,
     pageName: sanitize(s.page_name || ''),

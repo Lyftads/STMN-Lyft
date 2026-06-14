@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import DownloadReportButton from './DownloadReportButton'
 
 const isoDay = (d) => d.toISOString().slice(0, 10)
 
@@ -136,6 +137,7 @@ export default function ProductPerformanceTab() {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>{t('pp.to', null, 'A')}<input type="date" value={until} onChange={e => setUntil(e.target.value)} style={inputStyle} /></label>
         <button onClick={() => load(since, until, true)} disabled={loading} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '9px 18px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? t('pp.loading', null, 'Carico…') : t('pp.update', null, 'Aggiorna')}</button>
         <button onClick={() => { const s = isoDay(new Date(Date.now() - 30 * 86400000)), u = isoDay(new Date()); setSince(s); setUntil(u); load(s, u, true) }} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('pp.reset', null, 'Reset')}</button>
+        <DownloadReportButton tab="Performance Prodotti" custom={{ since, until, label: `${since} → ${until}` }} />
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 700, marginRight: 4 }}>{t('pp.sortBy', null, 'Ordina per')}</span>
           {sortBtn('margin', t('pp.sortMargin', null, 'Margine'))}

@@ -214,7 +214,8 @@ function kpiCard(label, value, prev, opts = {}) {
   return `<div class="kpi"><div class="kpi-l">${esc(label)}</div><div class="kpi-v">${value}</div><div class="kpi-d">${prev !== undefined ? deltaTag(opts.cur, opts.prev, opts) : ''}<span class="kpi-prev">${prev !== undefined ? `prec. ${prev}` : ''}</span></div></div>`
 }
 
-function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts }) {
+function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts, inventoryRows, productRows }) {
+  const isGoogle = /google/i.test(tab)
   const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
   const kpiHtml = kpis.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')
 
@@ -257,10 +258,27 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
       ${adsetBlocks}`
   }
 
-  const campTable = topCampaigns ? `
+  const campTable = topCampaigns ? (isGoogle ? `
+    <h2>Campagne attive</h2>
+    <table><thead><tr><th>Campagna</th><th>Stato</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>Conv.</th><th>Valore conv.</th></tr></thead><tbody>
+    ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.status || '')}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
+    </tbody></table>` : `
     <h2>Campagne attive</h2>
     <table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>Acquisti</th></tr></thead><tbody>
     ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${c.roas.toFixed(2)}x</td><td>${c.ctr.toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
+    </tbody></table>`) : ''
+
+  const RISK_LABEL = { le7: 'Stockout < 7gg', le30: 'A rischio < 30gg', oos_sales: 'Broken size', oos: 'Esaurito' }
+  const inventoryHtml = (Array.isArray(inventoryRows) && inventoryRows.length) ? `
+    <h2>Prodotti a rischio stockout</h2>
+    <table><thead><tr><th>Prodotto</th><th>Taglia/SKU</th><th>Stock</th><th>Vendite/g</th><th>Giorni a stockout</th><th>Rischio</th><th>Perse/sett.</th></tr></thead><tbody>
+    ${inventoryRows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td><td>${money2(num(i.lostRevPerDay) * 7)}</td></tr>`).join('')}
+    </tbody></table>` : ''
+
+  const productPerfHtml = (Array.isArray(productRows) && productRows.length) ? `
+    <h2>Performance per prodotto</h2>
+    <table><thead><tr><th>Prodotto</th><th>Unità</th><th>Fatturato netto</th><th>COGS</th><th>ADS</th><th>Margine op.</th><th>Margine %</th><th>ROAS</th><th>Δ</th></tr></thead><tbody>
+    ${productRows.map(p => `<tr><td>${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td><td>${p.deltaNet != null ? `${p.deltaNet > 0 ? '+' : ''}${num(p.deltaNet).toFixed(1)}%` : '—'}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const productsHtml = (Array.isArray(topProducts) && topProducts.length) ? `
@@ -321,7 +339,7 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     <h2>KPI del periodo</h2>
     <div class="kpis">${kpiHtml}</div>
 
-    ${daily?.length ? `<h2>Andamento revenue (giornaliero)</h2><div class="chart">${barChart(daily, 'revenue')}</div>` : ''}
+    ${daily?.length ? `<h2>${isGoogle ? 'Andamento valore conversioni (giornaliero)' : 'Andamento revenue (giornaliero)'}</h2><div class="chart">${barChart(daily, 'revenue')}</div>` : ''}
 
     ${(narrative?.insights?.length || narrative?.todos?.length) ? `<div class="cols">
       <div><h2>Insight</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
@@ -330,6 +348,8 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
 
     ${hierarchyHtml}
     ${campTable}
+    ${inventoryHtml}
+    ${productPerfHtml}
     ${productsHtml}
     ${countriesHtml}
 
@@ -353,6 +373,17 @@ async function renderPdf(html) {
   } catch (e) { return { error: e?.message || 'render error' } } finally { if (browser) await browser.disconnect().catch(() => {}) }
 }
 
+// Google Ads per finestra: riusa /api/google-detail (stessa fonte della tab),
+// così il report Google ha KPI, campagne e andamento giornaliero reali.
+async function googleDetail(origin, since, until, cookie) {
+  try {
+    const url = `${origin}/api/google-detail?level=campaigns&preset=custom&since=${since}&until=${until}`
+    const r = await fetch(url, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) })
+    const j = await r.json()
+    return { summary: j?.summary || {}, rows: Array.isArray(j?.rows) ? j.rows : [], dailySeries: Array.isArray(j?.dailySeries) ? j.dailySeries : [] }
+  } catch { return { summary: {}, rows: [], dailySeries: [] } }
+}
+
 export async function GET(req) {
   return withTenantContext(req, async () => {
   const { searchParams, origin } = new URL(req.url)
@@ -366,11 +397,70 @@ export async function GET(req) {
   const range = { since, until, prevSince, prevUntil }
 
   const isMeta = /meta/i.test(tab)
+  const isGoogle = /google/i.test(tab)
+  const isInventory = /inventar/i.test(tab)
+  const isProductPerf = /performance prodott|prodott.*performance/i.test(tab)
   const preset = searchParams.get('preset') || null
   const metricsOk = preset && !['this_week', 'last_week', 'custom'].includes(preset)
   let kpis = [], daily = [], hierarchy = null, topCampaigns = null, shop = null, topProducts = null
+  let inventoryRows = null, productRows = null
 
-  if (isMeta) {
+  if (isInventory) {
+    // Report Inventario: stato magazzino (snapshot) + prodotti a rischio stockout
+    let inv = null
+    try { inv = await fetch(`${origin}/api/inventory`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) }).then(r => r.json()) } catch {}
+    const k = inv?.kpis || {}
+    kpis = [
+      { label: 'Valore magazzino', value: money(k.inventoryValueCogs) },
+      { label: 'Pezzi a stock', value: intf(k.qtyOnHand) },
+      { label: 'Prodotti', value: intf(k.productCount) },
+      { label: 'Varianti', value: intf(k.variantCount) },
+      { label: 'Stockout < 7gg', value: intf(k.countLe7) },
+      { label: 'A rischio < 30gg', value: intf(k.countLe30) },
+      { label: 'Broken sizes', value: intf(k.brokenCount) },
+      { label: 'Vendite perse/sett.', value: money(k.lostRevenueWeek) },
+    ]
+    inventoryRows = (inv?.items || [])
+      .filter(i => ['le7', 'le30', 'oos_sales'].includes(i.risk))
+      .sort((a, b) => num(b.priorityScore) - num(a.priorityScore))
+      .slice(0, 25)
+  } else if (isProductPerf) {
+    // Report Performance Prodotti: P&L per prodotto nel periodo selezionato
+    let pp = null
+    try { pp = await fetch(`${origin}/api/product-performance?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(55000) }).then(r => r.json()) } catch {}
+    const tot = pp?.totals || {}
+    kpis = [
+      { label: 'Fatturato netto', value: money(tot.netRevenue) },
+      { label: 'Margine op.', value: money(tot.marginOp) },
+      { label: 'ADS totali', value: money(tot.ads) },
+      { label: 'ROAS', value: tot.roas != null ? `${tot.roas}x` : '—' },
+      { label: 'Unità', value: intf(tot.units) },
+      { label: 'Spesa Meta', value: money(tot.metaSpend) },
+      { label: 'Spesa Google', value: money(tot.googleSpend) },
+      { label: 'Copertura costi', value: `${num(tot.costCoverage)}%` },
+    ]
+    productRows = (pp?.products || []).slice(0, 25)
+  } else if (isGoogle) {
+    // Report Google Ads: KPI del periodo, campagne attive, andamento giornaliero
+    const [gc, gp] = await Promise.all([
+      googleDetail(origin, since, until, cookie),
+      prevSince ? googleDetail(origin, prevSince, prevUntil, cookie) : null,
+    ])
+    const a = gc?.summary || {}, b = gp?.summary || {}
+    const rows = Array.isArray(gc?.rows) ? gc.rows : []
+    topCampaigns = rows.filter(r => num(r.spend) > 0).sort((x, y) => num(y.spend) - num(x.spend)).slice(0, 15)
+    daily = (gc?.dailySeries || []).map(d => ({ date: d.date, revenue: num(d.convValue), spend: num(d.spend) }))
+    kpis = [
+      { label: 'Spesa', value: money2(a.spend), prevValue: money2(b.spend), cur: num(a.spend), prev: num(b.spend) },
+      { label: 'Valore conv.', value: money2(a.convValue), prevValue: money2(b.convValue), cur: num(a.convValue), prev: num(b.convValue) },
+      { label: 'ROAS', value: `${num(a.roas).toFixed(2)}x`, prevValue: `${num(b.roas).toFixed(2)}x`, cur: num(a.roas), prev: num(b.roas) },
+      { label: 'Conversioni', value: intf(a.conversions), prevValue: intf(b.conversions), cur: num(a.conversions), prev: num(b.conversions) },
+      { label: 'CPA', value: money2(a.cpa), prevValue: money2(b.cpa), cur: num(a.cpa), prev: num(b.cpa), lowerBetter: true },
+      { label: 'CTR', value: `${num(a.ctr).toFixed(2)}%`, prevValue: `${num(b.ctr).toFixed(2)}%`, cur: num(a.ctr), prev: num(b.ctr) },
+      { label: 'CPC', value: money2(a.cpc), prevValue: money2(b.cpc), cur: num(a.cpc), prev: num(b.cpc), lowerBetter: true },
+      { label: 'Impression', value: intf(a.impressions), prevValue: intf(b.impressions), cur: num(a.impressions), prev: num(b.impressions) },
+    ]
+  } else if (isMeta) {
     // Meta-attributed KPI (1 chiamata insights account per finestra) + gerarchia/top campagne
     const [mc, mp] = await Promise.all([metaPeriod(since, until), prevSince ? metaPeriod(prevSince, prevUntil) : null])
     if (campaignId) hierarchy = await campaignHierarchy(campaignId, since, until)
@@ -473,7 +563,7 @@ export async function GET(req) {
 
   const narrative = await aiNarrative({ tab, label, range, kpis: kpis.map(k => ({ label: k.label, valore: k.value, precedente: k.prevValue })), hierarchy: hierarchy ? { campagna: hierarchy.campaign.name, adset: hierarchy.adsets.length } : null }, searchParams.get('locale'))
 
-  const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts })
+  const html = buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts, inventoryRows, productRows })
   if (searchParams.get('format') === 'html') {
     return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
   }

@@ -4,6 +4,9 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
+import DownloadReportButton from './DownloadReportButton'
+
+const invIso = (d) => d.toISOString().slice(0, 10)
 
 const RISK = {
   le7:      { color: '#ef4444', bg: 'rgba(239,68,68,0.15)', label: '≤ 7 GG' },
@@ -162,9 +165,12 @@ export default function InventoryTab() {
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('inv.title', null, 'Inventario')}</h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>{t('inv.subtitle', null, 'Unità operativa = taglia/SKU. Un prodotto può avere stock alto e una sola taglia in esaurimento — guarda sempre la taglia critica. Quantità da Shopify; valore su COGS (cost per item).')}</p>
         </div>
-        <button onClick={() => load(true)} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--accent)', color: 'var(--accent)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>
-          <Icon name="refresh" size={14} /> {loading ? t('inv.loading', null, 'Aggiorno…') : t('inv.refresh', null, 'Aggiorna (live)')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => load(true)} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--accent)', color: 'var(--accent)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 800, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}>
+            <Icon name="refresh" size={14} /> {loading ? t('inv.loading', null, 'Aggiorno…') : t('inv.refresh', null, 'Aggiorna (live)')}
+          </button>
+          <DownloadReportButton tab="Inventario" custom={{ since: invIso(new Date(Date.now() - 30 * 86400000)), until: invIso(new Date()), label: t('inv.currentState', null, 'Stato attuale') }} />
+        </div>
       </div>
 
       {error && <div style={{ ...cardWrap, borderColor: 'rgba(239,68,68,0.35)', color: '#fca5a5' }}>{error}</div>}

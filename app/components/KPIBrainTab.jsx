@@ -32,7 +32,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       const meta = asNum(m?.spend), goog = asNum(g.spend)
       const spend = meta + goog
       const impr = asNum(m?.impressions), clicks = asNum(m?.clicks)
-      const aov = safeDiv(fat, ord), roas = safeDiv(fat, meta), mer = safeDiv(fat, spend)
+      // Acquisti Meta (count) + valore acquisti Meta → ROAS EFFETTIVO della piattaforma
+      // (valore acquisti Meta / spesa Meta), non il fatturato Shopify totale.
+      const mPurch = asNum(m?.purchases), mPurchVal = asNum(m?.purchaseValue)
+      const aov = safeDiv(fat, ord), roas = safeDiv(mPurchVal, meta), mer = safeDiv(fat, spend)
       const cac = safeDiv(spend, nc), ctr = impr > 0 ? (clicks/impr)*100 : null
       const cpc = safeDiv(meta, clicks), cpm = impr > 0 ? (meta/impr)*1000 : null
       const repeatRate = nc + rc > 0 ? (rc/(nc+rc))*100 : null
@@ -45,6 +48,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       const gCpc = safeDiv(goog, gClicks)
       const gCpm = gImpr > 0 ? (goog/gImpr)*1000 : null
       return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv,
+               mPurch,mPurchVal,
                gImpr,gClicks,gConv,gConvVal,gRoas,gCtr,gCpc,gCpm }
     }
 
@@ -150,6 +154,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Meta Ads', title:'CPM', value:money2(c.cpm), color:'#f59e0b', sparkKey:'cpm', curr:c.cpm, prev:p.cpm, lower:true },
     { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', sparkKey:'impressions', curr:c.impr, prev:p.impr },
     { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', sparkKey:'linkClicks', curr:c.clicks, prev:p.clicks },
+    { group:'Meta Ads', title:'Acquisti', value:shortNum(c.mPurch), color:'#22c55e', sparkKey:'metaPurchases', curr:c.mPurch, prev:p.mPurch },
     { group:'Google Ads', title:'Spend', value:shortMoney(c.goog), color:'#eab308', sparkKey:'googleSpend', curr:c.goog, prev:p.goog },
     { group:'Google Ads', title:'ROAS', value:ratio(c.gRoas), color:'#22c55e', sparkKey:'gRoas', curr:c.gRoas, prev:p.gRoas },
     { group:'Google Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', sparkKey:'mer', curr:c.mer, prev:p.mer },
@@ -158,6 +163,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Google Ads', title:'CPM', value:money2(c.gCpm), color:'#f59e0b', sparkKey:'gCpm', curr:c.gCpm, prev:p.gCpm, lower:true },
     { group:'Google Ads', title:'Impressions', value:shortNum(c.gImpr), color:'#eab308', sparkKey:'googleImpressions', curr:c.gImpr, prev:p.gImpr },
     { group:'Google Ads', title:'Clicks', value:shortNum(c.gClicks), color:'#eab308', sparkKey:'googleClicks', curr:c.gClicks, prev:p.gClicks },
+    { group:'Google Ads', title:'Conversioni', value:shortNum(c.gConv), color:'#22c55e', sparkKey:'googleConversions', curr:c.gConv, prev:p.gConv },
   ]
 
   // ── Top products: match images from store products.json ──

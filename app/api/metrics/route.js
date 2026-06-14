@@ -1476,8 +1476,11 @@ async function safeMetaRange(range) {
     if (!metaToken() || !metaAccount()) return null
     if (!range?.since || !range?.until) return null
     const accounts = metaAccount().split(',').map(s => s.trim()).filter(Boolean)
-    const fields = 'spend,impressions,reach,frequency,cpm,ctr,outbound_clicks,cost_per_outbound_click'
-    let spend = 0, impressions = 0, reach = 0, clicks = 0
+    const fields = 'spend,impressions,reach,frequency,cpm,ctr,outbound_clicks,cost_per_outbound_click,actions,action_values'
+    // Acquisti (count) e valore acquisti dalle action Meta → per ordini Meta e ROAS effettivo.
+    const PURCH = ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase']
+    const actVal = (arr) => { if (!Array.isArray(arr)) return 0; for (const t of PURCH) { const v = arr.find(a => a.action_type === t)?.value; if (v != null) return parseFloat(v) || 0 } return 0 }
+    let spend = 0, impressions = 0, reach = 0, clicks = 0, purchases = 0, purchaseValue = 0
     for (const id of accounts) {
       const url = `https://graph.facebook.com/v19.0/${id}/insights?fields=${fields}&time_range={"since":"${range.since}","until":"${range.until}"}&access_token=${metaToken()}`
       const res = await fetch(url)
@@ -1490,6 +1493,8 @@ async function safeMetaRange(range) {
         clicks += Array.isArray(d.outbound_clicks)
           ? parseInt(d.outbound_clicks.find(x => x.action_type === 'outbound_click')?.value || 0)
           : 0
+        purchases += actVal(d.actions)
+        purchaseValue += actVal(d.action_values)
       }
     }
     return {
@@ -1499,6 +1504,8 @@ async function safeMetaRange(range) {
       impressions,
       reach,
       clicks,
+      purchases: Math.round(purchases),
+      purchaseValue: Math.round(purchaseValue * 100) / 100,
     }
   } catch (e) {
     console.log('metaRange error:', e.message)

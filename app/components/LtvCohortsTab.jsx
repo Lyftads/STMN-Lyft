@@ -104,7 +104,8 @@ export default function LtvCohortsTab() {
   const distribution = data?.distribution || []
   // Grafici in ordine cronologico (coorte arriva desc → reverse)
   const chrono = [...cohorts].reverse()
-  const ltvChart = chrono.map(c => ({ name: c.label, ltv: c.ltv }))
+  const mFrac = Math.max(0, Math.min(100, Number(margin) || 0)) / 100
+  const ltvChart = chrono.map(c => ({ name: c.label, ltv: c.ltv, ltvNet: Math.round(c.ltv * mFrac * 100) / 100 }))
   const repeatChart = chrono.map(c => ({ name: c.label, repeat: c.repeatRate }))
 
   // ── LTV Lordo / Netto + CAC + Ratio LTV:CAC ──
@@ -231,17 +232,19 @@ export default function LtvCohortsTab() {
             {/* Grafici */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px,1fr))', gap: 16 }}>
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>LTV medio per coorte</div>
+                <div className="label" style={{ marginBottom: 12 }}>LTV per coorte · lordo vs netto ({Math.round(m * 100)}% margine)</div>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={ltvChart} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="ltvBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#30d158" stopOpacity={0.95} /><stop offset="100%" stopColor="#30d158" stopOpacity={0.4} /></linearGradient>
+                      <linearGradient id="ltvBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5b8bff" stopOpacity={0.55} /><stop offset="100%" stopColor="#5b8bff" stopOpacity={0.18} /></linearGradient>
+                      <linearGradient id="ltvBarNet" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#30d158" stopOpacity={0.95} /><stop offset="100%" stopColor="#30d158" stopOpacity={0.4} /></linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={42} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => eur2(v)} />
-                    <Bar dataKey="ltv" fill="url(#ltvBar)" radius={[5, 5, 0, 0]} animationDuration={1400} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v, n) => [eur2(v), n === 'ltvNet' ? 'LTV Netto' : 'LTV Lordo']} />
+                    <Bar name="LTV Lordo" dataKey="ltv" fill="url(#ltvBar)" radius={[5, 5, 0, 0]} animationDuration={1400} />
+                    <Bar name="LTV Netto" dataKey="ltvNet" fill="url(#ltvBarNet)" radius={[5, 5, 0, 0]} animationDuration={1400} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

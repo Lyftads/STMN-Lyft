@@ -47,8 +47,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       const gCtr = gImpr > 0 ? (gClicks/gImpr)*100 : null
       const gCpc = safeDiv(goog, gClicks)
       const gCpm = gImpr > 0 ? (goog/gImpr)*1000 : null
+      // CAC per canale paid = spesa del canale / acquisizioni del canale
+      // (Meta: acquisti; Google: conversioni). È il costo per acquisizione del canale.
+      const cacMeta = safeDiv(meta, mPurch), cacGoogle = safeDiv(goog, gConv)
       return { fat,ord,nc,rc,ses,meta,goog,spend,impr,clicks,aov,roas,mer,cac,ctr,cpc,cpm,repeatRate,ltv,
-               mPurch,mPurchVal,
+               mPurch,mPurchVal,cacMeta,cacGoogle,
                gImpr,gClicks,gConv,gConvVal,gRoas,gCtr,gCpc,gCpm }
     }
 
@@ -155,6 +158,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Meta Ads', title:'Impressions', value:shortNum(c.impr), color:'#3b82f6', sparkKey:'impressions', curr:c.impr, prev:p.impr },
     { group:'Meta Ads', title:'Clicks', value:shortNum(c.clicks), color:'#3b82f6', sparkKey:'linkClicks', curr:c.clicks, prev:p.clicks },
     { group:'Meta Ads', title:'Acquisti', value:shortNum(c.mPurch), color:'#22c55e', sparkKey:'metaPurchases', curr:c.mPurch, prev:p.mPurch },
+    { group:'Meta Ads', title:'CAC', value:money2(c.cacMeta), color:'#ef4444', sparkKey:'cacMeta', curr:c.cacMeta, prev:p.cacMeta, lower:true },
     { group:'Google Ads', title:'Spend', value:shortMoney(c.goog), color:'#eab308', sparkKey:'googleSpend', curr:c.goog, prev:p.goog },
     { group:'Google Ads', title:'ROAS', value:ratio(c.gRoas), color:'#22c55e', sparkKey:'gRoas', curr:c.gRoas, prev:p.gRoas },
     { group:'Google Ads', title:'MER', value:ratio(c.mer), color:'#a855f7', sparkKey:'mer', curr:c.mer, prev:p.mer },
@@ -164,6 +168,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { group:'Google Ads', title:'Impressions', value:shortNum(c.gImpr), color:'#eab308', sparkKey:'googleImpressions', curr:c.gImpr, prev:p.gImpr },
     { group:'Google Ads', title:'Clicks', value:shortNum(c.gClicks), color:'#eab308', sparkKey:'googleClicks', curr:c.gClicks, prev:p.gClicks },
     { group:'Google Ads', title:'Conversioni', value:shortNum(c.gConv), color:'#22c55e', sparkKey:'googleConversions', curr:c.gConv, prev:p.gConv },
+    { group:'Google Ads', title:'CAC', value:money2(c.cacGoogle), color:'#ef4444', sparkKey:'cacGoogle', curr:c.cacGoogle, prev:p.cacGoogle, lower:true },
   ]
 
   // ── Top products: match images from store products.json ──

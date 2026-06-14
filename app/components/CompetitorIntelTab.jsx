@@ -1,7 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+
+// Le creative DCO/Advantage+ contengono token catalogo non risolti (es.
+// {{product.name}}): li togliamo per non mostrare testo "rotto". Se dopo la
+// pulizia resta vuoto → la sezione non viene mostrata.
+function cleanAdText(s) {
+  return String(s || '').replace(/\{\{[^}]*\}\}/g, '').replace(/\s{2,}/g, ' ').trim()
+}
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import CompetitorsEmptyNotice from './CompetitorsEmptyNotice'
@@ -84,11 +92,11 @@ function PlatformBadge({ platform }) {
 
 function AdCard({ ad, index }) {
   const { t } = useI18n()
-  const body = ad.bodies?.[0] || ''
-  const title = ad.titles?.[0] || ''
-  const caption = ad.captions?.[0] || ''
-  const description = ad.descriptions?.[0] || ''
-  const cta = ad.cta || ''
+  const body = cleanAdText(ad.bodies?.[0])
+  const title = cleanAdText(ad.titles?.[0])
+  const caption = cleanAdText(ad.captions?.[0])
+  const description = cleanAdText(ad.descriptions?.[0])
+  const cta = cleanAdText(ad.cta)
 
   // Modale dettaglio creative (immagine + titolo + descrizione + CTA full)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -287,77 +295,70 @@ function AdCard({ ad, index }) {
         )}
       </div>
 
-      {/* Modale DETTAGLIO creative: immagine grande + titolo, descrizione, CTA, copy completo */}
-      {detailOpen && (
+      {/* Modale DETTAGLIO: anteprima dell'inserzione stile Meta (testo → media → barra link + CTA) */}
+      {detailOpen && createPortal(
         <div
           onClick={() => setDetailOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', zIndex: 100000, display: 'grid', placeItems: 'center', padding: 20 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="glass-section"
-            style={{ width: 'min(560px, 100%)', maxHeight: '90vh', overflowY: 'auto', padding: 0, background: 'rgba(10,10,20,0.95)', borderRadius: 18, overflow: 'hidden' }}
+            style={{ width: 'min(480px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', position: 'relative' }}
           >
-            {/* Media grande */}
+            <button onClick={() => setDetailOpen(false)} aria-label="Chiudi" style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+
+            {/* Header pagina (come Meta) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#1877f2,#0a59c0)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>
+                {(ad.pageName || 'A').slice(0, 1).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: '#050505', fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.pageName || t('ci.advertiser', null, 'Inserzionista')}</div>
+                <div style={{ color: '#65676b', fontSize: 12 }}>{t('ci.sponsored', null, 'Sponsorizzato')}{startDate ? ` · ${startDate}` : ''}</div>
+              </div>
+            </div>
+
+            {/* Testo primario (sopra l'immagine, come Meta) */}
+            {body && (
+              <div style={{ padding: '0 14px 12px', color: '#050505', fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{body}</div>
+            )}
+
+            {/* Media */}
             {hasMedia && (
-              <div style={{ position: 'relative', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                {ad.videoUrl ? (
-                  <video src={ad.videoUrl} poster={ad.imageUrl || undefined} controls playsInline preload="metadata" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block', background: '#000' }} />
-                ) : (
-                  <img src={ad.imageUrl} alt="" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} onError={e => { e.target.style.display = 'none' }} />
-                )}
-                <button onClick={() => setDetailOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: '#000a', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>×</button>
+              <div style={{ background: '#000', lineHeight: 0 }}>
+                {ad.videoUrl
+                  ? <video src={ad.videoUrl} poster={ad.imageUrl || undefined} controls playsInline preload="metadata" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} />
+                  : <img src={ad.imageUrl} alt="" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} onError={e => { e.target.style.display = 'none' }} />}
               </div>
             )}
 
-            <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Header: pagina + piattaforme + data */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {ad.pageName && <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13 }}>{ad.pageName}</span>}
-                  <div style={{ display: 'flex', gap: 6 }}>{(ad.platforms || []).map(p => <PlatformBadge key={p} platform={p} />)}</div>
+            {/* Barra link stile Meta: caption + titolo + descrizione + bottone CTA */}
+            {(title || description || caption || cta) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#f0f2f5' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {caption && <div style={{ color: '#65676b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>}
+                  {title && <div style={{ color: '#050505', fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{title}</div>}
+                  {description && <div style={{ color: '#65676b', fontSize: 12.5, lineHeight: 1.4, marginTop: 2 }}>{description}</div>}
                 </div>
-                {startDate && <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{startDate}</span>}
-                {!hasMedia && <button onClick={() => setDetailOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}>×</button>}
+                {cta && (
+                  <span style={{ flexShrink: 0, background: '#e4e6eb', color: '#050505', fontWeight: 700, fontSize: 13, borderRadius: 6, padding: '8px 14px', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{cta}</span>
+                )}
               </div>
+            )}
 
-              {cta && (
-                <div>
-                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailCta', null, 'Call to action')}</div>
-                  <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 800, color: 'var(--accent)', background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 9, padding: '6px 14px', textTransform: 'capitalize' }}>{cta}</span>
-                </div>
-              )}
-
-              {title && (
-                <div>
-                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailTitle', null, 'Titolo')}</div>
-                  <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>{title}</div>
-                </div>
-              )}
-
-              {(description || caption) && (
-                <div>
-                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailDescription', null, 'Descrizione')}</div>
-                  <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>{description || caption}</div>
-                </div>
-              )}
-
-              {body && (
-                <div>
-                  <div className="label" style={{ marginBottom: 4 }}>{t('ci.detailCopy', null, 'Testo')}</div>
-                  <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{body}</div>
-                </div>
-              )}
-
+            {/* Footer: piattaforme + link Ad Library */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', borderTop: '1px solid #e4e6eb', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6 }}>{(ad.platforms || []).map(p => <PlatformBadge key={p} platform={p} />)}</div>
               {ad.snapshotUrl && (
-                <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
+                <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#1877f2', fontWeight: 700, textDecoration: 'none' }}>
                   {t('ci.seeOnAdLibrary', null, 'Vedi su Ad Library')}
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2h6v6M10 2L2 10" stroke="#2997ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2h6v6M10 2L2 10" stroke="#1877f2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </a>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {reOpen && (

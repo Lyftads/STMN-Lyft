@@ -164,7 +164,7 @@ function getPresetRange(preset = 'last_90d') {
     return { since: toDateString(addDays(today, -90)), until, label: 'Ultimi 90 giorni' }
   }
 
-  if (preset === 'current_month' || preset === 'mtd') {
+  if (preset === 'current_month' || preset === 'mtd' || preset === 'this_month') {
     return { since: `${until.slice(0, 7)}-01`, until, label: 'Mese corrente' }
   }
 

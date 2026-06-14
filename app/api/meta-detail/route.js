@@ -81,7 +81,7 @@ function getRange(preset, searchParams) {
     return { since: addDays(today, -27), until: today }
   }
 
-  if (preset === 'this_month') {
+  if (preset === 'this_month' || preset === 'current_month' || preset === 'mtd') {
     return { since: startOfMonth(today), until: today }
   }
 

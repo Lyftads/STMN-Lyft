@@ -139,7 +139,7 @@ function getRange(preset, sp = null) {
     }
   }
 
-  if (preset === 'current_month') {
+  if (preset === 'current_month' || preset === 'mtd' || preset === 'this_month') {
     const d = new Date(today)
     d.setDate(1)
 

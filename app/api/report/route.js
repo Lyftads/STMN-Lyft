@@ -5,16 +5,29 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
+import { reportT, localeTag, normLocale } from '../../../lib/reportI18n'
 
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 const GENERIC_PLACEHOLDER = '75341531_494485104475166'
 
+// Lingua del report (impostata a inizio richiesta da setReportLocale). Le
+// funzioni di formattazione numero/data e tr() la leggono, così l'intero PDF
+// esce nella lingua del cliente e non solo in italiano.
+let _loc = 'it-IT'   // tag Intl per numeri/date
+let _lang = 'it'     // codice 2-lettere
+let _tr = (k) => k   // traduttore stringhe canoniche IT
+function setReportLocale(locale) {
+  _lang = normLocale(locale)
+  _loc = localeTag(locale)
+  _tr = reportT(locale)
+}
+
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
-const money = (n) => `€${num(n).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-const money2 = (n) => (n == null ? '—' : `€${num(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-const intf = (n) => num(n).toLocaleString('it-IT')
+const money = (n) => `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+const money2 = (n) => (n == null ? '—' : `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+const intf = (n) => num(n).toLocaleString(_loc)
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 function accountIds() {
@@ -211,12 +224,12 @@ function barChart(daily, key = 'revenue', color = '#2997ff') {
 }
 
 function kpiCard(label, value, prev, opts = {}) {
-  return `<div class="kpi"><div class="kpi-l">${esc(label)}</div><div class="kpi-v">${value}</div><div class="kpi-d">${prev !== undefined ? deltaTag(opts.cur, opts.prev, opts) : ''}<span class="kpi-prev">${prev !== undefined ? `prec. ${prev}` : ''}</span></div></div>`
+  return `<div class="kpi"><div class="kpi-l">${esc(_tr(label))}</div><div class="kpi-v">${value}</div><div class="kpi-d">${prev !== undefined ? deltaTag(opts.cur, opts.prev, opts) : ''}<span class="kpi-prev">${prev !== undefined ? `${_tr('prec.')} ${prev}` : ''}</span></div></div>`
 }
 
 function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts, inventoryRows, productRows }) {
   const isGoogle = /google/i.test(tab)
-  const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+  const today = new Date().toLocaleDateString(_loc, { day: '2-digit', month: 'long', year: 'numeric' })
   const kpiHtml = kpis.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')
 
   let hierarchyHtml = ''
@@ -241,11 +254,11 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
       return `
         <div class="adset">
           <div class="adset-h"><b>${esc(as.name)}</b><span>${money2(as.spend)} · ROAS ${as.roas.toFixed(2)}x · CTR ${as.ctr.toFixed(2)}% · ${intf(as.purchases)} acquisti</span></div>
-          ${adsHtml || '<div class="muted">Nessuna creativa attiva.</div>'}
+          ${adsHtml || `<div class="muted">${_tr('Nessuna creativa attiva.')}</div>`}
         </div>`
     }).join('')
     hierarchyHtml = `
-      <h2>Gerarchia campagna: ${esc(c.name)}</h2>
+      <h2>${_tr('Gerarchia campagna')}: ${esc(c.name)}</h2>
       <div class="camp-kpis">
         <span>Spesa <b>${money2(c.spend)}</b></span>
         <span>Revenue <b>${money2(c.revenue)}</b></span>
@@ -259,41 +272,41 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
   }
 
   const campTable = topCampaigns ? (isGoogle ? `
-    <h2>Campagne attive</h2>
-    <table><thead><tr><th>Campagna</th><th>Stato</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>Conv.</th><th>Valore conv.</th></tr></thead><tbody>
+    <h2>${_tr('Campagne attive')}</h2>
+    <table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Stato')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>${_tr('Conversioni')}</th><th>${_tr('Valore conv.')}</th></tr></thead><tbody>
     ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.status || '')}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
     </tbody></table>` : `
-    <h2>Campagne attive</h2>
-    <table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>Acquisti</th></tr></thead><tbody>
+    <h2>${_tr('Campagne attive')}</h2>
+    <table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>${_tr('Acquisti')}</th></tr></thead><tbody>
     ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${c.roas.toFixed(2)}x</td><td>${c.ctr.toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
     </tbody></table>`) : ''
 
-  const RISK_LABEL = { le7: 'Stockout < 7gg', le30: 'A rischio < 30gg', oos_sales: 'Broken size', oos: 'Esaurito' }
+  const RISK_LABEL = { le7: _tr('Stockout < 7gg'), le30: _tr('A rischio < 30gg'), oos_sales: _tr('Broken size'), oos: _tr('Esaurito') }
   const inventoryHtml = (Array.isArray(inventoryRows) && inventoryRows.length) ? `
-    <h2>Prodotti a rischio stockout</h2>
-    <table><thead><tr><th>Prodotto</th><th>Taglia/SKU</th><th>Stock</th><th>Vendite/g</th><th>Giorni a stockout</th><th>Rischio</th><th>Perse/sett.</th></tr></thead><tbody>
+    <h2>${_tr('Prodotti a rischio stockout')}</h2>
+    <table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Taglia/SKU')}</th><th>${_tr('Stock')}</th><th>${_tr('Vendite/g')}</th><th>${_tr('Giorni a stockout')}</th><th>${_tr('Rischio')}</th><th>${_tr('Perse/sett.')}</th></tr></thead><tbody>
     ${inventoryRows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td><td>${money2(num(i.lostRevPerDay) * 7)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const productPerfHtml = (Array.isArray(productRows) && productRows.length) ? `
-    <h2>Performance per prodotto</h2>
-    <table><thead><tr><th>Prodotto</th><th>Unità</th><th>Fatturato netto</th><th>COGS</th><th>ADS</th><th>Margine op.</th><th>Margine %</th><th>ROAS</th><th>Δ</th></tr></thead><tbody>
+    <h2>${_tr('Performance per prodotto')}</h2>
+    <table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Unità')}</th><th>${_tr('Fatturato netto')}</th><th>COGS</th><th>ADS</th><th>${_tr('Margine op.')}</th><th>${_tr('Margine op.')} %</th><th>ROAS</th><th>Δ</th></tr></thead><tbody>
     ${productRows.map(p => `<tr><td>${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td><td>${p.deltaNet != null ? `${p.deltaNet > 0 ? '+' : ''}${num(p.deltaNet).toFixed(1)}%` : '—'}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const productsHtml = (Array.isArray(topProducts) && topProducts.length) ? `
-    <h2>Prodotti più venduti</h2>
-    <table><thead><tr><th>Prodotto</th><th>Fatturato</th><th>Ordini</th><th>Quantità</th></tr></thead><tbody>
+    <h2>${_tr('Prodotti più venduti')}</h2>
+    <table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Quantità')}</th></tr></thead><tbody>
     ${topProducts.slice(0, 10).map(p => `<tr><td>${esc(p.label || p.title || p.product || '—')}</td><td>${money2(p.revenue ?? p.value)}</td><td>${intf(p.orders)}</td><td>${intf(p.quantity)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const countriesHtml = shop?.countries?.length ? `
-    <h2>Paesi · ordini e fatturato</h2>
-    <table><thead><tr><th>Paese</th><th>Fatturato</th><th>Ordini</th><th>Nuovi</th><th>Ritorno</th></tr></thead><tbody>
+    <h2>${_tr('Paesi · ordini e fatturato')}</h2>
+    <table><thead><tr><th>${_tr('Paese')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Nuovi')}</th><th>${_tr('Ritorno')}</th></tr></thead><tbody>
     ${shop.countries.map(c => `<tr><td>${esc(c.country)}</td><td>${money2(c.revenue)}</td><td>${intf(c.orders)}</td><td>${intf(c.ncOrders)}</td><td>${intf(c.rcOrders)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
-  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
+  return `<!doctype html><html lang="${_lang}"><head><meta charset="utf-8"><style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; margin: 0; padding: 0; }
     .page { padding: 36px 40px; }
@@ -331,19 +344,19 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
   </style></head><body><div class="page">
     <div class="head">
       <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · Report ${esc(tab)}</div></div>
-      <div class="period"><span>Periodo</span><b>${esc(label)}</b><span>${range.since} → ${range.until} · vs ${range.prevSince} → ${range.prevUntil}</span><br><span>Generato il ${today}</span></div>
+      <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until} · vs ${range.prevSince} → ${range.prevUntil}</span><br><span>${_tr('Generato il')} ${today}</span></div>
     </div>
 
     ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}
 
-    <h2>KPI del periodo</h2>
+    <h2>${_tr('KPI del periodo')}</h2>
     <div class="kpis">${kpiHtml}</div>
 
-    ${daily?.length ? `<h2>${isGoogle ? 'Andamento valore conversioni (giornaliero)' : 'Andamento revenue (giornaliero)'}</h2><div class="chart">${barChart(daily, 'revenue')}</div>` : ''}
+    ${daily?.length ? `<h2>${isGoogle ? _tr('Andamento valore conversioni (giornaliero)') : _tr('Andamento revenue (giornaliero)')}</h2><div class="chart">${barChart(daily, 'revenue')}</div>` : ''}
 
     ${(narrative?.insights?.length || narrative?.todos?.length) ? `<div class="cols">
-      <div><h2>Insight</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
-      <div><h2>To-do</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+      <div><h2>${_tr('Insight')}</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
+      <div><h2>${_tr('To-do')}</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
     </div>` : ''}
 
     ${hierarchyHtml}
@@ -353,89 +366,89 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     ${productsHtml}
     ${countriesHtml}
 
-    <div class="foot">LyftAI · report generato automaticamente · i dati riflettono il periodo selezionato</div>
+    <div class="foot">LyftAI · ${_tr('report generato automaticamente · i dati riflettono il periodo selezionato')}</div>
   </div></body></html>`
 }
 
 // ── Report COMPLETO: una pagina con tutte le sezioni del periodo ──
 function buildFullHtml({ label, range, narrative, S }) {
-  const today = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+  const today = new Date().toLocaleDateString(_loc, { day: '2-digit', month: 'long', year: 'numeric' })
   const grid = (arr) => `<div class="kpis">${arr.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')}</div>`
-  const RISK_LABEL = { le7: 'Stockout < 7gg', le30: 'A rischio < 30gg', oos_sales: 'Broken size', oos: 'Esaurito' }
+  const RISK_LABEL = { le7: _tr('Stockout < 7gg'), le30: _tr('A rischio < 30gg'), oos_sales: _tr('Broken size'), oos: _tr('Esaurito') }
 
   // KPI Brain (Shopify + Meta + Google)
   const kb = S.kpiBrain
   const kbSection = kb ? `
-    <h2>📊 KPI Brain — panoramica</h2>
+    <h2>${_tr('📊 KPI Brain — panoramica')}</h2>
     ${grid(kb.kpis)}
     ${kb.daily?.length ? `<div class="chart">${barChart(kb.daily, 'revenue')}</div>` : ''}` : ''
 
   // Problemi & soluzioni (Lighthouse Meta + Google)
   const alerts = [...(S.lighthouse?.meta || []), ...(S.lighthouse?.google || [])]
   const problemsSection = alerts.length ? `
-    <h2>🚨 Problemi rilevati e soluzioni</h2>
+    <h2>${_tr('🚨 Problemi rilevati e soluzioni')}</h2>
     ${alerts.slice(0, 12).map(a => `
       <div class="alert">
         <div class="alert-h"><span class="sev ${esc(a.severity || 'medium')}">${esc((a.severity || 'media').toUpperCase())}</span> <b>${esc(a.title || a.metric || 'Anomalia')}</b></div>
-        ${a.why ? `<div class="alert-r"><span>Perché</span> ${esc(a.why)}</div>` : ''}
-        ${a.action || (a.proposals && a.proposals[0]) ? `<div class="alert-r"><span>Soluzione</span> ${esc(a.action || a.proposals[0])}</div>` : ''}
+        ${a.why ? `<div class="alert-r"><span>${_tr('Perché')}</span> ${esc(a.why)}</div>` : ''}
+        ${a.action || (a.proposals && a.proposals[0]) ? `<div class="alert-r"><span>${_tr('Soluzione')}</span> ${esc(a.action || a.proposals[0])}</div>` : ''}
       </div>`).join('')}` : ''
 
   // Meta KPI
   const mk = S.metaKpi
-  const metaKpiSection = mk ? `<h2>🔵 Meta KPI</h2>${grid(mk.kpis)}` : ''
+  const metaKpiSection = mk ? `<h2>${_tr('🔵 Meta KPI')}</h2>${grid(mk.kpis)}` : ''
 
   // Meta Detail (campagne + insight + todo)
   const md = S.metaDetail
   const metaDetailSection = md ? `
-    <h2>🔵 Meta Detail — campagne</h2>
-    ${md.topCampaigns?.length ? `<table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>Acquisti</th></tr></thead><tbody>
+    <h2>${_tr('🔵 Meta Detail — campagne')}</h2>
+    ${md.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>${_tr('Acquisti')}</th></tr></thead><tbody>
       ${md.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
       </tbody></table>` : ''}
     ${(md.insight || md.todos?.length) ? `<div class="cols">
-      ${md.insight ? `<div><h3>Insight</h3><p class="muted">${esc(md.insight)}</p></div>` : ''}
-      ${md.todos?.length ? `<div><h3>To-do proattivi</h3><ul>${md.todos.map(x => `<li>${esc(typeof x === 'string' ? x : (x.text || x.label || ''))}</li>`).join('')}</ul></div>` : ''}
+      ${md.insight ? `<div><h3>${_tr('Insight')}</h3><p class="muted">${esc(md.insight)}</p></div>` : ''}
+      ${md.todos?.length ? `<div><h3>${_tr('To-do proattivi')}</h3><ul>${md.todos.map(x => `<li>${esc(typeof x === 'string' ? x : (x.text || x.label || ''))}</li>`).join('')}</ul></div>` : ''}
     </div>` : ''}` : ''
 
   // Google KPI
   const gk = S.googleKpi
-  const googleKpiSection = gk ? `<h2>🟡 Google KPI</h2>${grid(gk.kpis)}` : ''
+  const googleKpiSection = gk ? `<h2>${_tr('🟡 Google KPI')}</h2>${grid(gk.kpis)}` : ''
 
   // Google Detail (campagne + andamento)
   const gd = S.googleDetail
   const googleDetailSection = gd ? `
-    <h2>🟡 Google Detail — campagne</h2>
+    <h2>${_tr('🟡 Google Detail — campagne')}</h2>
     ${gd.daily?.length ? `<div class="chart">${barChart(gd.daily, 'revenue', '#eab308')}</div>` : ''}
-    ${gd.topCampaigns?.length ? `<table><thead><tr><th>Campagna</th><th>Spesa</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>Conv.</th><th>Valore conv.</th></tr></thead><tbody>
+    ${gd.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>${_tr('Conversioni')}</th><th>${_tr('Valore conv.')}</th></tr></thead><tbody>
       ${gd.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Performance Prodotti (con foto)
   const pp = S.productPerf
   const ppSection = pp ? `
-    <h2>📦 Performance prodotti</h2>
+    <h2>${_tr('📦 Performance prodotti')}</h2>
     ${grid(pp.kpis)}
-    ${pp.rows?.length ? `<table><thead><tr><th>Prodotto</th><th>Unità</th><th>Netto</th><th>COGS</th><th>ADS</th><th>Margine op.</th><th>%</th><th>ROAS</th></tr></thead><tbody>
+    ${pp.rows?.length ? `<table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Unità')}</th><th>${_tr('Netto')}</th><th>COGS</th><th>ADS</th><th>${_tr('Margine op.')}</th><th>%</th><th>ROAS</th></tr></thead><tbody>
       ${pp.rows.map(p => `<tr><td>${p.image ? `<img class="prodimg" src="${esc(p.image)}"/>` : ''}${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Inventario
   const inv = S.inventory
   const invSection = inv ? `
-    <h2>🏷️ Inventario</h2>
+    <h2>${_tr('🏷️ Inventario')}</h2>
     ${grid(inv.kpis)}
-    ${inv.rows?.length ? `<h3>Prodotti a rischio stockout</h3><table><thead><tr><th>Prodotto</th><th>Taglia/SKU</th><th>Stock</th><th>Vendite/g</th><th>Giorni a stockout</th><th>Rischio</th></tr></thead><tbody>
+    ${inv.rows?.length ? `<h3>${_tr('Prodotti a rischio stockout')}</h3><table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Taglia/SKU')}</th><th>${_tr('Stock')}</th><th>${_tr('Vendite/g')}</th><th>${_tr('Giorni a stockout')}</th><th>${_tr('Rischio')}</th></tr></thead><tbody>
       ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Klaviyo
   const kl = S.klaviyo
   const klSection = kl ? `
-    <h2>✉️ Klaviyo — email marketing</h2>
+    <h2>${_tr('✉️ Klaviyo — email marketing')}</h2>
     ${grid(kl.kpis)}
-    ${kl.flows?.length ? `<h3>Flow attivi</h3><table><thead><tr><th>Flow</th><th>Stato</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''}` : ''
+    ${kl.flows?.length ? `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Stato')}</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''}` : ''
 
-  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
+  return `<!doctype html><html lang="${_lang}"><head><meta charset="utf-8"><style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111; margin: 0; padding: 0; }
     .page { padding: 36px 40px; }
@@ -471,13 +484,13 @@ function buildFullHtml({ label, range, narrative, S }) {
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
   </style></head><body><div class="page">
     <div class="head">
-      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · Report completo</div></div>
-      <div class="period"><span>Periodo</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>Generato il ${today}</span></div>
+      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · ${_tr('Report completo')}</div></div>
+      <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>${_tr('Generato il')} ${today}</span></div>
     </div>
     ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}
     ${(narrative?.insights?.length || narrative?.todos?.length) ? `<div class="cols">
-      <div><h2>Insight</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
-      <div><h2>Azioni consigliate</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+      <div><h2>${_tr('Insight')}</h2><ul>${(narrative?.insights || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>
+      <div><h2>${_tr('Azioni consigliate')}</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
     </div>` : ''}
     ${kbSection}
     ${problemsSection}
@@ -488,7 +501,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${ppSection}
     ${invSection}
     ${klSection}
-    <div class="foot">LyftAI · report completo generato automaticamente · dati del periodo selezionato</div>
+    <div class="foot">LyftAI · ${_tr('report completo generato automaticamente · dati del periodo selezionato')}</div>
   </div></body></html>`
 }
 
@@ -522,6 +535,7 @@ async function googleDetail(origin, since, until, cookie) {
 export async function GET(req) {
   return withTenantContext(req, async () => {
   const { searchParams, origin } = new URL(req.url)
+  setReportLocale(searchParams.get('locale')) // lingua del cliente per TUTTO il PDF
   const cookie = req.headers.get('cookie') || '' // inoltra la sessione alle fetch interne (cache hit + tenant corretto)
   const tab = searchParams.get('tab') || 'Report'
   const label = searchParams.get('label') || 'Periodo'

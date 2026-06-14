@@ -296,7 +296,7 @@ async function seoDownloadPdf(type, data, setBusy) {
   if (!data) return
   setBusy?.(true)
   try {
-    const r = await fetch('/api/seo-audit/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, data }) })
+    const r = await fetch('/api/seo-audit/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, data, locale: getClientLocale() }) })
     const ct = r.headers.get('content-type') || ''
     const blob = await r.blob(); const u = URL.createObjectURL(blob)
     if (ct.includes('pdf')) { const a = document.createElement('a'); a.href = u; a.download = `SEO_${type || 'audit'}.pdf`; document.body.appendChild(a); a.click(); a.remove() }

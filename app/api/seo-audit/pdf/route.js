@@ -3,6 +3,12 @@ export const maxDuration = 45
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
+import { reportT, localeTag } from '../../../../lib/reportI18n'
+
+// Lingua del cliente: il PDF SEO esce nella sua lingua, non solo in italiano.
+let _loc = 'it-IT'
+let _tr = (k) => k
+function setLocale(locale) { _loc = localeTag(locale); _tr = reportT(locale) }
 
 const COL = { pass: '#1a8f3c', warn: '#b8770a', fail: '#c8102e' }
 const ICON = { pass: '✓', warn: '!', fail: '×' }
@@ -17,7 +23,7 @@ function buildHtml(r) {
       <div>
         <div class="brand">LyftAI · SEO Audit</div>
         <div class="url">${esc(r.url)}</div>
-        <div class="date">${new Date(r.updatedAt || Date.now()).toLocaleString('it-IT')}${isSite ? ` · ${r.pagesAnalyzed} pagine` : ''}</div>
+        <div class="date">${new Date(r.updatedAt || Date.now()).toLocaleString(_loc)}${isSite ? ` · ${r.pagesAnalyzed} ${_tr('pagine')}` : ''}</div>
       </div>
       <div class="score" style="color:${scoreCol(score)};border-color:${scoreCol(score)}">
         <div class="num">${score}</div><div class="lbl">${esc(r.scoreLabel || '')}</div>
@@ -25,34 +31,34 @@ function buildHtml(r) {
     </div>`
 
   const recs = (r.recommendations || []).length ? `
-    <h2>Azioni consigliate</h2>
+    <h2>${_tr('Azioni consigliate')}</h2>
     ${r.recommendations.map(x => `<div class="rec"><span class="prio prio-${esc(x.priority)}">${esc(x.priority)}</span><b>${esc(x.title)}</b> — ${esc(x.action)}</div>`).join('')}` : ''
 
   if (isSite) {
-    const issues = (r.commonIssues || []).map(i => `<tr><td>${esc(i.label)}</td><td style="text-align:right">${i.affected}/${r.pagesAnalyzed} pagine</td></tr>`).join('')
+    const issues = (r.commonIssues || []).map(i => `<tr><td>${esc(i.label)}</td><td style="text-align:right">${i.affected}/${r.pagesAnalyzed} ${_tr('pagine')}</td></tr>`).join('')
     const pages = (r.pages || []).map(p => `<tr><td style="color:${scoreCol(p.score)};font-weight:700">${p.score}</td><td>${esc(p.url)}</td><td class="sm">${esc((p.issues || []).slice(0, 4).join(' · '))}</td></tr>`).join('')
     return wrap(`${head}${recs}
-      <h2>Problemi ricorrenti</h2><table>${issues}</table>
-      <h2>Pagine analizzate (peggiori in alto)</h2><table><tr class="th"><td>Score</td><td>URL</td><td>Problemi</td></tr>${pages}</table>`)
+      <h2>${_tr('Problemi ricorrenti')}</h2><table>${issues}</table>
+      <h2>${_tr('Pagine analizzate (peggiori in alto)')}</h2><table><tr class="th"><td>Score</td><td>URL</td><td>${_tr('Problemi')}</td></tr>${pages}</table>`)
   }
 
-  const groups = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
-  const checks = groups.map(g => {
+  const GROUP_KEYS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
+  const checks = GROUP_KEYS.map(g => {
     const items = (r.checks || []).filter(c => c.group === g)
     if (!items.length) return ''
-    return `<h3>${g}</h3>${items.map(c => `<div class="ck"><span class="ic" style="background:${COL[c.status]}22;color:${COL[c.status]}">${ICON[c.status]}</span><b>${esc(c.label)}</b> <span class="dt">${esc(c.detail)}</span></div>`).join('')}`
+    return `<h3>${_tr(g)}</h3>${items.map(c => `<div class="ck"><span class="ic" style="background:${COL[c.status]}22;color:${COL[c.status]}">${ICON[c.status]}</span><b>${esc(c.label)}</b> <span class="dt">${esc(c.detail)}</span></div>`).join('')}`
   }).join('')
 
   const kw = r.keywords
   const chips = (list) => (list || []).map(k => `<span class="chip">${esc(k.term)} <i>${k.count}× · ${k.density}%</i></span>`).join('')
-  const kwBlock = kw ? `<h2>Analisi keyword</h2>
-    ${kw.target ? `<div class="tgt">Target <b>"${esc(kw.target.keyword)}"</b>: ${kw.target.count} occorrenze · densità ${kw.target.density}%</div>` : ''}
-    <div class="lbl2">Parole più frequenti</div><div>${chips(kw.unigrams)}</div>
-    <div class="lbl2">Frasi (2 parole)</div><div>${chips(kw.bigrams)}</div>` : ''
+  const kwBlock = kw ? `<h2>${_tr('Analisi keyword')}</h2>
+    ${kw.target ? `<div class="tgt">Target <b>"${esc(kw.target.keyword)}"</b>: ${kw.target.count} ${_tr('occorrenze · densità')} ${kw.target.density}%</div>` : ''}
+    <div class="lbl2">${_tr('Parole più frequenti')}</div><div>${chips(kw.unigrams)}</div>
+    <div class="lbl2">${_tr('Frasi (2 parole)')}</div><div>${chips(kw.bigrams)}</div>` : ''
 
   return wrap(`${head}
-    <div class="sum"><span style="color:${COL.pass}">${r.summary.pass} ok</span> · <span style="color:${COL.warn}">${r.summary.warn} da migliorare</span> · <span style="color:${COL.fail}">${r.summary.fail} critici</span></div>
-    ${recs}${kwBlock}<h2>Dettaglio controlli</h2>${checks}`)
+    <div class="sum"><span style="color:${COL.pass}">${r.summary.pass} ${_tr('ok')}</span> · <span style="color:${COL.warn}">${r.summary.warn} ${_tr('da migliorare')}</span> · <span style="color:${COL.fail}">${r.summary.fail} ${_tr('critici')}</span></div>
+    ${recs}${kwBlock}<h2>${_tr('Dettaglio controlli')}</h2>${checks}`)
 }
 
 function wrap(inner) {
@@ -70,64 +76,64 @@ function wrap(inner) {
     table{width:100%;border-collapse:collapse;margin-top:6px} td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;word-break:break-word} .th td{font-weight:700;color:#666;font-size:11px} .sm{color:#999;font-size:11px}
     .chip{display:inline-block;background:#f3f4f6;border-radius:7px;padding:3px 9px;margin:3px 4px 3px 0;font-size:11px} .chip i{color:#999;font-style:normal}
     .lbl2{color:#888;font-size:11px;margin:12px 0 4px} .tgt{background:#eef4ff;border-radius:8px;padding:8px 12px;margin-bottom:8px}
-  </style></head><body>${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">Generato da LyftAI · SEO Audit</div></body></html>`
+  </style></head><body>${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">${_tr('Generato da LyftAI · SEO Audit')}</div></body></html>`
 }
 
 function genHead(title, sub) {
-  return `<div class="hd"><div><div class="brand">LyftAI · SEO</div><div class="url">${esc(title)}</div><div class="date">${esc(sub || '')}${sub ? ' · ' : ''}${new Date().toLocaleString('it-IT')}</div></div></div>`
+  return `<div class="hd"><div><div class="brand">LyftAI · SEO</div><div class="url">${esc(title)}</div><div class="date">${esc(sub || '')}${sub ? ' · ' : ''}${new Date().toLocaleString(_loc)}</div></div></div>`
 }
 const chip = (t) => `<span class="chip">${esc(t)}</span>`
 
 function kwHtml(d) {
-  return wrap(`${genHead('Keyword: ' + (d.keyword || ''), 'Analisi keyword AI')}
+  return wrap(`${genHead('Keyword: ' + (d.keyword || ''), _tr('Analisi keyword AI'))}
     <table>
-      <tr><td>Intent</td><td>${esc(d.intent)} — ${esc(d.intentNote || '')}</td></tr>
-      <tr><td>Difficoltà</td><td>${esc(d.difficulty?.level)} — ${esc(d.difficulty?.note || '')}</td></tr>
-      <tr><td>AI Overview</td><td>${d.aiOverview?.likely ? 'Probabile' : 'Improbabile'} — ${esc(d.aiOverview?.note || '')}</td></tr>
-      ${d.volumeHint ? `<tr><td>Volume</td><td>${esc(d.volumeHint)}</td></tr>` : ''}
+      <tr><td>${_tr('Intent')}</td><td>${esc(d.intent)} — ${esc(d.intentNote || '')}</td></tr>
+      <tr><td>${_tr('Difficoltà')}</td><td>${esc(d.difficulty?.level)} — ${esc(d.difficulty?.note || '')}</td></tr>
+      <tr><td>AI Overview</td><td>${d.aiOverview?.likely ? _tr('Probabile') : _tr('Improbabile')} — ${esc(d.aiOverview?.note || '')}</td></tr>
+      ${d.volumeHint ? `<tr><td>${_tr('Volume')}</td><td>${esc(d.volumeHint)}</td></tr>` : ''}
     </table>
     ${d.summary ? `<p>${esc(d.summary)}</p>` : ''}
-    <h2>Keyword correlate</h2><div>${(d.related || []).map(r => chip(r.term)).join('')}</div>
-    <h2>Domande (PAA)</h2>${(d.questions || []).map(q => `<div>• ${esc(q)}</div>`).join('')}
-    <h2>Idee di contenuto</h2>${(d.contentIdeas || []).map(c => `<div><b>${esc(c.title)}</b> — ${esc(c.angle || '')}</div>`).join('')}`)
+    <h2>${_tr('Keyword correlate')}</h2><div>${(d.related || []).map(r => chip(r.term)).join('')}</div>
+    <h2>${_tr('Domande (PAA)')}</h2>${(d.questions || []).map(q => `<div>• ${esc(q)}</div>`).join('')}
+    <h2>${_tr('Idee di contenuto')}</h2>${(d.contentIdeas || []).map(c => `<div><b>${esc(c.title)}</b> — ${esc(c.angle || '')}</div>`).join('')}`)
 }
 function editorHtml(d) {
-  return wrap(`${genHead('Brief: ' + (d.keyword || ''), 'Editor contenuti')}
-    <table><tr><td>Intent</td><td>${esc(d.searchIntent)}</td></tr><tr><td>Lunghezza</td><td>${d.recommendedWords || '—'} parole</td></tr></table>
-    ${d.title ? `<h2>Title & Meta</h2><div><b>Title:</b> ${esc(d.title)}</div><div><b>Meta:</b> ${esc(d.metaDescription || '')}</div>` : ''}
-    <h2>Struttura heading</h2>${(d.headings || []).map(h => `<div style="padding-left:${h.tag === 'H3' ? 18 : 0}px"><small>${esc(h.tag)}</small> ${esc(h.text)}</div>`).join('')}
-    <h2>Entità da coprire</h2><div>${(d.entities || []).map(chip).join('')}</div>
+  return wrap(`${genHead('Brief: ' + (d.keyword || ''), _tr('Editor contenuti'))}
+    <table><tr><td>${_tr('Intent')}</td><td>${esc(d.searchIntent)}</td></tr><tr><td>${_tr('Lunghezza')}</td><td>${d.recommendedWords || '—'} ${_tr('parole')}</td></tr></table>
+    ${d.title ? `<h2>${_tr('Title & Meta')}</h2><div><b>Title:</b> ${esc(d.title)}</div><div><b>Meta:</b> ${esc(d.metaDescription || '')}</div>` : ''}
+    <h2>${_tr('Struttura heading')}</h2>${(d.headings || []).map(h => `<div style="padding-left:${h.tag === 'H3' ? 18 : 0}px"><small>${esc(h.tag)}</small> ${esc(h.text)}</div>`).join('')}
+    <h2>${_tr('Entità da coprire')}</h2><div>${(d.entities || []).map(chip).join('')}</div>
     ${(d.faq || []).length ? `<h2>FAQ</h2>${d.faq.map(f => `<div style="padding:4px 0"><b>${esc(f.q)}</b><br>${esc(f.a)}</div>`).join('')}` : ''}
     ${d.schema ? `<h2>Schema</h2><div>${esc(d.schema)}</div>` : ''}
-    ${(d.gaps || []).length ? `<h2>Gap / opportunità</h2>${d.gaps.map(g => `<div>• ${esc(g)}</div>`).join('')}` : ''}`)
+    ${(d.gaps || []).length ? `<h2>${_tr('Gap / opportunità')}</h2>${d.gaps.map(g => `<div>• ${esc(g)}</div>`).join('')}` : ''}`)
 }
 function compHtml(d) {
   const rows = d.rows || []
   const host = u => { try { return new URL(u).hostname.replace(/^www\./, '') } catch { return u } }
   const cols = rows.map(r => `<td><b>${esc(host(r.url))}${r.error ? ' (err)' : ''}</b></td>`).join('')
   const m = [
-    ['Score', r => r.score], ['Title (lung.)', r => r.titleLen], ['Meta (lung.)', r => r.descLen], ['Parole', r => r.words],
+    ['Score', r => r.score], [_tr('Title (lung.)'), r => r.titleLen], [_tr('Meta (lung.)'), r => r.descLen], [_tr('Parole'), r => r.words],
     ['JSON-LD', r => r.jsonld ? '✓' : '×'], ['Hreflang', r => r.hreflang ? '✓' : '×'], ['OG image', r => r.og ? '✓' : '×'],
-    ['Alt %', r => r.altCoverage == null ? '—' : r.altCoverage + '%'], ['Velocità', r => r.speedMs == null ? '—' : (r.speedMs / 1000).toFixed(1) + 's'], ['HTTPS', r => r.https ? '✓' : '×'],
+    ['Alt %', r => r.altCoverage == null ? '—' : r.altCoverage + '%'], [_tr('Velocità'), r => r.speedMs == null ? '—' : (r.speedMs / 1000).toFixed(1) + 's'], ['HTTPS', r => r.https ? '✓' : '×'],
   ]
   const tb = m.map(([l, fn]) => `<tr><td>${l}</td>${rows.map(r => `<td>${r.error ? '—' : esc(String(fn(r)))}</td>`).join('')}</tr>`).join('')
-  return wrap(`${genHead('Confronto competitor on-page', '')}<table><tr class="th"><td></td>${cols}</tr>${tb}</table>`)
+  return wrap(`${genHead(_tr('Confronto competitor on-page'), '')}<table><tr class="th"><td></td>${cols}</tr>${tb}</table>`)
 }
 function aeoHtml(d) {
   return wrap(`${genHead('AI Visibility — ' + (d.brand || ''), 'Answer Engine Optimization')}
     <div class="score" style="color:${scoreCol(d.visibilityScore)};border-color:${scoreCol(d.visibilityScore)};display:inline-block"><div class="num">${d.visibilityScore}</div><div class="lbl">Visibility</div></div>
     ${d.summary ? `<p style="margin-top:12px">${esc(d.summary)}</p>` : ''}
-    <h2>Risultati per prompt</h2>
-    ${(d.results || []).map(r => `<div class="rec"><b style="color:${r.mentioned ? '#1a8f3c' : '#c8102e'}">${r.mentioned ? '✓ Citato' : '× Non citato'}</b> — ${esc(r.prompt)}<br><small>${esc(r.why || '')}</small>${r.howToImprove ? `<br><small>→ ${esc(r.howToImprove)}</small>` : ''}</div>`).join('')}`)
+    <h2>${_tr('Risultati per prompt')}</h2>
+    ${(d.results || []).map(r => `<div class="rec"><b style="color:${r.mentioned ? '#1a8f3c' : '#c8102e'}">${r.mentioned ? '✓ ' + _tr('Citato') : '× ' + _tr('Non citato')}</b> — ${esc(r.prompt)}<br><small>${esc(r.why || '')}</small>${r.howToImprove ? `<br><small>→ ${esc(r.howToImprove)}</small>` : ''}</div>`).join('')}`)
 }
 function gscHtml(d) {
   const q = (d.queries || []).slice(0, 40).map(x => `<tr><td>${esc(x.key)}</td><td>${x.clicks}</td><td>${x.impressions}</td><td>${(x.ctr * 100).toFixed(1)}%</td><td>${x.position.toFixed(1)}</td></tr>`).join('')
   const opp = (d.opportunities?.nearFirstPage || []).map(x => `<tr><td>${esc(x.key)}</td><td>${x.position.toFixed(1)}</td><td>${x.impressions}</td></tr>`).join('')
   const t = d.totals || {}
-  return wrap(`${genHead('Search Console — ' + (d.site || ''), `Periodo ${d.range?.startDate || ''} → ${d.range?.endDate || ''}`)}
-    <table><tr><td>Click</td><td>${t.clicks ?? '—'}</td></tr><tr><td>Impression</td><td>${t.impressions ?? '—'}</td></tr><tr><td>CTR medio</td><td>${((t.ctr || 0) * 100).toFixed(1)}%</td></tr><tr><td>Posizione media</td><td>${(t.position || 0).toFixed(1)}</td></tr></table>
-    ${opp ? `<h2>Opportunità — quasi prima pagina (pos 11–20)</h2><table><tr class="th"><td>Query</td><td>Pos</td><td>Impr</td></tr>${opp}</table>` : ''}
-    <h2>Top query</h2><table><tr class="th"><td>Query</td><td>Click</td><td>Impr</td><td>CTR</td><td>Pos</td></tr>${q}</table>`)
+  return wrap(`${genHead('Search Console — ' + (d.site || ''), `${_tr('Periodo')} ${d.range?.startDate || ''} → ${d.range?.endDate || ''}`)}
+    <table><tr><td>Click</td><td>${t.clicks ?? '—'}</td></tr><tr><td>Impression</td><td>${t.impressions ?? '—'}</td></tr><tr><td>${_tr('CTR medio')}</td><td>${((t.ctr || 0) * 100).toFixed(1)}%</td></tr><tr><td>${_tr('Posizione media')}</td><td>${(t.position || 0).toFixed(1)}</td></tr></table>
+    ${opp ? `<h2>${_tr('Opportunità — quasi prima pagina (pos 11–20)')}</h2><table><tr class="th"><td>${_tr('Query')}</td><td>Pos</td><td>Impr</td></tr>${opp}</table>` : ''}
+    <h2>${_tr('Top query')}</h2><table><tr class="th"><td>${_tr('Query')}</td><td>Click</td><td>Impr</td><td>CTR</td><td>Pos</td></tr>${q}</table>`)
 }
 
 function buildHtmlByType(type, data) {
@@ -160,6 +166,7 @@ async function renderPdf(html) {
 export async function POST(request) {
   let body = {}
   try { body = await request.json() } catch {}
+  setLocale(body.locale) // lingua del cliente per le etichette del PDF
   const type = body.type || null
   const data = body.data || body.result
   if (!data) return NextResponse.json({ error: 'dati mancanti' }, { status: 400 })

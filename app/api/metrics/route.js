@@ -138,6 +138,10 @@ function getPresetRange(preset = 'last_90d') {
     return { since: y, until: y, label: 'Ieri' }
   }
 
+  if (preset === 'today_yesterday') {
+    return { since: toDateString(addDays(today, -1)), until, label: 'Oggi e ieri' }
+  }
+
   // Shopify "Ultimi N giorni" = [oggi-N, oggi] (verificato sul report: last_7d
   // = 26/05 → 02/06, cioe' oggi-7 → oggi). Allineiamo tutti i preset relativi.
   if (preset === 'last_3d') {
@@ -162,6 +166,18 @@ function getPresetRange(preset = 'last_90d') {
 
   if (preset === 'last_90d') {
     return { since: toDateString(addDays(today, -90)), until, label: 'Ultimi 90 giorni' }
+  }
+
+  if (preset === 'this_week') {
+    const dow = (today.getDay() + 6) % 7 // lun=0
+    return { since: toDateString(addDays(today, -dow)), until, label: 'Questa settimana' }
+  }
+
+  if (preset === 'last_week') {
+    const dow = (today.getDay() + 6) % 7
+    const lwEnd = addDays(today, -dow - 1)   // domenica scorsa
+    const lwStart = addDays(lwEnd, -6)       // lunedì scorso
+    return { since: toDateString(lwStart), until: toDateString(lwEnd), label: 'Settimana scorsa' }
   }
 
   if (preset === 'current_month' || preset === 'mtd' || preset === 'this_month') {

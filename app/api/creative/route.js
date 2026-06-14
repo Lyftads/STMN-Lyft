@@ -139,6 +139,37 @@ function getRange(preset, sp = null) {
     }
   }
 
+  if (preset === 'today_yesterday') {
+    return { since: ymd(addDays(today, -1)), until: ymd(today) }
+  }
+
+  if (preset === 'last_28d') {
+    return { since: ymd(addDays(today, -28)), until: ymd(today) }
+  }
+
+  if (preset === 'last_30d') {
+    return { since: ymd(addDays(today, -30)), until: ymd(today) }
+  }
+
+  if (preset === 'last_90d') {
+    return { since: ymd(addDays(today, -90)), until: ymd(today) }
+  }
+
+  if (preset === 'this_week') {
+    const dow = (today.getDay() + 6) % 7 // lun=0
+    return { since: ymd(addDays(today, -dow)), until: ymd(today) }
+  }
+
+  if (preset === 'last_week') {
+    const dow = (today.getDay() + 6) % 7
+    const lwEnd = addDays(today, -dow - 1)
+    return { since: ymd(addDays(lwEnd, -6)), until: ymd(lwEnd) }
+  }
+
+  if (preset === 'ytd' || preset === 'this_year') {
+    return { since: `${ymd(today).slice(0, 4)}-01-01`, until: ymd(today) }
+  }
+
   if (preset === 'current_month' || preset === 'mtd' || preset === 'this_month') {
     const d = new Date(today)
     d.setDate(1)

@@ -81,6 +81,37 @@ function getRange(preset, searchParams) {
     return { since: addDays(today, -27), until: today }
   }
 
+  if (preset === 'today') {
+    return { since: today, until: today }
+  }
+
+  if (preset === 'today_yesterday') {
+    return { since: addDays(today, -1), until: today }
+  }
+
+  if (preset === 'last_30d') {
+    return { since: addDays(today, -30), until: today }
+  }
+
+  if (preset === 'last_90d') {
+    return { since: addDays(today, -90), until: today }
+  }
+
+  if (preset === 'this_week') {
+    const dow = (new Date(`${today}T00:00:00`).getDay() + 6) % 7 // lun=0
+    return { since: addDays(today, -dow), until: today }
+  }
+
+  if (preset === 'last_week') {
+    const dow = (new Date(`${today}T00:00:00`).getDay() + 6) % 7
+    const lwEnd = addDays(today, -dow - 1)
+    return { since: addDays(lwEnd, -6), until: lwEnd }
+  }
+
+  if (preset === 'ytd' || preset === 'this_year') {
+    return { since: `${today.slice(0, 4)}-01-01`, until: today }
+  }
+
   if (preset === 'this_month' || preset === 'current_month' || preset === 'mtd') {
     return { since: startOfMonth(today), until: today }
   }

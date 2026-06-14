@@ -397,12 +397,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:14}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{marginBottom:38}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
+        <div style={{margin:'18px 0 48px'}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:15,color:'#fff',fontWeight:900}}>Google Ads</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} />
+        <div style={{marginTop:18}}><GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
       </div>
 
 

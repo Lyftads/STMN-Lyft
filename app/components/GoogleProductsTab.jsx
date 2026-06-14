@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import { PlatformBadges } from './PlatformIcon'
 
 const isoDay = (d) => d.toISOString().slice(0, 10)
 
@@ -59,9 +60,13 @@ export default function GoogleProductsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('gp.title', null, 'Prodotti Google')}</h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text2)', fontSize: 13 }}>{t('gp.subtitle', null, 'Performance per singolo prodotto da Google Ads (Shopping / Performance Max): clic, costo, conversioni e ROAS reali per prodotto.')}{data && <> · {data.range.since} → {data.range.until}</>}</p>
+        <PlatformBadges sources={['google']} size={24} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          LIVE
+        </span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>

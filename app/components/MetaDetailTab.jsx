@@ -649,7 +649,10 @@ export default function MetaDetailTab() {
       const { data: json } = await swrFetch({
         key, forceRefresh: force,
         fetcher: async () => {
-          const res = await fetch(`/api/meta-detail?${queryString}`, { cache: 'no-store' })
+          // Con "Aggiorna" forziamo anche il bypass della cache SWR lato server
+          // (refresh=1): senza, ricevevamo lo snapshot vecchio fino a 30 min →
+          // lo stato campagna (attiva/in pausa) non si aggiornava.
+          const res = await fetch(`/api/meta-detail?${queryString}${force ? '&refresh=1' : ''}`, { cache: 'no-store' })
           const j = await res.json()
           if (!j.ok) throw new Error(j.error || t('meta.errMeta', null, 'Errore caricamento Meta'))
           return j
@@ -901,7 +904,7 @@ export default function MetaDetailTab() {
           </div>
 
           <button
-            onClick={fetchMain}
+            onClick={() => fetchMain(true)}
             disabled={loading}
             className="btn-glass"
             style={{

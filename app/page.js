@@ -1840,7 +1840,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
   return (
     <>
       {/* Timeframe selector */}
-      <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+      <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
         {[
           { id:'this_week', l:t('dash.thisWeek', null, 'Questa settimana') },
           { id:'last_week', l:t('dash.lastWeek', null, 'Settimana precedente') },
@@ -3141,7 +3141,7 @@ export default function App() {
         return (
         <>
           {/* Timeframe selector */}
-          <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
             <TimeframeSelector
               value={preset?.startsWith('month_') ? preset : `month_${baseMonth}`}
               onChange={setPreset}
@@ -3614,7 +3614,7 @@ export default function App() {
         return (
           <>
             {/* Timeframe selector */}
-            <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+            <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
               <TimeframeSelector
                 value={preset?.startsWith('quarter_') ? preset : `quarter_${q0}`}
                 onChange={setPreset}
@@ -4059,7 +4059,7 @@ export default function App() {
         return (
           <>
             {/* Timeframe selector */}
-            <div style={{...S.card, marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+            <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
               <TimeframeSelector
                 value={preset?.startsWith('year_') ? preset : `year_${y0}`}
                 onChange={setPreset}

@@ -222,8 +222,8 @@ export default function WebsiteScannerTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {/* Input URL + Scan button */}
-      <GlassCard padding={26}>
+      {/* Input URL + Scan button — senza riquadro */}
+      <div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 360px', minWidth: 280 }}>
             <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 8 }}>
@@ -332,7 +332,7 @@ export default function WebsiteScannerTab() {
             </div>
           </div>
         </div>
-      </GlassCard>
+      </div>
 
       {error && (
         <div style={{

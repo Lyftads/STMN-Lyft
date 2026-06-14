@@ -35,6 +35,44 @@ export default function LtvCohortsTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [months, setMonths] = useState(12)
+  // LTV netto: margine lordo (auto dai costi prodotto Shopify, override manuale)
+  // + spesa ads del periodo per il CAC e il ratio LTV:CAC.
+  const [margin, setMargin] = useState(60)   // % margine lordo
+  const [marginAuto, setMarginAuto] = useState(true)
+  const [enrich, setEnrich] = useState(null) // { adSpend, metaSpend, googleSpend, grossMargin, costCoverage }
+
+  // Enrichment: margine reale (product-performance) + spesa Meta/Google (kpi) sul
+  // periodo selezionato → CAC = spesa ads ÷ nuovi clienti acquisiti.
+  useEffect(() => {
+    let cancelled = false
+    const today = new Date()
+    const start = new Date(today.getFullYear(), today.getMonth() - (months - 1), 1)
+    const since = start.toISOString().slice(0, 10)
+    const until = today.toISOString().slice(0, 10)
+    const q = `preset=custom&since=${since}&until=${until}`
+    Promise.all([
+      fetch(`/api/product-performance?since=${since}&until=${until}`).then(r => r.json()).catch(() => null),
+      fetch(`/api/meta-kpi?${q}`).then(r => r.json()).catch(() => null),
+      fetch(`/api/google-kpi?${q}`).then(r => r.json()).catch(() => null),
+    ]).then(([pp, mk, gk]) => {
+      if (cancelled) return
+      const metaSpend = Number(mk?.totals?.spend || 0)
+      const googleSpend = Number(gk?.totals?.spend || 0)
+      setEnrich({
+        adSpend: metaSpend + googleSpend, metaSpend, googleSpend,
+        grossMargin: pp?.totals?.grossMargin ?? null,
+        costCoverage: pp?.totals?.costCoverage || 0,
+      })
+    })
+    return () => { cancelled = true }
+  }, [months])
+
+  // Margine di default in automatico dai costi prodotto reali (se coperti).
+  useEffect(() => {
+    if (!enrich || !marginAuto) return
+    const pct = (enrich.grossMargin != null && enrich.costCoverage > 0) ? Math.round(enrich.grossMargin * 100) : 60
+    setMargin(pct)
+  }, [enrich, marginAuto])
 
   const load = (force = false) => {
     let cancelled = false
@@ -69,6 +107,19 @@ export default function LtvCohortsTab() {
   const ltvChart = chrono.map(c => ({ name: c.label, ltv: c.ltv }))
   const repeatChart = chrono.map(c => ({ name: c.label, repeat: c.repeatRate }))
 
+  // ── LTV Lordo / Netto + CAC + Ratio LTV:CAC ──
+  const grossLtv = Number(s.avgLtv || 0)              // ricavo lifetime medio per cliente
+  const m = Math.max(0, Math.min(100, Number(margin) || 0)) / 100
+  const netLtv = grossLtv * m                          // × margine lordo
+  const newCustomers = Number(s.customers || 0)
+  const adSpend = Number(enrich?.adSpend || 0)
+  const cac = newCustomers > 0 && adSpend > 0 ? adSpend / newCustomers : null
+  const ratioGross = cac ? grossLtv / cac : null
+  const ratioNet = cac ? netLtv / cac : null
+  const marginReal = enrich && enrich.grossMargin != null && enrich.costCoverage > 0
+  const ratioColor = (r) => r == null ? 'var(--text)' : r >= 3 ? '#30d158' : r >= 1 ? '#ff9f0a' : '#ff453a'
+  const fmtX = (r) => r == null ? '—' : `${r.toFixed(2)}×`
+
   const Stat = ({ label, value, sub }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{label}</div>
@@ -101,10 +152,50 @@ export default function LtvCohortsTab() {
 
         {s.customers > 0 && (
           <>
-            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12, margin: '8px 0 20px' }}>
+            {/* Headline: LTV Lordo / Netto / CAC / Ratio LTV:CAC */}
+            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, margin: '8px 0 12px' }}>
+              <div className="glass-card" style={{ padding: '16px 18px' }}>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV Lordo</div>
+                <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur2(grossLtv)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>ricavo lifetime / cliente</div>
+              </div>
+              <div className="glass-card" style={{ padding: '16px 18px' }}>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV Netto</div>
+                <div className="metric-value-sm" style={{ color: '#30d158' }}>{eur2(netLtv)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>margine {Math.round(m * 100)}% {marginReal ? '· reale Shopify' : '· stima'}</div>
+              </div>
+              <div className="glass-card" style={{ padding: '16px 18px' }}>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>CAC</div>
+                <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{cac == null ? '—' : eur2(cac)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{adSpend > 0 ? `${eur(adSpend)} ads / ${nf(newCustomers)} clienti` : 'spesa ads non disponibile'}</div>
+              </div>
+              <div className="glass-card" style={{ padding: '16px 18px' }}>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV:CAC (netto)</div>
+                <div className="metric-value-sm" style={{ color: ratioColor(ratioNet) }}>{fmtX(ratioNet)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>lordo {fmtX(ratioGross)} · sano ≥ 3×</div>
+              </div>
+            </div>
+
+            {/* Controllo margine lordo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 18px', fontSize: 12.5, color: 'var(--text2)' }}>
+              <span style={{ fontWeight: 700 }}>Margine lordo</span>
+              <input type="number" min={0} max={100} value={margin}
+                onChange={e => { setMargin(e.target.value); setMarginAuto(false) }}
+                style={{ width: 78, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 9, padding: '7px 10px', fontSize: 13, fontWeight: 700, outline: 'none' }} />
+              <span style={{ color: 'var(--text3)' }}>%</span>
+              {!marginAuto && (
+                <button onClick={() => setMarginAuto(true)} className="btn-glass" style={{ padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Usa margine reale</button>
+              )}
+              <span style={{ color: 'var(--text3)', fontSize: 11.5 }}>
+                {marginReal
+                  ? 'Calcolato automaticamente dai costi prodotto Shopify (puoi modificarlo).'
+                  : 'Imposta i costi prodotto nel modulo Costi prodotto per il margine reale — ora è una stima.'}
+              </span>
+            </div>
+
+            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12, margin: '0 0 20px' }}>
               <Stat label="Clienti acquisiti" value={nf(s.customers)} sub={`${nf(s.ordersTotal)} ordini totali`} />
               <Stat label="Repeat rate" value={`${s.repeatRate}%`} sub={`${nf(s.repeatCustomers)} con ≥2 ordini`} />
-              <Stat label="LTV medio" value={eur2(s.avgLtv)} sub="spesa lifetime per cliente" />
               <Stat label="Ordini / cliente" value={s.avgOrders} />
               <Stat label="Clienti monouso" value={`${s.oneTimeRate}%`} sub="1 solo ordine" />
               <Stat label="Fatturato clienti" value={eur(s.revenueTotal)} sub="lifetime delle coorti" />

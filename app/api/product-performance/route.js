@@ -272,6 +272,12 @@ export async function GET(req) {
         updatedAt: new Date().toISOString(),
         totals: {
           netRevenue: Math.round(totalRevenue * 100) / 100,
+          // COGS totale (somma costi prodotto venduti) + margine lordo blended,
+          // usati per l'LTV netto: grossMargin = (ricavo − COGS) / ricavo.
+          cogs: Math.round(products.reduce((s, p) => s + p.cogs, 0) * 100) / 100,
+          grossMargin: totalRevenue > 0
+            ? Math.round((1 - products.reduce((s, p) => s + p.cogs, 0) / totalRevenue) * 1000) / 1000
+            : null,
           ads: Math.round(adsTotal * 100) / 100,
           metaSpend: Math.round(metaSpend * 100) / 100,
           googleSpend: Math.round(googleSpend * 100) / 100,

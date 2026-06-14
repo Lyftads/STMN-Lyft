@@ -107,6 +107,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
       // spazio tra le parole), ma solo qui prima di persistere.
       const cleanIdentity = {
         ...identity,
+        products: (identity.products || []).map(s => s.trim()).filter(Boolean),
         copyExamples: (identity.copyExamples || []).map(s => s.trim()).filter(Boolean),
       }
       const res = await fetch('/api/brand-identity', {
@@ -191,7 +192,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           </Field>
         </FieldRow>
         <Field label={t('bi.productsLabel', null, 'Prodotti principali')} hint={t('bi.productsHint', null, 'Uno per riga')}>
-          <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n').map(s => s.trim()).filter(Boolean))} rows={4} placeholder="Paracalli (Tape adesivo)\nCorde da salto\nCinturoni" />
+          <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n'))} rows={4} placeholder="Paracalli (Tape adesivo)\nCorde da salto\nCinturoni" />
         </Field>
         <Field label={t('bi.notSellingLabel', null, 'Cosa NON vendi / brand guard')} hint={t('bi.notSellingHint', null, "Questi prodotti/contenuti NON sono consentiti negli AI agent (es: 'mai integratori', 'no nutrizione')")}>
           <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder={t('bi.notSellingPh', null, 'Es: mai supplementi/integratori/nutrizione')} />

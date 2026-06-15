@@ -49,8 +49,8 @@ export default function GoogleSegmentsPanel({ since, until, title = 'Google · N
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>Dato reale Google · CAC nuovi = spesa Google ÷ nuovi clienti · vs periodo precedente</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>Dato reale Google · CAC nuovi = spesa Google ÷ nuovi clienti · vs periodo precedente</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
         <div style={{ ...card, borderColor: '#30d15866', boxShadow: '0 0 0 1px #30d15833' }}>

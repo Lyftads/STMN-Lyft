@@ -53,8 +53,8 @@ export default function MetaSegmentsPanel({ since, until, title = 'Meta · CAC p
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>Dato reale Meta (segmenti pubblico a livello account) · vs stesso periodo precedente</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>Dato reale Meta (segmenti pubblico a livello account) · vs stesso periodo precedente</div>
       </div>
       {loading && !segs && <div style={{ color: 'var(--text3)', fontSize: 12.5 }}>Carico i segmenti Meta…</div>}
       {segs && (

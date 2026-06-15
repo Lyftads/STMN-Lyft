@@ -661,6 +661,19 @@ async function fetchShopifySalesRange(start, end) {
     fatturRC += cleanMoney(row.total_sales_returning)
   }
 
+  // Resi NC/RC: la totalsQuery dà il resi TOTALE ma NON lo separa per nuovi/
+  // ritornanti → li prendiamo SEMPRE dal breakdown per segmento (returns per
+  // new_or_returning_customer), non solo come fallback. Senza questo restavano 0.
+  const addResiBySegment = (segRows) => {
+    for (const row of (segRows || [])) {
+      const seg = String(row.new_or_returning_customer || '').toLowerCase()
+      const ret = Math.abs(cleanMoney(row.returns))
+      if (seg.includes('new') || seg.includes('first') || seg.includes('nuov')) resiNC += ret
+      else if (seg.includes('return') || seg.includes('ritorn') || seg.includes('recurr')) resiRC += ret
+    }
+  }
+  addResiBySegment(rows)
+
   // Fallback breakdown query SOLO se totalsQuery non ha popolato NC/RC
   // (Shopify a volte rifiuta orders_first_time per certi range).
   if (nc === 0 && rc === 0) {
@@ -668,7 +681,6 @@ async function fetchShopifySalesRange(start, end) {
       const segment = String(row.new_or_returning_customer || '').toLowerCase()
       const rowTotalSales = cleanMoney(row.total_sales)
       const rowOrders = cleanCount(row.orders)
-      const rowReturns = Math.abs(cleanMoney(row.returns))
       const isNew = segment.includes('new') || segment.includes('first') || segment.includes('nuov')
       const isReturning = segment.includes('return') || segment.includes('ritorn') || segment.includes('recurr')
       const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrders
@@ -676,12 +688,10 @@ async function fetchShopifySalesRange(start, end) {
       if (isNew) {
         nc += rowOrdersFirstTime
         fatturNC += rowTotalSales
-        resiNC += rowReturns
       }
       if (isReturning) {
         rc += rowOrdersReturning
         fatturRC += rowTotalSales
-        resiRC += rowReturns
       }
     }
   }
@@ -711,15 +721,16 @@ async function fetchShopifySalesRange(start, end) {
     for (const row of retryRows) {
       const segment = String(row.new_or_returning_customer || '').toLowerCase()
       const rowTotalSales = cleanMoney(row.total_sales)
-      const rowReturns = Math.abs(cleanMoney(row.returns))
       const rowOrdersRow = cleanCount(row.orders)
       const rowOrdersFirstTime = cleanCount(row.orders_first_time) || rowOrdersRow
       const rowOrdersReturning = cleanCount(row.orders_returning) || rowOrdersRow
       const isNew = segment.includes('new') || segment.includes('first') || segment.includes('nuov')
       const isReturning = segment.includes('return') || segment.includes('ritorn') || segment.includes('recurr')
-      if (isNew) { nc += rowOrdersFirstTime; fatturNC += rowTotalSales; resiNC += rowReturns }
-      if (isReturning) { rc += rowOrdersReturning; fatturRC += rowTotalSales; resiRC += rowReturns }
+      if (isNew) { nc += rowOrdersFirstTime; fatturNC += rowTotalSales }
+      if (isReturning) { rc += rowOrdersReturning; fatturRC += rowTotalSales }
     }
+    // Resi NC/RC dal retry, solo se non già ricavati dal breakdown principale.
+    if (resiNC === 0 && resiRC === 0) addResiBySegment(retryRows)
     if (fatturRC <= 0 && fatturato > 0 && fatturNC > 0) {
       fatturRC = Math.max(fatturato - fatturNC, 0)
     }

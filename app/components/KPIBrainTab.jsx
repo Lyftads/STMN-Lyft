@@ -389,20 +389,20 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e'}} /> Live
           </span>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="shopify" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Shopify</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="shopify" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Shopify</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:38}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="meta" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Meta Ads</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="meta" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Meta Ads</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:14}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{margin:'18px 0 48px'}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
-        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Google Ads</span></div>
+        <div style={{margin:'18px 0 48px',position:'relative',zIndex:2}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
+        <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Google Ads</span></div>
         <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
-        <div style={{marginTop:18}}><GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
+        <div style={{marginTop:18,position:'relative',zIndex:2}}><GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
       </div>
 
 

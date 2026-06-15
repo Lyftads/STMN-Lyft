@@ -174,10 +174,10 @@ function AlertCard({ alert }) {
         <div><span style={{ color: 'var(--text3)' }}>Valore: </span><span style={{ color: '#fff', fontWeight: 800 }}>{alert.current_fmt}</span></div>
         <div><span style={{ color: 'var(--text3)' }}>Baseline: </span><span style={{ color: 'var(--text2)', fontWeight: 700 }}>{alert.baseline_fmt}</span></div>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 6 }}>
+      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 6 }}>
         <strong style={{ color: '#fff', fontWeight: 800 }}>Causa probabile:</strong> {alert.cause}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
         <strong style={{ color: '#fff', fontWeight: 800 }}>Azione:</strong> {alert.suggestion}
       </div>
     </div>

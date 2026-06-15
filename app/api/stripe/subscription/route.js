@@ -62,6 +62,7 @@ export async function GET(req) {
     let resolvedCustomerId = customerId
     let compStatus = null, compPlan = null
     let shopStatus = null, shopPlan = null
+    let shopStoreUrl = null
     let resolvedUserId = null
     if (!resolvedCustomerId) {
       try {
@@ -73,7 +74,7 @@ export async function GET(req) {
           if (admin) {
             const { data: company } = await admin
               .from('companies')
-              .select('stripe_customer_id, stripe_subscription_status, plan, shopify_subscription_status, shopify_subscription_plan')
+              .select('stripe_customer_id, stripe_subscription_status, plan, shopify_subscription_status, shopify_subscription_plan, shopify_store_url')
               .eq('user_id', user.id)
               .maybeSingle()
             resolvedCustomerId = company?.stripe_customer_id || null
@@ -81,6 +82,7 @@ export async function GET(req) {
             compPlan = company?.plan || null
             shopStatus = company?.shopify_subscription_status || null
             shopPlan = company?.shopify_subscription_plan || null
+            shopStoreUrl = company?.shopify_store_url || null
           }
         }
       } catch {}
@@ -88,9 +90,14 @@ export async function GET(req) {
 
     if (!resolvedCustomerId) {
       // 1) Account "comp"/omaggio: stato attivo impostato a mano su companies
-      //    (account demo/review e owner STMN). Check prima per evitare chiamate
-      //    Shopify inutili per chi è già autorizzato via comp.
-      if (compStatus === 'active' || compStatus === 'trialing') {
+      //    (owner STMN e signup diretti interni). Policy Shopify 1.2.3: per i
+      //    MERCHANT SHOPIFY (store collegato) il comp NON concede accesso —
+      //    devono avere un abbonamento Shopify reale (addebito in charge history).
+      //    Eccezione: l'owner (LYFT_OWNER_USER_ID) resta comped anche con Shopify.
+      const isShopifyMerchant = !!shopStoreUrl
+      const isOwner = !!resolvedUserId && resolvedUserId === process.env.LYFT_OWNER_USER_ID
+      const compAllowed = (compStatus === 'active' || compStatus === 'trialing') && (!isShopifyMerchant || isOwner)
+      if (compAllowed) {
         return NextResponse.json({
           customerId: null, email: null, name: null,
           subscription: { id: 'comp', status: compStatus, planId: compPlan || 'scale', cancelAtPeriodEnd: false },

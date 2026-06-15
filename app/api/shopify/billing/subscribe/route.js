@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getShopify } from '../../../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getCurrentUserId } from '../../../../../lib/tenant/credentials'
+import { getAdminSupabase } from '../../../../../lib/supabase/server'
 import { managedPricingUrl } from '../../../../../lib/shopify/subscription'
 
 // ============================================================================
@@ -17,11 +18,24 @@ import { managedPricingUrl } from '../../../../../lib/shopify/subscription'
 
 export async function POST(req) {
   return withTenantContext(req, async () => {
-    const sh = getShopify()
-    if (!sh?.storeUrl) {
+    // Store dal resolver live; se manca (es. fetch Nango lenta/timeout) FALLBACK
+    // su companies.shopify_store_url (DB, veloce) → il pulsante "cambia piano"
+    // non fallisce più con "Shopify non collegato".
+    let storeUrl = getShopify()?.storeUrl || null
+    if (!storeUrl) {
+      try {
+        const userId = await getCurrentUserId()
+        const admin = getAdminSupabase()
+        if (userId && admin) {
+          const { data } = await admin.from('companies').select('shopify_store_url').eq('user_id', userId).maybeSingle()
+          storeUrl = data?.shopify_store_url || null
+        }
+      } catch {}
+    }
+    if (!storeUrl) {
       return NextResponse.json({ error: 'Shopify non collegato per questo account' }, { status: 400 })
     }
-    const url = managedPricingUrl(sh.storeUrl)
+    const url = managedPricingUrl(storeUrl)
     if (!url) {
       return NextResponse.json({ error: 'Impossibile costruire la pagina prezzi Shopify' }, { status: 502 })
     }

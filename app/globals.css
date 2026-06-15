@@ -352,7 +352,8 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   opacity: 0.75;
   filter: blur(0.4px);
   pointer-events: none;
-  z-index: 1;
+  /* dietro al contenuto: gli strati decorativi non devono coprire/scurire il testo */
+  z-index: -1;
 }
 
 .glass-section::after {
@@ -364,7 +365,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
   animation: fx-scan-section 10s ease-in-out infinite;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
 
 @keyframes fx-scan-section {

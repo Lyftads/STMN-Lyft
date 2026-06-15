@@ -257,6 +257,33 @@ function brandLabel(brand) {
   return m[brand?.toLowerCase()] || (brand || 'CARD').toUpperCase()
 }
 
+// CTA piano Enterprise/custom. Policy App Store 1.2.3: per i merchant Shopify
+// anche il piano custom deve passare da Shopify Managed Pricing (upgrade/downgrade
+// self-service + addebito nella charge history), NON da email/off-platform.
+// I signup diretti (non-Shopify) restano sul contatto commerciale.
+async function startEnterprise({ contactHref, setError, setLoading }) {
+  try {
+    setLoading?.(true); setError?.(null)
+    let isShopify = false
+    try {
+      const st = await fetch('/api/integrations/status').then(r => r.json())
+      isShopify = Array.isArray(st?.connected) && st.connected.includes('shopify')
+    } catch {}
+    if (isShopify) {
+      const rs = await fetch('/api/shopify/billing/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: 'enterprise' }),
+      })
+      const js = await rs.json()
+      if (rs.ok && js?.confirmationUrl) { window.location.href = js.confirmationUrl; return }
+      setError?.(js?.error || `Errore ${rs.status}`); setLoading?.(false); return
+    }
+    window.location.href = contactHref // non-Shopify → contatto commerciale
+  } catch (e) {
+    setError?.(e?.message || 'Errore di rete'); setLoading?.(false)
+  }
+}
+
 function PlanCard({ plan, isCurrent, cadence = null }) {
   const { t } = useI18n()
   const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
@@ -346,10 +373,12 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
       </div>
 
       {plan.contact ? (
-        <a
-          href={plan.contactHref}
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => startEnterprise({ contactHref: plan.contactHref, setError, setLoading })}
           style={{
-            width: '100%', boxSizing: 'border-box', textAlign: 'center', textDecoration: 'none',
+            width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: loading ? 'wait' : 'pointer',
             padding: '13px 16px', borderRadius: 12,
             background: 'var(--glass2)', border: '1px solid var(--border2)',
             color: 'var(--text)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
@@ -359,7 +388,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
           onMouseLeave={e => { e.currentTarget.style.transform = '' }}
         >
           {t(plan.ctaKey, null, plan.cta)}
-        </a>
+        </button>
       ) : (cadence && cadence.off > 0) ? (
         <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>Disponibile a breve</button>
       ) : (

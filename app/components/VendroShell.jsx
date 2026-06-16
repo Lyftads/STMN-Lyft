@@ -445,7 +445,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         position: 'relative',
         zIndex: 1,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto' }}>
           {/* Header */}
           <header style={{
             display: 'flex',

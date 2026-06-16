@@ -178,16 +178,16 @@ export default function LtvCohortsTab() {
             </div>
 
             {/* Controllo margine lordo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 18px', fontSize: 12.5, color: 'var(--text2)' }}>
-              <span style={{ fontWeight: 700 }}>Margine lordo</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 18px', fontSize: 12.5, color: 'var(--text)' }}>
+              <span style={{ fontWeight: 700, color: '#fff' }}>Margine lordo</span>
               <input type="number" min={0} max={100} value={margin}
                 onChange={e => { setMargin(e.target.value); setMarginAuto(false) }}
                 style={{ width: 78, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 9, padding: '7px 10px', fontSize: 13, fontWeight: 700, outline: 'none' }} />
-              <span style={{ color: 'var(--text3)' }}>%</span>
+              <span style={{ color: 'var(--text2)' }}>%</span>
               {!marginAuto && (
                 <button onClick={() => setMarginAuto(true)} className="btn-glass" style={{ padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Usa margine reale</button>
               )}
-              <span style={{ color: 'var(--text3)', fontSize: 11.5 }}>
+              <span style={{ color: 'var(--text2)', fontSize: 11.5 }}>
                 {marginReal
                   ? 'Calcolato automaticamente dai costi prodotto Shopify (puoi modificarlo).'
                   : 'Imposta i costi prodotto nel modulo Costi prodotto per il margine reale — ora è una stima.'}

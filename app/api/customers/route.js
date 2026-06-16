@@ -82,7 +82,8 @@ export async function GET(req) {
     if (!storeUrl() || !token()) {
       return NextResponse.json({ ok: false, error: 'Shopify non configurato', segments: {}, kpis: {}, series: [] }, { status: 200 })
     }
-    return swrSnapshot(req, { tab: 'customers', compute: async () => {
+    // tab key 'customersRfm' (v2): invalida il vecchio payload a 4 segmenti
+    return swrSnapshot(req, { tab: 'customersRfm', compute: async () => {
       try {
         const now = Date.now()
         const { customers, truncated } = await fetchCustomers()

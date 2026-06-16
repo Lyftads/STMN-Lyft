@@ -414,16 +414,6 @@ export default function VendroShell({
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         }}>{pendingActions > 99 ? '99+' : pendingActions}</span>
                       )}
-                      {item.id === 'clienti' && (
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '1px 7px 1px 6px',
-                          borderRadius: 9, background: 'rgba(34,197,94,0.16)', color: '#22c55e',
-                          fontSize: 10, fontWeight: 800, letterSpacing: 0.3,
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: 99, background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                          LIVE
-                        </span>
-                      )}
                     </button>
                   )
                 })}

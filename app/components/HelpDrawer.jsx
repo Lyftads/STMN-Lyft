@@ -46,12 +46,12 @@ export default function HelpDrawer({ article, onClose, onNavigate }) {
                 <span style={{ width: 5, height: 16, borderRadius: 3, background: 'linear-gradient(#a78bfa,#7b5bff)' }} />
                 {s.h}
               </h3>
-              {s.p && <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6, margin: 0 }}>{s.p}</p>}
+              {s.p && <p style={{ fontSize: 14, color: '#dcdce6', lineHeight: 1.65, margin: 0 }}>{s.p}</p>}
               {s.list && (
-                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8 }}>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 9 }}>
                   {s.list.map((li, j) => (
-                    <li key={j} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.55 }}>
-                      <span style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 99, background: '#7b5bff' }} />
+                    <li key={j} style={{ display: 'flex', gap: 9, fontSize: 14, color: '#dcdce6', lineHeight: 1.6 }}>
+                      <span style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 99, background: '#a78bfa' }} />
                       <span>{li}</span>
                     </li>
                   ))}
@@ -68,7 +68,7 @@ export default function HelpDrawer({ article, onClose, onNavigate }) {
               <Icon name="rocket" size={15} /> {t('help.openTab', null, 'Apri questa sezione')}
             </button>
           )}
-          <span style={{ fontSize: 12, color: 'var(--text2)' }}>{t('help.needMore', null, 'Serve aiuto? Contatta il supporto.')}</span>
+          <span style={{ fontSize: 12, color: '#b9b9c6' }}>{t('help.needMore', null, 'Serve aiuto? Contatta il supporto.')}</span>
         </div>
       </div>
       <style>{`@keyframes helpSlideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>

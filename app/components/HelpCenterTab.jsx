@@ -80,7 +80,7 @@ export default function HelpCenterTab({ onNavigate }) {
                 <Icon name={a.icon || 'info'} size={19} />
               </span>
               <div style={{ fontSize: 15.5, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{a.title}</div>
-              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 14, minHeight: 38 }}>{a.summary}</div>
+              <div style={{ fontSize: 13, color: '#c4c4d0', lineHeight: 1.55, marginBottom: 14, minHeight: 38 }}>{a.summary}</div>
               <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: c, background: c + '1a', padding: '3px 9px', borderRadius: 7 }}>{catLabel(a.category)}</span>
             </div>
           )

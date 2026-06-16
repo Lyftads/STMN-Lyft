@@ -79,6 +79,7 @@ export default function VendroShell({
     // e le trova già calcolate. Poi le tab ads (Meta/Google) e Klaviyo.
     const WARM = [
       '/api/inventory',
+      '/api/customers',
       `/api/product-performance?since=${ppSince}&until=${ppUntil}`,
       '/api/product-costs-landed',
       '/api/meta-kpi?preset=last_7d',
@@ -114,6 +115,7 @@ export default function VendroShell({
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
+        { id: 'clienti', label: 'Clienti', icon: <Icon name="users" /> },
         { id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" /> },
       ],
     },
@@ -448,7 +450,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

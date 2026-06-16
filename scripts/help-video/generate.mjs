@@ -279,6 +279,98 @@ function mux(id, webm, offset, audio, durationSec) {
   return { mp4, poster }
 }
 
+// Versione verticale 9:16 (1080x1920) per Reels/IG/TikTok: il 16:9 al centro su
+// sfondo sfocato di sé stesso + sottotitoli EN "bruciati" (leggibili anche muto).
+function verticalize(id, mp4, vttPath) {
+  const out = path.join(WORK, id, `${id}-vertical.mp4`)
+  const style = "Alignment=2,FontName=Arial,FontSize=15,Bold=1,PrimaryColour=&Hffffff&,OutlineColour=&H90000000&,BorderStyle=3,Outline=2,Shadow=0,MarginV=150"
+  const vf = [
+    '[0:v]scale=1080:-2[fg]',
+    '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=22:6,eq=brightness=-0.06[bg]',
+    `[bg][fg]overlay=(W-w)/2:(H-h)/2,subtitles='${vttPath}':force_style='${style}'[v]`,
+  ].join(';')
+  sh('ffmpeg', ['-y', '-i', mp4, '-filter_complex', vf, '-map', '[v]', '-map', '0:a',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23',
+    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out])
+  return out
+}
+
+const LOGO = () => path.join(ROOT, 'public/icon-512.png')
+const FONT = process.env.HELP_FONT || '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+const dt = (s) => String(s).replace(/[\\:'%]/g, ' ').replace(/\s+/g, ' ').trim()
+
+// Intro 3.6s dinamica/futuristica: fondo scuro, glow viola in movimento, logo
+// in dissolvenza e il NOME della tab che appare con glow. Ferma lo scroll.
+function makeIntro(name, W, H, outPath) {
+  const D = 3.6, portrait = H > W
+  const LW = Math.round(Math.min(W, H) * (portrait ? 0.30 : 0.20))
+  const FS = Math.round(Math.min(W, H) * (portrait ? 0.072 : 0.085))
+  const gMove = Math.round(W * 0.16), gMoveY = Math.round(H * 0.06)
+  const f = [
+    `color=c=0x07070d:s=${W}x${H}:r=30:d=${D},format=rgba[bg]`,
+    `color=c=0x7b5bff:s=640x640:r=30:d=${D},format=rgba,boxblur=90:24,colorchannelmixer=aa=0.34[glow]`,
+    `[bg][glow]overlay=x='(W-w)/2+${gMove}*sin(t*1.3)':y='(H-h)/2-${Math.round(H * 0.1)}+${gMoveY}*cos(t*1.7)'[bgg]`,
+    `[0:v]scale=${LW}:-1,format=rgba,fade=t=in:st=0.1:d=0.55:alpha=1[lg]`,
+    `[bgg][lg]overlay=(W-w)/2:(H*0.32)-h/2[wl]`,
+    `[wl]drawtext=fontfile='${FONT}':text='${dt(name)}':fontcolor=white:fontsize=${FS}:shadowcolor=0x7b5bff@0.9:shadowx=0:shadowy=0:x=(w-text_w)/2:y=(h*0.56)-text_h/2:alpha='if(lt(t,0.55),0,min(1,(t-0.55)/0.5))'[nm]`,
+    `[nm]drawtext=fontfile='${FONT}':text='LyftAI':fontcolor=0x22d3ee:fontsize=${Math.round(FS * 0.42)}:x=(w-text_w)/2:y=(h*0.66):alpha='if(lt(t,0.9),0,min(1,(t-0.9)/0.5))'[br]`,
+    `[br]fade=t=out:st=${(D - 0.45).toFixed(2)}:d=0.45,format=yuv420p[v]`,
+    // ── Sigla (sound-logo): accordo brillante + boom basso, dissolvenza ──
+    `sine=f=392:d=${D}[n1]`,
+    `sine=f=523.25:d=${D}[n2]`,
+    `sine=f=659.25:d=${D}[n3]`,
+    `[n1][n2][n3]amix=inputs=3,volume=0.15,afade=t=in:st=0:d=0.08,afade=t=out:st=${(D - 0.9).toFixed(2)}:d=0.9[chord]`,
+    `sine=f=98:d=0.7,volume=0.5,afade=t=out:st=0.06:d=0.6[boom]`,
+    `[chord][boom]amix=inputs=2:duration=first:dropout_transition=0,aresample=44100[a]`,
+  ].join(';')
+  sh('ffmpeg', ['-y', '-i', LOGO(), '-filter_complex', f, '-map', '[v]', '-map', '[a]',
+    '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', outPath])
+  return outPath
+}
+
+// Outro 2.8s: logo + call-to-action verso il sito.
+function makeOutro(W, H, outPath) {
+  const D = 2.8, portrait = H > W
+  const LW = Math.round(Math.min(W, H) * (portrait ? 0.30 : 0.20))
+  const FS = Math.round(Math.min(W, H) * (portrait ? 0.06 : 0.06))
+  const f = [
+    `color=c=0x07070d:s=${W}x${H}:r=30:d=${D},format=rgba[bg]`,
+    `color=c=0x7b5bff:s=640x640:r=30:d=${D},format=rgba,boxblur=90:24,colorchannelmixer=aa=0.30[glow]`,
+    `[bg][glow]overlay=(W-w)/2:(H-h)/2-${Math.round(H * 0.08)}[bgg]`,
+    `[0:v]scale=${LW}:-1,format=rgba,fade=t=in:st=0.1:d=0.5:alpha=1[lg]`,
+    `[bgg][lg]overlay=(W-w)/2:(H*0.40)-h/2[wl]`,
+    `[wl]drawtext=fontfile='${FONT}':text='lyftai.io':fontcolor=0x22d3ee:fontsize=${FS}:x=(w-text_w)/2:y=(h*0.60):alpha='if(lt(t,0.4),0,min(1,(t-0.4)/0.5))'[cta]`,
+    `[cta]fade=t=out:st=${(D - 0.45).toFixed(2)}:d=0.45,format=yuv420p[v]`,
+    `anullsrc=r=44100:cl=stereo:d=${D}[a]`,
+  ].join(';')
+  sh('ffmpeg', ['-y', '-i', LOGO(), '-filter_complex', f, '-map', '[v]', '-map', '[a]',
+    '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', outPath])
+  return outPath
+}
+
+// Concatena intro + main + outro, normalizzando tutto a WxH/30fps.
+function joinClips(clips, W, H, outPath) {
+  const inputs = clips.flatMap(c => ['-i', c])
+  const norm = clips.map((_, i) => `[${i}:v]scale=${W}:${H},fps=30,format=yuv420p,setsar=1[v${i}];[${i}:a]aformat=sample_rates=44100:channel_layouts=stereo[a${i}]`).join(';')
+  const lab = clips.map((_, i) => `[v${i}][a${i}]`).join('')
+  const f = `${norm};${lab}concat=n=${clips.length}:v=1:a=1[v][a]`
+  sh('ffmpeg', ['-y', ...inputs, '-filter_complex', f, '-map', '[v]', '-map', '[a]',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', outPath])
+  return outPath
+}
+
+// Avvolge un video con intro (col nome) + outro (CTA). Best-effort: se ffmpeg
+// fallisce (font/filtri) ritorna il video originale, così non blocca la pipeline.
+function brandWrap(name, mp4, W, H, outPath) {
+  if (!fs.existsSync(LOGO())) return mp4
+  try {
+    const base = outPath.replace(/\.mp4$/, '')
+    const intro = makeIntro(name, W, H, `${base}.intro.mp4`)
+    const outro = makeOutro(W, H, `${base}.outro.mp4`)
+    return joinClips([intro, mp4, outro], W, H, outPath)
+  } catch (e) { console.error('  (brand skip:', e.message, ')'); return mp4 }
+}
+
 // ── 6) Upload + manifest ──────────────────────────────────────────────────────
 async function upload(id, files, vttPath, durationSec) {
   if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('Mancano SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY per l\'upload')
@@ -294,8 +386,10 @@ async function upload(id, files, vttPath, durationSec) {
   const src = await put(files.mp4, `${id}.mp4`, 'video/mp4')
   const captions = await put(vttPath, `${id}.en.vtt`, 'text/vtt')
   const poster = await put(files.poster, `${id}.jpg`, 'image/jpeg')
+  let vertical = null
+  if (files.vertical && fs.existsSync(files.vertical)) vertical = await put(files.vertical, `${id}-vertical.mp4`, 'video/mp4')
   const m = Math.floor(durationSec / 60), s = Math.round(durationSec % 60)
-  return { src, captions, poster, duration: `${m}:${String(s).padStart(2, '0')}` }
+  return { src, captions, poster, ...(vertical ? { vertical } : {}), duration: `${m}:${String(s).padStart(2, '0')}` }
 }
 
 function writeManifest(entries) {
@@ -334,7 +428,13 @@ async function main() {
       const { audio, vttPath, duration, durs } = await buildAudioAndVtt(a.id, lines); console.log('  voce:', duration.toFixed(1), 's')
       if (DRY) { console.log('  DRY → stop (audio+vtt in', path.join(WORK, a.id), ')'); continue }
       const { webm, offset } = await recordChoreographed(a, plan, durs); console.log('  registrato')
-      const files = mux(a.id, webm, offset, audio, duration); console.log('  montato')
+      const files = mux(a.id, webm, offset, audio, duration) // poster da qui (pre-brand)
+      const dir = path.join(WORK, a.id)
+      const finalH = brandWrap(a.title, files.mp4, 1280, 720, path.join(dir, `${a.id}.final.mp4`))
+      const vert = verticalize(a.id, files.mp4, vttPath)
+      const finalV = brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
+      files.mp4 = finalH; files.vertical = finalV
+      console.log('  montato + intro/outro + verticale')
       const entry = await upload(a.id, files, vttPath, duration); console.log('  caricato:', entry.src)
       manifest[a.id] = entry
       writeManifest(manifest) // salva incrementale: se si interrompe, i fatti restano

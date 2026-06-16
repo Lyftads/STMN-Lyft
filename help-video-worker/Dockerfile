@@ -6,8 +6,9 @@
 
 FROM node:22-bookworm-slim
 
-# ffmpeg/ffprobe per montaggio e durate
+# ffmpeg/ffprobe + font (per drawtext dell'intro e i sottotitoli "bruciati")
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    fonts-dejavu-core fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -20,6 +21,7 @@ RUN npm i --no-save playwright @supabase/supabase-js \
 # Registra su /demo (dati finti, niente login). Override via variabili Railway.
 ENV HELP_USE_DEMO=1
 
-# Default: le 3 tab di validazione. Per tutte, su Railway imposta un
-# "Custom Start Command": node scripts/help-video/generate.mjs
-CMD ["node", "scripts/help-video/generate.mjs", "dashboard", "clienti", "metaKpi"]
+# Default: UNA tab di prova (dashboard) per validare intro/voce/verticale.
+# Quando ti convince, su Railway imposta un "Custom Start Command":
+#   node scripts/help-video/generate.mjs           (tutte le tab)
+CMD ["node", "scripts/help-video/generate.mjs", "dashboard"]

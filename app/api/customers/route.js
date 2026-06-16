@@ -17,7 +17,11 @@ const token = () => getShopify().adminToken
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const r2 = (n) => Math.round(num(n) * 100) / 100
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
+// Fetch resiliente di TUTTI i clienti. `lastOrder` è un campo costoso → Shopify
+// può throttlare: gestiamo backoff, retry e un budget temporale complessivo per
+// non andare MAI in timeout (al massimo ritorna dati parziali → truncated).
 async function fetchCustomers() {
   if (!storeUrl() || !token()) return { customers: [], truncated: false }
   const out = []
@@ -32,19 +36,37 @@ async function fetchCustomers() {
     }
   }`
   let cursor = null, pages = 0, truncated = false
-  const MAX_PAGES = 300 // ~75k clienti: copre l'intera base anche per store grandi
+  const MAX_PAGES = 320
+  const deadline = Date.now() + 140000 // budget 140s (sotto il maxDuration 300)
   while (pages < MAX_PAGES) {
+    if (Date.now() > deadline) { truncated = true; break }
     pages++
-    const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
-      method: 'POST',
-      headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: gql, variables: { cursor } }),
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) { if (pages === 1) throw new Error(`Shopify ${res.status}`); break }
-    const j = await res.json()
-    const conn = j?.data?.customers
-    if (!conn) { if (pages === 1 && j?.errors) throw new Error(j.errors[0]?.message || 'GraphQL error'); break }
+    let conn = null
+    for (let attempt = 1; attempt <= 3 && !conn; attempt++) {
+      try {
+        const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
+          method: 'POST',
+          headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: gql, variables: { cursor } }),
+          signal: AbortSignal.timeout(30000),
+        })
+        if (res.status === 429) { await sleep(2000 * attempt); continue }
+        if (!res.ok) throw new Error(`Shopify ${res.status}`)
+        const j = await res.json()
+        if (j?.errors) {
+          if (/throttl/i.test(JSON.stringify(j.errors))) { await sleep(2000 * attempt); continue }
+          throw new Error(j.errors[0]?.message || 'GraphQL error')
+        }
+        conn = j?.data?.customers
+        // Backoff preventivo se la capacità cost residua è bassa.
+        const ts = j?.extensions?.cost?.throttleStatus
+        if (ts && ts.currentlyAvailable != null && ts.currentlyAvailable < 300) await sleep(900)
+      } catch (e) {
+        if (attempt >= 3) { if (pages === 1) throw e; truncated = true; break }
+        await sleep(1200 * attempt)
+      }
+    }
+    if (!conn) { truncated = true; break }
     for (const e of (conn.edges || [])) out.push(e.node)
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
@@ -82,8 +104,9 @@ export async function GET(req) {
     if (!storeUrl() || !token()) {
       return NextResponse.json({ ok: false, error: 'Shopify non configurato', segments: {}, kpis: {}, series: [] }, { status: 200 })
     }
-    // tab key 'customersRfm' (v2): invalida il vecchio payload a 4 segmenti
-    return swrSnapshot(req, { tab: 'customersRfm', compute: async () => {
+    // tab key 'customersRfm' (v2): invalida il vecchio payload a 4 segmenti.
+    // TTL 2h: la fetch è pesante → serve stale istantaneo e rinfresca in bg.
+    return swrSnapshot(req, { tab: 'customersRfm', ttlMs: 2 * 60 * 60 * 1000, compute: async () => {
       try {
         const now = Date.now()
         const { customers, truncated } = await fetchCustomers()

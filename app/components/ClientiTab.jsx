@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import { preloadClienti, getClientiCache, setClientiCache } from '../../lib/clienti/preload'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ── Clienti: segmentazione RFM + metriche + grafici nel tempo + campagne AI ──
-// Self-fetch + cache di modulo, isolato e multi-tenant.
-
-let __cliCache = null
+// Cache condivisa (memoria + sessionStorage) via lib/clienti/preload: aprendo la
+// tab dopo il preload all'avvio è istantanea; cambi tab e torni → niente reload.
 
 const SEG_ORDER = ['new', 'potentialLoyal', 'loyal', 'loyalAtRisk', 'aboutToSleep', 'sleepers']
 const SEG_COLOR = {
@@ -18,8 +18,8 @@ const SEG_COLOR = {
 
 export default function ClientiTab({ onNavigate }) {
   const { t, locale, intlLocale } = useI18n()
-  const [data, setData] = useState(() => __cliCache)
-  const [loading, setLoading] = useState(!__cliCache)
+  const [data, setData] = useState(() => getClientiCache())
+  const [loading, setLoading] = useState(() => !getClientiCache())
   const [error, setError] = useState('')
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState('')
@@ -32,16 +32,22 @@ export default function ClientiTab({ onNavigate }) {
   const [copied, setCopied] = useState('')
 
   const load = async (refresh = false) => {
-    if (!refresh && __cliCache) { setData(__cliCache); setLoading(false); return }
-    setLoading(true); setError('')
-    try {
-      const r = await fetch(`/api/customers${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' })
-      const j = await r.json()
-      if (!j.ok) throw new Error(j.error || 'Errore')
-      __cliCache = j; setData(j)
-    } catch (e) { setError(e.message) } finally { setLoading(false) }
+    const cached = getClientiCache()
+    if (!refresh && cached) { setData(cached); setLoading(false); return }
+    if (!cached) setLoading(true)
+    setError('')
+    const j = await preloadClienti(refresh)
+    if (!j || !j.ok) { setError(j?.error || 'Errore'); setLoading(false); return }
+    setData(j); setLoading(false)
   }
-  useEffect(() => { if (__cliCache) { setData(__cliCache); setLoading(false) } else load() }, []) // eslint-disable-line
+  useEffect(() => {
+    const cached = getClientiCache()
+    if (cached) {
+      setData(cached); setLoading(false)
+      // rinfresca in background senza bloccare la UI
+      preloadClienti(false).then(j => { if (j && j.ok) { setClientiCache(j); setData(j) } }).catch(() => {})
+    } else { load() }
+  }, []) // eslint-disable-line
 
   const cur = data?.currency || 'EUR'
   const fmtMoney = (n, d = 0) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))

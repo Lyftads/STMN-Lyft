@@ -6,6 +6,7 @@ import BmTimeframe from './ui/BmTimeframe'
 import AddClientModal from './AddClientModal'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import { getBrowserSupabase } from '../../lib/supabase/client'
+import { preloadClienti } from '../../lib/clienti/preload'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
 import NotificationsBell from './NotificationsBell'
@@ -79,7 +80,6 @@ export default function VendroShell({
     // e le trova già calcolate. Poi le tab ads (Meta/Google) e Klaviyo.
     const WARM = [
       '/api/inventory',
-      '/api/customers',
       `/api/product-performance?since=${ppSince}&until=${ppUntil}`,
       '/api/product-costs-landed',
       '/api/meta-kpi?preset=last_7d',
@@ -89,6 +89,9 @@ export default function VendroShell({
       '/api/google-detail?preset=last_7d',
     ]
     const sleep = ms => new Promise(r => setTimeout(r, ms))
+    // Clienti: precarico SUBITO in parallelo (cache client + sessionStorage) così
+    // aprendo la tab — anche più tardi e da un'altra tab — è già pronta.
+    preloadClienti().catch(() => {})
     const run = async () => {
       await sleep(1500) // lascia partire prima il caricamento della dashboard
       try { sessionStorage.setItem('lyft_prewarm', '1') } catch {}

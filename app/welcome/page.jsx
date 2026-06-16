@@ -21,10 +21,10 @@ const GREEN = '#22c55e'
 // Mega-menu "Soluzioni": colonne (titoli localizzati via t.solMenu) + voci
 // (nomi prodotto neutri, validi in tutte le lingue).
 const SOLUTIONS = [
-  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
-  { key: 'ads', items: ['Meta Detail & KPI', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
+  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
+  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
   { key: 'website', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
-  { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF automatici'] },
+  { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF completo', 'Report PDF automatici'] },
   { key: 'team', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
 ]
 

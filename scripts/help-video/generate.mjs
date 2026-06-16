@@ -65,6 +65,19 @@ const WORK = path.join(os.tmpdir(), 'help-video')
 fs.mkdirSync(WORK, { recursive: true })
 
 // ── Util ─────────────────────────────────────────────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+// fetch con retry: gestisce 'fetch failed'/5xx transitori (rete container instabile)
+async function jfetch(url, opts, tries = 4) {
+  let err
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, opts)
+      if (r.status >= 500 && i < tries - 1) { await sleep(1500 * (i + 1)); continue }
+      return r
+    } catch (e) { err = e; await sleep(1500 * (i + 1)) }
+  }
+  throw err
+}
 function sh(bin, args) { return execFileSync(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString() }
 function ffprobeDuration(file) {
   const out = sh('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', file])
@@ -82,7 +95,7 @@ async function makeScript(article) {
     ...(article.sections || []).map(s => `${s.h}: ${s.p || (s.list || []).join(' ')}`),
   ].join('\n')
   const sys = 'You write concise, friendly English voiceover scripts for SaaS product walkthrough videos. Output ONLY a JSON array of 6-9 short narration sentences (max ~16 words each), no numbering, no markdown. The whole script should read in about 60-80 seconds. Sentence 1 is a one-line intro of what the tab is. The rest walk through what the user sees and can do, in a natural spoken tone.'
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+  const r = await jfetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.5, response_format: { type: 'json_object' },
       messages: [{ role: 'system', content: sys + ' Wrap the array in {"lines": [...]}.' }, { role: 'user', content: ctx }] }),
@@ -98,7 +111,7 @@ async function makeScript(article) {
 async function ttsLine(text, outPath) {
   // ElevenLabs se key + voice id presenti (voce più naturale), altrimenti OpenAI tts-1.
   if (ELEVEN_KEY && ELEVEN_VOICE) {
-    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}`, {
+    const r = await jfetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}`, {
       method: 'POST', headers: { 'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
       body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
     })
@@ -106,7 +119,7 @@ async function ttsLine(text, outPath) {
     fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer()))
     return
   }
-  const r = await fetch('https://api.openai.com/v1/audio/speech', {
+  const r = await jfetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'tts-1', voice: TTS_VOICE, input: text, response_format: 'mp3' }),
   })

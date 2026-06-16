@@ -4,7 +4,7 @@
 # Build context = root del repo. Su Railway imposta "Dockerfile Path" =
 # help-video-worker/Dockerfile, Root Directory vuota, niente Custom Start Command.
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 # ffmpeg/ffprobe per montaggio e durate
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates \

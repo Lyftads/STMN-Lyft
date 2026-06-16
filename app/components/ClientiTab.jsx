@@ -20,9 +20,14 @@ export default function ClientiTab({ onNavigate }) {
   const [data, setData] = useState(() => getClientiCache())
   const [loading, setLoading] = useState(() => !getClientiCache())
   const [error, setError] = useState('')
-  const [view, setView] = useState('overview') // overview | analytics
+  const [view, setView] = useState('overview') // overview | analytics | insights
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState('')
+
+  // Insight AI
+  const [insights, setInsights] = useState(null)
+  const [insLoading, setInsLoading] = useState(false)
+  const [insError, setInsError] = useState('')
 
   // Drill segmento (lista clienti)
   const [segView, setSegView] = useState(null)
@@ -117,6 +122,29 @@ export default function ClientiTab({ onNavigate }) {
   const segEmails = (key) => (segs[key]?.customers || []).map(c => c.email).filter(Boolean)
   const openSegment = (key) => { setSegView(key); setSegSearch('') }
 
+  // ── Insight AI (cache per stato dei dati in sessionStorage) ──────────────
+  const insSig = `${k.totalCustomers || 0}-${series.length}-${last?.week || ''}-${locale}`
+  const genInsights = async (force = false) => {
+    if (insLoading) return
+    if (!force) {
+      try { const raw = sessionStorage.getItem('lyft_clienti_ins'); if (raw) { const c = JSON.parse(raw); if (c.sig === insSig && c.data) { setInsights(c.data); return } } } catch {}
+    }
+    setInsLoading(true); setInsError('')
+    try {
+      const segMetrics = {}
+      for (const key of SEG_ORDER) { const s = segs[key]; if (s) segMetrics[key] = { count: s.count, customerValue: s.customerValue, avgOrders: s.avgOrders, daysBetween: s.daysBetween, aov: s.aov, totalSales: s.totalSales } }
+      const r = await fetch('/api/customers/insights', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kpis: k, segments: segMetrics, currency: cur, locale }),
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'Errore')
+      setInsights(j)
+      try { sessionStorage.setItem('lyft_clienti_ins', JSON.stringify({ sig: insSig, data: j })) } catch {}
+    } catch (e) { setInsError(e.message) } finally { setInsLoading(false) }
+  }
+  useEffect(() => { if (view === 'insights' && !insights && !insLoading && (k.totalCustomers || 0) > 0) genInsights() }, [view]) // eslint-disable-line
+
   if (loading) return <div style={{ padding: 40, color: 'var(--text2)' }}>{t('cli.loading', null, 'Carico i clienti da Shopify…')}</div>
   if (error) return (
     <div style={{ padding: 24 }}>
@@ -147,15 +175,16 @@ export default function ClientiTab({ onNavigate }) {
 
       {/* Switcher Panoramica / Analytics */}
       <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 24 }}>
-        {[['overview', t('cli.view.overview', null, 'Panoramica')], ['analytics', t('cli.view.analytics', null, 'Analytics')]].map(([id, lab]) => (
+        {[['overview', t('cli.view.overview', null, 'Panoramica')], ['analytics', t('cli.view.analytics', null, 'Analytics')], ['insights', t('cli.view.insights', null, 'Insight'), true]].map(([id, lab, ai]) => (
           <button key={id} onClick={() => setView(id)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '8px 18px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13.5,
             background: view === id ? 'rgba(255,255,255,0.10)' : 'transparent', color: view === id ? '#fff' : 'var(--text2)',
-          }}>{lab}</button>
+          }}>{ai && <Icon name="sparkle" />}{lab}</button>
         ))}
       </div>
 
-      {view === 'overview' ? (
+      {view === 'overview' && (
         <>
           {/* KPI row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginBottom: 26 }}>
@@ -220,7 +249,9 @@ export default function ClientiTab({ onNavigate }) {
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {view === 'analytics' && (
         // ── ANALYTICS (stile Digismoothie) ──────────────────────────────────
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -351,6 +382,101 @@ export default function ClientiTab({ onNavigate }) {
                   })}
                 </div>
               </AnalyticsCard>
+            </div>
+          )}
+        </>
+      )}
+
+      {view === 'insights' && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ color: '#a78bfa' }}><Icon name="sparkle" /></span>
+              <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{t('cli.ins.by', null, 'Generato dalla Squadra AI sui tuoi dati')}</span>
+            </div>
+            <button onClick={() => genInsights(true)} disabled={insLoading} style={btnGhost}>
+              <Icon name="refresh" /> {insLoading ? t('cli.ins.thinking', null, 'Analizzo…') : t('cli.ins.regen', null, 'Rigenera')}
+            </button>
+          </div>
+
+          {insLoading && !insights && (
+            <div style={{ borderRadius: 16, border: '1px solid rgba(167,139,250,0.25)', background: 'radial-gradient(120% 80% at 0% 0%, rgba(123,91,255,0.10), rgba(255,255,255,0.02) 55%)', padding: 30, color: 'var(--text2)', textAlign: 'center' }}>
+              {t('cli.ins.thinkingLong', null, 'La Squadra AI sta leggendo i segmenti e prepara insight e azioni…')}
+            </div>
+          )}
+          {insError && (
+            <div style={{ padding: 20 }}>
+              <div style={{ color: '#fca5a5', marginBottom: 12 }}>{insError}</div>
+              <button onClick={() => genInsights(true)} style={btnGhost}>{t('common.retry', null, 'Riprova')}</button>
+            </div>
+          )}
+
+          {insights && (
+            <div style={{ display: 'grid', gap: 20 }}>
+              {insights.headline && (
+                <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden', padding: '20px 22px',
+                  border: '1px solid rgba(167,139,250,0.28)', background: 'radial-gradient(130% 90% at 0% 0%, rgba(123,91,255,0.16), rgba(255,255,255,0.02) 60%)' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #a78bfa, transparent)', opacity: 0.7 }} />
+                  <div style={{ fontSize: 11, color: '#a78bfa', letterSpacing: 0.8, fontWeight: 700, marginBottom: 8 }}>{t('cli.ins.summary', null, 'IN SINTESI')}</div>
+                  <div style={{ fontSize: 17, color: '#fff', fontWeight: 600, lineHeight: 1.5 }}>{insights.headline}</div>
+                </div>
+              )}
+
+              {/* Insight descrittivi */}
+              {!!(insights.insights || []).length && (
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>{t('cli.ins.findings', null, 'Cosa dicono i dati')}</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+                    {insights.insights.map((ins, i) => {
+                      const tone = ins.tone === 'good' ? '#22c55e' : ins.tone === 'warn' ? '#f59e0b' : '#0ea5e9'
+                      return (
+                        <div key={i} style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '14px 16px', borderLeft: `3px solid ${tone}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: 99, background: tone, boxShadow: `0 0 7px ${tone}` }} />
+                            <span style={{ fontWeight: 800, color: '#fff', fontSize: 14 }}>{ins.title}</span>
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>{ins.detail}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Raccomandazioni proattive */}
+              {!!(insights.recommendations || []).length && (
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>{t('cli.ins.actions', null, 'Azioni consigliate')}</h3>
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    {insights.recommendations.map((rec, i) => {
+                      const c = meta(rec.segment) || '#7b5bff'
+                      const prio = String(rec.priority || '').toLowerCase()
+                      const prioColor = prio.includes('alt') || prio.includes('high') ? '#ef4444' : prio.includes('med') ? '#f59e0b' : '#22c55e'
+                      return (
+                        <div key={i} style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: `radial-gradient(120% 100% at 0% 0%, ${c}12, rgba(255,255,255,0.02) 60%)`, padding: '16px 18px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: 240 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6, flexWrap: 'wrap' }}>
+                                <span style={{ width: 9, height: 9, borderRadius: 3, background: c, boxShadow: `0 0 8px ${c}` }} />
+                                <span style={{ fontWeight: 800, color: '#fff', fontSize: 14.5 }}>{rec.title}</span>
+                                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, color: prioColor, background: prioColor + '1f', padding: '2px 8px', borderRadius: 7, textTransform: 'uppercase' }}>{rec.priority}</span>
+                                <span style={{ fontSize: 11.5, color: 'var(--text2)' }}>· {segLabel(rec.segment)}</span>
+                              </div>
+                              {rec.action && <div style={{ fontSize: 13.5, color: '#e8e8ef', lineHeight: 1.55, marginBottom: 6 }}>{rec.action}</div>}
+                              {rec.why && <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}><strong style={{ color: 'var(--text)' }}>{t('cli.ins.why', null, 'Perché')}:</strong> {rec.why}</div>}
+                              {rec.impact && <div style={{ fontSize: 12.5, color: c, marginTop: 6, fontWeight: 700 }}>↗ {rec.impact}</div>}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <button onClick={() => openCampaign(rec.segment)} style={{ ...btnPrimary, background: c, color: '#0b0b0f', whiteSpace: 'nowrap' }}><Icon name="sparkle" /> {t('cli.createCampaign', null, 'Crea campagna')}</button>
+                              <button onClick={() => openSegment(rec.segment)} style={{ ...btnGhost, whiteSpace: 'nowrap', justifyContent: 'center' }}><Icon name="users" /> {t('cli.ins.viewCustomers', null, 'Vedi clienti')}</button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

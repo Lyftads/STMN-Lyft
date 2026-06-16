@@ -12,7 +12,7 @@ const URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const BUCKET = process.env.HELP_BUCKET || 'help-videos'
 const OUT = process.env.OUT || 'help-videos-download'
-const WHAT = (process.env.WHAT || 'mp4').split(',').map(s => s.trim())
+const WHAT = (process.env.WHAT || 'mp4,vtt').split(',').map(s => s.trim())
 
 if (!URL || !KEY) { console.error('Mancano SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY'); process.exit(1) }
 

@@ -46,6 +46,21 @@ console.log(`Trovati ${files.length} video. Carico (privacy: ${PRIVACY})…`)
 
 const CTA = '\n\n👉 Try LyftAI free: https://lyftai.io\n\n#ecommerce #Shopify #analytics #marketing #LyftAI'
 
+// WebVTT → SRT (YouTube accetta SRT in modo affidabile).
+function vttToSrt(vtt) {
+  const lines = vtt.replace(/\r/g, '').split('\n')
+  let i = 0, n = 1; const out = []
+  while (i < lines.length) {
+    if (/-->/.test(lines[i])) {
+      const time = lines[i].replace(/(\d{2}:\d{2}:\d{2})\.(\d{3})/g, '$1,$2')
+      const text = []; i++
+      while (i < lines.length && lines[i].trim() !== '') { text.push(lines[i]); i++ }
+      out.push(`${n++}\n${time}\n${text.join('\n')}\n`)
+    } else i++
+  }
+  return out.join('\n')
+}
+
 // Titolo + descrizione in INGLESE (AI) con call-to-action.
 async function metaFor(a, id) {
   const fb = { title: `${a?.title || id} — LyftAI Tutorial`, description: `A quick guide to ${a?.title || id} in LyftAI.${CTA}` }
@@ -84,6 +99,21 @@ for (const file of files) {
     done[id] = url
     fs.writeFileSync(STATE, JSON.stringify(done, null, 2))
     console.log('  ✓', id, '→', url)
+    // Sottotitoli EN: carica il .vtt come traccia (convertito in SRT)
+    const vtt = path.join(SRC, `${id}.en.vtt`)
+    if (fs.existsSync(vtt)) {
+      try {
+        const srt = vttToSrt(fs.readFileSync(vtt, 'utf8'))
+        const srtPath = path.join(SRC, `${id}.en.srt`)
+        fs.writeFileSync(srtPath, srt)
+        await yt.captions.insert({
+          part: ['snippet'],
+          requestBody: { snippet: { videoId: res.data.id, language: 'en', name: 'English', isDraft: false } },
+          media: { body: fs.createReadStream(srtPath) },
+        })
+        console.log('    + sottotitoli EN')
+      } catch (e) { console.error('    (sottotitoli skip:', e?.errors?.[0]?.reason || e.message, ')') }
+    }
   } catch (e) {
     const msg = e?.errors?.[0]?.reason || e.message
     console.error('  ✗', id, msg)

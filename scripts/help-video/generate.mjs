@@ -88,23 +88,34 @@ function fmtVttTime(s) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${sec.toFixed(3).padStart(6, '0')}`
 }
 
-// ── 1) Narrazione EN dalla guida ──────────────────────────────────────────────
-async function makeScript(article) {
-  const ctx = [
+// ── 1) Narrazione EN ancorata agli elementi a schermo ──────────────────────────
+// Riceve la lista dei testi davvero presenti nella pagina (anchors) e scrive una
+// narrazione in cui OGNI frase è legata a un anchor: così il video scrolla su
+// quell'elemento mentre la voce ne parla.
+async function makeScriptSynced(article, anchors) {
+  const guide = [
     `Tab: ${article.title}`, `Summary: ${article.summary}`,
     ...(article.sections || []).map(s => `${s.h}: ${s.p || (s.list || []).join(' ')}`),
   ].join('\n')
-  const sys = 'You write concise, friendly English voiceover scripts for SaaS product walkthrough videos. Output ONLY a JSON array of 6-9 short narration sentences (max ~16 words each), no numbering, no markdown. The whole script should read in about 60-80 seconds. Sentence 1 is a one-line intro of what the tab is. The rest walk through what the user sees and can do, in a natural spoken tone.'
+  const anchorList = anchors.length ? anchors.map(a => `- ${a}`).join('\n') : '(none)'
+  const sys = [
+    'You write concise, friendly English voiceover scripts for a SaaS product walkthrough video, SYNCED to on-screen elements.',
+    'You are given the guide content AND a list of EXACT text labels currently visible on the page (the "anchors").',
+    'Write 6-10 short narration sentences (max ~16 words each) that walk the viewer through the tab from top to bottom.',
+    'For EACH sentence pick the single on-page anchor it talks about, so the video can scroll there while you speak.',
+    'Rules: sentence 1 is a one-line intro of the tab with anchor "". "a" MUST be copied EXACTLY from the anchors list, or "" for general/intro lines. Order the sentences to follow the anchors top-to-bottom. Natural spoken tone, no numbering, no markdown.',
+    'Output ONLY JSON: {"lines":[{"t":"sentence","a":"exact anchor or empty"}]}',
+  ].join(' ')
   const r = await jfetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.5, response_format: { type: 'json_object' },
-      messages: [{ role: 'system', content: sys + ' Wrap the array in {"lines": [...]}.' }, { role: 'user', content: ctx }] }),
+    body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.4, response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: `GUIDE:\n${guide}\n\nANCHORS (exact on-page texts):\n${anchorList}` }] }),
   })
   const j = await r.json()
   if (!r.ok) throw new Error('OpenAI script: ' + (j.error?.message || r.status))
   const parsed = JSON.parse(j.choices[0].message.content)
-  const lines = Array.isArray(parsed) ? parsed : (parsed.lines || parsed.script || [])
-  return lines.filter(Boolean).map(String)
+  const lines = (parsed.lines || []).filter(x => x && x.t)
+  return lines.map(x => ({ t: String(x.t), a: anchors.includes(x.a) ? x.a : '' }))
 }
 
 // ── 2) TTS frase per frase + 3) VTT ────────────────────────────────────────────
@@ -147,11 +158,48 @@ async function buildAudioAndVtt(id, lines) {
     vtt += `${fmtVttTime(start)} --> ${fmtVttTime(end)}\n${lines[i]}\n\n`
   }
   const vttPath = path.join(dir, 'subs.en.vtt'); fs.writeFileSync(vttPath, vtt)
-  return { audio, vttPath, duration: t }
+  return { audio, vttPath, duration: t, durs }
 }
 
-// ── 4) Registrazione walkthrough ───────────────────────────────────────────────
-async function recordTab(article, durationSec) {
+// Selettore dei "punti di riferimento" della pagina (titoli, etichette card,
+// header tabella) usati sia per gli anchor sia per lo scroll mirato.
+const ANCHOR_SEL = 'h1,h2,h3,h4,th,[class*="label"],[class*="Label"]'
+
+async function gotoTab(page, article) {
+  await page.goto(USE_DEMO ? `${BASE_URL}/demo` : BASE_URL, { waitUntil: 'networkidle' })
+  const label = TAB_LABELS[article.tab]
+  if (label) { try { await page.getByText(label, { exact: true }).first().click({ timeout: 8000 }) } catch {} }
+  await page.waitForTimeout(2800)
+}
+
+// Pre-pass (senza registrazione): estrae i testi visibili da usare come anchor.
+async function getAnchors(article) {
+  const { chromium } = await import('playwright')
+  const browser = await chromium.launch()
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, ...(AUTH_STATE && fs.existsSync(AUTH_STATE) ? { storageState: AUTH_STATE } : {}) })
+  const page = await ctx.newPage()
+  let anchors = []
+  try {
+    await gotoTab(page, article)
+    anchors = await page.evaluate((sel) => {
+      const seen = new Set(); const out = []
+      for (const el of document.querySelectorAll(sel)) {
+        const t = (el.textContent || '').replace(/\s+/g, ' ').trim()
+        if (t.length < 2 || t.length > 42 || seen.has(t)) continue
+        const r = el.getBoundingClientRect()
+        if (r.width < 8 || r.height < 8) continue
+        seen.add(t); out.push(t)
+        if (out.length >= 40) break
+      }
+      return out
+    }, ANCHOR_SEL)
+  } catch {}
+  await ctx.close(); await browser.close()
+  return anchors
+}
+
+// ── 4) Registrazione coreografata: scrolla su ogni anchor mentre parla la voce ──
+async function recordChoreographed(article, plan, durs) {
   const { chromium } = await import('playwright')
   const dir = path.join(WORK, article.id, 'rec'); fs.mkdirSync(dir, { recursive: true })
   const browser = await chromium.launch()
@@ -161,33 +209,40 @@ async function recordTab(article, durationSec) {
     ...(AUTH_STATE && fs.existsSync(AUTH_STATE) ? { storageState: AUTH_STATE } : {}),
   })
   const page = await ctx.newPage()
-  await page.goto(USE_DEMO ? `${BASE_URL}/demo` : BASE_URL, { waitUntil: 'networkidle' })
-  // naviga alla tab cliccando la voce di nav
-  const label = TAB_LABELS[article.tab]
-  if (label) {
-    try { await page.getByText(label, { exact: true }).first().click({ timeout: 8000 }); } catch {}
+  const t0 = Date.now()
+  await gotoTab(page, article)
+  await page.evaluate(() => { const m = document.querySelector('main'); if (m) m.scrollTop = 0; else window.scrollTo(0, 0) })
+  await page.waitForTimeout(500)
+  const offset = (Date.now() - t0) / 1000 // i secondi iniziali (nav+load) da tagliare nel montaggio
+  const anyAnchor = plan.some(p => p.a)
+  for (let i = 0; i < plan.length; i++) {
+    const hold = Math.max(1300, Math.round((durs[i] || 2) * 1000))
+    const a = plan[i].a
+    if (a) {
+      await page.evaluate(({ txt, sel }) => {
+        const els = [...document.querySelectorAll(sel)]
+        const norm = (e) => (e.textContent || '').replace(/\s+/g, ' ').trim()
+        const el = els.find(e => norm(e) === txt) || els.find(e => norm(e).includes(txt))
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, { txt: a, sel: ANCHOR_SEL })
+    } else if (!anyAnchor) {
+      await page.mouse.wheel(0, 320) // fallback: scroll proporzionale se nessun anchor
+    }
+    await page.waitForTimeout(hold)
   }
-  await page.waitForTimeout(2500)
-  // walkthrough: scroll lento del contenuto per la durata della narrazione
-  const ms = Math.max(8000, Math.round(durationSec * 1000))
-  const steps = Math.max(8, Math.round(ms / 600))
-  for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, 260)
-    await page.waitForTimeout(Math.round(ms / steps))
-  }
-  await page.waitForTimeout(800)
+  await page.waitForTimeout(500)
   const video = page.video()
   await ctx.close(); await browser.close()
   const webm = await video.path()
-  return webm
+  return { webm, offset }
 }
 
 // ── 5) Montaggio ────────────────────────────────────────────────────────────────
-function mux(id, webm, audio, durationSec) {
+function mux(id, webm, offset, audio, durationSec) {
   const dir = path.join(WORK, id)
   const mp4 = path.join(dir, `${id}.mp4`)
-  // video + audio, output tagliato alla durata della voce (-shortest), riencode pulito
-  sh('ffmpeg', ['-y', '-i', webm, '-i', audio,
+  // taglia i secondi iniziali di nav/load (-ss offset), poi video+voce, durata = voce
+  sh('ffmpeg', ['-y', '-ss', String(Math.max(0, offset).toFixed(2)), '-i', webm, '-i', audio,
     '-map', '0:v:0', '-map', '1:a:0', '-t', String(durationSec.toFixed(2)),
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', mp4])
@@ -245,11 +300,13 @@ async function main() {
   for (const a of targets) {
     try {
       console.log(`\n▶ ${a.id}`)
-      const lines = await makeScript(a); console.log('  script:', lines.length, 'frasi')
-      const { audio, vttPath, duration } = await buildAudioAndVtt(a.id, lines); console.log('  voce:', duration.toFixed(1), 's')
+      const anchors = await getAnchors(a); console.log('  anchor:', anchors.length)
+      const plan = await makeScriptSynced(a, anchors); console.log('  script:', plan.length, 'frasi (', plan.filter(p => p.a).length, 'ancorate )')
+      const lines = plan.map(p => p.t)
+      const { audio, vttPath, duration, durs } = await buildAudioAndVtt(a.id, lines); console.log('  voce:', duration.toFixed(1), 's')
       if (DRY) { console.log('  DRY → stop (audio+vtt in', path.join(WORK, a.id), ')'); continue }
-      const webm = await recordTab(a, duration); console.log('  registrato')
-      const files = mux(a.id, webm, audio, duration); console.log('  montato')
+      const { webm, offset } = await recordChoreographed(a, plan, durs); console.log('  registrato')
+      const files = mux(a.id, webm, offset, audio, duration); console.log('  montato')
       const entry = await upload(a.id, files, vttPath, duration); console.log('  caricato:', entry.src)
       manifest[a.id] = entry
       writeManifest(manifest) // salva incrementale: se si interrompe, i fatti restano

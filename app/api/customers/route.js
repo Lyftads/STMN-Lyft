@@ -6,6 +6,7 @@ import { withTenantContext, getShopify, getEffectiveTenantId } from '../../../li
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { buildSnapshot, classify, isoWeekMonday, SEGMENTS, DAY } from '../../../lib/customers/rfm'
+import { fetchAllCustomersBulk } from '../../../lib/customers/bulk'
 
 // ── Clienti (layer d'azione AI, additivo, isolato, tenant-aware) ────────────
 // Segmentazione RFM/lifecycle dall'anagrafica Shopify (aggregati LIFETIME) +
@@ -109,7 +110,14 @@ export async function GET(req) {
     return swrSnapshot(req, { tab: 'customersRfm', ttlMs: 2 * 60 * 60 * 1000, compute: async () => {
       try {
         const now = Date.now()
-        const { customers, truncated } = await fetchCustomers()
+        // Via maestra: Bulk Operations (tutti i clienti, no throttling). Se non
+        // disponibile (es. bulk già occupato/errore) → paginazione resiliente.
+        let customers, truncated = false
+        try {
+          customers = await fetchAllCustomersBulk(storeUrl(), token(), now + 120000)
+        } catch {
+          const r = await fetchCustomers(); customers = r.customers; truncated = r.truncated
+        }
         const { buyers, currency } = toBuyers(customers, now)
         const snap = buildSnapshot(buyers)
 

@@ -4,6 +4,7 @@ export const maxDuration = 300
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { buildSnapshot, isoWeekMonday, DAY } from '../../../../lib/customers/rfm'
+import { fetchAllCustomersBulk } from '../../../../lib/customers/bulk'
 
 // ============================================================================
 //  Cron snapshot settimanale dei segmenti clienti, per TUTTI i tenant.
@@ -21,7 +22,18 @@ const cleanStore = (url) => String(url || '').trim().replace(/^https?:\/\//, '')
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const r2 = (n) => Math.round(num(n) * 100) / 100
 
-async function fetchBuyers(store, tk) {
+function nodeToBuyer(n, now) {
+  const orders = Math.round(num(n.numberOfOrders))
+  if (orders <= 0) return null
+  const firstTs = new Date(n.createdAt).getTime()
+  const lastTs = new Date(n.lastOrder?.createdAt || n.createdAt).getTime()
+  const recencyDays = Number.isFinite(lastTs) ? Math.floor((now - lastTs) / DAY) : 9999
+  const cadenceDays = orders >= 2 && lastTs > firstTs ? (lastTs - firstTs) / ((orders - 1) * DAY) : null
+  return { orders, spent: r2(num(n.amountSpent?.amount)), recencyDays, cadenceDays }
+}
+
+// Paginazione resiliente (fallback se il bulk non è disponibile).
+async function fetchBuyersPaged(store, tk) {
   const out = []
   const q = `query($cursor: String) {
     customers(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
@@ -30,31 +42,34 @@ async function fetchBuyers(store, tk) {
     }
   }`
   let cursor = null, pages = 0
-  const MAX = 300, now = Date.now()
-  while (pages < MAX) {
+  const MAX = 320, now = Date.now(), deadline = now + 130000
+  while (pages < MAX && Date.now() < deadline) {
     pages++
     const res = await fetch(`https://${store}/admin/api/2024-01/graphql.json`, {
       method: 'POST', headers: { 'X-Shopify-Access-Token': tk, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, variables: { cursor } }), signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({ query: q, variables: { cursor } }), signal: AbortSignal.timeout(30000),
     })
     if (!res.ok) { if (pages === 1) throw new Error(`Shopify ${res.status}`); break }
     const j = await res.json()
     const conn = j?.data?.customers
     if (!conn) break
-    for (const e of (conn.edges || [])) {
-      const n = e.node
-      const orders = Math.round(num(n.numberOfOrders))
-      if (orders <= 0) continue
-      const firstTs = new Date(n.createdAt).getTime()
-      const lastTs = new Date(n.lastOrder?.createdAt || n.createdAt).getTime()
-      const recencyDays = Number.isFinite(lastTs) ? Math.floor((now - lastTs) / DAY) : 9999
-      const cadenceDays = orders >= 2 && lastTs > firstTs ? (lastTs - firstTs) / ((orders - 1) * DAY) : null
-      out.push({ orders, spent: r2(num(n.amountSpent?.amount)), recencyDays, cadenceDays })
-    }
+    for (const e of (conn.edges || [])) { const b = nodeToBuyer(e.node, now); if (b) out.push(b) }
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
   }
   return out
+}
+
+async function fetchBuyers(store, tk) {
+  const now = Date.now()
+  try {
+    const nodes = await fetchAllCustomersBulk(store, tk, now + 120000)
+    const buyers = []
+    for (const n of nodes) { const b = nodeToBuyer(n, now); if (b) buyers.push(b) }
+    return buyers
+  } catch {
+    return fetchBuyersPaged(store, tk)
+  }
 }
 
 export async function GET(req) {

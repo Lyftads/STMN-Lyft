@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { buildSnapshot, isoWeekMonday, SEGMENTS, DAY } from '../../../../lib/customers/rfm'
+import { fetchAllCustomersBulk, fetchAllOrdersBulk } from '../../../../lib/customers/bulk'
 
 // ── Backfill storico segmenti clienti (ricostruzione dagli ordini) ──────────
 // Replay a passaggio singolo degli ordini per ricostruire gli snapshot
@@ -30,9 +31,23 @@ async function gql(query, variables) {
   return j.data
 }
 
-// Aggregati lifetime per cliente (id → stato finale).
+const aggFromNode = (n) => ({
+  firstTs: new Date(n.createdAt).getTime(),
+  lifetimeLastTs: new Date(n.lastOrder?.createdAt || n.createdAt).getTime(),
+  lifetimeOrders: Math.round(num(n.numberOfOrders)),
+  lifetimeSpent: num(n.amountSpent?.amount),
+  win: [], // ordini nella finestra: [{ts, total}]
+})
+
+// Aggregati lifetime per cliente (id → stato finale). Bulk → fallback paginato.
 async function fetchAggregates() {
   const map = new Map()
+  try {
+    const nodes = await fetchAllCustomersBulk(storeUrl(), token(), Date.now() + 120000)
+    for (const n of nodes) map.set(n.id, aggFromNode(n))
+    if (map.size) return map
+  } catch {}
+  // fallback: paginazione
   const q = `query($cursor: String) {
     customers(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
       edges { node { id numberOfOrders amountSpent { amount } createdAt lastOrder { createdAt } } }
@@ -40,30 +55,25 @@ async function fetchAggregates() {
     }
   }`
   let cursor = null, pages = 0
-  const MAX = 300
-  while (pages < MAX) {
+  const MAX = 320, deadline = Date.now() + 120000
+  while (pages < MAX && Date.now() < deadline) {
     pages++
     const d = await gql(q, { cursor })
     const conn = d?.customers
     if (!conn) break
-    for (const e of (conn.edges || [])) {
-      const n = e.node
-      map.set(n.id, {
-        firstTs: new Date(n.createdAt).getTime(),
-        lifetimeLastTs: new Date(n.lastOrder?.createdAt || n.createdAt).getTime(),
-        lifetimeOrders: Math.round(num(n.numberOfOrders)),
-        lifetimeSpent: num(n.amountSpent?.amount),
-        win: [], // ordini nella finestra: [{ts, total}]
-      })
-    }
+    for (const e of (conn.edges || [])) map.set(e.node.id, aggFromNode(e.node))
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
   }
   return map
 }
 
-// Ordini più recenti (DESC) fino a un cap → definiscono la finestra ricostruita.
+// Tutti gli ordini → definiscono la finestra ricostruita. Bulk → fallback paginato.
 async function fetchOrders(maxPages) {
+  try {
+    const orders = await fetchAllOrdersBulk(storeUrl(), token(), Date.now() + 120000)
+    if (orders.length) return { orders, truncated: false }
+  } catch {}
   const orders = []
   const q = `query($cursor: String) {
     orders(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {

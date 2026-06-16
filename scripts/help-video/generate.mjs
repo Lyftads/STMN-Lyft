@@ -35,9 +35,10 @@ const AUTH_STATE = process.env.HELP_AUTH_STORAGE || ''        // path a storageS
 const USE_DEMO = process.env.HELP_USE_DEMO === '1'            // usa /demo (dati finti, no login)
 const LOGIN_EMAIL = process.env.HELP_LOGIN_EMAIL || ''       // login reale (dati veri) se non usi /demo
 const LOGIN_PASSWORD = process.env.HELP_LOGIN_PASSWORD || ''
-const TTS_VOICE = process.env.HELP_TTS_VOICE || 'alloy'      // OpenAI: alloy|echo|fable|onyx|nova|shimmer
-const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente con voice id → voce ElevenLabs
-const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || ''   // es. una voce EN del tuo account ElevenLabs
+const TTS_MODEL = process.env.HELP_TTS_MODEL || 'tts-1-hd'   // hd = più naturale di tts-1
+const TTS_VOICE = process.env.HELP_TTS_VOICE || 'nova'       // OpenAI: nova/shimmer più calde; alloy/echo/fable/onyx
+const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente con voice id → voce ElevenLabs (più umana)
+const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || ''   // una voce EN del tuo account ElevenLabs
 const ELEVEN_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2'
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -103,10 +104,11 @@ async function makeScriptSynced(article, anchors) {
   const sys = [
     'You write friendly, clear English voiceover scripts for a SaaS product walkthrough video, SYNCED to on-screen elements.',
     'You are given the guide content AND a list of EXACT text labels currently visible on the page (the "anchors").',
-    'Write 8-11 narration sentences (each ~16-26 words) that walk the viewer through the tab from top to bottom.',
-    'Be genuinely descriptive: for each anchored element say WHAT it shows AND WHY it is useful or how to read it — not just its name. Teach a little, in a natural spoken tone.',
+    'LENGTH: the spoken script must last AT LEAST 40-45 seconds (≥ ~115 words). Going longer is perfectly fine — never make it shorter than ~40 seconds. Use 8-12 sentences (more if the tab has many useful anchors to cover).',
+    'Be genuinely descriptive: for each anchored element say WHAT it shows AND WHY it is useful or how to read it — not just its name. Give it room to breathe, do not rush.',
+    'TONE: warm, conversational, human — like a friendly colleague giving a quick tour, NOT a formal manual. Use contractions (you\'ll, it\'s, here\'s, that\'s), light connective phrases (so, and, basically, just), and natural rhythm. Avoid stiff/robotic phrasing.',
     'For EACH sentence pick the single on-page anchor it talks about, so the video scrolls there while you speak.',
-    'Rules: sentence 1 is a one-sentence intro of what the tab is for, with anchor "". If there are many anchors, cover the most important ones (do not list every single one). "a" MUST be copied EXACTLY from the anchors list, or "" for the intro. Order sentences to follow the anchors top-to-bottom. No numbering, no markdown.',
+    'Rules: sentence 1 is a one-sentence intro of what the tab is for, with anchor "". If there are many anchors, cover only the most important ones to stay within the time budget (do NOT list every single one). "a" MUST be copied EXACTLY from the anchors list, or "" for the intro. Order sentences to follow the anchors top-to-bottom. No numbering, no markdown.',
     'Output ONLY JSON: {"lines":[{"t":"sentence","a":"exact anchor or empty"}]}',
   ].join(' ')
   const r = await jfetch('https://api.openai.com/v1/chat/completions', {
@@ -127,7 +129,8 @@ async function ttsLine(text, outPath) {
   if (ELEVEN_KEY && ELEVEN_VOICE) {
     const r = await jfetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}`, {
       method: 'POST', headers: { 'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-      body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+      // stability bassa + style → consegna più espressiva e umana, meno piatta
+      body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true } }),
     })
     if (!r.ok) throw new Error('ElevenLabs TTS: ' + r.status + ' ' + (await r.text()).slice(0, 120))
     fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer()))
@@ -135,7 +138,7 @@ async function ttsLine(text, outPath) {
   }
   const r = await jfetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'tts-1', voice: TTS_VOICE, input: text, response_format: 'mp3' }),
+    body: JSON.stringify({ model: TTS_MODEL, voice: TTS_VOICE, input: text, response_format: 'mp3' }),
   })
   if (!r.ok) throw new Error('OpenAI TTS: ' + r.status)
   fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer()))

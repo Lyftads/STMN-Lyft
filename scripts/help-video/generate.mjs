@@ -289,7 +289,8 @@ function verticalizeImpl(id, mp4, vttPath) {
   const vf = [
     '[0:v]split=2[v0][v1]',
     '[v0]scale=1080:-2[fg]',
-    '[v1]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=22:6,eq=brightness=-0.06[bg]',
+    // bg sfocato leggero: stiro a 1080x1920 (la distorsione non si vede, è blur)
+    '[v1]scale=1080:1920,boxblur=20:5,eq=brightness=-0.06[bg]',
     `[bg][fg]overlay=(W-w)/2:(H-h)/2${subs}[v]`,
   ].join(';')
   sh('ffmpeg', ['-y', '-i', mp4, '-filter_complex', vf, '-map', '[v]', '-map', '0:a',

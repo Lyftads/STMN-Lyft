@@ -147,7 +147,7 @@ async function runBackfill(maxOrderPages) {
     const snap = buildSnapshot(buyers)
     rows.push({
       workspace_id: wsId, week: isoWeekMonday(wMon),
-      total_customers: snap.totalCustomers, first_time: snap.firstTime, returning: snap.returning,
+      total_customers: snap.totalCustomers, first_time: snap.firstTime, returning_count: snap.returning,
       retention: snap.retention, clv: snap.clv, aov: snap.aov, orders_per_customer: snap.ordersPerCustomer,
       days_between: snap.daysBetween, segments: snap.segments, captured_at: new Date().toISOString(), source: 'backfill',
     })

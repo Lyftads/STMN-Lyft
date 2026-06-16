@@ -83,7 +83,7 @@ export async function GET(req) {
       const snap = buildSnapshot(buyers)
       await admin.from('customer_segment_snapshots').upsert({
         workspace_id: t.workspaceId, week,
-        total_customers: snap.totalCustomers, first_time: snap.firstTime, returning: snap.returning,
+        total_customers: snap.totalCustomers, first_time: snap.firstTime, returning_count: snap.returning,
         retention: snap.retention, clv: snap.clv, aov: snap.aov, orders_per_customer: snap.ordersPerCustomer,
         days_between: snap.daysBetween, segments: snap.segments, captured_at: new Date().toISOString(), source: 'cron',
       }, { onConflict: 'workspace_id,week' })

@@ -17,7 +17,7 @@ create table if not exists customer_segment_snapshots (
   week           date not null,                  -- lunedì ISO della settimana
   total_customers int  not null default 0,
   first_time     int  not null default 0,
-  returning      int  not null default 0,
+  returning_count int not null default 0,        -- 'returning' è keyword riservata in PG
   retention      numeric not null default 0,     -- % repeat (returning/total)
   clv            numeric not null default 0,     -- valore medio per cliente
   aov            numeric not null default 0,

@@ -114,20 +114,20 @@ export async function GET(req) {
           try {
             await admin.from('customer_segment_snapshots').upsert({
               workspace_id: wsId, week,
-              total_customers: snap.totalCustomers, first_time: snap.firstTime, returning: snap.returning,
+              total_customers: snap.totalCustomers, first_time: snap.firstTime, returning_count: snap.returning,
               retention: snap.retention, clv: snap.clv, aov: snap.aov, orders_per_customer: snap.ordersPerCustomer,
               days_between: snap.daysBetween, segments: snap.segments, captured_at: new Date().toISOString(), source: 'live',
             }, { onConflict: 'workspace_id,week' })
           } catch {}
           try {
             const { data } = await admin.from('customer_segment_snapshots')
-              .select('week,total_customers,first_time,returning,retention,clv,aov,segments')
+              .select('week,total_customers,first_time,returning_count,retention,clv,aov,segments')
               .eq('workspace_id', wsId).order('week', { ascending: true }).limit(70)
             series = (data || []).map(row => ({
               week: row.week,
               totalCustomers: row.total_customers,
               firstTime: row.first_time,
-              returning: row.returning,
+              returning: row.returning_count,
               retention: num(row.retention),
               clv: num(row.clv),
               aov: num(row.aov),

@@ -33,6 +33,8 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const BASE_URL = process.env.HELP_BASE_URL || 'http://localhost:3000'
 const AUTH_STATE = process.env.HELP_AUTH_STORAGE || ''        // path a storageState Playwright (sessione loggata)
 const USE_DEMO = process.env.HELP_USE_DEMO === '1'            // usa /demo (dati finti, no login)
+const LOGIN_EMAIL = process.env.HELP_LOGIN_EMAIL || ''       // login reale (dati veri) se non usi /demo
+const LOGIN_PASSWORD = process.env.HELP_LOGIN_PASSWORD || ''
 const TTS_VOICE = process.env.HELP_TTS_VOICE || 'alloy'      // OpenAI: alloy|echo|fable|onyx|nova|shimmer
 const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente con voice id → voce ElevenLabs
 const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || ''   // es. una voce EN del tuo account ElevenLabs
@@ -99,11 +101,12 @@ async function makeScriptSynced(article, anchors) {
   ].join('\n')
   const anchorList = anchors.length ? anchors.map(a => `- ${a}`).join('\n') : '(none)'
   const sys = [
-    'You write concise, friendly English voiceover scripts for a SaaS product walkthrough video, SYNCED to on-screen elements.',
+    'You write friendly, clear English voiceover scripts for a SaaS product walkthrough video, SYNCED to on-screen elements.',
     'You are given the guide content AND a list of EXACT text labels currently visible on the page (the "anchors").',
-    'Write 6-10 short narration sentences (max ~16 words each) that walk the viewer through the tab from top to bottom.',
-    'For EACH sentence pick the single on-page anchor it talks about, so the video can scroll there while you speak.',
-    'Rules: sentence 1 is a one-line intro of the tab with anchor "". "a" MUST be copied EXACTLY from the anchors list, or "" for general/intro lines. Order the sentences to follow the anchors top-to-bottom. Natural spoken tone, no numbering, no markdown.',
+    'Write 8-11 narration sentences (each ~16-26 words) that walk the viewer through the tab from top to bottom.',
+    'Be genuinely descriptive: for each anchored element say WHAT it shows AND WHY it is useful or how to read it — not just its name. Teach a little, in a natural spoken tone.',
+    'For EACH sentence pick the single on-page anchor it talks about, so the video scrolls there while you speak.',
+    'Rules: sentence 1 is a one-sentence intro of what the tab is for, with anchor "". If there are many anchors, cover the most important ones (do not list every single one). "a" MUST be copied EXACTLY from the anchors list, or "" for the intro. Order sentences to follow the anchors top-to-bottom. No numbering, no markdown.',
     'Output ONLY JSON: {"lines":[{"t":"sentence","a":"exact anchor or empty"}]}',
   ].join(' ')
   const r = await jfetch('https://api.openai.com/v1/chat/completions', {
@@ -165,11 +168,33 @@ async function buildAudioAndVtt(id, lines) {
 // header tabella) usati sia per gli anchor sia per lo scroll mirato.
 const ANCHOR_SEL = 'h1,h2,h3,h4,th,[class*="label"],[class*="Label"]'
 
+// Login reale (una volta per contesto browser) se ci sono le credenziali.
+async function loginIfNeeded(page) {
+  if (USE_DEMO || !LOGIN_EMAIL || !LOGIN_PASSWORD) return
+  try {
+    await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
+    const email = page.locator('input[type="email"], input[name="email"]').first()
+    if (await email.count()) {
+      await email.fill(LOGIN_EMAIL)
+      await page.locator('input[type="password"]').first().fill(LOGIN_PASSWORD)
+      const btn = page.getByRole('button', { name: /accedi|login|sign in|entra/i }).first()
+      if (await btn.count()) await btn.click(); else await page.keyboard.press('Enter')
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(3000)
+    }
+  } catch {}
+}
+
 async function gotoTab(page, article) {
-  await page.goto(USE_DEMO ? `${BASE_URL}/demo` : BASE_URL, { waitUntil: 'networkidle' })
+  if (USE_DEMO) {
+    await page.goto(`${BASE_URL}/demo`, { waitUntil: 'networkidle' })
+  } else {
+    await loginIfNeeded(page)
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
+  }
   const label = TAB_LABELS[article.tab]
   if (label) { try { await page.getByText(label, { exact: true }).first().click({ timeout: 8000 }) } catch {} }
-  await page.waitForTimeout(2800)
+  await page.waitForTimeout(3000)
 }
 
 // Pre-pass (senza registrazione): estrae i testi visibili da usare come anchor.

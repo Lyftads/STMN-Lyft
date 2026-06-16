@@ -31,8 +31,9 @@ npx playwright install chromium
 |-----|-------------|------|
 | `OPENAI_API_KEY` | sì | usata per script EN + TTS |
 | `HELP_BASE_URL` | sì | es. `https://lyftai.io` o `http://localhost:3000` |
-| `HELP_USE_DEMO=1` | consigliata | registra su `/demo` (dati finti, niente login) |
-| `HELP_AUTH_STORAGE` | alternativa | path a uno storageState Playwright loggato (se non usi /demo) |
+| `HELP_USE_DEMO=1` | opzione A | registra su `/demo` (dati finti, niente login) — semplice ma le tab data-driven (Clienti, Meta, Google, Dashboard) mostrano poco |
+| `HELP_LOGIN_EMAIL` + `HELP_LOGIN_PASSWORD` | opzione B (consigliata) | NON impostare `HELP_USE_DEMO`: il recorder fa login reale e registra le tab con i **dati veri**. Usa un account dedicato/demo. |
+| `HELP_AUTH_STORAGE` | alternativa | path a uno storageState Playwright loggato (in alternativa al login con credenziali) |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | sì (per upload) | bucket pubblico `help-videos` creato in automatico |
 | `HELP_TTS_VOICE` | no | voce OpenAI: alloy/echo/fable/onyx/nova/shimmer (default alloy) |
 | `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` | no | se presenti, la voce usa ElevenLabs (più naturale) invece di OpenAI. `ELEVENLABS_MODEL` opzionale (default eleven_multilingual_v2) |

@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import { preloadClienti, getClientiCache, setClientiCache } from '../../lib/clienti/preload'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
-// ── Clienti: segmentazione RFM + metriche + grafici nel tempo + campagne AI ──
-// Cache condivisa (memoria + sessionStorage) via lib/clienti/preload: aprendo la
-// tab dopo il preload all'avvio è istantanea; cambi tab e torni → niente reload.
+// ── Clienti: segmentazione RFM + Analytics (stile Digismoothie) + campagne AI ──
+// Cache condivisa (memoria + sessionStorage) via lib/clienti/preload.
 
 const SEG_ORDER = ['new', 'potentialLoyal', 'loyal', 'loyalAtRisk', 'aboutToSleep', 'sleepers']
 const SEG_COLOR = {
@@ -21,8 +20,13 @@ export default function ClientiTab({ onNavigate }) {
   const [data, setData] = useState(() => getClientiCache())
   const [loading, setLoading] = useState(() => !getClientiCache())
   const [error, setError] = useState('')
+  const [view, setView] = useState('overview') // overview | analytics
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState('')
+
+  // Drill segmento (lista clienti)
+  const [segView, setSegView] = useState(null)
+  const [segSearch, setSegSearch] = useState('')
 
   // Modale campagna
   const [campSeg, setCampSeg] = useState(null)
@@ -44,7 +48,6 @@ export default function ClientiTab({ onNavigate }) {
     const cached = getClientiCache()
     if (cached) {
       setData(cached); setLoading(false)
-      // rinfresca in background senza bloccare la UI
       preloadClienti(false).then(j => { if (j && j.ok) { setClientiCache(j); setData(j) } }).catch(() => {})
     } else { load() }
   }, []) // eslint-disable-line
@@ -60,33 +63,32 @@ export default function ClientiTab({ onNavigate }) {
   const series = data?.series || []
   const meta = (key) => SEG_COLOR[key]
   const segLabel = (key) => ({
-    new: t('cli.seg.new', null, 'Nuovi'),
-    potentialLoyal: t('cli.seg.potentialLoyal', null, 'Potenziali fedeli'),
-    loyal: t('cli.seg.loyal', null, 'Fedeli'),
-    loyalAtRisk: t('cli.seg.loyalAtRisk', null, 'Fedeli a rischio'),
-    aboutToSleep: t('cli.seg.aboutToSleep', null, 'Stanno per dormire'),
-    sleepers: t('cli.seg.sleepers', null, 'Dormienti'),
+    new: t('cli.seg.new', null, 'Nuovi'), potentialLoyal: t('cli.seg.potentialLoyal', null, 'Potenziali fedeli'),
+    loyal: t('cli.seg.loyal', null, 'Fedeli'), loyalAtRisk: t('cli.seg.loyalAtRisk', null, 'Fedeli a rischio'),
+    aboutToSleep: t('cli.seg.aboutToSleep', null, 'Stanno per dormire'), sleepers: t('cli.seg.sleepers', null, 'Dormienti'),
   }[key] || key)
   const segDesc = (key) => ({
-    new: t('cli.d.new', null, 'Primo ordine di recente'),
-    potentialLoyal: t('cli.d.potentialLoyal', null, 'Più ordini di recente'),
-    loyal: t('cli.d.loyal', null, 'Ordinano spesso e regolarmente'),
-    loyalAtRisk: t('cli.d.loyalAtRisk', null, 'Erano fedeli, non ordinano da un po\''),
-    aboutToSleep: t('cli.d.aboutToSleep', null, 'Primo ordine un po\' di tempo fa'),
-    sleepers: t('cli.d.sleepers', null, 'Primo ordine molto tempo fa'),
+    new: t('cli.d.new', null, 'Primo ordine di recente'), potentialLoyal: t('cli.d.potentialLoyal', null, 'Più ordini di recente'),
+    loyal: t('cli.d.loyal', null, 'Ordinano spesso e regolarmente'), loyalAtRisk: t('cli.d.loyalAtRisk', null, 'Erano fedeli, non ordinano da un po\''),
+    aboutToSleep: t('cli.d.aboutToSleep', null, 'Primo ordine un po\' di tempo fa'), sleepers: t('cli.d.sleepers', null, 'Primo ordine molto tempo fa'),
   }[key] || '')
 
   const fmtWeek = (iso) => { try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(intlLocale, { day: '2-digit', month: 'short' }) } catch { return iso } }
   const chartSeries = useMemo(() => series.slice(-26), [series])
+  const last = series[series.length - 1] || null
+  const prev = series[series.length - 2] || null
+  const deltaRetention = last && prev ? last.retention - prev.retention : null
+  const deltaClv = last && prev ? last.clv - prev.clv : null
+  const loyalCount = (segs.loyal?.count || 0) + (segs.potentialLoyal?.count || 0)
+  const LAB_FT = t('cli.firstTime', null, 'Nuovi'), LAB_RT = t('cli.returning', null, 'Di ritorno')
 
-  // Variazioni di segmento ultima settimana
   const segChanges = useMemo(() => {
     if (series.length < 2) return []
     const a = series[series.length - 2].segments || {}, b = series[series.length - 1].segments || {}
     return SEG_ORDER.map(key => ({ key, delta: (b[key] || 0) - (a[key] || 0) }))
   }, [series])
 
-  // ── Azione: backfill storico ────────────────────────────────────────────
+  // ── Azioni ──────────────────────────────────────────────────────────────
   const runBackfill = async () => {
     setBackfilling(true); setBackfillMsg('')
     try {
@@ -97,8 +99,6 @@ export default function ClientiTab({ onNavigate }) {
       await load(true)
     } catch (e) { setBackfillMsg(e.message) } finally { setBackfilling(false) }
   }
-
-  // ── Azione: crea campagna ───────────────────────────────────────────────
   const openCampaign = async (key) => {
     setCampSeg(key); setCamp(null); setCampError(''); setCampLoading(true); setCopied('')
     try {
@@ -115,6 +115,7 @@ export default function ClientiTab({ onNavigate }) {
   const closeCampaign = () => { setCampSeg(null); setCamp(null); setCampError(''); setCopied('') }
   const copy = async (what, text) => { try { await navigator.clipboard.writeText(text || ''); setCopied(what); setTimeout(() => setCopied(''), 1600) } catch {} }
   const segEmails = (key) => (segs[key]?.customers || []).map(c => c.email).filter(Boolean)
+  const openSegment = (key) => { setSegView(key); setSegSearch('') }
 
   if (loading) return <div style={{ padding: 40, color: 'var(--text2)' }}>{t('cli.loading', null, 'Carico i clienti da Shopify…')}</div>
   if (error) return (
@@ -131,7 +132,7 @@ export default function ClientiTab({ onNavigate }) {
   return (
     <div style={{ padding: '8px 4px 60px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: 0 }}>{t('cli.title', null, 'Clienti')}</h1>
@@ -144,159 +145,243 @@ export default function ClientiTab({ onNavigate }) {
         <button onClick={() => load(true)} style={btnGhost}><Icon name="refresh" /> {t('common.refresh', null, 'Aggiorna')}</button>
       </div>
 
-      {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginBottom: 26 }}>
-        <KpiCard title={t('cli.kpi.customers', null, 'Clienti')} value={fmtInt(totalCust)} delta={k.deltaCustomers} color="#7b5bff"
-          sub={`${t('cli.firstTime', null, 'Nuovi')} ${fmtInt(k.firstTime)} (${pct(ftPct)}) · ${t('cli.returning', null, 'Di ritorno')} ${fmtInt(k.returning)} (${pct(rtPct)})`} />
-        <KpiCard title={t('cli.kpi.value', null, 'Valore cliente (CLV)')} value={fmtMoney(k.clv, 2)} color="#0ea5e9"
-          sub={`${t('cli.firstTime', null, 'Nuovi')} ${fmtMoney(k.ft?.customerValue, 0)} · ${t('cli.returning', null, 'Di ritorno')} ${fmtMoney(k.rt?.customerValue, 0)}`} />
-        <KpiCard title={t('cli.kpi.opc', null, 'Ordini per cliente')} value={fmtNum(k.ordersPerCustomer, 1)} color="#22c55e"
-          sub={`${t('cli.firstTime', null, 'Nuovi')} ${fmtNum(k.ft?.ordersPerCustomer, 1)} · ${t('cli.returning', null, 'Di ritorno')} ${fmtNum(k.rt?.ordersPerCustomer, 1)}`} />
-        <KpiCard title={t('cli.kpi.days', null, 'Giorni tra gli ordini')} value={k.daysBetween == null ? '—' : fmtInt(k.daysBetween)} color="#f5b301"
-          sub={t('cli.retention', null, 'Retention') + ' ' + pct(k.retention)} />
-        <KpiCard title={t('cli.kpi.aov', null, 'Scontrino medio')} value={fmtMoney(k.aov, 2)} color="#ff7849"
-          sub={`${t('cli.firstTime', null, 'Nuovi')} ${fmtMoney(k.ft?.aov, 0)} · ${t('cli.returning', null, 'Di ritorno')} ${fmtMoney(k.rt?.aov, 0)}`} />
+      {/* Switcher Panoramica / Analytics */}
+      <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 24 }}>
+        {[['overview', t('cli.view.overview', null, 'Panoramica')], ['analytics', t('cli.view.analytics', null, 'Analytics')]].map(([id, lab]) => (
+          <button key={id} onClick={() => setView(id)} style={{
+            padding: '8px 18px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13.5,
+            background: view === id ? 'rgba(255,255,255,0.10)' : 'transparent', color: view === id ? '#fff' : 'var(--text2)',
+          }}>{lab}</button>
+        ))}
       </div>
 
-      {/* Tabella segmenti */}
-      <div style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden', marginBottom: 28 }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: 880 }}>
-            <thead>
-              <tr style={{ color: 'var(--text2)', textAlign: 'left' }}>
-                <th style={th}>{t('cli.col.segment', null, 'Segmento')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.customers', null, 'Clienti')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.value', null, 'Valore cliente')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.avgOrders', null, 'Ordini medi')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.days', null, 'Giorni tra ordini')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.aov', null, 'Scontrino medio')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.total', null, 'Vendite totali')}</th>
-                <th style={{ ...th, textAlign: 'right' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {SEG_ORDER.map(key => {
-                const s = segs[key] || {}
-                return (
-                  <tr key={key} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ width: 8, height: 30, borderRadius: 3, background: meta(key) }} />
-                        <div>
-                          <div style={{ color: '#fff', fontWeight: 700 }}>{segLabel(key)}</div>
-                          <div style={{ color: 'var(--text2)', fontSize: 12 }}>{segDesc(key)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ ...td, textAlign: 'right', color: '#fff', fontWeight: 700 }}>{fmtInt(s.count)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(s.customerValue, 2)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{fmtNum(s.avgOrders, 1)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{s.daysBetween == null ? '—' : fmtInt(s.daysBetween)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(s.aov, 2)}</td>
-                    <td style={{ ...td, textAlign: 'right', color: '#fff' }}>{fmtMoney(s.totalSales)}</td>
-                    <td style={{ ...td, textAlign: 'right' }}>
-                      <button onClick={() => openCampaign(key)} disabled={!s.count} style={{ ...btnPrimary, background: s.count ? meta(key) : 'rgba(255,255,255,0.06)', color: s.count ? '#0b0b0f' : 'var(--text2)', cursor: s.count ? 'pointer' : 'not-allowed', padding: '7px 12px' }}>
-                        <Icon name="sparkle" /> {t('cli.createCampaign', null, 'Crea campagna')}
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Grafici nel tempo */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: 0 }}>{t('cli.trends', null, 'Andamento nel tempo')}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {backfillMsg && <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{backfillMsg}</span>}
-          <button onClick={runBackfill} disabled={backfilling} style={btnGhost}>
-            <Icon name="layers" /> {backfilling ? t('cli.backfilling', null, 'Ricostruisco…') : t('cli.backfill', null, 'Ricostruisci storico')}
-          </button>
-        </div>
-      </div>
-
-      {series.length < 2 ? (
-        <div style={{ borderRadius: 16, border: '1px dashed rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.02)', padding: 26, color: 'var(--text2)', fontSize: 14 }}>
-          {t('cli.noHistory', null, 'Ancora pochi dati storici. Premi “Ricostruisci storico” per generare gli andamenti dagli ordini passati, oppure aspetta che si accumulino settimana dopo settimana.')}
-        </div>
-      ) : (
+      {view === 'overview' ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16 }}>
-            <ChartCard title={t('cli.chart.customers', null, 'Clienti nel tempo')}>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [t('cli.firstTime', null, 'Nuovi')]: s.firstTime, [t('cli.returning', null, 'Di ritorno')]: s.returning }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                  <YAxis tick={tick} width={42} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey={t('cli.firstTime', null, 'Nuovi')} stackId="a" fill="#0e7a5f" />
-                  <Bar dataKey={t('cli.returning', null, 'Di ritorno')} stackId="a" fill="#5eead4" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title={t('cli.chart.retention', null, 'Tasso di retention')} value={pct(k.retention)}>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.retention }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                  <YAxis tick={tick} width={42} unit="%" />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => pct(v)} />
-                  <Line type="monotone" dataKey="v" stroke="#22c55e" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} value={fmtMoney(k.clv, 2)}>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.clv }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                  <YAxis tick={tick} width={50} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmtMoney(v, 2)} />
-                  <Line type="monotone" dataKey="v" stroke="#0ea5e9" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title={t('cli.chart.perSegment', null, 'Clienti per segmento')}>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), ...s.segments }))} stackOffset="expand">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                  <YAxis tick={tick} width={42} tickFormatter={(v) => `${Math.round(v * 100)}%`} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [fmtInt(v), segLabel(n)]} />
-                  {SEG_ORDER.map(key => <Bar key={key} dataKey={key} stackId="s" fill={meta(key)} />)}
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
+          {/* KPI row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginBottom: 26 }}>
+            <KpiCard title={t('cli.kpi.customers', null, 'Clienti')} value={fmtInt(totalCust)} delta={k.deltaCustomers} color="#7b5bff"
+              sub={`${LAB_FT} ${fmtInt(k.firstTime)} (${pct(ftPct)}) · ${LAB_RT} ${fmtInt(k.returning)} (${pct(rtPct)})`} />
+            <KpiCard title={t('cli.kpi.value', null, 'Valore cliente (CLV)')} value={fmtMoney(k.clv, 2)} color="#0ea5e9"
+              sub={`${LAB_FT} ${fmtMoney(k.ft?.customerValue, 0)} · ${LAB_RT} ${fmtMoney(k.rt?.customerValue, 0)}`} />
+            <KpiCard title={t('cli.kpi.opc', null, 'Ordini per cliente')} value={fmtNum(k.ordersPerCustomer, 1)} color="#22c55e"
+              sub={`${LAB_FT} ${fmtNum(k.ft?.ordersPerCustomer, 1)} · ${LAB_RT} ${fmtNum(k.rt?.ordersPerCustomer, 1)}`} />
+            <KpiCard title={t('cli.kpi.days', null, 'Giorni tra gli ordini')} value={k.daysBetween == null ? '—' : fmtInt(k.daysBetween)} color="#f5b301"
+              sub={t('cli.retention', null, 'Retention') + ' ' + pct(k.retention)} />
+            <KpiCard title={t('cli.kpi.aov', null, 'Scontrino medio')} value={fmtMoney(k.aov, 2)} color="#ff7849"
+              sub={`${LAB_FT} ${fmtMoney(k.ft?.aov, 0)} · ${LAB_RT} ${fmtMoney(k.rt?.aov, 0)}`} />
           </div>
 
-          {/* Segment changes */}
-          {segChanges.length > 0 && (
-            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '16px 18px', marginTop: 16 }}>
-              <div style={{ fontWeight: 800, color: '#fff', marginBottom: 12 }}>{t('cli.changes', null, 'Variazioni di segmento (ultima settimana)')}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
-                {segChanges.map(c => (
-                  <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text)' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 99, background: meta(c.key) }} /> {segLabel(c.key)}
-                    </span>
-                    <span style={{ fontWeight: 800, color: c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text2)' }}>
-                      {c.delta > 0 ? '+' : ''}{fmtInt(c.delta)}
-                    </span>
-                  </div>
-                ))}
+          {/* Tabella segmenti (righe cliccabili → drill) */}
+          <div style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: 920 }}>
+                <thead>
+                  <tr style={{ color: 'var(--text2)', textAlign: 'left' }}>
+                    <th style={th}>{t('cli.col.segment', null, 'Segmento')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.customers', null, 'Clienti')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.value', null, 'Valore cliente')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.avgOrders', null, 'Ordini medi')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.days', null, 'Giorni tra ordini')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.aov', null, 'Scontrino medio')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('cli.col.total', null, 'Vendite totali')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SEG_ORDER.map(key => {
+                    const s = segs[key] || {}
+                    return (
+                      <tr key={key} onClick={() => openSegment(key)} className="cli-row" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                        <td style={td}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ width: 8, height: 30, borderRadius: 3, background: meta(key) }} />
+                            <div>
+                              <div style={{ color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>{segLabel(key)} <span style={{ color: 'var(--text2)', fontSize: 12, fontWeight: 500 }}>›</span></div>
+                              <div style={{ color: 'var(--text2)', fontSize: 12 }}>{segDesc(key)}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', color: '#fff', fontWeight: 700 }}>{fmtInt(s.count)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(s.customerValue, 2)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{fmtNum(s.avgOrders, 1)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{s.daysBetween == null ? '—' : fmtInt(s.daysBetween)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>{fmtMoney(s.aov, 2)}</td>
+                        <td style={{ ...td, textAlign: 'right', color: '#fff' }}>{fmtMoney(s.totalSales)}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>
+                          <button onClick={(e) => { e.stopPropagation(); openCampaign(key) }} disabled={!s.count} style={{ ...btnPrimary, background: s.count ? meta(key) : 'rgba(255,255,255,0.06)', color: s.count ? '#0b0b0f' : 'var(--text2)', cursor: s.count ? 'pointer' : 'not-allowed', padding: '7px 12px' }}>
+                            <Icon name="sparkle" /> {t('cli.createCampaign', null, 'Crea campagna')}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        // ── ANALYTICS (stile Digismoothie) ──────────────────────────────────
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{last ? t('cli.updatedOn', { d: fmtWeek(last.week) }, `Dati aggiornati al ${fmtWeek(last.week)}`) : ''}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {backfillMsg && <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{backfillMsg}</span>}
+              <button onClick={runBackfill} disabled={backfilling} style={btnGhost}>
+                <Icon name="layers" /> {backfilling ? t('cli.backfilling', null, 'Ricostruisco…') : t('cli.backfill', null, 'Ricostruisci storico')}
+              </button>
+            </div>
+          </div>
+
+          {series.length < 2 ? (
+            <div style={{ borderRadius: 16, border: '1px dashed rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.02)', padding: 26, color: 'var(--text2)', fontSize: 14 }}>
+              {t('cli.noHistory', null, 'Ancora pochi dati storici. Premi “Ricostruisci storico” per generare gli andamenti dagli ordini passati, oppure aspetta che si accumulino settimana dopo settimana.')}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))', gap: 16 }}>
+              {/* Customers */}
+              <AnalyticsCard title={t('cli.chart.customers', null, 'Clienti')} headline={fmtInt(totalCust)} delta={k.deltaCustomers} over={t('cli.over.customers', null, 'CLIENTI NEL TEMPO')}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [LAB_FT]: s.firstTime, [LAB_RT]: s.returning }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
+                    <YAxis tick={tick} width={44} />
+                    <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Legend wrapperStyle={legendStyle} />
+                    <Bar dataKey={LAB_FT} stackId="a" fill="#0e7a5f" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey={LAB_RT} stackId="a" fill="#5eead4" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* Retention rate */}
+              <AnalyticsCard title={t('cli.chart.retention', null, 'Tasso di retention')} headline={pct(k.retention)} delta={deltaRetention} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtNum(v, 1)}%`} over={t('cli.over.retention', null, 'RETENTION NEL TEMPO')}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.retention }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
+                    <YAxis tick={tick} width={44} unit="%" />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v) => pct(v)} />
+                    <Line type="monotone" dataKey="v" stroke="#22c55e" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* CLV */}
+              <AnalyticsCard title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} headline={fmtMoney(k.clv, 2)} delta={deltaClv} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtMoney(v, 0)}`} over={t('cli.over.clv', null, 'CLV NEL TEMPO')}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.clv }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
+                    <YAxis tick={tick} width={52} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmtMoney(v, 2)} />
+                    <Line type="monotone" dataKey="v" stroke="#0ea5e9" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* Loyal & potential loyal */}
+              <AnalyticsCard title={t('cli.chart.loyal', null, 'Fedeli e potenziali fedeli')} headline={fmtInt(loyalCount)} over={t('cli.over.loyal', null, 'FEDELI E POTENZIALI NEL TEMPO')}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [segLabel('loyal')]: s.segments.loyal, [segLabel('potentialLoyal')]: s.segments.potentialLoyal }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
+                    <YAxis tick={tick} width={44} />
+                    <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Legend wrapperStyle={legendStyle} />
+                    <Bar dataKey={segLabel('loyal')} stackId="l" fill={meta('loyal')} />
+                    <Bar dataKey={segLabel('potentialLoyal')} stackId="l" fill={meta('potentialLoyal')} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* Customers per segment (100%) */}
+              <AnalyticsCard title={t('cli.chart.perSegment', null, 'Clienti per segmento')} over={t('cli.over.perSegment', null, 'CLIENTI PER SEGMENTO')}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), ...s.segments }))} stackOffset="expand">
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
+                    <YAxis tick={tick} width={44} tickFormatter={(v) => `${Math.round(v * 100)}%`} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [fmtInt(v), segLabel(n)]} />
+                    {SEG_ORDER.map((key, i) => <Bar key={key} dataKey={key} stackId="s" fill={meta(key)} radius={i === SEG_ORDER.length - 1 ? [3, 3, 0, 0] : 0} />)}
+                  </BarChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* Segment changes */}
+              <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '16px 18px' }}>
+                <div style={{ fontWeight: 800, color: '#fff', fontSize: 14, marginBottom: 4 }}>{t('cli.chart.changes', null, 'Variazioni di segmento')}</div>
+                <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 0.6, marginBottom: 12 }}>{t('cli.over.changes', null, 'ULTIMA SETTIMANA')}</div>
+                <div>
+                  {segChanges.map(c => (
+                    <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--text)', fontSize: 13.5 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: meta(c.key) }} /> {segLabel(c.key)}
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: 13.5, color: c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text2)' }}>
+                        {c.delta > 0 ? '+' : ''}{fmtInt(c.delta)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </>
       )}
 
-      {/* Modale campagna */}
+      {/* ── Drill segmento: lista clienti ── */}
+      {segView && (() => {
+        const s = segs[segView] || {}
+        const all = s.customers || []
+        const q = segSearch.trim().toLowerCase()
+        const list = q ? all.filter(c => (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)) : all
+        return (
+          <div onClick={() => setSegView(null)} style={overlay}>
+            <div onClick={(e) => e.stopPropagation()} style={{ ...modal, width: 'min(860px,100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 99, background: meta(segView) }} />
+                  <h2 style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: 0 }}>{segLabel(segView)}</h2>
+                  <span style={{ color: 'var(--text2)', fontSize: 13 }}>· {fmtInt(s.count)} {t('cli.customersLower', null, 'clienti')}</span>
+                </div>
+                <button onClick={() => setSegView(null)} style={{ ...btnGhost, padding: '6px 10px' }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 14px', flexWrap: 'wrap' }}>
+                <input value={segSearch} onChange={(e) => setSegSearch(e.target.value)} placeholder={t('cli.searchPlaceholder', null, 'Cerca per nome o email…')}
+                  style={{ flex: 1, minWidth: 200, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(0,0,0,0.25)', color: '#fff', fontSize: 13 }} />
+                <button onClick={() => openCampaign(segView)} style={{ ...btnPrimary, background: meta(segView), color: '#0b0b0f' }}><Icon name="sparkle" /> {t('cli.createCampaign', null, 'Crea campagna')}</button>
+              </div>
+              <div style={{ overflowY: 'auto', maxHeight: '60vh', borderRadius: 12, border: '1px solid rgba(255,255,255,0.07)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead><tr style={{ color: 'var(--text2)', textAlign: 'left', position: 'sticky', top: 0, background: '#14141b' }}>
+                    <th style={th2}>{t('cli.col.name', null, 'Cliente')}</th>
+                    <th style={th2}>{t('cli.col.email', null, 'Email')}</th>
+                    <th style={{ ...th2, textAlign: 'right' }}>{t('cli.col.orders2', null, 'Ordini')}</th>
+                    <th style={{ ...th2, textAlign: 'right' }}>{t('cli.col.spent', null, 'Speso')}</th>
+                    <th style={{ ...th2, textAlign: 'right' }}>{t('cli.col.last', null, 'Ultimo ordine')}</th>
+                  </tr></thead>
+                  <tbody>
+                    {list.map((c, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ ...td2, color: '#fff', fontWeight: 600 }}>{c.name}</td>
+                        <td style={{ ...td2, color: 'var(--text2)' }}>{c.email || '—'}</td>
+                        <td style={{ ...td2, textAlign: 'right' }}>{fmtInt(c.orders)}</td>
+                        <td style={{ ...td2, textAlign: 'right', color: '#fff', fontWeight: 700 }}>{fmtMoney(c.spent)}</td>
+                        <td style={{ ...td2, textAlign: 'right', color: 'var(--text2)' }}>{c.lastDays >= 9999 ? '—' : t('cli.daysAgo', { d: c.lastDays }, `${c.lastDays} gg fa`)}</td>
+                      </tr>
+                    ))}
+                    {!list.length && <tr><td colSpan={5} style={{ ...td2, textAlign: 'center', color: 'var(--text2)', padding: 24 }}>{t('cli.empty', null, 'Nessun cliente.')}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              {s.count > all.length && <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 10 }}>{t('cli.capped2', { shown: all.length, total: fmtInt(s.count) }, `Mostrati i primi ${all.length} per spesa di ${fmtInt(s.count)}.`)}</div>}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Modale campagna ── */}
       {campSeg && (
         <div onClick={closeCampaign} style={overlay}>
           <div onClick={(e) => e.stopPropagation()} style={modal}>
@@ -349,6 +434,8 @@ export default function ClientiTab({ onNavigate }) {
           </div>
         </div>
       )}
+
+      <style>{`.cli-row:hover{background:rgba(255,255,255,0.035)}`}</style>
     </div>
   )
 }
@@ -369,12 +456,22 @@ function KpiCard({ title, value, sub, delta, color }) {
   )
 }
 
-function ChartCard({ title, value, children }) {
+function AnalyticsCard({ title, headline, delta, deltaFmt, over, children }) {
   return (
-    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '16px 14px 8px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '0 4px', marginBottom: 10 }}>
-        <span style={{ fontWeight: 800, color: '#fff', fontSize: 14 }}>{title}</span>
-        {value != null && <span style={{ fontWeight: 900, color: '#fff', fontSize: 16 }}>{value}</span>}
+    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '18px 16px 10px' }}>
+      <div style={{ padding: '0 4px' }}>
+        <div style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>{title}</div>
+        {headline != null && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '6px 0 2px' }}>
+            <span style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>{headline}</span>
+            {delta != null && delta !== 0 && (
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: delta > 0 ? '#22c55e' : '#ef4444' }}>
+                {delta > 0 ? '↑' : '↓'} {deltaFmt ? deltaFmt(Math.abs(delta)) : Math.abs(delta)}
+              </span>
+            )}
+          </div>
+        )}
+        {over && <div style={{ fontSize: 10.5, color: 'var(--text2)', letterSpacing: 0.7, margin: '8px 0 6px' }}>{over}</div>}
       </div>
       {children}
     </div>
@@ -395,8 +492,11 @@ function Field({ label, value, onCopy, copied, t }) {
 
 const th = { padding: '11px 18px', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }
 const td = { padding: '12px 18px' }
+const th2 = { padding: '10px 14px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 }
+const td2 = { padding: '10px 14px' }
 const tick = { fill: 'rgba(255,255,255,0.55)', fontSize: 11 }
 const tooltipStyle = { background: '#14141b', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, color: '#fff', fontSize: 12 }
+const legendStyle = { fontSize: 11, paddingTop: 4 }
 const btnGhost = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }
 const btnPrimary = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 20 }

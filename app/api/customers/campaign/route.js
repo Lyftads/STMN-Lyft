@@ -12,21 +12,29 @@ import { buildBrandContext } from '../../../../lib/tenant/brand'
 // Read-only sull'AI (nessun invio): l'invio resta un'azione esplicita dell'utente.
 
 const BRIEFS = {
-  vip: {
-    label: 'VIP (top spender, ancora attivi)',
-    goal: 'Premiare la fedeltà e far sentire il cliente speciale. Tono esclusivo, niente sconti aggressivi: accesso anticipato, perk, ringraziamento sincero. Spingere all\'acquisto del nuovo/best seller.',
+  new: {
+    label: 'Nuovi (primo ordine di recente)',
+    goal: 'Far sentire accolto il nuovo cliente, rafforzare la scelta fatta e creare le basi per il secondo ordine. Tono caldo e di benvenuto, riprova sociale, eventuale incentivo gentile al riacquisto. Niente sconti aggressivi.',
   },
-  atRisk: {
-    label: 'A rischio churn (repeat che hanno rallentato, 60–180 giorni dall\'ultimo ordine)',
-    goal: 'Riattivare con gentilezza prima che si perdano. Ricordare il valore del brand, mostrare le novità, eventualmente un piccolo incentivo soft. Tono caldo, non disperato.',
+  potentialLoyal: {
+    label: 'Potenziali fedeli (più ordini di recente, in crescita)',
+    goal: 'Consolidare l\'abitudine e spingere verso la fedeltà. Cross-sell coerente, valorizzare i benefici di tornare spesso, magari un perk/programma fedeltà. Tono di stima e crescita.',
   },
-  winback: {
-    label: 'Win-back (clienti persi, oltre 180 giorni dall\'ultimo ordine)',
-    goal: 'Recuperare con un messaggio forte: "ci sei mancato", novità importanti dal loro ultimo acquisto, un incentivo concreto per tornare. Tono diretto e onesto.',
+  loyal: {
+    label: 'Fedeli (ordinano spesso e regolarmente)',
+    goal: 'Premiare e far sentire speciale il cliente fedele. Accesso anticipato, perk esclusivi, ringraziamento sincero, novità/best seller. Tono esclusivo, niente sconti aggressivi.',
   },
-  convert: {
-    label: 'Da convertire (one-time recenti, da spingere al secondo acquisto)',
-    goal: 'Trasformare un acquisto singolo in cliente abituale. Cross-sell coerente con il primo ordine, riprova sociale, un incentivo al riacquisto. Tono amichevole e utile.',
+  loyalAtRisk: {
+    label: 'Fedeli a rischio (erano fedeli, non ordinano da un po\')',
+    goal: 'Riattivare un cliente di valore prima che si perda. Ricordare il legame, mostrare le novità, incentivo concreto ma rispettoso. Tono caldo e personale, non disperato.',
+  },
+  aboutToSleep: {
+    label: 'Stanno per dormire (primo ordine un po\' di tempo fa, in raffreddamento)',
+    goal: 'Risvegliare l\'interesse prima che diventino dormienti. Novità, motivo per tornare ora, piccolo incentivo. Tono leggero e invitante.',
+  },
+  sleepers: {
+    label: 'Dormienti (primo ordine molto tempo fa, inattivi)',
+    goal: 'Recuperare con un messaggio forte di win-back: "ci sei mancato", cosa è cambiato dal loro ultimo acquisto, un incentivo concreto per tornare. Tono diretto e onesto.',
   },
 }
 

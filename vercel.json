@@ -17,6 +17,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/customer-snapshots",
+      "schedule": "0 6 * * 1"
+    },
+    {
       "path": "/api/cron/consolidate-memories",
       "schedule": "0 3 * * 0"
     },

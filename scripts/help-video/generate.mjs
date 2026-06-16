@@ -285,8 +285,9 @@ function verticalize(id, mp4, vttPath) {
   const out = path.join(WORK, id, `${id}-vertical.mp4`)
   const style = "Alignment=2,FontName=Arial,FontSize=15,Bold=1,PrimaryColour=&Hffffff&,OutlineColour=&H90000000&,BorderStyle=3,Outline=2,Shadow=0,MarginV=150"
   const vf = [
-    '[0:v]scale=1080:-2[fg]',
-    '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=22:6,eq=brightness=-0.06[bg]',
+    '[0:v]split=2[v0][v1]',                       // un input si usa una volta sola → split
+    '[v0]scale=1080:-2[fg]',
+    '[v1]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=22:6,eq=brightness=-0.06[bg]',
     `[bg][fg]overlay=(W-w)/2:(H-h)/2,subtitles='${vttPath}':force_style='${style}'[v]`,
   ].join(';')
   sh('ffmpeg', ['-y', '-i', mp4, '-filter_complex', vf, '-map', '[v]', '-map', '0:a',
@@ -430,11 +431,15 @@ async function main() {
       const { webm, offset } = await recordChoreographed(a, plan, durs); console.log('  registrato')
       const files = mux(a.id, webm, offset, audio, duration) // poster da qui (pre-brand)
       const dir = path.join(WORK, a.id)
-      const finalH = brandWrap(a.title, files.mp4, 1280, 720, path.join(dir, `${a.id}.final.mp4`))
-      const vert = verticalize(a.id, files.mp4, vttPath)
-      const finalV = brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
-      files.mp4 = finalH; files.vertical = finalV
-      console.log('  montato + intro/outro + verticale')
+      const content = files.mp4 // contenuto pre-brand
+      try { files.mp4 = brandWrap(a.title, content, 1280, 720, path.join(dir, `${a.id}.final.mp4`)) }
+      catch (e) { console.error('  (brand H skip:', e.message, ')') }
+      // verticale per Reels: best-effort, non blocca l'orizzontale
+      try {
+        const vert = verticalize(a.id, content, vttPath)
+        files.vertical = brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
+      } catch (e) { console.error('  (verticale skip:', e.message, ')') }
+      console.log('  montato + intro/outro', files.vertical ? '+ verticale' : '(senza verticale)')
       const entry = await upload(a.id, files, vttPath, duration); console.log('  caricato:', entry.src)
       manifest[a.id] = entry
       writeManifest(manifest) // salva incrementale: se si interrompe, i fatti restano

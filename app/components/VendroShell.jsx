@@ -7,6 +7,8 @@ import AddClientModal from './AddClientModal'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { preloadClienti } from '../../lib/clienti/preload'
+import HelpDrawer from './HelpDrawer'
+import { articleForTab } from '../../lib/help/content'
 import DownloadReportButton from './DownloadReportButton'
 import AlertsBell from './AlertsBell'
 import NotificationsBell from './NotificationsBell'
@@ -54,6 +56,7 @@ export default function VendroShell({
 
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
+const [helpOpen, setHelpOpen] = useState(false)
   useEffect(() => {
     let alive = true
     const load = () => fetch('/api/actions?status=pending')
@@ -187,6 +190,7 @@ export default function VendroShell({
       title: 'System',
       color: '#86868b',
       items: [
+        { id: 'helpCenter', label: 'Centro Assistenza', icon: <Icon name="info" /> },
         { id: 'integrations', label: 'Integrazioni', icon: <Icon name="gear" /> },
         { id: 'brandIdentity', label: 'Brand Identity', icon: <Icon name="star" /> },
         { id: 'settings', label: 'Settings', icon: <Icon name="gear" /> },
@@ -453,7 +457,7 @@ export default function VendroShell({
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' && tab !== 'helpCenter' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}
@@ -475,6 +479,18 @@ export default function VendroShell({
               gap: 8,
               flexShrink: 0,
             }}>
+              {tab !== 'helpCenter' && articleForTab(tab) && (
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  title={t('help.guideFor', null, 'Guida di questa sezione')}
+                  className="btn-glass"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                >
+                  <Icon name="info" size={16} />
+                  <span style={{ fontSize: 13 }}>{t('help.guide', null, 'Guida')}</span>
+                </button>
+              )}
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
@@ -515,6 +531,7 @@ export default function VendroShell({
           </TabContent>
         </div>
       </main>
+      {helpOpen && <HelpDrawer article={articleForTab(tab)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>
   )
 }

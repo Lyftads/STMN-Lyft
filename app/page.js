@@ -10,6 +10,7 @@ import LiveStatsCards from './components/LiveStatsCards'
 const DashboardGlobe = dynamicImport(() => import('./components/DashboardGlobe'), { ssr: false })
 import KPIBrainTab from './components/KPIBrainTab'
 import ClientiTab from './components/ClientiTab'
+import HelpCenterTab from './components/HelpCenterTab'
 import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
@@ -4393,6 +4394,10 @@ export default function App() {
 
 {tab === 'clienti' && (
   <ClientiTab onNavigate={setTab} />
+)}
+
+{tab === 'helpCenter' && (
+  <HelpCenterTab onNavigate={setTab} />
 )}
 
 {/* INTEGRATIONS TAB */}

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import { preloadClienti, getClientiCache, setClientiCache } from '../../lib/clienti/preload'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 // ── Clienti: segmentazione RFM + Analytics (stile Digismoothie) + campagne AI ──
 // Cache condivisa (memoria + sessionStorage) via lib/clienti/preload.
@@ -240,91 +240,117 @@ export default function ClientiTab({ onNavigate }) {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))', gap: 16 }}>
               {/* Customers */}
-              <AnalyticsCard title={t('cli.chart.customers', null, 'Clienti')} headline={fmtInt(totalCust)} delta={k.deltaCustomers} over={t('cli.over.customers', null, 'CLIENTI NEL TEMPO')}>
+              <AnalyticsCard accent="#14b8a6" title={t('cli.chart.customers', null, 'Clienti')} headline={fmtInt(totalCust)} delta={k.deltaCustomers} over={t('cli.over.customers', null, 'CLIENTI NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
-                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [LAB_FT]: s.firstTime, [LAB_RT]: s.returning }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                    <YAxis tick={tick} width={44} />
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [LAB_FT]: s.firstTime, [LAB_RT]: s.returning }))} barCategoryGap="22%">
+                    <defs>
+                      <linearGradient id="gFt" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0e7a5f" stopOpacity={1} /><stop offset="100%" stopColor="#0e7a5f" stopOpacity={0.45} /></linearGradient>
+                      <linearGradient id="gRt" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#67ffd6" stopOpacity={1} /><stop offset="100%" stopColor="#34d6b0" stopOpacity={0.7} /></linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                    <YAxis tick={tick} width={44} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                    <Legend wrapperStyle={legendStyle} />
-                    <Bar dataKey={LAB_FT} stackId="a" fill="#0e7a5f" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey={LAB_RT} stackId="a" fill="#5eead4" radius={[3, 3, 0, 0]} />
+                    <Legend wrapperStyle={legendStyle} iconType="circle" iconSize={8} />
+                    <Bar dataKey={LAB_FT} stackId="a" fill="url(#gFt)" maxBarSize={26} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                    <Bar dataKey={LAB_RT} stackId="a" fill="url(#gRt)" radius={[5, 5, 0, 0]} maxBarSize={26} isAnimationActive animationDuration={900} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
               </AnalyticsCard>
 
               {/* Retention rate */}
-              <AnalyticsCard title={t('cli.chart.retention', null, 'Tasso di retention')} headline={pct(k.retention)} delta={deltaRetention} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtNum(v, 1)}%`} over={t('cli.over.retention', null, 'RETENTION NEL TEMPO')}>
+              <AnalyticsCard accent="#22c55e" title={t('cli.chart.retention', null, 'Tasso di retention')} headline={pct(k.retention)} delta={deltaRetention} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtNum(v, 1)}%`} over={t('cli.over.retention', null, 'RETENTION NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
-                  <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.retention }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                    <YAxis tick={tick} width={44} unit="%" />
+                  <AreaChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.retention }))}>
+                    <defs>
+                      <linearGradient id="aRet" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22c55e" stopOpacity={0.45} /><stop offset="100%" stopColor="#22c55e" stopOpacity={0} /></linearGradient>
+                      <filter id="glowGreen" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                    <YAxis tick={tick} width={44} unit="%" axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v) => pct(v)} />
-                    <Line type="monotone" dataKey="v" stroke="#22c55e" strokeWidth={2.5} dot={false} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="v" stroke="#34f5a0" strokeWidth={2.5} fill="url(#aRet)" style={{ filter: 'url(#glowGreen)' }} dot={false} activeDot={{ r: 5, fill: '#34f5a0', stroke: '#0b0b0f', strokeWidth: 2 }} isAnimationActive animationDuration={1000} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </AnalyticsCard>
 
               {/* CLV */}
-              <AnalyticsCard title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} headline={fmtMoney(k.clv, 2)} delta={deltaClv} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtMoney(v, 0)}`} over={t('cli.over.clv', null, 'CLV NEL TEMPO')}>
+              <AnalyticsCard accent="#0ea5e9" title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} headline={fmtMoney(k.clv, 2)} delta={deltaClv} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtMoney(v, 0)}`} over={t('cli.over.clv', null, 'CLV NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
-                  <LineChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.clv }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                    <YAxis tick={tick} width={52} />
+                  <AreaChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.clv }))}>
+                    <defs>
+                      <linearGradient id="aClv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.45} /><stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} /></linearGradient>
+                      <filter id="glowBlue" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                    <YAxis tick={tick} width={52} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmtMoney(v, 2)} />
-                    <Line type="monotone" dataKey="v" stroke="#0ea5e9" strokeWidth={2.5} dot={false} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="v" stroke="#38bdf8" strokeWidth={2.5} fill="url(#aClv)" style={{ filter: 'url(#glowBlue)' }} dot={false} activeDot={{ r: 5, fill: '#38bdf8', stroke: '#0b0b0f', strokeWidth: 2 }} isAnimationActive animationDuration={1000} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </AnalyticsCard>
 
               {/* Loyal & potential loyal */}
-              <AnalyticsCard title={t('cli.chart.loyal', null, 'Fedeli e potenziali fedeli')} headline={fmtInt(loyalCount)} over={t('cli.over.loyal', null, 'FEDELI E POTENZIALI NEL TEMPO')}>
+              <AnalyticsCard accent="#0ea5e9" title={t('cli.chart.loyal', null, 'Fedeli e potenziali fedeli')} headline={fmtInt(loyalCount)} over={t('cli.over.loyal', null, 'FEDELI E POTENZIALI NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
-                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [segLabel('loyal')]: s.segments.loyal, [segLabel('potentialLoyal')]: s.segments.potentialLoyal }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                    <YAxis tick={tick} width={44} />
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [segLabel('loyal')]: s.segments.loyal, [segLabel('potentialLoyal')]: s.segments.potentialLoyal }))} barCategoryGap="22%">
+                    <defs>
+                      <linearGradient id="gLoyal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#22d3ee" stopOpacity={1} /><stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.6} /></linearGradient>
+                      <linearGradient id="gPot" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4ade80" stopOpacity={1} /><stop offset="100%" stopColor="#22c55e" stopOpacity={0.6} /></linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                    <YAxis tick={tick} width={44} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                    <Legend wrapperStyle={legendStyle} />
-                    <Bar dataKey={segLabel('loyal')} stackId="l" fill={meta('loyal')} />
-                    <Bar dataKey={segLabel('potentialLoyal')} stackId="l" fill={meta('potentialLoyal')} radius={[3, 3, 0, 0]} />
+                    <Legend wrapperStyle={legendStyle} iconType="circle" iconSize={8} />
+                    <Bar dataKey={segLabel('loyal')} stackId="l" fill="url(#gLoyal)" maxBarSize={26} isAnimationActive animationDuration={900} />
+                    <Bar dataKey={segLabel('potentialLoyal')} stackId="l" fill="url(#gPot)" radius={[5, 5, 0, 0]} maxBarSize={26} isAnimationActive animationDuration={900} />
                   </BarChart>
                 </ResponsiveContainer>
               </AnalyticsCard>
 
               {/* Customers per segment (100%) */}
-              <AnalyticsCard title={t('cli.chart.perSegment', null, 'Clienti per segmento')} over={t('cli.over.perSegment', null, 'CLIENTI PER SEGMENTO')}>
+              <AnalyticsCard accent="#7b5bff" title={t('cli.chart.perSegment', null, 'Clienti per segmento')} over={t('cli.over.perSegment', null, 'CLIENTI PER SEGMENTO')}>
                 <ResponsiveContainer width="100%" height={210}>
-                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), ...s.segments }))} stackOffset="expand">
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" />
-                    <YAxis tick={tick} width={44} tickFormatter={(v) => `${Math.round(v * 100)}%`} />
+                  <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), ...s.segments }))} stackOffset="expand" barCategoryGap="20%">
+                    <defs>
+                      {SEG_ORDER.map(key => (
+                        <linearGradient key={key} id={`gSeg-${key}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={meta(key)} stopOpacity={1} /><stop offset="100%" stopColor={meta(key)} stopOpacity={0.55} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" tick={tick} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                    <YAxis tick={tick} width={44} tickFormatter={(v) => `${Math.round(v * 100)}%`} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [fmtInt(v), segLabel(n)]} />
-                    {SEG_ORDER.map((key, i) => <Bar key={key} dataKey={key} stackId="s" fill={meta(key)} radius={i === SEG_ORDER.length - 1 ? [3, 3, 0, 0] : 0} />)}
+                    {SEG_ORDER.map((key, i) => <Bar key={key} dataKey={key} stackId="s" fill={`url(#gSeg-${key})`} maxBarSize={30} radius={i === SEG_ORDER.length - 1 ? [5, 5, 0, 0] : 0} isAnimationActive animationDuration={900} />)}
                   </BarChart>
                 </ResponsiveContainer>
               </AnalyticsCard>
 
               {/* Segment changes */}
-              <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '16px 18px' }}>
-                <div style={{ fontWeight: 800, color: '#fff', fontSize: 14, marginBottom: 4 }}>{t('cli.chart.changes', null, 'Variazioni di segmento')}</div>
-                <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 0.6, marginBottom: 12 }}>{t('cli.over.changes', null, 'ULTIMA SETTIMANA')}</div>
-                <div>
-                  {segChanges.map(c => (
-                    <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--text)', fontSize: 13.5 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: meta(c.key) }} /> {segLabel(c.key)}
-                      </span>
-                      <span style={{ fontWeight: 800, fontSize: 13.5, color: c.delta > 0 ? '#22c55e' : c.delta < 0 ? '#ef4444' : 'var(--text2)' }}>
-                        {c.delta > 0 ? '+' : ''}{fmtInt(c.delta)}
-                      </span>
-                    </div>
-                  ))}
+              <AnalyticsCard accent="#7b5bff" title={t('cli.chart.changes', null, 'Variazioni di segmento')} over={t('cli.over.changes', null, 'ULTIMA SETTIMANA')}>
+                <div style={{ padding: '4px 4px 8px' }}>
+                  {segChanges.map(c => {
+                    const up = c.delta > 0, down = c.delta < 0
+                    return (
+                      <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 6px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text)', fontSize: 13.5 }}>
+                          <span style={{ width: 9, height: 9, borderRadius: 3, background: meta(c.key), boxShadow: `0 0 8px ${meta(c.key)}` }} /> {segLabel(c.key)}
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 800, fontSize: 13, padding: '3px 9px', borderRadius: 8,
+                          color: up ? '#34f5a0' : down ? '#fb7185' : 'var(--text2)',
+                          background: up ? 'rgba(34,197,94,0.12)' : down ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)' }}>
+                          {up ? '▲' : down ? '▼' : '–'} {c.delta > 0 ? '+' : ''}{fmtInt(c.delta)}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
+              </AnalyticsCard>
             </div>
           )}
         </>
@@ -456,22 +482,31 @@ function KpiCard({ title, value, sub, delta, color }) {
   )
 }
 
-function AnalyticsCard({ title, headline, delta, deltaFmt, over, children }) {
+function AnalyticsCard({ title, headline, delta, deltaFmt, over, accent = '#7b5bff', children }) {
   return (
-    <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '18px 16px 10px' }}>
+    <div style={{
+      position: 'relative', borderRadius: 18, overflow: 'hidden',
+      border: '1px solid rgba(255,255,255,0.08)',
+      background: `radial-gradient(120% 80% at 0% 0%, ${accent}14, rgba(255,255,255,0.02) 55%)`,
+      boxShadow: `0 12px 40px ${accent}10, inset 0 1px 0 rgba(255,255,255,0.04)`,
+      padding: '18px 16px 10px',
+    }}>
+      {/* filo luminoso superiore */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${accent}, transparent)`, opacity: 0.7 }} />
       <div style={{ padding: '0 4px' }}>
         <div style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>{title}</div>
         {headline != null && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '6px 0 2px' }}>
-            <span style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>{headline}</span>
+            <span style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: -0.5, textShadow: `0 0 22px ${accent}66` }}>{headline}</span>
             {delta != null && delta !== 0 && (
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: delta > 0 ? '#22c55e' : '#ef4444' }}>
-                {delta > 0 ? '↑' : '↓'} {deltaFmt ? deltaFmt(Math.abs(delta)) : Math.abs(delta)}
+              <span style={{ fontSize: 13, fontWeight: 800, padding: '2px 8px', borderRadius: 8,
+                color: delta > 0 ? '#34f5a0' : '#fb7185', background: delta > 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>
+                {delta > 0 ? '▲' : '▼'} {deltaFmt ? deltaFmt(Math.abs(delta)) : Math.abs(delta)}
               </span>
             )}
           </div>
         )}
-        {over && <div style={{ fontSize: 10.5, color: 'var(--text2)', letterSpacing: 0.7, margin: '8px 0 6px' }}>{over}</div>}
+        {over && <div style={{ fontSize: 10.5, color: 'var(--text2)', letterSpacing: 0.9, margin: '8px 0 8px', fontWeight: 600 }}>{over}</div>}
       </div>
       {children}
     </div>

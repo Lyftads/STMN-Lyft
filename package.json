@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "help:videos": "node scripts/help-video/generate.mjs",
+    "help:videos:start": "node scripts/help-video/generate.mjs dashboard clienti metaKpi"
   },
   "dependencies": {
     "@elevenlabs/client": "^1.10.0",

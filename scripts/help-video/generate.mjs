@@ -232,6 +232,12 @@ async function main() {
     }
   }
   console.log('\nFatto.')
+  // Su Railway il file è effimero: stampo il manifest da copiare nei log e
+  // incollare in lib/help/videos.js del repo (gli asset sono già su Supabase).
+  console.log('\n────────── COPIA IN lib/help/videos.js ──────────')
+  console.log('export const HELP_VIDEOS = ' + JSON.stringify(manifest, null, 2))
+  console.log('export function getHelpVideo(id){return HELP_VIDEOS[id]||null}')
+  console.log('──────────────────────────────────────────────────')
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

@@ -2217,6 +2217,11 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
 export default function App() {
   const { t, intlLocale } = useI18n()
   const [tab, setTab] = useState('dashboard')
+  // Deep-link: ?tab=<id> apre direttamente quella sezione (usato anche dal
+  // generatore video per inquadrare la tab giusta senza ambiguità di menu).
+  useEffect(() => {
+    try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(p) } catch {}
+  }, [])
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)

@@ -189,15 +189,16 @@ async function loginIfNeeded(page) {
 }
 
 async function gotoTab(page, article) {
+  // deep-link ?tab=<id> → apre la sezione giusta in modo univoco (niente click
+  // ambigui su etichette duplicate tipo "Lighthouse"/"Budget Advisor").
+  const q = `?tab=${encodeURIComponent(article.tab)}`
   if (USE_DEMO) {
-    await page.goto(`${BASE_URL}/demo`, { waitUntil: 'networkidle' })
+    await page.goto(`${BASE_URL}/demo${q}`, { waitUntil: 'networkidle' })
   } else {
     await loginIfNeeded(page)
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
+    await page.goto(`${BASE_URL}/${q}`, { waitUntil: 'networkidle' })
   }
-  const label = TAB_LABELS[article.tab]
-  if (label) { try { await page.getByText(label, { exact: true }).first().click({ timeout: 8000 }) } catch {} }
-  await page.waitForTimeout(3000)
+  await page.waitForTimeout(3200)
 }
 
 // Pre-pass (senza registrazione): estrae i testi visibili da usare come anchor.

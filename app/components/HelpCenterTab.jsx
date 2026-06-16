@@ -31,7 +31,7 @@ export default function HelpCenterTab({ onNavigate }) {
   }, [q, cat])
 
   return (
-    <div style={{ padding: '8px 4px 60px' }}>
+    <div style={{ width: '100%', padding: '8px 4px 60px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
         <span style={{ width: 46, height: 46, borderRadius: 13, display: 'grid', placeItems: 'center', color: '#a78bfa', background: 'rgba(123,91,255,0.14)', border: '1px solid rgba(123,91,255,0.28)' }}>
@@ -62,22 +62,27 @@ export default function HelpCenterTab({ onNavigate }) {
       </div>
 
       {/* Griglia card */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16, width: '100%' }}>
         {list.map(a => {
           const c = CAT_COLOR[a.category] || '#7b5bff'
           return (
-            <button key={a.id} onClick={() => setOpenId(a.id)} style={{
-              textAlign: 'left', cursor: 'pointer', borderRadius: 16, padding: '18px', position: 'relative',
-              border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', transition: 'all .15s',
-            }} className="help-card">
+            <div key={a.id} role="button" tabIndex={0}
+              onClick={() => setOpenId(a.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(a.id) } }}
+              className="help-card"
+              style={{
+                width: '100%', boxSizing: 'border-box', textAlign: 'left', cursor: 'pointer',
+                borderRadius: 16, padding: 18, position: 'relative',
+                border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', transition: 'all .15s',
+              }}>
               <span style={{ position: 'absolute', top: 16, right: 14, color: 'var(--text2)' }}><Icon name="link" size={15} /></span>
               <span style={{ width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', color: c, background: c + '1f', border: `1px solid ${c}3a`, marginBottom: 14 }}>
                 <Icon name={a.icon || 'info'} size={19} />
               </span>
               <div style={{ fontSize: 15.5, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{a.title}</div>
               <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 14, minHeight: 38 }}>{a.summary}</div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: c, background: c + '1a', padding: '3px 9px', borderRadius: 7 }}>{catLabel(a.category)}</span>
-            </button>
+              <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: c, background: c + '1a', padding: '3px 9px', borderRadius: 7 }}>{catLabel(a.category)}</span>
+            </div>
           )
         })}
         {!list.length && <div style={{ color: 'var(--text2)', padding: 30 }}>{t('help.noResults', null, 'Nessuna guida trovata.')}</div>}

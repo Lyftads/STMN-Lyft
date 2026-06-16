@@ -35,6 +35,7 @@ npx playwright install chromium
 | `HELP_AUTH_STORAGE` | alternativa | path a uno storageState Playwright loggato (se non usi /demo) |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | sì (per upload) | bucket pubblico `help-videos` creato in automatico |
 | `HELP_TTS_VOICE` | no | voce OpenAI: alloy/echo/fable/onyx/nova/shimmer (default alloy) |
+| `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` | no | se presenti, la voce usa ElevenLabs (più naturale) invece di OpenAI. `ELEVENLABS_MODEL` opzionale (default eleven_multilingual_v2) |
 | `HELP_BUCKET` | no | nome bucket (default `help-videos`) |
 
 ### Sessione loggata (se non usi /demo)

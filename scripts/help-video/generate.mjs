@@ -33,7 +33,10 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const BASE_URL = process.env.HELP_BASE_URL || 'http://localhost:3000'
 const AUTH_STATE = process.env.HELP_AUTH_STORAGE || ''        // path a storageState Playwright (sessione loggata)
 const USE_DEMO = process.env.HELP_USE_DEMO === '1'            // usa /demo (dati finti, no login)
-const TTS_VOICE = process.env.HELP_TTS_VOICE || 'alloy'      // alloy|echo|fable|onyx|nova|shimmer
+const TTS_VOICE = process.env.HELP_TTS_VOICE || 'alloy'      // OpenAI: alloy|echo|fable|onyx|nova|shimmer
+const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente con voice id → voce ElevenLabs
+const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || ''   // es. una voce EN del tuo account ElevenLabs
+const ELEVEN_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2'
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const BUCKET = process.env.HELP_BUCKET || 'help-videos'
@@ -93,6 +96,16 @@ async function makeScript(article) {
 
 // ── 2) TTS frase per frase + 3) VTT ────────────────────────────────────────────
 async function ttsLine(text, outPath) {
+  // ElevenLabs se key + voice id presenti (voce più naturale), altrimenti OpenAI tts-1.
+  if (ELEVEN_KEY && ELEVEN_VOICE) {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}`, {
+      method: 'POST', headers: { 'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
+      body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+    })
+    if (!r.ok) throw new Error('ElevenLabs TTS: ' + r.status + ' ' + (await r.text()).slice(0, 120))
+    fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer()))
+    return
+  }
   const r = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'tts-1', voice: TTS_VOICE, input: text, response_format: 'mp3' }),

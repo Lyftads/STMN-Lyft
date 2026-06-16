@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
@@ -13,12 +14,15 @@ export default function HelpDrawer({ article, onClose, onNavigate }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // blocca lo scroll della pagina mentre il drawer è aperto
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [onClose])
 
-  if (!article) return null
+  if (!article || typeof document === 'undefined') return null
 
-  return (
+  return createPortal(
     <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={panel}>
         {/* Header */}
@@ -68,7 +72,8 @@ export default function HelpDrawer({ article, onClose, onNavigate }) {
         </div>
       </div>
       <style>{`@keyframes helpSlideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
-    </div>
+    </div>,
+    document.body
   )
 }
 

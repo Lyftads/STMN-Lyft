@@ -279,73 +279,107 @@ function mux(id, webm, offset, audio, durationSec) {
   return { mp4, poster }
 }
 
-// Versione verticale 9:16 (1080x1920) per Reels/IG/TikTok: il 16:9 al centro su
-// sfondo sfocato di sé stesso + sottotitoli EN "bruciati" (leggibili anche muto).
-function verticalize(id, mp4, vttPath) {
+// Versione verticale 9:16 (1080x1920). Tenta con sottotitoli EN bruciati; se la
+// masterizzazione fallisce, riprova senza (la verticale esce comunque).
+function verticalizeImpl(id, mp4, vttPath) {
   const out = path.join(WORK, id, `${id}-vertical.mp4`)
-  const style = "Alignment=2,FontName=Arial,FontSize=15,Bold=1,PrimaryColour=&Hffffff&,OutlineColour=&H90000000&,BorderStyle=3,Outline=2,Shadow=0,MarginV=150"
+  const subs = vttPath
+    ? `,subtitles='${vttPath}':force_style='Alignment=2,FontName=DejaVu Sans,FontSize=14,Bold=1,PrimaryColour=&Hffffff&,OutlineColour=&H90000000&,BorderStyle=3,Outline=2,Shadow=0,MarginV=160'`
+    : ''
   const vf = [
-    '[0:v]split=2[v0][v1]',                       // un input si usa una volta sola → split
+    '[0:v]split=2[v0][v1]',
     '[v0]scale=1080:-2[fg]',
     '[v1]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=22:6,eq=brightness=-0.06[bg]',
-    `[bg][fg]overlay=(W-w)/2:(H-h)/2,subtitles='${vttPath}':force_style='${style}'[v]`,
+    `[bg][fg]overlay=(W-w)/2:(H-h)/2${subs}[v]`,
   ].join(';')
   sh('ffmpeg', ['-y', '-i', mp4, '-filter_complex', vf, '-map', '[v]', '-map', '0:a',
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out])
   return out
 }
-
-const LOGO = () => path.join(ROOT, 'public/icon-512.png')
-const FONT = process.env.HELP_FONT || '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
-const dt = (s) => String(s).replace(/[\\:'%]/g, ' ').replace(/\s+/g, ' ').trim()
-
-// Intro 3.6s dinamica/futuristica: fondo scuro, glow viola in movimento, logo
-// in dissolvenza e il NOME della tab che appare con glow. Ferma lo scroll.
-function makeIntro(name, W, H, outPath) {
-  const D = 3.6, portrait = H > W
-  const LW = Math.round(Math.min(W, H) * (portrait ? 0.30 : 0.20))
-  const FS = Math.round(Math.min(W, H) * (portrait ? 0.072 : 0.085))
-  const gMove = Math.round(W * 0.16), gMoveY = Math.round(H * 0.06)
-  const f = [
-    `color=c=0x07070d:s=${W}x${H}:r=30:d=${D},format=rgba[bg]`,
-    `color=c=0x7b5bff:s=640x640:r=30:d=${D},format=rgba,boxblur=90:24,colorchannelmixer=aa=0.34[glow]`,
-    `[bg][glow]overlay=x='(W-w)/2+${gMove}*sin(t*1.3)':y='(H-h)/2-${Math.round(H * 0.1)}+${gMoveY}*cos(t*1.7)'[bgg]`,
-    `[0:v]scale=${LW}:-1,format=rgba,fade=t=in:st=0.1:d=0.55:alpha=1[lg]`,
-    `[bgg][lg]overlay=(W-w)/2:(H*0.32)-h/2[wl]`,
-    `[wl]drawtext=fontfile='${FONT}':text='${dt(name)}':fontcolor=white:fontsize=${FS}:shadowcolor=0x7b5bff@0.9:shadowx=0:shadowy=0:x=(w-text_w)/2:y=(h*0.56)-text_h/2:alpha='if(lt(t,0.55),0,min(1,(t-0.55)/0.5))'[nm]`,
-    `[nm]drawtext=fontfile='${FONT}':text='LyftAI':fontcolor=0x22d3ee:fontsize=${Math.round(FS * 0.42)}:x=(w-text_w)/2:y=(h*0.66):alpha='if(lt(t,0.9),0,min(1,(t-0.9)/0.5))'[br]`,
-    `[br]fade=t=out:st=${(D - 0.45).toFixed(2)}:d=0.45,format=yuv420p[v]`,
-    // ── Sigla (sound-logo): accordo brillante + boom basso, dissolvenza ──
-    `sine=f=392:d=${D}[n1]`,
-    `sine=f=523.25:d=${D}[n2]`,
-    `sine=f=659.25:d=${D}[n3]`,
-    `[n1][n2][n3]amix=inputs=3,volume=0.15,afade=t=in:st=0:d=0.08,afade=t=out:st=${(D - 0.9).toFixed(2)}:d=0.9[chord]`,
-    `sine=f=98:d=0.7,volume=0.5,afade=t=out:st=0.06:d=0.6[boom]`,
-    `[chord][boom]amix=inputs=2:duration=first:dropout_transition=0,aresample=44100[a]`,
-  ].join(';')
-  sh('ffmpeg', ['-y', '-i', LOGO(), '-filter_complex', f, '-map', '[v]', '-map', '[a]',
-    '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', outPath])
-  return outPath
+function verticalize(id, mp4, vttPath) {
+  try { return verticalizeImpl(id, mp4, vttPath) }
+  catch (e) { console.error('  (verticale senza sottotitoli:', e.message, ')'); return verticalizeImpl(id, mp4, null) }
 }
 
-// Outro 2.8s: logo + call-to-action verso il sito.
-function makeOutro(W, H, outPath) {
-  const D = 2.8, portrait = H > W
-  const LW = Math.round(Math.min(W, H) * (portrait ? 0.30 : 0.20))
-  const FS = Math.round(Math.min(W, H) * (portrait ? 0.06 : 0.06))
-  const f = [
-    `color=c=0x07070d:s=${W}x${H}:r=30:d=${D},format=rgba[bg]`,
-    `color=c=0x7b5bff:s=640x640:r=30:d=${D},format=rgba,boxblur=90:24,colorchannelmixer=aa=0.30[glow]`,
-    `[bg][glow]overlay=(W-w)/2:(H-h)/2-${Math.round(H * 0.08)}[bgg]`,
-    `[0:v]scale=${LW}:-1,format=rgba,fade=t=in:st=0.1:d=0.5:alpha=1[lg]`,
-    `[bgg][lg]overlay=(W-w)/2:(H*0.40)-h/2[wl]`,
-    `[wl]drawtext=fontfile='${FONT}':text='lyftai.io':fontcolor=0x22d3ee:fontsize=${FS}:x=(w-text_w)/2:y=(h*0.60):alpha='if(lt(t,0.4),0,min(1,(t-0.4)/0.5))'[cta]`,
-    `[cta]fade=t=out:st=${(D - 0.45).toFixed(2)}:d=0.45,format=yuv420p[v]`,
-    `anullsrc=r=44100:cl=stereo:d=${D}[a]`,
-  ].join(';')
-  sh('ffmpeg', ['-y', '-i', LOGO(), '-filter_complex', f, '-map', '[v]', '-map', '[a]',
-    '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', outPath])
+// Logo in base64 per le card HTML (intro/outro) renderizzate dal browser.
+let LOGO_B64 = ''
+try { LOGO_B64 = 'data:image/png;base64,' + fs.readFileSync(path.join(ROOT, 'public/icon-512.png')).toString('base64') } catch {}
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+// Intro professionale in HTML/CSS animato (logo pop-in, nome con glow, linea
+// accento, glow fluttuante, dissolvenza finale). Renderizzata e registrata dal
+// browser → qualità da motion-graphics, niente drawtext ffmpeg.
+function introHtml(name, W, H, D) {
+  const p = H > W
+  const lw = Math.round(Math.min(W, H) * (p ? 0.30 : 0.17))
+  const fz = Math.round(Math.min(W, H) * (p ? 0.09 : 0.085))
+  const lineW = Math.round(Math.min(W, H) * 0.20)
+  const small = Math.round(Math.min(W, H) * 0.03)
+  return `<!doctype html><html><head><meta charset="utf8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}px;height:${H}px;overflow:hidden;background:#06060c;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.stage{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${p ? 44 : 30}px;
+ background:radial-gradient(1100px 760px at 50% 32%,rgba(123,91,255,.20),transparent 60%),radial-gradient(900px 680px at 72% 82%,rgba(34,211,238,.12),transparent 60%),#06060c;
+ animation:fin .5s ease both,fout .5s ease ${(D - 0.5).toFixed(2)}s both}
+.glow{position:absolute;width:55%;height:55%;border-radius:50%;filter:blur(130px);background:#7b5bff;opacity:.40;animation:floaty 7s ease-in-out infinite}
+.logo{width:${lw}px;opacity:0;transform:scale(.7);filter:drop-shadow(0 0 46px rgba(123,91,255,.7));animation:pop .9s cubic-bezier(.2,.8,.2,1) .1s both;position:relative}
+.name{color:#fff;font-weight:800;letter-spacing:-1px;font-size:${fz}px;text-align:center;padding:0 7%;line-height:1.05;opacity:0;transform:translateY(26px);
+ text-shadow:0 0 34px rgba(123,91,255,.6);animation:rise .8s cubic-bezier(.2,.8,.2,1) .55s both;position:relative}
+.line{height:5px;width:0;border-radius:3px;background:linear-gradient(90deg,#7b5bff,#22d3ee);box-shadow:0 0 18px #22d3ee;animation:grow .7s ease 1s both;position:relative}
+.brand{color:#22d3ee;font-weight:700;letter-spacing:4px;font-size:${small}px;opacity:0;animation:rise .6s ease 1.2s both;position:relative}
+@keyframes pop{to{opacity:1;transform:scale(1)}}@keyframes rise{to{opacity:1;transform:translateY(0)}}
+@keyframes grow{to{width:${lineW}px}}@keyframes floaty{0%,100%{transform:translate(-12%,-7%)}50%{transform:translate(13%,9%)}}
+@keyframes fin{from{opacity:0}to{opacity:1}}@keyframes fout{to{opacity:0}}
+</style></head><body><div class="stage"><div class="glow"></div>
+<img class="logo" src="${LOGO_B64}"><div class="name">${esc(name)}</div><div class="line"></div><div class="brand">LyftAI</div>
+</div></body></html>`
+}
+
+function outroHtml(W, H, D) {
+  const p = H > W
+  const lw = Math.round(Math.min(W, H) * (p ? 0.28 : 0.16))
+  const fz = Math.round(Math.min(W, H) * (p ? 0.07 : 0.06))
+  const small = Math.round(Math.min(W, H) * 0.026)
+  return `<!doctype html><html><head><meta charset="utf8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}px;height:${H}px;overflow:hidden;background:#06060c;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.stage{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${p ? 36 : 24}px;
+ background:radial-gradient(1000px 700px at 50% 45%,rgba(123,91,255,.18),transparent 60%),#06060c;animation:fin .5s ease both,fout .5s ease ${(D - 0.5).toFixed(2)}s both}
+.glow{position:absolute;width:50%;height:50%;border-radius:50%;filter:blur(130px);background:#7b5bff;opacity:.34}
+.logo{width:${lw}px;opacity:0;transform:scale(.8);filter:drop-shadow(0 0 46px rgba(123,91,255,.7));animation:pop .8s cubic-bezier(.2,.8,.2,1) .1s both;position:relative}
+.cta{color:#fff;font-weight:800;font-size:${fz}px;opacity:0;transform:translateY(18px);text-shadow:0 0 30px rgba(34,211,238,.5);animation:rise .7s ease .5s both;position:relative}
+.cta b{color:#22d3ee}
+.sub{color:#9aa3b2;font-weight:600;letter-spacing:2px;font-size:${small}px;opacity:0;animation:rise .6s ease .8s both;position:relative}
+@keyframes pop{to{opacity:1;transform:scale(1)}}@keyframes rise{to{opacity:1;transform:translateY(0)}}
+@keyframes fin{from{opacity:0}to{opacity:1}}@keyframes fout{to{opacity:0}}
+</style></head><body><div class="stage"><div class="glow"></div>
+<img class="logo" src="${LOGO_B64}"><div class="cta">Try <b>LyftAI</b> free</div><div class="sub">lyftai.io</div>
+</div></body></html>`
+}
+
+// Registra un HTML col browser per `sec` secondi → webm.
+async function recordHtml(html, W, H, sec) {
+  const { chromium } = await import('playwright')
+  const dir = fs.mkdtempSync(path.join(WORK, 'clip-'))
+  const browser = await chromium.launch()
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir, size: { width: W, height: H } } })
+  const page = await ctx.newPage()
+  await page.setContent(html, { waitUntil: 'load' })
+  await page.waitForTimeout(Math.round(sec * 1000))
+  const video = page.video()
+  await ctx.close(); await browser.close()
+  return await video.path()
+}
+
+// webm → mp4 (durata D). Audio: sigla sintetizzata (jingle) o silenzio.
+function clipToMp4(webm, W, H, D, outPath, jingle) {
+  const a = jingle
+    ? `sine=f=392:d=${D}[n1];sine=f=523.25:d=${D}[n2];sine=f=659.25:d=${D}[n3];[n1][n2][n3]amix=inputs=3,volume=0.14,afade=t=in:st=0:d=0.08,afade=t=out:st=${(D - 0.9).toFixed(2)}:d=0.9[ch];sine=f=98:d=0.7,volume=0.5,afade=t=out:st=0.06:d=0.6[bm];[ch][bm]amix=inputs=2:duration=first:dropout_transition=0,aresample=44100[a]`
+    : `anullsrc=r=44100:cl=stereo:d=${D}[a]`
+  const vf = `[0:v]trim=0:${D},setpts=PTS-STARTPTS,scale=${W}:${H},fps=30,format=yuv420p,setsar=1[v]`
+  sh('ffmpeg', ['-y', '-i', webm, '-filter_complex', `${vf};${a}`, '-map', '[v]', '-map', '[a]', '-t', String(D),
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', outPath])
   return outPath
 }
 
@@ -360,14 +394,15 @@ function joinClips(clips, W, H, outPath) {
   return outPath
 }
 
-// Avvolge un video con intro (col nome) + outro (CTA). Best-effort: se ffmpeg
-// fallisce (font/filtri) ritorna il video originale, così non blocca la pipeline.
-function brandWrap(name, mp4, W, H, outPath) {
-  if (!fs.existsSync(LOGO())) return mp4
+// Avvolge un video con intro (HTML animato col nome) + outro (CTA), registrate
+// dal browser. Best-effort: se qualcosa fallisce ritorna il video originale.
+async function brandWrap(name, mp4, W, H, outPath) {
+  if (!LOGO_B64) return mp4
   try {
     const base = outPath.replace(/\.mp4$/, '')
-    const intro = makeIntro(name, W, H, `${base}.intro.mp4`)
-    const outro = makeOutro(W, H, `${base}.outro.mp4`)
+    const DI = 3.6, DO = 2.8
+    const intro = clipToMp4(await recordHtml(introHtml(name, W, H, DI), W, H, DI + 0.4), W, H, DI, `${base}.intro.mp4`, true)
+    const outro = clipToMp4(await recordHtml(outroHtml(W, H, DO), W, H, DO + 0.4), W, H, DO, `${base}.outro.mp4`, false)
     return joinClips([intro, mp4, outro], W, H, outPath)
   } catch (e) { console.error('  (brand skip:', e.message, ')'); return mp4 }
 }
@@ -432,12 +467,12 @@ async function main() {
       const files = mux(a.id, webm, offset, audio, duration) // poster da qui (pre-brand)
       const dir = path.join(WORK, a.id)
       const content = files.mp4 // contenuto pre-brand
-      try { files.mp4 = brandWrap(a.title, content, 1280, 720, path.join(dir, `${a.id}.final.mp4`)) }
+      try { files.mp4 = await brandWrap(a.title, content, 1280, 720, path.join(dir, `${a.id}.final.mp4`)) }
       catch (e) { console.error('  (brand H skip:', e.message, ')') }
       // verticale per Reels: best-effort, non blocca l'orizzontale
       try {
         const vert = verticalize(a.id, content, vttPath)
-        files.vertical = brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
+        files.vertical = await brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
       } catch (e) { console.error('  (verticale skip:', e.message, ')') }
       console.log('  montato + intro/outro', files.vertical ? '+ verticale' : '(senza verticale)')
       const entry = await upload(a.id, files, vttPath, duration); console.log('  caricato:', entry.src)

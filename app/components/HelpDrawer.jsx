@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import { getHelpVideo } from '../../lib/help/videos'
 
 // Pannello laterale (slide-over) con la guida dettagliata di una tab.
 // Riusato sia dal Centro Assistenza (click su una card) sia dall'icona guida
@@ -39,7 +40,19 @@ export default function HelpDrawer({ article, onClose, onNavigate }) {
 
         {/* Body */}
         <div style={body}>
-          {article.summary && <p style={{ fontSize: 14.5, color: '#e8e8ef', lineHeight: 1.6, margin: '0 0 22px' }}>{article.summary}</p>}
+          {article.summary && <p style={{ fontSize: 14.5, color: '#e8e8ef', lineHeight: 1.6, margin: '0 0 18px' }}>{article.summary}</p>}
+          {(() => {
+            const v = getHelpVideo(article.id)
+            if (!v) return null
+            return (
+              <div style={{ marginBottom: 24, borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', background: '#000' }}>
+                <video key={v.src} controls poster={v.poster} crossOrigin="anonymous" preload="metadata" style={{ width: '100%', display: 'block', aspectRatio: '16 / 9', background: '#000' }}>
+                  <source src={v.src} type="video/mp4" />
+                  {v.captions && <track default kind="subtitles" srcLang="en" label="English" src={v.captions} />}
+                </video>
+              </div>
+            )
+          })()}
           {(article.sections || []).map((s, i) => (
             <div key={i} style={{ marginBottom: 22 }}>
               <h3 style={{ fontSize: 14.5, fontWeight: 800, color: '#fff', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>

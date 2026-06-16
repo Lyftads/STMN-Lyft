@@ -166,13 +166,13 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           </Field>
         </FieldRow>
         <Field label={t('bi.descLabel', null, 'Descrizione brand')} hint={t('bi.descHint', null, '2-3 frasi: chi sei, cosa fai, per chi')}>
-          <Textarea value={identity.description} onChange={v => setField('description', v)} rows={3} placeholder={t('bi.descPh', null, "Es: Stamina Fitness produce accessori CrossFit di alta qualita' per atleti che...")} />
+          <Textarea value={identity.description} onChange={v => setField('description', v)} rows={3} placeholder={t('bi.descPh', null, 'Es: Il nostro brand crea prodotti di alta qualità per clienti che cercano...')} />
         </Field>
         <Field label={t('bi.missionLabel', null, 'Mission statement')} hint={t('bi.missionHint', null, 'La promessa che fai al cliente')}>
           <Textarea value={identity.mission} onChange={v => setField('mission', v)} rows={2} placeholder={t('bi.missionPh', null, 'Es: Aiutare gli atleti a performare al massimo con strumenti durevoli e progettati per il box')} />
         </Field>
         <Field label={t('bi.websiteLabel', null, 'Sito web ufficiale')}>
-          <Input value={identity.website} onChange={v => setField('website', v)} placeholder="https://staminafitness.it" />
+          <Input value={identity.website} onChange={v => setField('website', v)} placeholder="https://www.tuobrand.com" />
         </Field>
       </SectionBlock>
 
@@ -192,7 +192,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           </Field>
         </FieldRow>
         <Field label={t('bi.productsLabel', null, 'Prodotti principali')} hint={t('bi.productsHint', null, 'Uno per riga')}>
-          <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n'))} rows={4} placeholder="Paracalli (Tape adesivo)\nCorde da salto\nCinturoni" />
+          <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n'))} rows={4} placeholder={'Prodotto 1\nProdotto 2\nProdotto 3'} />
         </Field>
         <Field label={t('bi.notSellingLabel', null, 'Cosa NON vendi / brand guard')} hint={t('bi.notSellingHint', null, "Questi prodotti/contenuti NON sono consentiti negli AI agent (es: 'mai integratori', 'no nutrizione')")}>
           <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder={t('bi.notSellingPh', null, 'Es: mai supplementi/integratori/nutrizione')} />
@@ -770,7 +770,7 @@ function CompetitorList({ competitors, onChange }) {
             <input
               type="text" value={c.name || ''}
               onChange={e => updateAt(idx, { name: e.target.value })}
-              placeholder={t('bi.compNamePh', null, 'Nome brand (es: Velites)')}
+              placeholder={t('bi.compNamePh', null, 'Nome del brand competitor')}
               style={{ ...inputBase, flex: 1, fontWeight: 700 }}
             />
             <button type="button" onClick={() => removeAt(idx)} style={{
@@ -806,7 +806,7 @@ function CompetitorList({ competitors, onChange }) {
             <input
               type="text" value={c.pageId || ''}
               onChange={e => updateAt(idx, { pageId: e.target.value })}
-              placeholder={t('bi.compPageIdPh', null, 'Es: 234280280078173 (lascia vuoto se non lo conosci)')}
+              placeholder={t('bi.compPageIdPh', null, 'Es: 1234567890 (lascia vuoto se non lo conosci)')}
               style={{ ...inputBase, fontFamily: 'monospace', fontSize: 12 }}
             />
           </div>

@@ -18,7 +18,7 @@
     "google-ads-api": "^23.0.0",
     "livekit-client": "^2.19.2",
     "livekit-server-sdk": "^2.15.4",
-    "next": "14.2.3",
+    "next": "14.2.35",
     "node-cron": "^3.0.3",
     "puppeteer-core": "^23.11.1",
     "react": "^18",

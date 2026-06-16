@@ -297,9 +297,27 @@ function verticalizeImpl(id, mp4, vttPath) {
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out])
   return out
 }
+// 9:16 semplice e bulletproof: scala a larghezza 1080 e bordi scuri (no blur,
+// no upscale pesante) → non può fallire per memoria/filtri.
+function verticalizeSimple(id, mp4) {
+  const out = path.join(WORK, id, `${id}-vertical.mp4`)
+  sh('ffmpeg', ['-y', '-i', mp4, '-vf', 'scale=1080:-2,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:0x06060c,format=yuv420p',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23',
+    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out])
+  return out
+}
+
+// Prova: blur+sottotitoli → blur → semplice. Garantisce sempre una verticale.
 function verticalize(id, mp4, vttPath) {
-  try { return verticalizeImpl(id, mp4, vttPath) }
-  catch (e) { console.error('  (verticale senza sottotitoli:', e.message, ')'); return verticalizeImpl(id, mp4, null) }
+  const tries = [
+    ['blur+sottotitoli', () => verticalizeImpl(id, mp4, vttPath)],
+    ['blur', () => verticalizeImpl(id, mp4, null)],
+    ['semplice', () => verticalizeSimple(id, mp4)],
+  ]
+  for (const [label, fn] of tries) {
+    try { return fn() } catch (e) { console.error(`  (verticale ${label} fallita: ${e.message})`) }
+  }
+  return null
 }
 
 // Logo in base64 per le card HTML (intro/outro) renderizzate dal browser.
@@ -472,7 +490,8 @@ async function main() {
       // verticale per Reels: best-effort, non blocca l'orizzontale
       try {
         const vert = verticalize(a.id, content, vttPath)
-        files.vertical = await brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
+        if (vert) files.vertical = await brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
+        else console.error('  (verticale non prodotta)')
       } catch (e) { console.error('  (verticale skip:', e.message, ')') }
       console.log('  montato + intro/outro', files.vertical ? '+ verticale' : '(senza verticale)')
       const entry = await upload(a.id, files, vttPath, duration); console.log('  caricato:', entry.src)

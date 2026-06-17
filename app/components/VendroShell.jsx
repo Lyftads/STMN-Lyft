@@ -52,7 +52,7 @@ export default function VendroShell({
   allowedTabs,
   children,
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
@@ -479,7 +479,7 @@ const [helpOpen, setHelpOpen] = useState(false)
               gap: 8,
               flexShrink: 0,
             }}>
-              {tab !== 'helpCenter' && articleForTab(tab) && (
+              {tab !== 'helpCenter' && articleForTab(tab, locale) && (
                 <button
                   type="button"
                   onClick={() => setHelpOpen(true)}
@@ -531,7 +531,7 @@ const [helpOpen, setHelpOpen] = useState(false)
           </TabContent>
         </div>
       </main>
-      {helpOpen && <HelpDrawer article={articleForTab(tab)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
+      {helpOpen && <HelpDrawer article={articleForTab(tab, locale)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>
   )
 }

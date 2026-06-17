@@ -4,12 +4,12 @@ import { useMemo, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import HelpDrawer from './HelpDrawer'
-import { HELP_ARTICLES, HELP_CATEGORIES, findArticle } from '../../lib/help/content'
+import { articlesFor, HELP_CATEGORIES, findArticle } from '../../lib/help/content'
 
 const CAT_COLOR = { gettingStarted: '#22c55e', features: '#7b5bff', advanced: '#f59e0b' }
 
 export default function HelpCenterTab({ onNavigate }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
   const [openId, setOpenId] = useState(null)
@@ -23,12 +23,12 @@ export default function HelpCenterTab({ onNavigate }) {
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return HELP_ARTICLES.filter(a => {
+    return articlesFor(locale).filter(a => {
       if (cat !== 'all' && a.category !== cat) return false
       if (!s) return true
       return (a.title + ' ' + a.summary + ' ' + a.group).toLowerCase().includes(s)
     })
-  }, [q, cat])
+  }, [q, cat, locale])
 
   return (
     <div style={{ width: '100%', padding: '8px 4px 60px' }}>
@@ -88,7 +88,7 @@ export default function HelpCenterTab({ onNavigate }) {
         {!list.length && <div style={{ color: 'var(--text2)', padding: 30 }}>{t('help.noResults', null, 'Nessuna guida trovata.')}</div>}
       </div>
 
-      <HelpDrawer article={findArticle(openId)} onClose={() => setOpenId(null)} onNavigate={onNavigate} />
+      <HelpDrawer article={findArticle(openId, locale)} onClose={() => setOpenId(null)} onNavigate={onNavigate} />
 
       <style>{`.help-card:hover{background:rgba(255,255,255,0.045);border-color:rgba(123,91,255,0.4)}`}</style>
     </div>

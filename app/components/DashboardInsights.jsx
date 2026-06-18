@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const SECTION_ICONS = {
   overview: '◆',
@@ -66,6 +67,7 @@ function normalizeSections(raw) {
 }
 
 export default function DashboardInsights({ preset }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -124,7 +126,7 @@ export default function DashboardInsights({ preset }) {
 
         const normalized = normalizeSections(json.sections)
         if (!normalized) {
-          setError('La risposta AI non contiene insight validi. Riprova.')
+          setError(t('dash.noInsight', null, 'The AI response contains no valid insights. Try again.'))
           return
         }
         setData(normalized)

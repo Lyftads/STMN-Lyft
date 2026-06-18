@@ -218,7 +218,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
                   }}>{s.label}</button>
               )
             })}
-            {seg !== 'all' && !segData && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>carico segmenti…</span>}
+            {seg !== 'all' && !segData && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('seg.loadingSegments', null, 'loading segments…')}</span>}
             {seg !== 'all' && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('seg.realData', null, 'real Meta data by audience segment')}</span>}
           </div>
 

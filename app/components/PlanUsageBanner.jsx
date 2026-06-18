@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Banner di upgrade: se gli ordini/mese superano la fascia del piano corrente,
 // invita a passare alla fascia consigliata. Dismissibile per mese (localStorage).
 export default function PlanUsageBanner({ onGoSettings }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [hidden, setHidden] = useState(false)
 
@@ -39,7 +41,7 @@ export default function PlanUsageBanner({ onGoSettings }) {
         background: 'linear-gradient(135deg,#ff9f0a,#ff375f)', border: 'none', borderRadius: 9,
         padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap',
       }}>Passa a {data.recommended.label}</button>
-      <button onClick={dismiss} title="Nascondi per questo mese" style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+      <button onClick={dismiss} title={t('plan.hideThisMonth', null, 'Hide for this month')} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
     </div>
   )
 }

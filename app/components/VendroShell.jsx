@@ -693,7 +693,7 @@ function WorkspacePill() {
             )
           })}
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />
-          <button type="button" onClick={() => { setOpen(false); setAddError(null); setAddOpen(true) }} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>+ Aggiungi cliente</button>
+          <button type="button" onClick={() => { setOpen(false); setAddError(null); setAddOpen(true) }} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>{t('shell.addClient', null, '+ Add client')}</button>
         </div>
       )}
       <AddClientModal open={addOpen} busy={addBusy} error={addError} onClose={() => setAddOpen(false)} onSubmit={createClient} />

@@ -5,8 +5,10 @@ import Icon from '../components/ui/Icon'
 import Link from 'next/link'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { AuthShell, AuthInput, AuthButton, AuthError } from '../components/AuthShell'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 export default function ResetPasswordRequestPage() {
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -28,17 +30,17 @@ export default function ResetPasswordRequestPage() {
 
   if (sent) {
     return (
-      <AuthShell title="Email inviata" subtitle="">
+      <AuthShell title={t('rp.emailSent', null, 'Email sent')} subtitle="">
         <div style={{
           padding: 18, borderRadius: 12,
           background: 'rgba(34,197,94,0.10)',
           border: '1px solid rgba(34,197,94,0.30)',
           color: '#86efac', fontSize: 13.5, lineHeight: 1.6, textAlign: 'center',
         }}>
-          <Icon name="check" size={14} /> Se l'email <b>{email}</b> e' registrata, riceverai un link per resettare la password entro pochi minuti.
+          <Icon name="check" size={14} /> {t('rp.sentPre', null, 'If the email ')}<b>{email}</b>{t('rp.sentPost', null, ' is registered, you will receive a password reset link within a few minutes.')}
         </div>
         <div style={{ textAlign: 'center', marginTop: 22, fontSize: 12.5, color: 'var(--text3)' }}>
-          <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>← Torna al login</Link>
+          <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
         </div>
       </AuthShell>
     )
@@ -46,21 +48,21 @@ export default function ResetPasswordRequestPage() {
 
   return (
     <AuthShell
-      title="Reset password"
-      subtitle="Inserisci la tua email, ti invieremo un link per impostare una nuova password"
+      title={t('rp.title', null, 'Reset password')}
+      subtitle={t('rp.subtitle', null, "Enter your email and we'll send you a link to set a new password")}
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <AuthInput
           label="Email"
           type="email" autoComplete="email" required
           value={email} onChange={e => setEmail(e.target.value)}
-          placeholder="tua@azienda.it"
+          placeholder={t('auth.emailPlaceholder', null, 'you@company.com')}
         />
         <AuthError error={error} />
-        <AuthButton loading={loading}>Invia link di reset</AuthButton>
+        <AuthButton loading={loading}>{t('rp.sendLink', null, 'Send reset link')}</AuthButton>
       </form>
       <div style={{ textAlign: 'center', marginTop: 22, fontSize: 13, color: 'var(--text3)' }}>
-        <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>← Torna al login</Link>
+        <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
       </div>
     </AuthShell>
   )

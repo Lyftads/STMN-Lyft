@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { AuthShell, AuthInput, AuthButton, AuthError } from '../components/AuthShell'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 export default function LoginPage() {
   // useSearchParams richiede una Suspense boundary in Next 14 SSG
@@ -16,6 +17,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  const { t } = useI18n()
   const router = useRouter()
   const search = useSearchParams()
   const nextUrl = search.get('next') || '/'
@@ -34,7 +36,7 @@ function LoginForm() {
     setLoading(false)
     if (error) {
       setError(error.message === 'Invalid login credentials'
-        ? 'Email o password errati'
+        ? t('login.invalidCreds', null, 'Wrong email or password')
         : error.message)
       return
     }
@@ -54,15 +56,15 @@ function LoginForm() {
 
   return (
     <AuthShell
-      title="Bentornato"
-      subtitle="Accedi al tuo account Lyft per continuare"
+      title={t('login.welcomeBack', null, 'Welcome back')}
+      subtitle={t('login.subtitle', null, 'Log in to your Lyft account to continue')}
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <AuthInput
           label="Email"
           type="email" autoComplete="email" required
           value={email} onChange={e => setEmail(e.target.value)}
-          placeholder="tua@azienda.it"
+          placeholder={t('auth.emailPlaceholder', null, 'you@company.com')}
         />
         <AuthInput
           label="Password"
@@ -72,16 +74,16 @@ function LoginForm() {
         />
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6 }}>
           <Link href="/reset-password" style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'none' }}>
-            Password dimenticata?
+            {t('login.forgotPw', null, 'Forgot password?')}
           </Link>
         </div>
         <AuthError error={error} />
-        <AuthButton loading={loading}>Accedi</AuthButton>
+        <AuthButton loading={loading}>{t('auth.login', null, 'Log in')}</AuthButton>
       </form>
       <div style={{ textAlign: 'center', marginTop: 22, fontSize: 13, color: 'var(--text3)' }}>
-        Non hai un account?{' '}
+        {t('login.noAccount', null, "Don't have an account?")}{' '}
         <Link href="/register" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>
-          Registrati
+          {t('login.signup', null, 'Sign up')}
         </Link>
       </div>
     </AuthShell>

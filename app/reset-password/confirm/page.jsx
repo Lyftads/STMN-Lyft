@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getBrowserSupabase } from '../../../lib/supabase/client'
 import { AuthShell, AuthInput, AuthButton, AuthError } from '../../components/AuthShell'
+import { useI18n } from '../../../lib/i18n/I18nProvider'
 
 export default function ResetPasswordConfirmPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -26,8 +28,8 @@ export default function ResetPasswordConfirmPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
-    if (password.length < 8) { setError('La password deve avere almeno 8 caratteri'); return }
-    if (password !== confirm) { setError('Le password non corrispondono'); return }
+    if (password.length < 8) { setError(t('reg.pwShort', null, 'Password must be at least 8 characters')); return }
+    if (password !== confirm) { setError(t('rpc.pwMismatch', null, 'Passwords do not match')); return }
     setLoading(true)
     const supabase = getBrowserSupabase()
     const { error } = await supabase.auth.updateUser({ password })
@@ -39,13 +41,13 @@ export default function ResetPasswordConfirmPage() {
 
   if (done) {
     return (
-      <AuthShell title="Password aggiornata" subtitle="">
+      <AuthShell title={t('rpc.pwUpdated', null, 'Password updated')} subtitle="">
         <div style={{
           padding: 18, borderRadius: 12,
           background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)',
           color: '#86efac', fontSize: 13.5, lineHeight: 1.6, textAlign: 'center',
         }}>
-          <Icon name="check" size={14} /> Password aggiornata. Reindirizzamento alla dashboard…
+          <Icon name="check" size={14} /> {t('rpc.redirecting', null, 'Password updated. Redirecting to the dashboard…')}
         </div>
       </AuthShell>
     )
@@ -53,17 +55,17 @@ export default function ResetPasswordConfirmPage() {
 
   if (!hasSession) {
     return (
-      <AuthShell title="Link non valido" subtitle="">
+      <AuthShell title={t('rpc.invalidLink', null, 'Invalid link')} subtitle="">
         <div style={{
           padding: 18, borderRadius: 12,
           background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)',
           color: '#fca5a5', fontSize: 13.5, lineHeight: 1.6, textAlign: 'center',
         }}>
-          Il link di reset e' scaduto o invalido. Richiedi un nuovo link.
+          {t('rpc.linkExpired', null, 'The reset link is expired or invalid. Request a new link.')}
         </div>
         <div style={{ textAlign: 'center', marginTop: 22 }}>
           <Link href="/reset-password" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>
-            Richiedi nuovo link →
+            {t('rpc.requestNew', null, 'Request new link →')}
           </Link>
         </div>
       </AuthShell>
@@ -72,24 +74,24 @@ export default function ResetPasswordConfirmPage() {
 
   return (
     <AuthShell
-      title="Nuova password"
-      subtitle="Scegli una nuova password per il tuo account"
+      title={t('rpc.title', null, 'New password')}
+      subtitle={t('rpc.subtitle', null, 'Choose a new password for your account')}
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <AuthInput
-          label="Nuova password"
+          label={t('rpc.title', null, 'New password')}
           type="password" autoComplete="new-password" required
           value={password} onChange={e => setPassword(e.target.value)}
-          placeholder="Minimo 8 caratteri"
+          placeholder={t('reg.pwPlaceholder', null, 'At least 8 characters')}
         />
         <AuthInput
-          label="Conferma password"
+          label={t('rpc.confirmLabel', null, 'Confirm password')}
           type="password" autoComplete="new-password" required
           value={confirm} onChange={e => setConfirm(e.target.value)}
-          placeholder="Ripeti la password"
+          placeholder={t('rpc.repeatPw', null, 'Repeat the password')}
         />
         <AuthError error={error} />
-        <AuthButton loading={loading}>Aggiorna password</AuthButton>
+        <AuthButton loading={loading}>{t('rpc.updateBtn', null, 'Update password')}</AuthButton>
       </form>
     </AuthShell>
   )

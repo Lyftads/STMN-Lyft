@@ -306,13 +306,14 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
 }
 
 function Thumb({ url, products, isDpa }) {
+  const { t } = useI18n()
   const items = Array.isArray(products) ? products.filter(p => p?.image_url) : []
 
   // Catalog ad con prodotti reali → stack di 3 thumb sovrapposti
   if (items.length > 0) {
     const visible = items.slice(0, 3)
     return (
-      <div title={`Catalogo · ${items.length} prodotti`} style={{
+      <div title={t('meta.catalogProducts', { n: items.length }, 'Catalog · {n} products')} style={{
         display: 'flex', alignItems: 'center',
         position: 'relative', height: 50, minWidth: 78,
       }}>
@@ -355,7 +356,7 @@ function Thumb({ url, products, isDpa }) {
   // DPA senza prodotti accessibili → badge "Catalog"
   if (isDpa) {
     return (
-      <div title="Advantage+ Catalog · prodotti dinamici Meta" style={{
+      <div title={t('meta.advantageCatalog', null, 'Advantage+ Catalog · Meta dynamic products')} style={{
         width: 50, height: 50,
         borderRadius: 10,
         border: '1px solid rgba(91,44,255,0.4)',
@@ -1208,7 +1209,7 @@ export default function MetaDetailTab() {
                   </div>
 
                   {/* Toggle segmenti di pubblico: chiama l'API SOLO se attivo */}
-                  <button type="button" onClick={() => setShowSegments(v => !v)} title="Mostra i KPI per segmento di pubblico sotto ogni campagna (dato reale Meta)"
+                  <button type="button" onClick={() => setShowSegments(v => !v)} title={t('meta.segmentsToggle', null, 'Show KPIs by audience segment under each campaign (real Meta data)')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer',
                       background: showSegments ? 'rgba(8,102,255,0.22)' : 'rgba(255,255,255,0.04)',

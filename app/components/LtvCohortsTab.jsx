@@ -5,17 +5,9 @@ import Icon from './ui/Icon'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
-const eur = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`)
-const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-const nf = (n) => Number(n || 0).toLocaleString('it-IT')
-
-const WINDOWS = [
-  { value: 6, label: '6 mesi' },
-  { value: 12, label: '12 mesi' },
-  { value: 18, label: '18 mesi' },
-  { value: 24, label: '24 mesi' },
-]
+const WINDOWS = [6, 12, 18, 24]
 
 function repeatColor(pct) {
   if (pct >= 25) return '#30d158'
@@ -23,14 +15,18 @@ function repeatColor(pct) {
   return '#ff453a'
 }
 
-const MONTH_FULL = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-function sinceLabel(since) {
-  if (!since) return ''
-  const [y, m] = since.split('-').map(Number)
-  return `${MONTH_FULL[(m || 1) - 1]} ${y}`
-}
-
 export default function LtvCohortsTab() {
+  const { t, intlLocale } = useI18n()
+  const nloc = intlLocale || 'it-IT'
+  const eur = (n) => (n == null ? '—' : `€${Number(n).toLocaleString(nloc, { maximumFractionDigits: 0 })}`)
+  const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString(nloc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+  const nf = (n) => Number(n || 0).toLocaleString(nloc)
+  const sinceLabel = (since) => {
+    if (!since) return ''
+    const [y, m] = since.split('-').map(Number)
+    return `${new Intl.DateTimeFormat(nloc, { month: 'long' }).format(new Date(y, (m || 1) - 1, 1))} ${y}`
+  }
+
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -92,7 +88,7 @@ export default function LtvCohortsTab() {
         if (j?.error && !j?.summary) setError(j.error)
         if (!cached || force) setData(j)
       })
-      .catch(e => { if (!cancelled && !cached) setError(e?.message || 'Errore di rete') })
+      .catch(e => { if (!cancelled && !cached) setError(e?.message || t('common.networkError', null, 'Network error')) })
       .finally(() => { if (!cancelled && !cached) setLoading(false) })
     return () => { cancelled = true }
   }
@@ -135,84 +131,84 @@ export default function LtvCohortsTab() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {WINDOWS.map(w => (
-              <button key={w.value} onClick={() => setMonths(w.value)} className="btn-glass"
-                style={{ padding: '8px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12, opacity: months === w.value ? 1 : 0.55, borderColor: months === w.value ? 'var(--accent)' : undefined }}>
-                {w.label}
+              <button key={w} onClick={() => setMonths(w)} className="btn-glass"
+                style={{ padding: '8px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12, opacity: months === w ? 1 : 0.55, borderColor: months === w ? 'var(--accent)' : undefined }}>
+                {w} {t('ltv.monthsUnit', null, 'months')}
               </button>
             ))}
           </div>
           <button onClick={() => load(true)} disabled={loading} className="btn-glass" style={{ padding: '8px 14px', fontWeight: 700, cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Carico…' : 'Aggiorna'}
+            {loading ? t('common.loadingShort', null, 'Loading…') : t('common.refresh', null, 'Refresh')}
           </button>
         </div>
 
-        {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> Calcolo coorti e LTV…</div>}
+        {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('ltv.calculating', null, 'Calculating cohorts and LTV…')}</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
-        {!loading && !error && data && !(s.customers > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>Nessun cliente nel periodo selezionato.</div>}
+        {!loading && !error && data && !(s.customers > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{t('ltv.noCustomers', null, 'No customers in the selected period.')}</div>}
 
         {s.customers > 0 && (
           <>
             {/* Headline: LTV Lordo / Netto / CAC / Ratio LTV:CAC */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, margin: '8px 0 12px' }}>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV Lordo</div>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.grossLtv', null, 'Gross LTV')}</div>
                 <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur2(grossLtv)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>ricavo lifetime / cliente</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.lifetimePerCustomer', null, 'lifetime revenue / customer')}</div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV Netto</div>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.netLtv', null, 'Net LTV')}</div>
                 <div className="metric-value-sm" style={{ color: '#30d158' }}>{eur2(netLtv)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>margine {Math.round(m * 100)}% {marginReal ? '· reale Shopify' : '· stima'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.marginLine', { pct: Math.round(m * 100), src: marginReal ? t('ltv.realShopify', null, 'real Shopify') : t('ltv.estimate', null, 'estimate') }, `margin ${Math.round(m * 100)}%`)}</div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>CAC</div>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.cac', null, 'CAC')}</div>
                 <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{cac == null ? '—' : eur2(cac)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{adSpend > 0 ? `${eur(adSpend)} ads / ${nf(newCustomers)} clienti` : 'spesa ads non disponibile'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{adSpend > 0 ? t('ltv.adsPerCustomers', { spend: eur(adSpend), n: nf(newCustomers) }, `${eur(adSpend)} ads / ${nf(newCustomers)} customers`) : t('ltv.adsUnavailable', null, 'ad spend unavailable')}</div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>LTV:CAC (netto)</div>
+                <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.ltvCacNet', null, 'LTV:CAC (net)')}</div>
                 <div className="metric-value-sm" style={{ color: ratioColor(ratioNet) }}>{fmtX(ratioNet)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>lordo {fmtX(ratioGross)} · sano ≥ 3×</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.grossRatioHealthy', { x: fmtX(ratioGross) }, `gross ${fmtX(ratioGross)} · healthy ≥ 3×`)}</div>
               </div>
             </div>
 
             {/* Controllo margine lordo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 18px', fontSize: 12.5, color: 'var(--text)' }}>
-              <span style={{ fontWeight: 700, color: '#fff' }}>Margine lordo</span>
+              <span style={{ fontWeight: 700, color: '#fff' }}>{t('ltv.grossMargin', null, 'Gross margin')}</span>
               <input type="number" min={0} max={100} value={margin}
                 onChange={e => { setMargin(e.target.value); setMarginAuto(false) }}
                 style={{ width: 78, background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 9, padding: '7px 10px', fontSize: 13, fontWeight: 700, outline: 'none' }} />
               <span style={{ color: 'var(--text2)' }}>%</span>
               {!marginAuto && (
-                <button onClick={() => setMarginAuto(true)} className="btn-glass" style={{ padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Usa margine reale</button>
+                <button onClick={() => setMarginAuto(true)} className="btn-glass" style={{ padding: '6px 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{t('ltv.useRealMargin', null, 'Use real margin')}</button>
               )}
               <span style={{ color: 'var(--text2)', fontSize: 11.5 }}>
                 {marginReal
-                  ? 'Calcolato automaticamente dai costi prodotto Shopify (puoi modificarlo).'
-                  : 'Imposta i costi prodotto nel modulo Costi prodotto per il margine reale — ora è una stima.'}
+                  ? t('ltv.marginAutoHint', null, 'Automatically calculated from Shopify product costs (you can change it).')
+                  : t('ltv.marginEstHint', null, 'Set product costs in the Product Costs module for the real margin — this is an estimate.')}
               </span>
             </div>
 
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 12, margin: '0 0 20px' }}>
-              <Stat label="Clienti acquisiti" value={nf(s.customers)} sub={`${nf(s.ordersTotal)} ordini totali`} />
-              <Stat label="Repeat rate" value={`${s.repeatRate}%`} sub={`${nf(s.repeatCustomers)} con ≥2 ordini`} />
-              <Stat label="Ordini / cliente" value={s.avgOrders} />
-              <Stat label="Clienti monouso" value={`${s.oneTimeRate}%`} sub="1 solo ordine" />
-              <Stat label="Fatturato clienti" value={eur(s.revenueTotal)} sub="lifetime delle coorti" />
+              <Stat label={t('ltv.customersAcquired', null, 'Customers acquired')} value={nf(s.customers)} sub={t('ltv.ordersTotal', { n: nf(s.ordersTotal) }, `${nf(s.ordersTotal)} total orders`)} />
+              <Stat label={t('ltv.repeatRate', null, 'Repeat rate')} value={`${s.repeatRate}%`} sub={t('ltv.withTwoOrders', { n: nf(s.repeatCustomers) }, `${nf(s.repeatCustomers)} with ≥2 orders`)} />
+              <Stat label={t('ltv.ordersPerCustomer', null, 'Orders / customer')} value={s.avgOrders} />
+              <Stat label={t('ltv.oneTimeCustomers', null, 'One-time customers')} value={`${s.oneTimeRate}%`} sub={t('ltv.oneOrderOnly', null, '1 order only')} />
+              <Stat label={t('ltv.customerRevenue', null, 'Customer revenue')} value={eur(s.revenueTotal)} sub={t('ltv.cohortLifetime', null, 'cohort lifetime')} />
             </div>
 
             {/* Tabella coorti per acquisizione */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 20, overflowX: 'auto' }}>
-              <div className="label" style={{ marginBottom: 12 }}>Coorti per mese di acquisizione</div>
+              <div className="label" style={{ marginBottom: 12 }}>{t('ltv.cohortsByMonth', null, 'Cohorts by acquisition month')}</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 520 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>COORTE</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>CLIENTI</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>REPEAT</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>ORDINI/CL.</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>LTV</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>{t('ltv.colCohort', null, 'COHORT')}</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>{t('ltv.colCustomers', null, 'CUSTOMERS')}</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>{t('ltv.colRepeat', null, 'REPEAT')}</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>{t('ltv.colOrdersCust', null, 'ORDERS/CUST.')}</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', color: 'var(--text3)', fontWeight: 800, fontSize: 10 }}>{t('ltv.colLtv', null, 'LTV')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,7 +228,7 @@ export default function LtvCohortsTab() {
             {/* Grafici */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px,1fr))', gap: 16 }}>
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>LTV per coorte · lordo vs netto ({Math.round(m * 100)}% margine)</div>
+                <div className="label" style={{ marginBottom: 12 }}>{t('ltv.ltvByCohort', { pct: Math.round(m * 100) }, `LTV by cohort · gross vs net (${Math.round(m * 100)}% margin)`)}</div>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={ltvChart} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <defs>
@@ -242,15 +238,15 @@ export default function LtvCohortsTab() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={42} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v, n) => [eur2(v), n === 'ltvNet' ? 'LTV Netto' : 'LTV Lordo']} />
-                    <Bar name="LTV Lordo" dataKey="ltv" fill="url(#ltvBar)" radius={[5, 5, 0, 0]} animationDuration={1400} />
-                    <Bar name="LTV Netto" dataKey="ltvNet" fill="url(#ltvBarNet)" radius={[5, 5, 0, 0]} animationDuration={1400} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v, n) => [eur2(v), n === 'ltvNet' ? t('ltv.netLtv', null, 'Net LTV') : t('ltv.grossLtv', null, 'Gross LTV')]} />
+                    <Bar name={t('ltv.grossLtv', null, 'Gross LTV')} dataKey="ltv" fill="url(#ltvBar)" radius={[5, 5, 0, 0]} animationDuration={1400} />
+                    <Bar name={t('ltv.netLtv', null, 'Net LTV')} dataKey="ltvNet" fill="url(#ltvBarNet)" radius={[5, 5, 0, 0]} animationDuration={1400} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Repeat rate per coorte</div>
+                <div className="label" style={{ marginBottom: 12 }}>{t('ltv.repeatByCohort', null, 'Repeat rate by cohort')}</div>
                 <ResponsiveContainer width="100%" height={230}>
                   <LineChart data={repeatChart} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -263,7 +259,7 @@ export default function LtvCohortsTab() {
               </div>
 
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>Distribuzione clienti per n° ordini</div>
+                <div className="label" style={{ marginBottom: 12 }}>{t('ltv.distByOrders', null, 'Customer distribution by number of orders')}</div>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={distribution} margin={{ top: 6, right: 10, left: -6, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -279,31 +275,31 @@ export default function LtvCohortsTab() {
             </div>
 
             {data?.truncated && (
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}><Icon name="warning" size={12} /> Dataset ampio: analisi sui clienti più recenti del periodo (troncato per performance).</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 14 }}><Icon name="warning" size={12} /> {t('ltv.truncated', null, 'Large dataset: analysis on the most recent customers of the period (truncated for performance).')}</div>
             )}
 
             {/* Spiegazione dinamica (cambia col timeframe selezionato) */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginTop: 20 }}>
-              <div className="label" style={{ marginBottom: 10 }}>Come leggere questi dati</div>
+              <div className="label" style={{ marginBottom: 10 }}>{t('ltv.howToRead', null, 'How to read this data')}</div>
               <div style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text2)' }}>
                 <p style={{ margin: '0 0 10px' }}>
-                  Stai analizzando i <strong style={{ color: 'var(--text)' }}>{nf(s.customers)} clienti</strong> acquisiti negli <strong style={{ color: 'var(--text)' }}>ultimi {months} mesi</strong> (da {sinceLabel(data?.since)}). Una <strong style={{ color: 'var(--text)' }}>coorte</strong> raggruppa i clienti in base al <strong style={{ color: 'var(--text)' }}>mese del loro primo acquisto</strong>: così confronti gruppi omogenei e vedi come si comportano nel tempo, al netto della stagionalità.
+                  {t('ltv.explIntro', { customers: nf(s.customers), months, since: sinceLabel(data?.since) }, `You are analyzing the ${nf(s.customers)} customers acquired in the last ${months} months (since ${sinceLabel(data?.since)}). A cohort groups customers by the month of their first purchase, so you compare homogeneous groups and see how they behave over time, net of seasonality.`)}
                 </p>
                 <ul style={{ margin: '0 0 10px', paddingLeft: 18, display: 'grid', gap: 6 }}>
-                  <li><strong style={{ color: 'var(--text)' }}>Repeat rate</strong> — % di clienti della coorte che ha fatto <strong style={{ color: 'var(--text)' }}>almeno 2 ordini</strong>. Misura quanto trattieni i clienti. Nel periodo: <strong style={{ color: repeatColor(s.repeatRate) }}>{s.repeatRate}%</strong>.</li>
-                  <li><strong style={{ color: 'var(--text)' }}>LTV medio</strong> — spesa <strong style={{ color: 'var(--text)' }}>lifetime</strong> (totale storico) media per cliente: {eur2(s.avgLtv)}. È il valore reale di un cliente, da confrontare col CAC.</li>
-                  <li><strong style={{ color: 'var(--text)' }}>Ordini/cliente</strong> ({s.avgOrders}) e <strong style={{ color: 'var(--text)' }}>clienti monouso</strong> ({s.oneTimeRate}%) — quanto il fatturato dipende da chi compra una volta sola.</li>
-                  <li><strong style={{ color: 'var(--text)' }}>Distribuzione per n° ordini</strong> — quanti clienti si fermano a 1, 2, 3 o 4+ ordini: la "scala" della fedeltà.</li>
+                  <li><strong style={{ color: 'var(--text)' }}>{t('ltv.explRepeatLabel', null, 'Repeat rate')}</strong> {t('ltv.explRepeatBody', { rate: s.repeatRate }, `— % of cohort customers who placed at least 2 orders. It measures retention. In the period: ${s.repeatRate}%.`)}</li>
+                  <li><strong style={{ color: 'var(--text)' }}>{t('ltv.explLtvLabel', null, 'Average LTV')}</strong> {t('ltv.explLtvBody', { ltv: eur2(s.avgLtv) }, `— average lifetime spend per customer: ${eur2(s.avgLtv)}. It is the real value of a customer, to compare with CAC.`)}</li>
+                  <li><strong style={{ color: 'var(--text)' }}>{t('ltv.explOrdersLabel', null, 'Orders/customer')}</strong> {t('ltv.explOrdersBody', { orders: s.avgOrders, oneTime: s.oneTimeRate }, `(${s.avgOrders}) and one-time customers (${s.oneTimeRate}%) — how much revenue depends on one-time buyers.`)}</li>
+                  <li><strong style={{ color: 'var(--text)' }}>{t('ltv.explDistLabel', null, 'Distribution by number of orders')}</strong> {t('ltv.explDistBody', null, '— how many customers stop at 1, 2, 3 or 4+ orders: the loyalty ladder.')}</li>
                 </ul>
                 <p style={{ margin: 0, paddingTop: 10, borderTop: '1px solid var(--border)', color: 'var(--text3)' }}>
-                  <Icon name="warning" size={12} /> <strong style={{ color: 'var(--text2)' }}>Effetto maturità</strong>: le coorti più recenti (in alto) hanno repeat rate e LTV <em>fisiologicamente più bassi</em> perché hanno avuto meno tempo per riacquistare. Per il potenziale reale guarda le coorti più vecchie. {months <= 6
-                    ? `Con una finestra di ${months} mesi vedi soprattutto l'acquisizione recente: allarga a 12–24 mesi per valutare la retention matura.`
-                    : `Con ${months} mesi includi anche coorti mature: confronta le righe vecchie (LTV/repeat consolidati) con le recenti per stimare dove arriveranno.`}
+                  <Icon name="warning" size={12} /> <strong style={{ color: 'var(--text2)' }}>{t('ltv.explMaturityLabel', null, 'Maturity effect')}</strong>: {t('ltv.explMaturityBody', null, 'the most recent cohorts (at the top) have physiologically lower repeat rate and LTV because they had less time to re-purchase. For the real potential, look at the older cohorts.')} {months <= 6
+                    ? t('ltv.explWindowShort', { months }, `With a ${months}-month window you mostly see recent acquisition: widen to 12–24 months to assess mature retention.`)
+                    : t('ltv.explWindowLong', { months }, `With ${months} months you also include mature cohorts: compare the old rows (consolidated LTV/repeat) with the recent ones to estimate where they will land.`)}
                   {s.repeatRate < 15
-                    ? ` Il repeat rate complessivo (${s.repeatRate}%) è basso: c'è leva su retention — flussi email post-acquisto, bundle, reorder reminder.`
+                    ? ' ' + t('ltv.explRepeatLow', { rate: s.repeatRate }, `The overall repeat rate (${s.repeatRate}%) is low: there is leverage on retention — post-purchase email flows, bundles, reorder reminders.`)
                     : s.repeatRate < 30
-                      ? ` Il repeat rate (${s.repeatRate}%) è discreto: spingere su win-back e cross-sell può alzarlo.`
-                      : ` Ottimo repeat rate (${s.repeatRate}%): base clienti fedele, conviene investire in acquisizione.`}
+                      ? ' ' + t('ltv.explRepeatMid', { rate: s.repeatRate }, `The repeat rate (${s.repeatRate}%) is decent: pushing win-back and cross-sell can raise it.`)
+                      : ' ' + t('ltv.explRepeatHigh', { rate: s.repeatRate }, `Great repeat rate (${s.repeatRate}%): loyal customer base, worth investing in acquisition.`)}
                 </p>
               </div>
             </div>

@@ -135,6 +135,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Pricing', title: 'Paghi in base alla tua dimensione. I tool sono sempre tutti.' },
     pricingSub: 'Tutti i tool inclusi in ogni piano. Il prezzo cresce con i tuoi ordini, mai con le funzioni. 14 giorni gratis, niente carta, cancelli in 1 click.',
+    pricingUI: { founder: 'Founder: −30% A VITA per le prime 100 aziende', founderCum: '· cumulabile con lo sconto annuale', audBrand: 'Aziende', audAgency: 'Agenzie & Freelance', agencySub: 'Gestisci tutti i tuoi clienti da un unico posto. Paghi per numero di aziende, switch immediato tra una e l’altra.', cadMonthly: 'Mensile', cadSemestral: 'Semestrale', cadAnnual: 'Annuale', billSemestral: 'ogni 6 mesi', billAnnual: 'all’anno', save: 'Risparmi', billed: 'fatturato' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mese', tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', features: ['✨ Tutti i tool inclusi', 'Fino a 500 ordini/mese', 'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)', '2 utenti del team', 'Email support 48h'], cta: 'Inizia con Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/mese', tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', features: ['✨ Tutti i tool inclusi', '500 – 2.000 ordini/mese', '5 utenti del team', 'Crediti Creative Lab (AI) estesi', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'PIÙ SCELTO' },
@@ -281,6 +282,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Pricing', title: 'You pay by your size. The tools are always all of them.' },
     pricingSub: 'Every tool included in every plan. The price grows with your orders, never with features. 14 days free, no card, 1-click cancellation.',
+    pricingUI: { founder: 'Founder: −30% FOR LIFE for the first 100 companies', founderCum: '· stacks with the annual discount', audBrand: 'Companies', audAgency: 'Agencies & Freelancers', agencySub: 'Manage all your clients from one place. You pay per number of companies, switch instantly between them.', cadMonthly: 'Monthly', cadSemestral: 'Half-yearly', cadAnnual: 'Annual', billSemestral: 'every 6 months', billAnnual: 'per year', save: 'You save', billed: 'billed' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/month', tagline: 'Up to 500 orders/month. Perfect to start, with everything already included.', features: ['✨ All tools included', 'Up to 500 orders/month', 'All integrations (Shopify, Meta, Google, Klaviyo)', '2 team users', 'Email support 48h'], cta: 'Start with Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/month', tagline: '500 to 2,000 orders/month. For growing brands.', features: ['✨ All tools included', '500 – 2,000 orders/month', '5 team users', 'Extended Creative Lab (AI) credits', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'MOST CHOSEN' },
@@ -427,6 +429,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Precios', title: 'Pagas según tu tamaño. Las herramientas son siempre todas.' },
     pricingSub: 'Todas las herramientas incluidas en cada plan. El precio crece con tus pedidos, nunca con las funciones. 14 días gratis, sin tarjeta, cancelas en 1 click.',
+    pricingUI: { founder: 'Founder: −30% DE POR VIDA para las primeras 100 empresas', founderCum: '· acumulable con el descuento anual', audBrand: 'Empresas', audAgency: 'Agencias y Freelancers', agencySub: 'Gestiona todos tus clientes desde un solo lugar. Pagas por número de empresas, cambias al instante entre ellas.', cadMonthly: 'Mensual', cadSemestral: 'Semestral', cadAnnual: 'Anual', billSemestral: 'cada 6 meses', billAnnual: 'al año', save: 'Ahorras', billed: 'facturado' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mes', tagline: 'Hasta 500 pedidos/mes. Perfecto para empezar, con todo ya incluido.', features: ['✨ Todas las herramientas incluidas', 'Hasta 500 pedidos/mes', 'Todas las integraciones (Shopify, Meta, Google, Klaviyo)', '2 usuarios del equipo', 'Email support 48h'], cta: 'Iniciar con Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/mes', tagline: 'De 500 a 2.000 pedidos/mes. Para marcas en crecimiento.', features: ['✨ Todas las herramientas incluidas', '500 – 2.000 pedidos/mes', '5 usuarios del equipo', 'Créditos Creative Lab (IA) ampliados', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'MÁS ELEGIDO' },
@@ -573,6 +576,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Tarifs', title: 'Vous payez selon votre taille. Les outils sont toujours tous là.' },
     pricingSub: 'Tous les outils inclus dans chaque plan. Le prix grandit avec vos commandes, jamais avec les fonctionnalités. 14 jours gratuits, sans carte, annulation en 1 clic.',
+    pricingUI: { founder: 'Founder : −30% À VIE pour les 100 premières entreprises', founderCum: '· cumulable avec la remise annuelle', audBrand: 'Entreprises', audAgency: 'Agences & Freelances', agencySub: 'Gérez tous vos clients depuis un seul endroit. Vous payez selon le nombre d’entreprises, basculez instantanément de l’une à l’autre.', cadMonthly: 'Mensuel', cadSemestral: 'Semestriel', cadAnnual: 'Annuel', billSemestral: 'tous les 6 mois', billAnnual: 'par an', save: 'Vous économisez', billed: 'facturé' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/mois', tagline: 'Jusqu\'à 500 commandes/mois. Parfait pour démarrer, tout déjà inclus.', features: ['✨ Tous les outils inclus', 'Jusqu\'à 500 commandes/mois', 'Toutes les intégrations (Shopify, Meta, Google, Klaviyo)', '2 utilisateurs', 'Support email 48h'], cta: 'Commencer avec Starter' },
       { id: 'growth', name: 'Growth', price: '149€', period: '/mois', tagline: 'De 500 à 2 000 commandes/mois. Pour les marques en croissance.', features: ['✨ Tous les outils inclus', '500 – 2 000 commandes/mois', '5 utilisateurs', 'Crédits Creative Lab (IA) étendus', 'Support prioritaire 12h'], cta: 'Commencer avec Growth', popular: true, popularLabel: 'LE PLUS CHOISI' },
@@ -719,6 +723,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Preise', title: 'Sie zahlen nach Ihrer Größe. Die Tools sind immer alle dabei.' },
     pricingSub: 'Alle Tools in jedem Plan enthalten. Der Preis wächst mit Ihren Bestellungen, nie mit Funktionen. 14 Tage kostenlos, keine Karte, Kündigung mit 1 Klick.',
+    pricingUI: { founder: 'Founder: −30% LEBENSLANG für die ersten 100 Unternehmen', founderCum: '· kombinierbar mit dem Jahresrabatt', audBrand: 'Unternehmen', audAgency: 'Agenturen & Freelancer', agencySub: 'Verwalten Sie alle Ihre Kunden an einem Ort. Sie zahlen pro Anzahl der Unternehmen und wechseln sofort zwischen ihnen.', cadMonthly: 'Monatlich', cadSemestral: 'Halbjährlich', cadAnnual: 'Jährlich', billSemestral: 'alle 6 Monate', billAnnual: 'pro Jahr', save: 'Sie sparen', billed: 'abgerechnet' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/Monat', tagline: 'Bis zu 500 Bestellungen/Monat. Perfekt zum Start, alles schon dabei.', features: ['✨ Alle Tools inklusive', 'Bis zu 500 Bestellungen/Monat', 'Alle Integrationen (Shopify, Meta, Google, Klaviyo)', '2 Team-Nutzer', 'E-Mail-Support 48h'], cta: 'Mit Starter beginnen' },
       { id: 'growth', name: 'Growth', price: '149€', period: '/Monat', tagline: '500 bis 2.000 Bestellungen/Monat. Für wachsende Marken.', features: ['✨ Alle Tools inklusive', '500 – 2.000 Bestellungen/Monat', '5 Team-Nutzer', 'Erweiterte Creative-Lab-(KI)-Credits', 'Priority-Support 12h'], cta: 'Mit Growth beginnen', popular: true, popularLabel: 'AM HÄUFIGSTEN GEWÄHLT' },
@@ -824,7 +829,7 @@ export default function WelcomePage() {
         <FeaturesGrid t={t} />
         <DemoCharts t={t} />
         <BundleCompare t={t} />
-        <Pricing t={t} />
+        <Pricing t={t} lang={lang} />
         <Testimonials t={t} />
         <Faq t={t} />
         <ContactForm t={t} lang={lang} />
@@ -1551,30 +1556,31 @@ function MockBarChart() {
   )
 }
 
-function Pricing({ t }) {
+function Pricing({ t, lang = 'it' }) {
+  const pui = t.pricingUI || {}
   const planAccents = ['#0ea5e9', ACCENT, GREEN, '#f59e0b']
   const [audience, setAudience] = useState('brand') // 'brand' | 'agency'
   const [cadB, setCadB] = useState('annual')        // cadenza dei piani brand
   const BRAND_CAD = [
-    { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
-    { id: 'semestral', label: 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: 'ogni 6 mesi' },
-    { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
+    { id: 'monthly',   label: pui.cadMonthly || 'Mensile',     months: 1,  factor: 1,    off: 0,  bill: '' },
+    { id: 'semestral', label: pui.cadSemestral || 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: pui.billSemestral || 'ogni 6 mesi' },
+    { id: 'annual',    label: pui.cadAnnual || 'Annuale',       months: 12, factor: 0.80, off: 20, bill: pui.billAnnual || 'all’anno' },
   ]
   const bc = BRAND_CAD.find(x => x.id === cadB)
-  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+  const eur0 = n => `€${Number(n).toLocaleString(lang, { maximumFractionDigits: 0 })}`
   return (
     <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
       <Reveal>
         <SectionHeader eyebrow={t.pricingTitle.eyebrow} title={t.pricingTitle.title} />
         <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
-          {audience === 'agency' ? 'Gestisci tutti i tuoi clienti da un unico posto. Paghi per numero di aziende, switch immediato tra una e l’altra.' : t.pricingSub}
+          {audience === 'agency' ? (pui.agencySub || '') : t.pricingSub}
         </p>
       </Reveal>
 
       {/* Toggle pubblico: Aziende vs Agenzie & Freelance */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
         <div style={{ display: 'inline-flex', gap: 4, padding: 5, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {[{ id: 'brand', l: 'Aziende' }, { id: 'agency', l: 'Agenzie & Freelance' }].map(o => {
+          {[{ id: 'brand', l: pui.audBrand || 'Aziende' }, { id: 'agency', l: pui.audAgency || 'Agenzie & Freelance' }].map(o => {
             const on = audience === o.id
             return (
               <button key={o.id} type="button" onClick={() => setAudience(o.id)} style={{
@@ -1595,8 +1601,8 @@ function Pricing({ t }) {
       {/* Founder banner brand */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', textAlign: 'center', padding: '12px 18px', borderRadius: 14, marginTop: 28, maxWidth: 760, marginLeft: 'auto', marginRight: 'auto', background: 'linear-gradient(90deg, rgba(34,197,94,0.16), rgba(41,151,255,0.16))', border: '1px solid rgba(34,197,94,0.35)' }}>
         <span style={{ fontSize: 18 }}>🎉</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>Founder: −30% A VITA per le prime 100 aziende</span>
-        <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>· cumulabile con lo sconto annuale</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>{pui.founder || 'Founder: −30% A VITA per le prime 100 aziende'}</span>
+        <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>{pui.founderCum || '· cumulabile con lo sconto annuale'}</span>
       </div>
       {/* Toggle cadenza brand */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
@@ -1661,10 +1667,10 @@ function Pricing({ t }) {
                     {bc.off > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'line-through' }}>{eur0(m)}{p.period}</span>
-                        <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>Risparmi {eur0(save)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>{pui.save || 'Risparmi'} {eur0(save)}</span>
                       </div>
                     )}
-                    {bc.off > 0 && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{eur0(total)} fatturato {bc.bill}</div>}
+                    {bc.off > 0 && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{eur0(total)} {pui.billed || 'fatturato'} {bc.bill}</div>}
                   </div>
                 )
               })()}

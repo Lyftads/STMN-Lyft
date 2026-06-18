@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AddClientModal from '../components/AddClientModal'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Login picker: l'agency/freelance sceglie quale azienda aprire.
 // Se l'utente ha un solo workspace, redirect diretto in dashboard.
 export default function SelectWorkspacePage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [data, setData] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -23,7 +25,7 @@ export default function SelectWorkspacePage() {
         if (d.workspaces.length === 1 && !d.isAgency) { router.replace('/?tab=dashboard'); return }
         setData(d)
       })
-      .catch(e => { if (e === 'unauth') router.replace('/login'); else setError('Errore di caricamento') })
+      .catch(e => { if (e === 'unauth') router.replace('/login'); else setError(t('sw.loadError', null, 'Loading error')) })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = async (id) => {
@@ -31,7 +33,7 @@ export default function SelectWorkspacePage() {
     try {
       await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) })
       window.location.href = '/?tab=dashboard'
-    } catch { setBusy(false); setError('Impossibile aprire questa azienda') }
+    } catch { setBusy(false); setError(t('sw.openError', null, 'Unable to open this company')) }
   }
 
   const createClient = async (name) => {
@@ -40,20 +42,20 @@ export default function SelectWorkspacePage() {
       const r = await fetch('/api/workspaces/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label: name, companyName: name }) })
       const j = await r.json()
       if (j?.workspace?.id) await open(j.workspace.id)
-      else { setAddBusy(false); setAddError(j?.error || 'Errore creazione cliente') }
-    } catch { setAddBusy(false); setAddError('Errore di rete') }
+      else { setAddBusy(false); setAddError(j?.error || t('sw.createError', null, 'Error creating client')) }
+    } catch { setAddBusy(false); setAddError(t('common.networkError', null, 'Network error')) }
   }
 
   return (
     <div style={{ minHeight: '100vh', background: '#06060c', color: 'var(--text, #e8e8ee)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 760 }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em' }}>Scegli l'azienda</div>
-          <div style={{ fontSize: 14, color: 'var(--text3, #8b8b99)', marginTop: 6 }}>Seleziona il workspace da aprire</div>
+          <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em' }}>{t('sw.title', null, 'Choose the company')}</div>
+          <div style={{ fontSize: 14, color: 'var(--text3, #8b8b99)', marginTop: 6 }}>{t('sw.subtitle', null, 'Select the workspace to open')}</div>
         </div>
 
         {error && <div style={{ textAlign: 'center', color: '#fca5a5', fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        {!data && !error && <div style={{ textAlign: 'center', color: 'var(--text3, #8b8b99)', padding: 40 }}>Carico…</div>}
+        {!data && !error && <div style={{ textAlign: 'center', color: 'var(--text3, #8b8b99)', padding: 40 }}>{t('common.loadingShort', null, 'Loading…')}</div>}
 
         {data && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
@@ -68,7 +70,7 @@ export default function SelectWorkspacePage() {
                 </span>
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text3, #8b8b99)', marginTop: 2 }}>{w.isSelf ? 'Il tuo account' : 'Cliente'}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text3, #8b8b99)', marginTop: 2 }}>{w.isSelf ? t('sw.yourAccount', null, 'Your account') : t('sw.client', null, 'Client')}</span>
                 </span>
               </button>
             ))}
@@ -78,7 +80,7 @@ export default function SelectWorkspacePage() {
                 cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
                 background: 'transparent', border: '1px dashed rgba(34,197,94,0.5)', color: '#22c55e',
                 borderRadius: 16, padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 800,
-              }}>+ Aggiungi cliente</button>
+              }}>{t('shell.addClient', null, '+ Add client')}</button>
             )}
           </div>
         )}

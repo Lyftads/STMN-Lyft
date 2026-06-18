@@ -1,24 +1,29 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useI18n } from '../../lib/i18n/I18nProvider'
+
+// Locale + traduttore condivisi con le funzioni module-level (impostati al render).
+let _CL_LOC = 'it-IT'
+let _CL_T = (k, v, f) => f
 
 const PRESETS = [
-  { key: 'today', label: 'Oggi' },
-  { key: 'yesterday', label: 'Ieri' },
-  { key: 'last_7d', label: 'Ultimi 7g' },
-  { key: 'last_14d', label: 'Ultimi 14g' },
-  { key: 'last_28d', label: 'Ultimi 28g' },
-  { key: 'this_month', label: 'Mese corrente' },
-  { key: 'last_month', label: 'Mese scorso' },
+  { key: 'today', tkey: 'cl.presetToday', en: 'Today' },
+  { key: 'yesterday', tkey: 'cl.presetYesterday', en: 'Yesterday' },
+  { key: 'last_7d', tkey: 'cl.preset7d', en: 'Last 7d' },
+  { key: 'last_14d', tkey: 'cl.preset14d', en: 'Last 14d' },
+  { key: 'last_28d', tkey: 'cl.preset28d', en: 'Last 28d' },
+  { key: 'this_month', tkey: 'cl.presetThisMonth', en: 'This month' },
+  { key: 'last_month', tkey: 'cl.presetLastMonth', en: 'Last month' },
 ]
 
 const QUICK_FILTERS = [
-  { key: 'all', label: 'Tutte' },
-  { key: 'top', label: 'Top Performers' },
-  { key: 'efficient', label: 'Efficient Spenders' },
-  { key: 'volume', label: 'High Volume' },
-  { key: 'winners', label: 'Winners 4x+' },
-  { key: 'ctr', label: 'Link CTR Champions' },
+  { key: 'all', tkey: 'cl.filterAll', en: 'All' },
+  { key: 'top', tkey: null, en: 'Top Performers' },
+  { key: 'efficient', tkey: null, en: 'Efficient Spenders' },
+  { key: 'volume', tkey: null, en: 'High Volume' },
+  { key: 'winners', tkey: null, en: 'Winners 4x+' },
+  { key: 'ctr', tkey: null, en: 'Link CTR Champions' },
 ]
 
 function n(v) {
@@ -27,29 +32,29 @@ function n(v) {
 }
 
 function fmtInt(v) {
-  return Math.round(n(v)).toLocaleString('it-IT')
+  return Math.round(n(v)).toLocaleString(_CL_LOC)
 }
 
 function fmtEuro(v) {
-  return `€${Math.round(n(v)).toLocaleString('it-IT')}`
+  return `€${Math.round(n(v)).toLocaleString(_CL_LOC)}`
 }
 
 function fmtEuroDec(v) {
-  return `€${n(v).toLocaleString('it-IT', {
+  return `€${n(v).toLocaleString(_CL_LOC, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`
 }
 
 function fmtPct(v) {
-  return `${n(v).toLocaleString('it-IT', {
+  return `${n(v).toLocaleString(_CL_LOC, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}%`
 }
 
 function fmtRoas(v) {
-  return `${n(v).toLocaleString('it-IT', {
+  return `${n(v).toLocaleString(_CL_LOC, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}x`
@@ -67,10 +72,12 @@ function getThumb(row) {
 }
 
 function getName(row) {
-  return row.ad_name || row.name || row.creative_name || row.ad_id || 'Creative senza nome'
+  return row.ad_name || row.name || row.creative_name || row.ad_id || _CL_T('cl.unnamed', null, 'Unnamed creative')
 }
 
 export default function CreativePage() {
+  const { t, intlLocale } = useI18n()
+  _CL_LOC = intlLocale; _CL_T = t
   const [preset, setPreset] = useState('last_28d')
   const [rows, setRows] = useState([])
   const [summary, setSummary] = useState(null)
@@ -94,7 +101,7 @@ export default function CreativePage() {
       const json = await res.json()
 
       if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento creative')
+        throw new Error(json.error || t('cl.loadError', null, 'Error loading creatives'))
       }
 
       setRows(Array.isArray(json.rows) ? json.rows : [])
@@ -102,7 +109,7 @@ export default function CreativePage() {
     } catch (e) {
       setRows([])
       setSummary(null)
-      setError(e.message || 'Errore sconosciuto')
+      setError(e.message || t('cl.unknownError', null, 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -199,7 +206,7 @@ export default function CreativePage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Creative Library</h1>
             <p className="mt-3 text-slate-400">
-              Solo creative Meta · CTR, spesa, ROAS e ordini
+              {t('cl.subtitle', null, 'Meta creatives only · CTR, spend, ROAS and orders')}
             </p>
           </div>
 
@@ -207,7 +214,7 @@ export default function CreativePage() {
             onClick={loadData}
             className="rounded-full bg-emerald-500 text-black font-bold px-8 py-4 hover:bg-emerald-400 transition"
           >
-            ↻ Aggiorna
+            ↻ {t('cl.refresh', null, 'Refresh')}
           </button>
         </header>
 
@@ -224,7 +231,7 @@ export default function CreativePage() {
                     : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-500',
                 ].join(' ')}
               >
-                {p.label}
+                {t(p.tkey, null, p.en)}
               </button>
             ))}
           </div>
@@ -238,17 +245,17 @@ export default function CreativePage() {
 
         <section className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <StatCard label="Creative" value={loading ? '—' : fmtInt(computedSummary.count)} />
-          <StatCard label="Spesa" value={loading ? '—' : fmtEuro(computedSummary.spend)} />
-          <StatCard label="ROAS medio" value={loading ? '—' : fmtRoas(computedSummary.roas)} />
-          <StatCard label="CTR link medio" value={loading ? '—' : fmtPct(computedSummary.ctr)} />
-          <StatCard label="Ordini" value={loading ? '—' : fmtInt(computedSummary.orders)} />
+          <StatCard label={t('cl.spend', null, 'Spend')} value={loading ? '—' : fmtEuro(computedSummary.spend)} />
+          <StatCard label={t('cl.avgRoas', null, 'Avg ROAS')} value={loading ? '—' : fmtRoas(computedSummary.roas)} />
+          <StatCard label={t('cl.avgCtr', null, 'Avg link CTR')} value={loading ? '—' : fmtPct(computedSummary.ctr)} />
+          <StatCard label={t('cl.orders', null, 'Orders')} value={loading ? '—' : fmtInt(computedSummary.orders)} />
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 mb-6">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cerca creative per nome, campagna o ad set..."
+            placeholder={t('cl.searchPh', null, 'Search creatives by name, campaign or ad set...')}
             className="w-full rounded-xl border border-slate-700 bg-[#0f1726] px-5 py-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
           />
 
@@ -259,9 +266,9 @@ export default function CreativePage() {
               className="rounded-xl border border-slate-700 bg-[#0f1726] px-4 py-3 text-white outline-none"
             >
               <option value="roas">Sort: ROAS</option>
-              <option value="spend">Sort: Spesa</option>
+              <option value="spend">{t('cl.sortSpend', null, 'Sort: Spend')}</option>
               <option value="ctr_link">Sort: CTR Link</option>
-              <option value="purchases">Sort: Ordini</option>
+              <option value="purchases">{t('cl.sortOrders', null, 'Sort: Orders')}</option>
               <option value="link_clicks">Sort: Click link</option>
             </select>
 
@@ -283,13 +290,13 @@ export default function CreativePage() {
                   : 'border-slate-700 text-slate-400',
               ].join(' ')}
             >
-              Active only
+              {t('cl.activeOnly', null, 'Active only')}
             </button>
           </div>
 
           <div className="mt-5">
             <div className="text-xs tracking-[0.35em] uppercase text-slate-500 mb-3">
-              Quick filters
+              {t('cl.quickFilters', null, 'Quick filters')}
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -304,7 +311,7 @@ export default function CreativePage() {
                       : 'border-slate-700 text-slate-300 hover:border-slate-500',
                   ].join(' ')}
                 >
-                  {f.label}
+                  {t(f.tkey, null, f.en)}
                 </button>
               ))}
             </div>
@@ -313,11 +320,11 @@ export default function CreativePage() {
 
         {loading ? (
           <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-slate-400">
-            Caricamento creative...
+            {t('cl.loading', null, 'Loading creatives...')}
           </section>
         ) : filteredRows.length === 0 ? (
           <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-slate-400">
-            Nessuna creative trovata per i filtri selezionati.
+            {t('cl.noResults', null, 'No creatives found for the selected filters.')}
           </section>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -343,6 +350,7 @@ function StatCard({ label, value }) {
 }
 
 function CreativeCard({ row }) {
+  const { t } = useI18n()
   const thumb = getThumb(row)
   const name = getName(row)
 
@@ -358,7 +366,7 @@ function CreativeCard({ row }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold">
-            Ad Image
+            {t('cl.adImage', null, 'Ad Image')}
           </div>
         )}
 
@@ -371,7 +379,7 @@ function CreativeCard({ row }) {
             <Metric label="CTR" value={fmtPct(row.ctr_link)} green />
             <Metric label="ROAS" value={fmtRoas(row.roas)} purple />
             <Metric label="Spend" value={fmtEuro(row.spend)} red />
-            <Metric label="Ordini" value={fmtInt(row.purchases)} />
+            <Metric label={t('cl.orders', null, 'Orders')} value={fmtInt(row.purchases)} />
           </div>
         </div>
       </div>
@@ -382,11 +390,11 @@ function CreativeCard({ row }) {
         </h3>
 
         <div className="mt-2 text-sm text-slate-500 line-clamp-1">
-          {row.campaign_name || 'Campagna non disponibile'}
+          {row.campaign_name || t('cl.noCampaign', null, 'Campaign unavailable')}
         </div>
 
         <div className="mt-1 text-sm text-slate-500 line-clamp-1">
-          {row.adset_name || 'Ad set non disponibile'}
+          {row.adset_name || t('cl.noAdset', null, 'Ad set unavailable')}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">

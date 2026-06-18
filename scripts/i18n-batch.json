@@ -1,18 +1,4 @@
 {
-  "settings.networkError": "Errore di rete",
-  "sched.title": "Digest automatici via email · Weekly · Monthly",
-  "sched.subtitle": "HTML email con KPI principali (Shopify + Meta) + Top 5 prodotti + confronto vs periodo precedente.",
-  "sched.recipientEmail": "Email destinatario",
-  "sched.emailPh": "es. tuonome@brand.com",
-  "sched.localNotePre": "Salvato in locale. Per i cron job automatici, configura su Vercel",
-  "sched.localNotePost": "(o REPORT_RECIPIENTS comma-separated per multipli).",
-  "sched.weeklyDesc": "Performance settimanale: revenue, ordini, nuovi clienti, Meta spend, ROAS, MER blended. Confronto vs settimana precedente. Top 5 prodotti.",
-  "sched.monthlyDesc": "Performance del mese: stesso layout del weekly ma su periodo last_30d. Ideale per stakeholder/management.",
-  "sched.nextAuto": "Prossimo invio automatico",
-  "sched.sending": "Invio…",
-  "sched.sendNow": "Invia digest ora (test)",
-  "sched.invalidEmail": "Inserisci una email valida",
-  "sched.sentTo": "Inviato a {to} (id {id})",
-  "sched.sendError": "Errore invio",
-  "sched.networkError": "Errore network"
+  "ap.twoMonthsFree": "2 mesi gratis",
+  "ap.annualSaves": "Con l'annuale: 2 mesi gratis ogni anno"
 }

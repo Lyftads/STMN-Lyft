@@ -5,7 +5,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ============================================================================
 //  AgencyPricing — vetrina piani Agency/Freelance (multi-azienda).
-//  UX: toggle cadenza (Mensile / Semestrale −15% / Annuale −20%) con risparmio
+//  UX: toggle cadenza (Mensile / Annuale = 2 mesi gratis) con risparmio
 //  ben visibile (prezzo/mese effettivo + totale fatturato + "Risparmi €X" +
 //  prezzo pieno barrato). Solo display: il checkout si cabla quando Stripe è Live.
 // ============================================================================
@@ -14,9 +14,9 @@ const ACCENT = '#bf5af2'
 
 // label/bill e features sono nei dizionari i18n (ap.*), risolti via t().
 const CADENCES = [
-  { id: 'monthly',   labelKey: 'ap.cadMonthly',   months: 1,  factor: 1,    off: 0,  billKey: null },
-  { id: 'semestral', labelKey: 'ap.cadSemestral', months: 6,  factor: 0.85, off: 15, billKey: 'ap.billSemestral' },
-  { id: 'annual',    labelKey: 'ap.cadAnnual',    months: 12, factor: 0.80, off: 20, billKey: 'ap.billAnnual' },
+  { id: 'monthly', labelKey: 'ap.cadMonthly', months: 1,  factor: 1,     off: 0,  billKey: null },
+  // Annuale = 2 mesi gratis → paghi 10 mensilità su 12 (factor 10/12).
+  { id: 'annual',  labelKey: 'ap.cadAnnual',  months: 12, factor: 10 / 12, off: 1, billKey: 'ap.billAnnual' },
 ]
 
 const PLANS = [
@@ -62,8 +62,8 @@ export default function AgencyPricing({ compact = false }) {
                 {x.off > 0 && (
                   <span style={{
                     fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
-                    background: on ? 'rgba(10,10,20,0.18)' : 'rgba(239,68,68,0.16)', color: on ? '#0a0a14' : '#ef4444',
-                  }}>−{x.off}%</span>
+                    background: on ? 'rgba(10,10,20,0.18)' : 'rgba(34,197,94,0.16)', color: on ? '#0a0a14' : '#22c55e',
+                  }}>{t('ap.twoMonthsFree', null, '2 months free')}</span>
                 )}
               </button>
             )
@@ -71,8 +71,8 @@ export default function AgencyPricing({ compact = false }) {
         </div>
       </div>
       {c.off > 0 && (
-        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#ef4444', fontWeight: 700 }}>
-          {cad === 'annual' ? t('ap.savingAnnual', null, 'You are saving 2.4 months per year') : t('ap.savingSemestral', null, 'You are saving almost 1 month per half-year')}
+        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#22c55e', fontWeight: 700 }}>
+          {t('ap.annualSaves', null, 'With annual: 2 months free every year')}
         </div>
       )}
 

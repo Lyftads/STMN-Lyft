@@ -634,7 +634,7 @@ function AdPreviewModal({ ad, onClose }) {
 }
 
 export default function MetaDetailTab() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [preset, setPreset] = useState('last_7d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -661,6 +661,7 @@ export default function MetaDetailTab() {
     extra => {
       const params = new URLSearchParams()
       params.set('preset', preset)
+      params.set('locale', locale)
       if (preset === 'custom') {
         if (customSince) params.set('since', customSince)
         if (customUntil) params.set('until', customUntil)
@@ -671,7 +672,7 @@ export default function MetaDetailTab() {
       })
       return params.toString()
     },
-    [preset, customSince, customUntil, accountFilter]
+    [preset, customSince, customUntil, accountFilter, locale]
   )
 
   // Segmenti per campagna: chiamata SOLO quando il toggle è attivo; si rifà al

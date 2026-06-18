@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { presetToRange } from '../lib/reportRange'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Bottone "Scarica report PDF" — genera il report del periodo selezionato.
 // Props:
@@ -10,6 +11,7 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 //  - preset / custom: timeframe (preset string oppure {since,until,label})
 //  - campaigns: opzionale [{id,name}] → mostra un selettore campagna (Meta Detail)
 export default function DownloadReportButton({ tab, preset, custom, campaigns = null, style }) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [campaignId, setCampaignId] = useState('')
 
@@ -36,7 +38,7 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
       }
       setTimeout(() => URL.revokeObjectURL(url), 15000)
     } catch (e) {
-      alert('Errore nella generazione del report: ' + (e?.message || 'sconosciuto'))
+      alert(t('report.error', null, 'Error generating the report: ') + (e?.message || t('report.unknown', null, 'unknown')))
     } finally {
       setLoading(false)
     }
@@ -50,9 +52,9 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
           onChange={(e) => setCampaignId(e.target.value)}
           className="btn-glass"
           style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 240 }}
-          title="Scegli una campagna per il report gerarchico"
+          title={t('report.pickCampaign', null, 'Choose a campaign for the hierarchical report')}
         >
-          <option value="" style={{ background: 'var(--surface)' }}>Account intero</option>
+          <option value="" style={{ background: 'var(--surface)' }}>{t('report.wholeAccount', null, 'Whole account')}</option>
           {campaigns.map(c => (
             <option key={c.id} value={c.id} style={{ background: 'var(--surface)' }}>{c.name}</option>
           ))}
@@ -63,10 +65,10 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
         disabled={loading}
         className="btn-glass"
         style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1 }}
-        title="Genera e scarica il report PDF del periodo selezionato"
+        title={t('report.downloadTitle', null, 'Generate and download the PDF report for the selected period')}
       >
         <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>{loading ? '◌' : '⬇'}</span>
-        {loading ? 'Genero PDF…' : 'Scarica report PDF'}
+        {loading ? t('report.generating', null, 'Generating PDF…') : t('report.download', null, 'Download PDF report')}
       </button>
     </div>
   )

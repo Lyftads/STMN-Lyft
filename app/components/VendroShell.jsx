@@ -614,6 +614,7 @@ function TabContent({ children }) {
 // di un valore hardcoded. Fallback su "LyftAI" se l'utente non ha ancora un
 // nome azienda configurato.
 function WorkspacePill() {
+  const { t } = useI18n()
   const [companyName, setCompanyName] = useState('LyftAI')
   const [ws, setWs] = useState({ workspaces: [], activeId: null, isAgency: false })
   const [open, setOpen] = useState(false)
@@ -676,7 +677,7 @@ function WorkspacePill() {
         {avatar}
         <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
           <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-          <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Cambia azienda</span>
+          <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{t('shell.switchCompany', null, 'Switch company')}</span>
         </span>
         <span style={{ fontSize: 10, color: 'var(--text3)' }}>▾</span>
       </button>
@@ -686,7 +687,7 @@ function WorkspacePill() {
             const on = w.id === ws.activeId
             return (
               <button key={w.id} type="button" onClick={() => switchTo(w.id)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'transparent', color: on ? '#2997ff' : 'var(--text2)', fontSize: 13, fontWeight: on ? 800 : 600 }}>
-                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · tuo' : ''}</span>
+                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · ' + t('shell.you', null, 'you') : ''}</span>
                 {on && <span>✓</span>}
               </button>
             )

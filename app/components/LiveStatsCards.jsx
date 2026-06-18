@@ -4,8 +4,10 @@
 // sede. Stessa chiave cache ('realtime') del globo → una sola fetch condivisa.
 import { useEffect, useState } from 'react'
 import { swrFetch } from '../../lib/clientCache'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 export default function LiveStatsCards() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
 
   useEffect(() => {
@@ -38,24 +40,24 @@ export default function LiveStatsCards() {
             boxShadow: '0 0 8px #34e7b0', animation: 'livePulse 1.6s infinite',
           }} />
           <span style={{ fontSize: 12, color: 'var(--text)', opacity: 0.6, letterSpacing: 0.3 }}>
-            Visitatori in questo momento
+            {t('live.visitorsNow', null, 'Visitors right now')}
           </span>
         </div>
         <div style={{ fontSize: 44, fontWeight: 700, lineHeight: 1, color: 'var(--text)' }}>
           {active}
         </div>
         <div style={{ fontSize: 11, opacity: 0.4, marginTop: 8 }}>
-          Ultimi 30 minuti · GA4 Realtime
+          {t('live.last30min', null, 'Last 30 minutes · GA4 Realtime')}
         </div>
       </div>
 
       {/* Sessioni per sede */}
       <div className="glass-card" style={{ padding: 20 }}>
         <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.6, marginBottom: 14, letterSpacing: 0.3 }}>
-          Sessioni per sede
+          {t('live.sessionsByLocation', null, 'Sessions by location')}
         </div>
         {locations.length === 0 && (
-          <div style={{ fontSize: 13, opacity: 0.4 }}>Nessun visitatore attivo adesso</div>
+          <div style={{ fontSize: 13, opacity: 0.4 }}>{t('live.noVisitors', null, 'No active visitors right now')}</div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {locations.slice(0, 4).map((l, i) => (

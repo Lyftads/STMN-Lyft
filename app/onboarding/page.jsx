@@ -5,35 +5,37 @@ import Icon from '../components/ui/Icon'
 import NangoConnectButton from '../components/NangoConnectButton'
 import BrandIdentityPanel from '../components/BrandIdentityPanel'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const ACCENT = '#bf5af2'
 
+// description e field.hint sono nei dizionari i18n (obp.*), risolti via t().
 const STEPS = [
   {
     id: 'shopify',
     label: 'Shopify',
     icon: <Icon name="bag" size={22} />,
-    description: 'Lo store da cui leggere ordini, prodotti, clienti, marketing.',
+    descKey: 'obp.shopify.desc',
     fields: [
-      { key: 'shopify_store_url', label: 'Store URL', placeholder: 'mio-store.myshopify.com', required: true, hint: 'Senza https://. Es: stamina-fitness3.myshopify.com' },
-      { key: 'shopify_admin_token', label: 'Admin API Token', placeholder: 'shpat_xxxxxx', required: true, type: 'password', hint: 'Custom app token, NON il client secret. Settings → Apps → Develop apps → Create app → API credentials' },
+      { key: 'shopify_store_url', label: 'Store URL', placeholder: 'mio-store.myshopify.com', required: true, hintKey: 'obp.shopify.urlHint' },
+      { key: 'shopify_admin_token', label: 'Admin API Token', placeholder: 'shpat_xxxxxx', required: true, type: 'password', hintKey: 'obp.shopify.tokenHint' },
     ],
   },
   {
     id: 'meta',
     label: 'Meta Ads',
     icon: '◧',
-    description: 'Per leggere spend, ROAS, performance campagne.',
+    descKey: 'obp.meta.desc',
     fields: [
-      { key: 'meta_access_token', label: 'Access Token', placeholder: 'EAA...', required: true, type: 'password', hint: 'Token long-lived dal Business Manager. Permessi richiesti: ads_read, business_management' },
-      { key: 'meta_account_id', label: 'Ad Account ID', placeholder: 'act_123456789', required: false, hint: 'Opzionale ma raccomandato. Trova in Business Settings → Ad Accounts. Formato act_XXXXXXX' },
+      { key: 'meta_access_token', label: 'Access Token', placeholder: 'EAA...', required: true, type: 'password', hintKey: 'obp.meta.tokenHint' },
+      { key: 'meta_account_id', label: 'Ad Account ID', placeholder: 'act_123456789', required: false, hintKey: 'obp.meta.accountHint' },
     ],
   },
   {
     id: 'ga4',
     label: 'Google Analytics 4',
     icon: '▰',
-    description: 'Per traffico, sessioni, attribuzione canali.',
+    descKey: 'obp.ga4.desc',
     oauth: true, // gestito da component custom GA4OAuthStep
     fields: [],
   },
@@ -41,16 +43,16 @@ const STEPS = [
     id: 'klaviyo',
     label: 'Klaviyo',
     icon: <Icon name="mail" size={22} />,
-    description: 'Per email flows, segmenti, revenue da email marketing.',
+    descKey: 'obp.klaviyo.desc',
     fields: [
-      { key: 'klaviyo_api_key', label: 'Private API Key', placeholder: 'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'password', hint: 'Account → Settings → API Keys → Create Private API Key. Scope: read_all' },
+      { key: 'klaviyo_api_key', label: 'Private API Key', placeholder: 'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'password', hintKey: 'obp.klaviyo.keyHint' },
     ],
   },
   {
     id: 'brandIdentity',
     label: 'Brand Identity',
     icon: <Icon name="star" size={22} />,
-    description: 'Il profilo del tuo brand: identità, prodotti, tone of voice, visual e competitor. Alimenta gli agenti AI e i moduli Competitor.',
+    descKey: 'obp.brand.desc',
     component: 'brandIdentity',
     fields: [],
   },
@@ -65,6 +67,7 @@ export default function OnboardingPage() {
 }
 
 function OnboardingInner() {
+  const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(0)
@@ -111,7 +114,7 @@ function OnboardingInner() {
       setError(null)
       const ok = await biRef.current?.save()
       setSaving(false)
-      if (!ok) { setError('Errore salvataggio Brand Identity'); return }
+      if (!ok) { setError(t('obp.errSaveBrand', null, 'Brand Identity save error')); return }
       setStepStatus(prev => ({ ...prev, brandIdentity: true }))
       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
       else await completeOnboarding()
@@ -136,7 +139,7 @@ function OnboardingInner() {
         await completeOnboarding()
       }
     } catch (e) {
-      setError(e?.message || 'Errore di salvataggio')
+      setError(e?.message || t('obp.errSave', null, 'Save error'))
     } finally {
       setSaving(false)
     }
@@ -154,7 +157,7 @@ function OnboardingInner() {
   const completeOnboarding = async () => {
     try {
       const res = await fetch('/api/onboarding?action=complete', { method: 'PATCH' })
-      if (!res.ok) throw new Error('Errore conferma onboarding')
+      if (!res.ok) throw new Error(t('obp.errConfirm', null, 'Onboarding confirmation error'))
       router.push('/?tab=dashboard&welcome=1')
     } catch (e) {
       setError(e?.message)
@@ -162,10 +165,10 @@ function OnboardingInner() {
   }
 
   const handleSkipAll = async () => {
-    if (!confirm('Vuoi configurare le integrazioni dopo? Potrai farlo dalla sezione Brand Identity quando vuoi. Senza credenziali la dashboard mostrera\' i dati del tenant beta.')) return
+    if (!confirm(t('obp.confirmSkipAll', null, 'Want to set up integrations later? You can do it from the Brand Identity section anytime. Without credentials the dashboard shows the beta tenant data.'))) return
     try {
       const res = await fetch('/api/onboarding?action=skip', { method: 'PATCH' })
-      if (!res.ok) throw new Error('Errore skip')
+      if (!res.ok) throw new Error(t('obp.errSkip', null, 'Skip error'))
       router.push('/?tab=dashboard')
     } catch (e) {
       setError(e?.message)
@@ -175,7 +178,7 @@ function OnboardingInner() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#000', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
-        Caricamento…
+        {t('obp.loading', null, 'Loading…')}
       </div>
     )
   }
@@ -194,13 +197,13 @@ function OnboardingInner() {
             fontSize: 11, color: ACCENT, fontWeight: 800,
             letterSpacing: '0.20em', textTransform: 'uppercase', marginBottom: 8,
           }}>
-            Setup iniziale
+            {t('obp.setupLabel', null, 'Initial setup')}
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.03em' }}>
-            Collega le tue integrazioni
+            {t('obp.title', null, 'Connect your integrations')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text3)', marginTop: 12, lineHeight: 1.5 }}>
-            {STEPS.length} step per portare i dati del tuo brand dentro LyftAI. Puoi saltare uno step e completarlo dopo da Brand Identity.
+            {t('obp.subtitle', { n: STEPS.length }, '{n} steps to bring your brand data into LyftAI. You can skip a step and complete it later from Brand Identity.')}
           </p>
         </div>
 
@@ -238,13 +241,13 @@ function OnboardingInner() {
             }}>{step.icon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-                Step {currentStep + 1} di {STEPS.length}
+                {t('ob.stepOf', { n: currentStep + 1, total: STEPS.length }, 'Step {n} of {total}')}
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginTop: 4, letterSpacing: '-0.02em' }}>
-                Collega {step.label}
+                {t('obp.connectStep', { name: step.label }, 'Connect {name}')}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>
-                {step.description}
+                {t(step.descKey, null, '')}
               </div>
             </div>
           </div>
@@ -265,15 +268,15 @@ function OnboardingInner() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
               {step.id === 'shopify' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Collega in un clic</div>
-                  <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: 0 }}>Inserisci il dominio del tuo store e autorizzi: niente token da copiare.</p>
-                  <NangoConnectButton integrationId="shopify" label="Collega Shopify con un clic"
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t('obp.oneClick', null, 'Connect in one click')}</div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: 0 }}>{t('ob.shopifyHelper', null, 'Enter your store domain and authorize: no token to copy.')}</p>
+                  <NangoConnectButton integrationId="shopify" label={t('ob.connectShopifyOneClick', null, 'Connect Shopify in one click')}
                     onConnected={() => {
                       setStepStatus(p => ({ ...p, shopify: true }))
                       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
                       else completeOnboarding()
                     }} />
-                  <div style={{ fontSize: 11, color: 'var(--text4, #666)' }}>Oppure inserisci il token manualmente qui sotto (avanzato).</div>
+                  <div style={{ fontSize: 11, color: 'var(--text4, #666)' }}>{t('obp.orManualBelow', null, 'Or enter the token manually below (advanced).')}</div>
                 </div>
               )}
               {step.fields.map(f => (
@@ -300,9 +303,9 @@ function OnboardingInner() {
                     onFocus={e => e.currentTarget.style.borderColor = ACCENT}
                     onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
-                  {f.hint && (
+                  {f.hintKey && (
                     <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 6, lineHeight: 1.5 }}>
-                      {f.hint}
+                      {t(f.hintKey, null, '')}
                     </div>
                   )}
                 </div>
@@ -336,7 +339,7 @@ function OnboardingInner() {
                 opacity: saving ? 0.5 : 1,
               }}
             >
-              Salta questo step
+              {t('ob.skipStep', null, 'Skip this step')}
             </button>
 
             <button
@@ -350,7 +353,7 @@ function OnboardingInner() {
                 letterSpacing: '-0.01em', opacity: saving ? 0.6 : 1,
               }}
             >
-              {saving ? 'Salvataggio…' : currentStep === STEPS.length - 1 ? 'Finalizza setup' : 'Salva e continua →'}
+              {saving ? t('obp.saving', null, 'Saving…') : currentStep === STEPS.length - 1 ? t('obp.finalize', null, 'Finalize setup') : t('obp.saveContinue', null, 'Save and continue →')}
             </button>
           </div>
         </div>
@@ -365,7 +368,7 @@ function OnboardingInner() {
               color: 'var(--text4, #666)', fontSize: 12, textDecoration: 'underline',
             }}
           >
-            Salta tutto, configuro dopo
+            {t('obp.skipAll', null, 'Skip all, configure later')}
           </button>
         </div>
       </div>
@@ -377,6 +380,7 @@ function OnboardingInner() {
 //  GA4 OAuth Step — bottone "Connetti Google" + dropdown property
 // ─────────────────────────────────────────────────────────────
 function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
+  const { t } = useI18n()
   const [properties, setProperties] = useState([])
   const [loadingProps, setLoadingProps] = useState(false)
   const [propsError, setPropsError] = useState(null)
@@ -412,7 +416,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
         color: '#fca5a5', fontSize: 13,
       }}>
-        <Icon name="warning" size={13} /> Connessione fallita: <strong>{gaError}</strong>. Riprova cliccando il bottone qui sotto.
+        <Icon name="warning" size={13} /> {t('obp.connFailed', null, 'Connection failed:')} <strong>{gaError}</strong>. {t('obp.retryBelow', null, 'Retry by clicking the button below.')}
         <div style={{ marginTop: 14 }}>
           <ConnectButton />
         </div>
@@ -431,15 +435,14 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         }}>
           <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
-            Connetti il tuo account Google
+            {t('obp.connectGoogleAccount', null, 'Connect your Google account')}
           </div>
           <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
-            Niente copia-incolla di token. 1 click ti porta su Google, autorizzi
-            l'accesso in lettura ai tuoi dati Analytics, e torni qui automaticamente.
+            {t('obp.gaIntro', null, 'No token copy-paste. 1 click takes you to Google, you authorize read access to your Analytics data, and you come back here automatically.')}
           </p>
           <ConnectButton />
           <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 16 }}>
-            Permessi richiesti: <strong>solo lettura</strong> dei dati Analytics
+            {t('obp.permsPre', null, 'Permissions required:')} <strong>{t('obp.readonly', null, 'read only')}</strong> {t('obp.permsPost', null, 'of Analytics data')}
           </div>
         </div>
       </div>
@@ -453,19 +456,19 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
         background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
         color: '#86efac', fontSize: 13, marginBottom: 16,
       }}>
-        <Icon name="check" size={13} /> Google connesso. Adesso scegli la property GA4 da monitorare.
+        <Icon name="check" size={13} /> {t('obp.googleConnected', null, 'Google connected. Now pick the GA4 property to monitor.')}
       </div>
 
       <label style={{
         display: 'block', fontSize: 11, color: 'var(--text3)',
         fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em',
       }}>
-        Property GA4 <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>
+        {t('obp.propertyGA4', null, 'GA4 Property')} <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>
       </label>
 
       {loadingProps ? (
         <div style={{ fontSize: 13, color: 'var(--text3)', padding: '12px 14px' }}>
-          Caricamento properties…
+          {t('obp.loadingProps', null, 'Loading properties…')}
         </div>
       ) : propsError ? (
         <div style={{ fontSize: 13, color: '#fca5a5', padding: '12px 14px' }}>
@@ -477,8 +480,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
           background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)',
           color: '#fbbf24', fontSize: 13,
         }}>
-          Nessuna property GA4 trovata su questo account. Crea una property in
-          analytics.google.com e poi riconnetti.
+          {t('obp.noProps', null, 'No GA4 property found on this account. Create a property at analytics.google.com and then reconnect.')}
         </div>
       ) : (
         <select
@@ -492,7 +494,7 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
             outline: 'none', cursor: 'pointer',
           }}
         >
-          <option value="">— Seleziona property —</option>
+          <option value="">{t('obp.selectProperty', null, '— Select property —')}</option>
           {properties.map(p => (
             <option key={p.id} value={p.id}>
               {p.displayName} ({p.accountName}) — ID {p.id}
@@ -502,13 +504,14 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
       )}
 
       <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text4, #666)' }}>
-        Vuoi cambiare account Google? <ConnectButton compact label="Riconnetti" />
+        {t('obp.changeGoogle', null, 'Want to switch Google account?')} <ConnectButton compact label={t('obp.reconnect', null, 'Reconnect')} />
       </div>
     </div>
   )
 }
 
-function ConnectButton({ compact = false, label = 'Connetti Google Analytics' }) {
+function ConnectButton({ compact = false, label }) {
+  const { t } = useI18n()
   return (
     <a href="/api/google/auth/start" style={{
       display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -526,7 +529,7 @@ function ConnectButton({ compact = false, label = 'Connetti Google Analytics' })
         <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.6 39.6 16.3 44 24 44z" />
         <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2c-.4.4 6.6-4.8 6.6-14.8 0-1.3-.1-2.4-.4-3.5z" />
       </svg>
-      {label}
+      {label || t('obp.connectGA', null, 'Connect Google Analytics')}
     </a>
   )
 }

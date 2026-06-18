@@ -9,18 +9,18 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // creatività dei competitor via Meta Ad Library. Estetica dark coerente.
 
 const FORMATS = [
-  { id: '', label: 'Tutti' },
-  { id: 'VIDEO', label: 'Video' },
-  { id: 'IMAGE', label: 'Image' },
+  { id: '', key: 'ci.all', en: 'All' },
+  { id: 'VIDEO', key: 'ci.fmtVideo', en: 'Video' },
+  { id: 'IMAGE', key: 'ci.fmtImage', en: 'Image' },
 ]
 const COUNTRIES = [
-  { id: 'ALL', label: 'Tutti' },
-  { id: 'IT', label: 'Italia' },
-  { id: 'ES', label: 'Spagna' },
-  { id: 'FR', label: 'Francia' },
-  { id: 'DE', label: 'Germania' },
-  { id: 'GB', label: 'UK' },
-  { id: 'US', label: 'USA' },
+  { id: 'ALL', key: 'ci.all', en: 'All' },
+  { id: 'IT', key: 'ci.cIT', en: 'Italy' },
+  { id: 'ES', key: 'ci.cES', en: 'Spain' },
+  { id: 'FR', key: 'ci.cFR', en: 'France' },
+  { id: 'DE', key: 'ci.cDE', en: 'Germany' },
+  { id: 'GB', key: 'ci.cGB', en: 'UK' },
+  { id: 'US', key: 'ci.cUS', en: 'USA' },
 ]
 
 function funnelOf(text) {
@@ -79,6 +79,7 @@ function Badge({ children, color = '#8b8aa0', bg }) {
 }
 
 function AdCard({ ad, onOpen }) {
+  const { t } = useI18n()
   const f = FUNNEL[ad.funnel]
   return (
     <button onClick={() => onOpen(ad)} style={{ textAlign: 'left', background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', padding: 0, fontFamily: 'inherit' }}>
@@ -88,7 +89,7 @@ function AdCard({ ad, onOpen }) {
         ) : (
           <div style={{ width: '100%', height: '100%', padding: '34px 16px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(34,34,48,0.4))' }}>
             {ad.headline && <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--text)', lineHeight: 1.3, maxHeight: 54, overflow: 'hidden' }}>{ad.headline}</div>}
-            <div style={{ fontSize: 11.5, color: '#c8c0d6', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || 'Catalogo prodotti / DCO'}</div>
+            <div style={{ fontSize: 11.5, color: '#c8c0d6', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || t('ci.catalogDco', null, 'Product catalog / DCO')}</div>
           </div>
         )}
         <div style={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
@@ -110,7 +111,7 @@ function AdCard({ ad, onOpen }) {
         {ad.headline && <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3, maxHeight: 34, overflow: 'hidden' }}>{ad.headline}</div>}
         {ad.body && <div style={{ fontSize: 11.5, color: '#8b8aa0', lineHeight: 1.45, maxHeight: 50, overflow: 'hidden' }}>{ad.body}</div>}
         <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: '#6b6580', marginTop: 2, fontFamily: 'Barlow' }}>
-          {ad.runningDays != null && <span><span style={{ color: '#22c55e', fontWeight: 800 }}>{ad.runningDays}g</span> attiva</span>}
+          {ad.runningDays != null && <span><span style={{ color: '#22c55e', fontWeight: 800 }}>{ad.runningDays}{t('ci.daysAbbr', null, 'd')}</span> {t('ci.active', null, 'active')}</span>}
           {ad.cta && <span>{ad.cta}</span>}
         </div>
       </div>
@@ -119,6 +120,7 @@ function AdCard({ ad, onOpen }) {
 }
 
 function DetailModal({ ad, onClose }) {
+  const { t } = useI18n()
   const f = FUNNEL[ad.funnel]
   if (typeof document === 'undefined') return null
   return createPortal(
@@ -142,7 +144,7 @@ function DetailModal({ ad, onClose }) {
             {ad.headline && <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--text)', lineHeight: 1.25, marginTop: 4 }}>{ad.headline}</div>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {[['Attiva da', ad.runningDays != null ? `${ad.runningDays} giorni` : '—'], ['Formato', ad.format], ['CTA', ad.cta || '—'], ['Piattaforme', ad.platforms.join(', ') || '—']].map(([k, v]) => (
+            {[[t('ci.activeSince', null, 'Active since'), ad.runningDays != null ? t('ci.daysN', { n: ad.runningDays }, '{n} days') : '—'], [t('ci.format', null, 'Format'), ad.format], ['CTA', ad.cta || '—'], [t('ci.platforms', null, 'Platforms'), ad.platforms.join(', ') || '—']].map(([k, v]) => (
               <div key={k} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
                 <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{k}</div>
                 <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginTop: 2 }}>{v}</div>
@@ -151,7 +153,7 @@ function DetailModal({ ad, onClose }) {
           </div>
           {ad.body && (
             <div>
-              <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 6 }}>Copy</div>
+              <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 6 }}>{t('ci.copy', null, 'Copy')}</div>
               <div style={{ fontSize: 13, color: '#c8c0d6', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 240, overflowY: 'auto' }}>{ad.body}</div>
             </div>
           )}
@@ -159,7 +161,7 @@ function DetailModal({ ad, onClose }) {
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#c4b5fd', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.linkUrl}</a>
           )}
           {ad.snapshotUrl && (
-            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: 'var(--text)', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>↗ Apri nella Ad Library</a>
+            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: 'var(--text)', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>{t('ci.openInLibrary', null, '↗ Open in Ad Library')}</a>
           )}
         </div>
       </div>
@@ -210,8 +212,8 @@ export default function CreativeIntelTab() {
           <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : 'var(--text)', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{c.label}</button>)}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={chip(format === f.id)}>{f.label}</button>)}</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{t(c.key, null, c.en)}</button>)}</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={chip(format === f.id)}>{t(f.key, null, f.en)}</button>)}</div>
           <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580' }}>{srcUsed ? t('ci.via', { src: srcUsed }, `via ${srcUsed}`) : t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
         </div>
       </div>

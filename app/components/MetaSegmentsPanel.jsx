@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Sparkline from './Sparkline'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Pannello "CAC per segmento di pubblico" (Meta). Breakdown nativo user_segment_key
 // (Nuovi / Esistenti / Engaged / Sconosciuto). Per ogni segmento: CAC con sparkline
@@ -31,7 +32,8 @@ function Delta({ cur, prev }) {
   )
 }
 
-export default function MetaSegmentsPanel({ since, until, title = 'Meta · CAC per segmento di pubblico' }) {
+export default function MetaSegmentsPanel({ since, until, title = null }) {
+  const { t } = useI18n()
   const [segs, setSegs] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -53,10 +55,10 @@ export default function MetaSegmentsPanel({ since, until, title = 'Meta · CAC p
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
-        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>Dato reale Meta (segmenti pubblico a livello account) · vs stesso periodo precedente</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title || t('seg.metaCacTitle', null, 'Meta · CAC by audience segment')}</div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{t('seg.metaRealData', null, 'Real Meta data (account-level audience segments) · vs same previous period')}</div>
       </div>
-      {loading && !segs && <div style={{ color: 'var(--text3)', fontSize: 12.5 }}>Carico i segmenti Meta…</div>}
+      {loading && !segs && <div style={{ color: 'var(--text3)', fontSize: 12.5 }}>{t('seg.metaLoading', null, 'Loading Meta segments…')}</div>}
       {segs && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
           {ORDER.map(({ key, label, color }) => {
@@ -68,18 +70,18 @@ export default function MetaSegmentsPanel({ since, until, title = 'Meta · CAC p
               <div key={key} style={{ ...card, borderColor: isNew ? `${color}66` : 'var(--border)', boxShadow: isNew ? `0 0 0 1px ${color}33` : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text2)' }}>{label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text2)' }}>{t('pseg.' + key, null, label)}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 23, fontWeight: 900, color: s.cac == null ? 'var(--text3)' : 'var(--text)' }}>{eur2(s.cac)}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>CAC{isNew ? ' · nuovi clienti' : ''}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>CAC{isNew ? t('pseg.cacNewSuffix', null, ' · new customers') : ''}</div>
                   </div>
                   {spark.length >= 2 && <Sparkline data={spark} color={color} width={74} height={30} />}
                 </div>
                 <div style={{ marginTop: 6 }}><Delta cur={s.cac} prev={prevCac} /></div>
                 <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8, display: 'grid', gap: 4 }}>
-                  {[['Spesa', eur0(s.spend)], ['Acquisti', int0(s.purchases)], ['ROAS', s.roas ? `${s.roas}×` : '—']].map(([l, v]) => (
+                  {[[t('common.spend', null, 'Spend'), eur0(s.spend)], [t('common.purchases', null, 'Purchases'), int0(s.purchases)], ['ROAS', s.roas ? `${s.roas}×` : '—']].map(([l, v]) => (
                     <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                       <span style={{ color: 'var(--text3)' }}>{l}</span><span style={{ color: 'var(--text)', fontWeight: 700 }}>{v}</span>
                     </div>

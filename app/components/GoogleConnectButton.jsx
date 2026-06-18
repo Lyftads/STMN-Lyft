@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Google (GA4 + Ads): flusso OAuth NATIVO (/api/google/auth/start → refresh_token
 // per tenant). Pulsante "Collega" + "Proprietà GA4" (pop-up selezione proprietà).
 // service: 'ga4' → selettore proprietà GA4 | 'ads' → (selettore account dopo dev token)
 export default function GoogleConnectButton({ service = 'ga4' }) {
+  const { t } = useI18n()
   const [connected, setConnected] = useState(false)
   const [modal, setModal] = useState(null) // 'ga4' | 'gsc' | 'ads'
   const [mounted, setMounted] = useState(false)
@@ -24,24 +26,24 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
     <>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={btn}>
-          {connected ? 'Ricollega' : 'Collega'}
+          {connected ? t('metaConnect.reconnect', null, 'Reconnect') : t('metaConnect.connect', null, 'Connect')}
         </button>
         {service === 'ga4' && (
           <button onClick={() => setModal('ga4')} style={{ ...btn, background: 'transparent' }}>
-            Proprietà GA4
+            {t('google.propGA4', null, 'GA4 property')}
           </button>
         )}
         {service === 'ga4' && (
           <button onClick={() => setModal('gsc')} style={{ ...btn, background: 'transparent' }}>
-            Sito Search Console
+            {t('google.gscSite', null, 'Search Console site')}
           </button>
         )}
         {service === 'ads' && connected && (
           <button onClick={() => setModal('ads')} style={{ ...btn, background: 'transparent' }}>
-            Account Ads
+            {t('google.adsAccount', null, 'Ads account')}
           </button>
         )}
-        {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> Collegato</span>}
+        {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
       </div>
       {mounted && modal === 'ga4' && createPortal(<Ga4PropertyModal onClose={() => setModal(null)} />, document.body)}
       {mounted && modal === 'gsc' && createPortal(<GscSiteModal onClose={() => setModal(null)} />, document.body)}
@@ -56,6 +58,7 @@ const btn = {
 }
 
 function Ga4PropertyModal({ onClose }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [sel, setSel] = useState('')
   const [saving, setSaving] = useState(false)
@@ -65,7 +68,7 @@ function Ga4PropertyModal({ onClose }) {
   useEffect(() => {
     let cancelled = false
     Promise.all([
-      fetch('/api/google/properties').then(r => r.json()).catch(() => ({ error: 'Errore di rete' })),
+      fetch('/api/google/properties').then(r => r.json()).catch(() => ({ error: t('common.networkError', null, 'Network error') })),
       fetch('/api/integrations/status').then(r => r.json()).catch(() => ({})),
     ]).then(([props, status]) => {
       if (cancelled) return
@@ -84,10 +87,10 @@ function Ga4PropertyModal({ onClose }) {
         body: JSON.stringify({ propertyId: sel }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Errore')
+      if (!r.ok) throw new Error(j.error || t('metaConnect.error', null, 'Error'))
       setSaved(true)
       setTimeout(onClose, 700)
-    } catch (e) { setErr(e?.message || 'Errore salvataggio') } finally { setSaving(false) }
+    } catch (e) { setErr(e?.message || t('metaConnect.saveError', null, 'Save error')) } finally { setSaving(false) }
   }
 
   const properties = data?.properties || []
@@ -97,15 +100,15 @@ function Ga4PropertyModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona proprietà GA4</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>La proprietà Analytics usata da questo tenant</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectGA4', null, 'Select GA4 property')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectGA4Sub', null, 'The Analytics property used by this workspace')}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
-          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Carico proprietà…</div>}
+          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingProps', null, 'Loading properties…')}</div>}
           {data && (data.error || data.notConnected) && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.notConnected ? 'Collega prima Google.' : `Errore: ${data.error}`}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.notConnected ? t('google.connectFirst', null, 'Connect Google first.') : t('google.errorPrefix', { msg: data.error }, `Error: ${data.error}`)}</div>
           )}
           {properties.length > 0 && (
             <div style={{ display: 'grid', gap: 5 }}>
@@ -126,9 +129,9 @@ function Ga4PropertyModal({ onClose }) {
         </div>
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
-            {saving ? 'Salvo…' : 'Salva'}
+            {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
@@ -139,6 +142,7 @@ function Ga4PropertyModal({ onClose }) {
 // Selettore sito Search Console (mirror di Ga4PropertyModal) — salva
 // companies.gsc_site_url via /api/integrations/gsc-site.
 function GscSiteModal({ onClose }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [sel, setSel] = useState('')
   const [saving, setSaving] = useState(false)
@@ -147,7 +151,7 @@ function GscSiteModal({ onClose }) {
 
   useEffect(() => {
     let cancelled = false
-    fetch('/api/gsc?action=sites').then(r => r.json()).catch(() => ({ error: 'Errore di rete' }))
+    fetch('/api/gsc?action=sites').then(r => r.json()).catch(() => ({ error: t('common.networkError', null, 'Network error') }))
       .then(j => {
         if (cancelled) return
         setData(j)
@@ -166,10 +170,10 @@ function GscSiteModal({ onClose }) {
         body: JSON.stringify({ site: sel }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Errore')
+      if (!r.ok) throw new Error(j.error || t('metaConnect.error', null, 'Error'))
       setSaved(true)
       setTimeout(onClose, 700)
-    } catch (e) { setErr(e?.message || 'Errore salvataggio') } finally { setSaving(false) }
+    } catch (e) { setErr(e?.message || t('metaConnect.saveError', null, 'Save error')) } finally { setSaving(false) }
   }
 
   const sites = data?.sites || []
@@ -180,16 +184,16 @@ function GscSiteModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona sito Search Console</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>La proprietà GSC usata da questo tenant</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectGSC', null, 'Select Search Console site')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectGSCSub', null, 'The GSC property used by this workspace')}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
-          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Carico siti…</div>}
-          {notConnected && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Collega prima Google (con lo scope Search Console).</div>}
+          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingSites', null, 'Loading sites…')}</div>}
+          {notConnected && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.connectFirstGSC', null, 'Connect Google first (with the Search Console scope).')}</div>}
           {data && !notConnected && sites.length === 0 && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Nessun sito verificato accessibile da questo account Google.</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.noSites', null, 'No verified site accessible from this Google account.')}</div>
           )}
           {sites.length > 0 && (
             <div style={{ display: 'grid', gap: 5 }}>
@@ -210,9 +214,9 @@ function GscSiteModal({ onClose }) {
         </div>
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
-            {saving ? 'Salvo…' : 'Salva'}
+            {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
@@ -223,6 +227,7 @@ function GscSiteModal({ onClose }) {
 // Selettore account Google Ads (mirror di Ga4PropertyModal) — salva
 // companies.google_ads_customer_id via /api/integrations/ads-account.
 function AdsAccountModal({ onClose }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [sel, setSel] = useState('')
   const [saving, setSaving] = useState(false)
@@ -232,7 +237,7 @@ function AdsAccountModal({ onClose }) {
   useEffect(() => {
     let cancelled = false
     Promise.all([
-      fetch('/api/google/ads-accounts').then(r => r.json()).catch(() => ({ error: 'Errore di rete' })),
+      fetch('/api/google/ads-accounts').then(r => r.json()).catch(() => ({ error: t('common.networkError', null, 'Network error') })),
       fetch('/api/integrations/status').then(r => r.json()).catch(() => ({})),
     ]).then(([acc, status]) => {
       if (cancelled) return
@@ -251,10 +256,10 @@ function AdsAccountModal({ onClose }) {
         body: JSON.stringify({ customerId: sel }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Errore')
+      if (!r.ok) throw new Error(j.error || t('metaConnect.error', null, 'Error'))
       setSaved(true)
       setTimeout(onClose, 700)
-    } catch (e) { setErr(e?.message || 'Errore salvataggio') } finally { setSaving(false) }
+    } catch (e) { setErr(e?.message || t('metaConnect.saveError', null, 'Save error')) } finally { setSaving(false) }
   }
 
   const accounts = data?.accounts || []
@@ -265,18 +270,18 @@ function AdsAccountModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona account Google Ads</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>L'account pubblicitario usato da questo tenant</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectAds', null, 'Select Google Ads account')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectAdsSub', null, 'The advertising account used by this workspace')}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
-          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Carico account…</div>}
+          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingAccounts', null, 'Loading accounts…')}</div>}
           {data && (data.error || data.notConnected) && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.notConnected ? 'Collega prima Google.' : `Errore: ${data.error}`}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.notConnected ? t('google.connectFirst', null, 'Connect Google first.') : t('google.errorPrefix', { msg: data.error }, `Error: ${data.error}`)}</div>
           )}
           {data && !data.error && !data.notConnected && accounts.length === 0 && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Nessun account Google Ads accessibile con questo login.</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.noAds', null, 'No Google Ads account accessible with this login.')}</div>
           )}
           {accounts.length > 0 && (
             <div style={{ display: 'grid', gap: 5 }}>
@@ -297,9 +302,9 @@ function AdsAccountModal({ onClose }) {
         </div>
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
-            {saving ? 'Salvo…' : 'Salva'}
+            {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>

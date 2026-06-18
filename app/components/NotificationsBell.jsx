@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 function urlB64ToUint8Array(base64) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -16,6 +17,7 @@ const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in naviga
 
 // Campanella notifiche team: badge non-letti + pannello. Polling 30s.
 export default function NotificationsBell({ onNavigate }) {
+  const { t, intlLocale } = useI18n()
   const [pushOn, setPushOn] = useState(false)
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
@@ -95,18 +97,18 @@ export default function NotificationsBell({ onNavigate }) {
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 46, width: 340, maxHeight: 460, overflowY: 'auto', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 1000, fontFamily: 'Barlow' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #3d3d4c' }}>
-            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: 'var(--text)' }}>Notifiche</span>
-            {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Segna tutte lette</button>}
+            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: 'var(--text)' }}>{t('notif.title', null, 'Notifications')}</span>
+            {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('notif.markAllRead', null, 'Mark all read')}</button>}
           </div>
           {pushSupported && (
             <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
               {pushOn
-                ? <span style={{ color: '#30d158', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> Notifiche push attive su questo dispositivo</span>
-                : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> Attiva le notifiche push su questo dispositivo</button>}
+                ? <span style={{ color: '#30d158', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> {t('notif.pushActive', null, 'Push notifications active on this device')}</span>
+                : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> {t('notif.enablePush', null, 'Enable push notifications on this device')}</button>}
             </div>
           )}
           {items.length === 0 ? (
-            <div style={{ padding: 20, color: '#b0b0bd', fontSize: 13 }}>Nessuna notifica.</div>
+            <div style={{ padding: 20, color: '#b0b0bd', fontSize: 13 }}>{t('notif.none', null, 'No notifications.')}</div>
           ) : items.map(n => (
             <div key={n.id} onClick={() => openItem(n)} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.read ? 'transparent' : 'rgba(123,91,255,0.10)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -114,7 +116,7 @@ export default function NotificationsBell({ onNavigate }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
                   {n.body && <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 2 }}>{n.body}</div>}
-                  <div style={{ fontSize: 11, color: '#6b6b78', marginTop: 3 }}>{new Date(n.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                  <div style={{ fontSize: 11, color: '#6b6b78', marginTop: 3 }}>{new Date(n.created_at).toLocaleString(intlLocale || 'it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
               </div>
             </div>

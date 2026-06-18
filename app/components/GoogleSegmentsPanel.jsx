@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Sparkline from './Sparkline'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Pannello "CAC nuovi clienti" (Google) dal segmento nativo new vs returning.
 // Google non separa il costo per tipo cliente → CAC nuovi = spesa Google totale
@@ -19,7 +20,8 @@ function Delta({ cur, prev }) {
   return <span style={{ fontSize: 11.5, fontWeight: 800, color: good ? '#22c55e' : '#f87171' }}>{cur > prev ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%</span>
 }
 
-export default function GoogleSegmentsPanel({ since, until, title = 'Google · Nuovi vs Ritornanti' }) {
+export default function GoogleSegmentsPanel({ since, until, title = null }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -49,36 +51,36 @@ export default function GoogleSegmentsPanel({ since, until, title = 'Google · N
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title}</div>
-        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>Dato reale Google · CAC nuovi = spesa Google ÷ nuovi clienti · vs periodo precedente</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em' }}>{title || t('gseg.title', null, 'Google · New vs Returning')}</div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{t('gseg.realData', null, 'Real Google data · new CAC = Google spend ÷ new customers · vs previous period')}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
         <div style={{ ...card, borderColor: '#30d15866', boxShadow: '0 0 0 1px #30d15833' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#30d158' }} /><span style={lbl}>Nuovi clienti</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#30d158' }} /><span style={lbl}>{t('gseg.newCustomers', null, 'New customers')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
             <div>
               <div style={{ fontSize: 23, fontWeight: 900, color: 'var(--text)' }}>{eur2(data.cacNew)}</div>
-              <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>CAC · nuovi clienti</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{t('gseg.cacNew', null, 'CAC · new customers')}</div>
             </div>
             {spark.length >= 2 && <Sparkline data={spark} color="#30d158" width={74} height={30} />}
           </div>
           <div style={{ marginTop: 6 }}><Delta cur={data.cacNew} prev={data.cacNewPrev} /></div>
           <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8, display: 'grid', gap: 4 }}>
-            {metric('Conversioni', num0(sNew.conversions))}
-            {metric('Valore conv.', eur0(sNew.value))}
-            {metric('Spesa Google', eur0(data.totalSpend))}
+            {metric(t('gseg.conversions', null, 'Conversions'), num0(sNew.conversions))}
+            {metric(t('gseg.convValue', null, 'Conv. value'), eur0(sNew.value))}
+            {metric(t('gseg.googleSpend', null, 'Google spend'), eur0(data.totalSpend))}
           </div>
         </div>
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2997ff' }} /><span style={lbl}>Clienti ritornanti</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2997ff' }} /><span style={lbl}>{t('gseg.returningCustomers', null, 'Returning customers')}</span>
           </div>
           <div style={{ fontSize: 23, fontWeight: 900, color: 'var(--text)' }}>{num0(sRet.conversions)}</div>
-          <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>conversioni</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{t('gseg.conversionsLower', null, 'conversions')}</div>
           <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8, display: 'grid', gap: 4 }}>
-            {metric('Valore conv.', eur0(sRet.value))}
+            {metric(t('gseg.convValue', null, 'Conv. value'), eur0(sRet.value))}
             {metric('ROAS', sRet.roas ? `${sRet.roas}×` : '—')}
           </div>
         </div>

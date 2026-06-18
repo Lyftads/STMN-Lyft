@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Selettore (multi) degli ad account Meta per il tenant corrente.
 // Legge gli account raggiungibili dal token (/meta-adaccounts) e salva la
 // scelta (anche multipla, comma-separated) in companies.meta_account_id.
 export default function MetaAccountSelector() {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [sel, setSel] = useState(() => new Set())
   const [saving, setSaving] = useState(false)
@@ -59,16 +61,16 @@ export default function MetaAccountSelector() {
     }
   }
 
-  if (!data) return <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>Carico ad account…</div>
+  if (!data) return <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>{t('metaConnect.loading', null, 'Loading ad accounts…')}</div>
   const accounts = data.accounts || []
   if (data.error || !accounts.length) {
-    return <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>{data.error ? `Meta: ${data.error}` : 'Nessun ad account dal token (collega Meta prima).'}</div>
+    return <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>{data.error ? `Meta: ${data.error}` : t('metaConnect.none', null, 'No ad account from the token. Connect Meta first.')}</div>
   }
 
   return (
     <div style={{ marginTop: 12, width: '100%' }}>
       <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8, fontWeight: 700 }}>
-        Ad account usati da questo tenant ({sel.size} selezionati)
+        {t('masel.usedAccounts', { n: sel.size }, `Ad accounts used by this workspace (${sel.size} selected)`)}
       </div>
       <div style={{ maxHeight: 190, overflowY: 'auto', display: 'grid', gap: 4, border: '1px solid var(--border)', borderRadius: 10, padding: 8 }}>
         {accounts.map(a => {
@@ -84,9 +86,9 @@ export default function MetaAccountSelector() {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
         <button onClick={save} disabled={saving} className="btn-glass" style={{ padding: '7px 16px', fontWeight: 800, fontSize: 12, cursor: saving ? 'wait' : 'pointer' }}>
-          {saving ? 'Salvo…' : 'Salva selezione'}
+          {saving ? t('metaConnect.saving', null, 'Saving…') : t('masel.saveSelection', null, 'Save selection')}
         </button>
-        {saved && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
+        {saved && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
         {err && <span style={{ fontSize: 11, color: 'var(--red)' }}>{err}</span>}
       </div>
     </div>

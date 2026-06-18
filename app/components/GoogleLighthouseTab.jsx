@@ -6,6 +6,7 @@ import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import BmTimeframe from './ui/BmTimeframe'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ─────────────────────────────────────────────────────────────
 //  Google Lighthouse — Alert Center per Google Ads (gemella Meta Lighthouse)
@@ -26,8 +27,11 @@ const SEVERITY_COLORS = {
   low:    { stripe: '#94a3b8', text: '#cbd5e1', bg: 'rgba(148,163,184,0.06)' },
 }
 const SEVERITY_LABEL = { high: 'Alto', medium: 'Medio', low: 'Basso' }
+const PRIO_TKEY = { high: 'lighthouse.prioHigh', medium: 'lighthouse.prioMedium', low: 'lighthouse.prioLow' }
+const SEV_TKEY = { high: 'lighthouse.sevHigh', medium: 'lighthouse.sevMedium', low: 'lighthouse.sevLow' }
 
 export default function GoogleLighthouseTab() {
+  const { t } = useI18n()
   const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
   const [filter, setFilter] = useState('all')
@@ -75,7 +79,7 @@ export default function GoogleLighthouseTab() {
           <button type="button" onClick={() => load(true)} disabled={loading}
             style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? 'Aggiorno…' : 'Aggiorna'}
+            {loading ? t('common.refreshing', null, 'Refreshing…') : t('common.refresh', null, 'Refresh')}
           </button>
         </div>
       </div>
@@ -83,31 +87,31 @@ export default function GoogleLighthouseTab() {
       {proposals.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 6 }}>
-            <Icon name="sparkle" size={14} /> Cosa fare adesso
+            <Icon name="sparkle" size={14} /> {t('lighthouse.whatToDo', null, 'What to do now')}
           </div>
           {proposals.map(p => <ProposalCard key={p.id} proposal={p} />)}
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <SummaryPill active={filter === 'all'} onClick={() => setFilter('all')} label="Tutti" count={summary.total} color="#fff" />
-        <SummaryPill active={filter === 'high'} onClick={() => setFilter('high')} label="Alta" count={summary.high} color={SEVERITY_COLORS.high.stripe} />
-        <SummaryPill active={filter === 'medium'} onClick={() => setFilter('medium')} label="Media" count={summary.medium} color={SEVERITY_COLORS.medium.stripe} />
-        <SummaryPill active={filter === 'low'} onClick={() => setFilter('low')} label="Bassa" count={summary.low} color={SEVERITY_COLORS.low.stripe} />
+        <SummaryPill active={filter === 'all'} onClick={() => setFilter('all')} label={t('common.all', null, 'All')} count={summary.total} color="#fff" />
+        <SummaryPill active={filter === 'high'} onClick={() => setFilter('high')} label={t('lighthouse.high', null, 'High')} count={summary.high} color={SEVERITY_COLORS.high.stripe} />
+        <SummaryPill active={filter === 'medium'} onClick={() => setFilter('medium')} label={t('lighthouse.medium', null, 'Medium')} count={summary.medium} color={SEVERITY_COLORS.medium.stripe} />
+        <SummaryPill active={filter === 'low'} onClick={() => setFilter('low')} label={t('lighthouse.low', null, 'Low')} count={summary.low} color={SEVERITY_COLORS.low.stripe} />
       </div>
 
       {error && <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}><Icon name="warning" size={13} /> {error}</div>}
       {data?.warning && <div className="glass-card-static" style={{ padding: 18, color: '#fbbf24', fontSize: 13 }}>{data.warning}</div>}
 
       {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>Scansiono anomalie…</div>
+        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>{t('lighthouse.scanning', null, 'Scanning anomalies…')}</div>
       )}
 
       {filtered.length === 0 && data && !loading && (
         <div className="glass-card-static" style={{ padding: 40, textAlign: 'center', color: 'var(--text2)' }}>
           <div style={{ fontSize: 24, marginBottom: 12 }}><Icon name="check" size={24} /></div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Nessuna anomalia in questo filtro</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>L'account Google è sotto controllo nel periodo selezionato.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{t('lighthouse.noAnomalies', null, 'No anomalies in this filter')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{t('lighthouse.underControlGoogle', null, 'The Google account is under control in the selected period.')}</div>
         </div>
       )}
 
@@ -137,20 +141,21 @@ const PRIORITY_COLORS = {
 const PRIORITY_LABEL = { high: 'Priorità alta', medium: 'Priorità media', low: 'Priorità bassa' }
 
 function ProposalCard({ proposal }) {
+  const { t } = useI18n()
   const c = PRIORITY_COLORS[proposal.priority] || PRIORITY_COLORS.low
   return (
     <div className="glass-card-static" style={{ padding: '18px 22px', borderLeft: `4px solid ${c.stripe}`, background: c.bg }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 20 }}>{proposal.icon}</span>
         <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{proposal.title}</span>
-        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em', background: c.chip, color: '#0a0a14', padding: '3px 8px', borderRadius: 5 }}>{PRIORITY_LABEL[proposal.priority]}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em', background: c.chip, color: '#0a0a14', padding: '3px 8px', borderRadius: 5 }}>{t(PRIO_TKEY[proposal.priority] || PRIO_TKEY.low, null, PRIORITY_LABEL[proposal.priority])}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '6px 14px', fontSize: 13, lineHeight: 1.5 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Cosa</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>{t('lighthouse.what', null, 'What')}</div>
         <div style={{ color: '#fff', fontWeight: 600 }}>{proposal.what}</div>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Perché</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>{t('lighthouse.why', null, 'Why')}</div>
         <div style={{ color: 'var(--text2)' }}>{proposal.why}</div>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>Come</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.10em', textTransform: 'uppercase', paddingTop: 2 }}>{t('lighthouse.how', null, 'How')}</div>
         <ol style={{ margin: 0, paddingLeft: 16, color: 'var(--text2)' }}>
           {(proposal.how || []).map((step, i) => <li key={i} style={{ marginBottom: 4 }}>{step}</li>)}
         </ol>
@@ -160,25 +165,26 @@ function ProposalCard({ proposal }) {
 }
 
 function AlertCard({ alert }) {
+  const { t } = useI18n()
   const c = SEVERITY_COLORS[alert.severity] || SEVERITY_COLORS.low
   return (
     <div className="glass-card-static" style={{ padding: '16px 20px', borderLeft: `4px solid ${c.stripe}`, background: c.bg }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', background: c.stripe, color: '#0a0a14', padding: '3px 8px', borderRadius: 5 }}>{SEVERITY_LABEL[alert.severity]}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', background: c.stripe, color: '#0a0a14', padding: '3px 8px', borderRadius: 5 }}>{t(SEV_TKEY[alert.severity] || SEV_TKEY.low, null, SEVERITY_LABEL[alert.severity])}</span>
         <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{alert.metric}</span>
         <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{alert.date}</span>
         <span style={{ flex: 1 }} />
         <div style={{ fontSize: 12, color: c.text, fontWeight: 700 }}>{alert.deviation_pct > 0 ? '▲' : '▼'} {Math.abs(alert.deviation_pct).toFixed(1)}%</div>
       </div>
       <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 8 }}>
-        <div><span style={{ color: 'var(--text3)' }}>Valore: </span><span style={{ color: '#fff', fontWeight: 800 }}>{alert.current_fmt}</span></div>
-        <div><span style={{ color: 'var(--text3)' }}>Baseline: </span><span style={{ color: 'var(--text2)', fontWeight: 700 }}>{alert.baseline_fmt}</span></div>
+        <div><span style={{ color: 'var(--text3)' }}>{t('lighthouse.value', null, 'Value: ')}</span><span style={{ color: '#fff', fontWeight: 800 }}>{alert.current_fmt}</span></div>
+        <div><span style={{ color: 'var(--text3)' }}>{t('lighthouse.baseline', null, 'Baseline: ')}</span><span style={{ color: 'var(--text2)', fontWeight: 700 }}>{alert.baseline_fmt}</span></div>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 6 }}>
-        <strong style={{ color: '#fff', fontWeight: 800 }}>Causa probabile:</strong> {alert.cause}
+        <strong style={{ color: '#fff', fontWeight: 800 }}>{t('lighthouse.probableCause', null, 'Probable cause:')}</strong> {alert.cause}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5 }}>
-        <strong style={{ color: '#fff', fontWeight: 800 }}>Azione:</strong> {alert.suggestion}
+        <strong style={{ color: '#fff', fontWeight: 800 }}>{t('lighthouse.action', null, 'Action:')}</strong> {alert.suggestion}
       </div>
     </div>
   )

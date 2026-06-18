@@ -1,16 +1,21 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useI18n } from '../../lib/i18n/I18nProvider'
+
+// Locale + traduttore condivisi con le funzioni module-level (impostati al render).
+let _MP_LOC = 'it-IT'
+let _MP_T = (k, v, f) => f
 
 const PRESETS = [
-  { id: 'today', label: 'Oggi' },
-  { id: 'yesterday', label: 'Ieri' },
-  { id: 'last_7d', label: 'Ultimi 7g' },
-  { id: 'last_14d', label: 'Ultimi 14g' },
-  { id: 'last_28d', label: 'Ultimi 28g' },
-  { id: 'this_month', label: 'Mese corrente' },
-  { id: 'last_month', label: 'Mese scorso' },
-  { id: 'custom', label: 'Custom' },
+  { id: 'today', tkey: 'mp.presetToday', en: 'Today' },
+  { id: 'yesterday', tkey: 'mp.presetYesterday', en: 'Yesterday' },
+  { id: 'last_7d', tkey: 'mp.preset7d', en: 'Last 7d' },
+  { id: 'last_14d', tkey: 'mp.preset14d', en: 'Last 14d' },
+  { id: 'last_28d', tkey: 'mp.preset28d', en: 'Last 28d' },
+  { id: 'this_month', tkey: 'mp.presetThisMonth', en: 'This month' },
+  { id: 'last_month', tkey: 'mp.presetLastMonth', en: 'Last month' },
+  { id: 'custom', tkey: null, en: 'Custom' },
 ]
 
 const GREEN = '#22c55e'
@@ -29,12 +34,12 @@ function n(v) {
 
 function fmtInt(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'
-  return Math.round(Number(v)).toLocaleString('it-IT')
+  return Math.round(Number(v)).toLocaleString(_MP_LOC)
 }
 
 function fmtMoney(v, decimals = 0) {
   if (!v) return decimals === 0 ? '—' : '—'
-  return `€${Number(v).toLocaleString('it-IT', {
+  return `€${Number(v).toLocaleString(_MP_LOC, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}`
@@ -42,7 +47,7 @@ function fmtMoney(v, decimals = 0) {
 
 function fmtPct(v, decimals = 2) {
   if (!v) return '0,00%'
-  return `${Number(v).toLocaleString('it-IT', {
+  return `${Number(v).toLocaleString(_MP_LOC, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}%`
@@ -50,7 +55,7 @@ function fmtPct(v, decimals = 2) {
 
 function fmtRatio(v) {
   if (!v) return '0,00x'
-  return `${Number(v).toLocaleString('it-IT', {
+  return `${Number(v).toLocaleString(_MP_LOC, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}x`
@@ -76,9 +81,9 @@ function indent(level) {
 }
 
 function levelLabel(row) {
-  if (row.level === 'campaign') return 'Campagna'
-  if (row.level === 'adset') return 'Ad set'
-  return 'Ad'
+  if (row.level === 'campaign') return _MP_T('mp.levelCampaign', null, 'Campaign')
+  if (row.level === 'adset') return _MP_T('mp.levelAdset', null, 'Ad set')
+  return _MP_T('mp.levelAd', null, 'Ad')
 }
 
 function MetricCard({ label, value }) {
@@ -153,7 +158,7 @@ function Row({
 
           <div>
             <div style={{ color: row.level === 'campaign' ? GREEN : TEXT, fontWeight: 900 }}>
-              {levelLabel(row)} · {row.name || 'Senza nome'}
+              {levelLabel(row)} · {row.name || _MP_T('mp.unnamed', null, 'Unnamed')}
             </div>
 
             <div style={styles.idText}>
@@ -187,6 +192,8 @@ function Row({
 }
 
 export default function MetaPage() {
+  const { t, intlLocale } = useI18n()
+  _MP_LOC = intlLocale; _MP_T = t
   const [preset, setPreset] = useState('last_28d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -233,7 +240,7 @@ export default function MetaPage() {
       const json = await res.json()
 
       if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento Meta')
+        throw new Error(json.error || t('mp.errMeta', null, 'Error loading Meta'))
       }
 
       setData(json)
@@ -277,7 +284,7 @@ export default function MetaPage() {
       const json = await res.json()
 
       if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento ad set')
+        throw new Error(json.error || t('mp.errAdsets', null, 'Error loading ad sets'))
       }
 
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
@@ -317,7 +324,7 @@ export default function MetaPage() {
       const json = await res.json()
 
       if (!json.ok) {
-        throw new Error(json.error || 'Errore caricamento ads')
+        throw new Error(json.error || t('mp.errAds', null, 'Error loading ads'))
       }
 
       setChildren(prev => ({ ...prev, [key]: json.rows || [] }))
@@ -363,11 +370,11 @@ export default function MetaPage() {
         <header style={styles.header}>
           <div>
             <h1 style={styles.h1}>Meta Detail</h1>
-            <p style={styles.subtitle}>Analisi gerarchica campagne · ad set · ads</p>
+            <p style={styles.subtitle}>{t('mp.subtitle', null, 'Hierarchical analysis campaigns · ad sets · ads')}</p>
           </div>
 
           <div style={styles.status}>
-            {loading ? 'Caricamento…' : data?.sources?.meta ? 'Dati caricati' : 'Meta non caricato'}
+            {loading ? t('mp.loading', null, 'Loading…') : data?.sources?.meta ? t('mp.dataLoaded', null, 'Data loaded') : t('mp.metaNotLoaded', null, 'Meta not loaded')}
           </div>
         </header>
 
@@ -379,7 +386,7 @@ export default function MetaPage() {
                 active={preset === p.id}
                 onClick={() => setPreset(p.id)}
               >
-                {p.label}
+                {t(p.tkey, null, p.en)}
               </PresetButton>
             ))}
 
@@ -388,7 +395,7 @@ export default function MetaPage() {
               style={styles.refresh}
               disabled={loading}
             >
-              ↻ Aggiorna
+              ↻ {t('mp.refresh', null, 'Refresh')}
             </button>
           </div>
 
@@ -417,24 +424,24 @@ export default function MetaPage() {
         )}
 
         <section style={styles.metrics}>
-          <MetricCard label="Importo speso" value={fmtMoney(summary.spend, 0)} />
+          <MetricCard label={t('mp.amountSpent', null, 'Amount spent')} value={fmtMoney(summary.spend, 0)} />
           <MetricCard label="ROAS" value={fmtRatio(summary.roas)} />
-          <MetricCard label="Costo risultato" value={fmtMoney(summary.cost_per_result, 2)} />
-          <MetricCard label="Acquisti" value={summary.purchases ? fmtInt(summary.purchases) : '—'} />
+          <MetricCard label={t('mp.costPerResult', null, 'Cost per result')} value={fmtMoney(summary.cost_per_result, 2)} />
+          <MetricCard label={t('mp.purchases', null, 'Purchases')} value={summary.purchases ? fmtInt(summary.purchases) : '—'} />
           <MetricCard label="CTR link" value={fmtPct(summary.ctr_link, 2)} />
-          <MetricCard label="Frequenza" value={n(summary.frequency).toFixed(2)} />
+          <MetricCard label={t('mp.frequency', null, 'Frequency')} value={n(summary.frequency).toFixed(2)} />
         </section>
 
         <section style={styles.twoCols}>
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Confronto · periodo vs precedente</h2>
+            <h2 style={styles.sectionTitle}>{t('mp.comparison', null, 'Comparison · period vs previous')}</h2>
             <p style={styles.small}>
-              Periodo precedente: {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
+              {t('mp.prevPeriod', null, 'Previous period:')} {data?.previousRange?.since || '—'} → {data?.previousRange?.until || '—'}
             </p>
 
             <div style={styles.compareGrid}>
               <div style={styles.compareItem}>
-                <span style={styles.compareLabel}>Spesa</span>
+                <span style={styles.compareLabel}>{t('mp.spend', null, 'Spend')}</span>
                 <strong style={{ color: deltaColor(data?.comparison?.spend, false) }}>
                   {delta(data?.comparison?.spend)}
                 </strong>
@@ -464,13 +471,13 @@ export default function MetaPage() {
           </div>
 
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Insight automatico</h2>
+            <h2 style={styles.sectionTitle}>{t('mp.autoInsight', null, 'Automatic insight')}</h2>
             <p style={styles.paragraph}>{data?.insight || '—'}</p>
           </div>
         </section>
 
         <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>To-do consigliate</h2>
+          <h2 style={styles.sectionTitle}>{t('mp.recommendedTodos', null, 'Recommended to-dos')}</h2>
 
           <div style={styles.todoList}>
             {(data?.todos || []).map((todo, i) => (
@@ -482,32 +489,31 @@ export default function MetaPage() {
         </section>
 
         <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Gerarchia Meta · campagne / ad set / ads</h2>
+          <h2 style={styles.sectionTitle}>{t('mp.hierarchy', null, 'Meta hierarchy · campaigns / ad sets / ads')}</h2>
           <p style={styles.small}>
-            Mostra solo campagne attive. Clicca su una campagna per aprire gli ad set attivi.
-            Clicca su un ad set per aprire le ads attive.
+            {t('mp.hierarchySub', null, 'Shows only active campaigns. Click a campaign to open its active ad sets. Click an ad set to open its active ads.')}
           </p>
 
           <div style={styles.tableWrap}>
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.thLevel}>Livello</th>
-                  <th style={styles.th}>Anteprima</th>
+                  <th style={styles.thLevel}>{t('mp.level', null, 'Level')}</th>
+                  <th style={styles.th}>{t('mp.preview', null, 'Preview')}</th>
                   <th style={styles.th}>Impression</th>
-                  <th style={styles.th}>Copertura</th>
-                  <th style={styles.th}>Freq.</th>
+                  <th style={styles.th}>{t('mp.reach', null, 'Reach')}</th>
+                  <th style={styles.th}>{t('mp.freq', null, 'Freq.')}</th>
                   <th style={styles.th}>CPM</th>
                   <th style={styles.th}>CTR link</th>
                   <th style={styles.th}>CPC link</th>
                   <th style={styles.th}>Click link</th>
-                  <th style={styles.th}>Speso</th>
-                  <th style={styles.th}>Costo risultato</th>
+                  <th style={styles.th}>{t('mp.spent', null, 'Spent')}</th>
+                  <th style={styles.th}>{t('mp.costPerResult', null, 'Cost per result')}</th>
                   <th style={styles.th}>ROAS</th>
-                  <th style={styles.th}>Acquisti</th>
-                  <th style={styles.th}>Conv. acquisti</th>
-                  <th style={styles.th}>CRO campagna</th>
-                  <th style={styles.th}>AOV campagna</th>
+                  <th style={styles.th}>{t('mp.purchases', null, 'Purchases')}</th>
+                  <th style={styles.th}>{t('mp.purchaseConv', null, 'Purchase conv.')}</th>
+                  <th style={styles.th}>{t('mp.croCampaign', null, 'Campaign CRO')}</th>
+                  <th style={styles.th}>{t('mp.aovCampaign', null, 'Campaign AOV')}</th>
                 </tr>
               </thead>
 
@@ -543,7 +549,7 @@ export default function MetaPage() {
                 ) : (
                   <tr>
                     <td colSpan="16" style={styles.empty}>
-                      {loading ? 'Caricamento dati Meta…' : 'Nessuna campagna attiva disponibile nel periodo selezionato.'}
+                      {loading ? t('mp.loadingData', null, 'Loading Meta data…') : t('mp.noCampaigns', null, 'No active campaign available for the selected period.')}
                     </td>
                   </tr>
                 )}

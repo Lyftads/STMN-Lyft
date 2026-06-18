@@ -48,10 +48,13 @@ const COUNTRIES = [
   { id: 'ALL', label: 'Tutti', labelKey: 'ci.countryALL' },
 ]
 
+// Locale condiviso con le funzioni module-level (impostato in fase di render
+// dal componente principale, così i call-site restano invariati).
+let _CI_LOC = 'it-IT'
 function money(v) {
   const n = Number(v)
   if (!Number.isFinite(n) || n <= 0) return '—'
-  return `€${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `€${n.toLocaleString(_CI_LOC, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function StatMini({ label, value, tone = 'var(--text)' }) {
@@ -91,7 +94,7 @@ function PlatformBadge({ platform }) {
 }
 
 function AdCard({ ad, index }) {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   const body = cleanAdText(ad.bodies?.[0])
   const title = cleanAdText(ad.titles?.[0])
   const caption = cleanAdText(ad.captions?.[0])
@@ -140,7 +143,7 @@ function AdCard({ ad, index }) {
     finally { setGenLoading(false) }
   }
   const startDate = ad.startDate
-    ? new Date(ad.startDate).toLocaleDateString('it-IT', {
+    ? new Date(ad.startDate).toLocaleDateString(intlLocale, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -305,7 +308,7 @@ function AdCard({ ad, index }) {
             onClick={(e) => e.stopPropagation()}
             style={{ width: 'min(480px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', position: 'relative' }}
           >
-            <button onClick={() => setDetailOpen(false)} aria-label="Chiudi" style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+            <button onClick={() => setDetailOpen(false)} aria-label={t('ci.close', null, 'Close')} style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
 
             {/* Header pagina (come Meta) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
@@ -587,7 +590,7 @@ function PromoTag({ promo }) {
 }
 
 function CompetitorSection({ competitor, meta, country = 'IT' }) {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   // Default su "Catalogo & Prezzi": i prodotti caricano subito mentre le creative
   // (più lente) si popolano in background. Passando alla tab creative le trovi pronte.
   const [section, setSection] = useState('products')
@@ -648,7 +651,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const ads = apiAds.length > 0 ? apiAds : (pageAds || [])
   // Etichetta "ads attive": totale reale se noto, altrimenti "N+" quando si è
   // raggiunto il limite di caricamento, altrimenti il numero esatto.
-  const nfmt = (n) => Number(n).toLocaleString('it-IT')
+  const nfmt = (n) => Number(n).toLocaleString(intlLocale)
   const realTotal = apiAds.length > 0 ? (adLibrary?.count || null) : pageTotal
   const headerAdsLabel =
     realTotal != null && realTotal >= ads.length ? t('ci.adsActive', { n: nfmt(realTotal) }, `${nfmt(realTotal)} ads attive`)
@@ -1190,7 +1193,8 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
 const __ciCache = {}
 
 export default function CompetitorIntelTab({ onNavigate }) {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
+  _CI_LOC = intlLocale
   // Cache di modulo per-paese: cambiando tab dell'app e tornando, i dati (e le
   // chiamate a valle) NON si rifanno. "Aggiorna" forza comunque il refresh.
   const [data, setData] = useState(() => __ciCache['IT'] || null)
@@ -1271,14 +1275,14 @@ export default function CompetitorIntelTab({ onNavigate }) {
         <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
           {data?.fetchedAt && (
             <>
-              {t('ci.lastUpdate', null, 'Ultimo aggiornamento:')} {new Date(data.fetchedAt).toLocaleString('it-IT')}
+              {t('ci.lastUpdate', null, 'Ultimo aggiornamento:')} {new Date(data.fetchedAt).toLocaleString(intlLocale)}
               {data?.cached && ` ${t('ci.cacheParen', null, '(cache)')}`}
               <br />
             </>
           )}
           <span style={{ color: 'var(--text3)' }}>
             {t('ci.autoUpdate', null, 'Aggiornamento automatico ogni lunedì alle 06:00')}
-            {data?.nextRefresh && ` · ${t('ci.next', null, 'Prossimo:')} ${new Date(data.nextRefresh).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}`}
+            {data?.nextRefresh && ` · ${t('ci.next', null, 'Prossimo:')} ${new Date(data.nextRefresh).toLocaleDateString(intlLocale, { weekday: 'short', day: 'numeric', month: 'short' })}`}
           </span>
         </div>
 
@@ -1397,7 +1401,7 @@ export default function CompetitorIntelTab({ onNavigate }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                   {adTotal != null && adTotal > adResults.length
-                    ? t('ci.searchShownTotal', { shown: adResults.length, total: adTotal.toLocaleString('it-IT'), q: adQuery }, `${adResults.length} mostrate · ${adTotal.toLocaleString('it-IT')} attive per “${adQuery}” · worldwide`)
+                    ? t('ci.searchShownTotal', { shown: adResults.length, total: adTotal.toLocaleString(intlLocale), q: adQuery }, `${adResults.length} mostrate · ${adTotal.toLocaleString(intlLocale)} attive per “${adQuery}” · worldwide`)
                     : (adCapped || adResults.length >= 60)
                       ? t('ci.searchShownPlus', { shown: adResults.length, q: adQuery }, `${adResults.length} mostrate · ${adResults.length}+ per “${adQuery}” · worldwide`)
                       : t('ci.searchActive', { shown: adResults.length, q: adQuery }, `${adResults.length} creative attive per “${adQuery}” · worldwide`)}

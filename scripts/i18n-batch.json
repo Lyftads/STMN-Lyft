@@ -1,20 +1,8 @@
 {
-  "ci.all": "Tutti",
-  "ci.fmtVideo": "Video",
-  "ci.fmtImage": "Image",
-  "ci.cIT": "Italia",
-  "ci.cES": "Spagna",
-  "ci.cFR": "Francia",
-  "ci.cDE": "Germania",
-  "ci.cGB": "UK",
-  "ci.cUS": "USA",
-  "ci.catalogDco": "Catalogo prodotti / DCO",
-  "ci.active": "attiva",
-  "ci.daysAbbr": "g",
-  "ci.activeSince": "Attiva da",
-  "ci.daysN": "{n} giorni",
-  "ci.format": "Formato",
-  "ci.platforms": "Piattaforme",
-  "ci.copy": "Copy",
-  "ci.openInLibrary": "↗ Apri nella Ad Library"
+  "ci.countryIT": "Italia",
+  "ci.countryES": "Spagna",
+  "ci.countryUS": "USA",
+  "ci.countryAU": "Australia",
+  "ci.countryGB": "UK",
+  "ci.countryALL": "Tutti"
 }

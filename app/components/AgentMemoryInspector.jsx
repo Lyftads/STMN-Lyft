@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ─────────────────────────────────────────────────────────────
 //  AgentMemoryInspector — vista delle memorie agent.
@@ -31,13 +32,14 @@ const AGENT_LABELS = {
 }
 
 const ROLE_TAGS = {
-  preference: { label: 'Preferenza', icon: <Icon name="gear" size={11} />, color: '#2997ff' },
-  fact:       { label: 'Fatto',       icon: <Icon name="pin" size={11} />,  color: '#22c55e' },
-  insight:    { label: 'Insight',     icon: <Icon name="bulb" size={11} />, color: '#f59e0b' },
-  observation:{ label: 'Osservazione',icon: '·',  color: '#86868b' },
+  preference: { labelKey: 'ami.rolePreference', en: 'Preference', icon: <Icon name="gear" size={11} />, color: '#2997ff' },
+  fact:       { labelKey: 'ami.roleFact', en: 'Fact', icon: <Icon name="pin" size={11} />,  color: '#22c55e' },
+  insight:    { labelKey: 'ami.roleInsight', en: 'Insight', icon: <Icon name="bulb" size={11} />, color: '#f59e0b' },
+  observation:{ labelKey: 'ami.roleObservation', en: 'Observation', icon: '·',  color: '#86868b' },
 }
 
 export default function AgentMemoryInspector() {
+  const { t } = useI18n()
   const [memories, setMemories] = useState({ byAgent: {}, total: 0 })
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
@@ -56,7 +58,7 @@ export default function AgentMemoryInspector() {
   useEffect(() => { load() }, [load])
 
   const handleDelete = async (id) => {
-    if (!confirm('Cancellare definitivamente questa memoria?')) return
+    if (!confirm(t('ami.confirmDelete', null, 'Permanently delete this memory?'))) return
     const res = await fetch(`/api/agent-memories?id=${id}`, { method: 'DELETE' })
     if (res.ok) load()
   }
@@ -93,13 +95,13 @@ export default function AgentMemoryInspector() {
         }}>◓</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-            Memorie Agent
+            {t('ami.title', null, 'Agent Memories')}
           </div>
           <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
-            {memories.total} memorie apprese
+            {t('ami.learnedCount', { n: memories.total }, '{n} learned memories')}
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
-            Quello che i tuoi agent hanno imparato dalle conversazioni e dai dati live. Puoi modificare priorità o cancellare quelle sbagliate — al prossimo recall non verranno usate.
+            {t('ami.description', null, 'What your agents learned from conversations and live data. You can change priority or delete wrong ones — they will not be used on the next recall.')}
           </div>
         </div>
         <ExportImportButtons onImported={load} />
@@ -114,7 +116,7 @@ export default function AgentMemoryInspector() {
             cursor: 'pointer',
           }}
         >
-          ↻ Refresh
+          ↻ {t('ami.refresh', null, 'Refresh')}
         </button>
       </div>
 
@@ -131,7 +133,7 @@ export default function AgentMemoryInspector() {
             outline: 'none', cursor: 'pointer', minWidth: 180,
           }}
         >
-          <option value="all">Tutti gli agent ({memories.total})</option>
+          <option value="all">{t('ami.allAgents', { n: memories.total }, 'All agents ({n})')}</option>
           {agentIds.map(a => (
             <option key={a} value={a}>
               {AGENT_LABELS[a] || a} ({memories.byAgent[a].length})
@@ -142,7 +144,7 @@ export default function AgentMemoryInspector() {
           type="text"
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          placeholder="Cerca nel testo..."
+          placeholder={t('ami.searchPlaceholder', null, 'Search in text...')}
           style={{
             flex: 1, minWidth: 200,
             padding: '10px 12px', borderRadius: 10,
@@ -157,14 +159,14 @@ export default function AgentMemoryInspector() {
       {/* Lista */}
       {loading ? (
         <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '40px 0', fontSize: 13 }}>
-          Caricamento memorie…
+          {t('ami.loading', null, 'Loading memories…')}
         </div>
       ) : allMemories.length === 0 ? (
         <div style={{
           color: 'var(--text4, #555)', textAlign: 'center', padding: '40px 0',
           fontSize: 13, fontStyle: 'italic',
         }}>
-          Nessuna memoria{filter ? ' corrispondente al filtro' : ' ancora — usa gli agent per iniziare a costruire knowledge'}
+          {filter ? t('ami.noneFiltered', null, 'No memory matching the filter') : t('ami.noneYet', null, 'No memories yet — use the agents to start building knowledge')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 600, overflowY: 'auto' }}>
@@ -183,11 +185,12 @@ export default function AgentMemoryInspector() {
 }
 
 function MemoryRow({ memory, onDelete, onImportanceChange }) {
+  const { t, intlLocale } = useI18n()
   const tag = ROLE_TAGS[memory.role] || ROLE_TAGS.observation
   const agentLabel = AGENT_LABELS[memory.agent_id] || memory.agent_id
 
   const created = new Date(memory.created_at)
-  const dateStr = created.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+  const dateStr = created.toLocaleDateString(intlLocale, { day: '2-digit', month: 'short', year: 'numeric' })
 
   const isAutoScan = memory.source === 'cron-scan'
   const isConsolidated = memory.source === 'consolidated'
@@ -204,7 +207,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
           background: `${tag.color}1f`, border: `1px solid ${tag.color}66`,
           fontSize: 10, color: tag.color, fontWeight: 700, textTransform: 'uppercase',
         }}>
-          {tag.icon} {tag.label}
+          {tag.icon} {t(tag.labelKey, null, tag.en)}
         </span>
         <span style={{
           fontSize: 10, color: 'var(--text4, #666)', fontWeight: 600,
@@ -219,7 +222,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
             padding: '3px 8px', borderRadius: 6,
             background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)',
           }}>
-            ◐ Auto-scan
+            ◐ {t('ami.autoScan', null, 'Auto-scan')}
           </span>
         )}
         {isConsolidated && (
@@ -228,12 +231,12 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
             padding: '3px 8px', borderRadius: 6,
             background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)',
           }}>
-            ⊛ Sintesi
+            ⊛ {t('ami.synthesis', null, 'Synthesis')}
           </span>
         )}
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 10, color: 'var(--text4, #666)' }}>
-          {dateStr} · usata {memory.use_count || 0}×
+          {dateStr} · {t('ami.usedTimes', { n: memory.use_count || 0 }, 'used {n}×')}
         </span>
       </div>
 
@@ -242,7 +245,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
-        <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>Priorità:</span>
+        <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>{t('ami.priority', null, 'Priority:')}</span>
         <input
           type="range"
           min={1} max={10} step={1}
@@ -267,7 +270,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
             cursor: 'pointer',
           }}
         >
-          Elimina
+          {t('ami.delete', null, 'Delete')}
         </button>
       </div>
     </div>
@@ -275,6 +278,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
 }
 
 function ExportImportButtons({ onImported }) {
+  const { t } = useI18n()
   const fileRef = useRef(null)
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState(null)
@@ -298,10 +302,10 @@ function ExportImportButtons({ onImported }) {
       })
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || `HTTP ${res.status}`)
-      setMsg(`✓ Importate ${j.imported} memorie`)
+      setMsg(t('ami.imported', { n: j.imported }, '✓ Imported {n} memories'))
       onImported?.()
     } catch (e) {
-      setMsg(`${e?.message || 'Errore import'}`)
+      setMsg(`${e?.message || t('ami.importError', null, 'Import error')}`)
     } finally {
       setImporting(false)
       setTimeout(() => setMsg(null), 5000)
@@ -313,7 +317,7 @@ function ExportImportButtons({ onImported }) {
       <button
         type="button"
         onClick={handleExport}
-        title="Scarica tutte le memorie come file JSON"
+        title={t('ami.exportTitle', null, 'Download all memories as a JSON file')}
         style={{
           padding: '8px 12px', borderRadius: 10,
           background: 'var(--glass)',
@@ -322,13 +326,13 @@ function ExportImportButtons({ onImported }) {
           cursor: 'pointer',
         }}
       >
-        ⬇ Export
+        ⬇ {t('ami.export', null, 'Export')}
       </button>
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={importing}
-        title="Carica un file JSON di memorie precedentemente esportato"
+        title={t('ami.importTitle', null, 'Upload a previously exported memories JSON file')}
         style={{
           padding: '8px 12px', borderRadius: 10,
           background: 'var(--glass)',
@@ -337,7 +341,7 @@ function ExportImportButtons({ onImported }) {
           cursor: importing ? 'wait' : 'pointer',
         }}
       >
-        {importing ? '…' : '⬆ Import'}
+        {importing ? '…' : `⬆ ${t('ami.import', null, 'Import')}`}
       </button>
       <input
         ref={fileRef}

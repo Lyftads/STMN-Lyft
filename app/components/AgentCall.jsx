@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ============================================================================
 //  Pulsante + overlay CALL full-duplex con un agente della Squadra AI
@@ -19,7 +20,8 @@ function CallAvatar({ a, size = 120 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.42, background: `${a.color}22`, border: `2px solid ${a.color}55` }}>{a.emoji || '🤖'}</span>
 }
 
-export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, autoStart = false, hideButton = false, onClose }) {
+export default function AgentCall({ agent, label, buttonStyle, autoStart = false, hideButton = false, onClose }) {
+  const { t } = useI18n()
   const [call, setCall] = useState(null) // { status, mode, error? }
   const convRef = useRef(null)
   const convIdRef = useRef(null)
@@ -50,8 +52,8 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, a
       // lo snapshot già pronto; il prime aggiorna i dati per i turni successivi.
       fetch('/api/team/call/prime', { method: 'POST' }).catch(() => {})
       const cfg = await fetch(`/api/team/call/signed-url?agentId=${encodeURIComponent(agent.id)}`).then(r => r.json()).catch(() => ({}))
-      if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || 'Call non configurata.' }); return }
-      if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || 'Impossibile avviare la call.' }); return }
+      if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || t('ac.notConfigured', null, 'Call not configured.') }); return }
+      if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || t('ac.cannotStart', null, 'Unable to start the call.') }); return }
       const { Conversation } = await import('@elevenlabs/client')
       // NB: niente customLlmExtraBody (l'agente lo rifiuta, error 1008). L'agente
       // è identificato dal `model` (team-<id>) configurato sull'agent ElevenLabs.
@@ -61,14 +63,14 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, a
         onConnect: (e) => { convIdRef.current = e?.conversationId || convIdRef.current },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: s?.status === 'connected' ? 'connected' : c.status } : c),
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),
-        onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || 'Errore call') })),
+        onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || t('ac.callError', null, 'Call error')) })),
         onDisconnect: () => { finalize(); setCall(c => c && c.status !== 'ended' ? { ...c, status: 'ended' } : c) },
       })
       convRef.current = conv
       try { convIdRef.current = convIdRef.current || conv.getId?.() } catch {}
       setCall(c => ({ ...(c || {}), status: 'connected', mode: 'listening' }))
     } catch (e) {
-      setCall({ status: 'ended', error: String(e?.message || e || 'Microfono o connessione non disponibili') })
+      setCall({ status: 'ended', error: String(e?.message || e || t('ac.micUnavailable', null, 'Microphone or connection unavailable')) })
     }
   }
   async function endCall() {
@@ -83,9 +85,9 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, a
   return (
     <>
       {!hideButton && (
-        <button type="button" onClick={startCall} title="Chiama in vivavoce"
+        <button type="button" onClick={startCall} title={t('ac.callSpeaker', null, 'Call on speaker')}
           style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
-          {label}
+          {label || t('ac.call', null, '📞 Call')}
         </button>
       )}
 
@@ -100,14 +102,14 @@ export default function AgentCall({ agent, label = '📞 Chiama', buttonStyle, a
             <div style={{ fontSize: 22, fontWeight: 800 }}>{agent.name}</div>
             <div style={{ color: agent.color, fontSize: 14, fontWeight: 600 }}>{agent.role}</div>
             <div style={{ marginTop: 8, fontSize: 13, color: '#c7c7cf' }}>
-              {call.status === 'connecting' && 'Connessione in corso…'}
-              {call.status === 'connected' && (call.mode === 'speaking' ? '🔊 Sta parlando…' : '🎙️ Ti ascolto, parla pure')}
-              {call.status === 'ended' && (call.error ? `⚠️ ${call.error}` : 'Call terminata')}
+              {call.status === 'connecting' && t('ac.connecting', null, 'Connecting…')}
+              {call.status === 'connected' && (call.mode === 'speaking' ? t('ac.speaking', null, '🔊 Speaking…') : t('ac.listening', null, '🎙️ Listening, go ahead'))}
+              {call.status === 'ended' && (call.error ? `⚠️ ${call.error}` : t('ac.callEnded', null, 'Call ended'))}
             </div>
           </div>
           {call.status === 'ended'
-            ? <button type="button" onClick={closeOverlay} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>Chiudi</button>
-            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>📵 Riaggancia</button>}
+            ? <button type="button" onClick={closeOverlay} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>{t('ac.close', null, 'Close')}</button>
+            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>{t('ac.hangUp', null, '📵 Hang up')}</button>}
           <style>{`@keyframes lyftPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}`}</style>
         </div>
       )}

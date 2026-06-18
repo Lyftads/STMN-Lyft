@@ -1,16 +1,14 @@
 {
-  "cd.enterName": "Inserisci un nome",
-  "cd.channelNamePlaceholder": "nome-canale (es. marketing)",
-  "cd.public": "Pubblico",
-  "cd.private": "Privato",
-  "cd.addMembers": "Aggiungi membri",
-  "cd.inviteExternals": "Invita persone esterne (email, anche più di una)",
-  "cd.externalsPlaceholder": "esterno@email.com, altro@email.com",
-  "cd.creating": "Creo…",
-  "cd.createChannel": "Crea canale",
-  "cd.invalidEmail": "Email non valida",
-  "cd.membersOf": "Membri di",
-  "cd.inviteExternalToChannel": "Invita una persona esterna nel canale",
-  "cd.externalPlaceholder": "esterno@email.com",
-  "cd.invite": "Invita"
+  "ac.call": "📞 Chiama",
+  "ac.notConfigured": "Call non configurata.",
+  "ac.cannotStart": "Impossibile avviare la call.",
+  "ac.callError": "Errore call",
+  "ac.micUnavailable": "Microfono o connessione non disponibili",
+  "ac.callSpeaker": "Chiama in vivavoce",
+  "ac.connecting": "Connessione in corso…",
+  "ac.speaking": "🔊 Sta parlando…",
+  "ac.listening": "🎙️ Ti ascolto, parla pure",
+  "ac.callEnded": "Call terminata",
+  "ac.close": "Chiudi",
+  "ac.hangUp": "📵 Riaggancia"
 }

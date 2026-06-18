@@ -390,7 +390,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
           {t(plan.ctaKey, null, plan.cta)}
         </button>
       ) : (cadence && cadence.off > 0) ? (
-        <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>Disponibile a breve</button>
+        <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>{t('settings.comingSoon', null, 'Available soon')}</button>
       ) : (
         <button
           type="button"
@@ -1142,7 +1142,7 @@ export default function SettingsTab() {
             {/* Founder + toggle cadenza brand */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap', textAlign: 'center', padding: '10px 16px', borderRadius: 12, marginBottom: 14, background: 'linear-gradient(90deg, rgba(34,197,94,0.14), rgba(41,151,255,0.14))', border: '1px solid rgba(34,197,94,0.3)' }}>
               <span style={{ fontSize: 16 }}>🎉</span>
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#86efac' }}>Founder: −30% A VITA per le prime 100 aziende</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#86efac' }}>{t('settings.founderOffer', null, 'Founder: −30% FOR LIFE for the first 100 companies')}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
               <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)' }}>

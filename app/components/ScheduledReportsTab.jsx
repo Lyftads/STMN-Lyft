@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ─────────────────────────────────────────────────────────────
 //  Scheduled Reports Tab
@@ -12,6 +13,7 @@ import { PlatformBadges } from './PlatformIcon'
 // ─────────────────────────────────────────────────────────────
 
 export default function ScheduledReportsTab() {
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState({})
   const [feedback, setFeedback] = useState({})
@@ -109,7 +111,7 @@ export default function ScheduledReportsTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
         <ReportCard
           title="Weekly Digest"
-          subtitle="Ogni lunedì alle 09:00 UTC"
+          subtitle={t('sched.weeklyTime', null, 'Every Monday at 09:00 UTC')}
           description="Performance settimanale: revenue, ordini, nuovi clienti, Meta spend, ROAS, MER blended. Confronto vs settimana precedente. Top 5 prodotti."
           nextRun={nextWeekly}
           onSend={() => sendNow('weekly')}
@@ -118,7 +120,7 @@ export default function ScheduledReportsTab() {
         />
         <ReportCard
           title="Monthly Digest"
-          subtitle="Primo del mese alle 09:00 UTC"
+          subtitle={t('sched.monthlyTime', null, 'First of the month at 09:00 UTC')}
           description="Performance del mese: stesso layout del weekly ma su periodo last_30d. Ideale per stakeholder/management."
           nextRun={nextMonthly}
           onSend={() => sendNow('monthly')}

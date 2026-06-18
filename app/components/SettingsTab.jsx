@@ -179,7 +179,7 @@ function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
 }
 
 // Helper: avvia Stripe Checkout session e fa redirect
-async function startStripeCheckout({ planId, mode, setError, setLoading }) {
+async function startStripeCheckout({ planId, mode, setError, setLoading, t }) {
   try {
     setLoading?.(true)
     setError?.(null)
@@ -213,14 +213,14 @@ async function startStripeCheckout({ planId, mode, setError, setLoading }) {
     }
     window.location.href = j.url
   } catch (e) {
-    setError?.(e?.message || 'Errore di rete')
+    setError?.(e?.message || t('settings.networkError', null, 'Network error'))
     setLoading?.(false)
   }
 }
 
 // Helper: apre Customer Portal Stripe (cambio piano, cancella, fatture).
 // customerId viene risolto server-side dall'utente autenticato.
-async function openCustomerPortal({ setError, setLoading }) {
+async function openCustomerPortal({ setError, setLoading, t }) {
   try {
     setLoading?.(true)
     setError?.(null)
@@ -237,7 +237,7 @@ async function openCustomerPortal({ setError, setLoading }) {
     }
     window.location.href = j.url
   } catch (e) {
-    setError?.(e?.message || 'Errore di rete')
+    setError?.(e?.message || t('settings.networkError', null, 'Network error'))
     setLoading?.(false)
   }
 }
@@ -261,7 +261,7 @@ function brandLabel(brand) {
 // anche il piano custom deve passare da Shopify Managed Pricing (upgrade/downgrade
 // self-service + addebito nella charge history), NON da email/off-platform.
 // I signup diretti (non-Shopify) restano sul contatto commerciale.
-async function startEnterprise({ contactHref, setError, setLoading }) {
+async function startEnterprise({ contactHref, setError, setLoading, t }) {
   try {
     setLoading?.(true); setError?.(null)
     let isShopify = false
@@ -280,7 +280,7 @@ async function startEnterprise({ contactHref, setError, setLoading }) {
     }
     window.location.href = contactHref // non-Shopify → contatto commerciale
   } catch (e) {
-    setError?.(e?.message || 'Errore di rete'); setLoading?.(false)
+    setError?.(e?.message || t('settings.networkError', null, 'Network error')); setLoading?.(false)
   }
 }
 
@@ -376,7 +376,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
         <button
           type="button"
           disabled={loading}
-          onClick={() => startEnterprise({ contactHref: plan.contactHref, setError, setLoading })}
+          onClick={() => startEnterprise({ contactHref: plan.contactHref, setError, setLoading, t })}
           style={{
             width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: loading ? 'wait' : 'pointer',
             padding: '13px 16px', borderRadius: 12,
@@ -395,7 +395,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
         <button
           type="button"
           disabled={isCurrent || loading}
-          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading })}
+          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading, t })}
           style={{
             width: '100%',
             padding: '13px 16px',
@@ -807,7 +807,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
           <button
             type="button"
             disabled={loading}
-            onClick={() => startStripeCheckout({ mode: 'setup', setError, setLoading })}
+            onClick={() => startStripeCheckout({ mode: 'setup', setError, setLoading, t })}
             style={{
               padding: '11px 22px', borderRadius: 11,
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -872,7 +872,7 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
           </div>
           <button
             type="button"
-            onClick={() => openCustomerPortal({ customerId, setError, setLoading })}
+            onClick={() => openCustomerPortal({ customerId, setError, setLoading, t })}
             disabled={loading || !customerId}
             style={{
               padding: '7px 14px', borderRadius: 9,
@@ -1078,7 +1078,7 @@ export default function SettingsTab() {
         setData(j)
         setCustomerId(j?.customerId || null)
       })
-      .catch(e => setDataError(e?.message || 'Errore di rete'))
+      .catch(e => setDataError(e?.message || t('settings.networkError', null, 'Network error')))
       .finally(() => setDataLoading(false))
   }, [])
 
@@ -1100,7 +1100,7 @@ export default function SettingsTab() {
         subscription={data?.subscription}
         loading={dataLoading}
         customerId={customerId}
-        onOpenPortal={() => openCustomerPortal({ customerId, setError: setDataError, setLoading: setDataLoading })}
+        onOpenPortal={() => openCustomerPortal({ customerId, setError: setDataError, setLoading: setDataLoading, t })}
       />
 
       <PaymentMethodCard

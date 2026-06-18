@@ -21,11 +21,11 @@ const GREEN = '#22c55e'
 // Mega-menu "Soluzioni": colonne (titoli localizzati via t.solMenu) + voci
 // (nomi prodotto neutri, validi in tutte le lingue).
 const SOLUTIONS = [
-  { key: 'commerce', href: '/soluzioni/commerce', icon: 'M3 3v18h18 M7 14l3-3 3 3 4-5', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
-  { key: 'ads', href: '/soluzioni/advertising', icon: 'M3 11l19-7-7 19-2-8-8-2z', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
-  { key: 'website', href: '/soluzioni/seo', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M21 21l-4.3-4.3', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
-  { key: 'ai', href: '/soluzioni/ai-creative', icon: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF completo', 'Report PDF automatici'] },
-  { key: 'team', href: '/soluzioni/team', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
+  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
+  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
+  { key: 'website', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
+  { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF completo', 'Report PDF automatici'] },
+  { key: 'team', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
 ]
 
 const I18N = {
@@ -882,8 +882,6 @@ export default function WelcomePage() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     localStorage.setItem('lyftai_lang', lang)
-    // Cookie letto lato server dalle pagine /soluzioni (stessa lingua della landing).
-    try { document.cookie = `lyftai_lang=${lang}; path=/; max-age=31536000; samesite=lax` } catch {}
     document.documentElement.lang = lang
   }, [lang])
 
@@ -926,13 +924,6 @@ export default function WelcomePage() {
 function Styles() {
   return (
     <style>{`
-      .sol-item { transition: color 200ms ease; }
-      .sol-item:hover { color: #fff !important; }
-      .sol-cat span:last-child { transition: color 200ms ease; }
-      .sol-cat:hover span:last-child { color: ${ACCENT}; }
-      .sol-demo { transition: border-color 200ms ease, transform 200ms ease; }
-      .sol-demo:hover { border-color: rgba(123,91,255,0.5) !important; }
-      @media (prefers-reduced-motion: reduce){ .sol-item, .sol-cat span:last-child, .sol-demo { transition: none !important; } }
       @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes zoomIn { from { opacity: 0; transform: scale(0.85) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
       @keyframes pulseDot { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
@@ -1201,37 +1192,20 @@ function Nav({ t, lang, setLang }) {
             borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.08)',
             boxShadow: '0 30px 80px rgba(0,0,0,0.7)',
           }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '26px 24px', display: 'flex', gap: 24, alignItems: 'stretch', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 660px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px 26px' }}>
-                {SOLUTIONS.map(col => (
-                  <div key={col.key}>
-                    <Link href={col.href} onClick={() => setOpenSol(false)} className="sol-cat" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', marginBottom: 11 }}>
-                      <span style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(191,90,242,0.14)', border: `1px solid ${ACCENT}44`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{col.icon.split(' M').map((seg, i) => <path key={i} d={(i ? 'M' : '') + seg} />)}</svg>
-                      </span>
-                      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#fff' }}>{t.solMenu?.[col.key] || col.key}</span>
-                    </Link>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                      {col.items.map(it => (
-                        <Link key={it} href={col.href} onClick={() => setOpenSol(false)} style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.62)', textDecoration: 'none', fontWeight: 500 }} className="sol-item">{it}</Link>
-                      ))}
-                    </div>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 24px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 26 }}>
+              {SOLUTIONS.map(col => (
+                <div key={col.key}>
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{t.solMenu?.[col.key] || col.key}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    {col.items.map(it => (
+                      <Link key={it} href="/register" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.78)', textDecoration: 'none', fontWeight: 500 }} className="sol-item">{it}</Link>
+                    ))}
                   </div>
-                ))}
-              </div>
-              {/* Pannello demo in evidenza */}
-              <Link href="/demo" onClick={() => setOpenSol(false)} style={{ flex: '0 0 250px', minWidth: 220, textDecoration: 'none', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: 'linear-gradient(180deg, rgba(123,91,255,0.16), rgba(0,0,0,0.35))', display: 'flex', flexDirection: 'column' }} className="sol-demo">
-                <div style={{ aspectRatio: '16 / 10', background: '#0a0a14', display: 'grid', placeItems: 'center', position: 'relative' }}>
-                  <span style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(123,91,255,0.92)', display: 'grid', placeItems: 'center', boxShadow: '0 10px 30px rgba(123,91,255,0.5)' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true" style={{ marginLeft: 2 }}><path d="M6 4l14 8-14 8z" /></svg>
-                  </span>
                 </div>
-                <div style={{ padding: '14px 16px 16px' }}>
-                  <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Demo</div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: '#fff', marginTop: 4, lineHeight: 1.25 }}>{t.inAction?.title || 'Vedi LyftAI in azione'}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>{t.solMenu?.all || 'Explore →'}</div>
-                </div>
-              </Link>
+              ))}
+            </div>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 22px' }}>
+              <a href="#features" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, fontWeight: 800, color: BLUE, textDecoration: 'none' }}>{t.solMenu?.all || 'Explore →'}</a>
             </div>
           </div>
         </>

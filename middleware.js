@@ -17,7 +17,6 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/terms',
   '/demo',
-  '/soluzioni',
 ]
 
 export async function middleware(request) {

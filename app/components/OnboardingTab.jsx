@@ -7,6 +7,7 @@ import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
 import NangoConnectButton from './NangoConnectButton'
 import BrandIdentityPanel from './BrandIdentityPanel'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Onboarding guidato: l'utente segue gli step in ordine per collegare le
 // piattaforme. Ogni step ha una descrizione dettagliata di cosa fa e come
@@ -20,62 +21,14 @@ const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'no
 const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 16px', color: 'var(--text)', fontSize: 13, cursor: 'pointer', fontFamily: 'Barlow' }
 const SKIP_KEY = 'lyft_onb_skipped'
 
+// Testi (short/what/how) sono nei dizionari i18n con prefisso ob.<id>.*,
+// risolti a runtime con t(); qui restano solo struttura, label e n. di passi.
 const STEPS = [
-  {
-    id: 'shopify', label: 'Shopify', logo: 'shopify', kind: 'shopify',
-    short: 'Lo store: ordini, prodotti, clienti, vendite.',
-    what: 'È la fonte principale dei dati commerciali. Da Shopify LyftAI legge — in sola lettura — ordini, prodotti, clienti (in forma aggregata), inventario, sconti ed evasioni. Servono per fatturato, AOV, LTV, coorti, attribuzione e tutte le metriche di vendita.',
-    how: [
-      'Nel tuo admin Shopify vai su Impostazioni → App e canali di vendita → Sviluppa app → Crea un\'app.',
-      'Apri l\'app → Configurazione → Admin API: assegna gli scope di LETTURA (read_orders, read_products, read_customers, read_inventory, read_reports, read_discounts, read_fulfillments).',
-      'Installa l\'app e copia l\'Admin API access token (inizia con shpat_…). È diverso dal client secret.',
-      'Incolla qui sotto l\'URL dello store (es. mio-store.myshopify.com, senza https://) e il token.',
-    ],
-  },
-  {
-    id: 'meta', label: 'Meta Ads', logo: 'meta', kind: 'meta',
-    short: 'Facebook/Instagram Ads: spesa, ROAS, campagne.',
-    what: 'Collega l\'account pubblicitario Meta per leggere spesa, impression, click, conversioni, ROAS e performance di campagne/adset/ad. Alimenta le tab Meta (Detail, KPI, Creative, Lighthouse) e l\'attribuzione paid.',
-    how: [
-      'Premi "Collega Meta": si apre il login Facebook con il consenso per gli account pubblicitari.',
-      'Autorizza i permessi richiesti (ads_read, business_management) sull\'account/business corretto.',
-      'Al ritorno scegli l\'ad account da analizzare dal pop-up.',
-      'Nessun token da copiare a mano: la connessione è gestita in modo sicuro.',
-    ],
-  },
-  {
-    id: 'ga4', label: 'Google (GA4, Ads, Search Console)', logo: 'google', kind: 'google',
-    short: 'Un solo consenso per GA4, Google Ads e Search Console.',
-    what: 'Con un unico accesso Google colleghi Google Analytics 4 (traffico, sessioni, sorgenti, conversioni), Google Ads (spesa e performance) e Search Console (query e posizionamento organico). Tutto in sola lettura.',
-    how: [
-      'Premi "Collega Google" e accedi con l\'account che ha accesso a GA4 / Google Ads / Search Console.',
-      'Concedi tutti gli scope mostrati: sono necessari per attivare le rispettive sezioni.',
-      'Dopo il collegamento, scegli la proprietà GA4 da usare dal selettore "Proprietà GA4".',
-      'Scegli il sito Search Console dal selettore "Sito Search Console" (necessario per keyword e posizionamento organico).',
-      'Google Ads richiede un\'ulteriore abilitazione lato nostro (developer token): se non è ancora attiva, la spesa Ads comparirà appena approvata.',
-    ],
-  },
-  {
-    id: 'klaviyo', label: 'Klaviyo', logo: 'klaviyo', kind: 'klaviyo',
-    short: 'Email marketing: campagne, flussi, segmenti.',
-    what: 'Collega Klaviyo per analizzare campagne, flussi automatici, segmenti e metriche email (aperture, click, revenue attribuito). Alimenta la tab Klaviyo e il contributo email all\'attribuzione.',
-    how: [
-      'Premi "Collega Klaviyo": si apre l\'autorizzazione OAuth di Klaviyo.',
-      'Accedi e autorizza l\'accesso in lettura ai tuoi dati.',
-      'Nessun token da copiare: la connessione è gestita in automatico.',
-    ],
-  },
-  {
-    id: 'brand', label: 'Brand Identity', icon: '◉', kind: 'brand',
-    short: 'Definisci il tuo brand: tono, valori, target, competitor.',
-    what: 'La Brand Identity è il contesto che gli assistenti AI e gli strumenti creativi di LyftAI usano per capire il tuo brand: nome, tono di voce, valori, target, prodotti, posizionamento e competitor. Più è completa, più i report, le raccomandazioni e le creative generate saranno calibrate sul tuo brand.',
-    how: [
-      'Compila i campi qui sotto: nome azienda, descrizione, tono di voce, target, USP, competitor.',
-      'Puoi caricare anche asset (logo, palette, immagini di riferimento).',
-      'Le modifiche si salvano automaticamente: alimentano subito agenti AI, Creative Lab e i report.',
-      'Non è un collegamento esterno: è il profilo del tuo brand dentro LyftAI.',
-    ],
-  },
+  { id: 'shopify', label: 'Shopify', logo: 'shopify', kind: 'shopify', howCount: 4 },
+  { id: 'meta', label: 'Meta Ads', logo: 'meta', kind: 'meta', howCount: 4 },
+  { id: 'ga4', label: 'Google (GA4, Ads, Search Console)', logo: 'google', kind: 'google', howCount: 5 },
+  { id: 'klaviyo', label: 'Klaviyo', logo: 'klaviyo', kind: 'klaviyo', howCount: 3 },
+  { id: 'brand', label: 'Brand Identity', icon: '◉', kind: 'brand', howCount: 4 },
 ]
 
 // Riga di sotto-stato per le selezioni opzionali (GA4 property / sito GSC / account Ads).
@@ -89,6 +42,7 @@ function SubStatus({ on, label, doneText, todoText }) {
 }
 
 export default function OnboardingTab() {
+  const { t } = useI18n()
   const [status, setStatus] = useState({ connected: [], googleConnected: false })
   const [onb, setOnb] = useState({ steps: {}, completed: false })
   const [brandDone, setBrandDone] = useState(false)
@@ -178,12 +132,12 @@ export default function OnboardingTab() {
       {/* Header + progress */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}><Icon name="rocket" size={22} /> Onboarding</h2>
-        <div style={{ color: MUTED, fontSize: 14, marginTop: 2 }}>Segui gli step per collegare le tue piattaforme. Puoi saltare quelle che non usi.</div>
+        <div style={{ color: MUTED, fontSize: 14, marginTop: 2 }}>{t('ob.subtitle', null, 'Follow the steps to connect your platforms. Skip the ones you do not use.')}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
           <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', transition: 'width .3s' }} />
           </div>
-          <span style={{ fontSize: 13, color: MUTED, fontWeight: 700, whiteSpace: 'nowrap' }}>{connectedCount}/{STEPS.length} collegate</span>
+          <span style={{ fontSize: 13, color: MUTED, fontWeight: 700, whiteSpace: 'nowrap' }}>{t('ob.connectedCount', { n: connectedCount, total: STEPS.length }, '{n}/{total} connected')}</span>
         </div>
       </div>
 
@@ -195,7 +149,7 @@ export default function OnboardingTab() {
             const filled = ready || incomplete || sk
             const mark = ready ? <Icon name="check" size={13} /> : incomplete ? '!' : sk ? '⏭' : active ? '●' : (i + 1)
             const dotBg = ready ? '#30d158' : incomplete ? '#f59e0b' : sk ? '#3d3d4c' : active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent'
-            const subLabel = ready ? 'Collegato' : incomplete ? (s.id === 'meta' ? 'Manca ad account' : 'Manca selezione') : sk ? 'Saltato' : 'Da fare'
+            const subLabel = ready ? t('ob.connected', null, 'Connected') : incomplete ? (s.id === 'meta' ? t('ob.missingAdAccount', null, 'Missing ad account') : t('ob.missingSelection', null, 'Missing selection')) : sk ? t('ob.skipped', null, 'Skipped') : t('ob.todo', null, 'To do')
             const subColor = ready ? '#30d158' : incomplete ? '#f59e0b' : MUTED
             return (
               <button key={s.id} onClick={() => setCurrent(i)} style={{
@@ -212,9 +166,9 @@ export default function OnboardingTab() {
             )
           })}
           {allHandled && !onb.completed && (
-            <button style={{ ...btn, width: '100%', marginTop: 8 }} onClick={completeOnboarding}><Icon name="check" size={13} /> Completa onboarding</button>
+            <button style={{ ...btn, width: '100%', marginTop: 8 }} onClick={completeOnboarding}><Icon name="check" size={13} /> {t('ob.completeOnboarding', null, 'Complete onboarding')}</button>
           )}
-          {onb.completed && <div style={{ textAlign: 'center', color: '#30d158', fontSize: 12, fontWeight: 700, marginTop: 10 }}>Onboarding completato</div>}
+          {onb.completed && <div style={{ textAlign: 'center', color: '#30d158', fontSize: 12, fontWeight: 700, marginTop: 10 }}>{t('ob.onboardingCompleted', null, 'Onboarding completed')}</div>}
         </aside>
 
         {/* Dettaglio step */}
@@ -223,37 +177,37 @@ export default function OnboardingTab() {
             {step.logo ? <PlatformIcon platform={step.logo} size={28} /> : <span style={{ fontSize: 30 }}>{step.icon}</span>}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 20, fontWeight: 800 }}>{step.label}</div>
-              <div style={{ color: MUTED, fontSize: 13 }}>Step {current + 1} di {STEPS.length} · {step.short}</div>
+              <div style={{ color: MUTED, fontSize: 13 }}>{t('ob.stepOf', { n: current + 1, total: STEPS.length }, 'Step {n} of {total}')} · {t(`ob.${step.id}.short`, null, '')}</div>
             </div>
-            {isReady(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}><Icon name="check" size={13} /> Collegato</span>}
-            {isIncomplete(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#f59e0b22', padding: '5px 12px', borderRadius: 20 }}>Collegato · manca selezione</span>}
-            {!isConnected(step.id) && isSkipped(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, background: '#3d3d4c55', padding: '5px 12px', borderRadius: 20 }}>Saltato</span>}
+            {isReady(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#30d158', background: '#30d15822', padding: '5px 12px', borderRadius: 20 }}><Icon name="check" size={13} /> {t('ob.connected', null, 'Connected')}</span>}
+            {isIncomplete(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#f59e0b22', padding: '5px 12px', borderRadius: 20 }}>{t('ob.connectedMissingSelection', null, 'Connected · missing selection')}</span>}
+            {!isConnected(step.id) && isSkipped(step.id) && <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, background: '#3d3d4c55', padding: '5px 12px', borderRadius: 20 }}>{t('ob.skipped', null, 'Skipped')}</span>}
           </div>
 
-          <p style={{ fontSize: 14.5, lineHeight: 1.7, color: '#d0d0d8' }}>{step.what}</p>
+          <p style={{ fontSize: 14.5, lineHeight: 1.7, color: '#d0d0d8' }}>{t(`ob.${step.id}.what`, null, '')}</p>
 
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', marginTop: 18, marginBottom: 8 }}>Come si fa</div>
+          <div style={{ fontSize: 12, color: MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', marginTop: 18, marginBottom: 8 }}>{t('ob.howTo', null, 'How to')}</div>
           <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#c8c8d2' }}>
-            {step.how.map((h, i) => <li key={i} style={{ marginBottom: 6 }}>{h}</li>)}
+            {Array.from({ length: step.howCount }).map((_, i) => <li key={i} style={{ marginBottom: 6 }}>{t(`ob.${step.id}.how${i + 1}`, null, '')}</li>)}
           </ol>
 
           {/* Azione di collegamento per tipo */}
           <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
             {step.kind === 'shopify' && (
               isConnected('shopify') ? (
-                <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Store collegato.</div>
+                <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> {t('ob.storeConnected', null, 'Store connected.')}</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 460 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <NangoConnectButton integrationId="shopify" label="Collega Shopify con un clic" />
-                    <span style={{ fontSize: 12, color: MUTED }}>Inserisci il dominio del tuo store e autorizzi: niente token da copiare.</span>
+                    <NangoConnectButton integrationId="shopify" label={t('ob.connectShopifyOneClick', null, 'Connect Shopify in one click')} />
+                    <span style={{ fontSize: 12, color: MUTED }}>{t('ob.shopifyHelper', null, 'Enter your store domain and authorize: no token to copy.')}</span>
                   </div>
                   <details>
-                    <summary style={{ cursor: 'pointer', fontSize: 12.5, color: MUTED }}>Oppure inserisci il token manualmente (avanzato)</summary>
+                    <summary style={{ cursor: 'pointer', fontSize: 12.5, color: MUTED }}>{t('ob.orManualToken', null, 'Or enter the token manually (advanced)')}</summary>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
                       <input style={input} placeholder="mio-store.myshopify.com" value={shopForm.shopify_store_url} onChange={e => setShopForm(f => ({ ...f, shopify_store_url: e.target.value }))} />
-                      <input style={input} type="password" placeholder="Admin API token (shpat_…)" value={shopForm.shopify_admin_token} onChange={e => setShopForm(f => ({ ...f, shopify_admin_token: e.target.value }))} />
-                      <button style={{ ...btn, opacity: saving ? 0.6 : 1, alignSelf: 'flex-start' }} disabled={saving} onClick={saveShopify}>{saving ? 'Salvo…' : 'Salva e collega Shopify'}</button>
+                      <input style={input} type="password" placeholder={t('ob.tokenPh', null, 'Admin API token (shpat_…)')} value={shopForm.shopify_admin_token} onChange={e => setShopForm(f => ({ ...f, shopify_admin_token: e.target.value }))} />
+                      <button style={{ ...btn, opacity: saving ? 0.6 : 1, alignSelf: 'flex-start' }} disabled={saving} onClick={saveShopify}>{saving ? t('ob.saving', null, 'Saving…') : t('ob.saveConnectShopify', null, 'Save and connect Shopify')}</button>
                     </div>
                   </details>
                 </div>
@@ -265,8 +219,8 @@ export default function OnboardingTab() {
                 <MetaConnectButton />
                 {isConnected('meta') && (
                   status.metaAccountId
-                    ? <span style={{ color: '#30d158', fontSize: 13 }}><Icon name="check" size={13} /> Ad account selezionato.</span>
-                    : <span style={{ color: '#f59e0b', fontSize: 13 }}>Collegato. Scegli l’ad account dal pulsante “Ad account” per vedere i dati.</span>
+                    ? <span style={{ color: '#30d158', fontSize: 13 }}><Icon name="check" size={13} /> {t('ob.adAccountSelected', null, 'Ad account selected.')}</span>
+                    : <span style={{ color: '#f59e0b', fontSize: 13 }}>{t('ob.metaPickAccount', null, 'Connected. Pick the ad account from the "Ad account" button to see data.')}</span>
                 )}
               </div>
             )}
@@ -275,14 +229,14 @@ export default function OnboardingTab() {
                 <GoogleConnectButton service="ga4" />
                 {isConnected('ga4') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, marginTop: 2 }}>
-                    <SubStatus on={!!status.ga4PropertyId} label="GA4" doneText="property selezionata" todoText="scegli la property (solo se usi Analytics)" />
-                    <SubStatus on={!!status.gscSiteUrl} label="Search Console" doneText="sito selezionato" todoText="scegli il sito (solo se usi Search Console)" />
-                    <SubStatus on={!!status.adsCustomerId} label="Google Ads" doneText="account selezionato" todoText="scegli l’account (solo se fai campagne Google)" />
+                    <SubStatus on={!!status.ga4PropertyId} label="GA4" doneText={t('ob.ga4Done', null, 'property selected')} todoText={t('ob.ga4Todo', null, 'pick the property (only if you use Analytics)')} />
+                    <SubStatus on={!!status.gscSiteUrl} label="Search Console" doneText={t('ob.gscDone', null, 'site selected')} todoText={t('ob.gscTodo', null, 'pick the site (only if you use Search Console)')} />
+                    <SubStatus on={!!status.adsCustomerId} label="Google Ads" doneText={t('ob.adsDone', null, 'account selected')} todoText={t('ob.adsTodo', null, 'pick the account (only if you run Google campaigns)')} />
                   </div>
                 )}
               </div>
             )}
-            {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> Klaviyo collegato.</div> : <NangoConnectButton integrationId="klaviyo-oauth" label="Collega Klaviyo" />)}
+            {step.kind === 'klaviyo' && (isConnected('klaviyo') ? <div style={{ color: '#30d158', fontSize: 14 }}><Icon name="check" size={13} /> {t('ob.klaviyoConnected', null, 'Klaviyo connected.')}</div> : <NangoConnectButton integrationId="klaviyo-oauth" label={t('ob.connectKlaviyo', null, 'Connect Klaviyo')} />)}
             {step.kind === 'brand' && (
               <div style={{ margin: '-22px -22px 0', padding: '0 4px' }}>
                 <BrandIdentityPanel />
@@ -292,16 +246,16 @@ export default function OnboardingTab() {
 
           {/* Navigazione */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
-            <button style={{ ...btnGhost, opacity: current === 0 ? 0.4 : 1 }} disabled={current === 0} onClick={prev}>← Indietro</button>
+            <button style={{ ...btnGhost, opacity: current === 0 ? 0.4 : 1 }} disabled={current === 0} onClick={prev}>← {t('ob.back', null, 'Back')}</button>
             <div style={{ flex: 1 }} />
             {!isConnected(step.id) && (
-              <button style={btnGhost} onClick={() => skip(step.id)}>Salta questo step</button>
+              <button style={btnGhost} onClick={() => skip(step.id)}>{t('ob.skipStep', null, 'Skip this step')}</button>
             )}
             {current < STEPS.length - 1
-              ? <button style={btn} onClick={next}>Avanti →</button>
+              ? <button style={btn} onClick={next}>{t('ob.next', null, 'Next')} →</button>
               : (allHandled
-                ? <button style={btn} onClick={completeOnboarding}><Icon name="check" size={13} /> Completa</button>
-                : <button style={btnGhost} onClick={next} disabled>Avanti →</button>)}
+                ? <button style={btn} onClick={completeOnboarding}><Icon name="check" size={13} /> {t('ob.complete', null, 'Complete')}</button>
+                : <button style={btnGhost} onClick={next} disabled>{t('ob.next', null, 'Next')} →</button>)}
           </div>
         </div>
       </div>

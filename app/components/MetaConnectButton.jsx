@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { createPortal } from 'react-dom'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Meta: pulsante Collega (OAuth Nango) → al termine apre un POP-UP per
 // selezionare gli ad account. Pulsante "Ad account" per riaprire il pop-up.
 export default function MetaConnectButton() {
+  const { t } = useI18n()
   const [connecting, setConnecting] = useState(false)
   const [modal, setModal] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -32,7 +34,7 @@ export default function MetaConnectButton() {
         body: JSON.stringify({ allowedIntegrations: ['facebook'] }),
       })
       const j = await r.json()
-      if (!r.ok || !j.sessionToken) throw new Error(j.error || 'Sessione non creata')
+      if (!r.ok || !j.sessionToken) throw new Error(j.error || t('metaConnect.sessionError', null, 'Session not created'))
 
       const mod = await import('@nangohq/frontend')
       const Nango = mod.default || mod.Nango
@@ -62,7 +64,7 @@ export default function MetaConnectButton() {
       const c = nango.openConnectUI({ sessionToken: j.sessionToken, onEvent })
       if (c && typeof c.setSessionToken === 'function') c.setSessionToken(j.sessionToken)
     } catch (e) {
-      setErr(e?.message || 'Errore di collegamento')
+      setErr(e?.message || t('metaConnect.connectError', null, 'Connection error'))
       setConnecting(false)
     }
   }
@@ -72,12 +74,12 @@ export default function MetaConnectButton() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={openConnect} disabled={connecting} style={btn}>
-            {connecting ? 'Collegamento…' : (connected ? 'Ricollega' : 'Collega')}
+            {connecting ? t('metaConnect.connecting', null, 'Connecting…') : (connected ? t('metaConnect.reconnect', null, 'Reconnect') : t('metaConnect.connect', null, 'Connect'))}
           </button>
           <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
-            Ad account
+            {t('metaConnect.adAccount', null, 'Ad account')}
           </button>
-          {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> Collegato</span>}
+          {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
         </div>
         {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
       </div>
@@ -93,6 +95,7 @@ const btn = {
 
 // ── Pop-up selezione ad account ──────────────────────────────────────────
 function AdAccountModal({ onClose }) {
+  const { t } = useI18n()
   const [data, setData] = useState(null)
   const [sel, setSel] = useState(() => new Set())
   const [saving, setSaving] = useState(false)
@@ -126,10 +129,10 @@ function AdAccountModal({ onClose }) {
         body: JSON.stringify({ accountId }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Errore')
+      if (!r.ok) throw new Error(j.error || t('metaConnect.error', null, 'Error'))
       setSaved(true)
       setTimeout(onClose, 700)
-    } catch (e) { setErr(e?.message || 'Errore salvataggio') } finally { setSaving(false) }
+    } catch (e) { setErr(e?.message || t('metaConnect.saveError', null, 'Save error')) } finally { setSaving(false) }
   }
 
   const accounts = data?.accounts || []
@@ -146,16 +149,16 @@ function AdAccountModal({ onClose }) {
       }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Seleziona ad account Meta</div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>Scegli gli account usati da questo tenant</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('metaConnect.selectTitle', null, 'Select Meta ad account')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('metaConnect.selectSub', null, 'Choose the accounts used by this workspace')}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
 
         <div style={{ padding: 16, overflowY: 'auto' }}>
-          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>Carico ad account…</div>}
+          {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('metaConnect.loading', null, 'Loading ad accounts…')}</div>}
           {data && (data.error || !accounts.length) && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.error ? `Meta: ${data.error}` : 'Nessun ad account dal token. Collega prima Meta.'}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{data.error ? `Meta: ${data.error}` : t('metaConnect.none', null, 'No ad account from the token. Connect Meta first.')}</div>
           )}
           {accounts.length > 0 && (
             <div style={{ display: 'grid', gap: 5 }}>
@@ -177,9 +180,9 @@ function AdAccountModal({ onClose }) {
 
         <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={save} disabled={saving || !accounts.length} style={{ ...btn, opacity: saving || !accounts.length ? 0.5 : 1 }}>
-            {saving ? 'Salvo…' : `Salva (${sel.size})`}
+            {saving ? t('metaConnect.saving', null, 'Saving…') : `${t('metaConnect.save', null, 'Save')} (${sel.size})`}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> salvato</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
           {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>

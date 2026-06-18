@@ -37,13 +37,16 @@ const LOGIN_EMAIL = process.env.HELP_LOGIN_EMAIL || ''       // login reale (dat
 const LOGIN_PASSWORD = process.env.HELP_LOGIN_PASSWORD || ''
 const TTS_MODEL = process.env.HELP_TTS_MODEL || 'tts-1-hd'   // hd = più naturale di tts-1
 const TTS_VOICE = process.env.HELP_TTS_VOICE || 'nova'       // OpenAI: nova/shimmer più calde; alloy/echo/fable/onyx
-const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente con voice id → voce ElevenLabs (più umana)
-const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || ''   // una voce EN del tuo account ElevenLabs
+const ELEVEN_KEY = process.env.ELEVENLABS_API_KEY            // se presente → voce ElevenLabs (molto più umana)
+// Voce EN naturale di default (Rachel). Cambiabile: Adam pNInz6obpgDQGcFmaJgB,
+// Antoni ErXwobaYiN019PkySvjV, Josh TxGEqnHWrfWFTfGW9XjX.
+const ELEVEN_VOICE = process.env.ELEVENLABS_VOICE_ID || (ELEVEN_KEY ? '21m00Tcm4TlvDq8ikWAM' : '')
 const ELEVEN_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2'
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const BUCKET = process.env.HELP_BUCKET || 'help-videos'
 const DRY = process.env.DRY === '1'
+const SKIP_VERTICAL = process.env.HELP_SKIP_VERTICAL === '1' // salta i Reels (più veloce)
 
 if (!OPENAI_API_KEY) { console.error('Manca OPENAI_API_KEY'); process.exit(1) }
 
@@ -70,7 +73,7 @@ fs.mkdirSync(WORK, { recursive: true })
 // ── Util ─────────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 // fetch con retry: gestisce 'fetch failed'/5xx transitori (rete container instabile)
-async function jfetch(url, opts, tries = 4) {
+async function jfetch(url, opts, tries = 7) {
   let err
   for (let i = 0; i < tries; i++) {
     try {
@@ -127,14 +130,14 @@ async function makeScriptSynced(article, anchors) {
 async function ttsLine(text, outPath) {
   // ElevenLabs se key + voice id presenti (voce più naturale), altrimenti OpenAI tts-1.
   if (ELEVEN_KEY && ELEVEN_VOICE) {
-    const r = await jfetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}`, {
+    const r = await jfetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOICE}?output_format=mp3_44100_128`, {
       method: 'POST', headers: { 'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-      // stability bassa + style → consegna più espressiva e umana, meno piatta
-      body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true } }),
+      // consegna naturale ed espressiva (umana), non piatta
+      body: JSON.stringify({ text, model_id: ELEVEN_MODEL, voice_settings: { stability: 0.45, similarity_boost: 0.85, style: 0.3, use_speaker_boost: true } }),
     })
-    if (!r.ok) throw new Error('ElevenLabs TTS: ' + r.status + ' ' + (await r.text()).slice(0, 120))
-    fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer()))
-    return
+    if (r.ok) { fs.writeFileSync(outPath, Buffer.from(await r.arrayBuffer())); return }
+    // quota/errore ElevenLabs → ripiego su OpenAI per questa frase (run non si blocca)
+    console.error('  (ElevenLabs', r.status, '→ OpenAI per questa frase)')
   }
   const r = await jfetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST', headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
@@ -327,31 +330,39 @@ let LOGO_B64 = ''
 try { LOGO_B64 = 'data:image/png;base64,' + fs.readFileSync(path.join(ROOT, 'public/icon-512.png')).toString('base64') } catch {}
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
-// Intro professionale in HTML/CSS animato (logo pop-in, nome con glow, linea
-// accento, glow fluttuante, dissolvenza finale). Renderizzata e registrata dal
-// browser → qualità da motion-graphics, niente drawtext ffmpeg.
+// Intro premium "stile Apple": fondo profondo, due glow che derivano, logo che
+// entra da sfocato a nitido, NOME con reveal blur→nitido + scala che si assesta
+// e riempimento a gradiente, accento luminoso, uscita morbida con micro-zoom.
 function introHtml(name, W, H, D) {
   const p = H > W
-  const lw = Math.round(Math.min(W, H) * (p ? 0.30 : 0.17))
-  const fz = Math.round(Math.min(W, H) * (p ? 0.09 : 0.085))
-  const lineW = Math.round(Math.min(W, H) * 0.20)
-  const small = Math.round(Math.min(W, H) * 0.03)
+  const lw = Math.round(Math.min(W, H) * (p ? 0.26 : 0.145))
+  const fz = Math.round(Math.min(W, H) * (p ? 0.10 : 0.092))
+  const lineW = Math.round(Math.min(W, H) * 0.16)
+  const small = Math.round(Math.min(W, H) * 0.028)
+  const EZ = 'cubic-bezier(.16,1,.3,1)' // easing morbido stile Apple
   return `<!doctype html><html><head><meta charset="utf8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:${W}px;height:${H}px;overflow:hidden;background:#06060c;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
-.stage{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${p ? 44 : 30}px;
- background:radial-gradient(1100px 760px at 50% 32%,rgba(123,91,255,.20),transparent 60%),radial-gradient(900px 680px at 72% 82%,rgba(34,211,238,.12),transparent 60%),#06060c;
- animation:fin .5s ease both,fout .5s ease ${(D - 0.5).toFixed(2)}s both}
-.glow{position:absolute;width:55%;height:55%;border-radius:50%;filter:blur(130px);background:#7b5bff;opacity:.40;animation:floaty 7s ease-in-out infinite}
-.logo{width:${lw}px;opacity:0;transform:scale(.7);filter:drop-shadow(0 0 46px rgba(123,91,255,.7));animation:pop .9s cubic-bezier(.2,.8,.2,1) .1s both;position:relative}
-.name{color:#fff;font-weight:800;letter-spacing:-1px;font-size:${fz}px;text-align:center;padding:0 7%;line-height:1.05;opacity:0;transform:translateY(26px);
- text-shadow:0 0 34px rgba(123,91,255,.6);animation:rise .8s cubic-bezier(.2,.8,.2,1) .55s both;position:relative}
-.line{height:5px;width:0;border-radius:3px;background:linear-gradient(90deg,#7b5bff,#22d3ee);box-shadow:0 0 18px #22d3ee;animation:grow .7s ease 1s both;position:relative}
-.brand{color:#22d3ee;font-weight:700;letter-spacing:4px;font-size:${small}px;opacity:0;animation:rise .6s ease 1.2s both;position:relative}
-@keyframes pop{to{opacity:1;transform:scale(1)}}@keyframes rise{to{opacity:1;transform:translateY(0)}}
-@keyframes grow{to{width:${lineW}px}}@keyframes floaty{0%,100%{transform:translate(-12%,-7%)}50%{transform:translate(13%,9%)}}
-@keyframes fin{from{opacity:0}to{opacity:1}}@keyframes fout{to{opacity:0}}
-</style></head><body><div class="stage"><div class="glow"></div>
+html,body{width:${W}px;height:${H}px;overflow:hidden;background:#000;font-family:-apple-system,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.stage{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${p ? 40 : 26}px;
+ background:radial-gradient(1300px 1000px at 50% 16%,#101220 0%,#070810 52%,#000 100%);
+ animation:fin .6s ease both, fout .6s cubic-bezier(.5,0,1,1) ${(D - 0.6).toFixed(2)}s both}
+.aura{position:absolute;inset:-25%;
+ background:radial-gradient(540px 540px at 38% 40%,rgba(123,91,255,.34),transparent 60%),radial-gradient(480px 480px at 66% 62%,rgba(34,211,238,.20),transparent 60%);
+ filter:blur(26px);animation:drift 9s ease-in-out infinite alternate}
+.logo{width:${lw}px;opacity:0;transform:scale(.84);filter:drop-shadow(0 0 64px rgba(123,91,255,.55)) blur(7px);
+ animation:logoIn 1.15s ${EZ} .15s both;position:relative}
+.name{position:relative;font-weight:700;letter-spacing:-1.5px;font-size:${fz}px;line-height:1.02;text-align:center;padding:0 8%;
+ background:linear-gradient(180deg,#fff 0%,#cfe0ff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+ text-shadow:0 0 44px rgba(123,91,255,.40);opacity:0;transform:scale(1.12);filter:blur(16px);animation:nameIn 1.2s ${EZ} .55s both}
+.line{height:4px;width:0;border-radius:3px;background:linear-gradient(90deg,#7b5bff,#22d3ee);box-shadow:0 0 20px #22d3ee;animation:grow .8s ${EZ} 1.05s both;position:relative}
+.brand{font-weight:600;letter-spacing:6px;text-transform:uppercase;font-size:${small}px;color:#22d3ee;opacity:0;transform:translateY(10px);animation:up .8s ${EZ} 1.2s both;position:relative}
+@keyframes logoIn{to{opacity:1;transform:scale(1);filter:drop-shadow(0 0 44px rgba(123,91,255,.5)) blur(0)}}
+@keyframes nameIn{to{opacity:1;transform:scale(1);filter:blur(0)}}
+@keyframes grow{to{width:${lineW}px}}
+@keyframes up{to{opacity:1;transform:translateY(0)}}
+@keyframes drift{to{transform:translate(6%,4%) scale(1.08)}}
+@keyframes fin{from{opacity:0}to{opacity:1}}@keyframes fout{to{opacity:0;transform:scale(1.04)}}
+</style></head><body><div class="stage"><div class="aura"></div>
 <img class="logo" src="${LOGO_B64}"><div class="name">${esc(name)}</div><div class="line"></div><div class="brand">LyftAI</div>
 </div></body></html>`
 }
@@ -420,7 +431,7 @@ async function brandWrap(name, mp4, W, H, outPath) {
   if (!LOGO_B64) return mp4
   try {
     const base = outPath.replace(/\.mp4$/, '')
-    const DI = 3.6, DO = 2.8
+    const DI = 4.0, DO = 2.8
     const intro = clipToMp4(await recordHtml(introHtml(name, W, H, DI), W, H, DI + 0.4), W, H, DI, `${base}.intro.mp4`, true)
     const outro = clipToMp4(await recordHtml(outroHtml(W, H, DO), W, H, DO + 0.4), W, H, DO, `${base}.outro.mp4`, false)
     return joinClips([intro, mp4, outro], W, H, outPath)
@@ -472,7 +483,12 @@ async function main() {
   try { manifest = (await import(pathToFileURL(path.join(ROOT, 'lib/help/videos.js')) + `?t=${Date.now()}`)).HELP_VIDEOS || {} } catch {}
 
   const only = process.argv.slice(2)
-  const targets = HELP_ARTICLES.filter(a => only.length ? only.includes(a.id) : true)
+  let targets = HELP_ARTICLES.filter(a => only.length ? only.includes(a.id) : true)
+  // resume: se rilancio dopo un crash, salto i tab già nel manifest (file locale)
+  if (!only.length) {
+    const skip = targets.filter(a => manifest[a.id])
+    if (skip.length) { console.log(`(resume: salto ${skip.length} già fatti)`); targets = targets.filter(a => !manifest[a.id]) }
+  }
   console.log(`Genero ${targets.length} video…`)
 
   for (const a of targets) {
@@ -489,8 +505,8 @@ async function main() {
       const content = files.mp4 // contenuto pre-brand
       try { files.mp4 = await brandWrap(a.title, content, 1280, 720, path.join(dir, `${a.id}.final.mp4`)) }
       catch (e) { console.error('  (brand H skip:', e.message, ')') }
-      // verticale per Reels: best-effort, non blocca l'orizzontale
-      try {
+      // verticale per Reels: best-effort, non blocca l'orizzontale (skippabile)
+      if (!SKIP_VERTICAL) try {
         const vert = verticalize(a.id, content, vttPath)
         if (vert) files.vertical = await brandWrap(a.title, vert, 1080, 1920, path.join(dir, `${a.id}.vfinal.mp4`))
         else console.error('  (verticale non prodotta)')

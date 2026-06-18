@@ -149,11 +149,11 @@ export default function MetaKpiTab({ live, globalPreset }) {
   }, [range?.since, range?.until])
 
   const SEG_TABS = [
-    { id: 'all', label: 'Tutti', color: '#2997ff' },
-    { id: 'new', label: 'Nuovo pubblico', color: '#30d158' },
-    { id: 'returning', label: 'Clienti esistenti', color: '#2997ff' },
-    { id: 'engaged', label: 'Interagito', color: '#ff9f0a' },
-    { id: 'unknown', label: 'Sconosciuto', color: '#8b8b9a' },
+    { id: 'all', label: t('seg.all', null, 'All'), color: '#2997ff' },
+    { id: 'new', label: t('seg.new', null, 'New audience'), color: '#30d158' },
+    { id: 'returning', label: t('seg.returning', null, 'Existing customers'), color: '#2997ff' },
+    { id: 'engaged', label: t('seg.engaged', null, 'Engaged'), color: '#ff9f0a' },
+    { id: 'unknown', label: t('seg.unknown', null, 'Unknown'), color: '#8b8b9a' },
   ]
   const segView = seg !== 'all' ? (segData?.[seg] || null) : null
   const totals = segView ? segView.totals : (data?.totals || {})
@@ -219,7 +219,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
               )
             })}
             {seg !== 'all' && !segData && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>carico segmenti…</span>}
-            {seg !== 'all' && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>dato reale Meta per segmento di pubblico</span>}
+            {seg !== 'all' && <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('seg.realData', null, 'real Meta data by audience segment')}</span>}
           </div>
 
           {/* CARD KPI */}

@@ -1300,7 +1300,7 @@ export default function MetaDetailTab() {
                             checked={bmLevel === 'campaign' ? checkCampaigns.has(row.id) : bmLevel === 'adset' ? checkAdsets.has(row.id) : false}
                             onCheck={bmLevel === 'campaign' ? toggleCheckCampaign : bmLevel === 'adset' ? toggleCheckAdset : undefined}
                           />
-                          {segs && SEG_SUB.map(s => <SegmentSubRow key={`${row.id}:${s.key}`} seg={segs[s.key]} label={s.label} color={s.color} />)}
+                          {segs && SEG_SUB.map(s => <SegmentSubRow key={`${row.id}:${s.key}`} seg={segs[s.key]} label={t('seg.' + s.key, null, s.label)} color={s.color} />)}
                         </Fragment>
                       )
                     })

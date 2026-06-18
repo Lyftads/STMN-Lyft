@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ============================================================================
 //  AgencyPricing — vetrina piani Agency/Freelance (multi-azienda).
@@ -11,26 +12,23 @@ import { useState } from 'react'
 
 const ACCENT = '#bf5af2'
 
+// label/bill e features sono nei dizionari i18n (ap.*), risolti via t().
 const CADENCES = [
-  { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
-  { id: 'semestral', label: 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: 'ogni 6 mesi' },
-  { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
+  { id: 'monthly',   labelKey: 'ap.cadMonthly',   months: 1,  factor: 1,    off: 0,  billKey: null },
+  { id: 'semestral', labelKey: 'ap.cadSemestral', months: 6,  factor: 0.85, off: 15, billKey: 'ap.billSemestral' },
+  { id: 'annual',    labelKey: 'ap.cadAnnual',    months: 12, factor: 0.80, off: 20, billKey: 'ap.billAnnual' },
 ]
 
 const PLANS = [
-  { id: 'freelance', name: 'Freelance', price: 199, clients: 3, extra: 59, accent: '#2997ff',
-    features: ['3 aziende incluse', 'Tutti i tool per ogni cliente', '+€59 / cliente extra', 'Switch rapido tra aziende', 'Email support 48h'] },
-  { id: 'agency', name: 'Agency', price: 599, clients: 12, extra: 45, accent: ACCENT, popular: true,
-    features: ['12 aziende incluse', 'Tutti i tool per ogni cliente', '+€45 / cliente extra', 'Dashboard multi-cliente', 'Priority support 12h'] },
-  { id: 'pro', name: 'Agency Pro', price: 1290, clients: 30, extra: 35, accent: '#30d158',
-    features: ['30 aziende incluse', '+€35 / cliente extra', 'White-label disponibile', 'Account success dedicato', 'Onboarding clienti assistito'] },
-  { id: 'enterprise', name: 'Enterprise', price: null, custom: true, accent: '#f59e0b',
-    features: ['50+ aziende', 'White-label incluso', 'Account manager dedicato', 'Integrazioni custom', 'SLA & onboarding'] },
+  { id: 'freelance', name: 'Freelance', price: 199, clients: 3, extra: 59, accent: '#2997ff', featureCount: 5 },
+  { id: 'agency', name: 'Agency', price: 599, clients: 12, extra: 45, accent: ACCENT, popular: true, featureCount: 5 },
+  { id: 'pro', name: 'Agency Pro', price: 1290, clients: 30, extra: 35, accent: '#30d158', featureCount: 5 },
+  { id: 'enterprise', name: 'Enterprise', price: null, custom: true, accent: '#f59e0b', featureCount: 5 },
 ]
 
-const eur = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
-
 export default function AgencyPricing({ compact = false }) {
+  const { t, intlLocale } = useI18n()
+  const eur = n => `€${Number(n).toLocaleString(intlLocale, { maximumFractionDigits: 0 })}`
   const [cad, setCad] = useState('annual') // default sull'annuale → mostra subito il max risparmio
 
   const c = CADENCES.find(x => x.id === cad)
@@ -45,8 +43,8 @@ export default function AgencyPricing({ compact = false }) {
         border: '1px solid rgba(34,197,94,0.35)',
       }}>
         <span style={{ fontSize: 18 }}>🎉</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>Founder: −30% A VITA per i primi 100 iscritti</span>
-        <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· cumulabile con lo sconto annuale</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>{t('ap.founder', null, 'Founder: −30% FOR LIFE for the first 100 sign-ups')}</span>
+        <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('ap.founderCumulative', null, '· stacks with the annual discount')}</span>
       </div>
 
       {/* Toggle cadenza */}
@@ -60,7 +58,7 @@ export default function AgencyPricing({ compact = false }) {
                 border: 'none', background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'var(--text2)',
                 fontSize: 13.5, fontWeight: 800,
               }}>
-                {x.label}
+                {t(x.labelKey, null, x.id)}
                 {x.off > 0 && (
                   <span style={{
                     fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
@@ -74,7 +72,7 @@ export default function AgencyPricing({ compact = false }) {
       </div>
       {c.off > 0 && (
         <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#ef4444', fontWeight: 700 }}>
-          {cad === 'annual' ? 'Stai risparmiando 2,4 mensilità all’anno' : 'Stai risparmiando quasi 1 mensilità a semestre'}
+          {cad === 'annual' ? t('ap.savingAnnual', null, 'You are saving 2.4 months per year') : t('ap.savingSemestral', null, 'You are saving almost 1 month per half-year')}
         </div>
       )}
 
@@ -92,39 +90,39 @@ export default function AgencyPricing({ compact = false }) {
               borderRadius: 18, padding: '22px 20px',
             }}>
               {p.popular && (
-                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: '#0a0a14', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>PIÙ SCELTO</span>
+                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: '#0a0a14', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('ap.mostChosen', null, 'MOST CHOSEN')}</span>
               )}
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.accent }}>{p.name}</div>
 
               {p.custom ? (
                 <div style={{ margin: '12px 0 6px' }}>
-                  <span style={{ fontSize: 34, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>Su misura</span>
+                  <span style={{ fontSize: 34, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('ap.custom', null, 'Custom')}</span>
                 </div>
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '12px 0 2px' }}>
                     <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{eur(effMonthly)}</span>
-                    <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>/mese</span>
+                    <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t('ap.perMonth', null, '/mo')}</span>
                   </div>
                   {c.off > 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{eur(p.price)}/mese</span>
-                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>Risparmi {eur(savings)}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{eur(p.price)}{t('ap.perMonth', null, '/mo')}</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>{t('ap.youSave', { amount: eur(savings) }, 'You save {amount}')}</span>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>fatturato mensilmente</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('ap.billedMonthly', null, 'billed monthly')}</div>
                   )}
                   {c.off > 0 && (
-                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>{eur(total)} fatturato {c.bill}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>{t('ap.billedTotal', { total: eur(total), bill: c.billKey ? t(c.billKey, null, '') : '' }, '{total} billed {bill}')}</div>
                   )}
                 </>
               )}
 
               <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
-                {p.features.map((f, i) => (
+                {Array.from({ length: p.featureCount }).map((_, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text2)' }}>
-                    <span style={{ color: '#22c55e', fontWeight: 900, flexShrink: 0 }}>✓</span>{f}
+                    <span style={{ color: '#22c55e', fontWeight: 900, flexShrink: 0 }}>✓</span>{t(`ap.${p.id}.f${i + 1}`, null, '')}
                   </li>
                 ))}
               </ul>
@@ -135,7 +133,7 @@ export default function AgencyPricing({ compact = false }) {
                 background: p.popular ? ACCENT : 'transparent',
                 color: p.popular ? '#0a0a14' : 'var(--text2)', fontSize: 13, fontWeight: 800,
               }}>
-                {p.custom ? 'Contattaci' : 'Disponibile a breve'}
+                {p.custom ? t('ap.contactUs', null, 'Contact us') : t('ap.comingSoon', null, 'Coming soon')}
               </button>
             </div>
           )
@@ -143,7 +141,7 @@ export default function AgencyPricing({ compact = false }) {
       </div>
 
       <div style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text3)' }}>
-        Aziende incluse fino a 2.000 ordini/mese cad. · cliente alto volume (2.000–7.000) +€99 · White-label +€199/mese
+        {t('ap.footer', null, 'Included companies up to 2,000 orders/mo each · high-volume client (2,000–7,000) +€99 · White-label +€199/mo')}
       </div>
     </div>
   )

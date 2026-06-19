@@ -64,21 +64,25 @@ export async function POST(req) {
     // Genera un PDF per ogni sezione (sequenziale: ognuna è pesante).
     const attachments = []
     const failed = []
+    const slug = (s) => s.replace(/\s+/g, '_').replace(/[^\w-]/g, '')
     for (const secId of sections) {
       const sec = REPORT_SECTION_MAP[secId]
       try {
-        const qs = new URLSearchParams({ tab: sec.tab, label, since, until, prevSince, prevUntil, preset: cfg.timeframe, locale })
-        const r = await fetch(`${origin}/api/report?${qs.toString()}`, { headers: fwd, signal: AbortSignal.timeout(120000) })
-        const ct = r.headers.get('content-type') || ''
-        if (ct.includes('pdf')) {
-          const buf = Buffer.from(await r.arrayBuffer())
-          attachments.push({
-            filename: `LyftAI_${sec.tab.replace(/\s+/g, '_')}_${since}_${until}.pdf`,
-            content: buf.toString('base64'),
-          })
+        let buf = null, fname = null
+        if (sec.kind === 'seo') {
+          buf = await seoAuditPdf(origin, fwd, cfg.target_url, locale)
+          fname = `LyftAI_SEO_${slug(hostOf(cfg.target_url))}_${since}.pdf`
+        } else if (sec.kind === 'scanner') {
+          buf = await scannerPdf(origin, fwd, cfg.target_url, locale)
+          fname = `LyftAI_Scanner_${slug(hostOf(cfg.target_url))}_${since}.pdf`
         } else {
-          failed.push(`${sec.label} (PDF non generato — Browserless?)`)
+          const qs = new URLSearchParams({ tab: sec.tab, label, since, until, prevSince, prevUntil, preset: cfg.timeframe, locale })
+          const r = await fetch(`${origin}/api/report?${qs.toString()}`, { headers: fwd, signal: AbortSignal.timeout(120000) })
+          if ((r.headers.get('content-type') || '').includes('pdf')) buf = Buffer.from(await r.arrayBuffer())
+          fname = `LyftAI_${slug(sec.tab)}_${since}_${until}.pdf`
         }
+        if (buf) attachments.push({ filename: fname, content: buf.toString('base64') })
+        else failed.push(`${sec.label} (PDF non generato${sec.needsUrl && !cfg.target_url ? ' — URL mancante' : ' — Browserless?'})`)
       } catch (e) {
         failed.push(`${sec.label} (${e?.message || 'errore'})`)
       }
@@ -100,6 +104,45 @@ export async function POST(req) {
 
     return NextResponse.json({ ok: true, sent_to: recipients, attachments: attachments.length, message_id: result.id, failed })
   })
+}
+
+function hostOf(u) {
+  try { return new URL(u).hostname.replace(/^www\./, '') } catch { return 'url' }
+}
+
+// SEO Audit on-demand di un URL → PDF.
+async function seoAuditPdf(origin, fwd, url, locale) {
+  if (!url) return null
+  const aRes = await fetch(`${origin}/api/seo-audit`, {
+    method: 'POST', headers: { ...fwd, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, locale, save: false }), signal: AbortSignal.timeout(90000),
+  })
+  const audit = await aRes.json().catch(() => null)
+  if (!audit || audit.error) return null
+  const pRes = await fetch(`${origin}/api/seo-audit/pdf`, {
+    method: 'POST', headers: { ...fwd, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: audit, locale }), signal: AbortSignal.timeout(60000),
+  })
+  if (!(pRes.headers.get('content-type') || '').includes('pdf')) return null
+  return Buffer.from(await pRes.arrayBuffer())
+}
+
+// AI Website Scanner (analisi CRO Vision) di un URL → PDF.
+async function scannerPdf(origin, fwd, url, locale) {
+  if (!url) return null
+  const sRes = await fetch(`${origin}/api/website-scanner`, {
+    method: 'POST', headers: { ...fwd, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, viewport: 'desktop', locale, save: false }), signal: AbortSignal.timeout(120000),
+  })
+  const scan = await sRes.json().catch(() => null)
+  if (!scan || !scan.analysis) return null
+  const pRes = await fetch(`${origin}/api/website-scanner/pdf`, {
+    method: 'POST', headers: { ...fwd, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { url: scan.url, viewport: scan.viewport, analysis: scan.analysis, updatedAt: scan.updatedAt }, locale }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!(pRes.headers.get('content-type') || '').includes('pdf')) return null
+  return Buffer.from(await pRes.arrayBuffer())
 }
 
 function bodyHtml(name, label, since, until, sectionLabels, failed) {

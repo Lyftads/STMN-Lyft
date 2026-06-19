@@ -4,7 +4,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../../lib/tenant/credentials'
-import { REPORT_SECTION_MAP, REPORT_FREQUENCIES } from '../../../../lib/reports/sections'
+import { REPORT_SECTION_MAP, REPORT_FREQUENCIES, sectionsNeedUrl } from '../../../../lib/reports/sections'
 
 // CRUD delle schedulazioni report personalizzate (report_schedules).
 
@@ -24,6 +24,7 @@ function clean(body) {
     monthday: frequency === 'monthly' ? Math.min(28, Math.max(1, parseInt(body?.monthday ?? 1, 10) || 1)) : null,
     timeframe: String(body?.timeframe || 'last_7d'),
     recipients,
+    target_url: body?.target_url ? String(body.target_url).trim().slice(0, 500) : null,
     enabled: body?.enabled !== false,
   }
 }
@@ -52,6 +53,7 @@ export async function POST(req) {
   const row = clean(body)
   if (!row.sections.length) return NextResponse.json({ error: 'Seleziona almeno un report' }, { status: 400 })
   if (!row.recipients.length) return NextResponse.json({ error: 'Inserisci almeno un destinatario valido' }, { status: 400 })
+  if (sectionsNeedUrl(row.sections) && !row.target_url) return NextResponse.json({ error: 'SEO Audit / Website Scanner richiedono un URL' }, { status: 400 })
   try {
     const { data, error } = await admin.from('report_schedules')
       .insert({ user_id: userId, ...row }).select().maybeSingle()

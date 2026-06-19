@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { reportT, localeTag } from '../../../../lib/reportI18n'
+import { reportLogoBar } from '../../../../lib/reports/logo'
 
 // PDF dell'analisi CRO dell'AI Website Scanner, nella lingua del cliente.
 let _loc = 'it-IT'
@@ -33,7 +34,7 @@ function wrap(inner) {
     .chip{display:inline-block;background:#eef4ff;border-radius:7px;padding:3px 9px;margin:3px 4px 3px 0;font-size:11px}
     .chipx{display:inline-block;background:#fdeeee;color:#9a2222;border-radius:7px;padding:3px 9px;margin:3px 4px 3px 0;font-size:11px}
     table{width:100%;border-collapse:collapse;margin-top:6px} td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}
-  </style></head><body>${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">${_tr('Generato da LyftAI · AI Website Scanner')}</div></body></html>`
+  </style></head><body>${reportLogoBar()}${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">${_tr('Generato da LyftAI · AI Website Scanner')}</div></body></html>`
 }
 
 function buildHtml(r) {

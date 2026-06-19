@@ -5,7 +5,7 @@ import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
-import { REPORT_SECTIONS, REPORT_TIMEFRAMES, REPORT_FREQUENCIES } from '../../lib/reports/sections'
+import { REPORT_SECTIONS, REPORT_TIMEFRAMES, REPORT_FREQUENCIES, sectionsNeedUrl } from '../../lib/reports/sections'
 
 // ─────────────────────────────────────────────────────────────
 //  Scheduled Reports Tab
@@ -64,8 +64,10 @@ export default function ScheduledReportsTab() {
   const [weekday, setWeekday] = useState(1)
   const [monthday, setMonthday] = useState(1)
   const [recip, setRecip] = useState('')
+  const [targetUrl, setTargetUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [bMsg, setBMsg] = useState(null)
+  const needsUrl = sectionsNeedUrl(sel)
 
   const loadSchedules = async () => {
     try {
@@ -86,12 +88,14 @@ export default function ScheduledReportsTab() {
     weekday: frequency === 'weekly' ? weekday : null,
     monthday: frequency === 'monthly' ? monthday : null,
     recipients: recip.split(',').map(s => s.trim()).filter(Boolean),
+    target_url: targetUrl.trim() || null,
   })
 
   const saveSchedule = async () => {
     setBMsg(null)
     if (!sel.length) return setBMsg({ ok: false, msg: t('sched.pickOne', null, 'Seleziona almeno un report') })
     if (!recip.split(',').some(s => s.includes('@'))) return setBMsg({ ok: false, msg: t('sched.invalidEmail', null, 'Inserisci una email valida') })
+    if (needsUrl && !targetUrl.trim()) return setBMsg({ ok: false, msg: t('sched.urlRequired', null, 'SEO Audit / Website Scanner richiedono un URL') })
     setBusy(true)
     try {
       const r = await fetch('/api/scheduled-reports/schedules', {
@@ -108,6 +112,7 @@ export default function ScheduledReportsTab() {
     setBMsg(null)
     if (!sel.length) return setBMsg({ ok: false, msg: t('sched.pickOne', null, 'Seleziona almeno un report') })
     if (!recip.split(',').some(s => s.includes('@'))) return setBMsg({ ok: false, msg: t('sched.invalidEmail', null, 'Inserisci una email valida') })
+    if (needsUrl && !targetUrl.trim()) return setBMsg({ ok: false, msg: t('sched.urlRequired', null, 'SEO Audit / Website Scanner richiedono un URL') })
     setBusy(true)
     try {
       const r = await fetch('/api/scheduled-reports/send-custom', {
@@ -252,6 +257,14 @@ export default function ScheduledReportsTab() {
             </div>
           )}
         </div>
+
+        {needsUrl && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={labelStyle}>{t('sched.targetUrl', null, 'URL da analizzare (SEO Audit / Website Scanner)')}</div>
+            <input value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://stmnfitness.com/products/..." style={{ ...inputStyle, fontFamily: 'monospace' }} />
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>{t('sched.urlHint', null, 'La pagina viene analizzata di nuovo a ogni invio, così il report è sempre aggiornato.')}</div>
+          </div>
+        )}
 
         <div style={{ marginBottom: 18 }}>
           <div style={labelStyle}>{t('sched.recipients', null, 'Destinatari (separati da virgola)')}</div>

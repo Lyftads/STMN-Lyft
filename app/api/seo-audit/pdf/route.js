@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { reportT, localeTag } from '../../../../lib/reportI18n'
+import { reportLogoBar } from '../../../../lib/reports/logo'
 
 // Lingua del cliente: il PDF SEO esce nella sua lingua, non solo in italiano.
 let _loc = 'it-IT'
@@ -76,7 +77,7 @@ function wrap(inner) {
     table{width:100%;border-collapse:collapse;margin-top:6px} td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;word-break:break-word} .th td{font-weight:700;color:#666;font-size:11px} .sm{color:#999;font-size:11px}
     .chip{display:inline-block;background:#f3f4f6;border-radius:7px;padding:3px 9px;margin:3px 4px 3px 0;font-size:11px} .chip i{color:#999;font-style:normal}
     .lbl2{color:#888;font-size:11px;margin:12px 0 4px} .tgt{background:#eef4ff;border-radius:8px;padding:8px 12px;margin-bottom:8px}
-  </style></head><body>${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">${_tr('Generato da LyftAI · SEO Audit')}</div></body></html>`
+  </style></head><body>${reportLogoBar()}${inner}<div style="margin-top:30px;color:#bbb;font-size:10px;text-align:center">${_tr('Generato da LyftAI · SEO Audit')}</div></body></html>`
 }
 
 function genHead(title, sub) {

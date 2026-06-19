@@ -6,6 +6,7 @@ import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
 import { reportT, localeTag, normLocale } from '../../../lib/reportI18n'
+import { reportLogoBar } from '../../../lib/reports/logo'
 
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
@@ -341,7 +342,7 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     .ad-name { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
     .muted { color: #999; font-size: 11px; }
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
-  </style></head><body><div class="page">
+  </style></head><body><div class="page">${reportLogoBar()}
     <div class="head">
       <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · Report ${esc(tab)}</div></div>
       <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until} · vs ${range.prevSince} → ${range.prevUntil}</span><br><span>${_tr('Generato il')} ${today}</span></div>
@@ -482,7 +483,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     .sev.high, .sev.alta { background: #fee2e2; color: #b91c1c; } .sev.medium, .sev.media { background: #fef3c7; color: #b45309; } .sev.low, .sev.bassa { background: #e5e7eb; color: #555; }
     .muted { color: #999; font-size: 11px; }
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
-  </style></head><body><div class="page">
+  </style></head><body><div class="page">${reportLogoBar()}
     <div class="head">
       <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · ${_tr('Report completo')}</div></div>
       <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>${_tr('Generato il')} ${today}</span></div>

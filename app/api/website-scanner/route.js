@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { getAdminSupabase } from '../../../lib/supabase/server'
+import { getCurrentUserId } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -432,8 +434,30 @@ export async function POST(req) {
     let analysis = null
     try { analysis = JSON.parse(raw) } catch {}
 
+    // Salvataggio storico (best-effort: se la tabella non esiste o non loggato,
+    // ignora). Lo screenshot base64 NON viene salvato — solo l'analisi.
+    let savedId = null
+    if (analysis && body?.save !== false) {
+      try {
+        const userId = await getCurrentUserId()
+        const admin = getAdminSupabase()
+        if (userId && admin) {
+          const { data } = await admin.from('web_scans').insert({
+            user_id: userId,
+            url: normalized,
+            viewport: shotViewport,
+            score: typeof analysis.overallScore === 'number' ? analysis.overallScore : null,
+            score_label: analysis.scoreLabel || null,
+            result: { url: normalized, viewport: shotViewport, analysis, updatedAt: new Date().toISOString() },
+          }).select('id').maybeSingle()
+          savedId = data?.id || null
+        }
+      } catch {}
+    }
+
     return NextResponse.json({
       url: normalized,
+      savedId,
       screenshotUrl: previewUrl,
       // Lo stesso screenshot usato per l'analisi (data URL base64) →
       // il client lo mostra al posto del preview Microlink US-based

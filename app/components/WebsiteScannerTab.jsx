@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
@@ -182,6 +182,77 @@ export default function WebsiteScannerTab() {
   const [error, setError] = useState('')
   const [screenshotLoaded, setScreenshotLoaded] = useState(false)
   const [viewport, setViewport] = useState('desktop') // 'desktop' | 'mobile'
+  const [history, setHistory] = useState([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+
+  const loadHistory = async () => {
+    try {
+      const r = await fetch('/api/website-scanner/history', { cache: 'no-store' })
+      const j = await r.json()
+      if (Array.isArray(j.items)) setHistory(j.items)
+    } catch {}
+  }
+  useEffect(() => { loadHistory() }, [])
+
+  // Riapre una scansione salvata (nessuno screenshot: salviamo solo l'analisi).
+  const openScan = async (id) => {
+    setError('')
+    setHistoryOpen(false)
+    setData(null)
+    setScreenshotLoaded(false)
+    setScanning(true)
+    try {
+      const r = await fetch(`/api/website-scanner/history?id=${id}`, { cache: 'no-store' })
+      const j = await r.json()
+      if (j?.result?.analysis) {
+        setData({ ...j.result, fromHistory: true })
+        setUrl(j.result.url || '')
+      } else {
+        setError(j?.error || t('ws.scanNotFound', null, 'Scansione non trovata'))
+      }
+    } catch (e) {
+      setError(e?.message || t('ws.networkError', null, 'Errore di rete'))
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const deleteScan = async (id, e) => {
+    e.stopPropagation()
+    setHistory(h => h.filter(x => x.id !== id))
+    try { await fetch(`/api/website-scanner/history?id=${id}`, { method: 'DELETE' }) } catch {}
+  }
+
+  const downloadPdf = async () => {
+    if (!data?.analysis) return
+    setDownloadingPdf(true)
+    try {
+      const r = await fetch('/api/website-scanner/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locale: getClientLocale(),
+          data: { url: data.url, viewport: data.viewport, analysis: data.analysis, updatedAt: data.updatedAt },
+        }),
+      })
+      const blob = await r.blob()
+      const isPdf = (r.headers.get('content-type') || '').includes('pdf')
+      let host = 'scan'
+      try { host = new URL(data.url).hostname.replace(/^www\./, '') } catch {}
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `CRO_${host}_${new Date().toISOString().slice(0, 10)}.${isPdf ? 'pdf' : 'html'}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+    } catch (e) {
+      setError(e?.message || t('ws.networkError', null, 'Errore di rete'))
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   const runScan = async () => {
     setError('')
@@ -207,6 +278,7 @@ export default function WebsiteScannerTab() {
         setError(json?.error || t('ws.errorStatus', { status: r.status }, `Errore ${r.status}`))
       } else {
         setData(json)
+        loadHistory()
       }
     } catch (e) {
       setError(e?.message || t('ws.networkError', null, 'Errore di rete'))
@@ -333,6 +405,114 @@ export default function WebsiteScannerTab() {
           </div>
         </div>
       </div>
+
+      {/* Toolbar: scarica PDF + storico scansioni */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {data?.analysis && (
+          <button
+            onClick={downloadPdf}
+            disabled={downloadingPdf}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(34,197,94,0.12)',
+              border: '1px solid rgba(34,197,94,0.4)',
+              color: '#86efac',
+              borderRadius: 10, padding: '9px 16px',
+              fontSize: 12.5, fontWeight: 800,
+              cursor: downloadingPdf ? 'wait' : 'pointer',
+              letterSpacing: '0.03em',
+            }}
+          >
+            <Icon name="download" size={15} />
+            {downloadingPdf ? t('ws.generatingPdf', null, 'Generazione…') : t('ws.downloadPdf', null, 'Scarica PDF')}
+          </button>
+        )}
+        <button
+          onClick={() => { setHistoryOpen(o => !o); if (!historyOpen) loadHistory() }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: historyOpen ? 'rgba(99,102,241,0.16)' : 'var(--glass)',
+            border: '1px solid var(--border)',
+            color: 'var(--text2)',
+            borderRadius: 10, padding: '9px 16px',
+            fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
+            letterSpacing: '0.03em',
+          }}
+        >
+          <Icon name="clock" size={15} />
+          {t('ws.history', null, 'Storico scansioni')}
+          {history.length > 0 && (
+            <span style={{
+              fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 999,
+              background: 'rgba(99,102,241,0.22)', color: '#a5b4fc',
+            }}>{history.length}</span>
+          )}
+        </button>
+      </div>
+
+      {historyOpen && (
+        <GlassCard padding={0} delay={0}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
+            {t('ws.history', null, 'Storico scansioni')}
+          </div>
+          {history.length === 0 ? (
+            <div style={{ padding: '22px 18px', fontSize: 13, color: 'var(--text3)' }}>
+              {t('ws.historyEmpty', null, 'Nessuna scansione salvata. Le tue analisi appariranno qui.')}
+            </div>
+          ) : (
+            <div>
+              {history.map(h => {
+                let host = h.url
+                try { host = new URL(h.url).hostname.replace(/^www\./, '') } catch {}
+                const path = (() => { try { return new URL(h.url).pathname } catch { return '' } })()
+                const sc = typeof h.score === 'number' ? h.score : null
+                const scCol = sc == null ? 'var(--text3)' : sc >= 85 ? 'var(--green)' : sc >= 70 ? '#60a5fa' : sc >= 50 ? '#fbbf24' : '#f87171'
+                return (
+                  <div
+                    key={h.id}
+                    onClick={() => openScan(h.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 18px', borderTop: '1px solid var(--border)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{
+                      minWidth: 42, textAlign: 'center', fontSize: 17, fontWeight: 900,
+                      fontFamily: 'Barlow', color: scCol,
+                    }}>{sc == null ? '—' : sc}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {host}<span style={{ color: 'var(--text3)', fontWeight: 500 }}>{path !== '/' ? path : ''}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                        {new Date(h.created_at).toLocaleString()}
+                        {h.viewport && <span> · {h.viewport === 'mobile' ? 'Mobile' : 'Desktop'}</span>}
+                        {h.score_label && <span> · {h.score_label}</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => deleteScan(h.id, e)}
+                      title={t('ws.deleteScan', null, 'Elimina')}
+                      style={{
+                        background: 'transparent', border: 'none', color: 'var(--text3)',
+                        cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 4,
+                      }}
+                    >×</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </GlassCard>
+      )}
+
+      {data?.fromHistory && (
+        <div style={{ fontSize: 11.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon name="clock" size={13} />
+          {t('ws.viewingHistory', null, 'Stai visualizzando una scansione salvata (screenshot non disponibile).')}
+        </div>
+      )}
 
       {error && (
         <div style={{

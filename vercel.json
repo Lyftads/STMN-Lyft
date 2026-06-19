@@ -26,11 +26,7 @@
     },
     {
       "path": "/api/cron/scheduled-reports",
-      "schedule": "0 9 * * 1"
-    },
-    {
-      "path": "/api/cron/scheduled-reports",
-      "schedule": "0 9 1 * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/task-reminders",

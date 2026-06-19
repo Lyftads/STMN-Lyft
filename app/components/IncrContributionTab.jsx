@@ -45,7 +45,7 @@ export default function IncrContributionTab() {
     setError(null)
     swrFetch({
       key, forceRefresh: force,
-      fetcher: () => fetch(`/api/incrementality?days=150&locale=${locale}`).then(r => r.json()),
+      fetcher: () => fetch(`/api/incrementality?days=150&locale=${locale}${force ? '&refresh=1' : ''}`).then(r => r.json()),
       onUpdate: (fresh) => { if (!cancelled) setData(fresh) },
     })
       .then(({ data: j }) => { if (!cancelled) { if (j && !j.ok) setError(j.reason || 'error'); setData(j) } })
@@ -83,6 +83,9 @@ export default function IncrContributionTab() {
                 <Icon name="pulse" size={12} /> {t('incr.reliability', null, 'Reliability')}: {t('incr.rel_' + reliability, null, reliability)} · R² {data.r2.toFixed(2)}
               </span>
             )}
+            <button onClick={() => load(true)} disabled={loading} title={t('common.refresh', null, 'Refresh')} className="btn-glass" style={{ padding: '7px 10px', cursor: loading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+              <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
+            </button>
             {data?.ok && (
               <button onClick={exportPdf} disabled={pdfBusy} className="btn-glass" style={{ padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: pdfBusy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ display: 'inline-block', animation: pdfBusy ? 'spin 1s linear infinite' : 'none' }}>{pdfBusy ? '◌' : '⬇'}</span>

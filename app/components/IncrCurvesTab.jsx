@@ -5,7 +5,7 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { ComposedChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine, ReferenceArea } from 'recharts'
+import { ComposedChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts'
 
 const CH_COLOR = { meta: '#2997ff', google: '#eab308' }
 const TEAL = '#14b8a6'
@@ -68,6 +68,7 @@ export default function IncrCurvesTab() {
           const curve = data.curves?.[c.key] || []
           const maxX = curve.length ? curve[curve.length - 1].spend : c.avgSpend * 3
           const curY = interp(curve, c.avgSpend)
+          const nowFrac = maxX > 0 ? Math.max(0, Math.min(1, c.avgSpend / maxX)) : 0.5
           const carry = (c.carryover || []).map((w, i) => ({ day: i === 0 ? t('incr.today', null, 'today') : `+${i}`, w: Math.round(w * 100) }))
           return (
             <div key={c.key} className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderTop: `2px solid ${col}` }}>
@@ -89,16 +90,26 @@ export default function IncrCurvesTab() {
                   </div>
                   <ResponsiveContainer width="100%" height={210}>
                     <ComposedChart data={curve} margin={{ top: 14, right: 12, left: -6, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id={`incGrad-${c.key}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset={0} stopColor="#22c55e" />
+                          <stop offset={nowFrac} stopColor="#22c55e" />
+                          <stop offset={nowFrac} stopColor="#ef4444" />
+                          <stop offset={1} stopColor="#ef4444" />
+                        </linearGradient>
+                        <linearGradient id={`incFill-${c.key}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset={0} stopColor="#22c55e" stopOpacity={0.30} />
+                          <stop offset={nowFrac} stopColor="#22c55e" stopOpacity={0.20} />
+                          <stop offset={nowFrac} stopColor="#ef4444" stopOpacity={0.22} />
+                          <stop offset={1} stopColor="#ef4444" stopOpacity={0.08} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                       <XAxis dataKey="spend" type="number" domain={[0, maxX]} tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${(v / 1000).toFixed(1)}k`} />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${(v / 1000).toFixed(1)}k`} />
                       <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => v == null ? '—' : eur(v)} labelFormatter={(l) => t('incr.spendDay', { s: eur(l) }, `${eur(l)}/day`)} />
-                      {/* Zone: verde = spazio per scalare, rosso = sta saturando */}
-                      <ReferenceArea x1={0} x2={c.avgSpend} fill="#22c55e" fillOpacity={0.07} />
-                      <ReferenceArea x1={c.avgSpend} x2={maxX} fill="#ef4444" fillOpacity={0.06} />
-                      <Area type="monotone" dataKey="revenue" stroke={col} strokeWidth={2.5} fill={col + '22'} name={t('incr.incrementalRev', null, 'incremental revenue')} />
-                      {/* Linea verticale "ora" + punto attuale */}
-                      <ReferenceLine x={c.avgSpend} stroke="#fff" strokeDasharray="4 3" strokeOpacity={0.8} label={{ value: t('incr.now', null, 'now'), position: 'top', fill: '#fff', fontSize: 11, fontWeight: 800 }} />
+                      <Area type="monotone" dataKey="revenue" stroke={`url(#incGrad-${c.key})`} strokeWidth={3} fill={`url(#incFill-${c.key})`} name={t('incr.incrementalRev', null, 'incremental revenue')} />
+                      <ReferenceLine x={c.avgSpend} stroke="#fff" strokeDasharray="4 3" strokeOpacity={0.85} label={{ value: t('incr.now', null, 'now'), position: 'top', fill: '#fff', fontSize: 11, fontWeight: 800 }} />
                       <ReferenceDot x={c.avgSpend} y={curY} r={6} fill={col} stroke="#fff" strokeWidth={2} />
                     </ComposedChart>
                   </ResponsiveContainer>

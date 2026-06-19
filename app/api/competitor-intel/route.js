@@ -774,6 +774,7 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
     isShopify: false,
     error: null,
     stats: {},
+    source: null,
   }
 
   const headers = {
@@ -802,6 +803,7 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
         const data = await shopifyRes.json()
         if (Array.isArray(data.products) && data.products.length > 0) {
           result.isShopify = true
+          result.source = 'shopify'
           result.products = data.products.map((p) => {
             const price = parseFloat(p.variants?.[0]?.price) || 0
             const compareAt =
@@ -1175,6 +1177,7 @@ export async function GET(request) {
 
   // Scrape own products for price comparison
   let priceComparison = null
+  const priceSources = {}
   try {
     const ownData = await scrapeProducts(ownStore().origin, ownStore().origin, 'IT')
     const ownProducts = ownData.products || []
@@ -1183,9 +1186,11 @@ export async function GET(request) {
       const name = COMPETITORS.find(c => c.id === comp.id)?.name || comp.id
       if (comp.websiteData?.products?.length > 0) {
         competitorProductsMap[name] = comp.websiteData.products
+        priceSources[name] = comp.websiteData.source || (comp.websiteData.isShopify ? 'shopify' : null)
       }
     }
     if (ownProducts.length > 0) {
+      priceSources[ownStore().name] = ownData.source || (ownData.isShopify ? 'shopify' : null)
       priceComparison = buildPriceComparison(ownProducts, competitorProductsMap)
     }
   } catch (e) {
@@ -1199,6 +1204,7 @@ export async function GET(request) {
       // l'avviso a compilare la sezione dedicata (niente competitor di STMN).
       needsCompetitors: results.length === 0,
       priceComparison,
+      priceSources,
       ownStoreName: ownStore().name,
       countries,
       fetchedAt: cachedAt

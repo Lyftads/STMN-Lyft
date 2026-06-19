@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import CompetitorsEmptyNotice from './CompetitorsEmptyNotice'
+import { sourceLabel } from './CompetitorIntelTab'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
@@ -63,7 +64,7 @@ function ProductCard({ product }) {
   )
 }
 
-function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
+function BrandRow({ brandName, brandData, isOwn, ownAvg, source }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const products = brandData.products || []
@@ -92,6 +93,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg }) {
           {products.length > 0 && <span style={{ color: 'var(--text3)', fontSize: 11, width: 12 }}>{expanded ? '▾' : '▸'}</span>}
           <span style={{ fontSize: 13, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)' }}>{brandName}</span>
           {isOwn && <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: 'rgba(41,151,255,0.14)', color: 'var(--accent)' }}>{t('price.usBadge', null, 'NOI')}</span>}
+          {sourceLabel(source, t) && <span title={t('ci.dataSourceTitle', null, 'Da dove arrivano catalogo e prezzi')} style={{ fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, background: 'var(--glass2)', border: '1px solid var(--border2)', color: 'var(--text3)' }}>{sourceLabel(source, t)}</span>}
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', textAlign: 'right' }}>{brandData.count}</div>
         <div style={{ fontSize: 15, fontWeight: 900, color: isOwn ? 'var(--accent)' : 'var(--text)', textAlign: 'right', fontFamily: 'Barlow' }}>{money(brandData.avg, cur)}</div>
@@ -359,9 +361,9 @@ export default function PriceComparisonTab({ onNavigate }) {
                 <div style={colHeader}>Delta %</div>
               </div>
 
-              {cat.own.count > 0 && <BrandRow brandName={ownName} brandData={cat.own} isOwn ownAvg={null} />}
+              {cat.own.count > 0 && <BrandRow brandName={ownName} brandData={cat.own} isOwn ownAvg={null} source={data?.priceSources?.[ownName]} />}
               {compEntries.map(([compName, v]) => (
-                <BrandRow key={compName} brandName={compName} brandData={v} isOwn={false} ownAvg={cat.own.avg} />
+                <BrandRow key={compName} brandName={compName} brandData={v} isOwn={false} ownAvg={cat.own.avg} source={data?.priceSources?.[compName]} />
               ))}
             </div>
           </div>

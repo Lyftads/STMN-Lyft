@@ -10,6 +10,18 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 function cleanAdText(s) {
   return String(s || '').replace(/\{\{[^}]*\}\}/g, '').replace(/\s{2,}/g, ' ').trim()
 }
+
+// Etichetta leggibile della fonte da cui catalogo/prezzi sono stati estratti.
+// shopify/woocommerce = nome piattaforma; jsonld = dati strutturati del sito;
+// browserless = render headless della pagina. Null = nessun badge.
+export function sourceLabel(source, t) {
+  if (!source) return null
+  if (source === 'shopify') return 'Shopify'
+  if (source === 'woocommerce') return 'WooCommerce'
+  if (source === 'jsonld') return t('ci.srcWeb', null, 'Dati sito')
+  if (source === 'browserless') return t('ci.srcRender', null, 'Scraping pagina')
+  return null
+}
 import AnimatedNumber from './ui/AnimatedNumber'
 import CompetitorAgent from './CompetitorAgent'
 import CompetitorsEmptyNotice from './CompetitorsEmptyNotice'
@@ -769,8 +781,9 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
           >
             {products.length} {t('ci.products', null, 'prodotti')}
           </span>
-          {websiteData?.isShopify && (
+          {sourceLabel(websiteData?.source, t) && (
             <span
+              title={t('ci.dataSourceTitle', null, 'Da dove arrivano catalogo e prezzi')}
               style={{
                 padding: '6px 14px',
                 borderRadius: 10,
@@ -781,7 +794,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                 fontWeight: 800,
               }}
             >
-              Shopify
+              {sourceLabel(websiteData?.source, t)}
             </span>
           )}
         </div>

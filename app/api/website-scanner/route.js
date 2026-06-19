@@ -13,6 +13,28 @@ export const runtime = 'nodejs'
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
+// Copia lo screenshot (data: URI base64) su Supabase Storage e ritorna la
+// public URL permanente. Best-effort: se fallisce ritorna null (lo storico
+// resta valido, solo senza anteprima).
+async function persistScreenshot(admin, userId, dataUrl) {
+  if (!admin || !userId || !dataUrl || !dataUrl.startsWith('data:')) return null
+  try {
+    const m = dataUrl.match(/^data:([^;]+);base64,(.*)$/)
+    if (!m) return null
+    const buf = Buffer.from(m[2], 'base64')
+    const ct = m[1] || 'image/png'
+    const ext = ct.includes('jpeg') ? 'jpg' : ct.includes('webp') ? 'webp' : 'png'
+    try { await admin.storage.createBucket('web-scans', { public: true }) } catch {}
+    const path = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await admin.storage.from('web-scans').upload(path, buf, { contentType: ct, upsert: false })
+    if (error) return null
+    const { data } = admin.storage.from('web-scans').getPublicUrl(path)
+    return data?.publicUrl || null
+  } catch {
+    return null
+  }
+}
+
 // Forza la versione italiana. STMN usa il plugin Weglot per le traduzioni
 // (NON Shopify Markets multi-language). Weglot auto-detecta Accept-Language
 // e fa redirect/translate alla lingua del browser. Per forzare IT:
@@ -442,13 +464,17 @@ export async function POST(req) {
         const userId = await getCurrentUserId()
         const admin = getAdminSupabase()
         if (userId && admin) {
+          // Lo screenshot va su Storage (bucket pubblico) → nel DB solo la URL,
+          // così riaprendo dallo storico si rivede l'anteprima senza gonfiare
+          // il jsonb con base64.
+          const storedShot = await persistScreenshot(admin, userId, dataUrl)
           const { data } = await admin.from('web_scans').insert({
             user_id: userId,
             url: normalized,
             viewport: shotViewport,
             score: typeof analysis.overallScore === 'number' ? analysis.overallScore : null,
             score_label: analysis.scoreLabel || null,
-            result: { url: normalized, viewport: shotViewport, analysis, updatedAt: new Date().toISOString() },
+            result: { url: normalized, viewport: shotViewport, analysis, screenshotUrl: storedShot, updatedAt: new Date().toISOString() },
           }).select('id').maybeSingle()
           savedId = data?.id || null
         }

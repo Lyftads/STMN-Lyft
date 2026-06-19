@@ -510,7 +510,9 @@ export default function WebsiteScannerTab() {
       {data?.fromHistory && (
         <div style={{ fontSize: 11.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="clock" size={13} />
-          {t('ws.viewingHistory', null, 'Stai visualizzando una scansione salvata (screenshot non disponibile).')}
+          {finalScreenshotUrl
+            ? t('ws.viewingHistoryOk', null, 'Stai visualizzando una scansione salvata.')
+            : t('ws.viewingHistory', null, 'Stai visualizzando una scansione salvata (screenshot non disponibile).')}
         </div>
       )}
 

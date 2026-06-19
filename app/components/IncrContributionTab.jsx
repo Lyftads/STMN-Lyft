@@ -59,6 +59,7 @@ export default function IncrContributionTab() {
   const reliability = data?.r2 != null ? (data.r2 >= 0.6 ? 'high' : data.r2 >= 0.35 ? 'medium' : 'low') : null
   const relColor = { high: '#22c55e', medium: '#f59e0b', low: '#ef4444' }[reliability] || 'var(--text3)'
   const totalInc = channels.reduce((s, c) => s + (c.incrementalRevenue || 0), 0)
+  const totalSpend = channels.reduce((s, c) => s + (c.spend || 0), 0)
   const baselinePct = data?.totalRevenue > 0 ? (data.baselineRevenue / data.totalRevenue) : 0
 
   const barData = channels.map(c => ({
@@ -124,6 +125,11 @@ export default function IncrContributionTab() {
                 <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{eur(data.totalRevenue)}</div>
                 <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t('incr.periodDays', { d: data.days }, `${data.days} days`)}</div>
               </div>
+              <div className="glass-card" style={{ padding: '14px 16px' }}>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('incr.totalAdSpend', null, 'Total ad spend')}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{eur(totalSpend)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{channels.map(c => `${data.channelNames?.[c.key] || c.key} ${eur(c.spend)}`).join(' · ')}</div>
+              </div>
             </div>
 
             <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, margin: '-4px 0 14px' }}>
@@ -149,7 +155,7 @@ export default function IncrContributionTab() {
                       <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{data.channelNames?.[c.key] || c.key}</span>
                     </div>
                     <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{eur(c.incrementalRevenue)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{t('incr.incrementalRev', null, 'incremental revenue')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{t('incr.incrementalRev', null, 'incremental revenue')} · {t('incr.onSpend', { s: eur(c.spend) }, `on ${eur(c.spend)} spend`)}</div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                       <Mini label={t('incr.iRoas', null, 'Incremental ROAS')} value={x(c.iRoas)} sub={c.roasReported > 0 ? t('incr.vsReported', { v: x(c.roasReported) }, `reported ${x(c.roasReported)}`) : t('incr.reportedNa', null, 'reported n/a')} />

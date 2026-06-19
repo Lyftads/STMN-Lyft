@@ -55,7 +55,7 @@ export default function SeoAuditTab() {
   }
 
   const loadAudit = async (id) => {
-    setView('analyze'); setCompare(null); setLoading(true); setError(null)
+    setView('audit'); setCompare(null); setLoading(true); setError(null)
     try {
       const r = await fetch(`/api/seo-audit/history?id=${id}`)
       const d = await r.json()
@@ -72,7 +72,7 @@ export default function SeoAuditTab() {
       const [a, b] = await Promise.all(picks.map(id => fetch(`/api/seo-audit/history?id=${id}`).then(r => r.json())))
       // ordina per data: before = più vecchio
       const [before, after] = new Date(a.created_at) <= new Date(b.created_at) ? [a, b] : [b, a]
-      setCompare({ before, after }); setView('analyze'); setRes(null)
+      setCompare({ before, after }); setView('audit'); setRes(null)
     } catch {} finally { setLoading(false) }
   }
 

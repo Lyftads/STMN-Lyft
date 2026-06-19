@@ -58,16 +58,7 @@ export default function IncrCurvesTab() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.4}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('incr.curvesTitle', null, 'Response curves & carryover')}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 3 }}>{t('incr.curvesSub', null, 'How much the next euro returns, and how long today’s spend keeps working.')}</div>
-          </div>
-          <button onClick={() => load(true)} disabled={loading} className="btn-glass" style={{ padding: '8px 14px', fontWeight: 700, cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('common.refreshing', null, 'Refreshing…') : t('common.refresh', null, 'Refresh')}
-          </button>
-        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>{t('incr.curvesSub', null, 'How much the next euro returns, and how long today’s spend keeps working.')}</div>
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('incr.modeling', null, 'Modeling incrementality…')}</div>}
         {!loading && error && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '16px 0' }}>{error === 'not_enough_data' ? t('incr.errNotEnough', null, 'Not enough history yet.') : error === 'no_channels' ? t('incr.errNoChannels', null, 'Connect Meta or Google Ads.') : t('incr.errGeneric', null, 'Could not compute right now.')}</div>}

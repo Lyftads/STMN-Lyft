@@ -20,6 +20,21 @@ export default function IncrContributionTab() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  const exportPdf = async () => {
+    if (pdfBusy) return
+    setPdfBusy(true)
+    try {
+      const res = await fetch(`/api/incrementality/pdf?days=150&locale=${locale}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if ((res.headers.get('content-type') || '').includes('pdf')) {
+        const a = document.createElement('a'); a.href = url; a.download = `LyftAI_Incrementality_${new Date().toISOString().slice(0, 10)}.pdf`; document.body.appendChild(a); a.click(); a.remove()
+      } else { window.open(url, '_blank') }
+      setTimeout(() => URL.revokeObjectURL(url), 15000)
+    } catch {} finally { setPdfBusy(false) }
+  }
 
   const load = (force = false) => {
     let cancelled = false
@@ -58,21 +73,21 @@ export default function IncrContributionTab() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.4}>
-        {/* Header */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('incr.contribTitle', null, 'Incremental contribution')}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 3 }}>{t('incr.contribSub', null, 'What each channel really adds vs the organic baseline — last 150 days')}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span>{t('incr.contribSub', null, 'What each channel really adds vs the organic baseline — last 150 days')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {reliability && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: relColor, background: relColor + '1a', border: `1px solid ${relColor}44`, borderRadius: 999, padding: '5px 12px' }}>
+                <Icon name="pulse" size={12} /> {t('incr.reliability', null, 'Reliability')}: {t('incr.rel_' + reliability, null, reliability)} · R² {data.r2.toFixed(2)}
+              </span>
+            )}
+            {data?.ok && (
+              <button onClick={exportPdf} disabled={pdfBusy} className="btn-glass" style={{ padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: pdfBusy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', animation: pdfBusy ? 'spin 1s linear infinite' : 'none' }}>{pdfBusy ? '◌' : '⬇'}</span>
+                {pdfBusy ? t('report.generating', null, 'Generating PDF…') : t('report.download', null, 'Download PDF report')}
+              </button>
+            )}
           </div>
-          {reliability && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: relColor, background: relColor + '1a', border: `1px solid ${relColor}44`, borderRadius: 999, padding: '5px 12px' }}>
-              <Icon name="pulse" size={12} /> {t('incr.reliability', null, 'Reliability')}: {t('incr.rel_' + reliability, null, reliability)} · R² {data.r2.toFixed(2)}
-            </span>
-          )}
-          <button onClick={() => load(true)} disabled={loading} className="btn-glass" style={{ padding: '8px 14px', fontWeight: 700, cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('common.refreshing', null, 'Refreshing…') : t('common.refresh', null, 'Refresh')}
-          </button>
         </div>
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('incr.modeling', null, 'Modeling incrementality…')}</div>}

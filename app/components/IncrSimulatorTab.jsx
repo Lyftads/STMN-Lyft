@@ -91,11 +91,8 @@ export default function IncrSimulatorTab() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.4}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('incr.simTitle', null, 'Budget simulator')}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 3 }}>{t('incr.simSub', null, 'Move the sliders to see the expected incremental revenue over the next weeks.')}</div>
-          </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('incr.simSub', null, 'Move the sliders to see the expected incremental revenue over the next weeks.')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {[2, 4, 8].map(w => (
               <button key={w} onClick={() => setWeeks(w)} className="btn-glass" style={{ padding: '7px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: weeks === w ? 1 : 0.55, borderColor: weeks === w ? TEAL : undefined }}>

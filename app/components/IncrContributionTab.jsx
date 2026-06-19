@@ -58,6 +58,8 @@ export default function IncrContributionTab() {
   const channels = data?.channels || []
   const reliability = data?.r2 != null ? (data.r2 >= 0.6 ? 'high' : data.r2 >= 0.35 ? 'medium' : 'low') : null
   const relColor = { high: '#22c55e', medium: '#f59e0b', low: '#ef4444' }[reliability] || 'var(--text3)'
+  const totalInc = channels.reduce((s, c) => s + (c.incrementalRevenue || 0), 0)
+  const baselinePct = data?.totalRevenue > 0 ? (data.baselineRevenue / data.totalRevenue) : 0
 
   const barData = channels.map(c => ({
     name: data?.channelNames?.[c.key] || c.key,
@@ -102,6 +104,32 @@ export default function IncrContributionTab() {
 
         {data?.ok && (
           <>
+            {/* Riepilogo affidabile (totale) */}
+            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, margin: '2px 0 12px' }}>
+              <div className="glass-card" style={{ padding: '14px 16px', borderTop: `2px solid ${TEAL}` }}>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('incr.totalIncremental', null, 'Total incremental · 150d')}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: TEAL, marginTop: 4 }}>{eur(totalInc)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t('incr.ofRevenue', { p: pct(data.totalRevenue > 0 ? totalInc / data.totalRevenue : 0) }, `${pct(data.totalRevenue > 0 ? totalInc / data.totalRevenue : 0)} of revenue`)}</div>
+              </div>
+              <div className="glass-card" style={{ padding: '14px 16px' }}>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('incr.baseline', null, 'Baseline')}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{eur(data.baselineRevenue)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t('incr.baselineShare', { p: pct(baselinePct) }, `${pct(baselinePct)} arrives anyway`)}</div>
+              </div>
+              <div className="glass-card" style={{ padding: '14px 16px' }}>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('incr.totalRevenue', null, 'Total revenue')}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{eur(data.totalRevenue)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t('incr.periodDays', { d: data.days }, `${data.days} days`)}</div>
+              </div>
+            </div>
+
+            {/* Banner affidabilità: cosa fidarsi e cosa no */}
+            {reliability !== 'high' && (
+              <div className="glass-card-static" style={{ padding: '12px 16px', borderRadius: 12, borderLeft: `4px solid ${relColor}`, marginBottom: 16, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+                <Icon name="info" size={13} /> {t('incr.lowRelBanner', { total: eur(totalInc) }, `The total incremental (${eur(totalInc)}) is solid, but the split between channels is uncertain (channels often move together). Validate the per-channel reallocation with a geo-lift test before acting on big budgets.`)}
+              </div>
+            )}
+
             {/* Card per canale */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px,1fr))', gap: 12, margin: '14px 0 18px' }}>
               {channels.map(c => {
@@ -117,7 +145,7 @@ export default function IncrContributionTab() {
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{t('incr.incrementalRev', null, 'incremental revenue')}</div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                      <Mini label={t('incr.iRoas', null, 'Incremental ROAS')} value={x(c.iRoas)} sub={t('incr.vsReported', { v: x(c.roasReported) }, `reported ${x(c.roasReported)}`)} />
+                      <Mini label={t('incr.iRoas', null, 'Incremental ROAS')} value={x(c.iRoas)} sub={c.roasReported > 0 ? t('incr.vsReported', { v: x(c.roasReported) }, `reported ${x(c.roasReported)}`) : t('incr.reportedNa', null, 'reported n/a')} />
                       <Mini label={t('incr.mRoas', null, 'Next-€ ROAS')} value={x(c.mRoas)} sub={t('incr.marginal', null, 'marginal')} valueColor={c.mRoas >= 1 ? '#22c55e' : '#ef4444'} />
                       <Mini label={t('incr.saturation', null, 'Saturation')} value={pct(c.saturation)} sub={c.saturation >= 0.8 ? t('incr.satHigh', null, 'scaling wastes') : t('incr.satOk', null, 'room to scale')} valueColor={c.saturation >= 0.8 ? '#ef4444' : '#22c55e'} />
                       <Mini label={t('incr.carryover', null, 'Carryover')} value={t('incr.carryDays', { d: c.carryoverDays90 }, `${c.carryoverDays90} days`)} sub={t('incr.toReach90', null, 'to 90% effect')} />

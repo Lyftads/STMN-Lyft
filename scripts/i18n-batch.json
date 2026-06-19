@@ -1,11 +1,4 @@
 {
-  "incrSim.howT": "Come funziona",
-  "incrSim.d1T": "Incrementale atteso",
-  "incrSim.d1D": "Il ricavo in più che dovresti ottenere dalla spesa pianificata nelle settimane scelte, a regime (carryover già incluso).",
-  "incrSim.d2T": "vs piano attuale",
-  "incrSim.d2D": "La differenza rispetto a mantenere la spesa di oggi. Verde = guadagni, rosso = perdi.",
-  "incrSim.d3T": "ROAS incr. medio",
-  "incrSim.d3D": "Incrementale totale ÷ spesa pianificata totale. Sopra 1× il piano è in profitto in termini realmente incrementali.",
-  "incrSim.d4T": "Il suggerimento",
-  "incrSim.d4D": "Spostiamo budget verso il canale il cui PROSSIMO euro rende di più (ROAS marginale più alto) e via da quello saturo."
+  "geo.step1": "In {c}, aumenta la spesa del {p}% solo nelle {n} regioni TEST (geo-targeting).",
+  "geo.testHint": "applica qui +{p}% {c}"
 }

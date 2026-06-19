@@ -180,6 +180,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'incrContribution', label: 'Contributo incrementale', icon: <Icon name="layers" /> },
         { id: 'incrCurves', label: 'Curve di risposta', icon: <Icon name="chart-line" /> },
         { id: 'incrSimulator', label: 'Simulatore budget', icon: <Icon name="gauge" /> },
+        { id: 'geolift', label: 'Geo-lift', icon: <Icon name="target" /> },
       ],
     },
     {

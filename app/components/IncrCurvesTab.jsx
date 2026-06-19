@@ -138,9 +138,27 @@ export default function IncrCurvesTab() {
         })}
 
         {data?.ok && (
-          <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
-            <Icon name="warning" size={12} /> {t('incr.disclaimer', null, 'Directional estimate from your own data (MMM-lite). For causal certainty, validate with a geo-lift test.')}
-          </div>
+          <>
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 14 }}>
+              <div className="label" style={{ marginBottom: 10 }}>{t('curvesExp.title', null, 'How to read this data')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))', gap: 12 }}>
+                {[
+                  ['curvesExp.d1T', 'Response curve', 'curvesExp.d1D', 'Shows how much incremental revenue each level of daily spend brings. Steep at first, then it flattens (diminishing returns).'],
+                  ['curvesExp.d2T', "The 'now' point", 'curvesExp.d2D', "The vertical line and dot are your current spend. To the left (green) each euro still pays off well; to the right (red) you're saturating."],
+                  ['curvesExp.d3T', 'Saturation', 'curvesExp.d3D', 'The % shows how close you are to the curve ceiling. Above ~80%, adding budget returns little.'],
+                  ['curvesExp.d4T', 'Carryover', 'curvesExp.d4D', "The bars show how many days today's euro keeps driving sales (here, days to 90% of the effect)."],
+                ].map(([kt, ft, kd, fd]) => (
+                  <div key={kt} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text)' }}>{t(kt, null, ft)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginTop: 4 }}>{t(kd, null, fd)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
+              <Icon name="warning" size={12} /> {t('incr.disclaimer', null, 'Directional estimate from your own data (MMM-lite). For causal certainty, validate with a geo-lift test.')}
+            </div>
+          </>
         )}
       </FxCard>
     </div>

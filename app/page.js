@@ -52,6 +52,7 @@ import InventoryTab from './components/InventoryTab'
 import IncrContributionTab from './components/IncrContributionTab'
 import IncrCurvesTab from './components/IncrCurvesTab'
 import IncrSimulatorTab from './components/IncrSimulatorTab'
+import GeoLiftTab from './components/GeoLiftTab'
 import ProductPerformanceTab from './components/ProductPerformanceTab'
 import ProductCostsTab from './components/ProductCostsTab'
 import CreativeStudio from './components/CreativeStudio'
@@ -4346,6 +4347,10 @@ export default function App() {
 
 {tab === 'incrSimulator' && (
   <IncrSimulatorTab />
+)}
+
+{tab === 'geolift' && (
+  <GeoLiftTab />
 )}
 
 {tab === 'scheduledReports' && (

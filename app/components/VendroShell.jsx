@@ -178,6 +178,8 @@ const [helpOpen, setHelpOpen] = useState(false)
       color: '#14b8a6',
       items: [
         { id: 'incrContribution', label: 'Contributo incrementale', icon: <Icon name="layers" /> },
+        { id: 'incrCurves', label: 'Curve di risposta', icon: <Icon name="chart-line" /> },
+        { id: 'incrSimulator', label: 'Simulatore budget', icon: <Icon name="gauge" /> },
       ],
     },
     {

@@ -50,6 +50,8 @@ import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import ActionQueueTab from './components/ActionQueueTab'
 import InventoryTab from './components/InventoryTab'
 import IncrContributionTab from './components/IncrContributionTab'
+import IncrCurvesTab from './components/IncrCurvesTab'
+import IncrSimulatorTab from './components/IncrSimulatorTab'
 import ProductPerformanceTab from './components/ProductPerformanceTab'
 import ProductCostsTab from './components/ProductCostsTab'
 import CreativeStudio from './components/CreativeStudio'
@@ -4336,6 +4338,14 @@ export default function App() {
 
 {tab === 'incrContribution' && (
   <IncrContributionTab />
+)}
+
+{tab === 'incrCurves' && (
+  <IncrCurvesTab />
+)}
+
+{tab === 'incrSimulator' && (
+  <IncrSimulatorTab />
 )}
 
 {tab === 'scheduledReports' && (

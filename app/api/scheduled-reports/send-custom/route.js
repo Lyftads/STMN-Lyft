@@ -6,6 +6,7 @@ import { withTenantContext, getCurrentUserId } from '../../../../lib/tenant/cred
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { presetToRange } from '../../../lib/reportRange'
 import { REPORT_SECTION_MAP } from '../../../../lib/reports/sections'
+import { reportLogoEmail } from '../../../../lib/reports/logo'
 
 // ============================================================================
 //  /api/scheduled-reports/send-custom
@@ -151,7 +152,8 @@ function bodyHtml(name, label, since, until, sectionLabels, failed) {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a14;padding:32px 16px;"><tr><td align="center">
   <table width="600" cellpadding="0" cellspacing="0" style="background:linear-gradient(180deg,#14122a,#0a0a14);border-radius:20px;border:1px solid rgba(255,255,255,0.06);">
     <tr><td style="padding:32px;">
-      <div style="font-size:11px;color:#2997ff;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:8px;">LyftAI · Report</div>
+      ${reportLogoEmail()}
+      <div style="font-size:11px;color:#2997ff;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:8px;">Report</div>
       <div style="font-size:22px;font-weight:900;margin-bottom:6px;">${escapeHtml(name)}</div>
       <div style="font-size:13px;color:#9b90aa;margin-bottom:20px;">${escapeHtml(label)} · ${since} → ${until}</div>
       <div style="font-size:13px;color:#cfc8da;line-height:1.7;">In allegato trovi ${sectionLabels.length} report PDF:</div>

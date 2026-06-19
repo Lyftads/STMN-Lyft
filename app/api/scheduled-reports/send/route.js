@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { withTenantContext } from '../../../../lib/tenant/credentials'
+import { reportLogoEmail } from '../../../../lib/reports/logo'
 
 // ============================================================================
 //  /api/scheduled-reports/send
@@ -97,7 +98,8 @@ function renderDigestHtml({ type, data }) {
   <tr><td align="center">
     <table cellpadding="0" cellspacing="0" border="0" width="600" style="background:linear-gradient(180deg,#14122a 0%,#0a0a14 100%);border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
       <tr><td style="padding:32px;">
-        <div style="font-size:11px;color:#2997ff;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:8px;">LyftAI · ${title}</div>
+        ${reportLogoEmail()}
+        <div style="font-size:11px;color:#2997ff;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:8px;">${title}</div>
         <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-0.02em;margin-bottom:6px;">Performance ${period} ${data.range.since} → ${data.range.until}</div>
         <div style="font-size:13px;color:#9b90aa;margin-bottom:24px;">Confronto vs periodo precedente equivalente.</div>
 

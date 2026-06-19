@@ -174,6 +174,13 @@ const [helpOpen, setHelpOpen] = useState(false)
       ],
     },
     {
+      title: 'Incrementality',
+      color: '#14b8a6',
+      items: [
+        { id: 'incrContribution', label: 'Contributo incrementale', icon: <Icon name="layers" /> },
+      ],
+    },
+    {
       title: 'Reports',
       color: '#30d158',
       items: [

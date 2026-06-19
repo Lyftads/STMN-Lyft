@@ -49,6 +49,7 @@ import ScheduledReportsTab from './components/ScheduledReportsTab'
 import BudgetAdvisorPanel from './components/BudgetAdvisorPanel'
 import ActionQueueTab from './components/ActionQueueTab'
 import InventoryTab from './components/InventoryTab'
+import IncrContributionTab from './components/IncrContributionTab'
 import ProductPerformanceTab from './components/ProductPerformanceTab'
 import ProductCostsTab from './components/ProductCostsTab'
 import CreativeStudio from './components/CreativeStudio'
@@ -4331,6 +4332,10 @@ export default function App() {
 
 {tab === 'lighthouse' && (
   <LighthouseTab />
+)}
+
+{tab === 'incrContribution' && (
+  <IncrContributionTab />
 )}
 
 {tab === 'scheduledReports' && (

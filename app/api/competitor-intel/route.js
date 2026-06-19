@@ -1024,18 +1024,80 @@ async function resolveCompetitors() {
   })
 }
 
+// Risolve l'ID numerico della Pagina Facebook da un handle o URL
+// (es. "facebook.com/velitessport" → "234280280078173"), così il cliente NON
+// deve trovarlo a mano: basta incollare l'URL/handle della pagina FB.
+const fbIdCache = new Map() // handle -> { id, at }
+const FB_ID_TTL = 24 * 60 * 60 * 1000
+
+function normalizeFbHandle(input) {
+  if (!input) return ''
+  let s = String(input).trim()
+  const m = s.match(/facebook\.com\/(?:pg\/|pages\/[^/]+\/)?([^/?#]+)/i)
+  if (m) s = m[1]
+  return s.replace(/^@/, '').replace(/\/+$/, '').trim()
+}
+
+async function resolveFacebookPageId(input) {
+  const handle = normalizeFbHandle(input)
+  if (!handle) return null
+  if (/^\d{5,}$/.test(handle)) return handle // gia' un id numerico
+  const hit = fbIdCache.get(handle)
+  if (hit && Date.now() - hit.at < FB_ID_TTL) return hit.id
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+  }
+  const extract = (html) => {
+    if (!html) return null
+    for (const re of [
+      /"pageID":"(\d{5,})"/, /"page_id":"(\d{5,})"/, /"delegate_page":\{"id":"(\d{5,})"/,
+      /fb:\/\/page\/\??(?:id=)?(\d{5,})/, /"entity_id":"(\d{5,})"/, /profile_id=(\d{5,})/, /"userID":"(\d{5,})"/,
+    ]) { const m = html.match(re); if (m) return m[1] }
+    return null
+  }
+  let id = null
+  for (const url of [`https://www.facebook.com/${handle}/`, `https://m.facebook.com/${handle}/`]) {
+    try {
+      const r = await fetch(url, { headers, signal: AbortSignal.timeout(10000), redirect: 'follow' })
+      if (!r.ok) continue
+      id = extract(await r.text())
+      if (id) break
+    } catch {}
+  }
+  if (!id && process.env.BROWSERLESS_TOKEN) {
+    let browser
+    try {
+      const { default: puppeteer } = await import('puppeteer-core')
+      const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
+      browser = await puppeteer.connect({ browserWSEndpoint: `wss://${endpoint}/?token=${encodeURIComponent(process.env.BROWSERLESS_TOKEN)}` })
+      const page = await browser.newPage()
+      await page.setUserAgent(headers['User-Agent'])
+      await page.goto(`https://www.facebook.com/${handle}/`, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      id = extract(await page.content())
+    } catch {} finally { try { await browser?.close() } catch {} }
+  }
+  fbIdCache.set(handle, { id, at: Date.now() })
+  return id
+}
+
 async function fetchAllCompetitors(countries) {
   const list = await resolveCompetitors()
   return Promise.all(
     list.map(async (comp) => {
+      // pageId esplicito, altrimenti risolto in automatico da facebook (URL/handle).
+      let pageId = comp.pageId
+      if (!pageId && comp.facebook) {
+        try { pageId = await resolveFacebookPageId(comp.facebook) } catch {}
+      }
       const [adLibrary, websiteDataRaw, facebookData, instagramData] = await Promise.all([
         // Senza pageId non possiamo fare il fetch ads — ritorna struttura vuota
-        comp.pageId
-          ? fetchAdLibrary(comp.pageId, countries, comp.name)
+        pageId
+          ? fetchAdLibrary(pageId, countries, comp.name)
           : Promise.resolve({ ads: [], pageName: null, error: 'pageId mancante' }),
         scrapeProducts(comp.origin, comp.homepage, comp.currency === 'AUD' ? 'AU' : 'IT'),
-        comp.pageId
-          ? fetchFacebookPage(comp.pageId)
+        pageId
+          ? fetchFacebookPage(pageId)
           : Promise.resolve(null),
         fetchInstagramProfile(comp.instagram),
       ])
@@ -1053,7 +1115,7 @@ async function fetchAllCompetitors(countries) {
         id: comp.id,
         name: comp.name,
         websiteUrl: comp.homepage,
-        pageId: comp.pageId,
+        pageId,
         instagram: comp.instagram,
         adLibrary,
         websiteData,

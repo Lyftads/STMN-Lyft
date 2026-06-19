@@ -1,4 +1,4 @@
 {
-  "geo.step1": "In {c}, aumenta la spesa del {p}% solo nelle {n} regioni TEST (geo-targeting).",
-  "geo.testHint": "applica qui +{p}% {c}"
+  "geo.controlsNote": "Regioni, durata e statistiche dipendono dai tuoi dati e sono uguali per ogni canale. Il canale e la % di spesa sono il trattamento che applichi nelle regioni test — li trovi nel Piano qui sotto.",
+  "geo.mdeByDuration": "Lift rilevabile per durata:"
 }

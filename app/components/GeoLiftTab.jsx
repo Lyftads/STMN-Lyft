@@ -90,12 +90,29 @@ export default function GeoLiftTab() {
               </div>
             </div>
 
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, margin: '-6px 0 14px' }}>
+              <Icon name="info" size={12} /> {t('geo.controlsNote', null, 'Regions, duration and statistics depend on your data and are the same for any channel. The channel and the spend % are the treatment you apply in the test regions — see the Plan below.')}
+            </div>
+
             {/* Card risultato */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 18 }}>
               <Big label={t('geo.recDuration', null, 'Recommended duration')} value={t('geo.weeksVal', { n: data.recommendedWeeks }, `${data.recommendedWeeks} weeks`)} color={TEAL} />
               <Big label={t('geo.detectable', { d: data.mde.find(m => m.days === days)?.weeks ?? '' }, `Detectable lift · ${days}d`)} value={`≥ ${pct(selMde?.mde || 0)}`} sub={t('geo.detectableSub', null, 'smaller lifts may go unnoticed')} />
               <Big label={t('geo.matchQuality', null, 'Match quality')} value={`${matchPct}%`} color={matchColor} sub={matchPct >= 80 ? t('geo.matchGood', null, 'control tracks test well') : t('geo.matchWeak', null, 'control tracks test loosely')} />
               <Big label={t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
+            </div>
+
+            {/* Striscia MDE per durata (mostra l'effetto della durata) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16, fontSize: 12 }}>
+              <span style={{ color: 'var(--text3)', fontWeight: 700 }}>{t('geo.mdeByDuration', null, 'Detectable lift by duration:')}</span>
+              {data.mde.map(m => (
+                <button key={m.days} onClick={() => setDays(m.days)} style={{
+                  cursor: 'pointer', borderRadius: 8, padding: '5px 11px', fontWeight: 800, fontSize: 12,
+                  border: `1px solid ${days === m.days ? TEAL : 'var(--border)'}`,
+                  background: days === m.days ? TEAL + '1f' : 'transparent',
+                  color: days === m.days ? TEAL : 'var(--text2)',
+                }}>{m.weeks}{t('geo.wk', null, 'w')} → ≥ {pct(m.mde)}</button>
+              ))}
             </div>
 
             {/* Test vs Control */}
@@ -123,7 +140,7 @@ export default function GeoLiftTab() {
 
             {/* Piano del test */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderLeft: `4px solid ${TEAL}` }}>
-              <div className="label" style={{ marginBottom: 10 }}>{t('geo.planTitle', null, 'Your test plan')}</div>
+              <div className="label" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{t('geo.planTitle', null, 'Your test plan')} <span style={{ color: channel === 'meta' ? '#2997ff' : '#eab308', fontWeight: 900 }}>· {channelName} +{lift}%</span></div>
               <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, display: 'grid', gap: 4 }}>
                 <li>{t('geo.step1', { c: channelName, p: lift, n: data.test.regions.length }, `In ${channelName}, increase spend by ${lift}% only in the ${data.test.regions.length} TEST regions (geo-targeting).`)}</li>
                 <li>{t('geo.step2', { n: data.control.regions.length }, `Keep spend exactly as-is in the ${data.control.regions.length} CONTROL regions.`)}</li>

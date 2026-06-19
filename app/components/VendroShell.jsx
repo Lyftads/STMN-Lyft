@@ -188,7 +188,7 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
     {
       title: 'System',
-      color: '#86868b',
+      color: '#e9e9ee',
       items: [
         { id: 'helpCenter', label: 'Centro Assistenza', icon: <Icon name="info" /> },
         { id: 'integrations', label: 'Integrazioni', icon: <Icon name="gear" /> },

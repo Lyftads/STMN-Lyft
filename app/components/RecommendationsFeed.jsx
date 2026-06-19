@@ -11,7 +11,7 @@ const PRIORITY_CONFIG = {
   urgent: { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', label: 'URGENT', icon: <Icon name="warning" size={11} /> },
   high:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', label: 'HIGH',   icon: '▲' },
   medium: { color: '#2997ff', bg: 'rgba(41,151,255,0.10)', border: 'rgba(41,151,255,0.25)', label: 'MEDIUM', icon: '◆' },
-  low:    { color: '#86868b', bg: 'rgba(134,134,139,0.08)', border: 'rgba(134,134,139,0.20)', label: 'LOW',    icon: '·' },
+  low:    { color: '#e9e9ee', bg: 'rgba(134,134,139,0.08)', border: 'rgba(134,134,139,0.20)', label: 'LOW',    icon: '·' },
 }
 
 // categoria della raccomandazione → canale della Coda Azioni

@@ -103,7 +103,7 @@ const STATUS_CFG = {
   pending:  { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', icon: 'clock' },
   approved: { color: '#2997ff', bg: 'rgba(41,151,255,0.12)', icon: 'check' },
   executed: { color: '#30d158', bg: 'rgba(48,209,88,0.12)', icon: 'check-circle' },
-  rejected: { color: '#86868b', bg: 'rgba(134,134,139,0.12)', icon: 'close' },
+  rejected: { color: '#e9e9ee', bg: 'rgba(134,134,139,0.12)', icon: 'close' },
   failed:   { color: '#ff453a', bg: 'rgba(255,69,58,0.12)', icon: 'warning' },
 }
 
@@ -114,7 +114,7 @@ const TYPE_ICON = {
 
 const FILTER_IDS = ['all', 'pending', 'approved', 'executed', 'rejected']
 
-const PRIO_COLOR = { urgent: '#f87171', high: '#fbbf24', medium: '#2997ff', low: '#86868b' }
+const PRIO_COLOR = { urgent: '#f87171', high: '#fbbf24', medium: '#2997ff', low: '#e9e9ee' }
 
 // Orchestratore: l'AI legge i dati e propone azioni cross-canale → un clic accoda.
 function SuggestPanel({ t, metrics, existing, onQueued }) {
@@ -424,7 +424,7 @@ export default function ActionQueueTab({ metrics }) {
                     {a.status === 'rejected' && (
                       <button disabled={busy === a.id} onClick={() => op(a.id, 'reopen')} style={btnGhost()}>{t('aq.reopen')}</button>
                     )}
-                    <button disabled={busy === a.id} onClick={() => remove(a.id)} style={btnGhost('#86868b')}><Icon name="trash" size={13} /> {t('aq.delete')}</button>
+                    <button disabled={busy === a.id} onClick={() => remove(a.id)} style={btnGhost('#e9e9ee')}><Icon name="trash" size={13} /> {t('aq.delete')}</button>
                   </div>
                 )}
               </div>

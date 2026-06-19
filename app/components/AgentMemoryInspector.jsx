@@ -35,7 +35,7 @@ const ROLE_TAGS = {
   preference: { labelKey: 'ami.rolePreference', en: 'Preference', icon: <Icon name="gear" size={11} />, color: '#2997ff' },
   fact:       { labelKey: 'ami.roleFact', en: 'Fact', icon: <Icon name="pin" size={11} />,  color: '#22c55e' },
   insight:    { labelKey: 'ami.roleInsight', en: 'Insight', icon: <Icon name="bulb" size={11} />, color: '#f59e0b' },
-  observation:{ labelKey: 'ami.roleObservation', en: 'Observation', icon: '·',  color: '#86868b' },
+  observation:{ labelKey: 'ami.roleObservation', en: 'Observation', icon: '·',  color: '#e9e9ee' },
 }
 
 export default function AgentMemoryInspector() {

@@ -575,6 +575,197 @@ async function fetchAdLibrary(pageId, countries, pageName) {
   return scrapeAdLibraryPage(pageId, pageName)
 }
 
+// ── Scraping prodotti/prezzi GENERICO (siti non-Shopify) ────────────────────
+// Calcolo statistiche catalogo (stessa forma del path Shopify).
+function computeStats(products) {
+  const prices = products.filter((p) => p.price > 0).map((p) => p.price)
+  const onSale = products.filter((p) => p.onSale)
+  const types = {}
+  products.forEach((p) => { if (p.type) types[p.type] = (types[p.type] || 0) + 1 })
+  return {
+    totalProducts: products.length,
+    avgPrice: prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0,
+    minPrice: prices.length ? Math.min(...prices) : 0,
+    maxPrice: prices.length ? Math.max(...prices) : 0,
+    onSaleCount: onSale.length,
+    onSalePct: products.length ? Math.round((onSale.length / products.length) * 100) : 0,
+    avgDiscount: onSale.length ? Math.round(onSale.reduce((a, p) => a + p.discountPct, 0) / onSale.length) : 0,
+    categories: Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 10),
+    availableCount: products.filter((p) => p.available).length,
+    outOfStockCount: products.filter((p) => !p.available).length,
+  }
+}
+
+function mkProduct({ title, url, image, price, compareAt = 0, available = true, vendor = '', type = '' }, origin) {
+  let u = url || origin
+  if (u && !/^https?:/i.test(u)) { try { u = new URL(u, origin).href } catch {} }
+  return {
+    title: sanitize(title || ''), handle: '', url: u,
+    image: typeof image === 'string' ? image : '',
+    price, compareAtPrice: compareAt > price ? compareAt : 0,
+    onSale: compareAt > price, discountPct: compareAt > price ? Math.round((1 - price / compareAt) * 100) : 0,
+    available, vendor: sanitize(vendor || ''), type: sanitize(type || ''),
+    tags: [], variantCount: 0, createdAt: null,
+  }
+}
+
+function dedupeProducts(list) {
+  const seen = new Set(); const out = []
+  for (const p of list) { if (!p?.title) continue; const k = (p.title + '|' + p.url).toLowerCase(); if (seen.has(k)) continue; seen.add(k); out.push(p) }
+  return out
+}
+
+// Estrae prodotti da JSON-LD schema.org/Product (e ItemList) presenti nell'HTML.
+function parseJsonLdProducts(html, origin) {
+  const out = []
+  if (!html) return out
+  const pushProduct = (node) => {
+    const type = node['@type']
+    const types = Array.isArray(type) ? type : [type]
+    if (!types.some((t) => String(t).toLowerCase() === 'product')) return
+    if (!node.name) return
+    let price = 0, compareAt = 0, available = true
+    const offers = node.offers
+    const arr = Array.isArray(offers) ? offers : offers ? [offers] : []
+    for (const off of arr) {
+      if (!off || typeof off !== 'object') continue
+      const ot = String(off['@type'] || '').toLowerCase()
+      if (ot === 'aggregateoffer') {
+        const lo = parseFloat(off.lowPrice)
+        if (Number.isFinite(lo) && lo > 0 && (!price || lo < price)) price = lo
+      } else {
+        const p = parseFloat(off.price ?? off.priceSpecification?.price)
+        if (Number.isFinite(p) && p > 0 && !price) price = p
+        const av = String(off.availability || '').toLowerCase()
+        if (av.includes('outofstock') || av.includes('soldout') || av.includes('discontinued')) available = false
+      }
+    }
+    if (!price) return
+    const img = Array.isArray(node.image) ? (node.image[0]?.url || node.image[0]) : (node.image?.url || node.image)
+    out.push(mkProduct({ title: node.name, url: node.url || node['@id'], image: img, price, compareAt, available, vendor: node.brand?.name || node.brand, type: Array.isArray(node.category) ? node.category[0] : node.category }, origin))
+  }
+  const walk = (node) => {
+    if (Array.isArray(node)) { node.forEach(walk); return }
+    if (!node || typeof node !== 'object') return
+    if (node['@graph']) walk(node['@graph'])
+    const type = node['@type']
+    const types = Array.isArray(type) ? type : [type]
+    if (types.some((t) => String(t).toLowerCase() === 'product')) pushProduct(node)
+    if (types.some((t) => String(t).toLowerCase() === 'itemlist') && Array.isArray(node.itemListElement)) {
+      for (const el of node.itemListElement) walk(el?.item || el)
+    }
+  }
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let m
+  while ((m = re.exec(html))) {
+    let json
+    try { json = JSON.parse(m[1].trim()) } catch { continue }
+    try { walk(json) } catch {}
+  }
+  return dedupeProducts(out)
+}
+
+// WooCommerce Store API (pubblica su molti siti Woo).
+async function fetchWooProducts(origin, headers) {
+  for (const path of ['/wp-json/wc/store/v1/products?per_page=100', '/wp-json/wc/store/products?per_page=100']) {
+    try {
+      const res = await fetch(origin + path, { headers: { ...headers, Accept: 'application/json' }, signal: AbortSignal.timeout(12000) })
+      if (!res.ok) continue
+      if (!(res.headers.get('content-type') || '').includes('json')) continue
+      const data = await res.json()
+      if (!Array.isArray(data) || data.length === 0) continue
+      const prods = data.map((p) => {
+        const minor = Number(p.prices?.currency_minor_unit ?? 2)
+        const div = Math.pow(10, Number.isFinite(minor) ? minor : 2)
+        const price = (Number(p.prices?.price) / div) || 0
+        const regular = (Number(p.prices?.regular_price) / div) || 0
+        const onSale = !!p.on_sale && regular > price
+        return mkProduct({ title: p.name, url: p.permalink, image: p.images?.[0]?.src, price, compareAt: onSale ? regular : 0, available: p.is_in_stock !== false, type: p.categories?.[0]?.name }, origin)
+      }).filter((p) => p.title && p.price > 0)
+      if (prods.length) return prods
+    } catch {}
+  }
+  return []
+}
+
+// Scopre URL prodotto via sitemap.xml (anche indici).
+async function discoverProductUrls(origin, headers, limit = 24) {
+  const isProduct = (u) => /\/(product|products|produkt|producto|prodotto|item|p)\//i.test(u)
+  const fetchXml = async (u) => { try { const r = await fetch(u, { headers, signal: AbortSignal.timeout(8000) }); return r.ok ? await r.text() : '' } catch { return '' } }
+  const locRe = /<loc>\s*([^<\s]+)\s*<\/loc>/gi
+  const urls = new Set()
+  for (const c of ['/sitemap.xml', '/sitemap_index.xml', '/product-sitemap.xml', '/sitemap_products_1.xml']) {
+    const xml = await fetchXml(origin + c)
+    if (!xml) continue
+    const locs = []; let mm; while ((mm = locRe.exec(xml))) locs.push(mm[1])
+    if (/<sitemapindex/i.test(xml)) {
+      for (const s of locs.filter((l) => /product|sitemap/i.test(l)).slice(0, 5)) {
+        const sx = await fetchXml(s); let m2
+        while ((m2 = locRe.exec(sx))) { if (isProduct(m2[1])) urls.add(m2[1]); if (urls.size >= limit * 2) break }
+        if (urls.size >= limit * 2) break
+      }
+    } else {
+      for (const l of locs) { if (isProduct(l)) urls.add(l); if (urls.size >= limit * 2) break }
+    }
+    if (urls.size > 0) break
+  }
+  return [...urls].slice(0, limit)
+}
+
+// Render JS (Browserless) per siti che caricano i prezzi via JavaScript o bloccano i bot.
+async function renderProductsViaBrowserless(origin, homepage, headers) {
+  const token = process.env.BROWSERLESS_TOKEN
+  if (!token) return []
+  let browser
+  try {
+    const { default: puppeteer } = await import('puppeteer-core')
+    const endpoint = process.env.BROWSERLESS_ENDPOINT || 'production-lon.browserless.io'
+    browser = await puppeteer.connect({ browserWSEndpoint: `wss://${endpoint}/?token=${encodeURIComponent(token)}` })
+    const page = await browser.newPage()
+    await page.setUserAgent(headers['User-Agent'])
+    const collected = []
+    const visit = async (url) => {
+      try {
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+        await new Promise((r) => setTimeout(r, 1500))
+        const html = await page.content()
+        collected.push(...parseJsonLdProducts(html, origin))
+        return true
+      } catch { return false }
+    }
+    await visit(homepage || origin)
+    if (collected.length < 5) {
+      let links = []
+      try { links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href]')).map((a) => a.href).filter((h) => /\/(product|products|prodotto|producto|item|p)\//i.test(h))) } catch {}
+      for (const u of [...new Set(links)].slice(0, 6)) { if (collected.length >= 12) break; await visit(u) }
+    }
+    return dedupeProducts(collected)
+  } catch { return [] }
+  finally { try { await browser?.close() } catch {} }
+}
+
+// Orchestratore non-Shopify: WooCommerce → JSON-LD (home + sitemap) → Browserless.
+async function scrapeNonShopify(origin, homepage, headers, homeHtml) {
+  const woo = await fetchWooProducts(origin, headers)
+  if (woo.length >= 3) return { products: woo, source: 'woocommerce' }
+  let jsonld = parseJsonLdProducts(homeHtml, origin)
+  if (jsonld.length < 5) {
+    const urls = await discoverProductUrls(origin, headers, 24)
+    if (urls.length) {
+      const results = await Promise.allSettled(urls.map(async (u) => {
+        try { const r = await fetch(u, { headers, signal: AbortSignal.timeout(9000) }); return r.ok ? parseJsonLdProducts(await r.text(), origin) : [] } catch { return [] }
+      }))
+      for (const r of results) if (r.status === 'fulfilled') jsonld.push(...r.value)
+      jsonld = dedupeProducts(jsonld)
+    }
+  }
+  if (woo.length || jsonld.length >= 3) return { products: woo.length >= jsonld.length ? woo : jsonld, source: woo.length >= jsonld.length ? 'woocommerce' : 'jsonld' }
+  if (jsonld.length) return { products: jsonld, source: 'jsonld' }
+  const rendered = await renderProductsViaBrowserless(origin, homepage, headers)
+  if (rendered.length) return { products: rendered, source: 'browserless' }
+  return { products: [], source: null }
+}
+
 async function scrapeProducts(origin, homepage, forceCountry = null) {
   const result = {
     products: [],
@@ -688,6 +879,7 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
     // Not Shopify or endpoint blocked
   }
 
+  let homeHtml = null
   try {
     const homeRes = await fetch(homepage, {
       headers,
@@ -696,6 +888,7 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
 
     if (homeRes.ok) {
       const html = await homeRes.text()
+      homeHtml = html
 
       const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is)
       const descMatch =
@@ -774,6 +967,21 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
     }
   } catch (e) {
     if (!result.error) result.error = e.message
+  }
+
+  // Non-Shopify: se /products.json non ha dato prodotti, prova lo scraping
+  // generico (WooCommerce → JSON-LD via sitemap → Browserless per siti JS).
+  if (!result.isShopify && result.products.length === 0 && origin) {
+    try {
+      const generic = await scrapeNonShopify(origin, homepage, headers, homeHtml)
+      if (generic.products.length) {
+        result.products = generic.products
+        result.stats = computeStats(generic.products)
+        result.source = generic.source
+      }
+    } catch (e) {
+      if (!result.error) result.error = e.message
+    }
   }
 
   return result

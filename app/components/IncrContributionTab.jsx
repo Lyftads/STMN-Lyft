@@ -173,6 +173,28 @@ export default function IncrContributionTab() {
               </ResponsiveContainer>
             </div>
 
+            {/* Come leggere questi dati */}
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginTop: 16 }}>
+              <div className="label" style={{ marginBottom: 8 }}>{t('incrExp.title', null, 'How to read this data')}</div>
+              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, margin: '0 0 14px' }}>{t('incrExp.intro', null, "Incrementality measures the revenue a channel TRULY generates — what wouldn’t exist without it — separating it from the organic baseline (sales that happen anyway).")}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px,1fr))', gap: 12 }}>
+                {[
+                  ['incrExp.incRevT', 'Incremental revenue', 'incrExp.incRevD', "The revenue caused only by that channel. Different from platform 'attributed revenue', which often takes credit for sales you'd have had anyway."],
+                  ['incrExp.baselineT', 'Organic baseline', 'incrExp.baselineD', 'Sales that would arrive even at zero spend: brand, returning customers, organic. It is the grey band in the chart.'],
+                  ['incrExp.iRoasT', 'Incremental ROAS', 'incrExp.iRoasD', "Incremental revenue ÷ spend. The channel's REAL return. Compare it to the platform 'reported ROAS' (usually higher and inflated)."],
+                  ['incrExp.mRoasT', 'Next-€ ROAS', 'incrExp.mRoasD', 'What the NEXT euro returns at the current spend level. Above 1× → worth scaling; below 1× → the extra margin is a loss.'],
+                  ['incrExp.satT', 'Saturation', 'incrExp.satD', 'How far up the diminishing-returns curve you are. Low = room to grow; high (≥80%) = extra budget adds little.'],
+                  ['incrExp.carryT', 'Carryover', 'incrExp.carryD', "How many days today's euro keeps driving sales (here, days to 90% of the effect). Higher on awareness/video, lower on search."],
+                  ['incrExp.relT', 'Reliability (R²)', 'incrExp.relD', 'How well the model explains your revenue (0–1). High = solid estimate; low = little data or channels too correlated — take the numbers with caution.'],
+                ].map(([kt, ft, kd, fd]) => (
+                  <div key={kt} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text)' }}>{t(kt, null, ft)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginTop: 4 }}>{t(kd, null, fd)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
               <Icon name="warning" size={12} /> {t('incr.disclaimer', null, 'Directional estimate from your own data (MMM-lite). For causal certainty, validate with a geo-lift test.')}
             </div>

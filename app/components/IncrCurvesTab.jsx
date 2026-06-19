@@ -5,7 +5,7 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { ComposedChart, Line, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts'
+import { ComposedChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine, ReferenceArea } from 'recharts'
 
 const CH_COLOR = { meta: '#2997ff', google: '#eab308' }
 const TEAL = '#14b8a6'
@@ -65,8 +65,9 @@ export default function IncrCurvesTab() {
 
         {data?.ok && channels.map(c => {
           const col = CH_COLOR[c.key] || TEAL
-          const curve = (data.curves?.[c.key] || []).map(p => ({ ...p, eff: p.spend <= c.avgSpend ? p.revenue : null, sat: p.spend > c.avgSpend ? p.revenue : null }))
-          const curY = interp(data.curves?.[c.key], c.avgSpend)
+          const curve = data.curves?.[c.key] || []
+          const maxX = curve.length ? curve[curve.length - 1].spend : c.avgSpend * 3
+          const curY = interp(curve, c.avgSpend)
           const carry = (c.carryover || []).map((w, i) => ({ day: i === 0 ? t('incr.today', null, 'today') : `+${i}`, w: Math.round(w * 100) }))
           return (
             <div key={c.key} className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderTop: `2px solid ${col}` }}>
@@ -79,20 +80,30 @@ export default function IncrCurvesTab() {
               <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 16, alignItems: 'stretch' }}>
                 {/* Response curve */}
                 <div style={{ minWidth: 0 }}>
-                  <div className="label" style={{ marginBottom: 8 }}>{t('incr.responseCurve', null, 'Response curve · daily spend → incremental revenue')}</div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <ComposedChart data={curve} margin={{ top: 6, right: 12, left: -6, bottom: 0 }}>
+                  <div className="label" style={{ marginBottom: 6 }}>{t('incr.responseCurve', null, 'Response curve · daily spend → incremental revenue')}</div>
+                  {/* Callout "sei qui" esplicito */}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: col + '14', border: `1px solid ${col}44`, borderRadius: 10, padding: '6px 12px', marginBottom: 8, fontSize: 12 }}>
+                    <span style={{ color: col, fontWeight: 900 }}>📍 {t('incr.youAreHereNow', null, 'You are here')}</span>
+                    <span style={{ color: 'var(--text2)' }}>{t('incr.hereDetail', { s: eur(c.avgSpend), r: eur(curY) }, `${eur(c.avgSpend)}/day → ${eur(curY)}/day incremental`)}</span>
+                    <span style={{ color: c.saturation >= 0.8 ? '#ef4444' : '#22c55e', fontWeight: 800 }}>· {pct(c.saturation)} {t('incr.satWord', null, 'saturated')}</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={210}>
+                    <ComposedChart data={curve} margin={{ top: 14, right: 12, left: -6, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="spend" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${(v / 1000).toFixed(1)}k`} />
+                      <XAxis dataKey="spend" type="number" domain={[0, maxX]} tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${(v / 1000).toFixed(1)}k`} />
                       <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${(v / 1000).toFixed(1)}k`} />
                       <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} formatter={(v) => v == null ? '—' : eur(v)} labelFormatter={(l) => t('incr.spendDay', { s: eur(l) }, `${eur(l)}/day`)} />
-                      <Area type="monotone" dataKey="eff" stroke="#22c55e" strokeWidth={2.5} fill="rgba(34,197,94,0.12)" name={t('incr.efficient', null, 'room to scale')} connectNulls />
-                      <Line type="monotone" dataKey="sat" stroke="#ef4444" strokeWidth={2.5} dot={false} name={t('incr.saturated', null, 'diminishing')} connectNulls />
-                      <ReferenceDot x={c.avgSpend} y={curY} r={5} fill={col} stroke="#fff" strokeWidth={1.5} />
+                      {/* Zone: verde = spazio per scalare, rosso = sta saturando */}
+                      <ReferenceArea x1={0} x2={c.avgSpend} fill="#22c55e" fillOpacity={0.07} />
+                      <ReferenceArea x1={c.avgSpend} x2={maxX} fill="#ef4444" fillOpacity={0.06} />
+                      <Area type="monotone" dataKey="revenue" stroke={col} strokeWidth={2.5} fill={col + '22'} name={t('incr.incrementalRev', null, 'incremental revenue')} />
+                      {/* Linea verticale "ora" + punto attuale */}
+                      <ReferenceLine x={c.avgSpend} stroke="#fff" strokeDasharray="4 3" strokeOpacity={0.8} label={{ value: t('incr.now', null, 'now'), position: 'top', fill: '#fff', fontSize: 11, fontWeight: 800 }} />
+                      <ReferenceDot x={c.avgSpend} y={curY} r={6} fill={col} stroke="#fff" strokeWidth={2} />
                     </ComposedChart>
                   </ResponsiveContainer>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
-                    <span style={{ color: col, fontWeight: 800 }}>●</span> {t('incr.youAreHere', null, 'you are here')} · <span style={{ color: '#22c55e' }}>{t('incr.greenScale', null, 'green = scale')}</span> · <span style={{ color: '#ef4444' }}>{t('incr.redWaste', null, 'red = saturating')}</span>
+                    <span style={{ color: '#22c55e' }}>■</span> {t('incr.greenScale', null, 'green = room to scale')} · <span style={{ color: '#ef4444' }}>■</span> {t('incr.redWaste', null, 'red = saturating')}
                   </div>
                 </div>
 

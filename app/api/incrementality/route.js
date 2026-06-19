@@ -66,7 +66,7 @@ export async function GET(req) {
   const uIso = until.toISOString().slice(0, 10)
 
   return withTenantContext(req, async () => swrSnapshot(req, {
-    tab: `incrementality_v2_${days}_${locale}`,
+    tab: `incrementality_v4_${days}_${locale}`,
     ttlMs: 6 * 3600 * 1000,
     compute: async () => {
       const [meta, google, shopDaily] = await Promise.all([

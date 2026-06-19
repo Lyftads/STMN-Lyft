@@ -123,6 +123,10 @@ export default function IncrContributionTab() {
               </div>
             </div>
 
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, margin: '-4px 0 14px' }}>
+              <Icon name="info" size={12} /> {t('incr.methodNote', null, 'Realistic estimate: we start from platform-reported revenue and apply typical e-commerce incrementality factors (Meta ~70%, Google ~55%, reduced by saturation), with a minimum organic baseline. These are priors — the geo-lift gives certainty.')}
+            </div>
+
             {/* Banner affidabilità: cosa fidarsi e cosa no */}
             {reliability !== 'high' && (
               <div className="glass-card-static" style={{ padding: '12px 16px', borderRadius: 12, borderLeft: `4px solid ${relColor}`, marginBottom: 16, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>

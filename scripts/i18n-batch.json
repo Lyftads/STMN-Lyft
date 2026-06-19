@@ -1,4 +1,3 @@
 {
-  "geo.controlsNote": "Regioni, durata e statistiche dipendono dai tuoi dati e sono uguali per ogni canale. Il canale e la % di spesa sono il trattamento che applichi nelle regioni test — li trovi nel Piano qui sotto.",
-  "geo.mdeByDuration": "Lift rilevabile per durata:"
+  "incr.methodNote": "Stima realistica: partiamo dal ricavo riportato dalle piattaforme e applichiamo fattori di incrementalità tipici dell'e-commerce (Meta ~70%, Google ~55%, ridotti dalla saturazione), con una quota minima di baseline organico. Sono prior: il geo-lift dà la certezza."
 }

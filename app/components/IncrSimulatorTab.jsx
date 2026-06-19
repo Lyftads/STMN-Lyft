@@ -150,6 +150,24 @@ export default function IncrSimulatorTab() {
               </div>
             )}
 
+            {/* Come funziona */}
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 14 }}>
+              <div className="label" style={{ marginBottom: 10 }}>{t('incrSim.howT', null, 'How this works')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))', gap: 12 }}>
+                {[
+                  ['incrSim.d1T', 'Expected incremental', 'incrSim.d1D', 'The extra revenue you should get from the planned spend over the chosen weeks, at steady state (carryover already included).'],
+                  ['incrSim.d2T', 'vs current plan', 'incrSim.d2D', "The difference versus keeping today's spend. Green = you gain, red = you lose."],
+                  ['incrSim.d3T', 'Blended incr. ROAS', 'incrSim.d3D', 'Total incremental ÷ total planned spend. Above 1× the plan is profitable on truly incremental terms.'],
+                  ['incrSim.d4T', 'The suggestion', 'incrSim.d4D', 'We move budget toward the channel whose NEXT euro returns more (higher marginal ROAS) and away from the saturated one.'],
+                ].map(([kt, ft, kd, fd]) => (
+                  <div key={kt} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text)' }}>{t(kt, null, ft)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginTop: 4 }}>{t(kd, null, fd)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5, maxWidth: 620 }}>
                 <Icon name="warning" size={12} /> {t('incr.simDisclaimer', null, 'Projection at steady state from the response curves. Directional, not a guarantee — validate big shifts with a geo-lift test.')}

@@ -1,4 +1,3 @@
 {
-  "incr.totalAdSpend": "Spesa ads totale",
-  "incr.onSpend": "su {s} di spesa"
+  "incr.reportedEst": "riportato ~{v} (stimato)"
 }

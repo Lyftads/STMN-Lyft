@@ -158,7 +158,7 @@ export default function IncrContributionTab() {
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{t('incr.incrementalRev', null, 'incremental revenue')} · {t('incr.onSpend', { s: eur(c.spend) }, `on ${eur(c.spend)} spend`)}</div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                      <Mini label={t('incr.iRoas', null, 'Incremental ROAS')} value={x(c.iRoas)} sub={c.roasReported > 0 ? t('incr.vsReported', { v: x(c.roasReported) }, `reported ${x(c.roasReported)}`) : t('incr.reportedNa', null, 'reported n/a')} />
+                      <Mini label={t('incr.iRoas', null, 'Incremental ROAS')} value={x(c.iRoas)} sub={c.roasReported > 0 ? (c.reportedEstimated ? t('incr.reportedEst', { v: x(c.roasReported) }, `reported ~${x(c.roasReported)} (est.)`) : t('incr.vsReported', { v: x(c.roasReported) }, `reported ${x(c.roasReported)}`)) : t('incr.reportedNa', null, 'reported n/a')} />
                       <Mini label={t('incr.mRoas', null, 'Next-€ ROAS')} value={x(c.mRoas)} sub={t('incr.marginal', null, 'marginal')} valueColor={c.mRoas >= 1 ? '#22c55e' : '#ef4444'} />
                       <Mini label={t('incr.saturation', null, 'Saturation')} value={pct(c.saturation)} sub={c.saturation >= 0.8 ? t('incr.satHigh', null, 'scaling wastes') : t('incr.satOk', null, 'room to scale')} valueColor={c.saturation >= 0.8 ? '#ef4444' : '#22c55e'} />
                       <Mini label={t('incr.carryover', null, 'Carryover')} value={t('incr.carryDays', { d: c.carryoverDays90 }, `${c.carryoverDays90} days`)} sub={t('incr.toReach90', null, 'to 90% effect')} />

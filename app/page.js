@@ -14,7 +14,7 @@ import HelpCenterTab from './components/HelpCenterTab'
 import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
-import KlaviyoTab from './components/KlaviyoTab'
+import EmailMarketingTab from './components/EmailMarketingTab'
 import CompetitorIntelTab from './components/CompetitorIntelTab'
 import CreativeIntelTab from './components/CreativeIntelTab'
 import PriceComparisonTab from './components/PriceComparisonTab'
@@ -4388,7 +4388,7 @@ export default function App() {
 
 {/* KLAVIYO TAB */}
 {tab === 'klaviyo' && (
-  <KlaviyoTab />
+  <EmailMarketingTab />
 )}
 
 {/* COMPETITOR INTEL TAB */}

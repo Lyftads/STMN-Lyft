@@ -31,6 +31,26 @@ const money2 = (n) => (n == null ? '—' : `€${num(n).toLocaleString(_loc, { m
 const intf = (n) => num(n).toLocaleString(_loc)
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
+// Icone SVG (stroke, stile feather) per le intestazioni di sezione — sostituiscono
+// le emoji per un aspetto più professionale nel PDF.
+const SVG_ICONS = {
+  kpi: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  trophy: '<path d="M6 9a6 6 0 0 0 12 0V3H6z"/><path d="M6 4H3v2a3 3 0 0 0 3 3"/><path d="M18 4h3v2a3 3 0 0 1-3 3"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="8" y1="22" x2="16" y2="22"/><line x1="12" y1="19" x2="12" y2="22"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  bar: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+  list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  package: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  archive: '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
+  mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  funnel: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+}
+const stripLeadIcon = (s) => String(s).replace(/^[^\p{L}\p{N}]+/u, '')
+function secH2(icon, itKey) {
+  return `<h2 class="sec"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SVG_ICONS[icon] || ''}</svg></span>${esc(stripLeadIcon(_tr(itKey)))}</h2>`
+}
+
 function accountIds() {
   const META_ACCOUNT = getMeta().adAccountId
   return String(META_ACCOUNT || '').split(',').map(s => { const x = s.trim(); if (!x) return null; return x.startsWith('act_') ? x : `act_${x}` }).filter(Boolean)
@@ -422,18 +442,18 @@ function buildFullHtml({ label, range, narrative, S }) {
   // KPI Brain (Shopify + Meta + Google)
   const kb = S.kpiBrain
   const kbSection = kb ? `
-    <h2>${_tr('📊 KPI Brain — panoramica')}</h2>
+    ${secH2('kpi','📊 KPI Brain — panoramica')}
     ${grid(kb.kpis)}
     ${kb.daily?.length ? `<div class="chart">${barChart(kb.daily, 'revenue')}</div>` : ''}` : ''
 
   // Meta KPI
   const mk = S.metaKpi
-  const metaKpiSection = mk ? `<h2>${_tr('🔵 Meta KPI')}</h2>${grid(mk.kpis)}` : ''
+  const metaKpiSection = mk ? `${secH2('bar','🔵 Meta KPI')}${grid(mk.kpis)}` : ''
 
   // Meta Detail (campagne + insight + todo)
   const md = S.metaDetail
   const metaDetailSection = md ? `
-    <h2>${_tr('🔵 Meta Detail — campagne')}</h2>
+    ${secH2('list','🔵 Meta Detail — campagne')}
     ${md.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>${_tr('Acquisti')}</th></tr></thead><tbody>
       ${md.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
       </tbody></table>` : ''}
@@ -444,12 +464,12 @@ function buildFullHtml({ label, range, narrative, S }) {
 
   // Google KPI
   const gk = S.googleKpi
-  const googleKpiSection = gk ? `<h2>${_tr('🟡 Google KPI')}</h2>${grid(gk.kpis)}` : ''
+  const googleKpiSection = gk ? `${secH2('bar','🟡 Google KPI')}${grid(gk.kpis)}` : ''
 
   // Google Detail (campagne + andamento)
   const gd = S.googleDetail
   const googleDetailSection = gd ? `
-    <h2>${_tr('🟡 Google Detail — campagne')}</h2>
+    ${secH2('list','🟡 Google Detail — campagne')}
     ${gd.daily?.length ? `<div class="chart">${barChart(gd.daily, 'revenue', '#eab308')}</div>` : ''}
     ${gd.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>${_tr('Conversioni')}</th><th>${_tr('Valore conv.')}</th></tr></thead><tbody>
       ${gd.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
@@ -458,7 +478,7 @@ function buildFullHtml({ label, range, narrative, S }) {
   // Performance Prodotti (con foto)
   const pp = S.productPerf
   const ppSection = pp ? `
-    <h2>${_tr('📦 Performance prodotti')}</h2>
+    ${secH2('package','📦 Performance prodotti')}
     ${grid(pp.kpis)}
     ${pp.rows?.length ? `<table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Unità')}</th><th>${_tr('Netto')}</th><th>COGS</th><th>ADS</th><th>${_tr('Margine op.')}</th><th>%</th><th>ROAS</th></tr></thead><tbody>
       ${pp.rows.map(p => `<tr><td>${p.image ? `<img class="prodimg" src="${esc(p.image)}"/>` : ''}${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td></tr>`).join('')}
@@ -467,7 +487,7 @@ function buildFullHtml({ label, range, narrative, S }) {
   // Inventario
   const inv = S.inventory
   const invSection = inv ? `
-    <h2>${_tr('🏷️ Inventario')}</h2>
+    ${secH2('archive','🏷️ Inventario')}
     ${grid(inv.kpis)}
     ${inv.rows?.length ? `<h3>${_tr('Prodotti a rischio stockout')}</h3><table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Taglia/SKU')}</th><th>${_tr('Stock')}</th><th>${_tr('Vendite/g')}</th><th>${_tr('Giorni a stockout')}</th><th>${_tr('Rischio')}</th></tr></thead><tbody>
       ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
@@ -477,26 +497,36 @@ function buildFullHtml({ label, range, narrative, S }) {
   const kl = S.klaviyo
   const klEmails = S.klaviyoEmails
   const klSection = kl ? `
-    <h2>${_tr('✉️ Klaviyo — email marketing')}</h2>
+    ${secH2('mail','✉️ Klaviyo — email marketing')}
     ${grid(kl.kpis)}
     ${klEmails?.length ? `<h3>${_tr('Email inviate nel periodo')}</h3><table><thead><tr><th>${_tr('Email')}</th><th>${_tr('Destinatari')}</th><th>Open rate</th><th>Click rate</th><th>${_tr('Conversioni')}</th><th>${_tr('Fatturato')}</th></tr></thead><tbody>
       ${klEmails.map(e => `<tr><td>${esc(e.name || '—')}</td><td>${intf(e.recipients)}</td><td>${num(e.openRate).toFixed(1)}%</td><td>${num(e.clickRate).toFixed(1)}%</td><td>${intf(e.conversions)}</td><td>${money2(e.revenue)}</td></tr>`).join('')}
       </tbody></table>` : ''}
-    ${kl.flows?.length ? `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Stato')}</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''}` : ''
+    ${(() => {
+      const fr = S.klaviyoFlows
+      if (fr?.length) {
+        // Flow con KPI di performance (dal revenue breakdown)
+        return `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Destinatari')}</th><th>Open rate</th><th>Click rate</th><th>${_tr('Conversioni')}</th><th>${_tr('Fatturato')}</th></tr></thead><tbody>
+          ${fr.map(f => `<tr><td>${esc(f.name || '—')}</td><td>${intf(f.recipients)}</td><td>${num(f.openRate).toFixed(1)}%</td><td>${num(f.clickRate).toFixed(1)}%</td><td>${intf(f.conversions)}</td><td>${money2(f.revenue)}</td></tr>`).join('')}
+          </tbody></table>`
+      }
+      // Fallback: solo nome + stato (breakdown non disponibile)
+      return kl.flows?.length ? `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Stato')}</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''
+    })()}` : ''
 
   // Top 10 prodotti per fatturato (da KPI Brain)
   const tp = S.topProducts
   const topProductsSection = tp?.length ? `
-    <h2>${_tr('🏆 Top 10 prodotti per fatturato')}</h2>
+    ${secH2('trophy','🏆 Top 10 prodotti per fatturato')}
     <table><thead><tr><th>#</th><th>${_tr('Prodotto')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Quantità')}</th></tr></thead><tbody>
-      ${tp.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.label || p.product || p.title || '—')}</td><td>${money2(p.revenue ?? p.value)}</td><td>${intf(p.orders)}</td><td>${intf(p.quantity)}</td></tr>`).join('')}
+      ${tp.map((p, i) => { const nm = p.label || p.product || p.title || '—'; return `<tr><td>${i + 1}</td><td><div class="tprodcell">${p.image ? `<img class="tprodimg" src="${esc(p.image)}"/>` : `<span class="tprod-noimg"></span>`}${esc(nm)}</div></td><td>${money2(p.revenue ?? p.value)}</td><td>${intf(p.orders)}</td><td>${intf(p.quantity)}</td></tr>` }).join('')}
     </tbody></table>` : ''
 
   // Vendite per giorno della settimana (da KPI Brain)
   const wd = S.weekday
   const wdMax = wd?.length ? Math.max(...wd.map(d => num(d.revenue ?? d.value)), 1) : 1
   const weekdaySection = wd?.length ? `
-    <h2>${_tr('📅 Vendite per giorno della settimana')}</h2>
+    ${secH2('calendar','📅 Vendite per giorno della settimana')}
     <table><thead><tr><th>${_tr('Giorno')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th></th></tr></thead><tbody>
       ${wd.map(d => { const v = num(d.revenue ?? d.value); const w = Math.max(3, (v / wdMax) * 100); return `<tr><td>${esc(_tr(d.label || d.day))}</td><td>${money2(v)}</td><td>${intf(d.orders)}</td><td style="width:42%"><div class="wbar"><div style="width:${w}%"></div></div></td></tr>` }).join('')}
     </tbody></table>` : ''
@@ -504,15 +534,31 @@ function buildFullHtml({ label, range, narrative, S }) {
   // Vendite e ordini per paese
   const ctr = S.countries
   const countriesSection = ctr?.length ? `
-    <h2>${_tr('🌍 Vendite e ordini per paese')}</h2>
+    ${secH2('globe','🌍 Vendite e ordini per paese')}
     <table><thead><tr><th>${_tr('Paese')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Nuovi')}</th><th>${_tr('Ritorno')}</th></tr></thead><tbody>
       ${ctr.map(c => `<tr><td>${esc(c.country || c.country_code || '—')}</td><td>${money2(c.revenue)}</td><td>${intf(c.orders)}</td><td>${intf(c.ncOrders)}</td><td>${intf(c.rcOrders)}</td></tr>`).join('')}
+    </tbody></table>` : ''
+
+  // CRO — funnel di conversione
+  const cro = S.cro
+  const croMax = cro ? Math.max(cro.funnel.sessions, 1) : 1
+  const croSteps = cro ? [
+    { l: _tr('Sessioni'), v: cro.funnel.sessions },
+    { l: _tr('Aggiunte al carrello'), v: cro.funnel.addToCart },
+    { l: _tr('Checkout'), v: cro.funnel.checkout },
+    { l: _tr('Acquisti'), v: cro.funnel.purchase },
+  ] : []
+  const croSection = cro ? `
+    ${secH2('funnel','CRO — funnel di conversione')}
+    ${grid(cro.kpis)}
+    <table><thead><tr><th>${_tr('Step')}</th><th>${_tr('Sessioni')}</th><th>% ${_tr('su sessioni')}</th><th></th></tr></thead><tbody>
+      ${croSteps.map(s => { const w = Math.max(3, (s.v / croMax) * 100); const p = croMax > 0 ? (s.v / croMax) * 100 : 0; return `<tr><td>${esc(s.l)}</td><td>${intf(s.v)}</td><td>${p.toFixed(1)}%</td><td style="width:42%"><div class="wbar"><div style="width:${w}%;background:#6366f1"></div></div></td></tr>` }).join('')}
     </tbody></table>` : ''
 
   // Top 10 creatività Meta (immagine + copy + titolo + descrizione + CTA + dati)
   const mc = S.metaCreatives
   const metaCreativesSection = mc?.length ? `
-    <h2>${_tr('🎨 Top 10 creatività Meta')}</h2>
+    ${secH2('image','🎨 Top 10 creatività Meta')}
     <div class="creatives">
       ${mc.map((c, i) => `<div class="creative">
         <div class="cr-rank">#${i + 1}</div>
@@ -539,7 +585,13 @@ function buildFullHtml({ label, range, narrative, S }) {
     .period { text-align: right; font-size: 12px; color: #444; }
     .period b { display:block; font-size: 15px; color: #111; }
     h2 { font-size: 16px; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #ddd; break-after: avoid; }
+    h2.sec { display: flex; align-items: center; gap: 8px; }
+    h2.sec .ico { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 7px; background: #eef5ff; color: #2997ff; flex-shrink: 0; }
+    h2.sec .ico svg { width: 15px; height: 15px; }
     h3 { font-size: 12.5px; margin: 14px 0 6px; color: #333; }
+    .tprodimg { width: 30px; height: 30px; border-radius: 6px; object-fit: cover; vertical-align: middle; margin-right: 9px; background: #f3f4f6; }
+    .tprodcell { display: flex; align-items: center; }
+    .tprod-noimg { width: 30px; height: 30px; border-radius: 6px; background: #f3f4f6; margin-right: 9px; flex-shrink: 0; }
     .summary { font-size: 13px; line-height: 1.6; color: #222; background: #f6f8fc; border-left: 3px solid #2997ff; padding: 12px 16px; border-radius: 6px; }
     .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
     .kpi { border: 1px solid #e5e7eb; border-radius: 8px; padding: 11px 13px; break-inside: avoid; }
@@ -591,6 +643,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${topProductsSection}
     ${weekdaySection}
     ${countriesSection}
+    ${croSection}
     ${metaKpiSection}
     ${metaDetailSection}
     ${metaCreativesSection}
@@ -653,7 +706,7 @@ export async function GET(req) {
     const J = (path, ms = 16000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
     const customQ = `preset=custom&since=${since}&until=${until}`
     const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
-    const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR, countriesR, klavBdR, metaCreatR] = await Promise.all([
+    const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR, countriesR, klavBdR, metaCreatR, prodImgsR, croR] = await Promise.all([
       presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`) : null,
       J('/api/inventory'),
       J(`/api/product-performance?since=${since}&until=${until}`),
@@ -668,7 +721,16 @@ export async function GET(req) {
       J(`/api/klaviyo?days=${days}&part=breakdown`, 24000),
       // Creatività Meta: chiamate Graph dirette (non fetch interna), cap a 26s così il PDF esce comunque
       Promise.race([topMetaCreatives(since, until, 10).catch(() => null), new Promise(res => setTimeout(() => res(null), 26000))]),
+      J('/api/product-images'),
+      J(`/api/cro?since=${since}&until=${until}`),
     ])
+    const prodImgMap = (prodImgsR && typeof prodImgsR === 'object' && !prodImgsR.error) ? prodImgsR : {}
+    const findProdImg = (name) => {
+      if (!name) return null
+      const k = String(name)
+      const clean = k.replace(/["'‘’“”]/g, '').trim()
+      return prodImgMap[k] || prodImgMap[k.toLowerCase()] || prodImgMap[clean] || prodImgMap[clean.toLowerCase()] || null
+    }
 
     // KPI Brain (Shopify da metrics + Meta/Google dai rispettivi KPI)
     const sr = metricsR?.shopifyRange || {}, spr = metricsR?.shopifyPrevRange || {}
@@ -708,7 +770,8 @@ export async function GET(req) {
       { label: 'Frequenza', value: num(mt.frequency).toFixed(2), prevValue: num(mtp.frequency).toFixed(2), cur: num(mt.frequency), prev: num(mtp.frequency), lowerBetter: true },
     ] } : null
 
-    const mdRows = Array.isArray(metaDetR?.rows) ? metaDetR.rows : []
+    // SOLO campagne ATTIVE (status/effective_status === ACTIVE)
+    const mdRows = (Array.isArray(metaDetR?.rows) ? metaDetR.rows : []).filter(c => String(c.status ?? c.effective_status ?? '').toUpperCase() === 'ACTIVE')
     const metaDetail = mdRows.length || metaDetR?.insight ? {
       insight: metaDetR?.insight || '',
       todos: Array.isArray(metaDetR?.todos) ? metaDetR.todos : [],
@@ -769,20 +832,46 @@ export async function GET(req) {
 
     const lighthouse = { meta: Array.isArray(lhMetaR?.alerts) ? lhMetaR.alerts : [], google: Array.isArray(lhGoogleR?.alerts) ? lhGoogleR.alerts : [] }
 
-    // Top prodotti per fatturato + vendite per giorno settimana (da KPI Brain / metrics)
+    // Top prodotti per fatturato (con immagine) + vendite per giorno settimana (da KPI Brain / metrics)
     const topProducts = Array.isArray(metricsR?.shopifyTopProducts) && metricsR.shopifyTopProducts.length
-      ? metricsR.shopifyTopProducts.slice().sort((a, b) => num(b.revenue ?? b.value) - num(a.revenue ?? a.value)).slice(0, 10) : null
+      ? metricsR.shopifyTopProducts.slice().sort((a, b) => num(b.revenue ?? b.value) - num(a.revenue ?? a.value)).slice(0, 10)
+          .map(p => ({ ...p, image: p.image || p.imageUrl || findProdImg(p.label || p.product || p.title) })) : null
     const weekday = Array.isArray(metricsR?.shopifyDayBreakdown) && metricsR.shopifyDayBreakdown.some(d => num(d.revenue ?? d.value) > 0)
       ? metricsR.shopifyDayBreakdown : null
     // Vendite e ordini per paese
     const countries = Array.isArray(countriesR?.countries) && countriesR.countries.length ? countriesR.countries.slice(0, 15) : null
-    // Email Klaviyo inviate nel periodo (dal revenue breakdown per campagna)
+    // Email Klaviyo inviate nel periodo + flow con KPI (dal revenue breakdown)
     const klEmailRows = klavBdR?.revenueBreakdown?.campaigns?.rows
     const klaviyoEmails = Array.isArray(klEmailRows) && klEmailRows.length ? klEmailRows.slice(0, 15) : null
+    const klFlowRows = klavBdR?.revenueBreakdown?.flows?.rows
+    const klaviyoFlows = Array.isArray(klFlowRows) && klFlowRows.length ? klFlowRows.slice(0, 12) : null
     // Top 10 creatività Meta
     const metaCreatives = Array.isArray(metaCreatR) && metaCreatR.length ? metaCreatR : null
 
-    const S = { kpiBrain, metaKpi, metaDetail, metaCreatives, googleKpi, googleDetail, inventory, productPerf, klaviyo, klaviyoEmails, topProducts, weekday, countries, lighthouse }
+    // CRO — funnel di conversione (da /api/cro)
+    const cro = (croR && !croR.error) ? (() => {
+      const f = croR.funnel || {}
+      const sess = num(croR.sessions ?? f.sessions)
+      const ord = num(croR.totalOrders), rev = num(croR.totalRevenue), p = croR.prev || {}
+      const cvr = sess > 0 ? (ord / sess) * 100 : 0
+      const pcvr = num(p.sessions) > 0 ? (num(p.orders) / num(p.sessions)) * 100 : 0
+      const aov = ord > 0 ? rev / ord : 0, paov = num(p.orders) > 0 ? num(p.revenue) / num(p.orders) : 0
+      return {
+        kpis: [
+          { label: 'Sessioni', value: intf(sess), prevValue: intf(p.sessions), cur: sess, prev: num(p.sessions) },
+          { label: 'Conversion rate', value: `${cvr.toFixed(2)}%`, prevValue: `${pcvr.toFixed(2)}%`, cur: cvr, prev: pcvr },
+          { label: 'Ordini', value: intf(ord), prevValue: intf(p.orders), cur: ord, prev: num(p.orders) },
+          { label: 'AOV', value: money2(aov), prevValue: money2(paov), cur: aov, prev: paov },
+          { label: 'Add-to-cart rate', value: `${sess > 0 ? ((num(f.addToCart) / sess) * 100).toFixed(2) : '0.00'}%` },
+          { label: 'Checkout rate', value: `${sess > 0 ? ((num(f.checkout) / sess) * 100).toFixed(2) : '0.00'}%` },
+          { label: 'Nuovi clienti', value: intf(croR.newCustomers), prevValue: intf(p.newCustomers), cur: num(croR.newCustomers), prev: num(p.newCustomers) },
+          { label: 'Ritornanti', value: intf(croR.returningCustomers), prevValue: intf(p.returningCustomers), cur: num(croR.returningCustomers), prev: num(p.returningCustomers) },
+        ],
+        funnel: { sessions: sess, addToCart: num(f.addToCart), checkout: num(f.checkout), purchase: ord },
+      }
+    })() : null
+
+    const S = { kpiBrain, metaKpi, metaDetail, metaCreatives, googleKpi, googleDetail, inventory, productPerf, klaviyo, klaviyoEmails, klaviyoFlows, topProducts, weekday, countries, cro, lighthouse }
     // AI con cap a 12s: se è lenta, il PDF esce comunque (senza executive summary).
     const narrative = await Promise.race([
       aiNarrative({

@@ -8,6 +8,7 @@ import { auditPage, discoverUrls } from '../../../../lib/seo/audit'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../../lib/tenant/credentials'
 import { callBrain } from '../../../../lib/agent/gateway'
+import { assertPublicUrl } from '../../../../lib/security/ssrf'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -30,11 +31,21 @@ export async function POST(request) {
   let body = {}
   try { body = await request.json() } catch {}
 
+  // Anti-SSRF: URL d'ingresso utente.
+  try { await assertPublicUrl(body.url) } catch {
+    return NextResponse.json({ error: 'URL non consentito (host interno o non pubblico).' }, { status: 400 })
+  }
+
   const limit = Math.min(Math.max(parseInt(body.limit || 10, 10), 2), 20)
   const urls = await discoverUrls(body.url, limit)
   if (!urls.length) return NextResponse.json({ error: 'Nessuna URL trovata (sitemap/link non raggiungibili).' }, { status: 200 })
 
-  const pages = (await pool(urls, u => auditPage(u, { targetKeyword: body.targetKeyword }), 4))
+  // Anti-SSRF anche sulle URL scoperte (una sitemap malevola potrebbe iniettare
+  // host interni): quelle non pubbliche vengono saltate (filtrate sotto).
+  const pages = (await pool(urls, async u => {
+    try { await assertPublicUrl(u) } catch { return null }
+    return auditPage(u, { targetKeyword: body.targetKeyword })
+  }, 4))
     .filter(p => p && !p.error)
   if (!pages.length) return NextResponse.json({ error: 'Impossibile analizzare le pagine.' }, { status: 200 })
 

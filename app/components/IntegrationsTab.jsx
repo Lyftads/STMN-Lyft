@@ -11,7 +11,6 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
 const NANGO_PROVIDERS = [
   { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche', descKey: 'integrations.descKlaviyo' },
-  { integrationId: 'omnisend', name: 'Omnisend', domain: 'omnisend.com', desc: 'Email & SMS · campagne, automation, revenue', descKey: 'integrations.descOmnisend' },
   { integrationId: 'mailchimp', name: 'Mailchimp', domain: 'mailchimp.com', desc: 'Email · campagne, automation, report', descKey: 'integrations.descMailchimp' },
   { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights', descKey: 'integrations.descMeta' },
 ]
@@ -400,6 +399,9 @@ export default function IntegrationsTab() {
               </div>
               <GoogleConnectButton service="ads" />
             </div>
+
+            {/* Omnisend: niente OAuth → API key diretta (salvata su companies). */}
+            <OmnisendKeyCard t={t} />
           </div>
         </div>
       )}
@@ -427,6 +429,45 @@ export default function IntegrationsTab() {
       )}
 
       <ConnectModal integration={selected} onClose={() => setSelected(null)} />
+    </div>
+  )
+}
+
+// Omnisend non ha OAuth (solo API key) → niente Nango: il cliente incolla la
+// key, che salviamo su companies.omnisend_api_key (il resolver la usa).
+function OmnisendKeyCard({ t }) {
+  const [key, setKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const save = async () => {
+    if (!key.trim()) return
+    setSaving(true); setSaved(false)
+    try {
+      const r = await fetch('/api/onboarding', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'omnisend', values: { omnisend_api_key: key.trim() } }),
+      })
+      const j = await r.json()
+      if (!j.error) { setSaved(true); setKey('') }
+    } catch {} finally { setSaving(false) }
+  }
+  return (
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <BrandLogo domain="omnisend.com" size={38} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Omnisend</div>
+          <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.omnisendKeyDesc', null, 'Incolla la tua API key (Store settings → Integrations & API).')}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder={t('integrations.omnisendKeyPh', null, 'API key Omnisend')}
+          style={{ flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 12px', fontSize: 13, outline: 'none' }} />
+        <button onClick={save} disabled={saving || !key.trim()} style={{ border: '1px solid var(--border)', background: 'rgba(34,197,94,0.12)', color: '#22c55e', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>
+          {saving ? '…' : saved ? '✓' : t('integrations.connectBtn', null, 'Collega')}
+        </button>
+      </div>
+      {saved && <div style={{ fontSize: 11.5, color: '#86efac' }}>{t('integrations.omnisendSaved', null, 'API key salvata. Apri la tab Email Marketing.')}</div>}
     </div>
   )
 }

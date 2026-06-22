@@ -26,6 +26,7 @@ const STEP_FIELDS = {
   meta:     ['meta_account_id', 'meta_access_token'],
   ga4:      ['ga4_property_id', 'google_client_id', 'google_client_secret', 'google_refresh_token'],
   klaviyo:  ['klaviyo_api_key'],
+  omnisend: ['omnisend_api_key'],
 }
 
 function stepCompleted(row, step) {

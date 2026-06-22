@@ -8,6 +8,7 @@ import { getAdminSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
+import { assertPublicUrl } from '../../../lib/security/ssrf'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -36,6 +37,11 @@ async function aiRecommendations(result, locale) {
 export async function POST(request) {
   let body = {}
   try { body = await request.json() } catch {}
+
+  // Anti-SSRF: l'URL da auditare è input utente → blocca host interni/privati.
+  try { await assertPublicUrl(body.url) } catch {
+    return NextResponse.json({ error: 'URL non consentito (host interno o non pubblico).' }, { status: 400 })
+  }
 
   const result = await auditPage(body.url, { targetKeyword: body.targetKeyword })
   if (result.error) return NextResponse.json({ error: result.error }, { status: 200 })

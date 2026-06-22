@@ -3,6 +3,7 @@ import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
+import { assertPublicUrl } from '../../../lib/security/ssrf'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -382,6 +383,10 @@ export async function POST(req) {
   if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized
   try { new URL(normalized) } catch {
     return NextResponse.json({ error: 'URL non valido.' }, { status: 400 })
+  }
+  // Anti-SSRF: blocca URL verso host interni/privati/metadata.
+  try { await assertPublicUrl(normalized) } catch {
+    return NextResponse.json({ error: 'URL non consentito (host interno o non pubblico).' }, { status: 400 })
   }
 
   // Scarico io l'immagine e la passo a OpenAI come base64 → niente timeout.

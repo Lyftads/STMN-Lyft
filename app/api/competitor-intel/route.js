@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
 import { getUserCompetitors } from '../../../lib/tenant/brand'
+import { assertPublicUrl } from '../../../lib/security/ssrf'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -775,6 +776,13 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
     error: null,
     stats: {},
     source: null,
+  }
+
+  // Anti-SSRF: i siti competitor arrivano da input utente (Brand Identity) →
+  // valida che l'host sia pubblico prima di scrapare (blocca interni/metadata).
+  if (origin) {
+    try { await assertPublicUrl(origin) }
+    catch { result.error = 'URL non consentito'; return result }
   }
 
   const headers = {

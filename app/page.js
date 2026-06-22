@@ -4,7 +4,7 @@ import Icon from './components/ui/Icon'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { allowedTabsFor } from '../lib/team/roleTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
-import VendroShell from './components/VendroShell'
+import AppShell from './components/AppShell'
 import dynamicImport from 'next/dynamic'
 import LiveStatsCards from './components/LiveStatsCards'
 const DashboardGlobe = dynamicImport(() => import('./components/DashboardGlobe'), { ssr: false })
@@ -2818,7 +2818,7 @@ export default function App() {
   const metaDetailRows = metaMonthly.length ? metaMonthly : metaWeekly
 
   return (
-  <VendroShell
+  <AppShell
     tab={tab}
     setTab={setTab}
     live={live}
@@ -4483,6 +4483,6 @@ export default function App() {
 )}
 
       <FloatingBrain currentTab={tab} />
-      </VendroShell>
+      </AppShell>
     )
   }

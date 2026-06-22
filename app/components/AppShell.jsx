@@ -40,7 +40,7 @@ const PRESETS = [
   { value: 'ytd', label: 'YTD' },
 ]
 
-export default function VendroShell({
+export default function AppShell({
   tab = 'dashboard',
   setTab,
   live,
@@ -252,20 +252,20 @@ const [helpOpen, setHelpOpen] = useState(false)
     }}>
       {/* Animated radial gradient background — coerente con landing */}
       <style>{`
-        @keyframes vendroOrbit1 {
+        @keyframes appOrbit1 {
           0%   { transform: translate(-15vw, -10vh) scale(1); }
           25%  { transform: translate(10vw, -15vh) scale(1.1); }
           50%  { transform: translate(20vw, 5vh) scale(0.95); }
           75%  { transform: translate(-5vw, 10vh) scale(1.05); }
           100% { transform: translate(-15vw, -10vh) scale(1); }
         }
-        @keyframes vendroOrbit2 {
+        @keyframes appOrbit2 {
           0%   { transform: translate(15vw, 10vh) scale(1); }
           33%  { transform: translate(-10vw, 15vh) scale(1.15); }
           66%  { transform: translate(12vw, -10vh) scale(0.9); }
           100% { transform: translate(15vw, 10vh) scale(1); }
         }
-        @keyframes vendroOrbit3 {
+        @keyframes appOrbit3 {
           0%   { transform: translate(0, 0) scale(1); }
           50%  { transform: translate(-15vw, 12vh) scale(1.2); }
           100% { transform: translate(0, 0) scale(1); }
@@ -280,21 +280,21 @@ const [helpOpen, setHelpOpen] = useState(false)
           width: 700, height: 700, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(191,90,242,0.18), rgba(191,90,242,0.05) 40%, transparent 70%)',
           filter: 'blur(60px)',
-          animation: 'vendroOrbit1 40s ease-in-out infinite',
+          animation: 'appOrbit1 40s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', top: '50%', right: '20%',
           width: 600, height: 600, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(41,151,255,0.15), rgba(41,151,255,0.04) 40%, transparent 70%)',
           filter: 'blur(60px)',
-          animation: 'vendroOrbit2 45s ease-in-out infinite',
+          animation: 'appOrbit2 45s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', bottom: '10%', left: '50%',
           width: 500, height: 500, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(34,197,94,0.10), transparent 70%)',
           filter: 'blur(70px)',
-          animation: 'vendroOrbit3 55s ease-in-out infinite',
+          animation: 'appOrbit3 55s ease-in-out infinite',
         }} />
       </div>
 

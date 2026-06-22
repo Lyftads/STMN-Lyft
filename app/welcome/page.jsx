@@ -1101,7 +1101,7 @@ function Reveal({ children, delay = 0, style, variant = '' }) {
   )
 }
 
-// LogoMark importato dal componente condiviso — stesso usato in VendroShell sidebar
+// LogoMark importato dal componente condiviso — stesso usato nella sidebar dell.app
 
 // ─────────────────────────────────────────────────────────────
 //  Nav with language picker

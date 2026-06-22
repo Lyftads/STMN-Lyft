@@ -16,13 +16,13 @@ const FAL_KEY = process.env.FAL_KEY
 
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
 
-// "Spina dorsale" qualità (Kive-grade): direzione fotografica editoriale/commerciale
+// "Spina dorsale" qualità (high-fidelity): direzione fotografica editoriale/commerciale
 // che ogni prompt eredita. Garantisce realismo alto, ottica/luce pro, zero artefatti AI.
-const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (Kive-grade): photorealistic, shot on a full-frame camera with a fast prime lens, deliberate professional lighting, crisp tack-sharp focus on the subject with natural depth of field, fine micro-detail and realistic textures, natural skin with pores (no plastic/AI look), accurate color and true-to-life materials, balanced composition, premium magazine finish. Avoid: warped anatomy, extra fingers, garbled text or logos, watermarks, lowres, oversharpening, HDR halos, cartoon or 3D-render look.'
+const QUALITY_SPINE = 'Render as a high-end editorial/commercial photograph (high-fidelity): photorealistic, shot on a full-frame camera with a fast prime lens, deliberate professional lighting, crisp tack-sharp focus on the subject with natural depth of field, fine micro-detail and realistic textures, natural skin with pores (no plastic/AI look), accurate color and true-to-life materials, balanced composition, premium magazine finish. Avoid: warped anatomy, extra fingers, garbled text or logos, watermarks, lowres, oversharpening, HDR halos, cartoon or 3D-render look.'
 
 // Spina qualità per il path PRODOTTO (Kontext): fedeltà assoluta del prodotto.
 // Il modello umano/scena vanno renderizzati SE descritti, ma il prodotto resta identico.
-const PRODUCT_QUALITY_SPINE = 'High-end commercial/editorial photograph (Kive-grade): photorealistic, professional lighting, tack-sharp, true-to-life materials and colors, natural skin texture when a person is present, premium finish. The featured product must stay pixel-identical to the input image. Avoid: redesigning/recoloring/reshaping/relabeling the product, garbled or altered text/logos on the product, warped geometry, watermarks, lowres, cartoon or 3D-render look.'
+const PRODUCT_QUALITY_SPINE = 'High-end commercial/editorial photograph (high-fidelity): photorealistic, professional lighting, tack-sharp, true-to-life materials and colors, natural skin texture when a person is present, premium finish. The featured product must stay pixel-identical to the input image. Avoid: redesigning/recoloring/reshaping/relabeling the product, garbled or altered text/logos on the product, warped geometry, watermarks, lowres, cartoon or 3D-render look.'
 
 // Potenzia la descrizione libera dell'utente in un prompt immagine forte.
 // I modelli rendono meglio in inglese; manteniamo soggetto/brand fedeli.
@@ -52,7 +52,7 @@ async function enhancePrompt(userPrompt, style, contextBlock, refImages = [], st
       body: JSON.stringify({
         model: hasRefs ? 'gpt-4o' : 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `You are an elite prompt engineer for top-tier image models, producing campaign-quality results on par with Kive. Rewrite the user request as ONE vivid, richly detailed English image prompt. Be specific and concrete about: subject and styling, environment/set, composition and framing, camera and lens (e.g. 50mm/85mm full-frame), the exact lighting setup, mood and color palette. When a Style is provided, treat it as the AUTHORITATIVE art direction and build the whole scene around it. Honor the brand identity, real products and palette from the client context when relevant. If reference images are attached, describe and faithfully preserve their subject, materials, colors and framing. Keep any product/brand/text exactly faithful. End the prompt by appending these quality requirements verbatim: "${QUALITY_SPINE}" No preamble, output only the final prompt.` },
+          { role: 'system', content: `You are an elite prompt engineer for top-tier image models, producing campaign-quality results on par with libreria asset. Rewrite the user request as ONE vivid, richly detailed English image prompt. Be specific and concrete about: subject and styling, environment/set, composition and framing, camera and lens (e.g. 50mm/85mm full-frame), the exact lighting setup, mood and color palette. When a Style is provided, treat it as the AUTHORITATIVE art direction and build the whole scene around it. Honor the brand identity, real products and palette from the client context when relevant. If reference images are attached, describe and faithfully preserve their subject, materials, colors and framing. Keep any product/brand/text exactly faithful. End the prompt by appending these quality requirements verbatim: "${QUALITY_SPINE}" No preamble, output only the final prompt.` },
           { role: 'user', content: userContent },
         ],
         temperature: 0.7,
@@ -110,7 +110,7 @@ async function genOpenAI(prompt, fmt) {
 }
 
 // FLUX Kontext: inserisce il PRODOTTO REALE nella scena descritta mantenendolo
-// pixel-identico (fedeltà tipo Kive). Con PIÙ foto del prodotto usa l'endpoint
+// pixel-identico (alta fedeltà). Con PIÙ foto del prodotto usa l'endpoint
 // multi-immagine (più angoli = più precisione). instruction = scena.
 async function genKontext(model, instruction, refUrls) {
   if (!FAL_KEY) return { error: 'FAL_KEY non configurata su Vercel.' }
@@ -175,7 +175,7 @@ async function buildKontextInstruction(userPrompt, style, contextBlock, refImage
     // descriva e l'istruzione preservi quei dettagli sulla PRIMA immagine.
     const extra = refs.slice(1, 4)
     const useVision = extra.length > 0
-    const sys = `You write ONE detailed English editing instruction for FLUX Kontext, campaign quality like Kive.
+    const sys = `You write ONE detailed English editing instruction for FLUX Kontext, campaign quality like libreria asset.
 The product to reproduce is the one in the FIRST input image (that is the base that will be edited). ${useVision ? 'The OTHER attached images are EXTRA reference of the SAME product from other angles/close-ups: use them ONLY to understand fine details (print wording, logo, colors, materials, stitching) so they are preserved — do NOT switch to another angle or compose them into the output; the output must keep the framing/angle of the first image unless the scene/pose requires the subject to move naturally.' : ''}
 The single hard invariant: the product stays pixel-identical (never redesign, recolor, reshape, relabel or restyle it).
 Everything else follows the request and environment: if the user describes a model/person (look, outfit, pose) and/or a location, faithfully render that person and scene, with the product naturally worn/held/used at correct scale, perspective and integrated lighting. If no person is described or implied, keep it a clean product still-life — do NOT invent a random person.

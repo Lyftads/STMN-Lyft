@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Icon from '../ui/Icon'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 
-// Modelli AI addestrati (LoRA, stile Krea / Kive Characters). Crea un modello da
+// Modelli AI addestrati (LoRA, di personaggi custom). Crea un modello da
 // 3-20 foto di un prodotto/personaggio/stile; training async; poi selezionabile
 // per generare con coerenza totale.
 const KINDS = [

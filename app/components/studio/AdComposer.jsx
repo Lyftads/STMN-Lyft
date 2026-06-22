@@ -5,7 +5,7 @@ import Icon from '../ui/Icon'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 import { AD_FORMATS, AD_TEMPLATES, renderAd, loadBrandLogo } from '../../../lib/studio/adRender'
 
-// Compositore Ad (ispirato a Mimero): sovrappone headline/sottotitolo/CTA/
+// Compositore Ad (a sovrapposizione): sovrappone headline/sottotitolo/CTA/
 // badge/logo all'immagine usando template ad alte performance. Multi-formato +
 // batch varianti. Composizione su canvas: zero crediti, istantanea, brand-safe.
 export default function AdComposer({ imageUrl, onClose, onSaved }) {

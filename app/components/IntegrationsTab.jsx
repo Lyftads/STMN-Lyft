@@ -34,7 +34,6 @@ const LOGO_MAP = {
   'stripe.com':           { slug: 'stripe',           color: '635BFF' },
   'hotjar.com':           { slug: 'hotjar',           color: 'FD3A5C' },
   'slack.com':            { slug: 'slack',            color: '4A154B' },
-  'notion.so':            { slug: 'notion',           color: '000000', dark: true },
   'zapier.com':           { slug: 'zapier',           color: 'FF4A00' },
 }
 

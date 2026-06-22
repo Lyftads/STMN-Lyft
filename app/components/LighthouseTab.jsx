@@ -9,7 +9,7 @@ import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // ─────────────────────────────────────────────────────────────
-//  Lighthouse — Alert Center (stile Triple Whale Lighthouse)
+//  Lighthouse — Alert Center (di alert proattivi)
 //  - Headline: count totale alert + breakdown severity
 //  - Filtri: tutti / high / medium / low
 //  - Card per alert con severity stripe + cause + suggestion

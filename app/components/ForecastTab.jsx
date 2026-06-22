@@ -10,7 +10,7 @@ import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 
 // ─────────────────────────────────────────────────────────────
-//  Forecast — proiezione revenue + spesa + MER (stile Triple Whale Forecast)
+//  Forecast — proiezione revenue + spesa + MER (di forecast revenue)
 //  - Card riassuntive (proiezione revenue, spend, MER, delta vs ultimo periodo)
 //  - Grafico revenue: history + forecast con banda di confidenza
 //  - Grafico spend: history + forecast

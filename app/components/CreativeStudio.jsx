@@ -14,7 +14,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Creative Studio — web app generativa (apribile a tutto schermo).
 // Lavagna INFINITA (pan + zoom rotella/pulsanti) a sinistra con toolbar
-// fluttuante stile Luma; chat laterale a destra (Creative Agent) con vocali e
+// fluttuante a tela infinita; chat laterale a destra (Creative Agent) con vocali e
 // upload immagini di riferimento. Immagini (text->image, reference) + Video
 // (text->video, image->video). Crediti via Stripe con rimborso se fallisce.
 
@@ -53,7 +53,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
   const [activeStyle, setActiveStyle] = useState(null) // preset id
   const [studioPresets, setStudioPresets] = useState([])
   const [studioCategories, setStudioCategories] = useState([])
-  const [activeStudio, setActiveStudio] = useState(null) // studio id (ambiente Kive)
+  const [activeStudio, setActiveStudio] = useState(null) // studio id (ambiente libreria asset)
   const [studiosOpen, setStudiosOpen] = useState(true)   // sidebar ambienti (sinistra) aperta
   const [studioCat, setStudioCat] = useState('all')
   const [studioQuery, setStudioQuery] = useState('')
@@ -421,7 +421,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     } catch (e) { return { ok: false, error: e.message } }
   }
 
-  // Upscaler creativo + Relight (Magnific-style). Ritorna { ok, item, error }.
+  // Upscaler creativo + Relight (creativo). Ritorna { ok, item, error }.
   const applyEnhance = async ({ imageUrl, mode, scale, prompt, maskUrl, srcFormat }) => {
     try {
       const r = await fetch('/api/studio/enhance', {
@@ -468,7 +468,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     else if (res.error && res.error !== 'insufficient') setError(res.error)
   }
 
-  // Inpainting con maschera (Weave-style) — chiamato dal MaskEditor.
+  // Inpainting con maschera (con maschera) — chiamato dal MaskEditor.
   const doInpaint = async ({ maskUrl, prompt }) => {
     if (!maskEdit || editing) return
     setEditing(true); setError('')
@@ -489,7 +489,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
     else if (res.error && res.error !== 'insufficient') setError(res.error)
   }
 
-  // Recipe (Weave-style): incatena operazioni su un'immagine, passando il
+  // Recipe (con maschera): incatena operazioni su un'immagine, passando il
   // risultato di ogni step al successivo.
   const runRecipe = async (rec) => {
     if (!lightbox || recipe || editing) return
@@ -693,7 +693,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
             <button onClick={() => zoomBy(1.2)} style={tool(false)} title="Zoom +"><Icon name="plus" size={15} /></button>
           </div>
 
-          {/* TOOLBAR Luma-style (basso-centro) */}
+          {/* TOOLBAR fluttuante (basso-centro) */}
           <div onMouseDown={e => e.stopPropagation()} style={{ position: 'absolute', left: 0, right: 0, bottom: 16, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <div className="glass-card-static" style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 999, border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', flexWrap: 'wrap', maxWidth: '95%' }}>
               <button className="cs-tt" data-tip={t('cs.toolMove', null, 'Sposta (pan)')} onClick={exitSelect} style={tool(!selectMode)}><Icon name="cursor" size={16} /></button>
@@ -825,7 +825,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
         <TryOnModal garmentImage={tryOn} boardId={boardId} onClose={() => setTryOn(null)} onSaved={(it) => setItems(prev => [it, ...prev])} onCredits={(b) => typeof b === 'number' && setBalance(b)} />
       )}
 
-      {/* Inpainting con maschera (Weave-style) */}
+      {/* Inpainting con maschera (con maschera) */}
       {maskEdit && (
         <MaskEditor imageUrl={maskEdit} busy={editing} onApply={doInpaint} onClose={() => setMaskEdit(null)} />
       )}
@@ -913,7 +913,7 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               <textarea value={editInstr} onChange={e => setEditInstr(e.target.value)} rows={3} placeholder={t('cs.editPlaceholder', null, 'Es: sfondo nero, togli la persona, luce più calda…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={() => doLightboxEdit('edit')} disabled={editing || !editInstr.trim()} style={{ ...miniBtn, opacity: editing || !editInstr.trim() ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}>{editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.apply', null, 'Applica')} · 2 cr`}</button>
 
-              {/* Upscaler creativo (Magnific-style) */}
+              {/* Upscaler creativo (creativo) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.upscale', null, 'Upscale creativo')}</div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                 {UPSCALES.map(u => <button key={u.id} onClick={() => doLightboxUpscale(u.id)} disabled={editing} style={{ ...miniBtn, opacity: editing ? 0.5 : 1 }}><Icon name="scan" size={12} /> {u.label} · {u.credits} cr</button>)}
@@ -921,22 +921,22 @@ export default function CreativeStudio({ standalone = false, onNavigate, boardId
               </div>
               <div style={{ fontSize: 10.5, color: 'var(--text3,#888)', marginBottom: 8 }}>{t('cs.upscaleHint', null, 'Alza risoluzione e rigenera micro-dettaglio (pelle, tessuti). “Migliora” ripristina e affina senza ingrandire.')}</div>
 
-              {/* Relight (Magnific Relight) */}
+              {/* Relight (Relight) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '8px 0 6px' }}>{t('cs.relight', null, 'Relight — illuminazione')}</div>
               <textarea value={relightInstr} onChange={e => setRelightInstr(e.target.value)} rows={2} placeholder={activeStudio ? t('cs.relightStudioPh', { name: studioPresets.find(s => s.id === activeStudio)?.label }, `Vuoto = usa la luce dello Studio "${studioPresets.find(s => s.id === activeStudio)?.label}"`) : t('cs.relightPh', null, 'Es: luce calda da sinistra al tramonto, ombre morbide…')} style={{ width: '100%', resize: 'none', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 10, padding: 10, color: 'var(--text)', fontSize: 13, fontFamily: 'Barlow', marginBottom: 8 }} />
               <button onClick={doLightboxRelight} disabled={editing || (!relightInstr.trim() && !activeStudio)} style={{ ...miniBtn, opacity: editing || (!relightInstr.trim() && !activeStudio) ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="bulb" size={13} /> {editing ? t('cs.editing', null, 'Modifico…') : `${t('cs.relightApply', null, 'Riaccendi')} · ${RELIGHT_COST} cr`}</button>
 
-              {/* Inpainting con maschera (Weave-style) */}
+              {/* Inpainting con maschera (con maschera) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.inpaint', null, 'Inpainting — maschera')}</div>
               <button onClick={() => setMaskEdit(lightbox.url)} disabled={editing} style={{ ...miniBtn, opacity: editing ? 0.5 : 1, justifyContent: 'center', padding: '10px 0' }}><Icon name="edit" size={13} /> {t('cs.inpaintOpen', null, 'Dipingi e rigenera area')} · 3 cr</button>
 
-              {/* Camera angle (Weave-style) */}
+              {/* Camera angle (con maschera) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.cameraAngle', null, 'Angolo camera')}</div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                 {CAMERA_ANGLES.map(a => <button key={a.id} onClick={() => doLightboxCamera(a)} disabled={editing} style={{ ...chip, opacity: editing ? 0.5 : 1 }}>{a.label}</button>)}
               </div>
 
-              {/* Recipes (Weave-style workflow 1-click) */}
+              {/* Recipes (con maschera workflow 1-click) */}
               <div style={{ fontSize: 11, color: 'var(--text3,#888)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, margin: '16px 0 6px' }}>{t('cs.recipes', null, 'Recipe — 1 click')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {RECIPES.map(r => (

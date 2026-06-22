@@ -5,7 +5,7 @@ import Icon from './ui/Icon'
 import Avatar from './Avatar'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
-// Lyftimer — time tracking stile Hubstaff. Ogni membro avvia un timer scegliendo
+// Lyftimer — time tracking professionale. Ogni membro avvia un timer scegliendo
 // progetto, (opz.) task e una descrizione di cosa sta facendo. Allo stop la voce
 // viene salvata nel timesheet con la durata. Totali per giorno/settimana e
 // riepilogo per progetto. L'admin può vedere il tempo di tutto il team.
@@ -946,7 +946,7 @@ export default function TimeTrackingTab({ standalone = false }) {
   )
 }
 
-// Menu laterale di Lyftimer (stile Hubstaff).
+// Menu laterale di Lyftimer (professionale).
 function LyftSidebar({ section, setSection }) {
   const { t } = useI18n()
   const items = [

@@ -5,7 +5,7 @@ import CreativeStudio from '../components/CreativeStudio'
 import BoardsHome from '../components/studio/BoardsHome'
 
 // Creative Studio a tutto schermo. Prima la home "I miei progetti" (board
-// multiple, stile Luma); aprendo una board si entra nello Studio per quel
+// multiple, a tela infinita); aprendo una board si entra nello Studio per quel
 // progetto, con un tasto per tornare ai progetti.
 export default function CreativeStudioAppPage() {
   const [board, setBoard] = useState(null) // { id, title } | null

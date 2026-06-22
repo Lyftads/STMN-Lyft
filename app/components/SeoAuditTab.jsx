@@ -311,7 +311,7 @@ function PdfButton({ type, data }) {
 }
 
 
-/* ---------- Keyword AI (à la Neil Patel) ---------- */
+/* ---------- Keyword AI (Keyword AI) ---------- */
 function KeywordAIPanel() {
   const { t } = useI18n()
   const [kw, setKw] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [d, setD] = useState(null)

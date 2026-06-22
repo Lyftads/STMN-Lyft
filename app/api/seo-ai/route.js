@@ -45,7 +45,7 @@ export async function POST(request) {
   const mode = body.mode
 
   try {
-    // ---- 1) KEYWORD AI (à la Neil Patel) --------------------------------
+    // ---- 1) KEYWORD AI (Keyword AI) --------------------------------
     if (mode === 'keyword') {
       const kw = (body.keyword || '').trim()
       if (!kw) return NextResponse.json({ error: 'keyword mancante' }, { status: 400 })

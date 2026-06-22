@@ -6,7 +6,7 @@ import { withTenantContext } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
 
 // ============================================================================
-//  Forecast — proiezione revenue + spesa + MER (stile Triple Whale Forecast)
+//  Forecast — proiezione revenue + spesa + MER (di forecast revenue)
 //
 //  Metodologia:
 //   - Pulisce le serie giornaliere (revenue Shopify + spend Meta).

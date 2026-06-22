@@ -5,7 +5,7 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 import Icon from './ui/Icon'
 
 // ─────────────────────────────────────────────────────────────
-//  MultiWindowCards — comparativa rolling-windows in stile Madgicx.
+//  MultiWindowCards — comparativa rolling-windows in a finestre mobili.
 //
 //  Fetcha 4 finestre (last_3d, last_7d, last_14d, last_30d) in
 //  parallelo, riusa la cache SWR centralizzata.

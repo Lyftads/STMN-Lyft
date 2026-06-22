@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Icon from '../ui/Icon'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 
-// Inpainting con maschera (stile Figma Weave): l'utente dipinge l'area da
+// Inpainting con maschera (a pennello): l'utente dipinge l'area da
 // rigenerare; esportiamo una maschera (nero = tieni, bianco = rigenera) alla
 // risoluzione naturale dell'immagine e la passiamo a FLUX Fill.
 // Le pennellate sono memorizzate in coordinate normalizzate (0–1) così la

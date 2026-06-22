@@ -7,7 +7,7 @@ import { swrSnapshot } from '../../../lib/cache/swr'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
-//  Lighthouse — Alert Center (stile Triple Whale Lighthouse)
+//  Lighthouse — Alert Center (di alert proattivi)
 //
 //  Detecta anomalie statistiche sui KPI Meta giornalieri:
 //   - CPM spike (>+25% vs baseline)

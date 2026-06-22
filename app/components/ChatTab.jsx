@@ -506,7 +506,7 @@ export default function ChatTab({ standalone = false }) {
       </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '70vh' }}>
-        {/* Rail icone (stile Slack) */}
+        {/* Rail icone (a colonne) */}
         <div style={{ ...PANEL, width: 60, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0' }}>
           <RailBtn active={rail === 'home'} onClick={() => selectRail('home')} title={tr('ch.allChannels', null, 'All channels')}><Icon name="hash" size={20} /></RailBtn>
           <RailBtn active={rail === 'dms'} onClick={() => selectRail('dms')} title={tr('ch.directMessages', null, 'Direct messages')}><Icon name="dm" size={20} /></RailBtn>
@@ -772,7 +772,7 @@ export default function ChatTab({ standalone = false }) {
             </div>
           )}
 
-          {/* Composer stile Slack */}
+          {/* Composer a colonne */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
             {replyTo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 12.5 }}>

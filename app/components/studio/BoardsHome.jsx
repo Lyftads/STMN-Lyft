@@ -5,7 +5,7 @@ import Icon from '../ui/Icon'
 import CreativeStudioLogo from '../ui/CreativeStudioLogo'
 import { useI18n } from '../../../lib/i18n/I18nProvider'
 
-// Home "I miei progetti" (stile Luma Boards): griglia di board con copertina,
+// Home "I miei progetti" (a board): griglia di board con copertina,
 // crea / rinomina / elimina. Cliccando una board si apre lo Studio.
 export default function BoardsHome({ onOpen }) {
   const { t, intlLocale } = useI18n()
@@ -82,7 +82,7 @@ export default function BoardsHome({ onOpen }) {
 
         <h1 style={{ textAlign: 'center', fontSize: 30, fontWeight: 900, margin: '28px 0 20px', letterSpacing: '-0.02em' }}>{t('cs.boardsHeadline', null, 'Cosa vuoi creare oggi?')}</h1>
 
-        {/* Barra crea (stile Luma): scrivi e parte un nuovo progetto */}
+        {/* Barra crea (a tela infinita): scrivi e parte un nuovo progetto */}
         <div style={{ maxWidth: 720, margin: '0 auto 34px', background: 'var(--glass2,rgba(255,255,255,0.05))', border: '1px solid var(--border)', borderRadius: 18, padding: 16 }}>
           <textarea
             value={prompt}

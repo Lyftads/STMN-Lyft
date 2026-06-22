@@ -12,8 +12,8 @@ const FAL_KEY = process.env.FAL_KEY
 const json = (d, s = 200) => NextResponse.json(d, { status: s })
 
 // POST { imageUrl, mode:'upscale'|'relight', scale?, prompt?, srcFormat? }
-// upscale → Clarity Upscaler (Magnific-style): 2×/4× con dettaglio creativo
-// relight → IC-Light v2 (Magnific Relight): riacciende la scena via prompt/Studio
+// upscale → Clarity Upscaler (creativo): 2×/4× con dettaglio creativo
+// relight → IC-Light v2 (Relight): riacciende la scena via prompt/Studio
 export async function POST(req) {
   const user = await getAuthUser()
   if (!user) return json({ error: 'Non autenticato' }, 401)

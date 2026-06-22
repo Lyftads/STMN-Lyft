@@ -69,8 +69,16 @@ export default function PrivacyPolicy() {
             <li><strong style={{ color: '#fff' }}>Vercel</strong> — {t('priv.subVercel', null, 'application hosting')}</li>
             <li><strong style={{ color: '#fff' }}>Nango</strong> — {t('priv.subNango', null, 'OAuth and token management')}</li>
             <li><strong style={{ color: '#fff' }}>OpenAI</strong> — {t('priv.subOpenai', null, "processing of requests to AI assistants (aggregated performance data, not customers' PII)")}</li>
-            <li><strong style={{ color: '#fff' }}>Browserless</strong> — {t('priv.subBrowserless', null, 'PDF report generation')}</li>
+            <li><strong style={{ color: '#fff' }}>Browserless</strong> — {t('priv.subBrowserless', null, 'PDF and screenshot generation (headless browser)')}</li>
             <li><strong style={{ color: '#fff' }}>Supabase</strong> — {t('priv.subSupabase', null, 'merchant authentication and application data')}</li>
+            <li><strong style={{ color: '#fff' }}>Google (Gemini)</strong> — {t('priv.subGoogleAi', null, 'AI processing of requests (aggregated data, no PII)')}</li>
+            <li><strong style={{ color: '#fff' }}>fal.ai</strong> — {t('priv.subFal', null, 'image and video generation (Creative Studio)')}</li>
+            <li><strong style={{ color: '#fff' }}>ElevenLabs</strong> — {t('priv.subEleven', null, 'voice synthesis for AI assistants')}</li>
+            <li><strong style={{ color: '#fff' }}>Stripe</strong> — {t('priv.subStripe', null, 'payments and subscriptions')}</li>
+            <li><strong style={{ color: '#fff' }}>Resend</strong> — {t('priv.subResend', null, 'sending report and notification emails')}</li>
+            <li><strong style={{ color: '#fff' }}>Microlink / ScreenshotOne</strong> — {t('priv.subScreenshot', null, 'page screenshots (AI Website Scanner)')}</li>
+            <li><strong style={{ color: '#fff' }}>LiveKit</strong> — {t('priv.subLivekit', null, 'group audio/video calls')}</li>
+            <li><strong style={{ color: '#fff' }}>Railway</strong> — {t('priv.subRailway', null, 'hosting of the call worker')}</li>
           </ul>
 
           <h2 style={h2}>{t('priv.h6', null, '6. Retention and deletion')}</h2>

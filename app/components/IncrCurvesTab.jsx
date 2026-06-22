@@ -5,6 +5,8 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import RecosCard from './ui/RecosCard'
+import { curvesRecos } from '../../lib/incrementality/recos'
 import { ComposedChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, ReferenceLine } from 'recharts'
 
 const CH_COLOR = { meta: '#2997ff', google: '#eab308' }
@@ -62,6 +64,8 @@ export default function IncrCurvesTab() {
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('incr.modeling', null, 'Modeling incrementality…')}</div>}
         {!loading && error && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '16px 0' }}>{error === 'not_enough_data' ? t('incr.errNotEnough', null, 'Not enough history yet.') : error === 'no_channels' ? t('incr.errNoChannels', null, 'Connect Meta or Google Ads.') : t('incr.errGeneric', null, 'Could not compute right now.')}</div>}
+
+        {data?.ok && <RecosCard recos={curvesRecos(data, { t, x, pct, names: data.channelNames })} />}
 
         {data?.ok && channels.map(c => {
           const col = CH_COLOR[c.key] || TEAL

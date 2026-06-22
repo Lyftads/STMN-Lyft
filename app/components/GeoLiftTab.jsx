@@ -5,6 +5,7 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import RecosCard from './ui/RecosCard'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const TEAL = '#14b8a6'
@@ -101,6 +102,14 @@ export default function GeoLiftTab() {
               <Big label={t('geo.matchQuality', null, 'Match quality')} value={`${matchPct}%`} color={matchColor} sub={matchPct >= 80 ? t('geo.matchGood', null, 'control tracks test well') : t('geo.matchWeak', null, 'control tracks test loosely')} />
               <Big label={t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
             </div>
+
+            <RecosCard recos={(() => {
+              const out = []
+              out.push({ level: 'high', text: t('reco.geoRun', { c: channelName, w: data.recommendedWeeks, mde: pct(data.recommendedMde) }, `Run the geo-lift on ${channelName}: ${data.recommendedWeeks} weeks, you'll detect a lift ≥ ${pct(data.recommendedMde)}. It's the causal proof of incrementality.`) })
+              if (data.matchQuality >= 0.8) out.push({ level: 'info', text: t('reco.geoMatchGood', { p: matchPct }, `Match ${matchPct}%: control tracks test well, the experiment will be reliable.`) })
+              else out.push({ level: 'high', text: t('reco.geoMatchWeak', { p: matchPct }, `Match ${matchPct}% (weak): use a longer pre-period or more homogeneous regions for a solid result.`) })
+              return out
+            })()} />
 
             {/* Striscia MDE per durata (mostra l'effetto della durata) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16, fontSize: 12 }}>

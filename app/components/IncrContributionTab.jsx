@@ -5,6 +5,8 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import RecosCard from './ui/RecosCard'
+import { contributionRecos } from '../../lib/incrementality/recos'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
 
 const CH_COLOR = { meta: '#2997ff', google: '#eab308' }
@@ -175,6 +177,8 @@ export default function IncrContributionTab() {
                 )
               })}
             </div>
+
+            <RecosCard recos={contributionRecos(data, { t, eur, x, pct, names: data.channelNames })} />
 
             {/* Attribuito vs Incrementale */}
             <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16, marginBottom: 16 }}>

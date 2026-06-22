@@ -5,6 +5,7 @@ import Icon from './ui/Icon'
 import FxCard from './ui/FxCard'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import RecosCard from './ui/RecosCard'
 
 const CH_COLOR = { meta: '#2997ff', google: '#eab308' }
 const TEAL = '#14b8a6'
@@ -114,6 +115,13 @@ export default function IncrSimulatorTab() {
               <Big label={t('incr.plannedSpend', null, 'Planned spend')} value={eur(sim.spendNew)} />
               <Big label={t('incr.blendedIRoas', null, 'Blended incr. ROAS')} value={x(sim.spendNew > 0 ? sim.incNew / sim.spendNew : 0)} />
             </div>
+
+            <RecosCard recos={(() => {
+              const out = []
+              if (advice) out.push({ level: 'high', text: t('reco.simRealloc', { from: data.channelNames?.[advice.from.key] || advice.from.key, to: data.channelNames?.[advice.to.key] || advice.to.key }, `Try the suggested shift: move budget from ${data.channelNames?.[advice.from.key] || advice.from.key} to ${data.channelNames?.[advice.to.key] || advice.to.key} and watch the incremental rise.`) })
+              for (const c of channels) if (c.mRoas >= 1.2 && c.saturation < 0.65) out.push({ level: 'info', text: t('reco.simScale', { c: data.channelNames?.[c.key] || c.key, x: x(c.mRoas) }, `${data.channelNames?.[c.key] || c.key} has next-€ ${x(c.mRoas)}: nudge its slider up ~20% and check the incremental gain.`) })
+              return out
+            })()} />
 
             {/* Sliders per canale */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px,1fr))', gap: 14, marginBottom: 16 }}>

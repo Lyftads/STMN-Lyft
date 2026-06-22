@@ -1,3 +1,17 @@
 {
-  "incr.reportedEst": "riportato ~{v} (stimato)"
+  "reco.title": "Azioni proattive & to-do",
+  "reco.cut": "Frena {c}: il prossimo euro rende {x} (sotto 1× = in perdita al margine). Non aggiungere budget qui.",
+  "reco.scale": "Scala {c}: il prossimo euro rende {x} e sei solo al {s} di saturazione — c'è spazio per crescere.",
+  "reco.overclaim": "Non fidarti del ROAS di {c}: riporta {rep} ma l'incrementale reale è {ir} (gonfiato ~{p}). Decidi sull'incrementale, non sul ROAS di piattaforma.",
+  "reco.realloc": "Sposta budget da {from} (marginale basso) a {to} (prossimo € {x}): stesso budget, più ricavo incrementale.",
+  "reco.importGoogle": "Importa il valore di conversione di Google Ads: ora il suo ricavo è stimato — col dato reale l'analisi diventa precisa.",
+  "reco.lowConf": "Affidabilità bassa (R² {r2}): il totale è solido ma lo split tra canali è incerto — valida con un geo-lift prima di spostamenti grossi.",
+  "reco.curveSat": "{c} è oltre il punto efficiente ({s} saturo): ridurre la spesa migliorerebbe l'efficienza, non la peggiora.",
+  "reco.curveRoom": "{c} ha spazio sulla curva (prossimo € {x}): aumenta gradualmente e rimisura.",
+  "reco.carry": "Carryover {c} = {d} giorni: non giudicare le campagne {c} prima di {d} giorni — le vendite arrivano dopo.",
+  "reco.simRealloc": "Prova lo spostamento suggerito: sposta budget da {from} a {to} e guarda l'incrementale salire.",
+  "reco.simScale": "{c} ha prossimo € {x}: alza il suo slider di ~20% e guarda il guadagno incrementale.",
+  "reco.geoRun": "Lancia il geo-lift su {c}: {w} settimane, rileverai un lift ≥ {mde}. È la prova causale dell'incrementalità.",
+  "reco.geoMatchGood": "Matching {p}%: il control segue bene il test, l'esperimento sarà affidabile.",
+  "reco.geoMatchWeak": "Matching {p}% (debole): usa un periodo pre-test più lungo o regioni più omogenee per un risultato solido."
 }

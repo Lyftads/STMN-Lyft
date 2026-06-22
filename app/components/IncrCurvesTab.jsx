@@ -60,7 +60,8 @@ export default function IncrCurvesTab() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.4}>
-        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>{t('incr.curvesSub', null, 'How much the next euro returns, and how long today’s spend keeps working.')}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 6 }}>{t('incr.curvesSub', null, 'How much the next euro returns, and how long today’s spend keeps working.')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 14, opacity: 0.85 }}><Icon name="info" size={11} /> {t('incr.satNote', null, 'Saturation is a model estimate anchored to your spend distribution (per-channel knee), not measured — the geo-lift reveals the real curve.')}</div>
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('incr.modeling', null, 'Modeling incrementality…')}</div>}
         {!loading && error && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '16px 0' }}>{error === 'not_enough_data' ? t('incr.errNotEnough', null, 'Not enough history yet.') : error === 'no_channels' ? t('incr.errNoChannels', null, 'Connect Meta or Google Ads.') : t('incr.errGeneric', null, 'Could not compute right now.')}</div>}
@@ -79,7 +80,7 @@ export default function IncrCurvesTab() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 <span style={{ width: 9, height: 9, borderRadius: 999, background: col }} />
                 <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{data.channelNames?.[c.key] || c.key}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {t('incr.atSpend', { s: eur(c.avgSpend) }, `at ${eur(c.avgSpend)}/day`)} · {t('incr.mRoasShort', { x: x(c.mRoas) }, `next-€ ${x(c.mRoas)}`)} · {t('incr.satShort', { p: pct(c.saturation) }, `${pct(c.saturation)} saturated`)}</span>
+                <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {t('incr.atSpend', { s: eur(c.avgSpend) }, `at ${eur(c.avgSpend)}/day`)} · {t('incr.mRoasShort', { x: x(c.mRoas) }, `next-€ ${x(c.mRoas)}`)} · {t('incr.satShort', { p: pct(c.saturation) }, `${pct(c.saturation)} saturated`)} · {t('incr.halfSat', { s: eur(c.halfSatSpend) }, `half-sat ~${eur(c.halfSatSpend)}/day`)}</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 16, alignItems: 'stretch' }}>

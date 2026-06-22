@@ -136,6 +136,7 @@ export default function IncrContributionTab() {
 
             <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5, margin: '-4px 0 14px' }}>
               <Icon name="info" size={12} /> {t('incr.methodNote', null, 'Realistic estimate: we start from platform-reported revenue and apply typical e-commerce incrementality factors (Meta ~70%, Google ~55%, reduced by saturation), with a minimum organic baseline. These are priors — the geo-lift gives certainty.')}
+              <br /><Icon name="info" size={12} /> {t('incr.satNote', null, 'Saturation is a model estimate anchored to your spend distribution (per-channel knee), not measured — the geo-lift reveals the real curve.')}
             </div>
 
             {/* Banner affidabilità: cosa fidarsi e cosa no */}

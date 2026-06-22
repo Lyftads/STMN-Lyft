@@ -14,12 +14,13 @@ export async function GET() {
   try {
     const { data } = await admin
       .from('companies')
-      .select('nango_connections, meta_account_id, google_refresh_token, ga4_property_id, gsc_site_url, google_ads_customer_id')
+      .select('nango_connections, meta_account_id, google_refresh_token, ga4_property_id, gsc_site_url, google_ads_customer_id, shopify_store_url')
       .eq('user_id', userId)
       .maybeSingle()
     const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
     return NextResponse.json({
       connected: Object.keys(conns),
+      shopifyStore: !!data?.shopify_store_url || Object.keys(conns).includes('shopify'),
       metaAccountId: data?.meta_account_id || null,
       googleConnected: !!data?.google_refresh_token,
       ga4PropertyId: data?.ga4_property_id || null,

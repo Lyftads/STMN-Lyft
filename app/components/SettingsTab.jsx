@@ -1051,7 +1051,7 @@ export default function SettingsTab() {
   const [isShopify, setIsShopify] = useState(false)
   useEffect(() => {
     fetch('/api/integrations/status').then(r => r.json())
-      .then(st => setIsShopify(Array.isArray(st?.connected) && st.connected.includes('shopify')))
+      .then(st => setIsShopify(!!st?.shopifyStore || (Array.isArray(st?.connected) && st.connected.includes('shopify'))))
       .catch(() => {})
   }, [])
 

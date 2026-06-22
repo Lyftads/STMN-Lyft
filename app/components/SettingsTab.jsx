@@ -440,10 +440,12 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
   )
 }
 
-function ComparisonTable({ cadence = null }) {
+function ComparisonTable({ cadence = null, hideEnterprise = false }) {
   const { t } = useI18n()
   const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
-  const prices = [69, 149, 299, null] // Starter / Growth / Scale / Enterprise
+  const heads = hideEnterprise ? ['Starter', 'Growth', 'Scale'] : ['Starter', 'Growth', 'Scale', 'Enterprise']
+  const tiers = hideEnterprise ? ['starter', 'growth', 'scale'] : ['starter', 'growth', 'scale', 'enterprise']
+  const prices = hideEnterprise ? [69, 149, 299] : [69, 149, 299, null] // Starter / Growth / Scale / Enterprise
   return (
     <div style={{
       borderRadius: 16,
@@ -461,7 +463,7 @@ function ComparisonTable({ cadence = null }) {
               letterSpacing: '0.14em', textTransform: 'uppercase',
               borderBottom: '1px solid var(--border)',
             }}>{t('settings.feature', null, 'Feature')}</th>
-            {['Starter','Growth','Scale','Enterprise'].map((p, i) => (
+            {heads.map((p, i) => (
               <th key={p} style={{
                 textAlign: 'center', padding: '14px 16px', minWidth: 96,
                 fontSize: 11, fontWeight: 900, color: 'var(--text)',
@@ -505,7 +507,7 @@ function ComparisonTable({ cadence = null }) {
                 fontSize: 12.5, color: 'var(--text)',
                 borderBottom: '1px solid var(--border)',
               }}>{t(row.featureKey, null, row.feature)}</td>
-              {['starter','growth','scale','enterprise'].map((tier, j) => {
+              {tiers.map((tier, j) => {
                 const v = row[tier]
                 return (
                   <td key={tier} style={{
@@ -1044,6 +1046,14 @@ export default function SettingsTab() {
   const [dataLoading, setDataLoading] = useState(true)
   const [dataError, setDataError] = useState(null)
   const [banner, setBanner] = useState(null) // 'success' | 'cancelled' | 'setup-success' | 'setup-cancelled'
+  // I merchant Shopify NON vedono il piano Enterprise "Contattaci" (off-platform):
+  // su Shopify si usa solo il Managed Pricing standard (Shopify App Review 1.2.3).
+  const [isShopify, setIsShopify] = useState(false)
+  useEffect(() => {
+    fetch('/api/integrations/status').then(r => r.json())
+      .then(st => setIsShopify(Array.isArray(st?.connected) && st.connected.includes('shopify')))
+      .catch(() => {})
+  }, [])
 
   // 1) On mount: parse query params per banner, pulisci URL, fetch dati
   useEffect(() => {
@@ -1158,7 +1168,7 @@ export default function SettingsTab() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
-              {PLANS.map(p => (
+              {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
                 <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} />
               ))}
             </div>
@@ -1179,7 +1189,7 @@ export default function SettingsTab() {
             {t('settings.comparePlans', null, 'Comparativa piani')}
           </div>
         </div>
-        <ComparisonTable cadence={audience === 'agency' ? null : bc} />
+        <ComparisonTable cadence={audience === 'agency' ? null : bc} hideEnterprise={isShopify} />
       </GlassCard>
 
       <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />

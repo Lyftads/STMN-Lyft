@@ -155,6 +155,48 @@ async function creativeImages(adIds) {
   }
   return out
 }
+
+// ── Top creatività Meta del periodo (immagine + copy + titolo + descrizione + CTA + dati) ──
+function metaCreativeFields(c) {
+  const oss = c.object_story_spec || {}
+  const ld = oss.link_data || oss.video_data || {}
+  const afs = c.asset_feed_spec || {}
+  const ok = (u) => u && !u.includes(GENERIC_PLACEHOLDER)
+  const img = ok(c.image_url) ? c.image_url : (ok(c.thumbnail_url) ? c.thumbnail_url : null)
+  const body = c.body || ld.message || afs.bodies?.[0]?.text || ''
+  const title = c.title || ld.name || afs.titles?.[0]?.text || ''
+  const desc = ld.description || afs.descriptions?.[0]?.text || ''
+  const cta = c.call_to_action_type || ld.call_to_action?.type || afs.call_to_action_types?.[0] || ''
+  const psId = c.product_set_id || oss.template_data?.product_set_id || afs.product_set_id
+  return { img, body, title, desc, cta, psId }
+}
+async function topMetaCreatives(since, until, limit = 10) {
+  const META_TOKEN = getMeta().accessToken
+  const acc = accountIds()
+  if (!acc.length || !META_TOKEN) return null
+  const ads = []
+  const fields = 'ad_id,ad_name,spend,impressions,inline_link_clicks,reach,frequency,actions,action_values'
+  for (const id of acc) {
+    const j = await metaGraph(`${id}/insights`, { level: 'ad', time_range: JSON.stringify({ since, until }), fields, limit: '300' })
+    for (const r of (j?.data || [])) ads.push({ id: r.ad_id, name: r.ad_name, ...rowFromInsight(r) })
+  }
+  // "Migliori" = per ricavo generato, poi per spesa
+  const top = ads.filter(a => a.spend > 0).sort((a, b) => (b.revenue - a.revenue) || (b.spend - a.spend)).slice(0, limit)
+  if (!top.length) return null
+  const det = {}
+  const ids = top.map(a => a.id)
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50)
+    const d = await metaGraph('', { ids: chunk.join(','), fields: 'creative{thumbnail_url,image_url,body,title,call_to_action_type,object_story_spec,asset_feed_spec,product_set_id}' })
+    if (!d) continue
+    for (const aid of chunk) {
+      const f = metaCreativeFields(d[aid]?.creative || {})
+      if (!f.img && f.psId) { const p = await metaGraph(`${f.psId}/products`, { fields: 'image_url', limit: '1' }); f.img = p?.data?.[0]?.image_url || null }
+      det[aid] = f
+    }
+  }
+  return top.map(a => ({ ...a, ...(det[a.id] || {}) }))
+}
 async function campaignHierarchy(campaignId, since, until) {
   const tr = JSON.stringify({ since, until })
   const fields = 'spend,impressions,inline_link_clicks,reach,frequency,actions,action_values'
@@ -384,17 +426,6 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${grid(kb.kpis)}
     ${kb.daily?.length ? `<div class="chart">${barChart(kb.daily, 'revenue')}</div>` : ''}` : ''
 
-  // Problemi & soluzioni (Lighthouse Meta + Google)
-  const alerts = [...(S.lighthouse?.meta || []), ...(S.lighthouse?.google || [])]
-  const problemsSection = alerts.length ? `
-    <h2>${_tr('🚨 Problemi rilevati e soluzioni')}</h2>
-    ${alerts.slice(0, 12).map(a => `
-      <div class="alert">
-        <div class="alert-h"><span class="sev ${esc(a.severity || 'medium')}">${esc((a.severity || 'media').toUpperCase())}</span> <b>${esc(a.title || a.metric || 'Anomalia')}</b></div>
-        ${a.why ? `<div class="alert-r"><span>${_tr('Perché')}</span> ${esc(a.why)}</div>` : ''}
-        ${a.action || (a.proposals && a.proposals[0]) ? `<div class="alert-r"><span>${_tr('Soluzione')}</span> ${esc(a.action || a.proposals[0])}</div>` : ''}
-      </div>`).join('')}` : ''
-
   // Meta KPI
   const mk = S.metaKpi
   const metaKpiSection = mk ? `<h2>${_tr('🔵 Meta KPI')}</h2>${grid(mk.kpis)}` : ''
@@ -442,12 +473,60 @@ function buildFullHtml({ label, range, narrative, S }) {
       ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
-  // Klaviyo
+  // Klaviyo (KPI + email inviate nel periodo + flow)
   const kl = S.klaviyo
+  const klEmails = S.klaviyoEmails
   const klSection = kl ? `
     <h2>${_tr('✉️ Klaviyo — email marketing')}</h2>
     ${grid(kl.kpis)}
+    ${klEmails?.length ? `<h3>${_tr('Email inviate nel periodo')}</h3><table><thead><tr><th>${_tr('Email')}</th><th>${_tr('Destinatari')}</th><th>Open rate</th><th>Click rate</th><th>${_tr('Conversioni')}</th><th>${_tr('Fatturato')}</th></tr></thead><tbody>
+      ${klEmails.map(e => `<tr><td>${esc(e.name || '—')}</td><td>${intf(e.recipients)}</td><td>${num(e.openRate).toFixed(1)}%</td><td>${num(e.clickRate).toFixed(1)}%</td><td>${intf(e.conversions)}</td><td>${money2(e.revenue)}</td></tr>`).join('')}
+      </tbody></table>` : ''}
     ${kl.flows?.length ? `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Stato')}</th></tr></thead><tbody>${kl.flows.slice(0, 12).map(f => `<tr><td>${esc(f.name)}</td><td>${esc(f.status || '')}</td></tr>`).join('')}</tbody></table>` : ''}` : ''
+
+  // Top 10 prodotti per fatturato (da KPI Brain)
+  const tp = S.topProducts
+  const topProductsSection = tp?.length ? `
+    <h2>${_tr('🏆 Top 10 prodotti per fatturato')}</h2>
+    <table><thead><tr><th>#</th><th>${_tr('Prodotto')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Quantità')}</th></tr></thead><tbody>
+      ${tp.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.label || p.product || p.title || '—')}</td><td>${money2(p.revenue ?? p.value)}</td><td>${intf(p.orders)}</td><td>${intf(p.quantity)}</td></tr>`).join('')}
+    </tbody></table>` : ''
+
+  // Vendite per giorno della settimana (da KPI Brain)
+  const wd = S.weekday
+  const wdMax = wd?.length ? Math.max(...wd.map(d => num(d.revenue ?? d.value)), 1) : 1
+  const weekdaySection = wd?.length ? `
+    <h2>${_tr('📅 Vendite per giorno della settimana')}</h2>
+    <table><thead><tr><th>${_tr('Giorno')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th></th></tr></thead><tbody>
+      ${wd.map(d => { const v = num(d.revenue ?? d.value); const w = Math.max(3, (v / wdMax) * 100); return `<tr><td>${esc(_tr(d.label || d.day))}</td><td>${money2(v)}</td><td>${intf(d.orders)}</td><td style="width:42%"><div class="wbar"><div style="width:${w}%"></div></div></td></tr>` }).join('')}
+    </tbody></table>` : ''
+
+  // Vendite e ordini per paese
+  const ctr = S.countries
+  const countriesSection = ctr?.length ? `
+    <h2>${_tr('🌍 Vendite e ordini per paese')}</h2>
+    <table><thead><tr><th>${_tr('Paese')}</th><th>${_tr('Fatturato')}</th><th>${_tr('Ordini')}</th><th>${_tr('Nuovi')}</th><th>${_tr('Ritorno')}</th></tr></thead><tbody>
+      ${ctr.map(c => `<tr><td>${esc(c.country || c.country_code || '—')}</td><td>${money2(c.revenue)}</td><td>${intf(c.orders)}</td><td>${intf(c.ncOrders)}</td><td>${intf(c.rcOrders)}</td></tr>`).join('')}
+    </tbody></table>` : ''
+
+  // Top 10 creatività Meta (immagine + copy + titolo + descrizione + CTA + dati)
+  const mc = S.metaCreatives
+  const metaCreativesSection = mc?.length ? `
+    <h2>${_tr('🎨 Top 10 creatività Meta')}</h2>
+    <div class="creatives">
+      ${mc.map((c, i) => `<div class="creative">
+        <div class="cr-rank">#${i + 1}</div>
+        ${c.img ? `<img class="cr-img" src="${esc(c.img)}"/>` : `<div class="cr-img cr-noimg">—</div>`}
+        <div class="cr-info">
+          <div class="cr-name">${esc(c.name || '—')}</div>
+          ${c.title ? `<div class="cr-title">${esc(c.title)}</div>` : ''}
+          ${c.body ? `<div class="cr-copy">${esc(String(c.body).slice(0, 240))}${String(c.body).length > 240 ? '…' : ''}</div>` : ''}
+          ${c.desc ? `<div class="cr-desc">${esc(String(c.desc).slice(0, 150))}</div>` : ''}
+          ${c.cta ? `<div><span class="cr-cta">${esc(String(c.cta).replace(/_/g, ' '))}</span></div>` : ''}
+          <div class="cr-metrics"><span><b>${money2(c.spend)}</b> ${_tr('spesa')}</span><span><b>${num(c.roas).toFixed(2)}x</b> ROAS</span><span><b>${money2(c.revenue)}</b> ${_tr('ricavo')}</span><span><b>${intf(c.purchases)}</b> ${_tr('acquisti')}</span><span><b>${num(c.ctr).toFixed(2)}%</b> CTR</span></div>
+        </div>
+      </div>`).join('')}
+    </div>` : ''
 
   return `<!doctype html><html lang="${_lang}"><head><meta charset="utf-8"><style>
     * { box-sizing: border-box; }
@@ -482,10 +561,25 @@ function buildFullHtml({ label, range, narrative, S }) {
     .sev { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 999px; }
     .sev.high, .sev.alta { background: #fee2e2; color: #b91c1c; } .sev.medium, .sev.media { background: #fef3c7; color: #b45309; } .sev.low, .sev.bassa { background: #e5e7eb; color: #555; }
     .muted { color: #999; font-size: 11px; }
+    .wbar { height: 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
+    .wbar > div { height: 100%; background: #14b8a6; border-radius: 999px; }
+    .creatives { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .creative { position: relative; display: flex; gap: 11px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 11px; break-inside: avoid; }
+    .cr-rank { position: absolute; top: 8px; right: 10px; font-size: 10px; font-weight: 800; color: #c2c8d0; }
+    .cr-img { width: 86px; height: 86px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #f3f4f6; }
+    .cr-noimg { display: flex; align-items: center; justify-content: center; color: #c2c8d0; font-size: 20px; }
+    .cr-info { flex: 1; min-width: 0; }
+    .cr-name { font-size: 11px; font-weight: 800; color: #111; margin-bottom: 2px; padding-right: 26px; }
+    .cr-title { font-size: 11px; font-weight: 700; color: #2997ff; margin-bottom: 3px; }
+    .cr-copy { font-size: 10px; color: #444; line-height: 1.45; margin-bottom: 3px; }
+    .cr-desc { font-size: 9.5px; color: #777; line-height: 1.4; margin-bottom: 4px; }
+    .cr-cta { display: inline-block; font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: #eef5ff; color: #1d6fd6; padding: 2px 8px; border-radius: 999px; margin-bottom: 5px; }
+    .cr-metrics { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 4px; font-size: 9.5px; color: #666; }
+    .cr-metrics b { color: #111; font-size: 10.5px; }
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
   </style></head><body><div class="page">${reportLogoBar()}
     <div class="head">
-      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · ${_tr('Report completo')}</div></div>
+      <div><div class="sub">STMN Fitness · ${_tr('Report completo')}</div></div>
       <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>${_tr('Generato il')} ${today}</span></div>
     </div>
     ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}
@@ -494,9 +588,12 @@ function buildFullHtml({ label, range, narrative, S }) {
       <div><h2>${_tr('Azioni consigliate')}</h2><ul>${(narrative?.todos || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
     </div>` : ''}
     ${kbSection}
-    ${problemsSection}
+    ${topProductsSection}
+    ${weekdaySection}
+    ${countriesSection}
     ${metaKpiSection}
     ${metaDetailSection}
+    ${metaCreativesSection}
     ${googleKpiSection}
     ${googleDetailSection}
     ${ppSection}
@@ -556,7 +653,7 @@ export async function GET(req) {
     const J = (path, ms = 16000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
     const customQ = `preset=custom&since=${since}&until=${until}`
     const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
-    const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR] = await Promise.all([
+    const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR, countriesR, klavBdR, metaCreatR] = await Promise.all([
       presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`) : null,
       J('/api/inventory'),
       J(`/api/product-performance?since=${since}&until=${until}`),
@@ -567,6 +664,10 @@ export async function GET(req) {
       J(`/api/google-detail?level=campaigns&${customQ}`),
       J(`/api/lighthouse?${customQ}`),
       J(`/api/google-lighthouse?${customQ}`),
+      J(`/api/shopify-countries?since=${since}&until=${until}`),
+      J(`/api/klaviyo?days=${days}&part=breakdown`, 24000),
+      // Creatività Meta: chiamate Graph dirette (non fetch interna), cap a 26s così il PDF esce comunque
+      Promise.race([topMetaCreatives(since, until, 10).catch(() => null), new Promise(res => setTimeout(() => res(null), 26000))]),
     ])
 
     // KPI Brain (Shopify da metrics + Meta/Google dai rispettivi KPI)
@@ -668,7 +769,20 @@ export async function GET(req) {
 
     const lighthouse = { meta: Array.isArray(lhMetaR?.alerts) ? lhMetaR.alerts : [], google: Array.isArray(lhGoogleR?.alerts) ? lhGoogleR.alerts : [] }
 
-    const S = { kpiBrain, metaKpi, metaDetail, googleKpi, googleDetail, inventory, productPerf, klaviyo, lighthouse }
+    // Top prodotti per fatturato + vendite per giorno settimana (da KPI Brain / metrics)
+    const topProducts = Array.isArray(metricsR?.shopifyTopProducts) && metricsR.shopifyTopProducts.length
+      ? metricsR.shopifyTopProducts.slice().sort((a, b) => num(b.revenue ?? b.value) - num(a.revenue ?? a.value)).slice(0, 10) : null
+    const weekday = Array.isArray(metricsR?.shopifyDayBreakdown) && metricsR.shopifyDayBreakdown.some(d => num(d.revenue ?? d.value) > 0)
+      ? metricsR.shopifyDayBreakdown : null
+    // Vendite e ordini per paese
+    const countries = Array.isArray(countriesR?.countries) && countriesR.countries.length ? countriesR.countries.slice(0, 15) : null
+    // Email Klaviyo inviate nel periodo (dal revenue breakdown per campagna)
+    const klEmailRows = klavBdR?.revenueBreakdown?.campaigns?.rows
+    const klaviyoEmails = Array.isArray(klEmailRows) && klEmailRows.length ? klEmailRows.slice(0, 15) : null
+    // Top 10 creatività Meta
+    const metaCreatives = Array.isArray(metaCreatR) && metaCreatR.length ? metaCreatR : null
+
+    const S = { kpiBrain, metaKpi, metaDetail, metaCreatives, googleKpi, googleDetail, inventory, productPerf, klaviyo, klaviyoEmails, topProducts, weekday, countries, lighthouse }
     // AI con cap a 12s: se è lenta, il PDF esce comunque (senza executive summary).
     const narrative = await Promise.race([
       aiNarrative({

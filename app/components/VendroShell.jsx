@@ -122,7 +122,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
         { id: 'clienti', label: 'Clienti', icon: <Icon name="users" /> },
-        { id: 'klaviyo', label: 'Klaviyo', icon: <Icon name="mail" /> },
+        { id: 'klaviyo', label: 'Email Marketing', icon: <Icon name="mail" /> },
       ],
     },
     {

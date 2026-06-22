@@ -11,6 +11,8 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
 const NANGO_PROVIDERS = [
   { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche', descKey: 'integrations.descKlaviyo' },
+  { integrationId: 'omnisend', name: 'Omnisend', domain: 'omnisend.com', desc: 'Email & SMS · campagne, automation, revenue', descKey: 'integrations.descOmnisend' },
+  { integrationId: 'mailchimp', name: 'Mailchimp', domain: 'mailchimp.com', desc: 'Email · campagne, automation, report', descKey: 'integrations.descMailchimp' },
   { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights', descKey: 'integrations.descMeta' },
 ]
 
@@ -18,6 +20,8 @@ const LOGO_MAP = {
   'shopify.com':          { slug: 'shopify',          color: '95BF47' },
   'meta.com':             { slug: 'meta',             color: '0081FB' },
   'klaviyo.com':          { slug: 'klaviyo',          color: '20A762' },
+  'omnisend.com':         { slug: 'omnisend',         color: '262626', dark: true },
+  'mailchimp.com':        { slug: 'mailchimp',        color: 'FFE01B', dark: true },
   'ads.google.com':       { slug: 'googleads',        color: '4285F4' },
   'analytics.google.com': { slug: 'googleanalytics',  color: 'E37400' },
   'tiktok.com':           { slug: 'tiktok',           color: '000000', dark: true },

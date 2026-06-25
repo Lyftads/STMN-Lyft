@@ -42,15 +42,18 @@ Gli errori sono `Error` con `.status` (es. 429/5xx) così il wrapper di fallback
 - **Fase 1 — Adapter OpenAI (abilitante)** ✅ FATTA
   `providers/openai.js` = l'ex `callOnce`, dietro l'interfaccia normalizzata.
   `gateway.js` usa l'adapter. Nessun cambio di comportamento (verificato col `dryRun`).
-- **Fase 2 — Router per tier** ⬜
-  `router.js` + env. Le skill dichiarano un `tier` (`cheap`/`smart`/`reason`) invece
-  di un `model` fisso. Mapping:
+- **Fase 2 — Router per tier** ✅ FATTA
+  `lib/agent/router.js` (`resolveTier(tier) → {provider, model}`) + env. Le skill
+  dichiarano un `tier` (`cheap`/`smart`/`reason`); il gateway risolve via router
+  quando non c'è `model` esplicito. Mapping via env "provider:model":
   ```
   AI_TIER_CHEAP=openai:gpt-4o-mini
   AI_TIER_SMART=openai:gpt-4o
-  AI_TIER_REASON=anthropic:claude-opus-4-8
+  AI_TIER_REASON=openai:gpt-4o      # o anthropic:… quando ci sarà l'adapter
   ```
-  Retrocompatibile: se la skill ha `model`, vince quello.
+  Retrocompatibile: `model` esplicito/`skill.model` bypassa il router; senza env,
+  `smart` = OPENAI_MODEL||gpt-4o → identico a prima. Il risparmio si attiva taggando
+  le skill `cheap` o settando le env (nessuna regressione di default).
 - **Fase 3 — Fallback automatico (resilienza)** ⬜
   `callWithFallback`: primario → su 429/5xx/timeout/network → secondario (altro
   provider). `AI_FALLBACK_SMART=anthropic:claude-sonnet-4-6`. Richiede test sui

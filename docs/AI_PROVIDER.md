@@ -58,12 +58,18 @@ Gli errori sono `Error` con `.status` (es. 429/5xx) così il wrapper di fallback
   `callWithFallback`: primario → su 429/5xx/timeout/network → secondario (altro
   provider). `AI_FALLBACK_SMART=anthropic:claude-sonnet-4-6`. Richiede test sui
   formati JSON/tool che variano tra provider.
-- **Fase 4 — Consolidare le route rimaste** ⬜
-  6 chat da spostare su `callBrain`: `recommendations`, `actions/suggest`,
-  `cro/scan`, `website-scanner`, `creative-agent`, `creative-reverse`.
-  Non-chat (categoria a parte, isolare non urgente): immagini (`studio/generate`,
-  `creative-lab`), audio (`studio/transcribe`), embeddings (`agentMemory`,
-  `consolidate-memories`) → moduli dedicati `providers/embeddings.js` ecc.
+- **Fase 4 — Consolidare le route rimaste** ✅ FATTA
+  Le 6 chat ora passano dal layer provider+router via `router.complete()` (NON
+  `callBrain`: costruiscono già il loro contesto su misura → instradata solo la
+  chiamata HTTP, output identico). Tier assegnati: `recommendations` = `cheap`
+  (era già gpt-4o-mini); `actions/suggest`, `cro/scan`, `website-scanner`
+  (vision), `creative-agent`, `creative-reverse` = `smart`. Ottengono tiering +
+  (Fase 3) fallback senza toccare prompt/output.
+  `router.complete({ tier, model?, messages, json?, temperature?, topP?,
+  maxTokens?, signal? })` → `{ message, content, toolCalls, usage, model }`.
+  Restano dirette le NON-chat: immagini (`studio/generate`, `creative-lab`,
+  `creative-reverse` img-gen), audio (`studio/transcribe`), embeddings
+  (`agentMemory`, `consolidate-memories`) → eventuali moduli `providers/*` dedicati.
 - **Fase 5 (opzionale)** ⬜
   Campo `ai_tier`/`openai_model` su `companies` → override per cliente premium,
   letto dal router con fallback alla env. Eventuale modello open self-hosted come

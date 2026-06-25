@@ -4,6 +4,7 @@ import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { assertPublicUrl } from '../../../lib/security/ssrf'
+import { complete } from '../../../lib/agent/router'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -11,8 +12,6 @@ export const maxDuration = 60
 export const preferredRegion = 'fra1'
 export const runtime = 'nodejs'
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 // Copia lo screenshot (data: URI base64) su Supabase Storage e ritorna la
 // public URL permanente. Best-effort: se fallisce ritorna null (lo storico
@@ -408,18 +407,14 @@ export async function POST(req) {
   const kbScanner = await buildKnowledgeBlock('CRO ottimizzazione landing page e-commerce conversion rate persuasione')
 
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
+    let res
+    try {
+      res = await complete({
+        tier: 'smart',
         temperature: 0.4,
-        top_p: 0.9,
-        response_format: { type: 'json_object' },
-        max_tokens: 4000,
+        topP: 0.9,
+        json: true,
+        maxTokens: 4000,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           ...(kbScanner ? [{ role: 'system', content: kbScanner }] : []),
@@ -438,19 +433,15 @@ export async function POST(req) {
             ],
           },
         ],
-      }),
-    })
-
-    if (!r.ok) {
-      const text = await r.text()
+      })
+    } catch (e) {
       return NextResponse.json({
-        error: `OpenAI ${r.status}: ${text.slice(0, 300)}`,
+        error: `OpenAI ${e?.status || ''}: ${(e?.message || '').slice(0, 300)}`,
         screenshotUrl: previewUrl,
       }, { status: 502 })
     }
 
-    const json = await r.json()
-    let raw = json?.choices?.[0]?.message?.content || ''
+    let raw = res?.content || ''
     // OpenAI a volte wrappa il JSON in markdown ```json ... ```
     // anche con response_format json_object. Stripping difensivo.
     raw = raw.trim()

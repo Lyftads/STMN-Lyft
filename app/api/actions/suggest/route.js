@@ -7,13 +7,11 @@ import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
 import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
+import { complete } from '../../../../lib/agent/router'
 
 // Orchestratore (Performance Agent → azioni). Legge i dati live (metrics) + il
 // brand context e propone azioni CONCRETE e cross-canale, nella forma della
 // Coda Azioni. Non accoda nulla: restituisce proposte che l'utente accoda.
-
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const CHANNELS = ['meta', 'klaviyo', 'shopify', 'other']
 const TYPES = ['pause_campaign', 'scale_budget', 'shift_budget', 'refresh_creative', 'create_campaign', 'custom']
@@ -59,13 +57,12 @@ export async function POST(req) {
   try {
     const langMsg = aiLangSystemMessage(b.locale)
     const kb = await buildKnowledgeBlock('azioni di ottimizzazione advertising performance marketing e-commerce cross-canale')
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: MODEL,
+    let res
+    try {
+      res = await complete({
+        tier: 'smart',
         temperature: 0.4,
-        response_format: { type: 'json_object' },
+        json: true,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           ...(kb ? [{ role: 'system', content: kb }] : []),
@@ -76,13 +73,13 @@ export async function POST(req) {
             : []),
           { role: 'user', content: `DATI LIVE (usa SOLO questi numeri):\n${JSON.stringify(metrics).slice(0, 6000)}` },
         ],
-      }),
-      signal: AbortSignal.timeout(42000),
-    })
-    const j = await r.json()
-    if (!r.ok) return NextResponse.json({ ok: false, error: j?.error?.message || `HTTP ${r.status}` }, { status: 502 })
+        signal: AbortSignal.timeout(42000),
+      })
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: e?.message || `HTTP ${e?.status || 502}` }, { status: 502 })
+    }
     let parsed = {}
-    try { parsed = JSON.parse(j.choices?.[0]?.message?.content || '{}') } catch {}
+    try { parsed = JSON.parse(res?.content || '{}') } catch {}
     const raw = Array.isArray(parsed.actions) ? parsed.actions : []
     const suggestions = raw.slice(0, 5).map(a => ({
       channel: CHANNELS.includes(a.channel) ? a.channel : 'other',

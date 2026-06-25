@@ -4,9 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
-
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
+import { complete } from '../../../../lib/agent/router'
 
 function extractUsefulContent(html) {
   let text = html
@@ -104,24 +102,18 @@ ${pageContent}`
   const kb = await buildKnowledgeBlock('CRO ottimizzazione conversione landing page persuasione e-commerce')
 
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: MODEL,
+    let res
+    try {
+      res = await complete({
+        tier: 'smart',
         temperature: 0.3,
-        response_format: { type: 'json_object' },
+        json: true,
         messages: [...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
-      }),
-    })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI errore ${r.status}` }, { status: 502 })
+      })
+    } catch (e) {
+      return NextResponse.json({ error: `OpenAI errore ${e?.status || ''}`.trim() }, { status: 502 })
     }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || '{}'
+    const reply = res?.content || '{}'
 
     let analysis
     try {
@@ -130,7 +122,7 @@ ${pageContent}`
       return NextResponse.json({ error: 'Risposta AI non valida' }, { status: 500 })
     }
 
-    return NextResponse.json({ url, analysis, model: MODEL })
+    return NextResponse.json({ url, analysis, model: res.model })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }

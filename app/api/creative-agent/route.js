@@ -5,10 +5,9 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { complete } from '../../../lib/agent/router'
 
 const AGENT_ID = 'creative'
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM_PROMPT = `Sei "Creative Agent", il creative strategist e Meta Ads specialist di fiducia di Marino, founder di STMN Fitness.
 
@@ -134,16 +133,12 @@ export async function POST(req) {
   const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
 
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
+    let res
+    try {
+      res = await complete({
+        tier: 'smart',
         temperature: 0.4,
-        top_p: 0.9,
+        topP: 0.9,
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
           { role: 'system', content: SYSTEM_PROMPT },
@@ -152,16 +147,11 @@ export async function POST(req) {
           ...clean,
           { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero, nome inserzione, copy, headline che CITI sia letteralmente presente nel JSON CREATIVE DATA. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende). Se stai GENERANDO nuovi angoli/copy/script puoi essere creativo, ma resta brand-coherent e basa il lavoro sui pattern dei winners reali del JSON.' },
         ],
-      }),
-    })
-
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 300)}` }, { status: 502 })
+      })
+    } catch (e) {
+      return NextResponse.json({ error: `OpenAI ${e?.status || ''}: ${(e?.message || '').slice(0, 300)}` }, { status: 502 })
     }
-
-    const json = await r.json()
-    const reply = json?.choices?.[0]?.message?.content || ''
+    const reply = res?.content || ''
 
     if (userId && lastUserMsg && reply) {
       persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
@@ -169,7 +159,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       reply,
-      usage: json?.usage || null,
+      usage: res?.usage || null,
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {

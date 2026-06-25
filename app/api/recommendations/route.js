@@ -6,6 +6,7 @@ import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
 import { buildBrandContext } from '../../../lib/tenant/brand'
 import { recall, buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { complete } from '../../../lib/agent/router'
 
 // ============================================================================
 //  Proactive Recommendations
@@ -22,8 +23,6 @@ import { recall, buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 //  Cache: in-memory per 15 min per evitare di rigenerare ad ogni mount.
 //  Key: userId + preset + metrics hash compatto.
 // ============================================================================
-
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
 const cache = new Map() // key → { value, expiresAt }
 const TTL_MS = 15 * 60_000
@@ -146,29 +145,27 @@ Se i dati non bastano per raccomandazioni significative: { "recommendations": []
   const kb = await buildKnowledgeBlock(`raccomandazioni performance marketing advertising e-commerce ${preset}`)
 
   try {
-    const r = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
+    // tier 'cheap' = gpt-4o-mini di default (identico a prima), ma ora passa dal
+    // router → tiering via env + fallback (Fase 3) senza toccare il prompt.
+    let res
+    try {
+      res = await complete({
+        tier: 'cheap',
         messages: [
           { role: 'system', content: sysPrompt },
           ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: userPayload },
         ],
-        response_format: { type: 'json_object' },
+        json: true,
         temperature: 0.3,
-        max_tokens: 1800,
-      }),
-      signal: AbortSignal.timeout(45_000),
-    })
-    if (!r.ok) {
-      const text = await r.text()
-      return NextResponse.json({ error: `OpenAI ${r.status}: ${text.slice(0, 200)}` }, { status: 502 })
+        maxTokens: 1800,
+        signal: AbortSignal.timeout(45_000),
+      })
+    } catch (e) {
+      return NextResponse.json({ error: e?.message || 'OpenAI error' }, { status: 502 })
     }
-    const json = await r.json()
-    const raw = json?.choices?.[0]?.message?.content || '{}'
+    const raw = res?.content || '{}'
     const parsed = JSON.parse(raw)
     const recommendations = (Array.isArray(parsed?.recommendations) ? parsed.recommendations : [])
       .filter(r => r && typeof r.title === 'string' && typeof r.action === 'string')

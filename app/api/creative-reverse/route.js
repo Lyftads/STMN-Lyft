@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
+import { complete } from '../../../lib/agent/router'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+// OPENAI_KEY serve ancora alla generazione immagine (gpt-image-1/dall-e-3) qui sotto.
 const OPENAI_KEY = process.env.OPENAI_API_KEY
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM = `Sei un Senior Creative Strategist di STMN Fitness (Stamina Fitness), brand di accessori CrossFit di alta qualità: paracalli/grips, polsiere, corde da salto, fasce, ginocchiere, cinture. NIENTE supplementi/integratori/nutrizione. Target: atleti CrossFit/functional/home gym in IT, FR, EU. Tono: pratico, no-bullshit, performance-driven.
 
@@ -76,29 +77,25 @@ export async function POST(req) {
   const kb = await buildKnowledgeBlock('creative strategy hook angoli copy advertising adattamento on-brand')
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
+    let res
+    try {
+      res = await complete({
+        tier: 'smart',
         temperature: 0.6,
-        response_format: { type: 'json_object' },
+        json: true,
         messages: [
           { role: 'system', content: SYSTEM },
           ...(kb ? [{ role: 'system', content: kb }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'user', content: `Inserzione attiva da riadattare on-brand per STMN:\n\n${adText}` },
         ],
-      }),
-      signal: AbortSignal.timeout(45000),
-    })
-    if (!res.ok) {
-      const t = await res.text()
-      return NextResponse.json({ error: `OpenAI ${res.status}: ${t.slice(0, 200)}` }, { status: 502 })
+        signal: AbortSignal.timeout(45000),
+      })
+    } catch (e) {
+      return NextResponse.json({ error: `OpenAI ${e?.status || ''}: ${(e?.message || '').slice(0, 200)}` }, { status: 502 })
     }
-    const json = await res.json()
     let brief
-    try { brief = JSON.parse(json?.choices?.[0]?.message?.content || '{}') } catch { brief = null }
+    try { brief = JSON.parse(res?.content || '{}') } catch { brief = null }
     if (!brief) return NextResponse.json({ error: 'Risposta non valida' }, { status: 502 })
     return NextResponse.json({ brief, updatedAt: new Date().toISOString() })
   } catch (err) {

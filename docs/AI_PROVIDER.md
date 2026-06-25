@@ -54,10 +54,20 @@ Gli errori sono `Error` con `.status` (es. 429/5xx) così il wrapper di fallback
   Retrocompatibile: `model` esplicito/`skill.model` bypassa il router; senza env,
   `smart` = OPENAI_MODEL||gpt-4o → identico a prima. Il risparmio si attiva taggando
   le skill `cheap` o settando le env (nessuna regressione di default).
-- **Fase 3 — Fallback automatico (resilienza)** ⬜
-  `callWithFallback`: primario → su 429/5xx/timeout/network → secondario (altro
-  provider). `AI_FALLBACK_SMART=anthropic:claude-sonnet-4-6`. Richiede test sui
-  formati JSON/tool che variano tra provider.
+- **Fase 3 — Fallback automatico (resilienza)** ✅ FATTA
+  `chatWithFallback(provider, params)` in `router.js`: primario → su
+  429/5xx/timeout/network → provider `fallback` (OpenAI-compatible, col SUO
+  modello). Usato sia da `complete()` sia dal `callOnce` del gateway (tool-loop
+  incluso: il fallback è OpenAI-compatible → JSON/tools/vision invariati). Se il
+  fallback non è configurato → throw dell'errore originale (identico a prima).
+  Scelta OpenAI-compatible (no adapter Anthropic nativo) = zero rischio di formato.
+  **Env per attivarlo** (es. OpenRouter → Claude/Gemini, o Azure/Groq):
+  ```
+  AI_FALLBACK_BASE_URL=https://openrouter.ai/api/v1
+  AI_FALLBACK_API_KEY=sk-or-...
+  AI_FALLBACK_MODEL=anthropic/claude-3.5-sonnet
+  ```
+  Un tier può anche puntare direttamente al fallback: `AI_TIER_REASON=fallback:<model>`.
 - **Fase 4 — Consolidare le route rimaste** ✅ FATTA
   Le 6 chat ora passano dal layer provider+router via `router.complete()` (NON
   `callBrain`: costruiscono già il loro contesto su misura → instradata solo la

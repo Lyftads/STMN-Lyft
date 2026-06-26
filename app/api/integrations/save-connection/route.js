@@ -46,3 +46,38 @@ export async function POST(req) {
     return NextResponse.json({ error: e?.message || 'Errore salvataggio' }, { status: 500 })
   }
 }
+
+// Rimuove un provider dalla mappa nango_connections del WORKSPACE EFFETTIVO
+// (così l'utente può "scollegare" e rifare la connessione). Per l'owner i dati
+// restano accessibili via env; per i clienti la rimozione li riporta a
+// "non collegato". ?integrationId=facebook|klaviyo-oauth|shopify
+export async function DELETE(req) {
+  const userId = await getEffectiveTenantId()
+  if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+
+  const integrationId = String(new URL(req.url).searchParams.get('integrationId') || '').trim()
+  if (!integrationId) return NextResponse.json({ error: 'integrationId mancante' }, { status: 400 })
+
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ error: 'DB non disponibile' }, { status: 500 })
+
+  try {
+    const { data: existing } = await admin
+      .from('companies')
+      .select('nango_connections')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    const map = { ...(existing?.nango_connections && typeof existing.nango_connections === 'object' ? existing.nango_connections : {}) }
+    delete map[integrationId]
+
+    const { error: upErr } = await admin
+      .from('companies').update({ nango_connections: map }).eq('user_id', userId)
+    if (upErr) throw new Error(upErr.message)
+
+    invalidateTenantCache(userId)
+    return NextResponse.json({ ok: true, nango_connections: map })
+  } catch (e) {
+    return NextResponse.json({ error: e?.message || 'Errore disconnessione' }, { status: 500 })
+  }
+}

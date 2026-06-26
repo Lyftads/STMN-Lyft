@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Pulsante che apre la Nango Connect UI per collegare un provider OAuth.
 // Flusso: crea session (backend) → openConnectUI → on 'connect' salva il
 // connectionId nel tenant (companies.nango_connections).
 export default function NangoConnectButton({ integrationId, label = 'Collega', onConnected, style }) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState(null)
@@ -17,6 +19,19 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
       .then(j => { if (Array.isArray(j.connected) && j.connected.includes(integrationId)) setDone(true) })
       .catch(() => {})
   }, [integrationId])
+
+  // Scollega: rimuove la connection dal tenant (companies.nango_connections) →
+  // l'utente può rifare il collegamento da zero. Utile quando il badge dice
+  // "Collegato" per una connection vecchia/residua.
+  const disconnect = async () => {
+    setErr(null)
+    try {
+      await fetch(`/api/integrations/save-connection?integrationId=${encodeURIComponent(integrationId)}`, { method: 'DELETE' })
+      setDone(false)
+    } catch (e) {
+      setErr(e?.message || 'Errore disconnessione')
+    }
+  }
 
   const start = async () => {
     setLoading(true); setErr(null)
@@ -81,6 +96,14 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
       >
         {done ? 'Collegato' : loading ? 'Collegamento…' : label}
       </button>
+      {done && (
+        <button
+          onClick={disconnect}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+        >
+          {t('obp.disconnectReconnect', null, 'Scollega e ricollega')}
+        </button>
+      )}
       {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
     </div>
   )

@@ -2,18 +2,17 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 15
 
 import { NextResponse } from 'next/server'
-import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
+import { getAdminSupabase } from '../../../lib/supabase/server'
+import { getEffectiveTenantId } from '../../../lib/tenant/credentials'
 
-// GET → ritorna { identity, assets } per l'utente loggato.
-// POST → upsert identity (oggetto JSON) per l'utente loggato.
+// GET → ritorna { identity, assets } del WORKSPACE EFFETTIVO (cliente agency se
+// switchato, altrimenti l'utente stesso). POST → upsert idem.
 //
 // Brand Identity = system prompt context per AI agent + creative tools.
 // Schema flessibile (JSONB) — frontend definisce la shape, backend persiste.
 
 async function getUserId() {
-  const sb = getServerSupabase()
-  const { data: { user } } = await sb.auth.getUser()
-  return user?.id || null
+  return getEffectiveTenantId()
 }
 
 export async function GET() {

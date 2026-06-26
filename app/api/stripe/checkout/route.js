@@ -15,8 +15,9 @@ import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/se
 //   STRIPE_PRICE_ENTERPRISE         price_... (recurring monthly Enterprise, €599, no annual discount)
 //   STRIPE_PRICE_*_ANNUAL           price_... (recurring yearly = 2 mesi gratis)
 //   STRIPE_PRICE_AGENCY_*           price_... (piani agenzia, mensile/annuale)
-//   STRIPE_FOUNDER_PROMO (opt.)     promo_... (promotion code −30% a vita, primi 100;
-//                                   auto-applicato; fallback a prezzo pieno se esaurito)
+//   STRIPE_FOUNDER_PROMO (opt.)     coupon ID (es. YHECEgIG) o promotion code (promo_...)
+//                                   per lo sconto −30% a vita primi 100; auto-applicato;
+//                                   fallback a prezzo pieno quando il coupon è esaurito
 //   NEXT_PUBLIC_APP_URL  (opt.)     https://lyftai.io
 //                                   (fallback: ricavato da request origin)
 //
@@ -176,8 +177,11 @@ export async function POST(req) {
     const founderPromo = process.env.STRIPE_FOUNDER_PROMO || null
     let session
     if (founderPromo) {
+      // Accetta sia un Promotion Code (promo_...) sia un Coupon ID diretto: il
+      // coupon può già avere max_redemptions (es. 100) → enforce lato Stripe.
+      const discount = founderPromo.startsWith('promo_') ? { promotion_code: founderPromo } : { coupon: founderPromo }
       try {
-        session = await stripe.checkout.sessions.create({ ...baseParams, discounts: [{ promotion_code: founderPromo }] })
+        session = await stripe.checkout.sessions.create({ ...baseParams, discounts: [discount] })
       } catch (e) {
         console.log('[checkout] founder promo non applicato (esaurito/non valido):', e?.message)
       }

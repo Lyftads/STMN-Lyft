@@ -12,7 +12,7 @@ const SUGGESTIONS = [
   { key: 'agent.sugg4', text: 'Quali 3 azioni mi danno il maggior impatto sul revenue nei prossimi 14 giorni?' },
   { key: 'agent.sugg5', text: 'Come stanno andando le email su Klaviyo? Open rate, click, revenue.' },
   { key: 'agent.sugg6', text: 'Confronta la revenue da email vs Meta Ads — dove sto crescendo di più?' },
-  { key: 'agent.sugg7', text: 'Analizza i prezzi dei competitor: come mi posiziono rispetto a Velites, Picsil e Frog Grips?' },
+  { key: 'agent.sugg7', text: 'Analizza i prezzi dei competitor: come mi posiziono sul mercato?' },
   { key: 'agent.sugg8', text: 'Che promozioni stanno facendo i competitor? Devo reagire?' },
 ]
 

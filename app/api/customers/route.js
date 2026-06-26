@@ -29,7 +29,7 @@ async function fetchCustomers() {
   const gql = `query($cursor: String) {
     customers(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
       edges { node {
-        displayName email numberOfOrders
+        email numberOfOrders
         amountSpent { amount currencyCode }
         createdAt lastOrder { createdAt }
       } }

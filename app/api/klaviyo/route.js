@@ -344,7 +344,9 @@ export async function GET(request) {
   // separata (?part=breakdown) così la tab carica subito i dati veloci.
   const part = searchParams.get('part') || 'main'
 
-  return swrSnapshot(request, { tab: 'klaviyo', compute: async () => {
+  // tab key versionata 'klaviyo2': invalida gli snapshot vecchi calcolati quando
+  // il nome campagna era il `name` interno ("E-mail 1") invece del subject email.
+  return swrSnapshot(request, { tab: 'klaviyo2', compute: async () => {
     try {
       if (part === 'breakdown') {
         const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])

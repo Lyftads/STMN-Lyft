@@ -77,6 +77,20 @@ export async function GET(request) {
     const prevSinceD = new Date(prevUntilD.getTime() - (days - 1) * 86400000)
     const prevSinceDate = isoD(prevSinceD), prevUntilDate = isoD(prevUntilD)
 
+    // Diagnostica: ?debug=1 → righe grezze delle 3 query ShopifyQL del range
+    // corrente, per capire se `FROM sessions` (o sales/customers) torna dati.
+    if (searchParams.get('debug') === '1') {
+      const sQ = `FROM sales SHOW orders, total_sales SINCE ${sinceDate} UNTIL ${untilDate}`
+      const seQ = `FROM sessions SHOW sessions, sessions_with_cart_additions, sessions_that_reached_checkout, sessions_that_completed_checkout SINCE ${sinceDate} UNTIL ${untilDate}`
+      const cQ = `FROM sales SHOW customers, returning_customers SINCE ${sinceDate} UNTIL ${untilDate}`
+      const [sales, sess, cust] = await Promise.all([shopifyQL(sQ), shopifyQL(seQ), shopifyQL(cQ)])
+      const sh = getShopify()
+      return NextResponse.json({
+        range: { sinceDate, untilDate }, hasStore: !!sh.storeUrl, hasToken: !!sh.adminToken,
+        sales, sessions: sess, customers: cust,
+      })
+    }
+
     // tab key versionata: 'cro2' invalida gli snapshot vecchi (calcolati quando
     // i nuovi clienti erano a 0) → l'auto-load mostra subito il dato corretto
     // senza dover premere Aggiorna.

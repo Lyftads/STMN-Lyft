@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { getCurrentUserId, invalidateTenantCache } from '../../../../lib/tenant/credentials'
+import { getEffectiveTenantId, invalidateTenantCache } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Salva l'account Google Ads scelto per il tenant (companies.google_ads_customer_id).
 export async function POST(req) {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   let body = {}

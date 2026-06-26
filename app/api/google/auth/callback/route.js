@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { getServerSupabase, getAdminSupabase } from '../../../../../lib/supabase/server'
-import { invalidateTenantCache } from '../../../../../lib/tenant/credentials'
+import { invalidateTenantCache, getEffectiveTenantId } from '../../../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Google OAuth — Callback
@@ -85,9 +85,12 @@ export async function GET(req) {
     return redirectWithError(origin, 'network_error')
   }
 
-  // Salva refresh_token in companies (per-tenant)
+  // Salva refresh_token in companies sul WORKSPACE EFFETTIVO: se un'agency ha
+  // switchato su un cliente, il Google del cliente va salvato sul CLIENTE, non
+  // sull'owner. (La verifica user.id===stateData.uid sopra resta per sicurezza.)
   const admin = getAdminSupabase()
   if (!admin) return redirectWithError(origin, 'db_not_configured')
+  const targetId = (await getEffectiveTenantId()) || user.id
 
   const { error: updError } = await admin
     .from('companies')
@@ -96,7 +99,7 @@ export async function GET(req) {
       google_client_id: clientId,
       google_client_secret: clientSecret,
     })
-    .eq('user_id', user.id)
+    .eq('user_id', targetId)
 
   if (updError) {
     console.log('[oauth/google] DB update error:', updError.message)
@@ -105,7 +108,7 @@ export async function GET(req) {
 
   // Invalida la cache creds del tenant → il nuovo refresh token (con lo scope
   // Ads) viene usato subito, senza aspettare la scadenza TTL.
-  try { invalidateTenantCache(user.id) } catch {}
+  try { invalidateTenantCache(targetId) } catch {}
 
   // Successo: redirect a /onboarding con flag (per evidenziare lo step GA4 completato)
   return NextResponse.redirect(`${origin}/onboarding?gaConnected=1`)

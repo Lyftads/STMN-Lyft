@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { getCurrentUserId, invalidateTenantCache } from '../../../../lib/tenant/credentials'
+import { getEffectiveTenantId, invalidateTenantCache } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 
 // Salva (merge) il connectionId di un provider nella mappa
-// companies.nango_connections del tenant loggato, dopo che la Connect UI
-// ha completato il collegamento.
+// companies.nango_connections del WORKSPACE EFFETTIVO (così un'agency che ha
+// switchato su un cliente collega il provider al CLIENTE, non all'owner).
 export async function POST(req) {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   let body = {}

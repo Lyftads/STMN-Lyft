@@ -50,6 +50,7 @@ export default function AppShell({
   loading,
   onRefresh,
   allowedTabs,
+  isOwner = false,
   children,
 }) {
   const { t, locale } = useI18n()
@@ -208,13 +209,18 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
   ]
 
+  // Creative Studio: temporaneamente riservata all'owner (output generativo in
+  // miglioramento) → nascosta a tutti gli altri clienti finché isOwner non è true.
+  const ownerGated = (its) => isOwner ? its : its.filter(it => it.id !== 'creativeStudio')
+
   // Gating per ruolo: se allowedTabs è un Set, filtra le voci (l'Admin/owner
   // riceve allowedTabs=undefined → vede tutto, comportamento invariato).
-  const groups = allowedTabs
+  const groups = (allowedTabs
     ? navGroups
         .map(g => ({ ...g, items: g.items.filter(it => allowedTabs.has(it.id)) }))
-        .filter(g => g.items.length > 0)
-    : navGroups
+    : navGroups.map(g => ({ ...g })))
+    .map(g => ({ ...g, items: ownerGated(g.items) }))
+    .filter(g => g.items.length > 0)
 
   const goTo = (id) => {
     // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra

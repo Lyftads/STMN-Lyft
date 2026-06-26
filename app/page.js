@@ -2227,6 +2227,15 @@ export default function App() {
     try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(p) } catch {}
   }, [])
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
+  const [isOwner, setIsOwner] = useState(false) // owner LyftAI → accesso a feature riservate (es. Creative Studio in miglioramento)
+  useEffect(() => {
+    let active = true
+    fetch('/api/integrations/status', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => { if (active) setIsOwner(!!d?.isOwner) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
   const [cfgBase, setCfgBase] = useState(DEF)   // config manuale (editabile/salvata)
@@ -2827,6 +2836,7 @@ export default function App() {
     setPreset={setPreset}
     loading={loading}
     allowedTabs={allowedTabs}
+    isOwner={isOwner}
     onRefresh={() => fetchLive(true)}
   >
     {showCfg && <Settings cfg={cfgBase} onSave={c=>setCfgBase(c)} onClose={()=>setShowCfg(false)} />}
@@ -4366,7 +4376,15 @@ export default function App() {
 )}
 
 {tab === 'creativeStudio' && (
-  <CreativeStudio onNavigate={setTab} />
+  isOwner ? (
+    <CreativeStudio onNavigate={setTab} />
+  ) : (
+    <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center', padding: '40px 32px', borderRadius: 20, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+      <div style={{ fontSize: 40, marginBottom: 14 }}>🎨</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>{t('creativeStudio.lockedTitle', null, 'Creative Studio — in arrivo')}</div>
+      <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{t('creativeStudio.lockedBody', null, 'Stiamo perfezionando la generazione delle immagini per darti risultati all\'altezza. La funzione sarà disponibile a breve.')}</div>
+    </div>
+  )
 )}
 
 {tab === 'budgetAdvisor' && (

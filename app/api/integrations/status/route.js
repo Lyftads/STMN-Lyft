@@ -20,6 +20,7 @@ export async function GET() {
     const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
     return NextResponse.json({
       connected: Object.keys(conns),
+      isOwner: !!userId && userId === process.env.LYFT_OWNER_USER_ID,
       shopifyStore: !!data?.shopify_store_url || Object.keys(conns).includes('shopify'),
       metaAccountId: data?.meta_account_id || null,
       googleConnected: !!data?.google_refresh_token,

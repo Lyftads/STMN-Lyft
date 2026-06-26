@@ -32,11 +32,27 @@ const STEPS = [
     ],
   },
   {
+    id: 'googleAds',
+    label: 'Google Ads',
+    icon: '▰',
+    descKey: 'obp.googleAds.desc',
+    oauth: true, googleType: 'ads', // connect Google (1 volta) + picker account
+    fields: [],
+  },
+  {
     id: 'ga4',
     label: 'Google Analytics 4',
     icon: '▰',
     descKey: 'obp.ga4.desc',
-    oauth: true, // gestito da component custom GA4OAuthStep
+    oauth: true, googleType: 'ga4', // connect Google (1 volta) + picker property
+    fields: [],
+  },
+  {
+    id: 'gsc',
+    label: 'Search Console',
+    icon: '▰',
+    descKey: 'obp.gsc.desc',
+    oauth: true, googleType: 'gsc', // connect Google (1 volta) + picker sito
     fields: [],
   },
   {
@@ -44,9 +60,8 @@ const STEPS = [
     label: 'Klaviyo',
     icon: <Icon name="mail" size={22} />,
     descKey: 'obp.klaviyo.desc',
-    fields: [
-      { key: 'klaviyo_api_key', label: 'Private API Key', placeholder: 'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, type: 'password', hintKey: 'obp.klaviyo.keyHint' },
-    ],
+    nango: 'klaviyo', // collegamento one-click via Nango (no API key manuale)
+    fields: [],
   },
   {
     id: 'brandIdentity',
@@ -71,7 +86,7 @@ function OnboardingInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(0)
-  const [stepStatus, setStepStatus] = useState({ shopify: false, meta: false, ga4: false, klaviyo: false })
+  const [stepStatus, setStepStatus] = useState({ shopify: false, meta: false, googleAds: false, ga4: false, gsc: false, klaviyo: false })
   const [completed, setCompleted] = useState(false)
   const [values, setValues] = useState({})
   const [saving, setSaving] = useState(false)
@@ -95,11 +110,15 @@ function OnboardingInner() {
 
   useEffect(() => { loadStatus() }, [loadStatus])
 
-  // Auto-jump allo step GA4 dopo OAuth callback con gaConnected=1
+  // Auto-jump dopo OAuth callback: torna allo step Google da cui si è partiti
+  // (param `step`), altrimenti al primo step Google (googleAds).
   useEffect(() => {
     if (searchParams.get('gaConnected') === '1') {
-      const gaIdx = STEPS.findIndex(s => s.id === 'ga4')
-      if (gaIdx >= 0) setCurrentStep(gaIdx)
+      const want = searchParams.get('step')
+      const idx = STEPS.findIndex(s => s.id === want && s.oauth)
+      const fallback = STEPS.findIndex(s => s.googleType)
+      const target = idx >= 0 ? idx : fallback
+      if (target >= 0) setCurrentStep(target)
     }
   }, [searchParams])
 
@@ -258,12 +277,26 @@ function OnboardingInner() {
               <BrandIdentityPanel ref={biRef} embedded onSaved={() => setStepStatus(p => ({ ...p, brandIdentity: true }))} />
             </div>
           ) : step.oauth ? (
-            <GA4OAuthStep
+            <GoogleStep
+              type={step.googleType}
+              stepId={step.id}
               values={values}
               setField={setField}
               gaConnected={searchParams.get('gaConnected') === '1'}
               gaError={searchParams.get('gaError')}
             />
+          ) : step.nango ? (
+            <div style={{ marginTop: 8, padding: 24, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)', textAlign: 'center' }}>
+              <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{t('obp.klaviyo.connectTitle', null, 'Collega Klaviyo')}</div>
+              <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{t('obp.klaviyo.connectIntro', null, '1 click: autorizzi Klaviyo, nessuna API key da copiare.')}</p>
+              <NangoConnectButton integrationId={step.nango} label={t('obp.klaviyo.connectBtn', null, 'Collega Klaviyo')}
+                onConnected={() => {
+                  setStepStatus(p => ({ ...p, klaviyo: true }))
+                  if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
+                  else completeOnboarding()
+                }} />
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
               {step.id === 'shopify' && (
@@ -377,49 +410,68 @@ function OnboardingInner() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  GA4 OAuth Step — bottone "Connetti Google" + dropdown property
+//  Google Step generico — connetti Google (1 volta, scope Ads+GA4+GSC) +
+//  picker dedicato (account pubblicitario / proprietà GA4 / sito Search Console).
 // ─────────────────────────────────────────────────────────────
-function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
-  const { t } = useI18n()
-  const [properties, setProperties] = useState([])
-  const [loadingProps, setLoadingProps] = useState(false)
-  const [propsError, setPropsError] = useState(null)
-  const [connected, setConnected] = useState(gaConnected)
+const GOOGLE_CFG = {
+  ads: {
+    listUrl: '/api/google/ads-accounts', listKey: 'accounts', valueKey: 'google_ads_customer_id',
+    optValue: a => a.id, optLabel: a => `${a.name || a.id} — ${a.id}`,
+    labelKey: 'obp.adsAccount', labelDef: 'Account Google Ads',
+    connectedKey: 'obp.googleConnectedAds', connectedDef: 'Google connesso. Scegli l’account pubblicitario.',
+    noneKey: 'obp.noAds', noneDef: 'Nessun account Google Ads trovato su questo profilo.',
+    selectKey: 'obp.selectAds', selectDef: '— Seleziona account —',
+  },
+  ga4: {
+    listUrl: '/api/google/properties', listKey: 'properties', valueKey: 'ga4_property_id',
+    optValue: p => p.id, optLabel: p => `${p.displayName} (${p.accountName}) — ID ${p.id}`,
+    labelKey: 'obp.propertyGA4', labelDef: 'Proprietà GA4',
+    connectedKey: 'obp.googleConnected', connectedDef: 'Google connesso. Scegli la proprietà GA4.',
+    noneKey: 'obp.noProps', noneDef: 'Nessuna proprietà GA4 trovata su questo account.',
+    selectKey: 'obp.selectProperty', selectDef: '— Seleziona proprietà —',
+  },
+  gsc: {
+    listUrl: '/api/gsc?action=sites', listKey: 'sites', valueKey: 'gsc_site_url',
+    optValue: s => s.siteUrl, optLabel: s => s.siteUrl,
+    labelKey: 'obp.gscSite', labelDef: 'Sito Search Console',
+    connectedKey: 'obp.googleConnectedGsc', connectedDef: 'Google connesso. Scegli il sito Search Console.',
+    noneKey: 'obp.noSites', noneDef: 'Nessun sito Search Console verificato trovato.',
+    selectKey: 'obp.selectSite', selectDef: '— Seleziona sito —',
+  },
+}
 
-  // Carica properties se connesso
+function GoogleStep({ type, stepId, values, setField, gaError }) {
+  const { t } = useI18n()
+  const cfg = GOOGLE_CFG[type] || GOOGLE_CFG.ga4
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState(null)
+  const [connected, setConnected] = useState(true) // ottimista; la fetch corregge
+
   useEffect(() => {
-    if (!connected) return
-    setLoadingProps(true)
-    setPropsError(null)
-    fetch('/api/google/properties')
+    let alive = true
+    setLoading(true); setListError(null)
+    fetch(cfg.listUrl)
       .then(r => r.json())
       .then(j => {
-        if (j?.error) {
-          if (j.notConnected) setConnected(false)
-          else setPropsError(j.error)
-          return
-        }
-        setProperties(j.properties || [])
-        // Auto-select se 1 sola property
-        if ((j.properties || []).length === 1 && !values.ga4_property_id) {
-          setField('ga4_property_id', j.properties[0].id)
-        }
+        if (!alive) return
+        if (j?.notConnected || j?.configured === false) { setConnected(false); return }
+        if (j?.error) { setListError(j.error); return }
+        const list = j[cfg.listKey] || []
+        setItems(list)
+        setConnected(true)
+        if (list.length === 1 && !values[cfg.valueKey]) setField(cfg.valueKey, cfg.optValue(list[0]))
       })
-      .catch(e => setPropsError(e?.message))
-      .finally(() => setLoadingProps(false))
-  }, [connected])
+      .catch(e => { if (alive) setListError(e?.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [type]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (gaError) {
     return (
-      <div style={{
-        marginTop: 16, padding: 16, borderRadius: 12,
-        background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)',
-        color: '#fca5a5', fontSize: 13,
-      }}>
-        <Icon name="warning" size={13} /> {t('obp.connFailed', null, 'Connection failed:')} <strong>{gaError}</strong>. {t('obp.retryBelow', null, 'Retry by clicking the button below.')}
-        <div style={{ marginTop: 14 }}>
-          <ConnectButton />
-        </div>
+      <div style={{ marginTop: 16, padding: 16, borderRadius: 12, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', color: '#fca5a5', fontSize: 13 }}>
+        <Icon name="warning" size={13} /> {t('obp.connFailed', null, 'Connessione fallita:')} <strong>{gaError}</strong>. {t('obp.retryBelow', null, 'Riprova col pulsante qui sotto.')}
+        <div style={{ marginTop: 14 }}><ConnectButton stepId={stepId} /></div>
       </div>
     )
   }
@@ -427,23 +479,12 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
   if (!connected) {
     return (
       <div style={{ marginTop: 8 }}>
-        <div style={{
-          padding: 24, borderRadius: 14,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px dashed rgba(255,255,255,0.15)',
-          textAlign: 'center',
-        }}>
+        <div style={{ padding: 24, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)', textAlign: 'center' }}>
           <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
-            {t('obp.connectGoogleAccount', null, 'Connect your Google account')}
-          </div>
-          <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
-            {t('obp.gaIntro', null, 'No token copy-paste. 1 click takes you to Google, you authorize read access to your Analytics data, and you come back here automatically.')}
-          </p>
-          <ConnectButton />
-          <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 16 }}>
-            {t('obp.permsPre', null, 'Permissions required:')} <strong>{t('obp.readonly', null, 'read only')}</strong> {t('obp.permsPost', null, 'of Analytics data')}
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{t('obp.connectGoogleAccount', null, 'Collega il tuo account Google')}</div>
+          <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{t('obp.gaIntro', null, 'Nessun token da copiare. 1 click ti porta su Google, autorizzi l’accesso in lettura (Analytics, Ads, Search Console) e torni qui in automatico.')}</p>
+          <ConnectButton stepId={stepId} />
+          <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 16 }}>{t('obp.permsPre', null, 'Permessi richiesti:')} <strong>{t('obp.readonly', null, 'sola lettura')}</strong></div>
         </div>
       </div>
     )
@@ -451,69 +492,46 @@ function GA4OAuthStep({ values, setField, gaConnected, gaError }) {
 
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{
-        padding: 14, borderRadius: 10,
-        background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
-        color: '#86efac', fontSize: 13, marginBottom: 16,
-      }}>
-        <Icon name="check" size={13} /> {t('obp.googleConnected', null, 'Google connected. Now pick the GA4 property to monitor.')}
+      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)', color: '#86efac', fontSize: 13, marginBottom: 16 }}>
+        <Icon name="check" size={13} /> {t(cfg.connectedKey, null, cfg.connectedDef)}
       </div>
 
-      <label style={{
-        display: 'block', fontSize: 11, color: 'var(--text3)',
-        fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em',
-      }}>
-        {t('obp.propertyGA4', null, 'GA4 Property')} <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>
+      <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em' }}>
+        {t(cfg.labelKey, null, cfg.labelDef)} <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>
       </label>
 
-      {loadingProps ? (
-        <div style={{ fontSize: 13, color: 'var(--text3)', padding: '12px 14px' }}>
-          {t('obp.loadingProps', null, 'Loading properties…')}
-        </div>
-      ) : propsError ? (
-        <div style={{ fontSize: 13, color: '#fca5a5', padding: '12px 14px' }}>
-          <Icon name="warning" size={13} /> {propsError}
-        </div>
-      ) : properties.length === 0 ? (
-        <div style={{
-          padding: 14, borderRadius: 10,
-          background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)',
-          color: '#fbbf24', fontSize: 13,
-        }}>
-          {t('obp.noProps', null, 'No GA4 property found on this account. Create a property at analytics.google.com and then reconnect.')}
+      {loading ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)', padding: '12px 14px' }}>{t('obp.loadingList', null, 'Caricamento…')}</div>
+      ) : listError ? (
+        <div style={{ fontSize: 13, color: '#fca5a5', padding: '12px 14px' }}><Icon name="warning" size={13} /> {listError}</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)', color: '#fbbf24', fontSize: 13 }}>
+          {t(cfg.noneKey, null, cfg.noneDef)}
         </div>
       ) : (
         <select
-          value={values.ga4_property_id || ''}
-          onChange={e => setField('ga4_property_id', e.target.value)}
-          style={{
-            width: '100%', padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fff', fontSize: 13, fontFamily: 'inherit',
-            outline: 'none', cursor: 'pointer',
-          }}
+          value={values[cfg.valueKey] || ''}
+          onChange={e => setField(cfg.valueKey, e.target.value)}
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
         >
-          <option value="">{t('obp.selectProperty', null, '— Select property —')}</option>
-          {properties.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.displayName} ({p.accountName}) — ID {p.id}
-            </option>
+          <option value="">{t(cfg.selectKey, null, cfg.selectDef)}</option>
+          {items.map(it => (
+            <option key={cfg.optValue(it)} value={cfg.optValue(it)}>{cfg.optLabel(it)}</option>
           ))}
         </select>
       )}
 
       <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text4, #666)' }}>
-        {t('obp.changeGoogle', null, 'Want to switch Google account?')} <ConnectButton compact label={t('obp.reconnect', null, 'Reconnect')} />
+        {t('obp.changeGoogle', null, 'Vuoi cambiare account Google?')} <ConnectButton compact stepId={stepId} label={t('obp.reconnect', null, 'Riconnetti')} />
       </div>
     </div>
   )
 }
 
-function ConnectButton({ compact = false, label }) {
+function ConnectButton({ compact = false, label, stepId }) {
   const { t } = useI18n()
   return (
-    <a href="/api/google/auth/start" style={{
+    <a href={`/api/google/auth/start${stepId ? `?step=${encodeURIComponent(stepId)}` : ''}`} style={{
       display: 'inline-flex', alignItems: 'center', gap: 10,
       padding: compact ? '6px 12px' : '12px 22px',
       borderRadius: compact ? 8 : 999,

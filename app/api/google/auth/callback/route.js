@@ -110,6 +110,7 @@ export async function GET(req) {
   // Ads) viene usato subito, senza aspettare la scadenza TTL.
   try { invalidateTenantCache(targetId) } catch {}
 
-  // Successo: redirect a /onboarding con flag (per evidenziare lo step GA4 completato)
-  return NextResponse.redirect(`${origin}/onboarding?gaConnected=1`)
+  // Successo: redirect a /onboarding sullo step di partenza (Ads/GA4/GSC).
+  const backStep = stateData?.step ? `&step=${encodeURIComponent(stateData.step)}` : ''
+  return NextResponse.redirect(`${origin}/onboarding?gaConnected=1${backStep}`)
 }

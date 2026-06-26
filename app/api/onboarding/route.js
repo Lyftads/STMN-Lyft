@@ -23,23 +23,23 @@ async function getUserId() {
 }
 
 const STEP_FIELDS = {
-  shopify:  ['shopify_store_url', 'shopify_admin_token'],
-  meta:     ['meta_account_id', 'meta_access_token'],
-  ga4:      ['ga4_property_id', 'google_client_id', 'google_client_secret', 'google_refresh_token'],
-  klaviyo:  ['klaviyo_api_key'],
-  omnisend: ['omnisend_api_key'],
+  shopify:   ['shopify_store_url', 'shopify_admin_token'],
+  meta:      ['meta_account_id', 'meta_access_token'],
+  googleAds: ['google_ads_customer_id'],
+  ga4:       ['ga4_property_id'],
+  gsc:       ['gsc_site_url'],
+  klaviyo:   ['klaviyo_api_key'],
+  omnisend:  ['omnisend_api_key'],
 }
 
 function stepCompleted(row, step) {
-  const fields = STEP_FIELDS[step] || []
-  // Per ogni step, almeno il primo campo deve essere popolato per considerarlo "fatto"
-  // (es: shopify_store_url e admin_token entrambi richiesti). Logica semplificata:
-  // tutti i campi essenziali presenti = completo.
   const required = {
-    shopify: ['shopify_store_url', 'shopify_admin_token'],
-    meta:    ['meta_access_token'],            // adAccountId opzionale al primo step
-    ga4:     ['ga4_property_id', 'google_refresh_token'],
-    klaviyo: ['klaviyo_api_key'],
+    shopify:   ['shopify_store_url', 'shopify_admin_token'],
+    meta:      ['meta_access_token'],            // adAccountId opzionale al primo step
+    googleAds: ['google_ads_customer_id'],
+    ga4:       ['ga4_property_id'],
+    gsc:       ['gsc_site_url'],
+    klaviyo:   ['klaviyo_api_key'],
   }[step] || []
   return required.every(f => row?.[f] && String(row[f]).trim().length > 0)
 }
@@ -53,17 +53,20 @@ export async function GET() {
 
   const { data, error } = await admin
     .from('companies')
-    .select('shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, ga4_property_id, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, onboarding_completed_at')
+    .select('shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, google_ads_customer_id, ga4_property_id, gsc_site_url, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, nango_connections, onboarding_completed_at')
     .eq('user_id', userId)
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
   const steps = {
-    shopify: stepCompleted(data, 'shopify'),
-    meta:    stepCompleted(data, 'meta'),
-    ga4:     stepCompleted(data, 'ga4'),
-    klaviyo: stepCompleted(data, 'klaviyo'),
+    shopify:   stepCompleted(data, 'shopify') || !!conns.shopify,
+    meta:      stepCompleted(data, 'meta') || !!conns.meta,
+    googleAds: stepCompleted(data, 'googleAds'),
+    ga4:       stepCompleted(data, 'ga4'),
+    gsc:       stepCompleted(data, 'gsc'),
+    klaviyo:   stepCompleted(data, 'klaviyo') || !!conns.klaviyo,
   }
 
   return NextResponse.json({

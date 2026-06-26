@@ -47,10 +47,15 @@ export async function GET(req) {
 
   const redirectUri = `${origin}/api/google/auth/callback`
 
-  // State CSRF: base64 del JSON {user_id, ts}. Verifichiamo nel callback.
+  // Step di onboarding da cui si è partiti → il callback ci riporta lì.
+  let step = null
+  try { step = new URL(req.url).searchParams.get('step') || null } catch {}
+
+  // State CSRF: base64 del JSON {user_id, ts, step}. Verifichiamo nel callback.
   const state = Buffer.from(JSON.stringify({
     uid: user.id,
     ts: Date.now(),
+    step,
   })).toString('base64url')
 
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')

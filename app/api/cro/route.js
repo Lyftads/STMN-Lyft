@@ -80,14 +80,27 @@ export async function GET(request) {
     // Diagnostica: ?debug=1 → righe grezze delle 3 query ShopifyQL del range
     // corrente, per capire se `FROM sessions` (o sales/customers) torna dati.
     if (searchParams.get('debug') === '1') {
-      const sQ = `FROM sales SHOW orders, total_sales SINCE ${sinceDate} UNTIL ${untilDate}`
-      const seQ = `FROM sessions SHOW sessions, sessions_with_cart_additions, sessions_that_reached_checkout, sessions_that_completed_checkout SINCE ${sinceDate} UNTIL ${untilDate}`
-      const cQ = `FROM sales SHOW customers, returning_customers SINCE ${sinceDate} UNTIL ${untilDate}`
-      const [sales, sess, cust] = await Promise.all([shopifyQL(sQ), shopifyQL(seQ), shopifyQL(cQ)])
       const sh = getShopify()
+      // Chiamata GREZZA a shopifyqlQuery: NON nasconde gli errori (il helper
+      // shopifyQL ritorna [] su qualsiasi errore) → vediamo il messaggio reale.
+      let raw = null, httpStatus = null, fetchErr = null
+      try {
+        const gql = `query($q: String!) { shopifyqlQuery(query: $q) { tableData { columns { name } rows } parseErrors } }`
+        const res = await fetch(`https://${sh.storeUrl}/admin/api/2026-04/graphql.json`, {
+          method: 'POST',
+          headers: { 'X-Shopify-Access-Token': sh.adminToken || '', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: gql, variables: { q: `FROM sales SHOW orders, total_sales SINCE ${sinceDate} UNTIL ${untilDate}` } }),
+        })
+        httpStatus = res.status
+        raw = await res.json().catch(() => null)
+      } catch (e) { fetchErr = String(e?.message || e) }
       return NextResponse.json({
-        range: { sinceDate, untilDate }, hasStore: !!sh.storeUrl, hasToken: !!sh.adminToken,
-        sales, sessions: sess, customers: cust,
+        range: { sinceDate, untilDate }, storeUrl: sh.storeUrl, hasToken: !!sh.adminToken,
+        httpStatus, fetchErr,
+        graphqlErrors: raw?.errors || null,
+        parseErrors: raw?.data?.shopifyqlQuery?.parseErrors || null,
+        rows: raw?.data?.shopifyqlQuery?.tableData?.rows || null,
+        rawData: raw?.data || null,
       })
     }
 

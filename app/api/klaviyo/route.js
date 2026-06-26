@@ -94,13 +94,35 @@ async function getSegments() {
 async function getCampaigns(status) {
   let filter = 'equals(messages.channel,"email")'
   if (status) filter += `,equals(status,"${status}")`
-  const data = await klaviyoGet(`/campaigns?filter=${encodeURIComponent(filter)}`)
-  return (data?.data || []).map(i => ({
-    id: i.id,
-    name: i.attributes?.name,
-    status: i.attributes?.status,
-    sendTime: i.attributes?.send_time,
-  }))
+  const enc = encodeURIComponent(filter)
+  // Includo i campaign-messages per ricavare il SUBJECT dell'email: il `name`
+  // della campagna è spesso un nome interno generico ("Email 1") mentre il
+  // subject è l'identificatore utile mostrato in tabella. Se l'include non è
+  // supportato/permesso, fallback alla chiamata semplice (nessuna regressione).
+  let data = await klaviyoGet(`/campaigns?filter=${enc}&include=campaign-messages`)
+  if (!data?.data) data = await klaviyoGet(`/campaigns?filter=${enc}`)
+
+  // messageId → subject dai record inclusi.
+  const subjById = {}
+  for (const inc of (data?.included || [])) {
+    if (inc.type !== 'campaign-message') continue
+    const def = inc.attributes?.definition || {}
+    const subj = def.content?.subject || def.content?.preview_text || inc.attributes?.label || null
+    if (subj) subjById[inc.id] = subj
+  }
+
+  return (data?.data || []).map(i => {
+    const msgIds = (i.relationships?.['campaign-messages']?.data || []).map(m => m.id)
+    const subject = msgIds.map(id => subjById[id]).find(Boolean) || null
+    return {
+      id: i.id,
+      // Subject come display name; fallback al nome interno della campagna.
+      name: subject || i.attributes?.name,
+      campaignName: i.attributes?.name,
+      status: i.attributes?.status,
+      sendTime: i.attributes?.send_time,
+    }
+  })
 }
 
 async function getFlows() {

@@ -64,7 +64,17 @@ export async function GET(req) {
       }))
       return NextResponse.json({ accounts })
     } catch (e) {
-      return NextResponse.json({ error: String(e?.message || e).slice(0, 200), accounts: [] }, { status: 502 })
+      // Mappa gli errori più comuni del Google Ads API in messaggi chiari: il caso
+      // tipico in produzione è il Developer Token ancora in TEST (non approvato per
+      // "Basic access") → non può elencare/interrogare account reali.
+      const raw = String(e?.message || e)
+      let msg = raw.slice(0, 200)
+      if (/DEVELOPER_TOKEN_NOT_APPROVED|not approved|test account|only.*test/i.test(raw)) {
+        msg = 'Il Developer Token Google Ads è ancora in modalità TEST (non approvato per "Basic access"): non può elencare gli account reali. Inserisci l’ID account manualmente per ora.'
+      } else if (/PERMISSION_DENIED|invalid authentication|unauthenticated/i.test(raw)) {
+        msg = 'Permesso Google Ads non concesso (scope adwords o API non abilitata). Riconnetti Google o inserisci l’ID account manualmente.'
+      }
+      return NextResponse.json({ error: msg, accounts: [] }, { status: 502 })
     }
   })
 }

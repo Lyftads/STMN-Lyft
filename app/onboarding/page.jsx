@@ -142,6 +142,18 @@ export function OnboardingInner({ embedded = false } = {}) {
       else await completeOnboarding()
       return
     }
+    // Step Nango (Meta/Shopify/Klaviyo): la connessione è già persistita a parte
+    // (save-connection → nango_connections). Se l'utente non ha inserito campi
+    // manuali, "Salva e continua" NON deve fare POST (darebbe "Nessun campo
+    // valido"): basta avanzare. Se ha messo campi manuali, prosegue col POST.
+    const isNangoStep = !!(step.nangoConnect || step.nango)
+    const hasManualValues = Object.keys(values || {}).length > 0
+    if (isNangoStep && !hasManualValues) {
+      setStepStatus(prev => ({ ...prev, [step.id]: true }))
+      if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
+      else await completeOnboarding()
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -463,7 +475,7 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
     return (
       <div style={{ marginTop: 16, padding: 16, borderRadius: 12, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', color: '#fca5a5', fontSize: 13 }}>
         <Icon name="warning" size={13} /> {t('obp.connFailed', null, 'Connessione fallita:')} <strong>{gaError}</strong>. {t('obp.retryBelow', null, 'Riprova col pulsante qui sotto.')}
-        <div style={{ marginTop: 14 }}><ConnectButton stepId={stepId} /></div>
+        <div style={{ marginTop: 14 }}><ConnectButton stepId={stepId} label={t('obp.connectGoogle', null, 'Connetti Google')} /></div>
       </div>
     )
   }
@@ -475,7 +487,7 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
           <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{t('obp.connectGoogleAccount', null, 'Collega il tuo account Google')}</div>
           <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{t('obp.gaIntro', null, 'Nessun token da copiare. 1 click ti porta su Google, autorizzi l’accesso in lettura (Analytics, Ads, Search Console) e torni qui in automatico.')}</p>
-          <ConnectButton stepId={stepId} />
+          <ConnectButton stepId={stepId} label={t('obp.connectGoogle', null, 'Connetti Google')} />
           <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 16 }}>{t('obp.permsPre', null, 'Permessi richiesti:')} <strong>{t('obp.readonly', null, 'sola lettura')}</strong></div>
         </div>
       </div>

@@ -334,9 +334,14 @@ export default BrandIdentityPanel
 // Building blocks
 // ─────────────────────────────────────────────────────────────
 
-function GlassCard({ children, padding = 22, reveal = 'reveal-zoom' }) {
+// NB: niente `reveal-zoom` qui. Quella classe parte a opacity:0 e diventa
+// visibile solo quando l'IntersectionObserver di AppShell aggiunge `.visible`.
+// Nell'onboarding STANDALONE (fuori da AppShell) l'observer non gira → il
+// pannello resterebbe invisibile ("Brand Identity non carica nulla"). Usiamo
+// glass-section semplice = sempre visibile.
+function GlassCard({ children, padding = 22 }) {
   return (
-    <div className={`glass-section ${reveal}`} style={{ padding, borderRadius: 22 }}>
+    <div className="glass-section" style={{ padding, borderRadius: 22 }}>
       {children}
     </div>
   )
@@ -370,7 +375,7 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
 function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
   return (
     <div
-      className="glass-section reveal-zoom"
+      className="glass-section"
       style={{ overflow: 'hidden', borderRadius: 22, transition: 'transform .4s cubic-bezier(0.16,1,0.3,1)' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = '' }}

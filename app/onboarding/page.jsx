@@ -60,7 +60,7 @@ const STEPS = [
     label: 'Klaviyo',
     icon: <Icon name="mail" size={22} />,
     descKey: 'obp.klaviyo.desc',
-    nango: 'klaviyo', // collegamento one-click via Nango (no API key manuale)
+    nango: 'klaviyo-oauth', // collegamento one-click via Nango (no API key manuale)
     fields: [],
   },
   {

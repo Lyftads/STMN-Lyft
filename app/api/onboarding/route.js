@@ -66,7 +66,7 @@ export async function GET() {
     googleAds: stepCompleted(data, 'googleAds'),
     ga4:       stepCompleted(data, 'ga4'),
     gsc:       stepCompleted(data, 'gsc'),
-    klaviyo:   stepCompleted(data, 'klaviyo') || !!conns.klaviyo,
+    klaviyo:   stepCompleted(data, 'klaviyo') || !!conns['klaviyo-oauth'] || !!conns.klaviyo,
   }
 
   return NextResponse.json({

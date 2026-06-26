@@ -495,7 +495,7 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
                   ) : (
                     <span style={{ color: 'var(--text)' }}>
                       {eur0(eff)}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>/m</span>
-                      {!isFlat && cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#ef4444' }}>−{cadence.off}%</span>}
+                      {!isFlat && cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#22c55e' }}>{t('settings.twoMonthsFree', null, '2 mesi gratis')}</span>}
                     </span>
                   )}
                 </td>
@@ -1035,8 +1035,9 @@ function InvoiceHistory({ invoices, loading }) {
 }
 
 const BRAND_CAD = [
-  { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
-  { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
+  { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,       off: 0, bill: '' },
+  // Annuale = 2 mesi gratis → paghi 10 mensilità su 12 (factor 10/12). off=1 = flag.
+  { id: 'annual',    label: 'Annuale',    months: 12, factor: 10 / 12, off: 1, bill: 'all’anno' },
 ]
 
 export default function SettingsTab() {
@@ -1168,7 +1169,7 @@ export default function SettingsTab() {
                   return (
                     <button key={x.id} type="button" onClick={() => setCadB(x.id)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 9, border: 'none', cursor: 'pointer', background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'var(--text2)', fontSize: 13, fontWeight: 800 }}>
                       {x.label}
-                      {x.off > 0 && <span style={{ fontSize: 10, fontWeight: 900, padding: '2px 7px', borderRadius: 999, background: on ? 'rgba(10,10,20,0.18)' : 'rgba(239,68,68,0.16)', color: on ? '#0a0a14' : '#ef4444' }}>−{x.off}%</span>}
+                      {x.off > 0 && <span style={{ fontSize: 10, fontWeight: 900, padding: '2px 7px', borderRadius: 999, background: on ? 'rgba(10,10,20,0.18)' : 'rgba(34,197,94,0.16)', color: on ? '#0a0a14' : '#22c55e' }}>{t('settings.twoMonthsFree', null, '2 mesi gratis')}</span>}
                     </button>
                   )
                 })}

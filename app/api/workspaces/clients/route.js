@@ -34,8 +34,10 @@ export async function POST(req) {
     const clientId = created.user.id
 
     // 2) Riga companies del workspace (upsert: il trigger l'ha già creata).
+    //    is_beta=false ESPLICITO: il workspace cliente NON deve MAI ereditare
+    //    l'esposizione delle env di STMN (env gate = company.is_beta in getTenantCreds).
     await admin.from('companies').upsert(
-      { user_id: clientId, company_name: companyName || label, is_client_workspace: true },
+      { user_id: clientId, company_name: companyName || label, is_client_workspace: true, is_beta: false },
       { onConflict: 'user_id' }
     )
 

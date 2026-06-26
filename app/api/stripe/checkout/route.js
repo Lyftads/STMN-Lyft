@@ -21,10 +21,20 @@ import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/se
 // - mode 'setup': salva solo il PM senza addebitare nulla
 
 const PRICE_ENV_MAP = {
+  // Brand / Aziende (mensile)
   starter:    'STRIPE_PRICE_STARTER',
   growth:     'STRIPE_PRICE_GROWTH',
   scale:      'STRIPE_PRICE_SCALE',
   enterprise: 'STRIPE_PRICE_ENTERPRISE',
+  // Agenzie / Freelance — mensile
+  agency_freelance:  'STRIPE_PRICE_AGENCY_FREELANCE',
+  agency_agency:     'STRIPE_PRICE_AGENCY_AGENCY',
+  agency_pro:        'STRIPE_PRICE_AGENCY_PRO',
+  agency_enterprise: 'STRIPE_PRICE_AGENCY_ENTERPRISE', // flat, niente annuale
+  // Agenzie / Freelance — annuale (2 mesi gratis)
+  agency_freelance_annual: 'STRIPE_PRICE_AGENCY_FREELANCE_ANNUAL',
+  agency_agency_annual:    'STRIPE_PRICE_AGENCY_AGENCY_ANNUAL',
+  agency_pro_annual:       'STRIPE_PRICE_AGENCY_PRO_ANNUAL',
 }
 
 export async function POST(req) {

@@ -1154,7 +1154,7 @@ export default function SettingsTab() {
         </div>
 
         {audience === 'agency' ? (
-          <AgencyPricing />
+          <AgencyPricing checkout />
         ) : (
           <>
             {/* Founder + toggle cadenza brand */}

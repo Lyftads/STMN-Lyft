@@ -1,7 +1,22 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+
+// Avvia il checkout Stripe per un piano agency (solo in-app, utente autenticato).
+async function startAgencyCheckout(planId, setLoading, setError) {
+  setLoading(planId); setError(null)
+  try {
+    const r = await fetch('/api/stripe/checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId, mode: 'subscription' }),
+    })
+    const j = await r.json()
+    if (!r.ok || !j?.url) { setError(j?.error || `Errore ${r.status}`); setLoading(null); return }
+    window.location.href = j.url
+  } catch (e) { setError(e?.message || 'Network error'); setLoading(null) }
+}
 
 // ============================================================================
 //  AgencyPricing — vetrina piani Agency/Freelance (multi-azienda).
@@ -26,10 +41,14 @@ const PLANS = [
   { id: 'enterprise', name: 'Enterprise', price: 1990, flat: true, accent: '#f59e0b', featureCount: 5 },
 ]
 
-export default function AgencyPricing({ compact = false }) {
+// checkout=true (in-app, utente loggato) → bottoni che avviano lo Stripe Checkout.
+// checkout=false (landing pubblica) → bottoni che portano alla registrazione.
+export default function AgencyPricing({ compact = false, checkout = false }) {
   const { t, intlLocale } = useI18n()
   const eur = n => `€${Number(n).toLocaleString(intlLocale, { maximumFractionDigits: 0 })}`
   const [cad, setCad] = useState('annual') // default sull'annuale → mostra subito il max risparmio
+  const [loading, setLoading] = useState(null)
+  const [error, setError] = useState(null)
 
   const c = CADENCES.find(x => x.id === cad)
 
@@ -74,6 +93,10 @@ export default function AgencyPricing({ compact = false }) {
         <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#22c55e', fontWeight: 700 }}>
           {t('ap.annualSaves', null, 'With annual: 2 months free every year')}
         </div>
+      )}
+
+      {error && (
+        <div style={{ textAlign: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', color: '#fca5a5', fontSize: 12.5 }}>{error}</div>
       )}
 
       {/* Cards */}
@@ -128,14 +151,27 @@ export default function AgencyPricing({ compact = false }) {
                 ))}
               </ul>
 
-              <button type="button" disabled style={{
-                marginTop: 18, padding: '11px 14px', borderRadius: 11, cursor: 'default', width: '100%',
-                border: `1px solid ${p.popular ? ACCENT : 'var(--border)'}`,
-                background: p.popular ? ACCENT : 'transparent',
-                color: p.popular ? '#0a0a14' : 'var(--text2)', fontSize: 13, fontWeight: 800,
-              }}>
-                {p.custom ? t('ap.contactUs', null, 'Contact us') : t('ap.comingSoon', null, 'Coming soon')}
-              </button>
+              {(() => {
+                // id univoco per il checkout: agency_<piano>[_annual] (enterprise = flat, niente annuale)
+                const planId = `agency_${p.id}${(c.id === 'annual' && !p.flat) ? '_annual' : ''}`
+                const btnStyle = {
+                  marginTop: 18, padding: '11px 14px', borderRadius: 11, width: '100%', display: 'block', textAlign: 'center', boxSizing: 'border-box',
+                  border: `1px solid ${p.popular ? ACCENT : 'var(--border)'}`,
+                  background: p.popular ? ACCENT : 'transparent',
+                  color: p.popular ? '#0a0a14' : 'var(--text)', fontSize: 13, fontWeight: 800,
+                  cursor: 'pointer', textDecoration: 'none',
+                }
+                const label = t('ap.selectCta', null, 'Inizia')
+                if (!checkout) {
+                  // Landing pubblica → registrazione, poi sceglie il piano in-app.
+                  return <Link href="/register" style={btnStyle}>{label}</Link>
+                }
+                return (
+                  <button type="button" disabled={loading === planId} onClick={() => startAgencyCheckout(planId, setLoading, setError)} style={{ ...btnStyle, cursor: loading === planId ? 'wait' : 'pointer', opacity: (loading && loading !== planId) ? 0.5 : 1 }}>
+                    {loading === planId ? t('ap.waiting', null, 'Attendi…') : label}
+                  </button>
+                )
+              })()}
             </div>
           )
         })}

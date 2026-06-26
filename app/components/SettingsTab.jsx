@@ -1036,7 +1036,6 @@ function InvoiceHistory({ invoices, loading }) {
 
 const BRAND_CAD = [
   { id: 'monthly',   label: 'Mensile',    months: 1,  factor: 1,    off: 0,  bill: '' },
-  { id: 'semestral', label: 'Semestrale', months: 6,  factor: 0.85, off: 15, bill: 'ogni 6 mesi' },
   { id: 'annual',    label: 'Annuale',    months: 12, factor: 0.80, off: 20, bill: 'all’anno' },
 ]
 

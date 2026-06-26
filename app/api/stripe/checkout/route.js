@@ -25,7 +25,11 @@ const PRICE_ENV_MAP = {
   starter:    'STRIPE_PRICE_STARTER',
   growth:     'STRIPE_PRICE_GROWTH',
   scale:      'STRIPE_PRICE_SCALE',
-  enterprise: 'STRIPE_PRICE_ENTERPRISE',
+  enterprise: 'STRIPE_PRICE_ENTERPRISE', // flat, niente annuale
+  // Brand / Aziende (annuale = 2 mesi gratis)
+  starter_annual: 'STRIPE_PRICE_STARTER_ANNUAL',
+  growth_annual:  'STRIPE_PRICE_GROWTH_ANNUAL',
+  scale_annual:   'STRIPE_PRICE_SCALE_ANNUAL',
   // Agenzie / Freelance — mensile
   agency_freelance:  'STRIPE_PRICE_AGENCY_FREELANCE',
   agency_agency:     'STRIPE_PRICE_AGENCY_AGENCY',

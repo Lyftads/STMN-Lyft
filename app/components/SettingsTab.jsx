@@ -392,13 +392,11 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
         >
           {t(plan.ctaKey, null, plan.cta)}
         </button>
-      ) : (cadence && cadence.off > 0 && !plan.flat) ? (
-        <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>{t('settings.comingSoon', null, 'Available soon')}</button>
       ) : (
         <button
           type="button"
           disabled={isCurrent || loading}
-          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', forceStripe: plan.flat, setError, setLoading, t })}
+          onClick={() => startStripeCheckout({ planId: plan.id + ((cadence && cadence.off > 0 && !plan.flat) ? '_annual' : ''), mode: 'subscription', forceStripe: plan.flat, setError, setLoading, t })}
           style={{
             width: '100%',
             padding: '13px 16px',

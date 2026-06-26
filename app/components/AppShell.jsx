@@ -667,6 +667,18 @@ function WorkspacePill() {
     try { await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) }); window.location.href = '/?tab=dashboard' }
     catch { setBusy(false) }
   }
+
+  const deleteClient = async (id, lbl) => {
+    if (!window.confirm(t('shell.deleteClientConfirm', { name: lbl || '' }, 'Delete client "{name}"? Its connected data will be removed and cannot be recovered.'))) return
+    setBusy(true)
+    try {
+      const r = await fetch(`/api/workspaces/clients?clientId=${encodeURIComponent(id)}`, { method: 'DELETE' }).then(x => x.json())
+      // Anche se era il workspace attivo: il mapping è rimosso → al reload
+      // getEffectiveTenantId ignora il cookie stale e torna al tuo workspace.
+      if (r?.ok) window.location.href = '/?tab=dashboard'
+      else { setBusy(false); setAddError(r?.error || 'Errore eliminazione') }
+    } catch { setBusy(false) }
+  }
   const createClient = async (name) => {
     setAddBusy(true); setAddError(null)
     try {
@@ -702,10 +714,17 @@ function WorkspacePill() {
           {ws.workspaces.map(w => {
             const on = w.id === ws.activeId
             return (
-              <button key={w.id} type="button" onClick={() => switchTo(w.id)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'transparent', color: on ? '#2997ff' : 'var(--text2)', fontSize: 13, fontWeight: on ? 800 : 600 }}>
-                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · ' + t('shell.you', null, 'you') : ''}</span>
-                {on && <span>✓</span>}
-              </button>
+              <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 2, borderRadius: 8, background: on ? 'rgba(41,151,255,0.14)' : 'transparent' }}>
+                <button type="button" onClick={() => switchTo(w.id)} style={{ flex: 1, minWidth: 0, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: on ? '#2997ff' : 'var(--text2)', fontSize: 13, fontWeight: on ? 800 : 600 }}>
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · ' + t('shell.you', null, 'you') : ''}</span>
+                  {on && <span>✓</span>}
+                </button>
+                {!w.isSelf && (
+                  <button type="button" title={t('shell.deleteClient', null, 'Delete client')} onClick={(e) => { e.stopPropagation(); deleteClient(w.id, w.label) }} style={{ flexShrink: 0, border: 'none', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', padding: '6px 8px', borderRadius: 6, display: 'inline-flex' }}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                )}
+              </div>
             )
           })}
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />

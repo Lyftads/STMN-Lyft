@@ -3,7 +3,7 @@ export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
-import { invalidateTenantCache } from '../../../lib/tenant/credentials'
+import { invalidateTenantCache, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Onboarding API
@@ -15,10 +15,11 @@ import { invalidateTenantCache } from '../../../lib/tenant/credentials'
 //  PATCH ?action=complete → marca onboarding come completato
 // ============================================================================
 
+// Risolve il WORKSPACE EFFETTIVO (non l'uid auth grezzo): così un'agency che ha
+// switchato su un cliente fa l'onboarding del CLIENTE (legge/scrive la sua riga
+// companies), non quella dell'owner. Per un utente normale = il suo stesso id.
 async function getUserId() {
-  const sb = getServerSupabase()
-  const { data: { user } } = await sb.auth.getUser()
-  return user?.id || null
+  return getEffectiveTenantId()
 }
 
 const STEP_FIELDS = {

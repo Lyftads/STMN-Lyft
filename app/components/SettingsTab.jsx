@@ -1173,7 +1173,7 @@ export default function SettingsTab() {
                 })}
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
               {(isShopifyMerchant ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
                 <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} />
               ))}

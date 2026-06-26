@@ -174,6 +174,23 @@ export async function POST(req) {
     // sono mutuamente esclusivi su Stripe Checkout. Quando il promo è esaurito
     // (max_redemptions raggiunto) o non valido, la create lancia → fallback a
     // prezzo pieno con il campo "codice promozionale" abilitato.
+    // Crea la sessione gestendo il caso "No such customer": un customer creato in
+    // TEST (o cancellato) non esiste in LIVE → ricrea senza `customer`, usando
+    // customer_email. Il webhook checkout.session.completed riallinea poi lo
+    // stripe_customer_id (match by user_id) → self-heal dopo lo switch test→live.
+    const createSession = async (extra) => {
+      const params = { ...baseParams, ...extra }
+      try {
+        return await stripe.checkout.sessions.create(params)
+      } catch (e) {
+        if (/no such customer/i.test(e?.message || '') && params.customer) {
+          const { customer, ...rest } = params
+          return await stripe.checkout.sessions.create({ ...rest, ...(userEmail ? { customer_email: userEmail } : {}) })
+        }
+        throw e
+      }
+    }
+
     const founderPromo = process.env.STRIPE_FOUNDER_PROMO || null
     let session
     if (founderPromo) {
@@ -181,13 +198,13 @@ export async function POST(req) {
       // coupon può già avere max_redemptions (es. 100) → enforce lato Stripe.
       const discount = founderPromo.startsWith('promo_') ? { promotion_code: founderPromo } : { coupon: founderPromo }
       try {
-        session = await stripe.checkout.sessions.create({ ...baseParams, discounts: [discount] })
+        session = await createSession({ discounts: [discount] })
       } catch (e) {
         console.log('[checkout] founder promo non applicato (esaurito/non valido):', e?.message)
       }
     }
     if (!session) {
-      session = await stripe.checkout.sessions.create({ ...baseParams, allow_promotion_codes: true })
+      session = await createSession({ allow_promotion_codes: true })
     }
 
     return NextResponse.json({ url: session.url })

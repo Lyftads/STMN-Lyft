@@ -172,7 +172,7 @@ function BillingContent() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 20, maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 18, maxWidth: 1240, margin: '0 auto' }}>
           {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
             <div key={p.id} className="glass-card-static" style={{ padding: 30, position: 'relative', ...(p.popular && { borderTop: `2px solid ${p.accent}`, boxShadow: `0 30px 80px rgba(0,0,0,0.80), 0 0 80px ${p.accent}22, inset 0 1.5px 0 ${p.accent}88` }) }}>
               {p.popular && (

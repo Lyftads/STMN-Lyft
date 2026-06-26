@@ -144,7 +144,7 @@ const I18N = {
       { id: 'starter', name: 'Starter', price: '€69', period: '/mese', tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', features: ['✨ Tutti i tool inclusi', 'Fino a 500 ordini/mese', 'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)', '2 utenti del team', 'Email support 48h'], cta: 'Inizia con Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/mese', tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', features: ['✨ Tutti i tool inclusi', '500 – 2.000 ordini/mese', '5 utenti del team', 'Crediti Creative Lab (AI) estesi', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'PIÙ SCELTO' },
       { id: 'scale', name: 'Scale', price: '€299', period: '/mese', tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.', features: ['✨ Tutti i tool inclusi', '2.000 – 7.000 ordini/mese', 'Utenti del team illimitati', 'Crediti Creative Lab (AI) massimi', 'CSM dedicato'], cta: 'Inizia con Scale' },
-      { id: 'enterprise', name: 'Enterprise', price: 'Su misura', period: '', tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', features: ['✨ Tutti i tool inclusi', '7.000+ ordini/mese', 'SLA e onboarding dedicato', 'Integrazioni custom', 'Account manager dedicato'], cta: 'Contattaci', href: '#contact' },
+      { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/mese', tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', features: ['✨ Tutti i tool inclusi', '7.000+ ordini/mese', 'SLA e onboarding dedicato', 'Integrazioni custom', 'Account manager dedicato'], cta: 'Inizia con Enterprise' },
     ],
     agency: {
       eyebrow: 'Per agenzie & freelance',
@@ -307,7 +307,7 @@ const I18N = {
       { id: 'starter', name: 'Starter', price: '€69', period: '/month', tagline: 'Up to 500 orders/month. Perfect to start, with everything already included.', features: ['✨ All tools included', 'Up to 500 orders/month', 'All integrations (Shopify, Meta, Google, Klaviyo)', '2 team users', 'Email support 48h'], cta: 'Start with Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/month', tagline: '500 to 2,000 orders/month. For growing brands.', features: ['✨ All tools included', '500 – 2,000 orders/month', '5 team users', 'Extended Creative Lab (AI) credits', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'MOST CHOSEN' },
       { id: 'scale', name: 'Scale', price: '€299', period: '/month', tagline: '2,000 to 7,000 orders/month. For structured brands.', features: ['✨ All tools included', '2,000 – 7,000 orders/month', 'Unlimited team users', 'Maximum Creative Lab (AI) credits', 'Dedicated CSM'], cta: 'Start with Scale' },
-      { id: 'enterprise', name: 'Enterprise', price: 'Custom', period: '', tagline: 'Over 7,000 orders/month. High volume and custom needs.', features: ['✨ All tools included', '7,000+ orders/month', 'Dedicated SLA & onboarding', 'Custom integrations', 'Dedicated account manager'], cta: 'Contact us', href: '#contact' },
+      { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/month', tagline: 'Over 7,000 orders/month. High volume and custom needs.', features: ['✨ All tools included', '7,000+ orders/month', 'Dedicated SLA & onboarding', 'Custom integrations', 'Dedicated account manager'], cta: 'Start with Enterprise' },
     ],
     agency: {
       eyebrow: 'For agencies & freelancers',
@@ -470,7 +470,7 @@ const I18N = {
       { id: 'starter', name: 'Starter', price: '€69', period: '/mes', tagline: 'Hasta 500 pedidos/mes. Perfecto para empezar, con todo ya incluido.', features: ['✨ Todas las herramientas incluidas', 'Hasta 500 pedidos/mes', 'Todas las integraciones (Shopify, Meta, Google, Klaviyo)', '2 usuarios del equipo', 'Email support 48h'], cta: 'Iniciar con Starter' },
       { id: 'growth', name: 'Growth', price: '€149', period: '/mes', tagline: 'De 500 a 2.000 pedidos/mes. Para marcas en crecimiento.', features: ['✨ Todas las herramientas incluidas', '500 – 2.000 pedidos/mes', '5 usuarios del equipo', 'Créditos Creative Lab (IA) ampliados', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'MÁS ELEGIDO' },
       { id: 'scale', name: 'Scale', price: '€299', period: '/mes', tagline: 'De 2.000 a 7.000 pedidos/mes. Para marcas estructuradas.', features: ['✨ Todas las herramientas incluidas', '2.000 – 7.000 pedidos/mes', 'Usuarios del equipo ilimitados', 'Créditos Creative Lab (IA) máximos', 'CSM dedicado'], cta: 'Iniciar con Scale' },
-      { id: 'enterprise', name: 'Enterprise', price: 'A medida', period: '', tagline: 'Más de 7.000 pedidos/mes. Alto volumen y necesidades custom.', features: ['✨ Todas las herramientas incluidas', '7.000+ pedidos/mes', 'SLA y onboarding dedicado', 'Integraciones custom', 'Account manager dedicado'], cta: 'Contáctanos', href: '#contact' },
+      { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/mes', tagline: 'Más de 7.000 pedidos/mes. Alto volumen y necesidades custom.', features: ['✨ Todas las herramientas incluidas', '7.000+ pedidos/mes', 'SLA y onboarding dedicado', 'Integraciones custom', 'Account manager dedicado'], cta: 'Iniciar con Enterprise' },
     ],
     agency: {
       eyebrow: 'Para agencias y freelancers',
@@ -633,7 +633,7 @@ const I18N = {
       { id: 'starter', name: 'Starter', price: '69€', period: '/mois', tagline: 'Jusqu\'à 500 commandes/mois. Parfait pour démarrer, tout déjà inclus.', features: ['✨ Tous les outils inclus', 'Jusqu\'à 500 commandes/mois', 'Toutes les intégrations (Shopify, Meta, Google, Klaviyo)', '2 utilisateurs', 'Support email 48h'], cta: 'Commencer avec Starter' },
       { id: 'growth', name: 'Growth', price: '149€', period: '/mois', tagline: 'De 500 à 2 000 commandes/mois. Pour les marques en croissance.', features: ['✨ Tous les outils inclus', '500 – 2 000 commandes/mois', '5 utilisateurs', 'Crédits Creative Lab (IA) étendus', 'Support prioritaire 12h'], cta: 'Commencer avec Growth', popular: true, popularLabel: 'LE PLUS CHOISI' },
       { id: 'scale', name: 'Scale', price: '299€', period: '/mois', tagline: 'De 2 000 à 7 000 commandes/mois. Pour les marques structurées.', features: ['✨ Tous les outils inclus', '2 000 – 7 000 commandes/mois', 'Utilisateurs illimités', 'Crédits Creative Lab (IA) maximum', 'CSM dédié'], cta: 'Commencer avec Scale' },
-      { id: 'enterprise', name: 'Enterprise', price: 'Sur mesure', period: '', tagline: 'Plus de 7 000 commandes/mois. Gros volumes et besoins personnalisés.', features: ['✨ Tous les outils inclus', '7 000+ commandes/mois', 'SLA & onboarding dédiés', 'Intégrations personnalisées', 'Account manager dédié'], cta: 'Nous contacter', href: '#contact' },
+      { id: 'enterprise', name: 'Enterprise', price: '599€', period: '/mois', tagline: 'Plus de 7 000 commandes/mois. Gros volumes et besoins personnalisés.', features: ['✨ Tous les outils inclus', '7 000+ commandes/mois', 'SLA & onboarding dédiés', 'Intégrations personnalisées', 'Account manager dédié'], cta: 'Commencer avec Enterprise' },
     ],
     agency: {
       eyebrow: 'Pour agences & freelances',
@@ -796,7 +796,7 @@ const I18N = {
       { id: 'starter', name: 'Starter', price: '69€', period: '/Monat', tagline: 'Bis zu 500 Bestellungen/Monat. Perfekt zum Start, alles schon dabei.', features: ['✨ Alle Tools inklusive', 'Bis zu 500 Bestellungen/Monat', 'Alle Integrationen (Shopify, Meta, Google, Klaviyo)', '2 Team-Nutzer', 'E-Mail-Support 48h'], cta: 'Mit Starter beginnen' },
       { id: 'growth', name: 'Growth', price: '149€', period: '/Monat', tagline: '500 bis 2.000 Bestellungen/Monat. Für wachsende Marken.', features: ['✨ Alle Tools inklusive', '500 – 2.000 Bestellungen/Monat', '5 Team-Nutzer', 'Erweiterte Creative-Lab-(KI)-Credits', 'Priority-Support 12h'], cta: 'Mit Growth beginnen', popular: true, popularLabel: 'AM HÄUFIGSTEN GEWÄHLT' },
       { id: 'scale', name: 'Scale', price: '299€', period: '/Monat', tagline: '2.000 bis 7.000 Bestellungen/Monat. Für strukturierte Marken.', features: ['✨ Alle Tools inklusive', '2.000 – 7.000 Bestellungen/Monat', 'Unbegrenzte Team-Nutzer', 'Maximale Creative-Lab-(KI)-Credits', 'Dedizierter CSM'], cta: 'Mit Scale beginnen' },
-      { id: 'enterprise', name: 'Enterprise', price: 'Individuell', period: '', tagline: 'Über 7.000 Bestellungen/Monat. Hohe Volumen und individuelle Anforderungen.', features: ['✨ Alle Tools inklusive', '7.000+ Bestellungen/Monat', 'Dediziertes SLA & Onboarding', 'Individuelle Integrationen', 'Dedizierter Account Manager'], cta: 'Kontakt aufnehmen', href: '#contact' },
+      { id: 'enterprise', name: 'Enterprise', price: '599€', period: '/Monat', tagline: 'Über 7.000 Bestellungen/Monat. Hohe Volumen und individuelle Anforderungen.', features: ['✨ Alle Tools inklusive', '7.000+ Bestellungen/Monat', 'Dediziertes SLA & Onboarding', 'Individuelle Integrationen', 'Dedizierter Account Manager'], cta: 'Mit Enterprise starten' },
     ],
     agency: {
       eyebrow: 'Für Agenturen & Freelancer',
@@ -1773,7 +1773,8 @@ function Pricing({ t, lang = 'it' }) {
               </div>
               {(() => {
                 const m = parseInt(String(p.price).replace(/[^0-9]/g, ''), 10)
-                if (!Number.isFinite(m)) {
+                // Enterprise = prezzo fisso, nessuno sconto annuale → mostralo as-is.
+                if (!Number.isFinite(m) || p.id === 'enterprise') {
                   return (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14, marginBottom: 10 }}>
                       <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em' }}>{p.price}</span>

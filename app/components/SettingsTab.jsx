@@ -79,16 +79,15 @@ const PLANS = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: null,
-    priceLabel: 'Su misura', priceLabelKey: 'settings.priceCustom',
-    period: '',
+    price: 599,
+    priceLabel: '€599',
+    period: '/mese', periodKey: 'settings.perMonth',
+    flat: true, // prezzo fisso: nessuno sconto annuale
     tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', taglineKey: 'settings.plan.enterprise.tagline',
     accent: '#f59e0b',
     accentBg: 'rgba(245,158,11,0.12)',
     accentBorder: 'rgba(245,158,11,0.30)',
-    contact: true,
-    contactHref: 'mailto:info@lyftads.agency?subject=Richiesta%20piano%20Enterprise%20LyftAI',
-    cta: 'Contattaci', ctaKey: 'settings.plan.enterprise.cta',
+    cta: 'Passa a Enterprise', ctaKey: 'settings.plan.enterprise.cta',
     features: [
       '✨ Tutti i tool inclusi',
       '7.000+ ordini/mese',
@@ -179,17 +178,21 @@ function GlassCard({ children, padding = 24, glow = ACCENT, style = {} }) {
 }
 
 // Helper: avvia Stripe Checkout session e fa redirect
-async function startStripeCheckout({ planId, mode, setError, setLoading, t }) {
+async function startStripeCheckout({ planId, mode, forceStripe = false, setError, setLoading, t }) {
   try {
     setLoading?.(true)
     setError?.(null)
     // Utenti Shopify (store collegato) → addebiti via Shopify Billing API
     // (policy App Store 1.2.1), MAI Stripe. Stripe resta per i signup diretti.
+    // forceStripe = true (es. piano Enterprise, solo clienti diretti) → salta il
+    // routing Shopify e va sempre su Stripe.
     let isShopify = false
-    try {
-      const st = await fetch('/api/integrations/status').then(r => r.json())
-      isShopify = Array.isArray(st?.connected) && st.connected.includes('shopify')
-    } catch {}
+    if (!forceStripe) {
+      try {
+        const st = await fetch('/api/integrations/status').then(r => r.json())
+        isShopify = Array.isArray(st?.connected) && st.connected.includes('shopify')
+      } catch {}
+    }
     if (isShopify) {
       const rs = await fetch('/api/shopify/billing/subscribe', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -331,7 +334,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
         {plan.name}
       </div>
 
-      {(cadence && cadence.off > 0 && typeof plan.price === 'number') ? (() => {
+      {(cadence && cadence.off > 0 && typeof plan.price === 'number' && !plan.flat) ? (() => {
         const eff = Math.round(plan.price * cadence.factor)
         const total = Math.round(eff * cadence.months)
         const save = Math.round((plan.price - eff) * cadence.months)
@@ -389,13 +392,13 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
         >
           {t(plan.ctaKey, null, plan.cta)}
         </button>
-      ) : (cadence && cadence.off > 0) ? (
+      ) : (cadence && cadence.off > 0 && !plan.flat) ? (
         <button type="button" disabled style={{ width: '100%', padding: '13px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text3)', fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'default' }}>{t('settings.comingSoon', null, 'Available soon')}</button>
       ) : (
         <button
           type="button"
           disabled={isCurrent || loading}
-          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', setError, setLoading, t })}
+          onClick={() => startStripeCheckout({ planId: plan.id, mode: 'subscription', forceStripe: plan.flat, setError, setLoading, t })}
           style={{
             width: '100%',
             padding: '13px 16px',
@@ -445,7 +448,7 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
   const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
   const heads = hideEnterprise ? ['Starter', 'Growth', 'Scale'] : ['Starter', 'Growth', 'Scale', 'Enterprise']
   const tiers = hideEnterprise ? ['starter', 'growth', 'scale'] : ['starter', 'growth', 'scale', 'enterprise']
-  const prices = hideEnterprise ? [69, 149, 299] : [69, 149, 299, null] // Starter / Growth / Scale / Enterprise
+  const prices = hideEnterprise ? [69, 149, 299] : [69, 149, 299, 599] // Starter / Growth / Scale / Enterprise (flat, no sconto annuale)
   return (
     <div style={{
       borderRadius: 16,
@@ -482,7 +485,8 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
               {t('settings.priceRow', null, 'Prezzo')}{cadence?.bill ? <span style={{ color: 'var(--text3)', fontWeight: 600 }}> · {cadence.bill}</span> : ''}
             </td>
             {prices.map((m, j) => {
-              const f = cadence?.factor ?? 1
+              const isFlat = tiers[j] === 'enterprise' // Enterprise = prezzo fisso, nessuno sconto annuale
+              const f = isFlat ? 1 : (cadence?.factor ?? 1)
               const eff = m == null ? null : Math.round(m * f)
               return (
                 <td key={j} style={{ textAlign: 'center', padding: '12px 16px', fontSize: 12.5, fontWeight: 800, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent' }}>
@@ -491,7 +495,7 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
                   ) : (
                     <span style={{ color: 'var(--text)' }}>
                       {eur0(eff)}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>/m</span>
-                      {cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#ef4444' }}>−{cadence.off}%</span>}
+                      {!isFlat && cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#ef4444' }}>−{cadence.off}%</span>}
                     </span>
                   )}
                 </td>
@@ -1054,6 +1058,10 @@ export default function SettingsTab() {
       .then(st => setIsShopify(!!st?.shopifyStore || (Array.isArray(st?.connected) && st.connected.includes('shopify'))))
       .catch(() => {})
   }, [])
+  // Vero merchant App Store = Shopify collegato SENZA customer Stripe (paga via
+  // Shopify Managed Pricing). I clienti diretti che collegano Shopify solo per i
+  // dati hanno un customer Stripe → restano "diretti" e vedono l'Enterprise.
+  const isShopifyMerchant = isShopify && !customerId
 
   // 1) On mount: parse query params per banner, pulisci URL, fetch dati
   useEffect(() => {
@@ -1168,7 +1176,7 @@ export default function SettingsTab() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))', gap: 16 }}>
-              {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
+              {(isShopifyMerchant ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
                 <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} />
               ))}
             </div>
@@ -1189,7 +1197,7 @@ export default function SettingsTab() {
             {t('settings.comparePlans', null, 'Comparativa piani')}
           </div>
         </div>
-        <ComparisonTable cadence={audience === 'agency' ? null : bc} hideEnterprise={isShopify} />
+        <ComparisonTable cadence={audience === 'agency' ? null : bc} hideEnterprise={isShopifyMerchant} />
       </GlassCard>
 
       <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />

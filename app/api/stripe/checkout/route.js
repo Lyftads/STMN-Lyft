@@ -12,17 +12,19 @@ import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/se
 //   STRIPE_PRICE_STARTER            price_... (recurring monthly Starter)
 //   STRIPE_PRICE_GROWTH             price_... (recurring monthly Growth)
 //   STRIPE_PRICE_SCALE              price_... (recurring monthly Scale)
+//   STRIPE_PRICE_ENTERPRISE         price_... (recurring monthly Enterprise, €599, no annual discount)
 //   NEXT_PUBLIC_APP_URL  (opt.)     https://lyftai.io
 //                                   (fallback: ricavato da request origin)
 //
-// Body POST: { planId: 'starter' | 'growth' | 'scale', mode?: 'subscription' | 'setup' }
+// Body POST: { planId: 'starter' | 'growth' | 'scale' | 'enterprise', mode?: 'subscription' | 'setup' }
 // - mode 'subscription' (default): crea sub + salva PM automatic
 // - mode 'setup': salva solo il PM senza addebitare nulla
 
 const PRICE_ENV_MAP = {
-  starter: 'STRIPE_PRICE_STARTER',
-  growth:  'STRIPE_PRICE_GROWTH',
-  scale:   'STRIPE_PRICE_SCALE',
+  starter:    'STRIPE_PRICE_STARTER',
+  growth:     'STRIPE_PRICE_GROWTH',
+  scale:      'STRIPE_PRICE_SCALE',
+  enterprise: 'STRIPE_PRICE_ENTERPRISE',
 }
 
 export async function POST(req) {

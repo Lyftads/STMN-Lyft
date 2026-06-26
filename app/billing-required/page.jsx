@@ -16,7 +16,7 @@ const GREEN = '#22c55e'
 // Testi via i18n: [chiave, fallback-IT]
 const PLANS = [
   {
-    id: 'starter', name: 'Starter', price: '€119,99', accent: '#0ea5e9',
+    id: 'starter', name: 'Starter', price: '€69', accent: '#0ea5e9',
     tag: ['br.tagStarter', 'Per founder che strutturano il primo brand'],
     features: [
       ['br.fStarter1', 'Dashboard KPI core'],
@@ -27,7 +27,7 @@ const PLANS = [
     cta: ['br.ctaStarter', 'Inizia trial con Starter'],
   },
   {
-    id: 'growth', name: 'Growth', price: '€179,99', accent: ACCENT, popular: true,
+    id: 'growth', name: 'Growth', price: '€149', accent: ACCENT, popular: true,
     tag: ['br.tagGrowth', 'Brand in scaling che cercano leve data-driven'],
     features: [
       ['br.fGrowth1', 'Tutto di Starter +'],
@@ -39,7 +39,7 @@ const PLANS = [
     cta: ['br.ctaGrowth', 'Inizia trial con Growth'],
   },
   {
-    id: 'scale', name: 'Scale', price: '€349,99', accent: GREEN,
+    id: 'scale', name: 'Scale', price: '€299', accent: GREEN,
     tag: ['br.tagScale', 'Brand 7-8 figure con team dedicato'],
     features: [
       ['br.fScale1', 'Tutto di Growth +'],
@@ -49,6 +49,20 @@ const PLANS = [
       ['br.fScale5', 'CSM dedicato'],
     ],
     cta: ['br.ctaScale', 'Inizia trial con Scale'],
+  },
+  {
+    // Enterprise: prezzo fisso, solo clienti diretti (Stripe). Nascosto ai merchant
+    // Shopify (App Store policy: per loro solo Managed Pricing standard).
+    id: 'enterprise', name: 'Enterprise', price: '€599', accent: '#f59e0b',
+    tag: ['br.tagEnterprise', 'Oltre 7.000 ordini/mese · volumi alti ed esigenze custom'],
+    features: [
+      ['br.fEnterprise1', 'Tutto di Scale +'],
+      ['br.fEnterprise2', '7.000+ ordini/mese'],
+      ['br.fEnterprise3', 'SLA e onboarding dedicato'],
+      ['br.fEnterprise4', 'Integrazioni custom'],
+      ['br.fEnterprise5', 'Account manager dedicato'],
+    ],
+    cta: ['br.ctaEnterprise', 'Inizia trial con Enterprise'],
   },
 ]
 
@@ -159,7 +173,7 @@ function BillingContent() {
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 20, maxWidth: 1000, margin: '0 auto' }}>
-          {PLANS.map(p => (
+          {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
             <div key={p.id} className="glass-card-static" style={{ padding: 30, position: 'relative', ...(p.popular && { borderTop: `2px solid ${p.accent}`, boxShadow: `0 30px 80px rgba(0,0,0,0.80), 0 0 80px ${p.accent}22, inset 0 1.5px 0 ${p.accent}88` }) }}>
               {p.popular && (
                 <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', borderRadius: 999, background: p.accent, color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em' }}>{t('br.popular', null, 'POPULAR')}</div>

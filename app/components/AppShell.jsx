@@ -661,10 +661,23 @@ function WorkspacePill() {
   const label = active?.label || companyName
   const multi = ws.isAgency || ws.workspaces.length > 1
 
+  // Cambiando workspace, svuota le cache client per-utente (metriche/clienti/
+  // prewarm salvate in localStorage/sessionStorage NON sono per-workspace) →
+  // evita di mostrare per un istante i dati del workspace precedente.
+  const clearWorkspaceCache = () => {
+    try {
+      for (const store of [localStorage, sessionStorage]) {
+        for (const k of Object.keys(store)) {
+          if (/^stmn_|^lyft_|clienti|metrics|kpi|swr/i.test(k)) store.removeItem(k)
+        }
+      }
+    } catch {}
+  }
+
   const switchTo = async (id) => {
     if (id === ws.activeId) { setOpen(false); return }
     setBusy(true)
-    try { await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) }); window.location.href = '/?tab=dashboard' }
+    try { await fetch('/api/workspaces/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId: id }) }); clearWorkspaceCache(); window.location.href = '/?tab=dashboard' }
     catch { setBusy(false) }
   }
 
@@ -675,7 +688,7 @@ function WorkspacePill() {
       const r = await fetch(`/api/workspaces/clients?clientId=${encodeURIComponent(id)}`, { method: 'DELETE' }).then(x => x.json())
       // Anche se era il workspace attivo: il mapping è rimosso → al reload
       // getEffectiveTenantId ignora il cookie stale e torna al tuo workspace.
-      if (r?.ok) window.location.href = '/?tab=dashboard'
+      if (r?.ok) { clearWorkspaceCache(); window.location.href = '/?tab=dashboard' }
       else { setBusy(false); setAddError(r?.error || 'Errore eliminazione') }
     } catch { setBusy(false) }
   }

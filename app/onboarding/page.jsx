@@ -27,7 +27,7 @@ const STEPS = [
     label: 'Meta Ads',
     icon: '◧',
     descKey: 'obp.meta.desc',
-    nangoConnect: 'facebook', stepKey: 'meta',
+    nangoConnect: 'facebook', stepKey: 'meta', metaPicker: true,
     fields: [
       { key: 'meta_access_token', label: 'Access Token', placeholder: 'EAA...', required: true, type: 'password', hintKey: 'obp.meta.tokenHint' },
       { key: 'meta_account_id', label: 'Ad Account ID', placeholder: 'act_123456789', required: false, hintKey: 'obp.meta.accountHint' },
@@ -304,6 +304,8 @@ export function OnboardingInner({ embedded = false } = {}) {
               gaConnected={searchParams.get('gaConnected') === '1'}
               gaError={searchParams.get('gaError')}
             />
+          ) : step.metaPicker ? (
+            <MetaStep step={step} values={values} setField={setField} />
           ) : step.nango ? (
             <div style={{ marginTop: 8, padding: 24, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)', textAlign: 'center' }}>
               <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
@@ -551,6 +553,125 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
       <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text4, #666)' }}>
         {t('obp.changeGoogle', null, 'Vuoi cambiare account Google?')} <ConnectButton compact stepId={stepId} label={t('obp.reconnect', null, 'Riconnetti')} />
       </div>
+    </div>
+  )
+}
+
+// Step Meta: 1) collega via Nango (one-click) → 2) scegli l'ad account da
+// usare. La connessione resta su nango_connections (save-connection); l'account
+// scelto va in companies.meta_account_id (salvato dal "Salva e continua" via
+// STEP_FIELDS.meta). Lo stato "collegato" deriva da integrations/status
+// (connected include 'facebook'), NON dal badge ottimistico.
+function MetaStep({ step, values, setField }) {
+  const { t } = useI18n()
+  const [connected, setConnected] = useState(false)
+  const [accounts, setAccounts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState(null)
+
+  // È davvero collegato? (facebook in nango_connections del workspace effettivo)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/integrations/status')
+      .then(r => r.json())
+      .then(s => {
+        if (!alive) return
+        setConnected(Array.isArray(s?.connected) && s.connected.includes('facebook'))
+        if (s?.metaAccountId && !values.meta_account_id) setField('meta_account_id', s.metaAccountId)
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Quando collegato, carica gli ad account raggiungibili col token.
+  useEffect(() => {
+    if (!connected) { setLoading(false); return }
+    let alive = true
+    setLoading(true); setListError(null)
+    fetch('/api/integrations/meta-adaccounts')
+      .then(r => r.json())
+      .then(j => {
+        if (!alive) return
+        if (j?.error) { setListError(j.error); return }
+        setAccounts(Array.isArray(j.accounts) ? j.accounts : [])
+      })
+      .catch(e => { if (alive) setListError(e?.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [connected])
+
+  const disconnect = async () => {
+    try {
+      await fetch('/api/integrations/save-connection?integrationId=facebook', { method: 'DELETE' })
+      setConnected(false); setAccounts([]); setField('meta_account_id', '')
+    } catch {}
+  }
+
+  // Fase 1: non collegato → bottone Nango prominente (resta sullo step per
+  // scegliere poi l'account: onConnected NON avanza, mostra il picker).
+  if (!connected) {
+    return (
+      <div style={{ marginTop: 8 }}>
+        <div style={{ padding: 28, borderRadius: 16, background: 'linear-gradient(180deg, rgba(123,91,255,0.14), rgba(255,255,255,0.02))', border: '1px solid rgba(123,91,255,0.40)', textAlign: 'center' }}>
+          <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={36} /></div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{t('obp.oneClickTitle', null, 'Collega in un click')}</div>
+          <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 auto 18px', maxWidth: 420, lineHeight: 1.5 }}>{t('obp.oneClickIntro', null, 'Autorizzi in sicurezza, nessun token da copiare.')}</p>
+          <NangoConnectButton integrationId="facebook" label={t('obp.connectOneClick', { name: step.label }, `Collega ${step.label} con un click`)}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 30px', borderRadius: 999, background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 800, cursor: 'pointer', boxShadow: '0 14px 38px rgba(123,91,255,0.42)' }}
+            onConnected={() => setConnected(true)} />
+        </div>
+        {step.fields?.length > 0 && (
+          <details style={{ marginTop: 12 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text4, #666)' }}>{t('obp.orManual', null, 'Oppure inserisci il token manualmente (avanzato)')}</summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
+              {step.fields.map(f => <FieldInput key={f.key} f={f} values={values} setField={setField} t={t} />)}
+            </div>
+          </details>
+        )}
+      </div>
+    )
+  }
+
+  // Fase 2: collegato → scegli l'ad account.
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ padding: 14, borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)', color: '#86efac', fontSize: 13, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span><Icon name="check" size={13} /> {t('obp.metaConnected', null, 'Meta collegato. Scegli l’account pubblicitario.')}</span>
+        <button type="button" onClick={disconnect} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, textDecoration: 'underline', cursor: 'pointer' }}>{t('obp.disconnectReconnect', null, 'Scollega e ricollega')}</button>
+      </div>
+
+      <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em' }}>
+        {t('obp.metaAccount', null, 'Account pubblicitario Meta')} <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>
+      </label>
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: 'var(--text3)', padding: '12px 14px' }}>{t('obp.loadingList', null, 'Caricamento…')}</div>
+      ) : (listError || accounts.length === 0) ? (
+        <div>
+          <div style={{ fontSize: 12.5, color: '#fbbf24', padding: '10px 14px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)', marginBottom: 12 }}>
+            <Icon name="warning" size={13} /> {listError || t('obp.noMetaAccounts', null, 'Nessun account pubblicitario trovato su questo profilo.')} {t('obp.enterManual', null, 'Puoi inserirlo manualmente qui sotto.')}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>{t('obp.metaManual', null, 'Inserisci manualmente l’ID account (formato act_123456789)')}</div>
+          <input
+            type="text"
+            value={values.meta_account_id || ''}
+            onChange={e => setField('meta_account_id', e.target.value.trim())}
+            placeholder="act_123456789"
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+          />
+        </div>
+      ) : (
+        <select
+          value={values.meta_account_id || ''}
+          onChange={e => setField('meta_account_id', e.target.value)}
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
+        >
+          <option value="">{t('obp.selectMeta', null, '— Seleziona account —')}</option>
+          {accounts.map(a => (
+            <option key={a.id} value={a.id}>{`${a.name || a.id}${a.business ? ' · ' + a.business : ''} — ${a.id}`}</option>
+          ))}
+        </select>
+      )}
     </div>
   )
 }

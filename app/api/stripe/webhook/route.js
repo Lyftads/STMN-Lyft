@@ -76,10 +76,23 @@ export async function POST(req) {
         if (userId && customerId) {
           const admin = getAdminSupabase()
           if (admin) {
+            // Recupera lo stato REALE della subscription (trialing/active) così il
+            // piano è attivo SUBITO, senza dipendere dall'ordine di arrivo degli
+            // eventi customer.subscription.* (il gate legge stripe_subscription_status).
+            let subStatus = null, periodEnd = null
+            if (s.subscription) {
+              try {
+                const sub = await stripe.subscriptions.retrieve(s.subscription)
+                subStatus = sub.status
+                periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
+              } catch (e) { console.log('[stripe webhook] retrieve subscription fallito:', e?.message) }
+            }
             await admin.from('companies').update({
               stripe_customer_id: customerId,
               stripe_subscription_id: s.subscription || null,
               plan: planId || null,
+              ...(subStatus ? { stripe_subscription_status: subStatus } : {}),
+              ...(periodEnd ? { stripe_current_period_end: periodEnd } : {}),
               updated_at: new Date().toISOString(),
             }).eq('user_id', userId)
           }

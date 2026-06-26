@@ -142,13 +142,14 @@ export function OnboardingInner({ embedded = false } = {}) {
       else await completeOnboarding()
       return
     }
-    // Step Nango (Meta/Shopify/Klaviyo): la connessione è già persistita a parte
-    // (save-connection → nango_connections). Se l'utente non ha inserito campi
-    // manuali, "Salva e continua" NON deve fare POST (darebbe "Nessun campo
-    // valido"): basta avanzare. Se ha messo campi manuali, prosegue col POST.
-    const isNangoStep = !!(step.nangoConnect || step.nango)
+    // Step di connessione (Nango: Meta/Shopify/Klaviyo — oppure OAuth Google:
+    // Ads/GA4/GSC): la connessione è già persistita a parte (save-connection o
+    // il callback Google). Se l'utente non ha valori da salvare (nessun account
+    // selezionato / nessun campo manuale), "Salva e continua" NON deve fare POST
+    // (darebbe "Nessun campo valido"): basta avanzare. Con valori → POST.
+    const isConnectStep = !!(step.nangoConnect || step.nango || step.oauth)
     const hasManualValues = Object.keys(values || {}).length > 0
-    if (isNangoStep && !hasManualValues) {
+    if (isConnectStep && !hasManualValues) {
       setStepStatus(prev => ({ ...prev, [step.id]: true }))
       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
       else await completeOnboarding()
@@ -455,11 +456,22 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
   useEffect(() => {
     let alive = true
     setLoading(true); setListError(null)
+    // Fonte di verità per "Google collegato" = il refresh token È salvato sul
+    // tenant (integrations/status.googleConnected). NON dipende dal fatto che la
+    // lista (ads/ga4/gsc) ritorni elementi: con Basic access in ritardo (Ads) o
+    // nessun sito verificato (GSC) la lista è vuota MA il collegamento c'è → non
+    // dobbiamo rimandare l'utente alla schermata "Connetti Google" (= "non salva").
+    fetch('/api/integrations/status')
+      .then(r => r.json())
+      .then(s => { if (alive && typeof s?.googleConnected === 'boolean') setConnected(s.googleConnected) })
+      .catch(() => {})
     fetch(cfg.listUrl)
       .then(r => r.json())
       .then(j => {
         if (!alive) return
-        if (j?.notConnected || j?.configured === false) { setConnected(false); return }
+        // notConnected/configured:false vale solo come fallback se lo status non
+        // ha già confermato la connessione (gestito sopra). Qui carichiamo gli item.
+        if (j?.notConnected || j?.configured === false) { return }
         if (j?.error) { setListError(j.error); return }
         const list = j[cfg.listKey] || []
         setItems(list)

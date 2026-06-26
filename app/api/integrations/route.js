@@ -1,94 +1,99 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { withTenantContext, getShopify, getMeta, getKlaviyo, getGoogle, getEmailProvider } from '../../../lib/tenant/credentials'
 
-function check(...vars) {
-  return vars.every(v => !!process.env[v])
-}
+// Stato integrazioni del WORKSPACE EFFETTIVO (cliente agency se switchato).
+// PRIMA leggeva solo process.env (= credenziali di STMN) → OGNI workspace, anche
+// un cliente nuovo, vedeva le integrazioni di STMN come "Connected" (leak).
+// Ora risolve le creds del tenant via withTenantContext: env solo per l'owner,
+// per i clienti contano SOLO le loro connection (Nango / token salvati).
+export async function GET(req) {
+  return withTenantContext(req, async () => {
+    const shop = getShopify()
+    const meta = getMeta()
+    const google = getGoogle()
+    const klaviyo = getKlaviyo()
+    const emailProvider = getEmailProvider()
 
-export async function GET() {
-  const integrations = [
-    {
-      id: 'shopify',
-      name: 'Shopify',
-      description: 'Sync store data, orders, and customers',
-      category: 'Commerce',
-      domain: 'shopify.com',
-      active: check('SHOPIFY_STORE_URL', 'SHOPIFY_ADMIN_TOKEN'),
-      envVars: ['SHOPIFY_STORE_URL', 'SHOPIFY_ADMIN_TOKEN'],
-      setupUrl: 'https://admin.shopify.com/store/YOUR_STORE/settings/apps/development',
-      scope: 'workspace',
-    },
-    {
-      id: 'meta',
-      name: 'Meta Ads',
-      description: 'Connect Facebook and Instagram ad accounts',
-      category: 'Advertising',
-      domain: 'meta.com',
-      active: check('META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'),
-      envVars: ['META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'],
-      setupUrl: 'https://business.facebook.com/settings/system-users',
-      scope: 'workspace',
-    },
-    {
-      id: 'klaviyo',
-      name: 'Klaviyo',
-      description: 'Sync email campaigns, flows, and segments',
-      category: 'Email Marketing',
-      domain: 'klaviyo.com',
-      active: check('KLAVIYO_API_KEY'),
-      envVars: ['KLAVIYO_API_KEY'],
-      setupUrl: 'https://www.klaviyo.com/settings/account/api-keys',
-      scope: 'workspace',
-    },
-    {
-      id: 'google_ads',
-      name: 'Google Ads',
-      description: 'Track Google Ads campaigns and conversions',
-      category: 'Advertising',
-      domain: 'ads.google.com',
-      active: check('GOOGLE_ADS_DEVELOPER_TOKEN', 'GOOGLE_ADS_CUSTOMER_ID', 'GOOGLE_REFRESH_TOKEN'),
-      envVars: ['GOOGLE_ADS_DEVELOPER_TOKEN', 'GOOGLE_ADS_CUSTOMER_ID', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'],
-      setupUrl: 'https://ads.google.com/aw/apicenter',
-      scope: 'workspace',
-    },
-    {
-      id: 'ga4',
-      name: 'Google Analytics',
-      description: 'Connect GA4 for website analytics',
-      category: 'Analytics',
-      domain: 'analytics.google.com',
-      active: check('GA4_PROPERTY_ID', 'GOOGLE_CLIENT_ID', 'GOOGLE_REFRESH_TOKEN'),
-      envVars: ['GA4_PROPERTY_ID', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'],
-      setupUrl: 'https://analytics.google.com/analytics/web/',
-      scope: 'workspace',
-    },
-    {
-      id: 'tiktok_ads',
-      name: 'TikTok Ads',
-      description: 'Track TikTok ad performance and spend',
-      category: 'Advertising',
-      domain: 'tiktok.com',
-      active: check('TIKTOK_ACCESS_TOKEN', 'TIKTOK_ADVERTISER_ID'),
-      envVars: ['TIKTOK_ACCESS_TOKEN', 'TIKTOK_ADVERTISER_ID'],
-      setupUrl: 'https://business-api.tiktok.com/portal/apps',
-      scope: 'workspace',
-    },
-    {
-      id: 'openai',
-      name: 'OpenAI',
-      description: 'AI agents, performance analysis, creative generation',
-      category: 'AI',
-      domain: 'openai.com',
-      active: check('OPENAI_API_KEY'),
-      envVars: ['OPENAI_API_KEY'],
-      setupUrl: 'https://platform.openai.com/api-keys',
-      scope: 'workspace',
-    },
-  ]
+    const integrations = [
+      {
+        id: 'shopify',
+        name: 'Shopify',
+        description: 'Sync store data, orders, and customers',
+        category: 'Commerce',
+        domain: 'shopify.com',
+        active: !!(shop?.storeUrl && shop?.adminToken),
+        setupUrl: 'https://admin.shopify.com/store/YOUR_STORE/settings/apps/development',
+        scope: 'workspace',
+      },
+      {
+        id: 'meta',
+        name: 'Meta Ads',
+        description: 'Connect Facebook and Instagram ad accounts',
+        category: 'Advertising',
+        domain: 'meta.com',
+        active: !!meta?.accessToken,
+        setupUrl: 'https://business.facebook.com/settings/system-users',
+        scope: 'workspace',
+      },
+      {
+        id: 'klaviyo',
+        name: 'Klaviyo',
+        description: 'Sync email campaigns, flows, and segments',
+        category: 'Email Marketing',
+        domain: 'klaviyo.com',
+        active: !!klaviyo?.apiKey || emailProvider === 'klaviyo',
+        setupUrl: 'https://www.klaviyo.com/settings/account/api-keys',
+        scope: 'workspace',
+      },
+      {
+        id: 'google_ads',
+        name: 'Google Ads',
+        description: 'Track Google Ads campaigns and conversions',
+        category: 'Advertising',
+        domain: 'ads.google.com',
+        active: !!(google?.refreshToken && google?.adsCustomerId),
+        setupUrl: 'https://ads.google.com/aw/apicenter',
+        scope: 'workspace',
+      },
+      {
+        id: 'ga4',
+        name: 'Google Analytics',
+        description: 'Connect GA4 for website analytics',
+        category: 'Analytics',
+        domain: 'analytics.google.com',
+        active: !!(google?.refreshToken && google?.ga4PropertyId),
+        setupUrl: 'https://analytics.google.com/analytics/web/',
+        scope: 'workspace',
+      },
+      {
+        id: 'tiktok_ads',
+        name: 'TikTok Ads',
+        description: 'Track TikTok ad performance and spend',
+        category: 'Advertising',
+        domain: 'tiktok.com',
+        active: false, // nessuna connessione TikTok per-tenant ancora
+        setupUrl: 'https://business-api.tiktok.com/portal/apps',
+        scope: 'workspace',
+      },
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        description: 'AI agents, performance analysis, creative generation',
+        category: 'AI',
+        domain: 'openai.com',
+        // OpenAI = backend AI dell'APP, condiviso da tutti i tenant (non è una
+        // connection privata del cliente) → attivo se l'app ha la chiave.
+        active: !!process.env.OPENAI_API_KEY,
+        setupUrl: 'https://platform.openai.com/api-keys',
+        scope: 'app',
+      },
+    ]
 
-  const active = integrations.filter(i => i.active)
-  const available = integrations.filter(i => !i.active)
+    const active = integrations.filter(i => i.active)
+    const available = integrations.filter(i => !i.active)
 
-  return NextResponse.json({ active, available })
+    return NextResponse.json({ active, available })
+  })
 }

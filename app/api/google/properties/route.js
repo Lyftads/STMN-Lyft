@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
-import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
+import { getAdminSupabase } from '../../../../lib/supabase/server'
+import { getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Google Analytics Admin API — Lista GA4 properties dell'utente
@@ -35,9 +36,11 @@ async function getAccessToken({ refreshToken, clientId, clientSecret }) {
 }
 
 export async function GET() {
-  const sb = getServerSupabase()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  // Tenant EFFETTIVO (workspace cliente se un'agency ha switchato), come fanno
+  // ads-accounts e gsc. Prima usava l'uid grezzo → leggeva il Google dell'owner
+  // (leak) e il token salvato sul cliente non veniva mai visto.
+  const userId = await getEffectiveTenantId()
+  if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ error: 'Supabase non configurato' }, { status: 500 })
@@ -45,7 +48,7 @@ export async function GET() {
   const { data: company } = await admin
     .from('companies')
     .select('google_refresh_token, google_client_id, google_client_secret')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle()
 
   const refreshToken = company?.google_refresh_token

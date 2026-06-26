@@ -16,6 +16,7 @@ const STEPS = [
     label: 'Shopify',
     icon: <Icon name="bag" size={22} />,
     descKey: 'obp.shopify.desc',
+    nangoConnect: 'shopify', stepKey: 'shopify',
     fields: [
       { key: 'shopify_store_url', label: 'Store URL', placeholder: 'mio-store.myshopify.com', required: true, hintKey: 'obp.shopify.urlHint' },
       { key: 'shopify_admin_token', label: 'Admin API Token', placeholder: 'shpat_xxxxxx', required: true, type: 'password', hintKey: 'obp.shopify.tokenHint' },
@@ -26,6 +27,7 @@ const STEPS = [
     label: 'Meta Ads',
     icon: '◧',
     descKey: 'obp.meta.desc',
+    nangoConnect: 'facebook', stepKey: 'meta',
     fields: [
       { key: 'meta_access_token', label: 'Access Token', placeholder: 'EAA...', required: true, type: 'password', hintKey: 'obp.meta.tokenHint' },
       { key: 'meta_account_id', label: 'Ad Account ID', placeholder: 'act_123456789', required: false, hintKey: 'obp.meta.accountHint' },
@@ -303,49 +305,29 @@ export function OnboardingInner({ embedded = false } = {}) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
-              {step.id === 'shopify' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t('obp.oneClick', null, 'Connect in one click')}</div>
-                  <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: 0 }}>{t('ob.shopifyHelper', null, 'Enter your store domain and authorize: no token to copy.')}</p>
-                  <NangoConnectButton integrationId="shopify" label={t('ob.connectShopifyOneClick', null, 'Connect Shopify in one click')}
+              {step.nangoConnect && (
+                <div style={{ padding: 28, borderRadius: 16, background: 'linear-gradient(180deg, rgba(123,91,255,0.14), rgba(255,255,255,0.02))', border: '1px solid rgba(123,91,255,0.40)', textAlign: 'center' }}>
+                  <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={36} /></div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{t('obp.oneClickTitle', null, 'Collega in un click')}</div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text3)', margin: '0 auto 18px', maxWidth: 420, lineHeight: 1.5 }}>{t('obp.oneClickIntro', null, 'Autorizzi in sicurezza, nessun token da copiare.')}</p>
+                  <NangoConnectButton integrationId={step.nangoConnect} label={t('obp.connectOneClick', { name: step.label }, `Collega ${step.label} con un click`)}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 30px', borderRadius: 999, background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 800, cursor: 'pointer', boxShadow: '0 14px 38px rgba(123,91,255,0.42)' }}
                     onConnected={() => {
-                      setStepStatus(p => ({ ...p, shopify: true }))
+                      setStepStatus(p => ({ ...p, [step.id]: true }))
                       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
                       else completeOnboarding()
                     }} />
-                  <div style={{ fontSize: 11, color: 'var(--text4, #666)' }}>{t('obp.orManualBelow', null, 'Or enter the token manually below (advanced).')}</div>
                 </div>
               )}
-              {step.fields.map(f => (
-                <div key={f.key}>
-                  <label style={{
-                    display: 'block', fontSize: 11, color: 'var(--text3)',
-                    fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em',
-                  }}>
-                    {f.label}
-                    {f.required && <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>}
-                  </label>
-                  <input
-                    type={f.type || 'text'}
-                    value={values[f.key] || ''}
-                    onChange={e => setField(f.key, e.target.value)}
-                    placeholder={f.placeholder}
-                    style={{
-                      width: '100%', padding: '12px 14px', borderRadius: 10,
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: '#fff', fontSize: 13, fontFamily: 'inherit',
-                      outline: 'none', transition: 'border-color .15s',
-                    }}
-                    onFocus={e => e.currentTarget.style.borderColor = ACCENT}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
-                  />
-                  {f.hintKey && (
-                    <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 6, lineHeight: 1.5 }}>
-                      {t(f.hintKey, null, '')}
-                    </div>
-                  )}
-                </div>
+              {step.fields.length > 0 && (step.nangoConnect ? (
+                <details style={{ marginTop: 2 }}>
+                  <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text4, #666)' }}>{t('obp.orManual', null, 'Oppure inserisci il token manualmente (avanzato)')}</summary>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
+                    {step.fields.map(f => <FieldInput key={f.key} f={f} values={values} setField={setField} t={t} />)}
+                  </div>
+                </details>
+              ) : (
+                step.fields.map(f => <FieldInput key={f.key} f={f} values={values} setField={setField} t={t} />)
               ))}
             </div>
           )}
@@ -553,5 +535,26 @@ function ConnectButton({ compact = false, label, stepId }) {
       </svg>
       {label || t('obp.connectGA', null, 'Connect Google Analytics')}
     </a>
+  )
+}
+
+// Campo input manuale riusabile (token avanzati).
+function FieldInput({ f, values, setField, t }) {
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em' }}>
+        {f.label}{f.required && <span style={{ color: ACCENT, marginLeft: 4 }}>*</span>}
+      </label>
+      <input
+        type={f.type || 'text'}
+        value={values[f.key] || ''}
+        onChange={e => setField(f.key, e.target.value)}
+        placeholder={f.placeholder}
+        style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color .15s' }}
+        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+        onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+      />
+      {f.hintKey && <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 6, lineHeight: 1.5 }}>{t(f.hintKey, null, '')}</div>}
+    </div>
   )
 }

@@ -1,13 +1,16 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { getCurrentUserId, getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 
-// Stato delle connection OAuth del tenant: quali integration risultano
-// collegate (chiavi di companies.nango_connections) + ad account Meta scelto.
+// Stato delle connection OAuth del WORKSPACE EFFETTIVO (cliente agency se
+// switchato): quali integration risultano collegate (chiavi di
+// companies.nango_connections) + ad account Meta scelto. isOwner resta basato
+// sull'utente REALE (gate Creative Studio).
 export async function GET() {
-  const userId = await getCurrentUserId()
+  const realUid = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ connected: [], metaAccountId: null })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ connected: [], metaAccountId: null })
@@ -20,7 +23,7 @@ export async function GET() {
     const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
     return NextResponse.json({
       connected: Object.keys(conns),
-      isOwner: !!userId && userId === process.env.LYFT_OWNER_USER_ID,
+      isOwner: !!realUid && realUid === process.env.LYFT_OWNER_USER_ID,
       shopifyStore: !!data?.shopify_store_url || Object.keys(conns).includes('shopify'),
       metaAccountId: data?.meta_account_id || null,
       googleConnected: !!data?.google_refresh_token,

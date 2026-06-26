@@ -88,6 +88,22 @@ export async function GET(req) {
       } catch {}
     }
 
+    // Comp/owner ha PRIORITÀ: vale anche se esiste un stripe_customer_id stale
+    // (es. customer di TEST rimasto dopo lo switch a LIVE) → l'owner/comped non
+    // deve MAI finire su billing-required né far partire una retrieve su Stripe.
+    {
+      const isShopifyMerchant = !!shopStoreUrl
+      const isOwner = !!resolvedUserId && resolvedUserId === process.env.LYFT_OWNER_USER_ID
+      const compAllowed = (compStatus === 'active' || compStatus === 'trialing') && (!isShopifyMerchant || isOwner)
+      if (compAllowed) {
+        return NextResponse.json({
+          customerId: null, email: null, name: null,
+          subscription: { id: 'comp', status: compStatus, planId: compPlan || 'scale', cancelAtPeriodEnd: false },
+          paymentMethod: null, invoices: [], comp: true,
+        })
+      }
+    }
+
     if (!resolvedCustomerId) {
       // 1) Account "comp"/omaggio: stato attivo impostato a mano su companies
       //    (owner STMN e signup diretti interni). Policy Shopify 1.2.3: per i
@@ -137,12 +153,23 @@ export async function GET(req) {
     }
     const customerIdToUse = resolvedCustomerId
 
-    const [customer, subs, pms, invoiceList] = await Promise.all([
-      stripe.customers.retrieve(customerIdToUse),
-      stripe.subscriptions.list({ customer: customerIdToUse, status: 'all', limit: 5, expand: ['data.default_payment_method'] }),
-      stripe.paymentMethods.list({ customer: customerIdToUse, type: 'card', limit: 5 }),
-      stripe.invoices.list({ customer: customerIdToUse, limit: 10 }),
-    ])
+    let customer, subs, pms, invoiceList
+    try {
+      ;[customer, subs, pms, invoiceList] = await Promise.all([
+        stripe.customers.retrieve(customerIdToUse),
+        stripe.subscriptions.list({ customer: customerIdToUse, status: 'all', limit: 5, expand: ['data.default_payment_method'] }),
+        stripe.paymentMethods.list({ customer: customerIdToUse, type: 'card', limit: 5 }),
+        stripe.invoices.list({ customer: customerIdToUse, limit: 10 }),
+      ])
+    } catch (e) {
+      // Customer inesistente (es. id di TEST dopo lo switch a LIVE) → trattalo come
+      // "nessun abbonamento": l'app mostra billing-required e il prossimo checkout
+      // ricrea un customer valido (self-heal).
+      if (/no such customer/i.test(e?.message || '')) {
+        return NextResponse.json({ customerId: null, email: null, name: null, subscription: null, paymentMethod: null, invoices: [] })
+      }
+      throw e
+    }
 
     // Subscription "vincitore": preferisci active, poi trialing, altrimenti la piu' recente
     const activeSub =

@@ -756,7 +756,34 @@ async function fetchShopifySalesRange(start, end) {
     }
   }
 
-  // NB: questa funzione restituisce SEMPRE i dati ShopifyQL (total_sales, gia'
+  // ── Fallback Admin Orders quando ShopifyQL non ritorna NULLA ────────────
+  // ShopifyQL (shopifyqlQuery) richiede lo scope read_reports + un piano che
+  // supporta l'Analytics API. Alcune connessioni (es. OAuth Nango senza
+  // read_reports, o piani che non lo espongono) lo rifiutano → totals vuoti su
+  // TUTTI i range tranne quelli recenti (coperti dall'override Admin Orders in
+  // safeShopifyRange). Qui, se ShopifyQL non ha prodotto nulla, ricostruiamo le
+  // vendite del range direttamente dagli ordini Admin (scope read_orders) così
+  // la tab funziona su QUALSIASI range. Per STMN (ShopifyQL ok) non scatta mai →
+  // nessun impatto / nessun cambio di numeri.
+  if (fatturato <= 0 && ordini <= 0) {
+    const ord = await fetchShopifyOrdersAdminGQL(start, end, 80)
+    if (ord && (ord.ordini > 0 || ord.fatturato > 0)) {
+      return {
+        fatturato: roundMoney(ord.fatturato),
+        resi: roundMoney(ord.resi),
+        fatturNC: roundMoney(ord.fatturNC),
+        resiNC: roundMoney(ord.resiNC),
+        fatturRC: roundMoney(ord.fatturRC),
+        resiRC: roundMoney(ord.resiRC),
+        ordini: cleanCount(ord.ordini),
+        nc: cleanCount(ord.nc),
+        rc: cleanCount(ord.rc),
+        _source: 'admin_orders_fallback',
+      }
+    }
+  }
+
+  // NB: questa funzione restituisce i dati ShopifyQL (total_sales, gia'
   // al netto dei resi, IVA/spedizione incluse) — coerente col report Shopify.
   // L'eventuale override real-time per le finestre piccole e recenti vive in
   // safeShopifyRange, cosi' tocca SOLO le card KPI e non Weekly/Monthly (che

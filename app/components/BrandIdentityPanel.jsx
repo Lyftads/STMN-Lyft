@@ -71,6 +71,9 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
   const [error, setError] = useState(null)
   const [savedAt, setSavedAt] = useState(null)
   const [open, setOpen] = useState({ identity: true, products: false, tone: false, visual: false, competitor: false })
+  // Se l'utente inizia a scrivere prima che la fetch ritorni, NON sovrascrivere
+  // i suoi input quando arrivano i dati dal server.
+  const touchedRef = useRef(false)
 
   // Mount: carica dati
   useEffect(() => {
@@ -79,7 +82,8 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
       .then(j => {
         if (j?.error) { setError(j.error); return }
         setCompanyName(j.companyName || '')
-        setIdentity({ ...DEFAULT_IDENTITY, ...(j.identity || {}) })
+        // Non clobberare quello che l'utente ha già iniziato a digitare.
+        if (!touchedRef.current) setIdentity({ ...DEFAULT_IDENTITY, ...(j.identity || {}) })
         setAssets(Array.isArray(j.assets) ? j.assets : [])
       })
       .catch(e => setError(e?.message))
@@ -87,10 +91,12 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
   }, [])
 
   const setField = useCallback((key, value) => {
+    touchedRef.current = true
     setIdentity(prev => ({ ...prev, [key]: value }))
   }, [])
 
   const toggleArrayValue = useCallback((key, value) => {
+    touchedRef.current = true
     setIdentity(prev => {
       const arr = Array.isArray(prev[key]) ? prev[key] : []
       const next = arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]
@@ -131,14 +137,10 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
   // Espone save() all'onboarding (il suo bottone "Salva e continua" lo richiama).
   useImperativeHandle(ref, () => ({ save }))
 
-  if (loading) {
-    return (
-      <GlassCard>
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '40px 0' }}>{t('bi.loading', null, 'Caricamento brand identity…')}</div>
-      </GlassCard>
-    )
-  }
-
+  // NB: niente più early-return su `loading`. Il form viene SEMPRE renderizzato
+  // (i campi partono da DEFAULT_IDENTITY = vuoti ma editabili) così l'utente vede
+  // sempre i campi da compilare anche se la fetch è lenta/fallisce. Il caricamento
+  // è solo un badge non bloccante in testa.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <GlassCard>
@@ -148,6 +150,12 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           title={companyName ? t('bi.titleWith', { name: companyName }, `Identita' brand di ${companyName}`) : t('bi.titleDefault', null, "Identita' brand")}
           subtitle={t('bi.headerSub', null, "Questi dati alimentano gli AI agent (KPI, CRO, Creative) e il Creative Lab. Piu' dettagli inserisci, piu' i suggerimenti AI saranno verticali sul tuo brand.")}
         />
+        {loading && (
+          <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', border: `2px solid ${ACCENT}55`, borderTopColor: ACCENT, display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+            {t('bi.loading', null, 'Caricamento brand identity…')}
+          </div>
+        )}
       </GlassCard>
 
       <SectionBlock

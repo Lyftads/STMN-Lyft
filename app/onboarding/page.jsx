@@ -407,6 +407,8 @@ const GOOGLE_CFG = {
     connectedKey: 'obp.googleConnectedAds', connectedDef: 'Google connesso. Scegli l’account pubblicitario.',
     noneKey: 'obp.noAds', noneDef: 'Nessun account Google Ads trovato su questo profilo.',
     selectKey: 'obp.selectAds', selectDef: '— Seleziona account —',
+    manualKey: 'obp.adsManual', manualDef: 'Inserisci manualmente l’ID account Google Ads (Customer ID, 10 cifre)',
+    manualPhKey: 'obp.adsManualPh', manualPhDef: 'Es: 123-456-7890',
   },
   ga4: {
     listUrl: '/api/google/properties', listKey: 'properties', valueKey: 'ga4_property_id',
@@ -415,6 +417,8 @@ const GOOGLE_CFG = {
     connectedKey: 'obp.googleConnected', connectedDef: 'Google connesso. Scegli la proprietà GA4.',
     noneKey: 'obp.noProps', noneDef: 'Nessuna proprietà GA4 trovata su questo account.',
     selectKey: 'obp.selectProperty', selectDef: '— Seleziona proprietà —',
+    manualKey: 'obp.ga4Manual', manualDef: 'Inserisci manualmente l’ID proprietà GA4 (solo numeri)',
+    manualPhKey: 'obp.ga4ManualPh', manualPhDef: 'Es: 312345678',
   },
   gsc: {
     listUrl: '/api/gsc?action=sites', listKey: 'sites', valueKey: 'gsc_site_url',
@@ -423,6 +427,8 @@ const GOOGLE_CFG = {
     connectedKey: 'obp.googleConnectedGsc', connectedDef: 'Google connesso. Scegli il sito Search Console.',
     noneKey: 'obp.noSites', noneDef: 'Nessun sito Search Console verificato trovato.',
     selectKey: 'obp.selectSite', selectDef: '— Seleziona sito —',
+    manualKey: 'obp.gscManual', manualDef: 'Inserisci manualmente l’URL del sito Search Console',
+    manualPhKey: 'obp.gscManualPh', manualPhDef: 'Es: https://www.tuosito.com/',
   },
 }
 
@@ -489,10 +495,21 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
       {loading ? (
         <div style={{ fontSize: 13, color: 'var(--text3)', padding: '12px 14px' }}>{t('obp.loadingList', null, 'Caricamento…')}</div>
       ) : listError ? (
-        <div style={{ fontSize: 13, color: '#fca5a5', padding: '12px 14px' }}><Icon name="warning" size={13} /> {listError}</div>
+        // Lista non disponibile (es. Developer Token Google Ads non configurato):
+        // NON è un vicolo cieco → consenti l'inserimento manuale del valore.
+        <div>
+          <div style={{ fontSize: 12.5, color: '#fbbf24', padding: '10px 14px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)', marginBottom: 12 }}>
+            <Icon name="warning" size={13} /> {listError}. {t('obp.enterManual', null, 'Puoi inserirlo manualmente qui sotto.')}
+          </div>
+          <ManualField cfg={cfg} values={values} setField={setField} t={t} />
+        </div>
       ) : items.length === 0 ? (
-        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)', color: '#fbbf24', fontSize: 13 }}>
-          {t(cfg.noneKey, null, cfg.noneDef)}
+        // Nessun elemento trovato → fallback manuale (stessa logica).
+        <div>
+          <div style={{ padding: 14, borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.30)', color: '#fbbf24', fontSize: 13, marginBottom: 12 }}>
+            {t(cfg.noneKey, null, cfg.noneDef)}
+          </div>
+          <ManualField cfg={cfg} values={values} setField={setField} t={t} />
         </div>
       ) : (
         <select
@@ -510,6 +527,29 @@ function GoogleStep({ type, stepId, values, setField, gaError }) {
       <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text4, #666)' }}>
         {t('obp.changeGoogle', null, 'Vuoi cambiare account Google?')} <ConnectButton compact stepId={stepId} label={t('obp.reconnect', null, 'Riconnetti')} />
       </div>
+    </div>
+  )
+}
+
+// Inserimento manuale del valore (Customer ID Ads / property GA4 / sito GSC)
+// quando la lista automatica non è disponibile. Per gli Ads normalizza l'ID
+// rimuovendo i trattini (123-456-7890 → 1234567890).
+function ManualField({ cfg, values, setField, t }) {
+  const onChange = (raw) => {
+    let v = raw
+    if (cfg.valueKey === 'google_ads_customer_id') v = raw.replace(/[^0-9]/g, '')
+    setField(cfg.valueKey, v)
+  }
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>{t(cfg.manualKey, null, cfg.manualDef)}</div>
+      <input
+        type="text"
+        value={values[cfg.valueKey] || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={t(cfg.manualPhKey, null, cfg.manualPhDef)}
+        style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+      />
     </div>
   )
 }

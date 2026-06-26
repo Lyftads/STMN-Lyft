@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 20
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getShopify, getCurrentUserId } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { recommendedTier, tierOf, planRank } from '../../../lib/team/orderTiers'
 
@@ -14,7 +14,7 @@ export async function GET(request) {
     // piano corrente dal record companies
     let plan = null
     try {
-      const userId = await getCurrentUserId()
+      const userId = await getEffectiveTenantId() // workspace effettivo (cliente agency), non l'owner
       const admin = getAdminSupabase()
       if (userId && admin) {
         const { data } = await admin.from('companies').select('plan').eq('user_id', userId).maybeSingle()

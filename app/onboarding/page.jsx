@@ -81,7 +81,7 @@ export default function OnboardingPage() {
   )
 }
 
-function OnboardingInner() {
+export function OnboardingInner({ embedded = false } = {}) {
   const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -101,8 +101,9 @@ function OnboardingInner() {
         if (j?.error) { setError(j.error); return }
         setCompleted(!!j.completed)
         setStepStatus(j.steps || {})
-        // Se gia' completato → redirect home
-        if (j.completed) router.push('/')
+        // Se gia' completato → redirect home (solo standalone: embedded resta per
+        // ri-collegare/cambiare le integrazioni dalla tab in-app).
+        if (j.completed && !embedded) router.push('/')
       })
       .catch(e => setError(e?.message))
       .finally(() => setLoading(false))
@@ -177,7 +178,9 @@ function OnboardingInner() {
     try {
       const res = await fetch('/api/onboarding?action=complete', { method: 'PATCH' })
       if (!res.ok) throw new Error(t('obp.errConfirm', null, 'Onboarding confirmation error'))
-      router.push('/?tab=dashboard&welcome=1')
+      // Embedded (tab in-app): resta nella tab e aggiorna lo stato; standalone → dashboard.
+      if (embedded) { setCurrentStep(0); loadStatus() }
+      else router.push('/?tab=dashboard&welcome=1')
     } catch (e) {
       setError(e?.message)
     }
@@ -188,7 +191,8 @@ function OnboardingInner() {
     try {
       const res = await fetch('/api/onboarding?action=skip', { method: 'PATCH' })
       if (!res.ok) throw new Error(t('obp.errSkip', null, 'Skip error'))
-      router.push('/?tab=dashboard')
+      if (embedded) loadStatus()
+      else router.push('/?tab=dashboard')
     } catch (e) {
       setError(e?.message)
     }

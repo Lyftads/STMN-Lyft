@@ -2259,7 +2259,7 @@ export default function App() {
     let active = true
     fetch('/api/team-members', { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => { if (active && d?.me) setAllowedTabs(allowedTabsFor(d.me.roles, d.me.isAdmin)) })
+      .then(d => { if (active && d?.me) setAllowedTabs(allowedTabsFor(d.me.roles, d.me.isAdmin, d.me.hiddenTabs)) })
       .catch(() => {})
     return () => { active = false }
   }, [])

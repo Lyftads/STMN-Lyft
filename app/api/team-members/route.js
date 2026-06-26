@@ -141,8 +141,12 @@ export async function GET() {
       .from('team_members').select('*')
       .eq('workspace_id', ws.workspaceId)
       .order('created_at', { ascending: true })
-    let plan = null
-    try { const { data: comp } = await admin.from('companies').select('plan').eq('user_id', ws.workspaceId).maybeSingle(); plan = comp?.plan || null } catch {}
+    let plan = null, hiddenTabs = []
+    try {
+      const { data: comp } = await admin.from('companies').select('plan, team_hidden_tabs').eq('user_id', ws.workspaceId).maybeSingle()
+      plan = comp?.plan || null
+      hiddenTabs = Array.isArray(comp?.team_hidden_tabs) ? comp.team_hidden_tabs : []
+    } catch {}
     const limit = seatLimit(plan)
     const used = (data || []).filter(m => ['active', 'invited'].includes(m.status)).length
     return NextResponse.json({
@@ -150,10 +154,30 @@ export async function GET() {
       roles: ROLES,
       roleLabels: ROLE_LABELS,
       seats: { plan, limit: limit === Infinity ? null : limit, used },
-      me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin, isMember: ws.workspaceId !== ws.userId },
+      hiddenTabs,
+      me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin, isMember: ws.workspaceId !== ws.userId, hiddenTabs },
     })
   } catch (e) {
     return NextResponse.json({ members: [], error: e.message })
+  }
+}
+
+// Imposta le tab nascoste ai membri (visibilità workspace). Solo Admin.
+// Body: { hiddenTabs: string[] } → salva su companies.team_hidden_tabs della riga owner.
+export async function PUT(req) {
+  const ws = await resolveWorkspace()
+  if (!ws) return NextResponse.json({ ok: false }, { status: 401 })
+  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo Admin' }, { status: 403 })
+  const admin = getAdminSupabase()
+  if (!admin) return NextResponse.json({ ok: false })
+  let b = {}
+  try { b = await req.json() } catch {}
+  const hiddenTabs = Array.isArray(b?.hiddenTabs) ? b.hiddenTabs.filter(t => typeof t === 'string').slice(0, 100) : []
+  try {
+    await admin.from('companies').update({ team_hidden_tabs: hiddenTabs }).eq('user_id', ws.workspaceId)
+    return NextResponse.json({ ok: true, hiddenTabs })
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
   }
 }
 

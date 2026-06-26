@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
 import Avatar from './Avatar'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { MEMBER_TABS, TAB_LABELS } from '../../lib/team/roleTabs'
 
 const PALETTE = ['#7b5bff', '#5b8bff', '#30d158', '#ff9f0a', '#ff375f', '#64d2ff', '#bf5af2', '#ffd60a', '#5ac8fa', '#ff6482']
 
@@ -49,6 +50,11 @@ export default function TasksTab() {
   const [rolesCatalog, setRolesCatalog] = useState([])
   const [roleLabels, setRoleLabels] = useState({})
   const [showTeam, setShowTeam] = useState(false)
+  const [hiddenTabs, setHiddenTabs] = useState([])
+  async function saveHiddenTabs(next) {
+    setHiddenTabs(next)
+    await fetch('/api/team-members', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hiddenTabs: next }) }).catch(() => {})
+  }
   const [view, setView] = useState('board')
   const [activeProject, setActiveProject] = useState('all')
   const [personProject, setPersonProject] = useState('all')
@@ -75,6 +81,7 @@ export default function TasksTab() {
       setSeats(mem.seats || null)
       setRolesCatalog(mem.roles || [])
       setRoleLabels(mem.roleLabels || {})
+      setHiddenTabs(Array.isArray(mem.hiddenTabs) ? mem.hiddenTabs : [])
       setMe(t.me || mem.me || null)
       setTasks(t.tasks || [])
     } finally {
@@ -421,6 +428,8 @@ export default function TasksTab() {
           ownerUserId={me?.userId}
           onClose={() => setShowTeam(false)}
           seats={seats}
+          hiddenTabs={hiddenTabs}
+          onSaveHiddenTabs={saveHiddenTabs}
           onInvite={inviteMember}
           onUpdateRoles={updateMemberRoles}
           onRemove={removeMember}
@@ -606,7 +615,7 @@ const STATUS_BADGE = {
   disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: '#b0b0bd' },
 }
 
-function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onClose, onInvite, onUpdateRoles, onRemove }) {
+function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, hiddenTabs = [], onSaveHiddenTabs, onClose, onInvite, onUpdateRoles, onRemove }) {
   const { t } = useI18n()
   const atLimit = seats && seats.limit != null && seats.used >= seats.limit
   const [email, setEmail] = useState('')
@@ -615,6 +624,14 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onCl
   const [created, setCreated] = useState(null)
 
   const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
+
+  // Visibilità tab per i membri: l'Admin nasconde/mostra singole tab. Una tab è
+  // "nascosta" se presente in hiddenTabs → i membri (non Admin) non la vedono.
+  const hidden = new Set(hiddenTabs)
+  const toggleTab = (id) => {
+    const next = hidden.has(id) ? hiddenTabs.filter(x => x !== id) : [...hiddenTabs, id]
+    onSaveHiddenTabs?.(next)
+  }
 
   async function submit() {
     if (!email.trim() || !email.includes('@')) { alert(t('tk.invalidEmail', null, 'Enter a valid email')); return }
@@ -674,6 +691,27 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, onCl
               </div>
             </div>
           )}
+        </div>
+
+        {/* Visibilità tab per i membri (Admin) */}
+        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{t('tk.tabVisibility', null, 'Tab visibility for members')}</div>
+          <div style={{ fontSize: 12, color: '#8a8a98', marginBottom: 10 }}>{t('tk.tabVisibilityHint', null, 'Members see everything by default. Click a tab to hide it from them (you, the Admin, always see all).')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {MEMBER_TABS.map(id => {
+              const isHidden = hidden.has(id)
+              return (
+                <button key={id} type="button" onClick={() => toggleTab(id)} title={isHidden ? t('tk.tabHiddenTip', null, 'Hidden from members — click to show') : t('tk.tabVisibleTip', null, 'Visible to members — click to hide')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                    border: `1px solid ${isHidden ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`,
+                    background: isHidden ? 'rgba(255,55,95,0.10)' : 'rgba(255,255,255,0.02)',
+                    color: isHidden ? '#ff6482' : 'var(--text)', textDecoration: isHidden ? 'line-through' : 'none' }}>
+                  <Icon name={isHidden ? 'eye-off' : 'eye'} size={12} />
+                  {TAB_LABELS[id] || id}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Membri */}

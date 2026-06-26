@@ -102,13 +102,20 @@ async function getCampaigns(status) {
   let data = await klaviyoGet(`/campaigns?filter=${enc}&include=campaign-messages`)
   if (!data?.data) data = await klaviyoGet(`/campaigns?filter=${enc}`)
 
-  // messageId → subject dai record inclusi.
+  // messageId → subject dai record inclusi. Il path del subject cambia tra le
+  // revision dell'API Klaviyo: provo tutte le forme note.
   const subjById = {}
   for (const inc of (data?.included || [])) {
     if (inc.type !== 'campaign-message') continue
-    const def = inc.attributes?.definition || {}
-    const subj = def.content?.subject || def.content?.preview_text || inc.attributes?.label || null
-    if (subj) subjById[inc.id] = subj
+    const a = inc.attributes || {}
+    const subj =
+      a.definition?.content?.subject ||
+      a.content?.subject ||
+      a.definition?.content?.preview_text ||
+      a.content?.preview_text ||
+      a.label ||
+      null
+    if (subj && String(subj).trim()) subjById[inc.id] = String(subj).trim()
   }
 
   return (data?.data || []).map(i => {
@@ -315,6 +322,21 @@ export async function GET(request) {
   }
 
   const { searchParams } = new URL(request.url)
+
+  // Diagnostica nomi campagne: ?debug=campaigns → struttura grezza Klaviyo
+  // (campaign + campaign-messages inclusi) per capire dove vive il subject.
+  if (searchParams.get('debug') === 'campaigns') {
+    const raw = await klaviyoGet(`/campaigns?filter=${encodeURIComponent('equals(messages.channel,"email"),equals(status,"Sent")')}&include=campaign-messages`)
+    return NextResponse.json({
+      campaignSample: (raw?.data || []).slice(0, 3).map(c => ({
+        id: c.id, attributes: c.attributes, relationships: c.relationships,
+      })),
+      includedSample: (raw?.included || []).slice(0, 3),
+      includedTypes: [...new Set((raw?.included || []).map(x => x.type))],
+      hasIncluded: Array.isArray(raw?.included),
+    })
+  }
+
   const daysParam = searchParams.get('days')
   const days = daysParam != null ? parseInt(daysParam, 10) : 30
 

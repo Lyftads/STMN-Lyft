@@ -23,13 +23,15 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 // Fetch resiliente di TUTTI i clienti. `lastOrder` è un campo costoso → Shopify
 // può throttlare: gestiamo backoff, retry e un budget temporale complessivo per
 // non andare MAI in timeout (al massimo ritorna dati parziali → truncated).
-async function fetchCustomers() {
+// pii=true include displayName/email (richiede approvazione Protected Customer
+// Data Shopify); pii=false è il fallback anonimo per le app non approvate.
+async function fetchCustomers(pii = true) {
   if (!storeUrl() || !token()) return { customers: [], truncated: false }
   const out = []
   const gql = `query($cursor: String) {
     customers(first: 250, after: $cursor, sortKey: CREATED_AT, reverse: true) {
       edges { node {
-        email numberOfOrders
+        ${pii ? 'displayName email ' : ''}numberOfOrders
         amountSpent { amount currencyCode }
         createdAt lastOrder { createdAt }
       } }
@@ -116,7 +118,14 @@ export async function GET(req) {
         try {
           customers = await fetchAllCustomersBulk(storeUrl(), token(), now + 120000)
         } catch {
-          const r = await fetchCustomers(); customers = r.customers; truncated = r.truncated
+          // Fallback paginazione, anch'esso adattivo sui Protected Customer Data.
+          try {
+            const r = await fetchCustomers(true); customers = r.customers; truncated = r.truncated
+          } catch (e) {
+            if (/not approved to use|protected customer data/i.test(e?.message || '')) {
+              const r = await fetchCustomers(false); customers = r.customers; truncated = r.truncated
+            } else throw e
+          }
         }
         const { buyers, currency } = toBuyers(customers, now)
         const snap = buildSnapshot(buyers)

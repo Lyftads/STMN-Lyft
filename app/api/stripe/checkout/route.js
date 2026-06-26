@@ -13,6 +13,10 @@ import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/se
 //   STRIPE_PRICE_GROWTH             price_... (recurring monthly Growth)
 //   STRIPE_PRICE_SCALE              price_... (recurring monthly Scale)
 //   STRIPE_PRICE_ENTERPRISE         price_... (recurring monthly Enterprise, €599, no annual discount)
+//   STRIPE_PRICE_*_ANNUAL           price_... (recurring yearly = 2 mesi gratis)
+//   STRIPE_PRICE_AGENCY_*           price_... (piani agenzia, mensile/annuale)
+//   STRIPE_FOUNDER_PROMO (opt.)     promo_... (promotion code −30% a vita, primi 100;
+//                                   auto-applicato; fallback a prezzo pieno se esaurito)
 //   NEXT_PUBLIC_APP_URL  (opt.)     https://lyftai.io
 //                                   (fallback: ricavato da request origin)
 //
@@ -131,7 +135,7 @@ export async function POST(req) {
     const enableTrial = body?.trial !== false && !stripeCustomerId
     const trialPeriodDays = enableTrial ? 14 : undefined
 
-    const session = await stripe.checkout.sessions.create({
+    const baseParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -141,7 +145,6 @@ export async function POST(req) {
         : userEmail
           ? { customer_email: userEmail }
           : {}),
-      allow_promotion_codes: true,
       billing_address_collection: 'auto',
       automatic_tax: { enabled: false },
       // No carta richiesta in trial → max conversione signup
@@ -163,7 +166,25 @@ export async function POST(req) {
           user_id: userId || '',
         },
       },
-    })
+    }
+
+    // Sconto FOUNDER automatico (−30% a vita, primi 100): se STRIPE_FOUNDER_PROMO
+    // è settato lo applichiamo direttamente. `discounts` e `allow_promotion_codes`
+    // sono mutuamente esclusivi su Stripe Checkout. Quando il promo è esaurito
+    // (max_redemptions raggiunto) o non valido, la create lancia → fallback a
+    // prezzo pieno con il campo "codice promozionale" abilitato.
+    const founderPromo = process.env.STRIPE_FOUNDER_PROMO || null
+    let session
+    if (founderPromo) {
+      try {
+        session = await stripe.checkout.sessions.create({ ...baseParams, discounts: [{ promotion_code: founderPromo }] })
+      } catch (e) {
+        console.log('[checkout] founder promo non applicato (esaurito/non valido):', e?.message)
+      }
+    }
+    if (!session) {
+      session = await stripe.checkout.sessions.create({ ...baseParams, allow_promotion_codes: true })
+    }
 
     return NextResponse.json({ url: session.url })
   } catch (e) {

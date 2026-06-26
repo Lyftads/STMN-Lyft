@@ -38,12 +38,13 @@ export async function GET(req) {
     wouldComp,
   }
 
-  // Riparazione protetta da CRON_SECRET
+  // Riparazione: consentita all'OWNER loggato (isOwner) oppure con CRON_SECRET.
   const fix = new URL(req.url).searchParams.get('fix')
   if (fix) {
-    if (!process.env.CRON_SECRET || fix !== process.env.CRON_SECRET) {
+    const allowed = isOwner || (!!process.env.CRON_SECRET && fix === process.env.CRON_SECRET)
+    if (!allowed) {
       diag.fixed = false
-      diag.fixError = 'secret errato'
+      diag.fixError = 'non autorizzato (serve essere owner loggato o passare il CRON_SECRET)'
     } else {
       await admin.from('companies').update({
         stripe_subscription_status: 'active',

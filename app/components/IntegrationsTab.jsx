@@ -10,6 +10,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Provider collegabili via Nango OAuth (integration id = unique key su Nango).
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
 const NANGO_PROVIDERS = [
+  { integrationId: 'shopify', name: 'Shopify', domain: 'shopify.com', desc: 'Commerce · ordini, prodotti, clienti, report', descKey: 'integrations.descShopify' },
   { integrationId: 'klaviyo-oauth', name: 'Klaviyo', domain: 'klaviyo.com', desc: 'Email · campagne, flussi, segmenti, metriche', descKey: 'integrations.descKlaviyo' },
   { integrationId: 'mailchimp', name: 'Mailchimp', domain: 'mailchimp.com', desc: 'Email · campagne, automation, report', descKey: 'integrations.descMailchimp' },
   { integrationId: 'facebook', name: 'Meta (Facebook/Instagram Ads)', domain: 'meta.com', desc: 'Ads · spesa, ROAS, campagne, insights', descKey: 'integrations.descMeta' },
@@ -116,6 +117,29 @@ function CategoryBadge({ category }) {
     }}>
       {category}
     </span>
+  )
+}
+
+// Card OAuth uniforme: logo+titolo+desc in alto, controllo di connessione su una
+// RIGA dedicata sotto (flex-wrap) → i bottoni multipli (Ricollega/Account/badge)
+// non si sovrappongono più al testo, a qualsiasi larghezza.
+function OAuthCard({ domain, name, desc, children }) {
+  return (
+    <div style={{
+      background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
+      padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0 }}>
+        <BrandLogo domain={domain} size={38} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{name}</div>
+          <div style={{ fontSize: 11, color: '#776a86', marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -354,50 +378,26 @@ export default function IntegrationsTab() {
     <div>
       {NANGO_PROVIDERS.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader(t('integrations.connectViaOauth', null, 'Collega via OAuth'), NANGO_PROVIDERS.length + 2, '#2997ff')}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
+          {sectionHeader(t('integrations.connectViaOauth', null, 'Collega via OAuth'), NANGO_PROVIDERS.length + 3, '#2997ff')}
+          {/* 3 card per riga (responsive: scende a 2/1 su schermi stretti). Ogni
+              card è in colonna: logo+titolo+desc in alto, controllo di connessione
+              su una RIGA dedicata sotto → niente testi sovrapposti. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
             {NANGO_PROVIDERS.map(p => (
-              <div key={p.integrationId} style={{
-                background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
-                padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 6,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <BrandLogo domain={p.domain} size={38} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t(p.descKey, null, p.desc)}</div>
-                  </div>
-                  {p.integrationId === 'facebook'
-                    ? <MetaConnectButton />
-                    : <NangoConnectButton integrationId={p.integrationId} label={t('integrations.connectBtn', null, 'Collega')} />}
-                </div>
-              </div>
+              <OAuthCard key={p.integrationId} domain={p.domain} name={p.name} desc={t(p.descKey, null, p.desc)}>
+                {p.integrationId === 'facebook'
+                  ? <MetaConnectButton />
+                  : <NangoConnectButton integrationId={p.integrationId} label={t('integrations.connectBtn', null, 'Collega')} />}
+              </OAuthCard>
             ))}
 
             {/* Google: flusso OAuth nativo (una connessione copre GA4 + Ads), due card */}
-            <div style={{
-              background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
-              padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <BrandLogo domain="analytics.google.com" size={38} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Analytics 4</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.ga4Desc', null, 'Sessioni, conversioni, sorgenti di traffico')}</div>
-              </div>
+            <OAuthCard domain="analytics.google.com" name="Google Analytics 4" desc={t('integrations.ga4Desc', null, 'Sessioni, conversioni, sorgenti di traffico')}>
               <GoogleConnectButton service="ga4" />
-            </div>
-
-            <div style={{
-              background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16,
-              padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <BrandLogo domain="ads.google.com" size={38} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Google Ads</div>
-                <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.adsDesc', null, 'Spesa, conversioni, campagne')}</div>
-              </div>
+            </OAuthCard>
+            <OAuthCard domain="ads.google.com" name="Google Ads" desc={t('integrations.adsDesc', null, 'Spesa, conversioni, campagne')}>
               <GoogleConnectButton service="ads" />
-            </div>
+            </OAuthCard>
 
             {/* Omnisend: niente OAuth → API key diretta (salvata su companies). */}
             <OmnisendKeyCard t={t} />

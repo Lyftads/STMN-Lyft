@@ -209,9 +209,9 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
   ]
 
-  // Creative Studio: temporaneamente riservata all'owner (output generativo in
-  // miglioramento) → nascosta a tutti gli altri clienti finché isOwner non è true.
-  const ownerGated = (its) => isOwner ? its : its.filter(it => it.id !== 'creativeStudio')
+  // Creative Studio: voce SEMPRE visibile nel menu, ma per i non-owner (clienti)
+  // si comporta come "coming soon" (gestito in goTo + placeholder in page.js).
+  // Nessun filtro che la nasconda.
 
   // Gating per ruolo: se allowedTabs è un Set, filtra le voci (l'Admin/owner
   // riceve allowedTabs=undefined → vede tutto, comportamento invariato).
@@ -219,14 +219,17 @@ const [helpOpen, setHelpOpen] = useState(false)
     ? navGroups
         .map(g => ({ ...g, items: g.items.filter(it => allowedTabs.has(it.id)) }))
     : navGroups.map(g => ({ ...g })))
-    .map(g => ({ ...g, items: ownerGated(g.items) }))
     .filter(g => g.items.length > 0)
 
   const goTo = (id) => {
     // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra
     // (la board è importante e merita lo spazio pieno, come "Apri come app").
     if (id === 'creativeStudio') {
-      try { window.open('/creative-studio', '_blank', 'noopener') } catch {}
+      // Solo STMN (ownerWorkspace, qui prop isOwner) apre l'app reale a tutto
+      // schermo; per i clienti la voce resta visibile ma mostra il placeholder
+      // "coming soon" gestito in page.js (tab creativeStudio).
+      if (isOwner) { try { window.open('/creative-studio', '_blank', 'noopener') } catch {} }
+      else if (typeof setTab === 'function') setTab(id)
       return
     }
     if (typeof setTab === 'function') setTab(id)

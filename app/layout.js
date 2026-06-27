@@ -1,5 +1,6 @@
 import './globals.css'
 import PWARegister from './components/PWARegister'
+import CookieConsent from './components/CookieConsent'
 import { I18nProvider } from '../lib/i18n/I18nProvider'
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
@@ -48,6 +49,7 @@ export default function RootLayout({ children }) {
       <body>
         <I18nProvider>
           {children}
+          <CookieConsent />
         </I18nProvider>
         <PWARegister />
       </body>

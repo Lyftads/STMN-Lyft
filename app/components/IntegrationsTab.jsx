@@ -464,7 +464,7 @@ function OmnisendKeyCard({ t }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder={t('integrations.omnisendKeyPh', null, 'API key Omnisend')}
           style={{ flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 12px', fontSize: 13, outline: 'none' }} />
-        <button onClick={save} disabled={saving || !key.trim()} style={{ border: '1px solid var(--border)', background: 'rgba(34,197,94,0.12)', color: '#22c55e', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>
+        <button onClick={save} disabled={saving || !key.trim()} style={{ border: saved ? '1px solid rgba(48,209,88,0.40)' : '1px solid var(--border)', background: saved ? 'rgba(48,209,88,0.15)' : 'var(--glass)', color: saved ? 'var(--green)' : 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>
           {saving ? '…' : saved ? '✓' : t('integrations.connectBtn', null, 'Collega')}
         </button>
       </div>

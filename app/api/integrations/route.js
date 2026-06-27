@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getShopify, getMeta, getKlaviyo, getGoogle, getEmailProvider } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getMeta, getKlaviyo, getGoogle, getEmailProvider, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 
 // Stato integrazioni del WORKSPACE EFFETTIVO (cliente agency se switchato).
 // PRIMA leggeva solo process.env (= credenziali di STMN) → OGNI workspace, anche
@@ -94,6 +94,12 @@ export async function GET(req) {
     const active = integrations.filter(i => i.active)
     const available = integrations.filter(i => !i.active)
 
-    return NextResponse.json({ active, available })
+    // ownerWorkspace = workspace EFFETTIVO è quello dell'owner (STMN). I blocchi
+    // "Connected"/"Available" in basso (stato env-based) servono solo a STMN; i
+    // clienti vedono solo la sezione "Collega via OAuth" sopra.
+    const tenant = await getEffectiveTenantId().catch(() => null)
+    const ownerWorkspace = !!tenant && tenant === process.env.LYFT_OWNER_USER_ID
+
+    return NextResponse.json({ active, available, ownerWorkspace })
   })
 }

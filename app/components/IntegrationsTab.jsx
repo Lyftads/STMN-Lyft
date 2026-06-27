@@ -405,7 +405,9 @@ export default function IntegrationsTab() {
         </div>
       )}
 
-      {active.length > 0 && (
+      {/* Blocchi "Connected"/"Available" (stato env-based) SOLO per STMN
+          (ownerWorkspace). I clienti vedono solo "Collega via OAuth" sopra. */}
+      {data.ownerWorkspace && active.length > 0 && (
         <div style={{ marginBottom: 36 }}>
           {sectionHeader(t('integrations.connected', null, 'Connected'), active.length, '#22c55e')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>
@@ -416,7 +418,7 @@ export default function IntegrationsTab() {
         </div>
       )}
 
-      {available.length > 0 && (
+      {data.ownerWorkspace && available.length > 0 && (
         <div style={{ marginBottom: 36 }}>
           {sectionHeader(t('integrations.available', null, 'Available'), available.length, '#8b5cf6')}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14 }}>

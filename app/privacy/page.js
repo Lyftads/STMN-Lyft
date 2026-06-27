@@ -95,6 +95,13 @@ export default function PrivacyPolicy() {
 
           <h2 style={h2}>{t('priv.h8', null, '8. Data subject rights')}</h2>
           <p>{t('priv.p8', null, 'The merchant\'s end customers can exercise their rights (access, rectification, deletion) through the merchant, who is the data controller. LyftAI acts as a data processor on behalf of the merchant.')}</p>
+          <p>{t('priv.p8b', null, 'If you are a LyftAI account holder, with respect to your own account data Lyft SRL acts as data controller. You can exercise your rights of access, data portability, rectification, erasure, restriction and objection directly from')} <strong style={{ color: '#fff' }}>{t('priv.p8bSettings', null, 'Settings → Privacy and data')}</strong> {t('priv.p8b2', null, '(Export my data / Delete account), or by writing to')} <a href="mailto:info@lyftads.agency" style={{ color: BLUE }}>info@lyftads.agency</a>. {t('priv.p8b3', null, 'You also have the right to lodge a complaint with the supervisory authority (in Italy, the Garante per la protezione dei dati personali).')}</p>
+
+          <h2 style={h2}>{t('priv.hCookie', null, '8b. Cookies')}</h2>
+          <p>{t('priv.pCookie', null, 'We use technical cookies necessary for authentication and for the app to function and, only with your consent (collected via the cookie banner), preference/analytics cookies. You can change your choice at any time by clearing the stored consent in your browser.')}</p>
+
+          <h2 style={h2}>{t('priv.hDpa', null, '8c. Data Processing Agreement (DPA)')}</h2>
+          <p>{t('priv.pDpa', null, 'Merchants acting as data controllers can review the terms under which Lyft SRL processes data on their behalf:')} <a href="/dpa" style={{ color: BLUE }}>{t('priv.dpaLink', null, 'Data Processing Agreement (DPA)')}</a>.</p>
 
           <h2 style={h2}>{t('priv.h9', null, '9. Controller and contacts')}</h2>
           <p><strong style={{ color: '#fff' }}>LYFT SRL</strong> — Via Corso Giuseppe Mazzini 223, San Benedetto del Tronto (AP) 63074 — P. IVA 02600730440.</p>

@@ -1199,6 +1199,42 @@ export default function SettingsTab() {
       </GlassCard>
 
       <InvoiceHistory invoices={data?.invoices} loading={dataLoading} />
+
+      {/* Privacy e dati (GDPR) — accesso/portabilità + cancellazione */}
+      <GlassCard padding={26}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          {t('gdpr.title', null, 'Privacy e dati (GDPR)')}
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+          {t('gdpr.controller', null, 'Titolare del trattamento: Lyft SRL · Via Corso Giuseppe Mazzini 223, San Benedetto del Tronto (AP) 63074 · P.IVA IT02600730440 · info@lyftads.agency')}
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+          <a href="/api/account/export" style={{ padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: 'none', background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+            {t('gdpr.export', null, 'Esporta i miei dati')}
+          </a>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.confirm(t('gdpr.deleteConfirm', null, 'Eliminare definitivamente il tuo account e TUTTI i dati associati? L\'operazione è irreversibile.'))) return
+              const txt = window.prompt(t('gdpr.deletePrompt', null, 'Scrivi ELIMINA per confermare la cancellazione definitiva.'))
+              if (String(txt || '').toUpperCase() !== 'ELIMINA') return
+              try {
+                const r = await fetch('/api/account/delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'ELIMINA' }) })
+                if (r.ok) { window.location.href = '/login' }
+                else { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@lyftads.agency.')) }
+              } catch { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@lyftads.agency.')) }
+            }}
+            style={{ padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer', background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', color: '#f87171' }}
+          >
+            {t('gdpr.delete', null, 'Elimina account e dati')}
+          </button>
+        </div>
+        <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <a href="/privacy" style={{ color: '#2997ff', textDecoration: 'none' }}>{t('gdpr.privacy', null, 'Privacy Policy')}</a>
+          <a href="/dpa" style={{ color: '#2997ff', textDecoration: 'none' }}>{t('gdpr.dpa', null, 'Accordo sul trattamento dati (DPA)')}</a>
+          <a href="/terms" style={{ color: '#2997ff', textDecoration: 'none' }}>{t('gdpr.terms', null, 'Termini')}</a>
+        </div>
+      </GlassCard>
     </div>
   )
 }

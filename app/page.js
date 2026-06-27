@@ -2227,12 +2227,16 @@ export default function App() {
     try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(p) } catch {}
   }, [])
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
-  const [isOwner, setIsOwner] = useState(false) // owner LyftAI → accesso a feature riservate (es. Creative Studio in miglioramento)
+  // Creative Studio attiva SOLO sul workspace STMN (owner sul proprio workspace).
+  // Bloccata per TUTTI i clienti, incluso l'owner quando ha switchato su un
+  // cliente (Saracino) → si usa ownerWorkspace (tenant effettivo = owner), NON
+  // isOwner (utente reale, che resterebbe true anche dentro un cliente).
+  const [isOwner, setIsOwner] = useState(false)
   useEffect(() => {
     let active = true
     fetch('/api/integrations/status', { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => { if (active) setIsOwner(!!d?.isOwner) })
+      .then(d => { if (active) setIsOwner(!!d?.ownerWorkspace) })
       .catch(() => {})
     return () => { active = false }
   }, [])

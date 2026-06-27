@@ -24,6 +24,11 @@ export async function GET() {
     return NextResponse.json({
       connected: Object.keys(conns),
       isOwner: !!realUid && realUid === process.env.LYFT_OWNER_USER_ID,
+      // ownerWorkspace = il workspace EFFETTIVO è quello dell'owner (STMN), cioè
+      // l'owner NON ha switchato su un cliente. Gate Creative Studio: deve essere
+      // attiva SOLO su STMN, bloccata per tutti i clienti (incluso quando l'owner
+      // è dentro un workspace cliente come Saracino).
+      ownerWorkspace: !!userId && userId === process.env.LYFT_OWNER_USER_ID,
       shopifyStore: !!data?.shopify_store_url || Object.keys(conns).includes('shopify'),
       metaAccountId: data?.meta_account_id || null,
       googleConnected: !!data?.google_refresh_token,

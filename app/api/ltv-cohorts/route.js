@@ -68,7 +68,9 @@ export async function GET(req) {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1))
     const sinceStr = start.toISOString().slice(0, 10)
 
-    return swrSnapshot(req, { tab: 'ltvCohorts', compute: async () => {
+    // tab key versionata 'ltvCohorts2': invalida snapshot vecchi (es. calcolati
+    // sotto la chiave owner prima del fix cache per-tenant).
+    return swrSnapshot(req, { tab: 'ltvCohorts2', compute: async () => {
     try {
       const { customers, truncated } = await fetchCustomers(start.getTime())
 

@@ -79,7 +79,7 @@ export default function MetaConnectButton() {
           <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
             {t('metaConnect.adAccount', null, 'Ad account')}
           </button>
-          {connected && <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
+          {connected && <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.40)' }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
         </div>
         {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
       </div>

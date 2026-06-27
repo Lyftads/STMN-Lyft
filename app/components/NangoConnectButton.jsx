@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Icon from './ui/Icon'
 
 // Pulsante che apre la Nango Connect UI per collegare un provider OAuth.
 // Flusso: crea session (backend) → openConnectUI → on 'connect' salva il
@@ -86,15 +87,16 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
         onClick={start}
         disabled={loading || done}
         style={{
-          padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
-          border: '1px solid var(--border)',
+          padding: '8px 14px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
+          border: done ? '1px solid rgba(48,209,88,0.40)' : '1px solid var(--border)',
           background: done ? 'rgba(48,209,88,0.15)' : 'var(--glass)',
           color: done ? 'var(--green)' : 'var(--text)',
           cursor: loading || done ? 'default' : 'pointer',
-          ...style,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          ...(done ? {} : style),
         }}
       >
-        {done ? 'Collegato' : loading ? 'Collegamento…' : label}
+        {done ? <><Icon name="check" size={12} /> Collegato</> : loading ? 'Collegamento…' : label}
       </button>
       {done && (
         <button

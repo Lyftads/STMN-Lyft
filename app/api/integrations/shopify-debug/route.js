@@ -43,8 +43,25 @@ export async function GET(req) {
     }
 
     const sh = getShopify()
+
+    // Scope REALMENTE concessi al token (fonte di verità Shopify). Se manca
+    // read_reports → ShopifyQL denied, indipendentemente dall'app config.
+    let grantedScopes = null, scopesError = null
+    if (sh.storeUrl && sh.adminToken) {
+      try {
+        const r = await fetch(`https://${sh.storeUrl}/admin/oauth/access_scopes.json`, {
+          headers: { 'X-Shopify-Access-Token': sh.adminToken }, cache: 'no-store',
+        })
+        const j = await r.json().catch(() => null)
+        grantedScopes = (j?.access_scopes || []).map(s => s.handle)
+      } catch (e) { scopesError = String(e?.message || e) }
+    }
+
     return NextResponse.json({
       tenant,
+      grantedScopes,
+      hasReadReports: Array.isArray(grantedScopes) ? grantedScopes.includes('read_reports') : null,
+      scopesError,
       nangoConfigured: nangoConfigured(),
       nangoIntegrationIdShopify: NANGO_INTEGRATIONS.shopify,
       nangoConnectionsKeys: Object.keys(conns),

@@ -3,14 +3,16 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 
-// Persistenza per-account della config costi del Conto Economico (P&L).
-// Salvata in companies.pnl_config (jsonb). Best-effort: se la colonna non
-// esiste o l'utente non è loggato, il client usa il fallback localStorage.
+// Persistenza PER-WORKSPACE della config costi del Conto Economico (P&L).
+// Salvata in companies.pnl_config (jsonb) del tenant EFFETTIVO (cliente agency se
+// switchato) → ogni cliente ha le SUE impostazioni costi/fee, non quelle di STMN.
+// Best-effort: se la colonna non esiste o l'utente non è loggato, il client usa
+// il fallback localStorage.
 
 export async function GET() {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ config: null })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ config: null })
@@ -23,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false, error: 'DB non disponibile' }, { status: 200 })

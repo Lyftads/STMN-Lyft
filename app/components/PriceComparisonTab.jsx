@@ -10,6 +10,7 @@ import Icon from './ui/Icon'
 import EnqueueButton from './ui/EnqueueButton'
 
 const CATEGORIES = [
+  { id: 'all', label: 'Tutti i prodotti', labelKey: 'price.catAll', icon: <Icon name="box" size={20} /> },
   { id: 'grips', label: 'Paracalli', labelKey: 'price.catGrips', icon: <Icon name="tag" size={20} /> },
   { id: 'ropes', label: 'Corde', labelKey: 'price.catRopes', icon: <Icon name="tag" size={20} /> },
   { id: 'knee_sleeves', label: 'Ginocchiere', labelKey: 'price.catKneeSleeves', icon: <Icon name="tag" size={20} /> },

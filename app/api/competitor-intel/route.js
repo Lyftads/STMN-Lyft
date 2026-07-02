@@ -195,16 +195,22 @@ function categorizeProduct(product) {
   return null
 }
 
-function buildPriceComparison(ownProducts, competitorProductsMap) {
-  const categories = CATEGORY_RULES.map(rule => {
-    const own = ownProducts.filter(p => categorizeProduct(p) === rule.id && p.price > 0)
+// useGeneric=true → UNA sola categoria "Tutti i prodotti" (tutti i prodotti,
+// nessun filtro per keyword). Le CATEGORY_RULES sono specifiche del fitness (STMN)
+// e per gli altri store miscategorizzano (es. olio "Bag in Box" → Zaini/Borsoni)
+// e scartano i prodotti che non matchano nessuna keyword.
+function buildPriceComparison(ownProducts, competitorProductsMap, useGeneric = false) {
+  const rules = useGeneric ? [{ id: 'all', label: 'Tutti i prodotti' }] : CATEGORY_RULES
+  const inCat = (p, ruleId) => useGeneric ? true : (categorizeProduct(p) === ruleId)
+  const categories = rules.map(rule => {
+    const own = ownProducts.filter(p => inCat(p, rule.id) && p.price > 0)
     const ownAvg = own.length > 0 ? own.reduce((s, p) => s + p.price, 0) / own.length : null
     const ownMin = own.length > 0 ? Math.min(...own.map(p => p.price)) : null
     const ownMax = own.length > 0 ? Math.max(...own.map(p => p.price)) : null
 
     const competitors = {}
     for (const [compId, products] of Object.entries(competitorProductsMap)) {
-      const matched = products.filter(p => categorizeProduct(p) === rule.id && p.price > 0)
+      const matched = products.filter(p => inCat(p, rule.id) && p.price > 0)
       if (matched.length > 0) {
         const avg = matched.reduce((s, p) => s + p.price, 0) / matched.length
         const compCurrency = matched[0]?.currency || 'EUR'
@@ -1199,7 +1205,10 @@ export async function GET(request) {
     }
     if (ownProducts.length > 0) {
       priceSources[ownStore().name] = ownData.source || (ownData.isShopify ? 'shopify' : null)
-      priceComparison = buildPriceComparison(ownProducts, competitorProductsMap)
+      // Categorie fitness dettagliate SOLO per lo store STMN (env); per ogni altro
+      // cliente → categoria unica "Tutti i prodotti" (niente miscategorizzazione).
+      const isStmnStore = !!process.env.SHOPIFY_STORE_URL && getShopify().storeUrl === process.env.SHOPIFY_STORE_URL
+      priceComparison = buildPriceComparison(ownProducts, competitorProductsMap, !isStmnStore)
     }
   } catch (e) {
     console.log('Price comparison error:', e.message)

@@ -1385,7 +1385,7 @@ export default function CompetitorIntelTab({ onNavigate }) {
                 type="text"
                 value={adInput}
                 onChange={(e) => setAdInput(e.target.value)}
-                placeholder={t('ci.searchPlaceholder', null, 'es. grips, jump rope, knee sleeves…')}
+                placeholder={t('ci.searchPlaceholder', null, 'es. nome prodotto, brand, categoria…')}
                 className="btn-glass"
                 style={{ width: '100%', padding: '11px 14px 11px 38px', fontWeight: 600, color: 'var(--text)', outline: 'none' }}
               />

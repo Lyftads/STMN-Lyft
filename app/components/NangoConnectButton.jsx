@@ -65,6 +65,15 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
             }).catch(() => {})
             setDone(true)
             onConnected?.(provider, connectionId)
+            // Warm-up: appena Shopify è collegato, avvia in BACKGROUND i calcoli
+            // pesanti (storico metrics + bulk clienti + CRO + LTV) così sono pronti
+            // quando il cliente apre le dashboard, invece di aspettare ~minuti al
+            // primo click ("sembra rotto"). Girano mentre finisce l'onboarding.
+            if (provider === 'shopify' || integrationId === 'shopify') {
+              for (const u of ['/api/metrics?force=1', '/api/customers?refresh=1', '/api/cro?refresh=1&days=30', '/api/ltv-cohorts?force=1&months=12']) {
+                try { fetch(u, { cache: 'no-store' }).catch(() => {}) } catch {}
+              }
+            }
           }
           setLoading(false)
         } else if (type === 'close') {

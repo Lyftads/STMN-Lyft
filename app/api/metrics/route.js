@@ -825,105 +825,54 @@ async function fetchShopifyVisitorsRange(start, end) {
   return 0
 }
 
-async function fetchShopifyWeekly() {
+// Serie temporale Shopify (settimanale/mensile) via UNA sola query ShopifyQL
+// `GROUP BY week|month` invece di N query per periodo. PRIMA: ~23 settimane +
+// ~19 mesi, ognuno con più query (totals+breakdown+sessions) = decine di chiamate
+// in parallelo → throttling → Weekly/Monthly/Quarter/Year lentissimi. ORA: 2 query
+// per granularità (sales + sessions). week → dimension = lunedì YYYY-MM-DD
+// (allineato a getWeeks/weekRanges); month → primo del mese YYYY-MM-01.
+async function fetchShopifySeries(granularity, startDate) {
   if (!shopifyStoreUrl() || !shopifyToken()) return []
-
-  try {
-    const ranges = weekRanges()
-
-    const rows = await Promise.all(
-      ranges.map(async ({ start, end }) => {
-        const [sales, uniqueSessions] = await Promise.all([
-          fetchShopifySalesRange(start, end),
-          fetchShopifyVisitorsRange(start, end),
-        ])
-
-        return {
-          date: start,
-
-          fatturato: sales.fatturato,
-          resi: sales.resi,
-
-          fatturNC: sales.fatturNC,
-          resiNC: sales.resiNC,
-
-          fatturRC: sales.fatturRC,
-          resiRC: sales.resiRC,
-
-          ordini: sales.ordini,
-          nc: sales.nc,
-          rc: sales.rc,
-
-          uniqueSessions,
-        }
-      })
-    )
-
-    return rows.filter(
-      w =>
-        w.fatturato > 0 ||
-        w.fatturNC > 0 ||
-        w.fatturRC > 0 ||
-        w.ordini > 0 ||
-        w.nc > 0 ||
-        w.rc > 0 ||
-        w.uniqueSessions > 0
-    )
-  } catch (e) {
-    console.log('Shopify weekly error:', e.message)
-    return []
+  const SHOW = 'total_sales, orders, returns, orders_first_time, orders_returning, total_sales_first_time, total_sales_returning'
+  const [salesRows, sessRows] = await Promise.all([
+    shopifyQL(`FROM sales SHOW ${SHOW} GROUP BY ${granularity} SINCE ${startDate} UNTIL today ORDER BY ${granularity} ASC`),
+    shopifyQL(`FROM sessions SHOW sessions GROUP BY ${granularity} SINCE ${startDate} UNTIL today ORDER BY ${granularity} ASC`),
+  ])
+  const sessByKey = {}
+  for (const s of (sessRows || [])) {
+    const k = String(s?.[granularity] ?? '').slice(0, 10)
+    if (k) sessByKey[k] = cleanCount(s.sessions)
   }
+  return (salesRows || []).map(r => {
+    const key = String(r?.[granularity] ?? '').slice(0, 10) // week: YYYY-MM-DD (lun), month: YYYY-MM-01
+    const fatturato = cleanMoney(r.total_sales)
+    const resi = Math.abs(cleanMoney(r.returns))
+    const fatturNC = cleanMoney(r.total_sales_first_time)
+    const fatturRC = cleanMoney(r.total_sales_returning)
+    // Shopify non splitta i resi per nuovo/ritornante a questa granularità →
+    // ripartizione proporzionale al fatturato NC/RC (campo minore).
+    const denom = fatturNC + fatturRC
+    const resiNC = denom > 0 ? roundMoney(resi * (fatturNC / denom)) : 0
+    const resiRC = denom > 0 ? roundMoney(resi - resiNC) : 0
+    return {
+      key,
+      fatturato, resi, fatturNC, resiNC, fatturRC, resiRC,
+      ordini: cleanCount(r.orders), nc: cleanCount(r.orders_first_time), rc: cleanCount(r.orders_returning),
+      uniqueSessions: sessByKey[key] || 0,
+    }
+  })
+}
+
+const seriesHasData = (r) => r.fatturato > 0 || r.fatturNC > 0 || r.fatturRC > 0 || r.ordini > 0 || r.nc > 0 || r.rc > 0 || r.uniqueSessions > 0
+
+async function fetchShopifyWeekly() {
+  const rows = await fetchShopifySeries('week', WEEKLY_START_DATE)
+  return rows.map(({ key, ...rest }) => ({ date: key, ...rest })).filter(seriesHasData)
 }
 
 async function fetchShopifyMonthly() {
-  if (!shopifyStoreUrl() || !shopifyToken()) return []
-
-  try {
-    const ranges = monthRanges()
-
-    const rows = await Promise.all(
-      ranges.map(async ({ month, start, end }) => {
-        const [sales, uniqueSessions] = await Promise.all([
-          fetchShopifySalesRange(start, end),
-          fetchShopifyVisitorsRange(start, end),
-        ])
-
-        return {
-          month,
-          date: start,
-
-          fatturato: sales.fatturato,
-          resi: sales.resi,
-
-          fatturNC: sales.fatturNC,
-          resiNC: sales.resiNC,
-
-          fatturRC: sales.fatturRC,
-          resiRC: sales.resiRC,
-
-          ordini: sales.ordini,
-          nc: sales.nc,
-          rc: sales.rc,
-
-          uniqueSessions,
-        }
-      })
-    )
-
-    return rows.filter(
-      r =>
-        r.fatturato > 0 ||
-        r.fatturNC > 0 ||
-        r.fatturRC > 0 ||
-        r.ordini > 0 ||
-        r.nc > 0 ||
-        r.rc > 0 ||
-        r.uniqueSessions > 0
-    )
-  } catch (e) {
-    console.log('Shopify monthly error:', e.message)
-    return []
-  }
+  const rows = await fetchShopifySeries('month', START_DATE)
+  return rows.map(({ key, ...rest }) => ({ month: key.slice(0, 7), date: key, ...rest })).filter(seriesHasData)
 }
 
 // ── AOV ultimi 30 giorni ──────────────────────────────────────

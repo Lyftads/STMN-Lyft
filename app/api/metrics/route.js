@@ -1242,6 +1242,9 @@ async function fetchMetaWeekly() {
           `?fields=${fields}` +
           `&time_range={"since":"${since}","until":"${until}"}` +
           `&time_increment=7` +
+          // limit alto: senza, Meta pagina a 25 → con >25 settimane (dal 29/12)
+          // le settimane RECENTI finivano in pagina 2 e la spesa non si importava.
+          `&limit=500` +
           `&access_token=${metaToken()}`
 
         const res = await fetch(url)
@@ -1359,6 +1362,7 @@ async function fetchMeta() {
           `?fields=spend` +
           `&time_range={"since":"${START_DATE}","until":"${format(new Date(), 'yyyy-MM-dd')}"}` +
           `&time_increment=monthly` +
+          `&limit=500` +
           `&access_token=${metaToken()}`
 
         const res = await fetch(url)

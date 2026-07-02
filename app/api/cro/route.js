@@ -77,33 +77,6 @@ export async function GET(request) {
     const prevSinceD = new Date(prevUntilD.getTime() - (days - 1) * 86400000)
     const prevSinceDate = isoD(prevSinceD), prevUntilDate = isoD(prevUntilD)
 
-    // Diagnostica: ?debug=1 → righe grezze delle 3 query ShopifyQL del range
-    // corrente, per capire se `FROM sessions` (o sales/customers) torna dati.
-    if (searchParams.get('debug') === '1') {
-      const sh = getShopify()
-      // Chiamata GREZZA a shopifyqlQuery: NON nasconde gli errori (il helper
-      // shopifyQL ritorna [] su qualsiasi errore) → vediamo il messaggio reale.
-      let raw = null, httpStatus = null, fetchErr = null
-      try {
-        const gql = `query($q: String!) { shopifyqlQuery(query: $q) { tableData { columns { name } rows } parseErrors } }`
-        const res = await fetch(`https://${sh.storeUrl}/admin/api/2026-04/graphql.json`, {
-          method: 'POST',
-          headers: { 'X-Shopify-Access-Token': sh.adminToken || '', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: gql, variables: { q: `FROM sales SHOW orders, total_sales SINCE ${sinceDate} UNTIL ${untilDate}` } }),
-        })
-        httpStatus = res.status
-        raw = await res.json().catch(() => null)
-      } catch (e) { fetchErr = String(e?.message || e) }
-      return NextResponse.json({
-        range: { sinceDate, untilDate }, storeUrl: sh.storeUrl, hasToken: !!sh.adminToken,
-        httpStatus, fetchErr,
-        graphqlErrors: raw?.errors || null,
-        parseErrors: raw?.data?.shopifyqlQuery?.parseErrors || null,
-        rows: raw?.data?.shopifyqlQuery?.tableData?.rows || null,
-        rawData: raw?.data || null,
-      })
-    }
-
     // tab key versionata: 'cro3' invalida gli snapshot vecchi (calcolati quando
     // ShopifyQL era bloccato/vuoto) → l'auto-load mostra subito il dato corretto
     // senza dover premere Aggiorna.

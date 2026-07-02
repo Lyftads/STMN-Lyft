@@ -323,20 +323,6 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url)
 
-  // Diagnostica nomi campagne: ?debug=campaigns → struttura grezza Klaviyo
-  // (campaign + campaign-messages inclusi) per capire dove vive il subject.
-  if (searchParams.get('debug') === 'campaigns') {
-    const raw = await klaviyoGet(`/campaigns?filter=${encodeURIComponent('equals(messages.channel,"email"),equals(status,"Sent")')}&include=campaign-messages`)
-    return NextResponse.json({
-      campaignSample: (raw?.data || []).slice(0, 3).map(c => ({
-        id: c.id, attributes: c.attributes, relationships: c.relationships,
-      })),
-      includedSample: (raw?.included || []).slice(0, 3),
-      includedTypes: [...new Set((raw?.included || []).map(x => x.type))],
-      hasIncluded: Array.isArray(raw?.included),
-    })
-  }
-
   const daysParam = searchParams.get('days')
   const days = daysParam != null ? parseInt(daysParam, 10) : 30
 

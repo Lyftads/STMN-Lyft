@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
+import { markDataWarming } from './PreparingDataBanner'
 
 // Pulsante che apre la Nango Connect UI per collegare un provider OAuth.
 // Flusso: crea session (backend) → openConnectUI → on 'connect' salva il
@@ -70,6 +71,7 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
             // quando il cliente apre le dashboard, invece di aspettare ~minuti al
             // primo click ("sembra rotto"). Girano mentre finisce l'onboarding.
             if (provider === 'shopify' || integrationId === 'shopify') {
+              markDataWarming() // mostra il banner "preparazione dati" con countdown
               for (const u of ['/api/metrics?force=1', '/api/customers?refresh=1', '/api/cro?refresh=1&days=30', '/api/ltv-cohorts?force=1&months=12']) {
                 try { fetch(u, { cache: 'no-store' }).catch(() => {}) } catch {}
               }

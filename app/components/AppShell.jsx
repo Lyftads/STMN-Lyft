@@ -16,6 +16,7 @@ import LogoMark from './LogoMark'
 import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
 import { CreativeStudioMark } from './ui/CreativeStudioLogo'
+import PreparingDataBanner from './PreparingDataBanner'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
@@ -250,6 +251,8 @@ const [helpOpen, setHelpOpen] = useState(false)
   const toggleGroup = (title) => setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }))
 
   return (
+    <>
+    <PreparingDataBanner />
     <div style={{
       height: '100vh',
       background: 'var(--bg)',
@@ -552,6 +555,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       </main>
       {helpOpen && <HelpDrawer article={articleForTab(tab, locale)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>
+    </>
   )
 }
 

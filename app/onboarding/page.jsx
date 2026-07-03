@@ -152,6 +152,7 @@ export function OnboardingInner({ embedded = false } = {}) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [liveConn, setLiveConn] = useState(null) // stato REALE connessioni (integrations/status)
   const biRef = useRef(null) // handle save() del BrandIdentityPanel embedded
 
   const loadStatus = useCallback(() => {
@@ -167,7 +168,29 @@ export function OnboardingInner({ embedded = false } = {}) {
       })
       .catch(e => setError(e?.message))
       .finally(() => setLoading(false))
+    // Stato reale delle connessioni OAuth (Shopify/Meta/Google/Klaviyo/Mailchimp)
+    // → i chip mostrano ciò che è DAVVERO collegato, non solo i campi salvati.
+    fetch('/api/integrations/status').then(r => r.ok ? r.json() : null).then(s => setLiveConn(s)).catch(() => {})
   }, [router])
+
+  // Un chip è "collegato" se lo dice l'onboarding (campi salvati) OPPURE lo stato
+  // reale delle connessioni. Copre i collegamenti Nango (meta='facebook', ecc.).
+  const isStepDone = useCallback((id) => {
+    if (stepStatus[id]) return true
+    const c = liveConn
+    if (!c) return false
+    const has = (k) => Array.isArray(c.connected) && c.connected.includes(k)
+    switch (id) {
+      case 'shopify':   return !!c.shopifyStore || has('shopify')
+      case 'meta':      return !!c.metaAccountId || has('facebook')
+      case 'googleAds': return !!c.googleConnected || !!c.adsCustomerId
+      case 'ga4':       return !!c.ga4PropertyId || !!c.googleConnected
+      case 'gsc':       return !!c.gscSiteUrl || !!c.googleConnected
+      case 'klaviyo':   return has('klaviyo-oauth') || has('klaviyo')
+      case 'mailchimp': return has('mailchimp')
+      default:          return false
+    }
+  }, [stepStatus, liveConn])
 
   useEffect(() => { loadStatus() }, [loadStatus])
 
@@ -314,37 +337,43 @@ export function OnboardingInner({ embedded = false } = {}) {
           </p>
         </div>
 
-        {/* Progress dots — chip di uguale dimensione con logo brand */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 32,
-        }}>
+        {/* Progress — chip in UN'UNICA riga (larghezza uniforme). Verde + spunta =
+            collegato; spento/grigio = ancora da collegare. */}
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, marginBottom: 30 }}>
           {STEPS.map((s, i) => {
-            const isDone = stepStatus[s.id]
+            const done = isStepDone(s.id)
             const isCurrent = i === currentStep
             const pillLabel = s.id === 'ga4' ? 'GA4' : s.label
+            const borderCol = isCurrent ? ACCENT : done ? 'rgba(34,197,94,0.65)' : 'rgba(255,255,255,0.09)'
+            const bgCol = isCurrent ? `${ACCENT}1e` : done ? 'rgba(34,197,94,0.13)' : 'rgba(255,255,255,0.02)'
             return (
-              <div key={s.id} style={{
-                position: 'relative', boxSizing: 'border-box',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 7,
-                width: 80, height: 88, padding: '12px 4px 10px', borderRadius: 16,
-                background: isCurrent ? `${ACCENT}22` : isDone ? 'rgba(34,197,94,0.10)' : 'rgba(255,255,255,0.03)',
-                border: isCurrent ? `1px solid ${ACCENT}66` : isDone ? '1px solid rgba(34,197,94,0.30)' : '1px solid rgba(255,255,255,0.06)',
-                transition: 'background .15s, border-color .15s',
-              }}>
-                <div style={{ position: 'relative' }}>
+              <div
+                key={s.id}
+                title={done ? `${s.label} · collegato` : s.label}
+                style={{
+                  position: 'relative', boxSizing: 'border-box', flex: '1 1 0', minWidth: 0,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 7,
+                  height: 90, padding: '12px 3px 10px', borderRadius: 14,
+                  background: bgCol, border: `1.5px solid ${borderCol}`,
+                  boxShadow: done ? '0 0 0 3px rgba(34,197,94,0.09)' : 'none',
+                  opacity: (!done && !isCurrent) ? 0.6 : 1,
+                  transition: 'opacity .15s, border-color .15s, background .15s',
+                }}
+              >
+                <div style={{ position: 'relative', filter: (!done && !isCurrent) ? 'grayscale(0.35)' : 'none' }}>
                   <StepLogo id={s.id} size={30} radius={9} fallback={
                     <div style={{ width: 30, height: 30, borderRadius: 9, background: `${ACCENT}20`, color: ACCENT, display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 800 }}>{s.icon}</div>
                   } />
-                  {isDone && (
-                    <span style={{ position: 'absolute', top: -5, right: -5, width: 15, height: 15, borderRadius: 999, background: '#22c55e', color: '#04140a', display: 'grid', placeItems: 'center', border: '2px solid rgba(0,0,0,0.45)' }}>
-                      <Icon name="check" size={8} />
+                  {done && (
+                    <span style={{ position: 'absolute', top: -6, right: -6, width: 17, height: 17, borderRadius: 999, background: '#22c55e', color: '#062611', display: 'grid', placeItems: 'center', border: '2px solid #0d1220', boxShadow: '0 1px 4px rgba(0,0,0,0.45)' }}>
+                      <Icon name="check" size={9} />
                     </span>
                   )}
                 </div>
                 <span style={{
-                  fontSize: 10, lineHeight: 1.2, fontWeight: 700, textAlign: 'center',
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  color: isCurrent ? '#fff' : isDone ? '#86efac' : 'var(--text4, #666)',
+                  fontSize: 9.5, lineHeight: 1.15, fontWeight: 700, textAlign: 'center',
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word',
+                  color: done ? '#86efac' : isCurrent ? '#fff' : 'var(--text4, #666)',
                 }}>{pillLabel}</span>
               </div>
             )

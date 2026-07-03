@@ -4,6 +4,8 @@ export const maxDuration = 15
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getServerSupabase, getAdminSupabase } from '../../../../lib/supabase/server'
+import { authoritativeMin, planRank, tierOf } from '../../../../lib/team/orderTiers'
+import { isOrderGateExempt } from '../../../../lib/team/orderGateExempt'
 
 // Stripe Checkout Session creator per i 3 piani.
 //
@@ -80,6 +82,8 @@ export async function POST(req) {
   let userEmail = null
   let stripeCustomerId = null
   let companyName = null
+  let declaredOrders = null
+  let verifiedOrders = null
   try {
     const sb = getServerSupabase()
     const { data: { user } } = await sb.auth.getUser()
@@ -90,11 +94,13 @@ export async function POST(req) {
       if (admin) {
         const { data: company } = await admin
           .from('companies')
-          .select('stripe_customer_id, company_name')
+          .select('stripe_customer_id, company_name, declared_monthly_orders, verified_monthly_orders')
           .eq('user_id', user.id)
           .maybeSingle()
         stripeCustomerId = company?.stripe_customer_id || null
         companyName = company?.company_name || null
+        declaredOrders = company?.declared_monthly_orders ?? null
+        verifiedOrders = company?.verified_monthly_orders ?? null
       }
     }
   } catch {}
@@ -119,6 +125,21 @@ export async function POST(req) {
     if (!planId || !PRICE_ENV_MAP[planId]) {
       return NextResponse.json({ error: `planId non valido: ${planId}` }, { status: 400 })
     }
+
+    // Gate volume ordini (solo piani brand, non agency): il piano scelto non può
+    // stare sotto il minimo autoritativo (verified Shopify > declared onboarding).
+    // Upgrade sempre consentiti. Enforcement server-side: non aggirabile da UI.
+    const basePlan = planId.replace(/_annual$/, '')
+    if (['starter', 'growth', 'scale', 'enterprise'].includes(basePlan) && !isOrderGateExempt(userId)) {
+      const min = authoritativeMin({ declared: declaredOrders, verified: verifiedOrders })
+      if (min.rank >= 0 && planRank(basePlan) < min.rank) {
+        const minLabel = tierOf(min.plan)?.label || min.plan
+        return NextResponse.json({
+          error: `Il tuo volume (~${min.orders} ordini/mese) richiede almeno il piano ${minLabel}. Seleziona ${minLabel} o superiore.`,
+        }, { status: 400 })
+      }
+    }
+
     const priceId = process.env[PRICE_ENV_MAP[planId]]
     if (!priceId) {
       return NextResponse.json({

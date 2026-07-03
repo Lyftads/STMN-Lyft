@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Icon from './ui/Icon'
 import AgencyPricing from './AgencyPricing'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { planRank } from '../../lib/team/orderTiers'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
 // non piu' localStorage. L'API /api/stripe/subscription lo risolve in automatico
@@ -287,7 +288,7 @@ async function startEnterprise({ contactHref, setError, setLoading, t }) {
   }
 }
 
-function PlanCard({ plan, isCurrent, cadence = null }) {
+function PlanCard({ plan, isCurrent, cadence = null, locked = false, lockLabel = null }) {
   const { t } = useI18n()
   const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
   const [loading, setLoading] = useState(false)
@@ -395,26 +396,28 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
       ) : (
         <button
           type="button"
-          disabled={isCurrent || loading}
-          onClick={() => startStripeCheckout({ planId: plan.id + ((cadence && cadence.off > 0 && !plan.flat) ? '_annual' : ''), mode: 'subscription', forceStripe: plan.flat, setError, setLoading, t })}
+          disabled={isCurrent || loading || locked}
+          title={locked && lockLabel ? t('settings.gateLockedTip', { plan: lockLabel }, `Richiede almeno il piano ${lockLabel}`) : undefined}
+          onClick={() => { if (!locked) startStripeCheckout({ planId: plan.id + ((cadence && cadence.off > 0 && !plan.flat) ? '_annual' : ''), mode: 'subscription', forceStripe: plan.flat, setError, setLoading, t }) }}
           style={{
             width: '100%',
             padding: '13px 16px',
             borderRadius: 12,
             border: 'none',
-            cursor: isCurrent ? 'default' : loading ? 'wait' : 'pointer',
-            background: isCurrent
+            cursor: locked ? 'not-allowed' : isCurrent ? 'default' : loading ? 'wait' : 'pointer',
+            background: (isCurrent || locked)
               ? 'rgba(255,255,255,0.05)'
               : `linear-gradient(135deg, ${plan.accent}, ${plan.accent}cc)`,
-            color: isCurrent ? 'var(--text3)' : 'var(--text)',
+            color: (isCurrent || locked) ? 'var(--text3)' : 'var(--text)',
             fontSize: 13.5, fontWeight: 800,
             letterSpacing: '0.04em',
-            boxShadow: isCurrent ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
+            boxShadow: (isCurrent || locked) ? 'none' : `0 8px 24px ${plan.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
             textTransform: 'uppercase',
+            opacity: locked ? 0.7 : 1,
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
-          onMouseEnter={e => { if (!isCurrent && !loading) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
+          onMouseEnter={e => { if (!isCurrent && !loading && !locked) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
           onMouseLeave={e => { e.currentTarget.style.transform = '' }}
         >
           {loading ? (
@@ -427,7 +430,7 @@ function PlanCard({ plan, isCurrent, cadence = null }) {
               }} />
               {t('settings.redirectStripe', null, 'Redirect a Stripe…')}
             </>
-          ) : isCurrent ? t('settings.currentPlan', null, 'Piano attuale') : (t(plan.ctaKey, null, plan.cta) || ('↑ Passa a ' + plan.name))}
+          ) : locked ? t('settings.gateLocked', null, 'Non disponibile per il tuo volume') : isCurrent ? t('settings.currentPlan', null, 'Piano attuale') : (t(plan.ctaKey, null, plan.cta) || ('↑ Passa a ' + plan.name))}
         </button>
       )}
       {error && (
@@ -1051,9 +1054,15 @@ export default function SettingsTab() {
   // I merchant Shopify NON vedono il piano Enterprise "Contattaci" (off-platform):
   // su Shopify si usa solo il Managed Pricing standard (Shopify App Review 1.2.3).
   const [isShopify, setIsShopify] = useState(false)
+  // Gate volume ordini: piano minimo selezionabile (blocca downgrade sotto la
+  // fascia dichiarata/verificata). minRank = -1 → nessun gate.
+  const [gate, setGate] = useState(null)
   useEffect(() => {
     fetch('/api/integrations/status').then(r => r.json())
       .then(st => setIsShopify(!!st?.shopifyStore || (Array.isArray(st?.connected) && st.connected.includes('shopify'))))
+      .catch(() => {})
+    fetch('/api/plan-gate').then(r => r.ok ? r.json() : null)
+      .then(g => { if (g && typeof g.minRank === 'number' && g.minRank >= 0) setGate(g) })
       .catch(() => {})
   }, [])
   // Vero merchant App Store = Shopify collegato SENZA customer Stripe (paga via
@@ -1175,7 +1184,7 @@ export default function SettingsTab() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
               {(isShopifyMerchant ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
-                <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} />
+                <PlanCard key={p.id} plan={p} isCurrent={p.id === currentPlanId} cadence={bc} locked={!isShopifyMerchant && !!gate && p.id !== currentPlanId && planRank(p.id) < gate.minRank} lockLabel={gate?.minLabel} />
               ))}
             </div>
           </>

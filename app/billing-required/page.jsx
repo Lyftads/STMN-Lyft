@@ -8,6 +8,7 @@ import { Suspense } from 'react'
 import LogoMark from '../components/LogoMark'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { planRank } from '../../lib/team/orderTiers'
 
 const ACCENT = '#bf5af2'
 const BLUE = '#2997ff'
@@ -87,6 +88,8 @@ function BillingContent() {
   // Utenti arrivati da Shopify → addebiti via Shopify Managed Pricing (policy 1.2.x),
   // NON Stripe. Rilevati dallo store Shopify collegato (Nango o store URL).
   const [isShopify, setIsShopify] = useState(false)
+  // Gate volume ordini: piano MINIMO selezionabile (verified vince sul declared).
+  const [gate, setGate] = useState(null)
 
   useEffect(() => {
     const sb = getBrowserSupabase()
@@ -96,6 +99,9 @@ function BillingContent() {
     })
     fetch('/api/integrations/status').then(r => r.json())
       .then(j => { if (j?.shopifyStore || (Array.isArray(j.connected) && j.connected.includes('shopify'))) setIsShopify(true) })
+      .catch(() => {})
+    fetch('/api/plan-gate').then(r => r.ok ? r.json() : null)
+      .then(g => { if (g && typeof g.minRank === 'number' && g.minRank >= 0) setGate(g) })
       .catch(() => {})
   }, [])
 
@@ -173,10 +179,18 @@ function BillingContent() {
           </div>
         )}
 
+        {!isShopify && gate && gate.minLabel && (
+          <div style={{ maxWidth: 720, margin: '0 auto 26px', padding: 14, borderRadius: 12, background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.30)', color: '#9ecbff', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+            <Icon name="info" size={13} /> {t('br.gateNote', { orders: Number(gate.orders || 0).toLocaleString('it-IT'), plan: gate.minLabel }, `In base al tuo volume (~{orders} ordini/mese), il piano minimo è {plan}. I piani inferiori sono disattivati.`)}
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 18, maxWidth: 1240, margin: '0 auto' }}>
-          {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => (
-            <div key={p.id} className="glass-card-static" style={{ padding: 30, position: 'relative', ...(p.popular && { borderTop: `2px solid ${p.accent}`, boxShadow: `0 30px 80px rgba(0,0,0,0.80), 0 0 80px ${p.accent}22, inset 0 1.5px 0 ${p.accent}88` }) }}>
-              {p.popular && (
+          {(isShopify ? PLANS.filter(p => p.id !== 'enterprise') : PLANS).map(p => {
+            const locked = !isShopify && !!gate && planRank(p.id) < gate.minRank
+            return (
+            <div key={p.id} className="glass-card-static" style={{ padding: 30, position: 'relative', opacity: locked ? 0.5 : 1, ...(p.popular && !locked && { borderTop: `2px solid ${p.accent}`, boxShadow: `0 30px 80px rgba(0,0,0,0.80), 0 0 80px ${p.accent}22, inset 0 1.5px 0 ${p.accent}88` }) }}>
+              {p.popular && !locked && (
                 <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', borderRadius: 999, background: p.accent, color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em' }}>{t('br.popular', null, 'POPULAR')}</div>
               )}
               <div style={{ fontSize: 12, color: p.accent, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{p.name}</div>
@@ -196,11 +210,11 @@ function BillingContent() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => startTrial(p.id)} disabled={!!loading} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '13px 18px', borderRadius: 999, border: 'none', background: p.popular ? `linear-gradient(135deg, ${ACCENT}, ${BLUE})` : 'rgba(255,255,255,0.06)', borderTop: p.popular ? 'none' : '1px solid rgba(255,255,255,0.12)', color: '#fff', cursor: loading ? 'wait' : 'pointer', fontSize: 13.5, fontWeight: 800, letterSpacing: '-0.01em', opacity: loading && loading !== p.id ? 0.5 : 1, boxShadow: p.popular ? '0 20px 50px rgba(191,90,242,0.30)' : 'none' }}>
-                {loading === p.id ? t('br.waiting', null, 'Please wait…') : t(p.cta[0], null, p.cta[1])}
+              <button onClick={() => { if (!locked) startTrial(p.id) }} disabled={!!loading || locked} title={locked && gate?.minLabel ? t('br.gateLockedTip', { plan: gate.minLabel }, `Richiede almeno il piano ${gate.minLabel}`) : undefined} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '13px 18px', borderRadius: 999, border: 'none', background: locked ? 'rgba(255,255,255,0.05)' : p.popular ? `linear-gradient(135deg, ${ACCENT}, ${BLUE})` : 'rgba(255,255,255,0.06)', borderTop: (p.popular && !locked) ? 'none' : '1px solid rgba(255,255,255,0.12)', color: locked ? 'rgba(255,255,255,0.5)' : '#fff', cursor: locked ? 'not-allowed' : loading ? 'wait' : 'pointer', fontSize: 13.5, fontWeight: 800, letterSpacing: '-0.01em', opacity: loading && loading !== p.id ? 0.5 : 1, boxShadow: (p.popular && !locked) ? '0 20px 50px rgba(191,90,242,0.30)' : 'none' }}>
+                {locked ? t('br.gateLocked', null, 'Non disponibile per il tuo volume') : loading === p.id ? t('br.waiting', null, 'Please wait…') : t(p.cta[0], null, p.cta[1])}
               </button>
             </div>
-          ))}
+          )})}
         </div>
 
         <div style={{ marginTop: 50, textAlign: 'center' }}>

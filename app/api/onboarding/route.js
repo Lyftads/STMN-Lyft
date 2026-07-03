@@ -23,6 +23,7 @@ async function getUserId() {
 }
 
 const STEP_FIELDS = {
+  orders:    ['declared_monthly_orders'], // fascia dichiarata (numerico)
   shopify:   ['shopify_store_url', 'shopify_admin_token'],
   meta:      ['meta_account_id', 'meta_access_token'],
   googleAds: ['google_ads_customer_id'],
@@ -33,6 +34,7 @@ const STEP_FIELDS = {
 }
 
 function stepCompleted(row, step) {
+  if (step === 'orders') return Number.isFinite(row?.declared_monthly_orders)
   const required = {
     shopify:   ['shopify_store_url', 'shopify_admin_token'],
     meta:      ['meta_access_token'],            // adAccountId opzionale al primo step
@@ -40,6 +42,7 @@ function stepCompleted(row, step) {
     ga4:       ['ga4_property_id'],
     gsc:       ['gsc_site_url'],
     klaviyo:   ['klaviyo_api_key'],
+    omnisend:  ['omnisend_api_key'],
   }[step] || []
   return required.every(f => row?.[f] && String(row[f]).trim().length > 0)
 }
@@ -53,7 +56,7 @@ export async function GET() {
 
   const { data, error } = await admin
     .from('companies')
-    .select('shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, google_ads_customer_id, ga4_property_id, gsc_site_url, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, nango_connections, onboarding_completed_at')
+    .select('declared_monthly_orders, verified_monthly_orders, shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, google_ads_customer_id, ga4_property_id, gsc_site_url, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, omnisend_api_key, mailchimp_access_token, nango_connections, onboarding_completed_at')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -61,12 +64,15 @@ export async function GET() {
 
   const conns = (data?.nango_connections && typeof data.nango_connections === 'object') ? data.nango_connections : {}
   const steps = {
+    orders:    stepCompleted(data, 'orders'),
     shopify:   stepCompleted(data, 'shopify') || !!conns.shopify,
     meta:      stepCompleted(data, 'meta') || !!conns.meta,
     googleAds: stepCompleted(data, 'googleAds'),
     ga4:       stepCompleted(data, 'ga4'),
     gsc:       stepCompleted(data, 'gsc'),
     klaviyo:   stepCompleted(data, 'klaviyo') || !!conns['klaviyo-oauth'] || !!conns.klaviyo,
+    mailchimp: !!conns.mailchimp || !!(data?.mailchimp_access_token),
+    omnisend:  stepCompleted(data, 'omnisend'),
   }
 
   return NextResponse.json({
@@ -94,9 +100,15 @@ export async function POST(req) {
   // Filtra solo i campi consentiti per lo step
   const allowedFields = STEP_FIELDS[step]
   const updates = {}
-  for (const k of allowedFields) {
-    if (typeof values[k] === 'string') {
-      updates[k] = values[k].trim() || null
+  if (step === 'orders') {
+    // Campo numerico: fascia dichiarata (valore rappresentativo).
+    const n = parseInt(values.declared_monthly_orders, 10)
+    if (Number.isFinite(n) && n >= 0) updates.declared_monthly_orders = n
+  } else {
+    for (const k of allowedFields) {
+      if (typeof values[k] === 'string') {
+        updates[k] = values[k].trim() || null
+      }
     }
   }
 

@@ -6,11 +6,31 @@ import NangoConnectButton from '../components/NangoConnectButton'
 import BrandIdentityPanel from '../components/BrandIdentityPanel'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { ORDER_BANDS, tierOf } from '../../lib/team/orderTiers'
 
 const ACCENT = '#bf5af2'
 
 // description e field.hint sono nei dizionari i18n (obp.*), risolti via t().
+// Ordine wizard (Step 1→…): Brand Identity → Numero ordini → Shopify → Meta →
+// Google (Ads, GA4, Search Console = 3 step) → CRM (Klaviyo, Mailchimp,
+// Omnisend = 3 step, colleghi quello che hai, gli altri li salti) → Dashboard.
 const STEPS = [
+  {
+    id: 'brandIdentity',
+    label: 'Brand Identity',
+    icon: <Icon name="star" size={22} />,
+    descKey: 'obp.brand.desc',
+    component: 'brandIdentity',
+    fields: [],
+  },
+  {
+    id: 'orders',
+    label: 'Ordini',
+    icon: '◔',
+    descKey: 'obp.orders.desc',
+    component: 'orders',
+    fields: [],
+  },
   {
     id: 'shopify',
     label: 'Shopify',
@@ -63,15 +83,27 @@ const STEPS = [
     icon: <Icon name="mail" size={22} />,
     descKey: 'obp.klaviyo.desc',
     nango: 'klaviyo-oauth', // collegamento one-click via Nango (no API key manuale)
+    optional: true, // CRM: colleghi quello che possiedi, gli altri li salti
     fields: [],
   },
   {
-    id: 'brandIdentity',
-    label: 'Brand Identity',
-    icon: <Icon name="star" size={22} />,
-    descKey: 'obp.brand.desc',
-    component: 'brandIdentity',
+    id: 'mailchimp',
+    label: 'Mailchimp',
+    icon: <Icon name="mail" size={22} />,
+    descKey: 'obp.mailchimp.desc',
+    nango: 'mailchimp', // one-click via Nango
+    optional: true,
     fields: [],
+  },
+  {
+    id: 'omnisend',
+    label: 'Omnisend',
+    icon: <Icon name="mail" size={22} />,
+    descKey: 'obp.omnisend.desc',
+    optional: true, // Omnisend non ha OAuth → API key manuale (salvata su companies)
+    fields: [
+      { key: 'omnisend_api_key', label: 'API key', placeholder: 'API key Omnisend', required: true, type: 'password', hintKey: 'obp.omnisend.hint' },
+    ],
   },
 ]
 
@@ -88,7 +120,7 @@ export function OnboardingInner({ embedded = false } = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(0)
-  const [stepStatus, setStepStatus] = useState({ shopify: false, meta: false, googleAds: false, ga4: false, gsc: false, klaviyo: false })
+  const [stepStatus, setStepStatus] = useState({ brandIdentity: false, orders: false, shopify: false, meta: false, googleAds: false, ga4: false, gsc: false, klaviyo: false, mailchimp: false, omnisend: false })
   const [completed, setCompleted] = useState(false)
   const [values, setValues] = useState({})
   const [saving, setSaving] = useState(false)
@@ -130,6 +162,11 @@ export function OnboardingInner({ embedded = false } = {}) {
   const setField = (k, v) => setValues(prev => ({ ...prev, [k]: v }))
 
   const handleSaveStep = async () => {
+    // Step Ordini: serve una fascia selezionata prima di continuare.
+    if (step.component === 'orders' && !values.declared_monthly_orders) {
+      setError(t('obp.orders.pick', null, 'Seleziona una fascia di ordini per continuare.'))
+      return
+    }
     // Step Brand Identity: il salvataggio è delegato al pannello (POST /api/brand-identity)
     if (step.component === 'brandIdentity') {
       setSaving(true)
@@ -149,7 +186,8 @@ export function OnboardingInner({ embedded = false } = {}) {
     // (darebbe "Nessun campo valido"): basta avanzare. Con valori → POST.
     const isConnectStep = !!(step.nangoConnect || step.nango || step.oauth)
     const hasManualValues = Object.keys(values || {}).length > 0
-    if (isConnectStep && !hasManualValues) {
+    // Step opzionali (CRM) senza valori → avanza/completa senza POST (niente errore).
+    if ((isConnectStep || step.optional) && !hasManualValues) {
       setStepStatus(prev => ({ ...prev, [step.id]: true }))
       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
       else await completeOnboarding()
@@ -215,14 +253,19 @@ export function OnboardingInner({ embedded = false } = {}) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#000', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
+      <div style={{ minHeight: embedded ? 240 : '100vh', ...(embedded ? {} : { background: '#000' }), display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
         {t('obp.loading', null, 'Loading…')}
       </div>
     )
   }
 
   return (
-    <div style={{
+    // embedded (tab in-app) = niente chrome full-page: si integra nell'area della
+    // tab. Standalone /onboarding = esperienza a tutto schermo con sfondo.
+    <div style={embedded ? {
+      color: 'var(--text)',
+      padding: '4px 0 8px',
+    } : {
       minHeight: '100vh',
       background: 'radial-gradient(circle at 30% 20%, rgba(191,90,242,0.15), transparent 40%), radial-gradient(circle at 80% 80%, rgba(41,151,255,0.10), transparent 40%), #000',
       color: 'var(--text)',
@@ -291,7 +334,9 @@ export function OnboardingInner({ embedded = false } = {}) {
           </div>
 
           {/* Fields o OAuth step */}
-          {step.component === 'brandIdentity' ? (
+          {step.component === 'orders' ? (
+            <OrdersStep values={values} setField={setField} />
+          ) : step.component === 'brandIdentity' ? (
             <div style={{ marginTop: 8 }}>
               <BrandIdentityPanel ref={biRef} embedded onSaved={() => setStepStatus(p => ({ ...p, brandIdentity: true }))} />
             </div>
@@ -309,14 +354,15 @@ export function OnboardingInner({ embedded = false } = {}) {
           ) : step.nango ? (
             <div style={{ marginTop: 8, padding: 24, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)', textAlign: 'center' }}>
               <div style={{ marginBottom: 10, color: '#7b5bff' }}><Icon name="link" size={34} /></div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{t('obp.klaviyo.connectTitle', null, 'Collega Klaviyo')}</div>
-              <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{t('obp.klaviyo.connectIntro', null, '1 click: autorizzi Klaviyo, nessuna API key da copiare.')}</p>
-              <NangoConnectButton integrationId={step.nango} label={t('obp.klaviyo.connectBtn', null, 'Collega Klaviyo')}
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{t('obp.crmConnectTitle', { name: step.label }, `Collega ${step.label}`)}</div>
+              <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{t('obp.crmConnectIntro', { name: step.label }, `1 click: autorizzi ${step.label}, nessuna API key da copiare.`)}</p>
+              <NangoConnectButton integrationId={step.nango} label={t('obp.crmConnectBtn', { name: step.label }, `Collega ${step.label}`)}
                 onConnected={() => {
-                  setStepStatus(p => ({ ...p, klaviyo: true }))
+                  setStepStatus(p => ({ ...p, [step.id]: true }))
                   if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
                   else completeOnboarding()
                 }} />
+              <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 16, lineHeight: 1.5 }}>{t('obp.crmSkipHint', null, 'Non usi questo strumento? Salta questo passaggio.')}</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
@@ -329,6 +375,9 @@ export function OnboardingInner({ embedded = false } = {}) {
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 30px', borderRadius: 999, background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 800, cursor: 'pointer', boxShadow: '0 14px 38px rgba(123,91,255,0.42)' }}
                     onConnected={() => {
                       setStepStatus(p => ({ ...p, [step.id]: true }))
+                      // Step 2 = "prova del 9": al collegamento Shopify verifica la
+                      // media ordini reale (3 mesi) → piano minimo autoritativo.
+                      if (step.id === 'shopify') { fetch('/api/plan-gate?action=verify', { method: 'POST' }).catch(() => {}) }
                       if (currentStep < STEPS.length - 1) { setCurrentStep(currentStep + 1); setValues({}) }
                       else completeOnboarding()
                     }} />
@@ -405,6 +454,72 @@ export function OnboardingInner({ embedded = false } = {}) {
             {t('obp.skipAll', null, 'Skip all, configure later')}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Step 1 — Ordini/mese: il cliente dichiara la sua fascia. In base a questa
+//  potrà selezionare solo il piano coerente (gate su billing-required). Al
+//  collegamento di Shopify (step 2) il dato viene ri-verificato sul reale e
+//  quello ha la priorità. Le fasce sono allineate a ORDER_TIERS.
+// ─────────────────────────────────────────────────────────────
+const ORDER_BAND_KEYS = {
+  starter:    ['obp.orders.b.starter', 'Fino a 500 ordini/mese'],
+  growth:     ['obp.orders.b.growth', '500 – 2.000 ordini/mese'],
+  scale:      ['obp.orders.b.scale', '2.000 – 7.000 ordini/mese'],
+  enterprise: ['obp.orders.b.enterprise', 'Oltre 7.000 ordini/mese'],
+}
+
+function OrdersStep({ values, setField }) {
+  const { t } = useI18n()
+  const selected = values.declared_monthly_orders || null
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 6 }}>
+        {t('obp.orders.title', null, 'Quanti ordini fai in media al mese?')}
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 18, lineHeight: 1.5 }}>
+        {t('obp.orders.intro', null, 'Ci serve per proporti il piano giusto per il tuo volume. Verificheremo il dato reale al collegamento di Shopify.')}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {ORDER_BANDS.map(band => {
+          const tier = tierOf(band.plan)
+          const isSel = selected === band.orders
+          const [lk, lf] = ORDER_BAND_KEYS[band.plan]
+          return (
+            <button
+              key={band.plan}
+              type="button"
+              onClick={() => setField('declared_monthly_orders', band.orders)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                width: '100%', textAlign: 'left', cursor: 'pointer',
+                padding: '16px 18px', borderRadius: 14,
+                background: isSel ? `${ACCENT}1e` : 'rgba(255,255,255,0.03)',
+                border: isSel ? `1px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.08)',
+                transition: 'border-color .15s, background .15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                  border: isSel ? `6px solid ${ACCENT}` : '2px solid rgba(255,255,255,0.25)',
+                  background: isSel ? '#fff' : 'transparent',
+                }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t(lk, null, lf)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('obp.orders.planLabel', { plan: tier?.label || band.plan }, `Piano ${tier?.label || band.plan}`)}</div>
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 800, color: isSel ? ACCENT : 'var(--text3)', whiteSpace: 'nowrap' }}>{tier?.price || ''}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text4, #666)', marginTop: 14, lineHeight: 1.5 }}>
+        {t('obp.orders.hint', null, 'Nessun impegno adesso: sceglierai e attiverai il piano alla fine. Il volume reale rilevato da Shopify avrà comunque la priorità.')}
       </div>
     </div>
   )

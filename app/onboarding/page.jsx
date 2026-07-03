@@ -107,6 +107,32 @@ const STEPS = [
   },
 ]
 
+// Loghi brand reali per gli step (simpleicons CDN → favicon Google → fallback icona).
+const STEP_BRAND = {
+  shopify:   { slug: 'shopify',             color: '95BF47', domain: 'shopify.com' },
+  meta:      { slug: 'meta',                color: '0081FB', domain: 'meta.com' },
+  googleAds: { slug: 'googleads',           color: '4285F4', domain: 'ads.google.com' },
+  ga4:       { slug: 'googleanalytics',     color: 'E37400', domain: 'analytics.google.com' },
+  gsc:       { slug: 'googlesearchconsole', color: '458CF5', domain: 'search.google.com' },
+  klaviyo:   { slug: 'klaviyo',             color: '20A762', domain: 'klaviyo.com' },
+  mailchimp: { slug: 'mailchimp',           color: 'FFE01B', dark: true, domain: 'mailchimp.com' },
+  omnisend:  { slug: 'omnisend',            color: '262626', dark: true, domain: 'omnisend.com' },
+}
+
+function StepLogo({ id, size = 40, radius, fallback = null }) {
+  const [e1, setE1] = useState(false)
+  const [e2, setE2] = useState(false)
+  const b = STEP_BRAND[id]
+  if (!b) return fallback
+  const r = radius ?? Math.round(size * 0.26)
+  const wrap = (child) => (
+    <div style={{ width: size, height: size, borderRadius: r, background: b.dark ? 'rgba(255,255,255,0.08)' : '#fff', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>{child}</div>
+  )
+  if (!e1) return wrap(<img src={`https://cdn.simpleicons.org/${b.slug}/${b.color}`} alt="" width={Math.round(size * 0.56)} height={Math.round(size * 0.56)} style={{ objectFit: 'contain' }} onError={() => setE1(true)} />)
+  if (!e2) return wrap(<img src={`https://www.google.com/s2/favicons?domain=${b.domain}&sz=128`} alt="" width={Math.round(size * 0.7)} height={Math.round(size * 0.7)} style={{ objectFit: 'contain' }} onError={() => setE2(true)} />)
+  return fallback
+}
+
 export default function OnboardingPage() {
   return (
     <Suspense fallback={null}>
@@ -288,24 +314,38 @@ export function OnboardingInner({ embedded = false } = {}) {
           </p>
         </div>
 
-        {/* Progress dots */}
+        {/* Progress dots — chip di uguale dimensione con logo brand */}
         <div style={{
-          display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32,
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 32,
         }}>
           {STEPS.map((s, i) => {
             const isDone = stepStatus[s.id]
             const isCurrent = i === currentStep
+            const pillLabel = s.id === 'ga4' ? 'GA4' : s.label
             return (
               <div key={s.id} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 12px', borderRadius: 999,
+                position: 'relative', boxSizing: 'border-box',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 7,
+                width: 80, height: 88, padding: '12px 4px 10px', borderRadius: 16,
                 background: isCurrent ? `${ACCENT}22` : isDone ? 'rgba(34,197,94,0.10)' : 'rgba(255,255,255,0.03)',
                 border: isCurrent ? `1px solid ${ACCENT}66` : isDone ? '1px solid rgba(34,197,94,0.30)' : '1px solid rgba(255,255,255,0.06)',
-                fontSize: 11, fontWeight: 700,
-                color: isCurrent ? '#fff' : isDone ? '#86efac' : 'var(--text4, #666)',
+                transition: 'background .15s, border-color .15s',
               }}>
-                {isDone ? <Icon name="check" size={12} /> : `${i + 1}`}
-                <span>{s.label}</span>
+                <div style={{ position: 'relative' }}>
+                  <StepLogo id={s.id} size={30} radius={9} fallback={
+                    <div style={{ width: 30, height: 30, borderRadius: 9, background: `${ACCENT}20`, color: ACCENT, display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 800 }}>{s.icon}</div>
+                  } />
+                  {isDone && (
+                    <span style={{ position: 'absolute', top: -5, right: -5, width: 15, height: 15, borderRadius: 999, background: '#22c55e', color: '#04140a', display: 'grid', placeItems: 'center', border: '2px solid rgba(0,0,0,0.45)' }}>
+                      <Icon name="check" size={8} />
+                    </span>
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 10, lineHeight: 1.2, fontWeight: 700, textAlign: 'center',
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  color: isCurrent ? '#fff' : isDone ? '#86efac' : 'var(--text4, #666)',
+                }}>{pillLabel}</span>
               </div>
             )
           })}
@@ -314,12 +354,14 @@ export function OnboardingInner({ embedded = false } = {}) {
         {/* Step card */}
         <div className="glass-card-static" style={{ padding: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-            <span style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: `${ACCENT}20`, color: ACCENT,
-              display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 800,
-              flexShrink: 0,
-            }}>{step.icon}</span>
+            <StepLogo id={step.id} size={52} radius={14} fallback={
+              <span style={{
+                width: 52, height: 52, borderRadius: 14,
+                background: `${ACCENT}20`, color: ACCENT,
+                display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 800,
+                flexShrink: 0,
+              }}>{step.icon}</span>
+            } />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
                 {t('ob.stepOf', { n: currentStep + 1, total: STEPS.length }, 'Step {n} of {total}')}

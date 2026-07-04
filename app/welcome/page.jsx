@@ -1154,14 +1154,26 @@ function Styles() {
         border: 3px solid ${ACCENT}; box-shadow: 0 0 0 6px rgba(191,90,242,0.18), 0 6px 18px rgba(0,0,0,0.5); cursor: grab; }
 
       /* ── Hero futuristico ─────────────────────────────── */
-      /* Cascata 3D carattere per carattere (riga 2 del titolo) */
-      @keyframes charIn {
-        from { opacity: 0; transform: translateY(0.45em) rotateX(75deg); filter: blur(8px); }
-        to   { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
+      /* Anelli di energia che si espandono dal globo (impulso sul cambio parola) */
+      @keyframes ringExpand {
+        0%   { transform: translate(-50%, -50%) scale(0.30); opacity: 0.85; }
+        100% { transform: translate(-50%, -50%) scale(1.18); opacity: 0; }
       }
-      .char-cascade { display: inline-block; perspective: 800px; }
-      .char-cascade .ch { display: inline-block; transform-origin: 50% 100%;
-        animation: charIn .75s cubic-bezier(0.16,1,0.3,1) both; }
+      .globe-ring { position: absolute; left: 50%; top: 50%; width: 62%; height: 62%;
+        border-radius: 50%; border: 1.5px solid ${ACCENT};
+        box-shadow: 0 0 42px ${ACCENT}55, inset 0 0 42px ${ACCENT}2e;
+        animation: ringExpand 1.8s cubic-bezier(0.16,1,0.3,1) forwards; pointer-events: none; }
+
+      /* Campo particellare: puntini che salgono nell'hero */
+      @keyframes particleRise {
+        0%   { transform: translate(0, 0); opacity: 0; }
+        8%   { opacity: var(--op, 0.45); }
+        90%  { opacity: var(--op, 0.45); }
+        100% { transform: translate(var(--drift, 0px), -105vh); opacity: 0; }
+      }
+      .p-dot { position: absolute; bottom: -3%; border-radius: 50%;
+        box-shadow: 0 0 9px currentColor;
+        animation: particleRise linear infinite; will-change: transform, opacity; }
 
       /* Parola rotante del claim (flip verticale 3D) */
       @keyframes wordIn {
@@ -1207,7 +1219,8 @@ function Styles() {
         transition: transform .18s cubic-bezier(0.16,1,0.3,1), box-shadow .25s; will-change: transform; }
 
       @media (prefers-reduced-motion: reduce) {
-        .char-cascade .ch, .rot-word, .aurora i, .cta-magnetic, .marquee-track { animation: none !important; }
+        .rot-word, .cta-magnetic, .marquee-track { animation: none !important; }
+        .aurora, .p-dot, .globe-ring { display: none !important; }
       }
 
       html { scroll-behavior: smooth; }
@@ -1297,44 +1310,164 @@ function Reveal({ children, delay = 0, style, variant = '' }) {
 // ─────────────────────────────────────────────────────────────
 //  Effetti hero futuristici
 // ─────────────────────────────────────────────────────────────
-// Il titolo si "decripta": i caratteri ciclano glifi casuali e si fissano
-// progressivamente da sinistra a destra (matrix-decode).
-const GLYPHS = '!<>-_\\/[]{}—=+*^?#@$%&0123456789ABCDEFGHKLMNPQRSTUVWXYZ'
-function ScrambleText({ text, className, delay = 0 }) {
-  const [out, setOut] = useState(text)
+// Il titolo si COMPONE da migliaia di puntini: le particelle partono sparse
+// nell'hero e convergono a formare le due righe di testo (canvas + rAF),
+// poi crossfade sul testo reale (nitido, con lo shine animato).
+function ParticleTitle({ line1, line2 }) {
+  const wrapRef = useRef(null)
+  const canvasRef = useRef(null)
+  const [phase, setPhase] = useState('forming') // forming | fade | done
   useEffect(() => {
-    let raf, start
+    const wrap = wrapRef.current
+    const canvas = canvasRef.current
+    if (!wrap || !canvas) { setPhase('done'); return }
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    const W = wrap.offsetWidth
+    const H = wrap.offsetHeight
+    // Mobile (il titolo va a capo diversamente) o reduced-motion: testo diretto.
+    if (reduced || W < 640 || H < 40) { setPhase('done'); return }
+
+    let raf = null
     let cancelled = false
-    const total = 1300 // durata decode complessiva
-    const step = (now) => {
+
+    const start = () => {
       if (cancelled) return
-      if (start == null) start = now
-      const p = Math.min(1, (now - start) / total)
-      const settled = Math.floor(p * text.length)
-      let s = ''
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i]
-        if (c === ' ') { s += ' '; continue }
-        s += i < settled ? c : GLYPHS[(Math.random() * GLYPHS.length) | 0]
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      canvas.width = Math.round(W * dpr)
+      canvas.height = Math.round(H * dpr)
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) { setPhase('done'); return }
+      ctx.scale(dpr, dpr)
+
+      // Disegna il testo (stesso font del wrap) per campionare i punti-target.
+      const cs = getComputedStyle(wrap)
+      const fs = parseFloat(cs.fontSize)
+      ctx.font = `900 ${fs}px ${cs.fontFamily}`
+      try { ctx.letterSpacing = '-0.055em' } catch {}
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#fff'
+      const lh = fs * 0.95
+      ctx.fillText(line1, W / 2, lh * 0.52)
+      ctx.fillText(line2, W / 2, lh * 1.52)
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+      ctx.clearRect(0, 0, W, H)
+
+      // Campiona i pixel del testo a passo `gap`: target delle particelle.
+      const gap = Math.max(3, Math.round(W / 300))
+      const targets = []
+      for (let y = 0; y < H; y += gap) {
+        for (let x = 0; x < W; x += gap) {
+          const a = img[((Math.round(y * dpr) * canvas.width) + Math.round(x * dpr)) * 4 + 3]
+          if (a > 120) targets.push({ x, y })
+        }
       }
-      setOut(s)
-      if (p < 1) raf = requestAnimationFrame(step)
-      else setOut(text)
+      if (!targets.length) { setPhase('done'); return }
+
+      const parts = targets.map(t2 => ({
+        x: W / 2 + (Math.random() - 0.5) * W * 1.5,
+        y: H / 2 + (Math.random() - 0.5) * H * 7,
+        tx: t2.x, ty: t2.y,
+        d: Math.random() * 520,
+        r: Math.random() < 0.12 ? 2.4 : 1.5,
+      }))
+
+      const DUR = 2300
+      const t0 = performance.now()
+      const tick = (now) => {
+        if (cancelled) return
+        const el = now - t0
+        ctx.clearRect(0, 0, W, H)
+        let done = true
+        for (const p of parts) {
+          const lt = Math.max(0, Math.min(1, (el - p.d) / (DUR - 620)))
+          if (lt < 1) done = false
+          const e = 1 - Math.pow(1 - lt, 3) // easeOutCubic
+          const x = p.x + (p.tx - p.x) * e
+          const y = p.y + (p.ty - p.y) * e
+          const g = x / W
+          ctx.fillStyle = g < 0.35 ? 'rgba(255,255,255,0.95)' : g < 0.68 ? ACCENT : BLUE
+          ctx.globalAlpha = 0.2 + 0.8 * e
+          ctx.fillRect(x, y, p.r, p.r)
+        }
+        ctx.globalAlpha = 1
+        if (!done && el < DUR + 700) { raf = requestAnimationFrame(tick) }
+        else {
+          setPhase('fade')
+          setTimeout(() => { if (!cancelled) setPhase('done') }, 1000)
+        }
+      }
+      raf = requestAnimationFrame(tick)
     }
-    const id = setTimeout(() => { raf = requestAnimationFrame(step) }, delay)
-    return () => { cancelled = true; clearTimeout(id); if (raf) cancelAnimationFrame(raf) }
-  }, [text, delay])
-  return <span className={className} style={{ fontVariantNumeric: 'tabular-nums' }}>{out}</span>
+
+    if (document.fonts?.ready) document.fonts.ready.then(start)
+    else start()
+    return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
+  }, [line1, line2])
+
+  const textOn = phase !== 'forming'
+  return (
+    <span ref={wrapRef} style={{ position: 'relative', display: 'block' }}>
+      <span style={{ display: 'block', opacity: textOn ? 1 : 0, transition: 'opacity 0.9s ease' }}>
+        <span className="shine-text">{line1}</span><br />
+        <span style={{ color: 'rgba(255,255,255,0.95)' }}>{line2}</span>
+      </span>
+      {phase !== 'done' && (
+        <canvas ref={canvasRef} aria-hidden style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          opacity: phase === 'fade' ? 0 : 1, transition: 'opacity 0.9s ease',
+          pointerEvents: 'none',
+        }} />
+      )}
+    </span>
+  )
 }
 
-// Riga che entra in cascata 3D, un carattere alla volta.
-function CharCascade({ text, delay = 0, style }) {
+// Anelli di energia che si espandono dal globo a ogni cambio parola del claim.
+function GlobePulse() {
+  const [rings, setRings] = useState([])
+  const nRef = useRef(0)
+  useEffect(() => {
+    const on = () => {
+      const id = ++nRef.current
+      setRings(r => [...r.slice(-3), id])
+      setTimeout(() => setRings(r => r.filter(x => x !== id)), 1900)
+    }
+    window.addEventListener('lyft-word-change', on)
+    return () => window.removeEventListener('lyft-word-change', on)
+  }, [])
   return (
-    <span className="char-cascade" style={style} aria-label={text}>
-      {text.split('').map((c, i) => (
-        <span key={i} className="ch" aria-hidden style={{ animationDelay: `${delay + i * 26}ms` }}>
-          {c === ' ' ? ' ' : c}
-        </span>
+    <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'block', pointerEvents: 'none' }}>
+      {rings.map(id => <span key={id} className="globe-ring" />)}
+    </span>
+  )
+}
+
+// Campo particellare ambientale: puntini che salgono lentamente nell'hero.
+// Config generata solo client-side (useEffect): nessun mismatch di hydration.
+function ParticleField({ count = 34 }) {
+  const [dots, setDots] = useState(null)
+  useEffect(() => {
+    setDots(Array.from({ length: count }, (_, i) => ({
+      left: Math.random() * 100,
+      size: 2 + Math.random() * 3,
+      dur: 10 + Math.random() * 14,
+      delay: -Math.random() * 24,
+      drift: (Math.random() - 0.5) * 140,
+      color: i % 3 === 0 ? ACCENT : i % 3 === 1 ? BLUE : 'rgba(255,255,255,0.85)',
+      op: 0.2 + Math.random() * 0.45,
+    })))
+  }, [count])
+  if (!dots) return null
+  return (
+    <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'block', overflow: 'hidden', pointerEvents: 'none' }}>
+      {dots.map((d, i) => (
+        <span key={i} className="p-dot" style={{
+          left: `${d.left}%`, width: d.size, height: d.size,
+          color: d.color, background: 'currentColor',
+          animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s`,
+          '--drift': `${d.drift}px`, '--op': d.op,
+        }} />
       ))}
     </span>
   )
@@ -1348,6 +1481,10 @@ function RotatingWord({ words }) {
     const id = setInterval(() => setIdx(i => (i + 1) % words.length), 2400)
     return () => clearInterval(id)
   }, [words.length])
+  // Ogni cambio parola manda un impulso al globo (anello di energia).
+  useEffect(() => {
+    try { window.dispatchEvent(new CustomEvent('lyft-word-change')) } catch {}
+  }, [idx])
   return (
     <span className="rot-slot" style={{ position: 'relative' }}>
       {/* placeholder invisibile = larghezza stabile (niente salti di layout) */}
@@ -1528,6 +1665,8 @@ function Hero({ t }) {
           width: 'min(1050px, 80vw)', height: 'min(1050px, 80vw)', opacity: 1,
         }}>
           <LandingGlobe />
+          {/* Anelli di energia sul globo: impulso a ogni cambio parola del claim */}
+          <GlobePulse />
         </div>
         {/* Archi curvi (stile globo) che partono da Meta/Google/GA4 e passano
             sotto l'headline fino al globo, con flusso animato */}
@@ -1542,6 +1681,8 @@ function Hero({ t }) {
         </div>
         {/* Aurora beams che spazzano dietro il titolo */}
         <div className="aurora"><i /><i /></div>
+        {/* Campo particellare: puntini che salgono lentamente */}
+        <ParticleField />
       </div>
 
       <div className="hero-scale" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -1568,14 +1709,13 @@ function Hero({ t }) {
           </div>
         </Reveal>
 
-        {/* Titolo: riga 1 si "decripta" (matrix-decode), riga 2 entra in cascata 3D */}
+        {/* Titolo: migliaia di puntini convergono e COMPONGONO le due righe */}
         <h1 style={{
           fontSize: 'clamp(48px, 9vw, 120px)',
           fontWeight: 900, letterSpacing: '-0.055em', lineHeight: 0.95,
-          margin: 0, marginBottom: 24, maxWidth: 1100,
+          margin: 0, marginBottom: 24, maxWidth: 1100, width: '100%',
         }}>
-          <ScrambleText text={t.hero.title1} className="shine-text" delay={150} /><br />
-          <CharCascade text={t.hero.title2} delay={650} style={{ color: 'rgba(255,255,255,0.95)' }} />
+          <ParticleTitle line1={t.hero.title1} line2={t.hero.title2} />
         </h1>
 
         {/* Claim rotante: "Un solo cervello per [le analisi → le creatività → …]" */}

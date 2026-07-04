@@ -21,8 +21,8 @@ const GREEN = '#22c55e'
 // Mega-menu "Soluzioni": colonne (titoli localizzati via t.solMenu) + voci
 // (nomi prodotto neutri, validi in tutte le lingue).
 const SOLUTIONS = [
-  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
-  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Lighthouse alerts', 'Competitor Intel', 'Price comparison'] },
+  { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Email Marketing multi-provider', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
+  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Incrementalità & MMM', 'Competitor Intel', 'Price comparison'] },
   { key: 'website', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
   { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF completo', 'Report PDF automatici'] },
   { key: 'team', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
@@ -96,7 +96,20 @@ const I18N = {
       { v: '5min', l: 'Setup completo integrazioni' },
       { v: '24/7', l: 'Briefing automatico anomalie' },
     ],
-    tabsTour: { eyebrow: 'Tour completo', title: '6 aree, 40+ strumenti. Tutto il tuo e-commerce in un unico software.' },
+    incr: {
+      eyebrow: 'Incrementalità · MMM',
+      title: 'Quanto vende davvero ogni canale?',
+      sub: 'Il modello di marketing mix di LyftAI separa le vendite organiche da quelle incrementali, stima le curve di saturazione e ti dice dove il prossimo euro rende di più.',
+      contribTitle: 'Contributo per canale',
+      organic: 'Base organica',
+      simTitle: 'Simulatore budget',
+      simSpend: 'Spesa giornaliera',
+      simRevenue: 'Ricavi previsti/giorno',
+      simRoas: 'ROAS marginale',
+      simHint: 'Trascina lo slider: la curva mostra dove il canale satura.',
+      saturation: 'zona di saturazione',
+    },
+    tabsTour: { eyebrow: 'Tour completo', title: '8 aree, 40+ strumenti. Tutto il tuo e-commerce in un unico software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard + Live View', desc: 'KPI live da tutte le piattaforme, raccomandazioni proattive, alert anomalie e globo 3D dei visitatori in tempo reale.' },
       { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain + Attribuzione', desc: 'Top prodotti, marketing sources, attribuzione total-impact e paesi di fatturazione. Insight pronti.' },
@@ -109,6 +122,7 @@ const I18N = {
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Squadra AI', desc: '8 agenti C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria condivisa che conoscono il tuo brand.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con agenti AI e call vocali, Lyftimer time-tracking, Progetti & Task.' },
       { id: 'reports', icon: '▦', title: 'Report periodici', desc: 'Weekly, Monthly, Quarter, Year + digest email automatici. Confronto period-over-period, export PDF.' },
+      { id: 'incr', icon: '∿', title: 'Incrementalità (MMM)', desc: 'Contributo reale per canale, curve di saturazione e simulatore budget: dove rende di più il prossimo euro di spesa.' },
     ],
     featuresTitle: { eyebrow: 'Cosa fa per te', title: 'Tutto il tuo brand in un\'unica piattaforma' },
     features: [
@@ -120,6 +134,8 @@ const I18N = {
       { icon: '€', title: 'Commerce intelligence', desc: 'Conto Economico fino all\'EBIT, Inventario (stockout & vendite perse €), Clienti (segmenti RFM) e LTV & Coorti.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con i tuoi agenti AI e call vocali, Lyftimer per il time-tracking, Progetti & Task. Tutto il team in un posto.' },
       { icon: '◈', title: 'Competitor Intel', desc: 'Ads attive, prezzi e cataloghi dei competitor, con analisi creative dalla Ad Library.' },
+      { icon: '∿', title: 'Incrementalità & MMM', desc: 'Vendite organiche vs incrementali, curve di risposta per canale e simulatore budget con impatto previsto in €.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Email marketing multi-provider', desc: 'Klaviyo, Mailchimp o Omnisend: colleghi quello che usi e vedi campagne, flussi e revenue email in un\'unica vista.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'Vedi LyftAI in azione', sub: 'Ecco cosa trovi appena entri nel tuo account: tutti i dati del tuo brand già pronti, in un\'unica dashboard.', explore: 'È il software reale: cliccaci dentro ed esploralo →', openFull: '▶ Apri la demo a schermo intero', loading: 'Carico la demo…' },
     demoTitle: { eyebrow: 'Dati in azione', title: 'Esempio di quello che vedi ogni giorno' },
@@ -139,6 +155,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Pricing', title: 'Paghi in base alla tua dimensione. I tool sono sempre tutti.' },
     pricingSub: 'Tutti i tool inclusi in ogni piano. Il prezzo cresce con i tuoi ordini, mai con le funzioni. 14 giorni gratis, niente carta, cancelli in 1 click.',
+    pricingFair: 'Piano sempre giusto, garantito: verifichiamo il tuo volume dagli ordini Shopify reali. Mai un piano sbagliato, upgrade solo quando cresci davvero.',
     pricingUI: { founder: 'Founder: −30% A VITA per le prime 100 aziende', founderCum: '· cumulabile con lo sconto annuale', audBrand: 'Aziende', audAgency: 'Agenzie & Freelance', agencySub: 'Gestisci tutti i tuoi clienti da un unico posto. Paghi per numero di aziende, switch immediato tra una e l’altra.', cadMonthly: 'Mensile', cadAnnual: 'Annuale', billAnnual: 'all’anno', twoFree: '2 mesi gratis', save: 'Risparmi', billed: 'fatturato' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mese', tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', features: ['✨ Tutti i tool inclusi', 'Fino a 500 ordini/mese', 'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)', '2 utenti del team', 'Email support 48h'], cta: 'Inizia con Starter' },
@@ -168,9 +185,10 @@ const I18N = {
     faq: [
       { q: 'Come fa LyftAI a conoscere il mio brand?', a: 'Compili la sezione Brand Identity con descrizione, target, tone of voice, prodotti, brand guard, palette. L\'AI riusa questi dati come system prompt per ogni risposta.' },
       { q: 'I miei dati sono al sicuro?', a: 'Sì. Ogni tenant ha credenziali isolate. I dati Shopify/Meta non vengono mai condivisi tra brand. Crittografia in transito e at-rest.' },
-      { q: 'Quanto tempo serve per il setup?', a: '5 minuti. Onboarding guidato: incolli URL store e token API delle 4 integrazioni principali.' },
+      { q: 'Quanto tempo serve per il setup?', a: '5 minuti. Onboarding guidato in 10 step: colleghi Shopify, Meta, Google e il tuo email marketing con un click (OAuth), zero token da copiare. Mentre finisci, LyftAI prepara già i tuoi dati.' },
       { q: 'Come funziona la prova gratuita?', a: 'Ti registri, fai onboarding, hai 14 giorni di accesso completo. Nessuna carta richiesta. Alla scadenza scegli un piano o cancelli.' },
       { q: 'Posso annullare quando voglio?', a: 'Sì. Niente contratti annuali, niente penali. Cancelli dal portale Stripe in 1 click.' },
+      { q: 'Siete conformi al GDPR?', a: 'Sì. DPA disponibile, export e cancellazione dell\'account in self-service, cookie banner, sub-processor documentati e dati mai condivisi tra tenant.' },
     ],
     contactTitle: { eyebrow: 'Parliamo', title: 'Richiedi una demo personalizzata' },
     contactSub: 'Ti rispondiamo entro 24h. Niente venditori, parliamo direttamente noi.',
@@ -259,7 +277,20 @@ const I18N = {
       { v: '5min', l: 'Complete integrations setup' },
       { v: '24/7', l: 'Automatic anomaly briefing' },
     ],
-    tabsTour: { eyebrow: 'Complete tour', title: '6 areas, 40+ tools. Your whole e-commerce in one software.' },
+    incr: {
+      eyebrow: 'Incrementality · MMM',
+      title: 'How much does each channel really sell?',
+      sub: 'LyftAI\'s marketing-mix model separates organic from incremental sales, estimates saturation curves and tells you where your next euro earns the most.',
+      contribTitle: 'Contribution by channel',
+      organic: 'Organic baseline',
+      simTitle: 'Budget simulator',
+      simSpend: 'Daily spend',
+      simRevenue: 'Predicted revenue/day',
+      simRoas: 'Marginal ROAS',
+      simHint: 'Drag the slider: the curve shows where the channel saturates.',
+      saturation: 'saturation zone',
+    },
+    tabsTour: { eyebrow: 'Complete tour', title: '8 areas, 40+ tools. Your whole e-commerce in one software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard + Live View', desc: 'Live KPIs from every platform, proactive recommendations, anomaly alerts and a 3D globe of real-time visitors.' },
       { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain + Attribution', desc: 'Top products, marketing sources, total-impact attribution and billing countries. Insights ready.' },
@@ -272,6 +303,7 @@ const I18N = {
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'AI Squad', desc: '8 C-suite agents (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) with shared memory that know your brand.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk chat with AI agents and voice calls, Lyftimer time-tracking, Projects & Tasks.' },
       { id: 'reports', icon: '▦', title: 'Periodic reports', desc: 'Weekly, Monthly, Quarter, Year + automatic email digests. Period-over-period comparison, PDF export.' },
+      { id: 'incr', icon: '∿', title: 'Incrementality (MMM)', desc: 'True contribution by channel, saturation curves and a budget simulator: where your next euro of spend earns the most.' },
     ],
     featuresTitle: { eyebrow: 'What it does for you', title: 'Your whole brand in a single platform' },
     features: [
@@ -283,6 +315,8 @@ const I18N = {
       { icon: '€', title: 'Commerce intelligence', desc: 'P&L down to EBIT, Inventory (stockout & lost sales €), Customers (RFM segments) and LTV & Cohorts.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk chat with your AI agents and voice calls, Lyftimer time-tracking, Projects & Tasks. Your whole team in one place.' },
       { icon: '◈', title: 'Competitor Intel', desc: 'Active ads, prices and competitor catalogs, with creative analysis from the Ad Library.' },
+      { icon: '∿', title: 'Incrementality & MMM', desc: 'Organic vs incremental sales, response curves per channel and a budget simulator with expected impact in €.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Multi-provider email marketing', desc: 'Klaviyo, Mailchimp or Omnisend: connect the one you use and see campaigns, flows and email revenue in one view.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'See LyftAI in action', sub: 'Here\'s what you find the moment you log in: all your brand\'s data, ready to go, in one dashboard.', explore: 'It\'s the real software: click inside and explore →', openFull: '▶ Open the demo full screen', loading: 'Loading the demo…' },
     demoTitle: { eyebrow: 'Data in action', title: 'Example of what you see every day' },
@@ -302,6 +336,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Pricing', title: 'You pay by your size. The tools are always all of them.' },
     pricingSub: 'Every tool included in every plan. The price grows with your orders, never with features. 14 days free, no card, 1-click cancellation.',
+    pricingFair: 'Always the right plan, guaranteed: we verify your volume from real Shopify orders. Never the wrong plan — you upgrade only when you actually grow.',
     pricingUI: { founder: 'Founder: −30% FOR LIFE for the first 100 companies', founderCum: '· stacks with the annual discount', audBrand: 'Companies', audAgency: 'Agencies & Freelancers', agencySub: 'Manage all your clients from one place. You pay per number of companies, switch instantly between them.', cadMonthly: 'Monthly', cadAnnual: 'Annual', billAnnual: 'per year', twoFree: '2 months free', save: 'You save', billed: 'billed' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/month', tagline: 'Up to 500 orders/month. Perfect to start, with everything already included.', features: ['✨ All tools included', 'Up to 500 orders/month', 'All integrations (Shopify, Meta, Google, Klaviyo)', '2 team users', 'Email support 48h'], cta: 'Start with Starter' },
@@ -331,9 +366,10 @@ const I18N = {
     faq: [
       { q: 'How does LyftAI know my brand?', a: 'You fill the Brand Identity section with description, target, tone of voice, products, brand guard, palette. The AI reuses this data as system prompt for every response.' },
       { q: 'Is my data safe?', a: 'Yes. Each tenant has isolated credentials. Shopify/Meta data is never shared between brands. Encryption in transit and at-rest.' },
-      { q: 'How long does setup take?', a: '5 minutes. Guided onboarding: you paste store URL and API tokens of the 4 main integrations.' },
+      { q: 'How long does setup take?', a: '5 minutes. Guided 10-step onboarding: connect Shopify, Meta, Google and your email marketing in one click (OAuth), zero tokens to copy. While you finish, LyftAI is already preparing your data.' },
       { q: 'How does the free trial work?', a: 'You sign up, do onboarding, get 14 days of full access. No credit card required. At the end you pick a plan or cancel.' },
       { q: 'Can I cancel anytime?', a: 'Yes. No annual contracts, no penalties. Cancel from the Stripe portal in 1 click.' },
+      { q: 'Are you GDPR compliant?', a: 'Yes. DPA available, self-service account export and deletion, cookie banner, documented sub-processors and data never shared between tenants.' },
     ],
     contactTitle: { eyebrow: 'Let\'s talk', title: 'Request a personalized demo' },
     contactSub: 'We reply within 24h. No salespeople, you talk directly to us.',
@@ -422,7 +458,20 @@ const I18N = {
       { v: '5min', l: 'Configuración completa integraciones' },
       { v: '24/7', l: 'Briefing automático de anomalías' },
     ],
-    tabsTour: { eyebrow: 'Tour completo', title: '6 áreas, 40+ herramientas. Todo tu e-commerce en un software.' },
+    incr: {
+      eyebrow: 'Incrementalidad · MMM',
+      title: '¿Cuánto vende realmente cada canal?',
+      sub: 'El modelo de marketing mix de LyftAI separa las ventas orgánicas de las incrementales, estima las curvas de saturación y te dice dónde rinde más tu próximo euro.',
+      contribTitle: 'Contribución por canal',
+      organic: 'Base orgánica',
+      simTitle: 'Simulador de presupuesto',
+      simSpend: 'Gasto diario',
+      simRevenue: 'Ingresos previstos/día',
+      simRoas: 'ROAS marginal',
+      simHint: 'Arrastra el slider: la curva muestra dónde satura el canal.',
+      saturation: 'zona de saturación',
+    },
+    tabsTour: { eyebrow: 'Tour completo', title: '8 áreas, 40+ herramientas. Todo tu e-commerce en un software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard + Live View', desc: 'KPIs en vivo de todas las plataformas, recomendaciones proactivas, alertas de anomalías y globo 3D de visitantes en tiempo real.' },
       { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain + Atribución', desc: 'Top productos, fuentes de marketing, atribución total-impact y países de facturación. Insights listos.' },
@@ -435,6 +484,7 @@ const I18N = {
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Escuadrón IA', desc: '8 agentes C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria compartida que conocen tu marca.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con agentes IA y llamadas de voz, Lyftimer time-tracking, Proyectos & Tareas.' },
       { id: 'reports', icon: '▦', title: 'Reportes periódicos', desc: 'Semanal, Mensual, Trimestral, Anual + digests por email automáticos. Comparación período sobre período, exporte PDF.' },
+      { id: 'incr', icon: '∿', title: 'Incrementalidad (MMM)', desc: 'Contribución real por canal, curvas de saturación y simulador de presupuesto: dónde rinde más tu próximo euro.' },
     ],
     featuresTitle: { eyebrow: 'Qué hace por ti', title: 'Toda tu marca en una sola plataforma' },
     features: [
@@ -446,6 +496,8 @@ const I18N = {
       { icon: '€', title: 'Commerce intelligence', desc: 'P&L hasta el EBIT, Inventario (stockout & ventas perdidas €), Clientes (segmentos RFM) y LTV & Cohortes.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con tus agentes IA y llamadas de voz, Lyftimer para time-tracking, Proyectos & Tareas. Todo el equipo en un lugar.' },
       { icon: '◈', title: 'Competitor Intel', desc: 'Ads activos, precios y catálogos de competidores, con análisis creativo de la Ad Library.' },
+      { icon: '∿', title: 'Incrementalidad & MMM', desc: 'Ventas orgánicas vs incrementales, curvas de respuesta por canal y simulador de presupuesto con impacto previsto en €.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Email marketing multi-proveedor', desc: 'Klaviyo, Mailchimp u Omnisend: conecta el que usas y ve campañas, flujos y revenue email en una sola vista.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'Mira LyftAI en acción', sub: 'Esto es lo que encuentras al entrar en tu cuenta: todos los datos de tu marca listos, en un solo dashboard.', explore: 'Es el software real: haz clic dentro y explóralo →', openFull: '▶ Abrir la demo a pantalla completa', loading: 'Cargando la demo…' },
     demoTitle: { eyebrow: 'Datos en acción', title: 'Ejemplo de lo que ves cada día' },
@@ -465,6 +517,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Precios', title: 'Pagas según tu tamaño. Las herramientas son siempre todas.' },
     pricingSub: 'Todas las herramientas incluidas en cada plan. El precio crece con tus pedidos, nunca con las funciones. 14 días gratis, sin tarjeta, cancelas en 1 click.',
+    pricingFair: 'Plan siempre correcto, garantizado: verificamos tu volumen con los pedidos reales de Shopify. Nunca un plan equivocado — subes solo cuando creces de verdad.',
     pricingUI: { founder: 'Founder: −30% DE POR VIDA para las primeras 100 empresas', founderCum: '· acumulable con el descuento anual', audBrand: 'Empresas', audAgency: 'Agencias y Freelancers', agencySub: 'Gestiona todos tus clientes desde un solo lugar. Pagas por número de empresas, cambias al instante entre ellas.', cadMonthly: 'Mensual', cadAnnual: 'Anual', billAnnual: 'al año', twoFree: '2 meses gratis', save: 'Ahorras', billed: 'facturado' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mes', tagline: 'Hasta 500 pedidos/mes. Perfecto para empezar, con todo ya incluido.', features: ['✨ Todas las herramientas incluidas', 'Hasta 500 pedidos/mes', 'Todas las integraciones (Shopify, Meta, Google, Klaviyo)', '2 usuarios del equipo', 'Email support 48h'], cta: 'Iniciar con Starter' },
@@ -494,9 +547,10 @@ const I18N = {
     faq: [
       { q: '¿Cómo conoce LyftAI mi marca?', a: 'Llenas la sección Brand Identity con descripción, target, tone of voice, productos, brand guard, paleta. La IA reusa estos datos como system prompt para cada respuesta.' },
       { q: '¿Mis datos están seguros?', a: 'Sí. Cada tenant tiene credenciales aisladas. Los datos Shopify/Meta nunca se comparten entre marcas. Encriptación en tránsito y at-rest.' },
-      { q: '¿Cuánto tarda la configuración?', a: '5 minutos. Onboarding guiado: pegas URL store y tokens API de las 4 integraciones principales.' },
+      { q: '¿Cuánto tarda la configuración?', a: '5 minutos. Onboarding guiado en 10 pasos: conectas Shopify, Meta, Google y tu email marketing con un click (OAuth), cero tokens que copiar. Mientras terminas, LyftAI ya prepara tus datos.' },
       { q: '¿Cómo funciona la prueba gratuita?', a: 'Te registras, haces onboarding, tienes 14 días de acceso completo. Sin tarjeta. Al final eliges un plan o cancelas.' },
       { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin contratos anuales, sin penalidades. Cancela desde el portal Stripe en 1 click.' },
+      { q: '¿Cumplís con el GDPR?', a: 'Sí. DPA disponible, exportación y borrado de cuenta en self-service, banner de cookies, sub-procesadores documentados y datos nunca compartidos entre tenants.' },
     ],
     contactTitle: { eyebrow: 'Hablemos', title: 'Solicita una demo personalizada' },
     contactSub: 'Respondemos en 24h. Sin vendedores, hablas directamente con nosotros.',
@@ -585,7 +639,20 @@ const I18N = {
       { v: '5min', l: 'Configuration complète des intégrations' },
       { v: '24/7', l: 'Briefing automatique des anomalies' },
     ],
-    tabsTour: { eyebrow: 'Tour complet', title: '6 domaines, 40+ outils. Tout votre e-commerce dans un seul logiciel.' },
+    incr: {
+      eyebrow: 'Incrémentalité · MMM',
+      title: 'Combien vend vraiment chaque canal ?',
+      sub: 'Le modèle de marketing mix de LyftAI sépare les ventes organiques des ventes incrémentales, estime les courbes de saturation et vous dit où votre prochain euro rapporte le plus.',
+      contribTitle: 'Contribution par canal',
+      organic: 'Base organique',
+      simTitle: 'Simulateur de budget',
+      simSpend: 'Dépense quotidienne',
+      simRevenue: 'Revenus prévus/jour',
+      simRoas: 'ROAS marginal',
+      simHint: 'Faites glisser le curseur : la courbe montre où le canal sature.',
+      saturation: 'zone de saturation',
+    },
+    tabsTour: { eyebrow: 'Tour complet', title: '8 domaines, 40+ outils. Tout votre e-commerce dans un seul logiciel.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard + Live View', desc: 'KPI en direct de toutes les plateformes, recommandations proactives, alertes d\'anomalies et globe 3D des visiteurs en temps réel.' },
       { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain + Attribution', desc: 'Top produits, sources marketing, attribution total-impact et pays de facturation. Insights prêts.' },
@@ -598,6 +665,7 @@ const I18N = {
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Escouade IA', desc: '8 agents C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) avec mémoire partagée qui connaissent votre marque.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk avec agents IA et appels vocaux, Lyftimer time-tracking, Projets & Tâches.' },
       { id: 'reports', icon: '▦', title: 'Rapports périodiques', desc: 'Hebdo, Mensuel, Trimestre, Année + digests email automatiques. Comparaison période sur période, export PDF.' },
+      { id: 'incr', icon: '∿', title: 'Incrémentalité (MMM)', desc: 'Contribution réelle par canal, courbes de saturation et simulateur de budget : où votre prochain euro rapporte le plus.' },
     ],
     featuresTitle: { eyebrow: 'Ce qu\'il fait pour vous', title: 'Toute votre marque dans une seule plateforme' },
     features: [
@@ -609,6 +677,8 @@ const I18N = {
       { icon: '€', title: 'Commerce intelligence', desc: 'Compte de résultat jusqu\'à l\'EBIT, Inventaire (stockout & ventes perdues €), Clients (segments RFM) et LTV & Cohortes.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk avec vos agents IA et appels vocaux, Lyftimer pour le time-tracking, Projets & Tâches. Toute l\'équipe au même endroit.' },
       { icon: '◈', title: 'Competitor Intel', desc: 'Annonces actives, prix et catalogues concurrents, avec analyse créative depuis l\'Ad Library.' },
+      { icon: '∿', title: 'Incrémentalité & MMM', desc: 'Ventes organiques vs incrémentales, courbes de réponse par canal et simulateur de budget avec impact prévu en €.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Email marketing multi-fournisseur', desc: 'Klaviyo, Mailchimp ou Omnisend : connectez celui que vous utilisez et voyez campagnes, flux et revenus email dans une seule vue.' },
     ],
     inAction: { eyebrow: 'Démo', title: 'Voir LyftAI en action', sub: 'Voici ce que vous trouvez dès la connexion : toutes les données de votre marque, prêtes, dans un seul dashboard.', explore: 'C\'est le vrai logiciel : cliquez à l\'intérieur et explorez →', openFull: '▶ Ouvrir la démo en plein écran', loading: 'Chargement de la démo…' },
     demoTitle: { eyebrow: 'Données en action', title: 'Exemple de ce que vous voyez chaque jour' },
@@ -628,6 +698,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Tarifs', title: 'Vous payez selon votre taille. Les outils sont toujours tous là.' },
     pricingSub: 'Tous les outils inclus dans chaque plan. Le prix grandit avec vos commandes, jamais avec les fonctionnalités. 14 jours gratuits, sans carte, annulation en 1 clic.',
+    pricingFair: 'Toujours le bon plan, garanti : nous vérifions votre volume sur les commandes Shopify réelles. Jamais le mauvais plan — vous montez seulement quand vous grandissez vraiment.',
     pricingUI: { founder: 'Founder : −30% À VIE pour les 100 premières entreprises', founderCum: '· cumulable avec la remise annuelle', audBrand: 'Entreprises', audAgency: 'Agences & Freelances', agencySub: 'Gérez tous vos clients depuis un seul endroit. Vous payez selon le nombre d’entreprises, basculez instantanément de l’une à l’autre.', cadMonthly: 'Mensuel', cadAnnual: 'Annuel', billAnnual: 'par an', twoFree: '2 mois offerts', save: 'Vous économisez', billed: 'facturé' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/mois', tagline: 'Jusqu\'à 500 commandes/mois. Parfait pour démarrer, tout déjà inclus.', features: ['✨ Tous les outils inclus', 'Jusqu\'à 500 commandes/mois', 'Toutes les intégrations (Shopify, Meta, Google, Klaviyo)', '2 utilisateurs', 'Support email 48h'], cta: 'Commencer avec Starter' },
@@ -657,9 +728,10 @@ const I18N = {
     faq: [
       { q: 'Comment LyftAI connaît ma marque ?', a: 'Vous remplissez la section Brand Identity avec description, cible, ton de voix, produits, brand guard, palette. L\'IA réutilise ces données comme system prompt pour chaque réponse.' },
       { q: 'Mes données sont-elles en sécurité ?', a: 'Oui. Chaque tenant a des identifiants isolés. Les données Shopify/Meta ne sont jamais partagées entre marques. Chiffrement en transit et au repos.' },
-      { q: 'Combien de temps prend l\'installation ?', a: '5 minutes. Onboarding guidé : vous collez l\'URL du store et les tokens API des 4 intégrations principales.' },
+      { q: 'Combien de temps prend l\'installation ?', a: '5 minutes. Onboarding guidé en 10 étapes : connectez Shopify, Meta, Google et votre email marketing en un clic (OAuth), zéro token à copier. Pendant que vous terminez, LyftAI prépare déjà vos données.' },
       { q: 'Comment fonctionne l\'essai gratuit ?', a: 'Vous vous inscrivez, faites l\'onboarding, obtenez 14 jours d\'accès complet. Sans carte bancaire. À la fin vous choisissez un plan ou annulez.' },
       { q: 'Puis-je annuler à tout moment ?', a: 'Oui. Pas de contrats annuels, pas de pénalités. Annulez depuis le portail Stripe en 1 clic.' },
+      { q: 'Êtes-vous conformes au RGPD ?', a: 'Oui. DPA disponible, export et suppression du compte en self-service, bannière cookies, sous-traitants documentés et données jamais partagées entre tenants.' },
     ],
     contactTitle: { eyebrow: 'Parlons-en', title: 'Demandez une démo personnalisée' },
     contactSub: 'Nous répondons sous 24h. Pas de commerciaux, vous parlez directement avec nous.',
@@ -748,7 +820,20 @@ const I18N = {
       { v: '5min', l: 'Komplette Einrichtung der Integrationen' },
       { v: '24/7', l: 'Automatisches Anomalie-Briefing' },
     ],
-    tabsTour: { eyebrow: 'Komplette Tour', title: '6 Bereiche, 40+ Tools. Ihr ganzer E-Commerce in einer Software.' },
+    incr: {
+      eyebrow: 'Inkrementalität · MMM',
+      title: 'Wie viel verkauft jeder Kanal wirklich?',
+      sub: 'Das Marketing-Mix-Modell von LyftAI trennt organische von inkrementellen Verkäufen, schätzt Sättigungskurven und zeigt, wo Ihr nächster Euro am meisten bringt.',
+      contribTitle: 'Beitrag pro Kanal',
+      organic: 'Organische Basis',
+      simTitle: 'Budget-Simulator',
+      simSpend: 'Tägliche Ausgaben',
+      simRevenue: 'Erwarteter Umsatz/Tag',
+      simRoas: 'Marginaler ROAS',
+      simHint: 'Ziehen Sie den Regler: Die Kurve zeigt, wo der Kanal sättigt.',
+      saturation: 'Sättigungszone',
+    },
+    tabsTour: { eyebrow: 'Komplette Tour', title: '8 Bereiche, 40+ Tools. Ihr ganzer E-Commerce in einer Software.' },
     tabs: [
       { id: 'dashboard', icon: '◉', title: 'Dashboard + Live View', desc: 'Live-KPIs von allen Plattformen, proaktive Empfehlungen, Anomalie-Alerts und 3D-Globus der Echtzeit-Besucher.' },
       { id: 'kpi', icon: <Icon name="star" size={18} />, title: 'KPI Brain + Attribution', desc: 'Top-Produkte, Marketing-Quellen, Total-Impact-Attribution und Abrechnungsländer. Insights sofort bereit.' },
@@ -761,6 +846,7 @@ const I18N = {
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'KI-Squad', desc: '8 C-Suite-Agenten (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) mit geteiltem Gedächtnis, die Ihre Marke kennen.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk-Chat mit KI-Agenten und Sprachanrufen, Lyftimer-Zeiterfassung, Projekte & Aufgaben.' },
       { id: 'reports', icon: '▦', title: 'Periodische Berichte', desc: 'Woche, Monat, Quartal, Jahr + automatische E-Mail-Digests. Periodenvergleich, PDF-Export.' },
+      { id: 'incr', icon: '∿', title: 'Inkrementalität (MMM)', desc: 'Echter Beitrag pro Kanal, Sättigungskurven und Budget-Simulator: wo Ihr nächster Euro am meisten bringt.' },
     ],
     featuresTitle: { eyebrow: 'Was es für Sie tut', title: 'Ihre ganze Marke in einer einzigen Plattform' },
     features: [
@@ -772,6 +858,8 @@ const I18N = {
       { icon: '€', title: 'Commerce-Intelligence', desc: 'GuV bis zum EBIT, Inventar (Stockout & entgangene Umsätze €), Kunden (RFM-Segmente) und LTV & Kohorten.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk-Chat mit Ihren KI-Agenten und Sprachanrufen, Lyftimer-Zeiterfassung, Projekte & Aufgaben. Ihr ganzes Team an einem Ort.' },
       { icon: '◈', title: 'Competitor Intel', desc: 'Aktive Anzeigen, Preise und Wettbewerber-Kataloge, mit Kreativ-Analyse aus der Ad Library.' },
+      { icon: '∿', title: 'Inkrementalität & MMM', desc: 'Organische vs. inkrementelle Verkäufe, Response-Kurven pro Kanal und Budget-Simulator mit erwartetem Impact in €.' },
+      { icon: <Icon name="mail" size={18} />, title: 'Multi-Provider E-Mail-Marketing', desc: 'Klaviyo, Mailchimp oder Omnisend: Verbinden Sie Ihren Anbieter und sehen Sie Kampagnen, Flows und E-Mail-Umsatz in einer Ansicht.' },
     ],
     inAction: { eyebrow: 'Demo', title: 'LyftAI in Aktion sehen', sub: 'Das finden Sie direkt nach dem Login: alle Daten Ihrer Marke, startklar, in einem Dashboard.', explore: 'Es ist die echte Software: klicken Sie hinein und erkunden Sie →', openFull: '▶ Demo im Vollbild öffnen', loading: 'Demo wird geladen…' },
     demoTitle: { eyebrow: 'Daten in Aktion', title: 'Beispiel dessen, was Sie täglich sehen' },
@@ -791,6 +879,7 @@ const I18N = {
     },
     pricingTitle: { eyebrow: 'Preise', title: 'Sie zahlen nach Ihrer Größe. Die Tools sind immer alle dabei.' },
     pricingSub: 'Alle Tools in jedem Plan enthalten. Der Preis wächst mit Ihren Bestellungen, nie mit Funktionen. 14 Tage kostenlos, keine Karte, Kündigung mit 1 Klick.',
+    pricingFair: 'Immer der richtige Plan, garantiert: Wir prüfen Ihr Volumen anhand echter Shopify-Bestellungen. Nie der falsche Plan — Upgrade nur, wenn Sie wirklich wachsen.',
     pricingUI: { founder: 'Founder: −30% LEBENSLANG für die ersten 100 Unternehmen', founderCum: '· kombinierbar mit dem Jahresrabatt', audBrand: 'Unternehmen', audAgency: 'Agenturen & Freelancer', agencySub: 'Verwalten Sie alle Ihre Kunden an einem Ort. Sie zahlen pro Anzahl der Unternehmen und wechseln sofort zwischen ihnen.', cadMonthly: 'Monatlich', cadAnnual: 'Jährlich', billAnnual: 'pro Jahr', twoFree: '2 Monate gratis', save: 'Sie sparen', billed: 'abgerechnet' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/Monat', tagline: 'Bis zu 500 Bestellungen/Monat. Perfekt zum Start, alles schon dabei.', features: ['✨ Alle Tools inklusive', 'Bis zu 500 Bestellungen/Monat', 'Alle Integrationen (Shopify, Meta, Google, Klaviyo)', '2 Team-Nutzer', 'E-Mail-Support 48h'], cta: 'Mit Starter beginnen' },
@@ -820,9 +909,10 @@ const I18N = {
     faq: [
       { q: 'Wie kennt LyftAI meine Marke?', a: 'Sie füllen den Bereich Brand Identity mit Beschreibung, Zielgruppe, Tonalität, Produkten, Brand Guard, Palette. Die KI nutzt diese Daten als System-Prompt für jede Antwort.' },
       { q: 'Sind meine Daten sicher?', a: 'Ja. Jeder Tenant hat isolierte Zugangsdaten. Shopify-/Meta-Daten werden nie zwischen Marken geteilt. Verschlüsselung bei Übertragung und im Ruhezustand.' },
-      { q: 'Wie lange dauert die Einrichtung?', a: '5 Minuten. Geführtes Onboarding: Sie fügen Store-URL und API-Tokens der 4 Hauptintegrationen ein.' },
+      { q: 'Wie lange dauert die Einrichtung?', a: '5 Minuten. Geführtes Onboarding in 10 Schritten: Verbinden Sie Shopify, Meta, Google und Ihr E-Mail-Marketing mit einem Klick (OAuth), null Tokens zum Kopieren. Während Sie fertig werden, bereitet LyftAI bereits Ihre Daten vor.' },
       { q: 'Wie funktioniert der kostenlose Test?', a: 'Sie melden sich an, machen das Onboarding und erhalten 14 Tage Vollzugriff. Keine Kreditkarte nötig. Am Ende wählen Sie einen Plan oder kündigen.' },
       { q: 'Kann ich jederzeit kündigen?', a: 'Ja. Keine Jahresverträge, keine Strafen. Kündigen Sie im Stripe-Portal mit 1 Klick.' },
+      { q: 'Seid ihr DSGVO-konform?', a: 'Ja. DPA verfügbar, Self-Service-Export und -Löschung des Kontos, Cookie-Banner, dokumentierte Auftragsverarbeiter und Daten nie zwischen Tenants geteilt.' },
     ],
     contactTitle: { eyebrow: 'Sprechen wir', title: 'Fordern Sie eine personalisierte Demo an' },
     contactSub: 'Wir antworten innerhalb von 24h. Keine Vertriebler, Sie sprechen direkt mit uns.',
@@ -908,6 +998,7 @@ export default function WelcomePage() {
         <TabsTour t={t} />
         <FeaturesGrid t={t} />
         <DemoCharts t={t} />
+        <IncrementalitySection t={t} />
         <BundleCompare t={t} />
         <AgencySection t={t} />
         <Pricing t={t} lang={lang} />
@@ -1016,6 +1107,41 @@ function Styles() {
 
       .logo-mark-outer { animation: logoGlow 4s ease-in-out infinite; }
       .logo-ring { animation: logoSpin 20s linear infinite; transform-origin: center; transform-box: fill-box; }
+
+      /* Marquee loghi integrazioni — loop infinito, pausa su hover */
+      @keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      .marquee-wrap { overflow: hidden; position: relative;
+        mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+        -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent); }
+      .marquee-track { display: flex; gap: 12px; width: max-content; animation: marqueeScroll 32s linear infinite; }
+      .marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+
+      /* Spotlight sulle card: alone che segue il mouse */
+      .spot-card { position: relative; overflow: hidden; transition: transform .3s cubic-bezier(0.16,1,0.3,1), border-color .3s; }
+      .spot-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0;
+        transition: opacity .35s;
+        background: radial-gradient(260px circle at var(--spx, 50%) var(--spy, 50%), rgba(191,90,242,0.16), transparent 65%);
+        pointer-events: none; }
+      .spot-card:hover { transform: translateY(-4px); }
+      .spot-card:hover::before { opacity: 1; }
+
+      /* Caret typewriter chat demo */
+      @keyframes caretBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+      .type-caret { display: inline-block; width: 2px; height: 1em; background: ${ACCENT};
+        vertical-align: text-bottom; margin-left: 2px; animation: caretBlink 0.8s infinite; }
+
+      /* Pill Shopify nell'hero */
+      .feed-shopify { color: #95bf47; }
+      .feed-shopify .feed-beam::after { animation-delay: .25s; }
+
+      /* Slider del simulatore budget */
+      .incr-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px;
+        background: linear-gradient(90deg, ${ACCENT}, ${BLUE}); outline: none; cursor: pointer; }
+      .incr-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px;
+        border-radius: 50%; background: #fff; border: 3px solid ${ACCENT};
+        box-shadow: 0 0 0 6px rgba(191,90,242,0.18), 0 6px 18px rgba(0,0,0,0.5); cursor: grab; }
+      .incr-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff;
+        border: 3px solid ${ACCENT}; box-shadow: 0 0 0 6px rgba(191,90,242,0.18), 0 6px 18px rgba(0,0,0,0.5); cursor: grab; }
 
       html { scroll-behavior: smooth; }
     `}</style>
@@ -1254,6 +1380,7 @@ function Hero({ t }) {
             sotto l'headline fino al globo, con flusso animato */}
         {/* Icone piattaforme che alimentano il globo con le sessioni (beam lineari) */}
         <div className="hero-feeds">
+          <span className="feed-pill feed-shopify"><b>Shopify</b><i className="feed-beam" /></span>
           <span className="feed-pill feed-meta"><b>Meta</b><i className="feed-beam" /></span>
           <span className="feed-pill feed-google"><b>Google</b><i className="feed-beam" /></span>
           <span className="feed-pill feed-ga4"><b>GA4</b><i className="feed-beam" /></span>
@@ -1356,23 +1483,53 @@ const secondaryCta = {
   fontSize: 15, fontWeight: 800,
 }
 
+// Loghi brand delle integrazioni (simpleicons CDN, fallback = solo testo).
+const TRUST_LOGOS = [
+  { name: 'Shopify', slug: 'shopify', color: '95BF47' },
+  { name: 'Meta Ads', slug: 'meta', color: '0081FB' },
+  { name: 'Google Ads', slug: 'googleads', color: '4285F4' },
+  { name: 'Google Analytics 4', slug: 'googleanalytics', color: 'E37400' },
+  { name: 'Search Console', slug: 'googlesearchconsole', color: '458CF5' },
+  { name: 'Klaviyo', slug: 'klaviyo', color: '20A762' },
+  { name: 'Mailchimp', slug: 'mailchimp', color: 'FFE01B' },
+  { name: 'Omnisend', slug: 'omnisend', color: 'B7C3CE' },
+  { name: 'Stripe', slug: 'stripe', color: '635BFF' },
+]
+
+function TrustChip({ item }) {
+  const [err, setErr] = useState(false)
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
+      padding: '10px 18px', borderRadius: 10,
+      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+      fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap',
+    }}>
+      {!err && (
+        <img src={`https://cdn.simpleicons.org/${item.slug}/${item.color}`} alt="" width={17} height={17}
+          style={{ objectFit: 'contain' }} onError={() => setErr(true)} loading="lazy" />
+      )}
+      {item.name}
+    </div>
+  )
+}
+
 function TrustBar({ t }) {
   return (
     <Reveal>
-      <section style={{
-        maxWidth: 1080, margin: '0 auto', padding: '20px 24px 80px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, flexWrap: 'wrap',
-      }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.20em', textTransform: 'uppercase' }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '20px 24px 80px' }}>
+        <div style={{
+          fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.20em',
+          textTransform: 'uppercase', textAlign: 'center', marginBottom: 18,
+        }}>
           {t.trust.label}
         </div>
-        {['Shopify', 'Meta Ads', 'Google Ads', 'GA4', 'Klaviyo', 'Search Console'].map(name => (
-          <div key={name} style={{
-            padding: '8px 16px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-            fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)',
-          }}>{name}</div>
-        ))}
+        {/* Marquee infinito: track duplicato per il loop senza stacchi */}
+        <div className="marquee-wrap">
+          <div className="marquee-track">
+            {[...TRUST_LOGOS, ...TRUST_LOGOS].map((item, i) => <TrustChip key={`${item.slug}-${i}`} item={item} />)}
+          </div>
+        </div>
       </section>
     </Reveal>
   )
@@ -1420,6 +1577,45 @@ function ProblemSolution({ t }) {
   )
 }
 
+// Count-up: anima il numero dentro la stringa ('+34%' → 0→34) quando entra in viewport.
+function CountUpValue({ value, color }) {
+  const ref = useRef(null)
+  const [display, setDisplay] = useState(value)
+  useEffect(() => {
+    const m = String(value).match(/^([^0-9]*)(\d+)(.*)$/)
+    if (!m) { setDisplay(value); return }
+    const [, prefix, numStr, suffix] = m
+    const target = parseInt(numStr, 10)
+    setDisplay(`${prefix}0${suffix}`)
+    const el = ref.current
+    if (!el) return
+    let raf
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return
+        obs.disconnect()
+        const t0 = performance.now()
+        const dur = 1400
+        const tick = (now) => {
+          const p = Math.min(1, (now - t0) / dur)
+          const eased = 1 - Math.pow(1 - p, 3) // easeOutCubic
+          setDisplay(`${prefix}${Math.round(target * eased)}${suffix}`)
+          if (p < 1) raf = requestAnimationFrame(tick)
+        }
+        raf = requestAnimationFrame(tick)
+      })
+    }, { threshold: 0.4 })
+    obs.observe(el)
+    return () => { obs.disconnect(); if (raf) cancelAnimationFrame(raf) }
+  }, [value])
+  return (
+    <div ref={ref} style={{
+      fontSize: 42, fontWeight: 900, letterSpacing: '-0.03em',
+      color, lineHeight: 1, marginBottom: 8, fontVariantNumeric: 'tabular-nums',
+    }}>{display}</div>
+  )
+}
+
 function StatsRow({ t }) {
   const colors = [GREEN, BLUE, ACCENT, '#fbbf24']
   return (
@@ -1431,10 +1627,7 @@ function StatsRow({ t }) {
         }}>
           {t.stats.map((s, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: 42, fontWeight: 900, letterSpacing: '-0.03em',
-                color: colors[i], lineHeight: 1, marginBottom: 8,
-              }}>{s.v}</div>
+              <CountUpValue value={s.v} color={colors[i]} />
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{s.l}</div>
             </div>
           ))}
@@ -1453,7 +1646,7 @@ function TabsTour({ t }) {
       }}>
         {t.tabs.map((tab, i) => (
           <Reveal key={tab.id} delay={i * 50}>
-            <div className="glass-card-static" style={{ padding: 24, height: '100%' }}>
+            <div className="glass-card-static spot-card" style={{ padding: 24, height: '100%' }} onMouseMove={spotMove}>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 42, height: 42, borderRadius: 11,
@@ -1481,7 +1674,7 @@ function FeaturesGrid({ t }) {
       }}>
         {t.features.map((f, i) => (
           <Reveal key={f.title} delay={i * 80}>
-            <div className="glass-card-static" style={{ padding: 28, height: '100%' }}>
+            <div className="glass-card-static spot-card" style={{ padding: 28, height: '100%' }} onMouseMove={spotMove}>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 52, height: 52, borderRadius: 14,
@@ -1621,8 +1814,8 @@ function DemoCharts({ t }) {
               <div style={{ alignSelf: 'flex-end', maxWidth: '85%', padding: '11px 16px', borderRadius: 16, background: `${ACCENT}30`, border: `1px solid ${ACCENT}55`, fontSize: 13 }}>
                 {t.demoCards.chatUser}
               </div>
-              <div style={{ alignSelf: 'flex-start', maxWidth: '92%', padding: '11px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.55 }}>
-                {renderChat(t.demoCards.chatAi)}
+              <div style={{ alignSelf: 'flex-start', maxWidth: '92%', padding: '11px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.55, minHeight: 66 }}>
+                <TypeWriter text={t.demoCards.chatAi} render={renderChat} />
               </div>
             </div>
           </div>
@@ -1682,6 +1875,179 @@ function MockBarChart() {
   )
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Incrementalità (MMM) — sezione interattiva: contributo per canale
+//  animato + simulatore budget con curva di saturazione e slider live.
+// ─────────────────────────────────────────────────────────────
+function ContribBar({ label, pct, color, delay = 0 }) {
+  const ref = useRef(null)
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { setOn(true); obs.disconnect() } }), { threshold: 0.4 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  return (
+    <div ref={ref} style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 7 }}>
+        <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>{label}</span>
+        <span style={{ color, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+      </div>
+      <div style={{ height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 999,
+          width: on ? `${pct}%` : '0%',
+          background: `linear-gradient(90deg, ${color}, ${color}88)`,
+          boxShadow: `0 0 14px ${color}66`,
+          transition: `width 1.3s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        }} />
+      </div>
+    </div>
+  )
+}
+
+function BudgetSimulator({ t }) {
+  const [spend, setSpend] = useState(600)
+  const VMAX = 4200
+  const K = 600
+  const rev = (s) => VMAX * (1 - Math.exp(-s / K))
+  const marginal = (s) => (VMAX / K) * Math.exp(-s / K)
+  // Curva: 40 campioni 0..1500 → viewBox 0..100 x, 6..58 y
+  const X = (s) => (s / 1500) * 100
+  const Y = (r) => 58 - (r / VMAX) * 52
+  const path = Array.from({ length: 41 }, (_, i) => {
+    const s = (i / 40) * 1500
+    return `${i === 0 ? 'M' : 'L'} ${X(s).toFixed(2)} ${Y(rev(s)).toFixed(2)}`
+  }).join(' ')
+  const satX = X(-K * Math.log(0.15)) // dove la curva supera l'85% del massimo
+  const px = X(spend)
+  const py = Y(rev(spend))
+  const eur = (n) => `€${Math.round(n).toLocaleString('it-IT')}`
+  return (
+    <div>
+      <svg viewBox="0 0 100 62" style={{ width: '100%', height: 190, display: 'block' }} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="incr-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={ACCENT} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* zona di saturazione */}
+        <rect x={satX} y="0" width={100 - satX} height="62" fill="rgba(248,113,113,0.06)" />
+        <line x1={satX} y1="0" x2={satX} y2="62" stroke="#f87171" strokeWidth="0.4" strokeDasharray="2 2" opacity="0.7" />
+        {/* area sotto la curva fino allo spend scelto */}
+        <path d={`${path} L 100 62 L 0 62 Z`} fill="url(#incr-fill)" opacity="0.5" />
+        {/* curva */}
+        <path d={path} fill="none" stroke={ACCENT} strokeWidth="1"
+          strokeDasharray="1000" style={{ animation: 'lineDraw 2.2s ease-out forwards' }} />
+        {/* guida verticale + punto corrente */}
+        <line x1={px} y1={py} x2={px} y2="62" stroke="#fff" strokeWidth="0.35" opacity="0.35" strokeDasharray="1.5 1.5" />
+        <circle cx={px} cy={py} r="2.6" fill="#fff" opacity="0.25">
+          <animate attributeName="r" values="2.6;4;2.6" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={px} cy={py} r="1.7" fill="#fff" stroke={ACCENT} strokeWidth="0.8" />
+      </svg>
+      <div style={{ fontSize: 10, color: '#f87171', textAlign: 'right', marginTop: -16, marginBottom: 14, opacity: 0.85 }}>
+        ⟶ {t.incr.saturation}
+      </div>
+      <input
+        type="range" min={100} max={1500} step={10} value={spend}
+        onChange={e => setSpend(+e.target.value)}
+        className="incr-slider" aria-label={t.incr.simSpend}
+      />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 20,
+      }}>
+        {[
+          { l: t.incr.simSpend, v: `${eur(spend)}/g`, c: '#fff' },
+          { l: t.incr.simRevenue, v: eur(rev(spend)), c: GREEN },
+          { l: t.incr.simRoas, v: `${marginal(spend).toFixed(2)}x`, c: marginal(spend) >= 1 ? BLUE : '#f87171' },
+        ].map(x => (
+          <div key={x.l} style={{
+            padding: '12px 10px', borderRadius: 12, textAlign: 'center',
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{x.l}</div>
+            <div style={{ fontSize: 19, fontWeight: 900, color: x.c, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{x.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', marginTop: 14, textAlign: 'center' }}>{t.incr.simHint}</div>
+    </div>
+  )
+}
+
+function IncrementalitySection({ t }) {
+  if (!t.incr) return null
+  return (
+    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
+      <Reveal>
+        <SectionHeader eyebrow={t.incr.eyebrow} title={t.incr.title} />
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', textAlign: 'center', maxWidth: 720, margin: '18px auto 0', lineHeight: 1.55 }}>
+          {t.incr.sub}
+        </p>
+      </Reveal>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginTop: 50 }}>
+        <Reveal>
+          <div className="glass-card-static spot-card" style={{ padding: 28, height: '100%' }} onMouseMove={spotMove}>
+            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 22 }}>
+              {t.incr.contribTitle}
+            </div>
+            <ContribBar label={t.incr.organic} pct={46} color="rgba(255,255,255,0.55)" delay={0} />
+            <ContribBar label="Meta Ads" pct={28} color={BLUE} delay={120} />
+            <ContribBar label="Google Ads" pct={16} color="#fbbf24" delay={240} />
+            <ContribBar label="Email" pct={10} color={GREEN} delay={360} />
+          </div>
+        </Reveal>
+        <Reveal delay={140}>
+          <div className="glass-card-static spot-card" style={{ padding: 28, height: '100%' }} onMouseMove={spotMove}>
+            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 16 }}>
+              {t.incr.simTitle}
+            </div>
+            <BudgetSimulator t={t} />
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+// Spotlight helper: aggiorna le CSS var del gradiente che segue il mouse.
+function spotMove(e) {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--spx', `${e.clientX - r.left}px`)
+  e.currentTarget.style.setProperty('--spy', `${e.clientY - r.top}px`)
+}
+
+// Typewriter: digita il testo (marker {strong} rimossi) quando entra in
+// viewport; a fine digitazione mostra la versione formattata (bold).
+function TypeWriter({ text, render }) {
+  const plain = text.replace(/\{\/?strong\}/g, '')
+  const ref = useRef(null)
+  const [n, setN] = useState(0)
+  const [started, setStarted] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { setStarted(true); obs.disconnect() } }), { threshold: 0.5 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  useEffect(() => {
+    if (!started || n >= plain.length) return
+    const id = setTimeout(() => setN(v => v + 2), 24)
+    return () => clearTimeout(id)
+  }, [started, n, plain.length])
+  const done = n >= plain.length
+  return (
+    <span ref={ref}>
+      {done ? render(text) : <>{plain.slice(0, n)}<span className="type-caret" /></>}
+    </span>
+  )
+}
+
 function Pricing({ t, lang = 'it' }) {
   const pui = t.pricingUI || {}
   const planAccents = ['#0ea5e9', ACCENT, GREEN, '#f59e0b']
@@ -1701,6 +2067,19 @@ function Pricing({ t, lang = 'it' }) {
         <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', marginTop: 14, maxWidth: 680, marginLeft: 'auto', marginRight: 'auto' }}>
           {audience === 'agency' ? (pui.agencySub || '') : t.pricingSub}
         </p>
+        {audience !== 'agency' && t.pricingFair && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'flex-start', gap: 8, maxWidth: 640,
+              padding: '10px 18px', borderRadius: 12,
+              background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
+              fontSize: 12.5, color: '#86efac', lineHeight: 1.5, textAlign: 'left',
+            }}>
+              <span style={{ display: 'inline-flex', marginTop: 1, flexShrink: 0 }}><Icon name="check" size={13} /></span>
+              {t.pricingFair}
+            </div>
+          </div>
+        )}
       </Reveal>
 
       {/* Toggle pubblico: Aziende vs Agenzie & Freelance */}

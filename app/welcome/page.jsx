@@ -65,6 +65,8 @@ const I18N = {
       title1: 'Il sistema operativo AI',
       title2: 'del tuo e-commerce.',
       subtitle: 'Analisi, creatività, agenti AI e team in un\'unica piattaforma che conosce il tuo brand. Connetti Shopify, Meta, Google e Klaviyo in 5 minuti: LyftAI legge i dati e ogni giorno ti mostra dove c\'è leva di crescita e dove stai bruciando soldi.',
+      rotPrefix: 'Un solo cervello per',
+      rotWords: ['le analisi', 'le creatività', 'gli agenti AI', 'i report', 'il budget'],
       ctaPrimary: 'Inizia la prova gratuita',
       ctaSecondary: 'Scopri come funziona',
       perks: ['Niente carta richiesta', 'Setup in 5 minuti', 'Disponibile in 5 lingue'],
@@ -246,6 +248,8 @@ const I18N = {
       title1: 'The AI operating system',
       title2: 'for your e-commerce.',
       subtitle: 'Analytics, creative, AI agents and team in one platform that knows your brand. Connect Shopify, Meta, Google and Klaviyo in 5 minutes: LyftAI reads your data and shows you every day where there\'s growth leverage and where you\'re burning money.',
+      rotPrefix: 'One brain for',
+      rotWords: ['analytics', 'creatives', 'AI agents', 'reports', 'budget'],
       ctaPrimary: 'Start free trial',
       ctaSecondary: 'See how it works',
       perks: ['No credit card required', '5-minute setup', 'Available in 5 languages'],
@@ -427,6 +431,8 @@ const I18N = {
       title1: 'El sistema operativo IA',
       title2: 'de tu e-commerce.',
       subtitle: 'Analytics, creatividades, agentes IA y equipo en una sola plataforma que conoce tu marca. Conecta Shopify, Meta, Google y Klaviyo en 5 minutos: LyftAI lee tus datos y cada día te muestra dónde hay palanca de crecimiento y dónde estás quemando dinero.',
+      rotPrefix: 'Un solo cerebro para',
+      rotWords: ['la analítica', 'las creatividades', 'los agentes IA', 'los reportes', 'el presupuesto'],
       ctaPrimary: 'Iniciar prueba gratuita',
       ctaSecondary: 'Ver cómo funciona',
       perks: ['Sin tarjeta de crédito', 'Configuración en 5 minutos', 'Disponible en 5 idiomas'],
@@ -608,6 +614,8 @@ const I18N = {
       title1: 'Le système d\'exploitation IA',
       title2: 'de votre e-commerce.',
       subtitle: 'Analytics, créas, agents IA et équipe dans une seule plateforme qui connaît votre marque. Connectez Shopify, Meta, Google et Klaviyo en 5 minutes : LyftAI lit vos données et vous montre chaque jour où se trouvent les leviers de croissance et où vous brûlez de l\'argent.',
+      rotPrefix: 'Un seul cerveau pour',
+      rotWords: ['l\'analyse', 'les créas', 'les agents IA', 'les rapports', 'le budget'],
       ctaPrimary: 'Démarrer l\'essai gratuit',
       ctaSecondary: 'Voir comment ça marche',
       perks: ['Sans carte bancaire', 'Installation en 5 minutes', 'Disponible en 5 langues'],
@@ -789,6 +797,8 @@ const I18N = {
       title1: 'Das KI-Betriebssystem',
       title2: 'für Ihren E-Commerce.',
       subtitle: 'Analytics, Kreatives, KI-Agenten und Team in einer Plattform, die Ihre Marke kennt. Verbinden Sie Shopify, Meta, Google und Klaviyo in 5 Minuten: LyftAI liest Ihre Daten und zeigt Ihnen täglich, wo Wachstumshebel liegen und wo Sie Geld verbrennen.',
+      rotPrefix: 'Ein Gehirn für',
+      rotWords: ['Analytics', 'Creatives', 'KI-Agenten', 'Reports', 'Budget'],
       ctaPrimary: 'Kostenlosen Test starten',
       ctaSecondary: 'So funktioniert es',
       perks: ['Keine Kreditkarte nötig', 'Einrichtung in 5 Minuten', 'In 5 Sprachen verfügbar'],
@@ -1143,6 +1153,63 @@ function Styles() {
       .incr-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff;
         border: 3px solid ${ACCENT}; box-shadow: 0 0 0 6px rgba(191,90,242,0.18), 0 6px 18px rgba(0,0,0,0.5); cursor: grab; }
 
+      /* ── Hero futuristico ─────────────────────────────── */
+      /* Cascata 3D carattere per carattere (riga 2 del titolo) */
+      @keyframes charIn {
+        from { opacity: 0; transform: translateY(0.45em) rotateX(75deg); filter: blur(8px); }
+        to   { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
+      }
+      .char-cascade { display: inline-block; perspective: 800px; }
+      .char-cascade .ch { display: inline-block; transform-origin: 50% 100%;
+        animation: charIn .75s cubic-bezier(0.16,1,0.3,1) both; }
+
+      /* Parola rotante del claim (flip verticale 3D) */
+      @keyframes wordIn {
+        from { opacity: 0; transform: translateY(70%) rotateX(-80deg); filter: blur(6px); }
+        to   { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
+      }
+      .rot-claim { display: inline-flex; align-items: baseline; gap: 10px;
+        font-size: clamp(16px, 2.1vw, 24px); font-weight: 800; letter-spacing: -0.02em;
+        color: rgba(255,255,255,0.72); }
+      .rot-slot { display: inline-block; perspective: 600px; text-align: left; }
+      .rot-word { display: inline-block; transform-origin: 50% 100%;
+        animation: wordIn .55s cubic-bezier(0.16,1,0.3,1) both;
+        background: linear-gradient(90deg, ${ACCENT}, ${BLUE});
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 18px ${ACCENT}66); white-space: nowrap; }
+      .rot-cursor { display: inline-block; width: 3px; height: 0.95em; margin-left: 6px;
+        border-radius: 2px; background: ${ACCENT}; vertical-align: text-bottom;
+        animation: caretBlink 0.9s infinite; box-shadow: 0 0 12px ${ACCENT}; }
+
+      /* Aurora beams che spazzano dietro il titolo */
+      @keyframes auroraSweep1 {
+        0%, 100% { transform: translateX(-18%) rotate(8deg); opacity: 0.22; }
+        50%      { transform: translateX(18%) rotate(-4deg); opacity: 0.38; }
+      }
+      @keyframes auroraSweep2 {
+        0%, 100% { transform: translateX(14%) rotate(-10deg); opacity: 0.18; }
+        50%      { transform: translateX(-16%) rotate(6deg); opacity: 0.32; }
+      }
+      .aurora { position: absolute; left: 50%; top: 8%; width: min(1100px, 95vw); height: 380px;
+        transform: translateX(-50%); pointer-events: none; filter: blur(70px); }
+      .aurora i { position: absolute; inset: 0; border-radius: 999px; }
+      .aurora i:nth-child(1) { background: linear-gradient(100deg, transparent 15%, ${ACCENT}66 45%, ${BLUE}55 60%, transparent 85%);
+        animation: auroraSweep1 11s ease-in-out infinite; }
+      .aurora i:nth-child(2) { background: linear-gradient(80deg, transparent 20%, ${BLUE}55 50%, ${GREEN}33 68%, transparent 88%);
+        animation: auroraSweep2 14s ease-in-out infinite; }
+
+      /* CTA magnetica: anello pulsante */
+      @keyframes ctaPulse {
+        0%, 100% { box-shadow: 0 20px 50px rgba(191,90,242,0.35), 0 0 0 0 rgba(191,90,242,0.45); }
+        60%      { box-shadow: 0 20px 50px rgba(191,90,242,0.35), 0 0 0 14px rgba(191,90,242,0); }
+      }
+      .cta-magnetic { animation: ctaPulse 2.6s ease-out infinite;
+        transition: transform .18s cubic-bezier(0.16,1,0.3,1), box-shadow .25s; will-change: transform; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .char-cascade .ch, .rot-word, .aurora i, .cta-magnetic, .marquee-track { animation: none !important; }
+      }
+
       html { scroll-behavior: smooth; }
     `}</style>
   )
@@ -1224,6 +1291,92 @@ function Reveal({ children, delay = 0, style, variant = '' }) {
     <div ref={ref} className={`${baseClass} ${visible ? 'in' : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Effetti hero futuristici
+// ─────────────────────────────────────────────────────────────
+// Il titolo si "decripta": i caratteri ciclano glifi casuali e si fissano
+// progressivamente da sinistra a destra (matrix-decode).
+const GLYPHS = '!<>-_\\/[]{}—=+*^?#@$%&0123456789ABCDEFGHKLMNPQRSTUVWXYZ'
+function ScrambleText({ text, className, delay = 0 }) {
+  const [out, setOut] = useState(text)
+  useEffect(() => {
+    let raf, start
+    let cancelled = false
+    const total = 1300 // durata decode complessiva
+    const step = (now) => {
+      if (cancelled) return
+      if (start == null) start = now
+      const p = Math.min(1, (now - start) / total)
+      const settled = Math.floor(p * text.length)
+      let s = ''
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i]
+        if (c === ' ') { s += ' '; continue }
+        s += i < settled ? c : GLYPHS[(Math.random() * GLYPHS.length) | 0]
+      }
+      setOut(s)
+      if (p < 1) raf = requestAnimationFrame(step)
+      else setOut(text)
+    }
+    const id = setTimeout(() => { raf = requestAnimationFrame(step) }, delay)
+    return () => { cancelled = true; clearTimeout(id); if (raf) cancelAnimationFrame(raf) }
+  }, [text, delay])
+  return <span className={className} style={{ fontVariantNumeric: 'tabular-nums' }}>{out}</span>
+}
+
+// Riga che entra in cascata 3D, un carattere alla volta.
+function CharCascade({ text, delay = 0, style }) {
+  return (
+    <span className="char-cascade" style={style} aria-label={text}>
+      {text.split('').map((c, i) => (
+        <span key={i} className="ch" aria-hidden style={{ animationDelay: `${delay + i * 26}ms` }}>
+          {c === ' ' ? ' ' : c}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+// Parola del claim che ruota (flip 3D) ogni 2.4s.
+function RotatingWord({ words }) {
+  const [idx, setIdx] = useState(0)
+  const longest = words.reduce((a, b) => (b.length > a.length ? b : a), '')
+  useEffect(() => {
+    const id = setInterval(() => setIdx(i => (i + 1) % words.length), 2400)
+    return () => clearInterval(id)
+  }, [words.length])
+  return (
+    <span className="rot-slot" style={{ position: 'relative' }}>
+      {/* placeholder invisibile = larghezza stabile (niente salti di layout) */}
+      <span style={{ visibility: 'hidden', fontWeight: 800, whiteSpace: 'nowrap' }}>{longest}</span>
+      <span key={idx} style={{ position: 'absolute', left: 0, top: 0, whiteSpace: 'nowrap' }}>
+        <span className="rot-word">{words[idx]}</span>
+        <span className="rot-cursor" />
+      </span>
+    </span>
+  )
+}
+
+// CTA "magnetica": si sposta leggermente verso il cursore.
+function MagneticCta({ href, children, style }) {
+  const ref = useRef(null)
+  const onMove = (e) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const dx = e.clientX - (r.left + r.width / 2)
+    const dy = e.clientY - (r.top + r.height / 2)
+    el.style.transform = `translate(${Math.max(-9, Math.min(9, dx * 0.12))}px, ${Math.max(-7, Math.min(7, dy * 0.18))}px)`
+  }
+  const onLeave = () => { if (ref.current) ref.current.style.transform = '' }
+  return (
+    <Link ref={ref} href={href} className="cta-magnetic" style={style}
+      onMouseMove={onMove} onMouseLeave={onLeave}>
+      {children}
+    </Link>
   )
 }
 
@@ -1387,6 +1540,8 @@ function Hero({ t }) {
           <span className="feed-pill feed-klaviyo"><b>Klaviyo</b><i className="feed-beam" /></span>
           <span className="feed-pill feed-gsc"><b>Search Console</b><i className="feed-beam" /></span>
         </div>
+        {/* Aurora beams che spazzano dietro il titolo */}
+        <div className="aurora"><i /><i /></div>
       </div>
 
       <div className="hero-scale" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -1413,18 +1568,27 @@ function Hero({ t }) {
           </div>
         </Reveal>
 
-        <Reveal variant="blur" delay={150}>
-          <h1 style={{
-            fontSize: 'clamp(48px, 9vw, 120px)',
-            fontWeight: 900, letterSpacing: '-0.055em', lineHeight: 0.95,
-            margin: 0, marginBottom: 28, maxWidth: 1100,
-          }}>
-            <span className="shine-text">{t.hero.title1}</span><br />
-            <span style={{ color: 'rgba(255,255,255,0.95)' }}>{t.hero.title2}</span>
-          </h1>
-        </Reveal>
+        {/* Titolo: riga 1 si "decripta" (matrix-decode), riga 2 entra in cascata 3D */}
+        <h1 style={{
+          fontSize: 'clamp(48px, 9vw, 120px)',
+          fontWeight: 900, letterSpacing: '-0.055em', lineHeight: 0.95,
+          margin: 0, marginBottom: 24, maxWidth: 1100,
+        }}>
+          <ScrambleText text={t.hero.title1} className="shine-text" delay={150} /><br />
+          <CharCascade text={t.hero.title2} delay={650} style={{ color: 'rgba(255,255,255,0.95)' }} />
+        </h1>
 
-        <Reveal delay={300}>
+        {/* Claim rotante: "Un solo cervello per [le analisi → le creatività → …]" */}
+        {Array.isArray(t.hero.rotWords) && t.hero.rotWords.length > 0 && (
+          <Reveal delay={250}>
+            <div className="rot-claim" style={{ marginBottom: 26 }}>
+              <span>{t.hero.rotPrefix}</span>
+              <RotatingWord words={t.hero.rotWords} />
+            </div>
+          </Reveal>
+        )}
+
+        <Reveal delay={380}>
           <p style={{
             fontSize: 'clamp(17px, 1.7vw, 22px)',
             color: 'rgba(255,255,255,0.7)', lineHeight: 1.5,
@@ -1432,9 +1596,9 @@ function Hero({ t }) {
           }}>{t.hero.subtitle}</p>
         </Reveal>
 
-        <Reveal variant="zoom" delay={450}>
+        <Reveal variant="zoom" delay={500}>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/register" className="cta-btn" style={primaryCta}>{t.hero.ctaPrimary} →</Link>
+            <MagneticCta href="/register" style={primaryCta}>{t.hero.ctaPrimary} →</MagneticCta>
             <a href="#tabs-tour" style={secondaryCta}>{t.hero.ctaSecondary}</a>
           </div>
           <div style={{

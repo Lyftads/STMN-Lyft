@@ -390,16 +390,16 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           </span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="shopify" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Shopify</span></div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:38}}>
+        <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14,marginBottom:38}}>
           {metrics.filter(m=>m.group==='Shopify').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="meta" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Meta Ads</span></div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:14}}>
+        <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14,marginBottom:14}}>
           {metrics.filter(m=>m.group==='Meta Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{margin:'18px 0 48px',position:'relative',zIndex:2}}><MetaSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
         <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14,position:'relative',zIndex:2}}><PlatformIcon platform="google" size={18} /><span style={{fontSize:17,color:'#fff',fontWeight:900}}>Google Ads</span></div>
-        <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
+        <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:14}}>
           {metrics.filter(m=>m.group==='Google Ads').map(item=><MetricCard key={item.title} item={item} />)}
         </div>
         <div style={{marginTop:18,position:'relative',zIndex:2}}><GoogleSegmentsPanel since={kpiRange?.since} until={kpiRange?.until} /></div>
@@ -411,7 +411,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:18}}>{t('kpi.breakdowns', null, 'Breakdowns')}</div>
 
         {/* Row 1: Top Products + Day Breakdown (affiancati) */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+        <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
           <div style={panel}>
             <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.top10Products', null, 'Top 10 prodotti per revenue')}</div>
             <div style={{display:'grid',gap:10}}>
@@ -459,7 +459,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
 
         {/* Row 2: Spesa marketing + New vs Returning (sotto) */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           <div style={panel}>
             <div style={{fontSize:14,color:'var(--text)',fontWeight:800,marginBottom:18}}>{t('kpi.marketingSpendByChannel', null, 'Spesa marketing per canale')}</div>
             <div style={{display:'grid',gap:14}}><ProgressBar rows={marketingSources} color="#3b82f6" /></div>
@@ -476,7 +476,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       {topProducts.length > 0 && (
         <div className="glass-section reveal-zoom" style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:22,padding:24,marginBottom:24}}>
           <div style={{fontSize:18,fontWeight:900,color:'var(--text)',marginBottom:18}}>{t('kpi.topPerformers', null, 'Top Performers')}</div>
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
+          <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:16}}>
             {topProducts.slice(0,4).map((item,i) => (
               <div key={item.label} className="glass-card" style={{...card,display:'flex',flexDirection:'column',gap:12}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -665,7 +665,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
 
                     {/* BOTTOM: card per ogni dato NC + RC */}
                     {hasSegmentData && (
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                      <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                         <SegmentBlock
                           title={t('kpi.segNew', null, 'Nuovi clienti')}
                           accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}

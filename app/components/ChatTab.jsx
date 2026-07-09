@@ -861,7 +861,7 @@ export default function ChatTab({ standalone = false }) {
         </div>
 
         {threadRoot && (
-          <div style={{ ...PANEL, width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="m-thread" style={{ ...PANEL, width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 17 }}>{tr('ch.conversation', null, 'Thread')}</span>
               <button onClick={() => setThreadRoot(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 20 }}>×</button>

@@ -921,6 +921,17 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 @media (max-width: 768px) {
   .m-stack { grid-template-columns: 1fr !important; }
   .m-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  /* LyftTalk: il pannello thread (360px fissi accanto alla chat) su mobile
+     diventa un overlay a tutto schermo — si chiude con la sua ×. */
+  .m-thread {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    z-index: 300;
+    border-radius: 0 !important;
+    background: rgba(8, 8, 16, 0.99) !important;
+  }
 }
 
 /* iOS: input sotto i 16px causano lo zoom automatico al focus */

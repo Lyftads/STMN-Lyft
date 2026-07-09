@@ -382,7 +382,7 @@ export default function IntegrationsTab() {
           {/* 3 card per riga (responsive: scende a 2/1 su schermi stretti). Ogni
               card è in colonna: logo+titolo+desc in alto, controllo di connessione
               su una RIGA dedicata sotto → niente testi sovrapposti. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+          <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
             {NANGO_PROVIDERS.map(p => (
               <OAuthCard key={p.integrationId} domain={p.domain} name={p.name} desc={t(p.descKey, null, p.desc)}>
                 {p.integrationId === 'facebook'

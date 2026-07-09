@@ -544,6 +544,7 @@ function CreativeDetailModal({ row, onClose }) {
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="m-stack"
         style={{
           background: 'rgba(8,8,15,0.95)',
           backdropFilter: 'blur(40px) saturate(1.8)',
@@ -633,7 +634,7 @@ function CreativeDetailModal({ row, onClose }) {
 
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* Performance bar */}
-            <div style={{
+            <div className="m-grid2" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: 10,
@@ -991,6 +992,7 @@ export default function CreativeTab() {
       </div>
 
       <div
+        className="m-grid2"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
@@ -1185,6 +1187,7 @@ export default function CreativeTab() {
 
         {sortedRows.length > 0 ? (
           <div
+            className="m-grid2"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',

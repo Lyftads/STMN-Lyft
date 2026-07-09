@@ -130,7 +130,7 @@ export default function BudgetAdvisorPanel() {
 
         {camps.length > 0 && (
           <>
-            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 16px' }}>
+            <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 16px' }}>
               <Stat label={t('ba.stat.totalSpend')} value={eur(data.totalSpend)} d={delta.spend} />
               <Stat label={t('ba.stat.mer')} value={`${data.mer}x`} tone={data.mer >= 2 ? 'var(--green)' : data.mer >= 1 ? 'var(--orange)' : 'var(--red)'} d={delta.mer} />
               <Stat label={t('ba.stat.toScale')} value={data.counts?.scala || 0} tone="var(--green)" />

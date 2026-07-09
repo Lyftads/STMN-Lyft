@@ -137,7 +137,7 @@ export default function CreativeFatiguePanel() {
 
         {ads.length > 0 && (
           <>
-            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
+            <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
               <Stat label={t('cf.stat.analyzed')} value={nf(data.total)} />
               <Stat label={t('cf.stat.toRefresh')} value={nf(data.toRefresh)} tone={data.toRefresh > 0 ? 'var(--red)' : 'var(--green)'} />
               <Stat label={t('cf.stat.avgCtr')} value={`${avgCtr}%`} d={delta.ctr} />

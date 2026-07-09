@@ -78,7 +78,7 @@ function BrandRow({ brandName, brandData, isOwn, ownAvg, source }) {
 
   return (
     <div
-      className="glass-card-static"
+      className="glass-card-static m-scrollx"
       style={{
         borderRadius: 14, overflow: 'hidden', marginBottom: 8,
         ...(isOwn ? { borderColor: 'rgba(41,151,255,0.25)', background: 'rgba(41,151,255,0.05)' } : {}),

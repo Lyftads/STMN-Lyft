@@ -83,7 +83,7 @@ export default function IncrCurvesTab() {
                 <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>· {t('incr.atSpend', { s: eur(c.avgSpend) }, `at ${eur(c.avgSpend)}/day`)} · {t('incr.mRoasShort', { x: x(c.mRoas) }, `next-€ ${x(c.mRoas)}`)} · {t('incr.satShort', { p: pct(c.saturation) }, `${pct(c.saturation)} saturated`)} · {t('incr.halfSat', { s: eur(c.halfSatSpend) }, `half-sat ~${eur(c.halfSatSpend)}/day`)}</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 16, alignItems: 'stretch' }}>
+              <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 16, alignItems: 'stretch' }}>
                 {/* Response curve */}
                 <div style={{ minWidth: 0 }}>
                   <div className="label" style={{ marginBottom: 6 }}>{t('incr.responseCurve', null, 'Response curve · daily spend → incremental revenue')}</div>

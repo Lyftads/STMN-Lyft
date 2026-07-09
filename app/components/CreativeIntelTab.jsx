@@ -125,7 +125,7 @@ function DetailModal({ ad, onClose }) {
   if (typeof document === 'undefined') return null
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 860, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 0 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 860, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 0 }} className="m-stack">
         <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 320 }}>
           {ad.video ? <video src={ad.video} poster={ad.thumbnail} controls style={{ width: '100%', maxHeight: '92vh', objectFit: 'contain' }} />
             : (ad.thumbnail || ad.image) ? <img src={ad.thumbnail || ad.image} alt="" style={{ width: '100%', maxHeight: '92vh', objectFit: 'contain' }} />
@@ -143,7 +143,7 @@ function DetailModal({ ad, onClose }) {
             <div style={{ fontSize: 12, color: '#8b8aa0', fontWeight: 700 }}>{ad.brand}</div>
             {ad.headline && <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--text)', lineHeight: 1.25, marginTop: 4 }}>{ad.headline}</div>}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[[t('ci.activeSince', null, 'Active since'), ad.runningDays != null ? t('ci.daysN', { n: ad.runningDays }, '{n} days') : '—'], [t('ci.format', null, 'Format'), ad.format], ['CTA', ad.cta || '—'], [t('ci.platforms', null, 'Platforms'), ad.platforms.join(', ') || '—']].map(([k, v]) => (
               <div key={k} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
                 <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{k}</div>

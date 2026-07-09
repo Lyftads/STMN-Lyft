@@ -199,7 +199,7 @@ function SiteResult({ res }) {
   const { t } = useI18n()
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
         <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreCol(res.avgScore) }}>{res.avgScore}</div>
           <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{t('seo.avg', null, 'media')} · {res.scoreLabel}</div>
@@ -275,7 +275,7 @@ function CompareView({ compare }) {
           <div style={{ fontSize: 12, opacity: 0.6, wordBreak: 'break-all', maxWidth: 360 }}>{after.url}</div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="glass-card" style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, marginBottom: 12, color: '#30d158' }}>↑ {t('seo.improved', { n: improved.length }, `Migliorati (${improved.length})`)}</div>
           {improved.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>{t('seo.none', null, 'Nessuno')}</div>}
@@ -327,7 +327,7 @@ function KeywordAIPanel() {
       {error && <Err>{error}</Err>}
       {d && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginTop: 20, marginBottom: 16 }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginTop: 20, marginBottom: 16 }}>
             <Mini label={t('seo.intent', null, 'Intent')} value={d.intent} note={d.intentNote} />
             <Mini label={t('seo.difficulty', null, 'Difficoltà')} value={d.difficulty?.level} note={d.difficulty?.note} />
             <Mini label="AI Overview" value={d.aiOverview?.likely ? t('seo.likely', null, 'Probabile') : t('seo.unlikely', null, 'Improbabile')} note={d.aiOverview?.note} />
@@ -585,7 +585,7 @@ function GSCPanel() {
             <PdfButton type="gsc" data={data} />
           </div>
           {/* KPI con delta vs periodo precedente */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
             <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiClicks', null, 'Click')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.clicks)}<Delta v={data.deltas.clicks} /></div></div>
             <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiImpressions', null, 'Impression')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.impressions)}<Delta v={data.deltas.impressions} /></div></div>
             <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiCtr', null, 'CTR medio')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{pct(data.totals.ctr)}<Delta v={data.deltas.ctr} suffix="pp" /></div></div>
@@ -610,7 +610,7 @@ function GSCPanel() {
           </Block>
 
           {/* Brand vs non-brand + Paesi (mini grafici) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+          <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
             <Block title={t('seo.brandedTraffic', null, 'Traffico correlato al brand')}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
                 <span style={{ flex: 1 }}>{t('seo.withBrand', null, 'Con brand')}</span><span style={{ fontWeight: 700 }}>{data.branded.brandedPct}%</span>
@@ -633,7 +633,7 @@ function GSCPanel() {
 
           {/* Pagine in crescita / calo */}
           {(data.pageMovers.up.length > 0 || data.pageMovers.down.length > 0) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+            <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
               <Block title={t('seo.pagesUp', null, '↑ Pagine in crescita (click vs periodo prec.)')}>
                 {data.pageMovers.up.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>—</div>}
                 {data.pageMovers.up.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 12.5, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#30d158', fontWeight: 700 }}>+{nf(p.delta)}</span></div>)}
@@ -689,7 +689,7 @@ const tdStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', 
 function ScoreHeader({ score, label, summary, url, meta }) {
   const { t } = useI18n()
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
+    <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
       <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
         <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreCol(score) }}>{score}</div>
         <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>/ 100 · {label}</div>

@@ -770,7 +770,7 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
         textTransform: 'uppercase',
         marginBottom: 10,
       }}>{title}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+      <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
         {cards.map((c, idx) => (
           <div key={idx} style={{
             padding: '7px 8px',
@@ -909,7 +909,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           </div>
 
           {/* Charts: pie + area */}
-          <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1.4fr)', gap:14, marginBottom:14}}>
+          <div className="m-stack" style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1.4fr)', gap:14, marginBottom:14}}>
             {/* Pie chart */}
             <div style={{
               padding:18, borderRadius:16,
@@ -1030,7 +1030,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           </div>
 
           {/* NC + RC segment detail */}
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+          <div className="m-stack" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
             <SegmentBlock
               title={t('kpi.segNew', null, 'Nuovi clienti')}
               accent={{ text:'#67e8f9', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}

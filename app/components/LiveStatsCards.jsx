@@ -31,7 +31,7 @@ export default function LiveStatsCards() {
   const max = locations.reduce((m, l) => Math.max(m, l.activeUsers), 0) || 1
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+    <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
       {/* Visitatori in questo momento */}
       <div className="glass-card" style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>

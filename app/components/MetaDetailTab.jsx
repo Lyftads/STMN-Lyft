@@ -1017,7 +1017,7 @@ export default function MetaDetailTab() {
       </div>
 
       {/* Comparazione + Insight */}
-      <div style={{
+      <div className="m-stack" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: 16,
@@ -1029,7 +1029,7 @@ export default function MetaDetailTab() {
           glow={ACCENT_GLOW}
           delay={0}
         >
-          <div style={{
+          <div className="m-grid2" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
             gap: 10,

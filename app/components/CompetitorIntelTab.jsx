@@ -880,7 +880,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
 
             {ads.length > 0 && (
               <div
-                className="stagger-zoom"
+                className="stagger-zoom m-stack"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -1021,7 +1021,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
             {/* Price stats */}
             {stats.totalProducts > 0 && (
               <div
-                className="stagger-zoom"
+                className="stagger-zoom m-grid2"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
@@ -1133,7 +1133,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
             {displayProducts.length > 0 ? (
               <>
                 <div
-                  className="stagger-zoom"
+                  className="stagger-zoom m-grid2"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -1426,7 +1426,7 @@ export default function CompetitorIntelTab({ onNavigate }) {
                 )}
               </div>
               {adResults.length > 0 ? (
-                <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+                <div className="stagger-zoom m-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
                   {adResults.map((ad, i) => (
                     <AdCard key={ad.id || i} ad={ad} index={i} />
                   ))}
@@ -1442,7 +1442,7 @@ export default function CompetitorIntelTab({ onNavigate }) {
       {/* Overview Cards */}
       {competitors.length > 0 && (
         <div
-          className="stagger-zoom"
+          className="stagger-zoom m-stack"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${competitors.length}, minmax(0, 1fr))`,
@@ -1477,6 +1477,7 @@ export default function CompetitorIntelTab({ onNavigate }) {
                 </div>
 
                 <div
+                  className="m-stack"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',

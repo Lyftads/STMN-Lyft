@@ -156,7 +156,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
         {t.revenue > 0 && (
           <>
             {/* KPI Total Impact */}
-            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
+            <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
               <Stat label={tr('attr.totalRevenue', null, 'Fatturato totale')} value={eur(t.revenue)} sub={`${nf(t.orders)} ${tr('kpi.ordersWord', null, 'ordini')}`} dd={d.revenue} dataKey="revenue" sparkColor="#30d158" />
               <Stat label={tr('attr.adSpendMeta', null, 'Spesa Ads (Meta)')} value={eur(t.adSpend)} dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
               <Stat label={tr('attr.merBlended', null, 'MER blended')} value={`${(t.blendedMer || 0).toFixed(2)}x`} sub={tr('attr.revPerSpend', null, 'Fatturato / Ad Spend')} dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
@@ -164,7 +164,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
             </div>
 
             {/* Paid vs Organico */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 20 }}>
+            <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 20 }}>
               <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16 }}>
                 <div className="label" style={{ marginBottom: 12 }}>{tr('attr.paidVsOrganic', null, 'Paid/marketing vs Organico')}</div>
                 <ResponsiveContainer width="100%" height={190}>
@@ -241,7 +241,7 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
             </div>
 
             {/* Nuovi vs ritorno */}
-            <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12, margin: '12px 0 8px' }}>
+            <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12, margin: '12px 0 8px' }}>
               <Stat label={tr('attr.ncRevenue', null, 'Fatturato nuovi clienti')} value={eur(cust.ncRevenue)} sub={tr('attr.ncSub', { nc: nf(cust.nc), pct: cust.ncPct }, `${nf(cust.nc)} NC · ${cust.ncPct}% del fatturato`)} tone="var(--cyan)" />
               <Stat label={tr('attr.rcRevenue', null, 'Fatturato clienti di ritorno')} value={eur(cust.rcRevenue)} sub={tr('attr.rcSub', { rc: nf(cust.rc) }, `${nf(cust.rc)} RC`)} tone="var(--purple)" />
               <Stat label={tr('attr.acqShare', null, 'Quota acquisizione')} value={`${cust.ncPct}%`} sub={tr('attr.acqSub', null, 'fatturato da nuovi clienti')} />

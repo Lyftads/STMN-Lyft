@@ -175,14 +175,14 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
       </button>
 
       {open && typeof document !== 'undefined' && createPortal((
-        <div ref={popoverRef} style={{
+        <div ref={popoverRef} className="bm-tf-pop" style={{
           position: 'fixed', top: pos.top, right: pos.right, zIndex: 2147483000,
           background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 14,
           boxShadow: '0 20px 60px rgba(0,0,0,0.55)', display: 'flex', overflow: 'hidden',
           maxWidth: '94vw', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto',
         }}>
           {/* Sidebar preset */}
-          <div style={{ width: 210, borderRight: '1px solid var(--border)', padding: '14px 10px', maxHeight: 420, overflowY: 'auto' }}>
+          <div className="bm-tf-presets" style={{ width: 210, borderRight: '1px solid var(--border)', padding: '14px 10px', maxHeight: 420, overflowY: 'auto' }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 8px' }}>{t('tf.period', null, 'Period')}</div>
             {PRESET_IDS.map(id => {
               const on = draft.preset === id
@@ -202,12 +202,14 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
             })}
           </div>
 
-          {/* Calendari */}
-          <div style={{ padding: 16, minWidth: 540 }}>
-            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+          {/* Calendari (mobile: un mese solo, layout in colonna — vedi .bm-tf-* in globals) */}
+          <div className="bm-tf-cal" style={{ padding: 16, minWidth: 540 }}>
+            <div className="bm-tf-months" style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
               <CalNav onPrev={() => shiftMonth(-1)} side="left" />
               <Month y={viewM.y} m={viewM.m} draft={draft} onPick={pickDay} accent={accent} loc={loc} />
-              <Month y={new Date(viewM.y, viewM.m + 1, 1).getFullYear()} m={new Date(viewM.y, viewM.m + 1, 1).getMonth()} draft={draft} onPick={pickDay} accent={accent} loc={loc} />
+              <div className="bm-tf-m2" style={{ display: 'contents' }}>
+                <Month y={new Date(viewM.y, viewM.m + 1, 1).getFullYear()} m={new Date(viewM.y, viewM.m + 1, 1).getMonth()} draft={draft} onPick={pickDay} accent={accent} loc={loc} />
+              </div>
               <CalNav onNext={() => shiftMonth(1)} side="right" />
             </div>
 

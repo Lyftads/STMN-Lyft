@@ -919,8 +919,11 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    .m-stack = 1 colonna su mobile · .m-grid2 = 2 colonne su mobile.
    Su desktop non fanno nulla (vincono gli stili inline). */
 @media (max-width: 768px) {
-  .m-stack { grid-template-columns: 1fr !important; }
-  .m-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  /* Griglie impilate + più respiro tra card e sezioni */
+  .m-stack { grid-template-columns: 1fr !important; gap: 18px !important; }
+  .m-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 14px !important; }
+  .m-stack:not(:last-child), .m-grid2:not(:last-child) { margin-bottom: 26px !important; }
+  .app-main .glass-section:not(:last-child) { margin-bottom: 28px; }
 
   /* LyftTalk: il pannello thread (360px fissi accanto alla chat) su mobile
      diventa un overlay a tutto schermo — si chiude con la sua ×. */
@@ -932,6 +935,25 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     border-radius: 0 !important;
     background: rgba(8, 8, 16, 0.99) !important;
   }
+
+  /* Timeframe picker (BmTimeframe): su desktop è sidebar-preset + DOPPIO
+     calendario (~750px) → su mobile andava tagliato. Qui: pannello a tutta
+     larghezza in colonna, preset compatti in alto, UN solo mese. */
+  .bm-tf-pop {
+    left: 8px !important;
+    right: 8px !important;
+    flex-direction: column !important;
+    max-width: none !important;
+  }
+  .bm-tf-presets {
+    width: 100% !important;
+    max-height: 172px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+  }
+  .bm-tf-cal { min-width: 0 !important; padding: 12px !important; }
+  .bm-tf-months { justify-content: space-between; gap: 6px !important; }
+  .bm-tf-m2 { display: none !important; }
 }
 
 /* iOS: input sotto i 16px causano lo zoom automatico al focus */

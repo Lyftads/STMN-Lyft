@@ -505,16 +505,16 @@ export default function ChatTab({ standalone = false }) {
         {!standalone && <a href="/chat" target="_blank" rel="noopener" style={{ ...BTN, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>↗ {tr('ch.openAsApp', null, 'Open as app')}</a>}
       </div>
 
-      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '70vh' }}>
+      <div className="m-chat" style={{ display: 'flex', gap: 14, alignItems: 'stretch', height: standalone ? 'calc(100dvh - 110px)' : '70vh' }}>
         {/* Rail icone (a colonne) */}
-        <div style={{ ...PANEL, width: 60, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0' }}>
+        <div className="m-chatrail" style={{ ...PANEL, width: 60, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 0' }}>
           <RailBtn active={rail === 'home'} onClick={() => selectRail('home')} title={tr('ch.allChannels', null, 'All channels')}><Icon name="hash" size={20} /></RailBtn>
           <RailBtn active={rail === 'dms'} onClick={() => selectRail('dms')} title={tr('ch.directMessages', null, 'Direct messages')}><Icon name="dm" size={20} /></RailBtn>
           <RailBtn active={rail === 'unread'} onClick={() => selectRail('unread')} title={tr('ch.unread', null, 'Unread')} badge={unreadList.length}><Icon name="inbox" size={20} /></RailBtn>
           <RailBtn active={rail === 'files'} onClick={() => selectRail('files')} title={tr('ch.sharedFiles', null, 'Shared files')}><Icon name="folder" size={20} /></RailBtn>
         </div>
         {/* Sidebar */}
-        <aside style={{ ...PANEL, width: 248, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
+        <aside className="m-chanlist" style={{ ...PANEL, width: 248, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {rail === 'home' && (<>
               <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.channels', null, 'Channels')}</div>

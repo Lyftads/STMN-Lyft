@@ -218,9 +218,9 @@ export default function TasksTab() {
       </div>
 
       {(view === 'board' || view === 'mine') && (
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div className="m-cols" style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
           {/* Sidebar progetti */}
-          <aside style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
+          <aside className="m-sidenav" style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
             <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>{t('tk.projects', null, 'Projects')}</div>
             <SideItem label={t('tk.allProjects', null, 'All projects')} count={tasks.length} active={view === 'board' && activeProject === 'all'} onClick={() => { setActiveProject('all'); setView('board') }} />
             {projects.map(p => (

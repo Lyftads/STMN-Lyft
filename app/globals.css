@@ -930,6 +930,34 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   .m-scrollx { overflow-x: auto !important; }
   .m-scrollx > * { min-width: 560px; }
 
+  /* Layout "sidebar + contenuto" (Progetti&Task, Lyftimer): impilati in colonna */
+  .m-cols { flex-direction: column !important; }
+
+  /* La sidebar di navigazione diventa una barra orizzontale scrollabile */
+  .m-sidenav {
+    width: 100% !important;
+    position: static !important;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    gap: 6px;
+    align-items: center;
+    -webkit-overflow-scrolling: touch;
+  }
+  .m-sidenav > * { width: auto !important; flex: 0 0 auto; white-space: nowrap; }
+
+  /* LyftTalk: layout messenger in colonna — rail icone in alto (orizzontale),
+     lista canali compatta scrollabile, chat sotto a piena larghezza */
+  .m-chat { flex-direction: column !important; height: calc(100dvh - 190px) !important; min-height: 480px; }
+  .m-chatrail {
+    flex-direction: row !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 8px 6px !important;
+    justify-content: space-around;
+  }
+  .m-chanlist { width: 100% !important; flex: 0 0 auto !important; max-height: 168px; }
+
   /* LyftTalk: il pannello thread (360px fissi accanto alla chat) su mobile
      diventa un overlay a tutto schermo — si chiude con la sua ×. */
   .m-thread {

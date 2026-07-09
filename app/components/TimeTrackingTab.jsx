@@ -395,7 +395,7 @@ export default function TimeTrackingTab({ standalone = false }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+      <div className="m-cols" style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
         <LyftSidebar section={section} setSection={setSection} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -961,7 +961,7 @@ function LyftSidebar({ section, setSection }) {
     ['projects', t('lt.navProjects', null, 'Projects'), 'folder'],
   ]
   return (
-    <aside style={{ width: 192, flexShrink: 0, ...card, padding: 8, position: 'sticky', top: 12, alignSelf: 'flex-start' }}>
+    <aside className="m-sidenav" style={{ width: 192, flexShrink: 0, ...card, padding: 8, position: 'sticky', top: 12, alignSelf: 'flex-start' }}>
       {items.map(([id, label, icon]) => {
         const active = section === id
         return (

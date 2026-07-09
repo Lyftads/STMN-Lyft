@@ -42,7 +42,7 @@ function buildHtml(data, t, loc) {
   const inner = `
     <div class="hd">
       <div><div class="h1">${t.title}</div><div class="sub">${t.sub}</div></div>
-      <div class="meta">${t.range}: ${data.range?.since} → ${data.range?.until}<br>${t.rel}: R² ${(data.r2 || 0).toFixed(2)}</div>
+      <div class="meta">${t.range}: ${data.range?.since} → ${data.range?.until}<br>${t.rel}: ${data.confidence != null ? Math.round(data.confidence * 100) + '%' : 'R² ' + (data.r2 || 0).toFixed(2)}</div>
     </div>
     <div class="cards">
       <div class="card"><div class="cl">${t.totRev}</div><div class="cv">${nf(data.totalRevenue)}</div></div>

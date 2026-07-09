@@ -58,8 +58,26 @@ export default function IncrContributionTab() {
   useEffect(() => { return load() }, [locale]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const channels = data?.channels || []
-  const reliability = data?.r2 != null ? (data.r2 >= 0.6 ? 'high' : data.r2 >= 0.35 ? 'medium' : 'low') : null
+  // Affidabilità composita (v7): copertura dati + ricavi riportati reali +
+  // coerenza attribuzione. Fallback legacy su r2 solo per cache vecchie.
+  const conf = data?.confidence
+  const reliability = conf != null
+    ? (conf >= 0.7 ? 'high' : conf >= 0.45 ? 'medium' : 'low')
+    : (data?.r2 != null ? (data.r2 >= 0.6 ? 'high' : data.r2 >= 0.35 ? 'medium' : 'low') : null)
   const relColor = { high: '#22c55e', medium: '#f59e0b', low: '#ef4444' }[reliability] || 'var(--text3)'
+  // Fattori che spiegano lo score (chips "perché")
+  const confWhy = (() => {
+    const p = data?.confidenceParts
+    if (!p) return []
+    const items = []
+    items.push({ ok: p.coverageScore >= 0.8, label: t('incr.confDays', { d: p.days }, `${p.days} days of data`) })
+    items.push(p.reportedScore >= 0.99
+      ? { ok: true, label: t('incr.confRepOk', null, 'real reported revenue') }
+      : { ok: false, label: t('incr.confRepEst', null, 'part of reported revenue is estimated') })
+    if (p.repRatio != null && p.repRatio > 1.2) items.push({ ok: false, label: t('incr.confSanityBad', null, 'attribution above revenue (double counting)') })
+    if (p.spendCv < 0.2) items.push({ ok: true, neutral: true, label: t('incr.confFlat', null, 'steady spend (normal for always-on)') })
+    return items
+  })()
   const totalInc = channels.reduce((s, c) => s + (c.incrementalRevenue || 0), 0)
   const totalSpend = channels.reduce((s, c) => s + (c.spend || 0), 0)
   const baselinePct = data?.totalRevenue > 0 ? (data.baselineRevenue / data.totalRevenue) : 0
@@ -82,8 +100,8 @@ export default function IncrContributionTab() {
           <span>{t('incr.contribSub', null, 'What each channel really adds vs the organic baseline — last 150 days')}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             {reliability && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: relColor, background: relColor + '1a', border: `1px solid ${relColor}44`, borderRadius: 999, padding: '5px 12px' }}>
-                <Icon name="pulse" size={12} /> {t('incr.reliability', null, 'Reliability')}: {t('incr.rel_' + reliability, null, reliability)} · R² {data.r2.toFixed(2)}
+              <span title={confWhy.map(w => w.label).join(' · ')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: relColor, background: relColor + '1a', border: `1px solid ${relColor}44`, borderRadius: 999, padding: '5px 12px' }}>
+                <Icon name="pulse" size={12} /> {t('incr.reliability', null, 'Reliability')}: {t('incr.rel_' + reliability, null, reliability)}{conf != null ? ` · ${Math.round(conf * 100)}%` : (data?.r2 != null ? ` · R² ${data.r2.toFixed(2)}` : '')}
               </span>
             )}
             <button onClick={() => load(true)} disabled={loading} title={t('common.refresh', null, 'Refresh')} className="btn-glass" style={{ padding: '7px 10px', cursor: loading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center' }}>
@@ -138,6 +156,25 @@ export default function IncrContributionTab() {
               <Icon name="info" size={12} /> {t('incr.methodNote', null, 'Realistic estimate: we start from platform-reported revenue and apply typical e-commerce incrementality factors (Meta ~70%, Google ~55%, reduced by saturation), with a minimum organic baseline. These are priors — the geo-lift gives certainty.')}
               <br /><Icon name="info" size={12} /> {t('incr.satNote', null, 'Saturation is a model estimate anchored to your spend distribution (per-channel knee), not measured — the geo-lift reveals the real curve.')}
             </div>
+
+            {/* Perché questo livello di affidabilità (fattori dello score) */}
+            {confWhy.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '0 0 14px', position: 'relative', zIndex: 2 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('incr.confWhy', null, 'Why')}:</span>
+                {confWhy.map((w, i) => (
+                  <span key={i} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
+                    color: w.neutral ? 'var(--text3)' : w.ok ? '#86efac' : '#fbbf24',
+                    background: w.neutral ? 'rgba(255,255,255,0.04)' : w.ok ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)',
+                    border: `1px solid ${w.neutral ? 'rgba(255,255,255,0.08)' : w.ok ? 'rgba(34,197,94,0.30)' : 'rgba(251,191,36,0.30)'}`,
+                  }}>
+                    {w.neutral ? <Icon name="info" size={11} /> : w.ok ? <Icon name="check" size={11} /> : <Icon name="warning" size={11} />}
+                    {w.label}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Banner affidabilità: cosa fidarsi e cosa no */}
             {reliability !== 'high' && (

@@ -989,6 +989,23 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   .bm-tf-m2 { display: none !important; }
 }
 
+/* Onboarding (tab in-app + /onboarding standalone): su mobile i 10 chip non
+   possono stare in una riga a larghezza uniforme → fila scorrevole col dito,
+   auto-centrata sullo step attivo (scrollIntoView nel componente). */
+@media (max-width: 768px) {
+  .ob-chips {
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 2px 8px;
+  }
+  .ob-chips::-webkit-scrollbar { display: none; }
+  .ob-chip { flex: 0 0 82px !important; }
+  .ob-title { font-size: 24px !important; }
+  .ob-card { padding: 18px 14px !important; }
+}
+
 /* iOS: input sotto i 16px causano lo zoom automatico al focus */
 @media (max-width: 768px) {
   .app-main input[type="text"],

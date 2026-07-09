@@ -208,6 +208,12 @@ export function OnboardingInner({ embedded = false } = {}) {
 
   const step = STEPS[currentStep]
 
+  // Mobile: la fila di chip scorre — centra automaticamente lo step attivo.
+  const curChipRef = useRef(null)
+  useEffect(() => {
+    curChipRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [currentStep])
+
   const setField = (k, v) => setValues(prev => ({ ...prev, [k]: v }))
 
   const handleSaveStep = async () => {
@@ -329,7 +335,7 @@ export function OnboardingInner({ embedded = false } = {}) {
           }}>
             {t('obp.setupLabel', null, 'Initial setup')}
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.03em' }}>
+          <h1 className="ob-title" style={{ fontSize: 32, fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.03em' }}>
             {t('obp.title', null, 'Connect your integrations')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text3)', marginTop: 12, lineHeight: 1.5 }}>
@@ -338,8 +344,9 @@ export function OnboardingInner({ embedded = false } = {}) {
         </div>
 
         {/* Progress — chip in UN'UNICA riga (larghezza uniforme). Verde + spunta =
-            collegato; spento/grigio = ancora da collegare. */}
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, marginBottom: 30 }}>
+            collegato; spento/grigio = ancora da collegare. Su mobile (.ob-chips)
+            la fila scorre in orizzontale e si auto-centra sullo step attivo. */}
+        <div className="ob-chips" style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, marginBottom: 30 }}>
           {STEPS.map((s, i) => {
             const done = isStepDone(s.id)
             const isCurrent = i === currentStep
@@ -349,6 +356,8 @@ export function OnboardingInner({ embedded = false } = {}) {
             return (
               <div
                 key={s.id}
+                ref={isCurrent ? curChipRef : undefined}
+                className="ob-chip"
                 title={done ? `${s.label} · collegato` : s.label}
                 style={{
                   position: 'relative', boxSizing: 'border-box', flex: '1 1 0', minWidth: 0,
@@ -381,7 +390,7 @@ export function OnboardingInner({ embedded = false } = {}) {
         </div>
 
         {/* Step card */}
-        <div className="glass-card-static" style={{ padding: 28 }}>
+        <div className="glass-card-static ob-card" style={{ padding: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
             <StepLogo id={step.id} size={52} radius={14} fallback={
               <span style={{

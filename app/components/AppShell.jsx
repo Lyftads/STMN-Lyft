@@ -59,6 +59,8 @@ export default function AppShell({
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
 const [helpOpen, setHelpOpen] = useState(false)
+  // Mobile: sidebar come drawer a scomparsa (hamburger). Desktop invariato.
+  const [mobileNav, setMobileNav] = useState(false)
   useEffect(() => {
     let alive = true
     const load = () => fetch('/api/actions?status=pending')
@@ -223,6 +225,7 @@ const [helpOpen, setHelpOpen] = useState(false)
     .filter(g => g.items.length > 0)
 
   const goTo = (id) => {
+    setMobileNav(false) // su mobile il tap su una voce chiude il drawer
     // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra
     // (la board è importante e merita lo spazio pieno, come "Apri come app").
     if (id === 'creativeStudio') {
@@ -310,8 +313,11 @@ const [helpOpen, setHelpOpen] = useState(false)
         }} />
       </div>
 
-      {/* Sidebar */}
-      <aside style={{
+      {/* Backdrop mobile: chiude il drawer al tap fuori */}
+      {mobileNav && <div className="app-nav-backdrop" onClick={() => setMobileNav(false)} />}
+
+      {/* Sidebar (desktop: colonna fissa · mobile: drawer via .app-sidebar) */}
+      <aside className={`app-sidebar${mobileNav ? ' open' : ''}`} style={{
         width: 240,
         minWidth: 240,
         height: '100vh',
@@ -458,7 +464,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       </aside>
 
       {/* Main */}
-      <main style={{
+      <main className="app-main" style={{
         flex: 1,
         minWidth: 0,
         height: '100vh',
@@ -469,7 +475,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       }}>
         <div style={{ maxWidth: 1440, margin: '0 auto' }}>
           {/* Header */}
-          <header style={{
+          <header className="app-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-end',
@@ -479,6 +485,10 @@ const [helpOpen, setHelpOpen] = useState(false)
             zIndex: 10,   // sopra il globo della dashboard (top:-80px lo fa
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
+            {/* Hamburger (solo mobile): apre la sidebar-drawer */}
+            <button type="button" className="app-burger" aria-label="Menu" onClick={() => setMobileNav(true)}>
+              <span /><span /><span />
+            </button>
             {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' && tab !== 'helpCenter' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>

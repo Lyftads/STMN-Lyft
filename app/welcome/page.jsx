@@ -1223,6 +1223,24 @@ function Styles() {
         .aurora, .p-dot, .globe-ring { display: none !important; }
       }
 
+      /* ── Nav responsive: desktop = link inline, mobile = hamburger + tendina ── */
+      .nav-desktop { display: flex; align-items: center; gap: 16px; }
+      .nav-burger { display: none; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 10px; width: 42px; height: 38px; cursor: pointer; padding: 0;
+        align-items: center; justify-content: center; flex-direction: column; gap: 4.5px; }
+      .nav-burger span { display: block; width: 17px; height: 2px; border-radius: 2px; background: #fff;
+        transition: transform .25s cubic-bezier(0.16,1,0.3,1), opacity .2s; }
+      .nav-burger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+      .nav-burger.open span:nth-child(2) { opacity: 0; }
+      .nav-burger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+      @keyframes mobMenuIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+      .nav-mobile { display: none; animation: mobMenuIn .22s ease-out; }
+      @media (max-width: 920px) {
+        .nav-desktop { display: none; }
+        .nav-burger { display: inline-flex; }
+        .nav-mobile { display: block; }
+      }
+
       html { scroll-behavior: smooth; }
     `}</style>
   )
@@ -1525,12 +1543,21 @@ function MagneticCta({ href, children, style }) {
 function Nav({ t, lang, setLang }) {
   const [openLang, setOpenLang] = useState(false)
   const [openSol, setOpenSol] = useState(false)
+  const [openMobile, setOpenMobile] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
     const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpenLang(false) }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  // Voci della tendina mobile (ancore + login). Il click chiude il menu.
+  const mobileLinks = [
+    { href: '#tabs-tour', label: t.nav.solutions },
+    { href: '#features', label: t.nav.features },
+    { href: '#pricing', label: t.nav.pricing },
+    { href: '#contact', label: t.nav.contact },
+  ]
 
   return (
     <header style={{
@@ -1546,7 +1573,7 @@ function Nav({ t, lang, setLang }) {
           <LogoMark size={32} />
           <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: '-0.02em', color: '#fff' }}>LyftAI</span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="nav-desktop">
           <button onClick={() => setOpenSol(o => !o)} style={{ ...navLinkStyle, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', color: openSol ? '#fff' : navLinkStyle.color }}>
             {t.nav.solutions} <span style={{ fontSize: 8, opacity: 0.6, transform: openSol ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
           </button>
@@ -1596,7 +1623,57 @@ function Nav({ t, lang, setLang }) {
             boxShadow: '0 10px 30px rgba(191,90,242,0.25)',
           }}>{t.nav.cta}</Link>
         </div>
+
+        {/* Mobile: hamburger (i link inline sopra sono nascosti sotto i 920px) */}
+        <button
+          type="button"
+          className={`nav-burger${openMobile ? ' open' : ''}`}
+          aria-label="Menu"
+          aria-expanded={openMobile}
+          onClick={() => setOpenMobile(o => !o)}
+        >
+          <span /><span /><span />
+        </button>
       </div>
+
+      {/* Tendina mobile: si apre sotto la barra e spinge giù il contenuto */}
+      {openMobile && (
+        <div className="nav-mobile" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(5,5,12,0.97)' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 24px 20px', display: 'flex', flexDirection: 'column' }}>
+            {mobileLinks.map(l => (
+              <a key={l.href} href={l.href} onClick={() => setOpenMobile(false)} style={{
+                padding: '14px 4px', textDecoration: 'none',
+                color: 'rgba(255,255,255,0.88)', fontSize: 15, fontWeight: 700,
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+              }}>{l.label}</a>
+            ))}
+            <Link href="/login" onClick={() => setOpenMobile(false)} style={{
+              padding: '14px 4px', textDecoration: 'none',
+              color: 'rgba(255,255,255,0.88)', fontSize: 15, fontWeight: 700,
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}>{t.nav.login}</Link>
+
+            {/* Lingue */}
+            <div style={{ display: 'flex', gap: 8, padding: '16px 0 4px' }}>
+              {Object.keys(I18N).map(code => (
+                <button key={code} type="button" onClick={() => { setLang(code); setOpenMobile(false) }} style={{
+                  flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                  background: lang === code ? `${ACCENT}2b` : 'rgba(255,255,255,0.04)',
+                  border: lang === code ? `1px solid ${ACCENT}88` : '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff', fontSize: 12, fontWeight: 800,
+                }}>{LANG_LABELS[code]}</button>
+              ))}
+            </div>
+
+            <Link href="/register" onClick={() => setOpenMobile(false)} style={{
+              marginTop: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'center',
+              background: `linear-gradient(135deg, ${ACCENT}, ${BLUE})`,
+              color: '#fff', textDecoration: 'none', fontSize: 14.5, fontWeight: 800,
+              boxShadow: '0 12px 34px rgba(191,90,242,0.30)',
+            }}>{t.nav.cta} →</Link>
+          </div>
+        </div>
+      )}
 
       {/* Mega-menu Soluzioni */}
       {openSol && (

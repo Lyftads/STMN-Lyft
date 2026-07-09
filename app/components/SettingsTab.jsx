@@ -618,7 +618,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
             }}>{statusBadge.label}</div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
+          <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 22 }}>
             <div style={{ padding: 14, borderRadius: 11, background: 'var(--glass)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>
                 {t('settings.currentPeriod', null, 'Periodo corrente')}

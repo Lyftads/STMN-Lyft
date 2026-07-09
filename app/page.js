@@ -510,7 +510,7 @@ function Simulator({ cfg }) {
     <div>
       {/* Header */}
       {/* LTV:CAC + Target 3:1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18 }}>
         {fxBlock((
           <>
             <div style={{ marginBottom: 18 }}>
@@ -608,7 +608,7 @@ function Simulator({ cfg }) {
         </p>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:24}}>
+      <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:24}}>
         {scenarios.map((sc,i) => {
           const color = scenarioColors[i]
           return (
@@ -843,7 +843,7 @@ function Simulator({ cfg }) {
         </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
+      <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:20}}>
         <div
           style={{
             position: 'relative',
@@ -1247,7 +1247,7 @@ function Simulator({ cfg }) {
             {/* Visione a 12 mesi */}
             <div style={{marginBottom:18}}>
               <p style={{fontSize:10,color:'var(--text3)',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:12}}>{t('sim.projection12', null, 'Proiezione 12 mesi')}</p>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+              <div className="m-grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
                 {cashFlowAnalysis.map((r,i) => (
                   <div key={i} style={{
                     background: 'var(--glass)',
@@ -2105,7 +2105,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
 
       {filled.length > 0 && (
         <>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -2161,7 +2161,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
             </FxChartCard>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
               <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -2867,7 +2867,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.revenue', null, 'Fatturato')} value={totFat>0?f0(totFat):'—'} sources={['shopify']}
               sparkData={swCurrent.map(w=>w.fatturato)} sparkColor="var(--green)"
               current={totFat} previous={prevTotals.revenue} />
@@ -2885,7 +2885,7 @@ export default function App() {
               current={totRC} previous={prevTotals.rc} />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.merBlended', null, 'MER blended')} value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
               current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
             <Stat label={t('dash.ltvGross', null, 'LTV lordo')} value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvSubData', { orders: lifeOrders, months: ltvAuto.months }, `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a`} />
@@ -2894,7 +2894,7 @@ export default function App() {
               current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
           </div>
 
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.metaSpend', null, 'Spesa Meta')} value={totMeta>0?f0(totMeta):'—'} sources={['meta']}
               sparkData={mwCurrent.map(w=>w.spend)} sparkColor="var(--accent)"
               current={periodTotals.metaSpend} previous={prevTotals.metaSpend} />
@@ -2905,7 +2905,7 @@ export default function App() {
           </div>
 
           {totResi > 0 && (
-            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
+            <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>
               <Stat label={t('dash.returnsTotal', null, 'Resi totali')} value={f0(totResi)} sources={['shopify']} />
               <Stat label={t('dash.returnsNew', null, 'Resi nuovi clienti')} value={totResiNC>0?f0(totResiNC):'—'} sources={['shopify']} dim />
               <Stat label={t('dash.returnsReturning', null, 'Resi clienti ritorno')} value={totResiRC>0?f0(totResiRC):'—'} sources={['shopify']} dim />
@@ -3290,7 +3290,7 @@ export default function App() {
           {/* Charts — futuristic */}
           {filled.length > 0 && (
           <>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
               <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                 <ResponsiveContainer width="100%" height={240}>
                   <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -3346,7 +3346,7 @@ export default function App() {
               </FxChartCard>
             </div>
 
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
               <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
                 <ResponsiveContainer width="100%" height={240}>
                   <ComposedChart data={chartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -3755,7 +3755,7 @@ export default function App() {
 
             {quarterChartData.length > 0 && (
               <>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
                   <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -3811,7 +3811,7 @@ export default function App() {
                   </FxChartCard>
                 </div>
 
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
                   <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={quarterChartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -4200,7 +4200,7 @@ export default function App() {
 
             {yearChartData.length > 0 && (
               <>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
                   <FxChartCard title={t('dash.chartRevSpendMer', null, 'Fatturato, Spesa e MER')} glowColor="#22c55e">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>
@@ -4256,7 +4256,7 @@ export default function App() {
                   </FxChartCard>
                 </div>
 
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
                   <FxChartCard title="AOV e CRO" glowColor="#f59e0b">
                     <ResponsiveContainer width="100%" height={240}>
                       <ComposedChart data={yearChartData} margin={{top:8,right:18,left:0,bottom:4}}>

@@ -600,7 +600,7 @@ function AdPreviewModal({ ad, onClose }) {
   )
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.74)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 820, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 0 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 820, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 0 }} className="m-stack">
         <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 340, padding: 8 }}>
           {media
             ? <img src={media} alt="" style={{ width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10 }} />
@@ -613,7 +613,7 @@ function AdPreviewModal({ ad, onClose }) {
             <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
           <div style={{ fontSize: 16, fontWeight: 950, color: 'var(--text)', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {stat(t('meta.spent', null, 'Speso'), fmtMoney(ad.spend, 0))}
             {stat('ROAS', fmtRatio(ad.roas))}
             {stat(t('meta.ctrLink', null, 'CTR link'), fmtPct(ad.ctr_link, 2))}

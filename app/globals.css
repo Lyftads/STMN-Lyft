@@ -915,6 +915,14 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   }
 }
 
+/* Utility per le griglie a colonne fisse delle tab (Fase 2):
+   .m-stack = 1 colonna su mobile · .m-grid2 = 2 colonne su mobile.
+   Su desktop non fanno nulla (vincono gli stili inline). */
+@media (max-width: 768px) {
+  .m-stack { grid-template-columns: 1fr !important; }
+  .m-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
 /* iOS: input sotto i 16px causano lo zoom automatico al focus */
 @media (max-width: 768px) {
   .app-main input[type="text"],

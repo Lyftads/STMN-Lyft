@@ -362,7 +362,7 @@ export default function KlaviyoTab() {
       </Section>
 
       {/* Segmenti & Liste */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <Section title={tr('klaviyo.segments', null, 'Segmenti')} color="#06b6d4" style={{ marginBottom: 0 }}>
           <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
             {(segments || []).map((s, i) => (

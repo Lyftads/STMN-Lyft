@@ -148,6 +148,11 @@
     .hud, .hint, .progress { display: none !important; }
     .slide { display: flex !important; width: 297mm; height: 167mm; page-break-after: always; padding: 14mm 20mm; }
     .bgfx { position: absolute; }
+    /* background-clip:text si rompe nell'export PDF di Chromium (dipinge un
+       blocco pieno sul testo multi-parola): in stampa il shine è tinta unita. */
+    .shine { animation: none !important; background: none !important;
+      -webkit-background-clip: initial !important; background-clip: initial !important;
+      -webkit-text-fill-color: #c9a6ff !important; color: #c9a6ff !important; }
   }
 </style>
 </head>

@@ -36,6 +36,18 @@ export default function LtvCohortsTab() {
   const [margin, setMargin] = useState(60)   // % margine lordo
   const [marginAuto, setMarginAuto] = useState(true)
   const [enrich, setEnrich] = useState(null) // { adSpend, metaSpend, googleSpend, grossMargin, costCoverage }
+  // LTV proiettato a maturità (ltv-auto): per un brand in crescita la media
+  // semplice della finestra è schiacciata dai clienti recentissimi (censoring);
+  // il proiettato usa i clienti con ≥3/6/12 mesi di anzianità = valore a cui
+  // arriva davvero un cliente. È il numero giusto per decidere lo scaling.
+  const [ltvAuto, setLtvAuto] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/ltv-auto?months=24').then(r => r.json())
+      .then(j => { if (!cancelled && j?.enoughData) setLtvAuto(j) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   // Enrichment: margine reale (product-performance) + spesa Meta/Google (kpi) sul
   // periodo selezionato → CAC = spesa ads ÷ nuovi clienti acquisiti.
@@ -105,7 +117,13 @@ export default function LtvCohortsTab() {
   const repeatChart = chrono.map(c => ({ name: c.label, repeat: c.repeatRate }))
 
   // ── LTV Lordo / Netto + CAC + Ratio LTV:CAC ──
-  const grossLtv = Number(s.avgLtv || 0)              // ricavo lifetime medio per cliente
+  // Headline = LTV PROIETTATO a maturità quando disponibile (corregge la
+  // sottostima da clienti recenti nei brand in crescita); la media semplice
+  // della finestra resta visibile come riferimento nel sottotitolo.
+  const simpleLtv = Number(s.avgLtv || 0)              // media semplice finestra (365gg default)
+  const projLtv = ltvAuto?.enoughData && Number(ltvAuto.projectedLtvGross) > 0 ? Number(ltvAuto.projectedLtvGross) : null
+  const usingProjected = projLtv != null
+  const grossLtv = usingProjected ? projLtv : simpleLtv
   const m = Math.max(0, Math.min(100, Number(margin) || 0)) / 100
   const netLtv = grossLtv * m                          // × margine lordo
   const newCustomers = Number(s.customers || 0)
@@ -154,7 +172,11 @@ export default function LtvCohortsTab() {
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.grossLtv', null, 'Gross LTV')}</div>
                 <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur2(grossLtv)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.lifetimePerCustomer', null, 'lifetime revenue / customer')}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>
+                  {usingProjected
+                    ? t('ltv.projMature', { m: ltvAuto.maturityMonths, v: eur2(simpleLtv) }, `projected at maturity (customers ≥${ltvAuto.maturityMonths} mo) · simple avg ${eur2(simpleLtv)}`)
+                    : t('ltv.lifetimePerCustomer', null, 'lifetime revenue / customer')}
+                </div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.netLtv', null, 'Net LTV')}</div>

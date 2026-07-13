@@ -132,6 +132,46 @@ Centro Assistenza (guide per ogni tab + pop-up contestuale) · Integrazioni · B
 - **Revenue aggiuntiva:** crediti Creative Lab/Studio (generazione AI) venduti via Stripe
 - Canali: signup diretto (Stripe) + **Shopify App Store** (Managed Pricing)
 
+## 7-bis. Mercato, competitor e posizionamento
+
+### Dimensione del mercato
+- **TAM** — Software di e-commerce analytics: **$9,6B (2025) → $23,7B (2030)**, CAGR ~20%. Il segmento marketing attribution vale $4,7B (2024) → $10,1B (2030), e la fascia **SMB è quella a crescita più rapida (CAGR 14,5%)**.
+- **SAM** — Brand Shopify in Europa: ~600k store attivi nei primi 5 mercati EU (UK 252k, DE 121k, FR 118k + IT/ES) + 44k merchant Shopify Plus globali + le agenzie che li gestiscono. Analytics/attribution per SMB-mid market: **~$2-3B**.
+- **SOM (36 mesi)** — 1.500 brand a €150/mese ARPA blended ≈ **€2,7M ARR**: meno dello 0,3% degli store attivi europei. Obiettivo volutamente conservativo.
+
+### Il dato che apre il mercato
+> **L'87% dei brand Shopify Plus non usa alcuna piattaforma di attribution dedicata**: riconcilia i report di Meta/Google/TikTok con gli ordini Shopify in un foglio di calcolo. Il mercato non è "rubare clienti ai competitor": è convertire chi oggi decide alla cieca.
+
+### Competitor landscape
+| Player | Cosa fa | Limiti (per il nostro ICP) |
+|---|---|---|
+| **Triple Whale** ($53M raised, ~8,5k brand, 11,4% dei Plus) | Dashboard + attribution DTC | US-centric, solo EN, $129→$2k+/mese, niente MMM vero né suite operativa (task/team/creative) |
+| **Northbeam** (~1,4% dei Plus) | Multi-touch attribution research-grade | $1k+/mese, solo misurazione: nessuna azione, nessun layer AI operativo |
+| **Polar Analytics** | BI + agenti AI per brand $10M+ GMV | Pensato per chi ha già un data team; niente P&L/inventario/CRM/PM |
+| **Suite MMM enterprise** (Measured, Rockerbox…) | Incrementalità seria | Decine di migliaia di €/anno, vendita enterprise, fuori portata SMB |
+| **Stack fai-da-te** (fogli + 10 tool verticali) | Lo status quo dell'87% | €700-900/mese sommati, zero integrazione, zero verità incrementale |
+
+### Posizionamento
+Due assi: **profondità della verità** (da attribution riportata → incrementalità causale) × **ampiezza della piattaforma** (da single-tool → sistema operativo).
+
+- LyftAI è l'unico nel quadrante **alto-destra**: incrementalità di livello enterprise + piattaforma operativa completa (analytics + AI team + creative + PM), a prezzo SMB.
+- **Cunei difendibili:** (1) **Europa-first** — 5 lingue native e GDPR by design in un mercato dove tutti i player sono US/EN-only; (2) **prezzo per ordini verificato** (fair, anti-churn); (3) **dual-market** brand + agenzie sullo stesso codebase; (4) velocità di shipping AI-augmented (45+ moduli in mesi).
+
+*Fonti: Knowledge Sourcing / Research&Markets (e-commerce analytics), Grand View Research (attribution), dati pubblici store Shopify EU, analisi comparative di settore 2025-26.*
+
+## 7-ter. L'ask — Pre-seed
+
+> ## **€300.000** · round pre-seed
+
+**Uso dei fondi (18 mesi di runway):**
+| Voce | Quota | Dettaglio |
+|---|---|---|
+| Go-to-market | 45% | Lancio Shopify App Store, paid acquisition, partnership con agenzie EU |
+| Prodotto & AI | 35% | Action layer, cervello unico, geo-lift readout, costi inference |
+| Team & ops | 20% | Primo hire growth/support, legale/compliance |
+
+**Milestone target a 18 mesi:** `[DA CONFERMARE: es. 300-500 brand attivi · €40-60k MRR · churn <3%]`
+
 ## 8. Sicurezza & compliance
 
 - **Isolamento multi-tenant** verificato: credenziali per-tenant (Nango + DB), RLS su Supabase, cache per-workspace, env del beta tenant esposte solo all'owner

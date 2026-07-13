@@ -129,8 +129,29 @@
   .tstep b { font-size: clamp(15px, 1.5vw, 19px); letter-spacing: -0.01em; }
   .tstep span { font-size: clamp(12px, 1.1vw, 14px); color: rgba(255,255,255,0.6); line-height: 1.5; }
 
-  .ask { margin-top: 10px; padding: 14px 26px; border-radius: 14px; border: 1.5px dashed #bf5af266;
-    color: var(--acc); font-weight: 800; font-size: 15px; letter-spacing: 0.02em; }
+  .banner87 { margin-top: 24px; padding: 18px 24px; border-radius: 16px;
+    background: linear-gradient(90deg, #bf5af214, #2997ff10); border: 1px solid #bf5af244;
+    font-size: clamp(13px, 1.35vw, 17px); font-weight: 700; line-height: 1.5; color: rgba(255,255,255,0.88); }
+
+  .comprows { display: flex; flex-direction: column; gap: 10px; }
+  .crow { display: grid; grid-template-columns: 150px 1fr 1.25fr; gap: 16px; align-items: center;
+    padding: 13px 20px; border-radius: 14px; }
+  .crow b { font-size: clamp(13px, 1.2vw, 15.5px); letter-spacing: -0.01em; }
+  .cwhat { font-size: clamp(11.5px, 1.05vw, 13.5px); color: rgba(255,255,255,0.6); line-height: 1.4; }
+  .climit { font-size: clamp(11.5px, 1.05vw, 13.5px); color: #fbbf24; line-height: 1.4; }
+  .posline { margin-top: 18px; font-size: clamp(13px, 1.25vw, 16px); font-weight: 700;
+    color: var(--acc); line-height: 1.5; }
+
+  .askbox { margin-top: 8px; padding: 20px 40px 18px; border-radius: 20px; text-align: center;
+    background: rgba(0,0,0,0.45); border: 1.5px solid #bf5af255;
+    box-shadow: 0 0 60px #bf5af222, inset 0 1px 0 rgba(255,255,255,0.08); }
+  .asklabel { font-size: 12px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase; color: var(--acc); }
+  .askamount { font-size: clamp(38px, 4.4vw, 58px); font-weight: 900; letter-spacing: -0.03em; margin: 4px 0 10px; }
+  .askfunds { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .fund { font-size: 12.5px; color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 6px 14px; }
+  .fund b { color: var(--green); }
+  .asknote { margin-top: 10px; font-size: 11.5px; color: var(--text3); }
 
   /* HUD navigazione */
   .hud { position: fixed; bottom: 22px; left: 0; right: 0; display: flex; justify-content: center; align-items: center;
@@ -166,17 +187,17 @@
     <div class="logo-wrap">
 <svg viewBox="0 0 100 100" class="logo-svg">
   <defs>
-    <linearGradient id="lgm" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="lgm-1" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#bf5af2"/><stop offset="100%" stop-color="#2997ff"/>
     </linearGradient>
-    <linearGradient id="lgl" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="lgl-1" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#f5f5f7" stop-opacity="0.9"/><stop offset="100%" stop-color="#f5f5f7" stop-opacity="0.3"/>
     </linearGradient>
   </defs>
-  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
+  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm-1)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
   <g transform="translate(50 50)">
-    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm)" opacity="0.95"/>
-    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl)" opacity="0.18"/>
+    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm-1)" opacity="0.95"/>
+    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl-1)" opacity="0.18"/>
   </g>
   <g transform="translate(50 50)" fill="#f5f5f7"><rect x="-9" y="-14" width="5" height="28" rx="2"/><rect x="-9" y="9" width="18" height="5" rx="2"/></g>
   <circle cx="78" cy="22" r="3" fill="#22c55e"><animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/></circle>
@@ -256,6 +277,24 @@
   </section>
 
   <section class="slide">
+    <div class="eyebrow">Mercato</div>
+    <h2>Un mercato grande che cresce del 20% l’anno</h2>
+    <div class="grid3">
+      <div class="glass stat"><div class="big shine">$23,7B</div><div class="small">TAM 2030 · e-commerce analytics software (da $9,6B nel 2025, CAGR ~20%)</div></div><div class="glass stat"><div class="big shine">$2-3B</div><div class="small">SAM · analytics & attribution per brand Shopify SMB-mid (EU: ~600k store attivi nei top-5 mercati)</div></div><div class="glass stat"><div class="big shine">€2,7M ARR</div><div class="small">SOM a 36 mesi · 1.500 brand × €150/mese = <0,3% degli store attivi europei</div></div>
+    </div>
+    <div class="banner87">L’87% dei brand Shopify Plus non usa ALCUNA piattaforma di attribution: riconcilia le ads con gli ordini in un foglio di calcolo. Il mercato non è rubare clienti — è convertire chi decide alla cieca.</div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Competitor & posizionamento</div>
+    <h2>Soli nel quadrante verità × piattaforma</h2>
+    <div class="comprows">
+      <div class="glass crow"><b>Triple Whale</b><span class="cwhat">dashboard + attribution DTC · $53M raised</span><span class="climit">US-only, EN-only, $129→$2k+/mese, niente MMM né suite operativa</span></div><div class="glass crow"><b>Northbeam</b><span class="cwhat">multi-touch attribution research-grade</span><span class="climit">$1k+/mese, solo misurazione: nessuna azione, nessun AI layer</span></div><div class="glass crow"><b>Polar Analytics</b><span class="cwhat">BI + agenti per brand $10M+ GMV</span><span class="climit">richiede data team; niente P&L, inventario, CRM, PM</span></div><div class="glass crow"><b>MMM enterprise</b><span class="cwhat">incrementalità seria (Measured, Rockerbox…)</span><span class="climit">decine di migliaia €/anno, fuori portata SMB</span></div><div class="glass crow"><b>Stack fai-da-te</b><span class="cwhat">lo status quo dell’87%</span><span class="climit">€700-900/mese in tool scollegati, zero verità incrementale</span></div>
+    </div>
+    <div class="posline">◆ LyftAI: incrementalità enterprise + sistema operativo completo, a prezzo SMB. Cunei: Europa-first (5 lingue, GDPR), fair pricing per ordini, dual-market brand+agenzie.</div>
+  </section>
+
+  <section class="slide">
     <div class="eyebrow">Business model</div>
     <h2>Il prezzo cresce col cliente, mai con le funzioni</h2>
     <div class="grid4">
@@ -306,27 +345,34 @@
   </section>
 
   <section class="slide cover">
-    <div class="logo-wrap" style="margin-bottom:18px">
+    <div class="logo-wrap" style="margin-bottom:14px">
 <svg viewBox="0 0 100 100" class="logo-svg">
   <defs>
-    <linearGradient id="lgm" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="lgm-2" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#bf5af2"/><stop offset="100%" stop-color="#2997ff"/>
     </linearGradient>
-    <linearGradient id="lgl" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="lgl-2" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#f5f5f7" stop-opacity="0.9"/><stop offset="100%" stop-color="#f5f5f7" stop-opacity="0.3"/>
     </linearGradient>
   </defs>
-  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
+  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm-2)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
   <g transform="translate(50 50)">
-    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm)" opacity="0.95"/>
-    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl)" opacity="0.18"/>
+    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm-2)" opacity="0.95"/>
+    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl-2)" opacity="0.18"/>
   </g>
   <g transform="translate(50 50)" fill="#f5f5f7"><rect x="-9" y="-14" width="5" height="28" rx="2"/><rect x="-9" y="9" width="18" height="5" rx="2"/></g>
   <circle cx="78" cy="22" r="3" fill="#22c55e"><animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/></circle>
 </svg></div>
     <h1><span class="shine">Smetti di scegliere</span><br>a sentimento.</h1>
     <p class="sub">LyftAI porta la verità incrementale e una squadra AI dentro ogni brand e-commerce.</p>
-    <div class="ask">ASK: [round / importo / uso dei fondi — da compilare]</div>
+    <div class="askbox">
+      <div class="asklabel">Pre-seed</div>
+      <div class="askamount">€300.000</div>
+      <div class="askfunds">
+        <span class="fund"><b>45%</b> Go-to-market</span><span class="fund"><b>35%</b> Prodotto & AI</span><span class="fund"><b>20%</b> Team & ops</span>
+      </div>
+      <div class="asknote">18 mesi di runway</div>
+    </div>
     <div class="meta">lyftai.io · LYFT SRL</div>
   </section>
   </div>

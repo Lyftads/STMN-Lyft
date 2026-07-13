@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LyftAI — Investor Pitch</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --acc: #bf5af2; --blue: #2997ff; --green: #22c55e; --text: #f5f5f7; --text3: rgba(255,255,255,0.55); }
+  html, body { background: #000; color: var(--text); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* Sfondo: orbs + griglia (stesso linguaggio del SaaS) */
+  .bgfx { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(60px); }
+  .o1 { top: -12%; left: 4%; width: 560px; height: 560px; background: radial-gradient(circle, #bf5af244, transparent 70%); }
+  .o2 { bottom: -18%; right: -4%; width: 640px; height: 640px; background: radial-gradient(circle, #2997ff44, transparent 70%); }
+  .o3 { top: 42%; left: 48%; width: 420px; height: 420px; background: radial-gradient(circle, #22c55e22, transparent 70%); }
+  .gridbg { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 80px 80px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%); mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%); }
+
+  .deck { position: relative; z-index: 1; }
+  .slide { width: 100vw; height: 100vh; display: none; flex-direction: column; justify-content: center;
+    padding: 7vh 8vw; position: relative; }
+  .slide.on { display: flex; animation: sIn .45s cubic-bezier(0.16,1,0.3,1); }
+  @keyframes sIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+  .logo-svg { width: 92px; height: 92px; }
+  .logo-ring { animation: spin 20s linear infinite; transform-origin: 50% 50%; transform-box: fill-box; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .logo-wrap { margin: 0 auto 26px; filter: drop-shadow(0 0 18px #bf5af266) drop-shadow(0 0 40px #2997ff44); }
+
+  .cover { text-align: center; align-items: center; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e22, #bf5af218); border: 1px solid #22c55e55;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 30px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: .6; } 50% { opacity: 1; } }
+
+  h1 { font-size: clamp(44px, 6.4vw, 88px); font-weight: 900; letter-spacing: -0.05em; line-height: 0.98; margin-bottom: 26px; }
+  h2 { font-size: clamp(30px, 4vw, 52px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.04; margin-bottom: 30px; max-width: 1080px; }
+  .shine { background: linear-gradient(90deg, #fff 0%, #bf5af2 35%, #2997ff 65%, #fff 100%); background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: shineFlow 8s linear infinite; }
+  @keyframes shineFlow { 0% { background-position: 200% 50%; } 100% { background-position: -200% 50%; } }
+
+  .eyebrow { font-size: 13px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--acc); margin-bottom: 14px; }
+  .sub { font-size: clamp(16px, 1.6vw, 21px); color: rgba(255,255,255,0.72); line-height: 1.5; max-width: 760px; margin: 0 auto 26px; }
+  .lead { font-size: clamp(14px, 1.35vw, 18px); color: rgba(255,255,255,0.65); line-height: 1.5; max-width: 900px; margin: -10px 0 28px; }
+  .meta { font-size: 12.5px; color: var(--text3); letter-spacing: 0.06em; margin-top: 18px; }
+
+  .glass { background: rgba(0,0,0,0.42); border: 1.5px solid rgba(255,255,255,0.08); border-top-color: rgba(255,255,255,0.14);
+    border-radius: 20px; padding: 24px; box-shadow: 0 25px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+    position: relative; overflow: hidden; }
+  .glass::before { content: ''; position: absolute; top: 0; left: 8%; right: 8%; height: 1.5px;
+    background: linear-gradient(90deg, transparent, #2997ff80, #bf5af266, transparent); opacity: .7; }
+
+  .cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 26px; align-items: start; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .areas { grid-template-rows: 1fr 1fr; }
+
+  .list { display: flex; flex-direction: column; gap: 13px; }
+  .li { display: flex; gap: 13px; align-items: flex-start; font-size: clamp(13px, 1.25vw, 16px); line-height: 1.45; }
+  .li b { display: block; font-weight: 800; margin-bottom: 2px; }
+  .li span { color: rgba(255,255,255,0.62); }
+  .li b + span { display: block; }
+  .x { color: #f87171; font-weight: 900; } .v { color: var(--green); font-weight: 900; } .w { font-size: 14px; }
+
+  .stat-hero { text-align: center; padding: 44px 28px; }
+  .big { font-size: clamp(40px, 4.6vw, 64px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; margin-bottom: 12px; }
+  .small { font-size: 14px; color: var(--text3); line-height: 1.45; }
+  .stat { text-align: center; padding: 34px 20px; }
+
+  .step { display: flex; flex-direction: column; gap: 10px; }
+  .step .num { font-size: 13px; font-weight: 900; color: var(--acc); letter-spacing: .1em; }
+  .step .kpi { font-size: 12px; font-weight: 900; color: var(--green); letter-spacing: .06em; text-transform: uppercase; }
+  .step b { font-size: clamp(15px, 1.5vw, 19px); font-weight: 800; letter-spacing: -0.01em; }
+  .step span { font-size: clamp(12px, 1.1vw, 14px); color: rgba(255,255,255,0.6); line-height: 1.5; }
+
+  .area { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .ahead { display: flex; align-items: center; gap: 9px; }
+  .aicon { font-size: 18px; }
+  .ahead b { font-size: clamp(13px, 1.2vw, 15.5px); font-weight: 800; flex: 1; }
+  .count { font-size: 10px; font-weight: 800; color: var(--acc); background: #bf5af21a; border: 1px solid #bf5af244;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .adesc { font-size: clamp(10.5px, 0.95vw, 12.5px); color: rgba(255,255,255,0.55); line-height: 1.5; }
+
+  .bars { display: flex; flex-direction: column; gap: 26px; padding: 34px 28px; }
+  .barrow { display: grid; grid-template-columns: 1fr; gap: 9px; }
+  .barrow span { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); }
+  .barrow b { font-size: 24px; letter-spacing: -0.02em; }
+  .track { height: 14px; border-radius: 999px; background: rgba(255,255,255,0.05); overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; }
+
+  .chat { display: flex; flex-direction: column; gap: 13px; padding: 28px; }
+  .msg { padding: 13px 17px; border-radius: 15px; font-size: clamp(13px, 1.2vw, 15.5px); line-height: 1.5; max-width: 88%; }
+  .msg.user { align-self: flex-end; background: #bf5af230; border: 1px solid #bf5af255; }
+  .msg.ai { align-self: flex-start; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+
+  .plan { text-align: center; padding: 28px 18px; }
+  .plan.hot { border-top: 2px solid var(--acc); box-shadow: 0 25px 70px rgba(0,0,0,0.8), 0 0 60px #bf5af222; }
+  .pname { font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--acc); margin-bottom: 12px; }
+  .price { font-size: clamp(34px, 3.6vw, 48px); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 8px; }
+  .price span { font-size: 14px; color: var(--text3); font-weight: 700; }
+  .plan > span { font-size: 12.5px; color: rgba(255,255,255,0.6); }
+  .notes { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 12.5px; color: rgba(255,255,255,0.55); }
+
+  .wave { padding: 30px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .wnum { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(135deg, #bf5af233, #2997ff22); border: 1px solid #bf5af255;
+    font-weight: 900; color: var(--acc); }
+  .wave b { font-size: clamp(16px, 1.6vw, 20px); letter-spacing: -0.01em; }
+  .wave span { font-size: clamp(12.5px, 1.15vw, 15px); color: rgba(255,255,255,0.62); line-height: 1.55; }
+
+  .phcol { display: flex; flex-direction: column; gap: 14px; }
+  .ph { border: 1.5px dashed rgba(255,255,255,0.22); border-radius: 16px; padding: 20px 22px; }
+  .phlabel { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .phval { font-size: 24px; font-weight: 900; color: rgba(255,255,255,0.35); letter-spacing: -0.02em; }
+
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; position: relative; margin-top: 12px; }
+  .timeline::before { content: ''; position: absolute; top: 47px; left: 4%; right: 4%; height: 2px;
+    background: linear-gradient(90deg, #bf5af2, #2997ff, #22c55e); opacity: .5; }
+  .tstep { display: flex; flex-direction: column; gap: 9px; padding: 0 8px; }
+  .twhen { font-size: 11.5px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--acc); height: 22px; }
+  .tdot { width: 15px; height: 15px; border-radius: 50%; background: #fff; border: 3.5px solid var(--acc);
+    box-shadow: 0 0 0 6px #bf5af222, 0 0 20px #bf5af288; margin-bottom: 10px; }
+  .tstep b { font-size: clamp(15px, 1.5vw, 19px); letter-spacing: -0.01em; }
+  .tstep span { font-size: clamp(12px, 1.1vw, 14px); color: rgba(255,255,255,0.6); line-height: 1.5; }
+
+  .ask { margin-top: 10px; padding: 14px 26px; border-radius: 14px; border: 1.5px dashed #bf5af266;
+    color: var(--acc); font-weight: 800; font-size: 15px; letter-spacing: 0.02em; }
+
+  /* HUD navigazione */
+  .hud { position: fixed; bottom: 22px; left: 0; right: 0; display: flex; justify-content: center; align-items: center;
+    gap: 18px; z-index: 10; font-size: 12px; color: var(--text3); }
+  .hudbtn { cursor: pointer; user-select: none; padding: 6px 13px; border-radius: 9px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); color: var(--text); font-weight: 800; }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #bf5af2, #2997ff);
+    z-index: 10; transition: width .3s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 0 12px #bf5af2; }
+  .hint { position: fixed; top: 16px; right: 20px; z-index: 10; font-size: 11px; color: rgba(255,255,255,0.35); }
+
+  /* Stampa / PDF: tutte le slide, una per pagina, 16:9 */
+  @media print {
+    @page { size: 297mm 167mm; margin: 0; }
+    html, body { background: #000 !important; }
+    .hud, .hint, .progress { display: none !important; }
+    .slide { display: flex !important; width: 297mm; height: 167mm; page-break-after: always; padding: 14mm 20mm; }
+    .bgfx { position: absolute; }
+  }
+</style>
+</head>
+<body>
+  <div class="bgfx"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="gridbg"></div></div>
+  <div class="progress" id="bar"></div>
+  <div class="hint">Premi P per stampare/PDF · frecce per navigare</div>
+  <div class="deck" id="deck">
+
+  <section class="slide cover">
+    <div class="logo-wrap">
+<svg viewBox="0 0 100 100" class="logo-svg">
+  <defs>
+    <linearGradient id="lgm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#bf5af2"/><stop offset="100%" stop-color="#2997ff"/>
+    </linearGradient>
+    <linearGradient id="lgl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5f5f7" stop-opacity="0.9"/><stop offset="100%" stop-color="#f5f5f7" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
+  <g transform="translate(50 50)">
+    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm)" opacity="0.95"/>
+    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl)" opacity="0.18"/>
+  </g>
+  <g transform="translate(50 50)" fill="#f5f5f7"><rect x="-9" y="-14" width="5" height="28" rx="2"/><rect x="-9" y="9" width="18" height="5" rx="2"/></g>
+  <circle cx="78" cy="22" r="3" fill="#22c55e"><animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/></circle>
+</svg></div>
+    <div class="badge"><span class="dot"></span>Investor pitch · 10 minuti · 2026</div>
+    <h1><span class="shine">Il sistema operativo AI</span><br>del tuo e-commerce.</h1>
+    <p class="sub">Un’unica piattaforma che legge i dati di Shopify, Meta, Google ed email, li trasforma in decisioni e li affida a una squadra di agenti AI che conosce il brand.</p>
+    <div class="meta">LYFT SRL · lyftai.io · 5 lingue (IT EN ES FR DE)</div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow" style="color:#f87171">Il problema</div>
+    <h2>6 dashboard, 12 spreadsheet, 0 risposte chiare</h2>
+    <div class="cols">
+      <div class="list">
+        <div class="li"><span class="x">✕</span><div><b>6+ tool scollegati</b><span>Shopify, Meta, Google Ads, GA4, email, fogli: numeri che non combaciano mai</span></div></div><div class="li"><span class="x">✕</span><div><b>ROAS che mente</b><span>le piattaforme si auto-attribuiscono vendite: il budget viene allocato sul numero sbagliato</span></div></div><div class="li"><span class="x">✕</span><div><b>Anomalie in ritardo</b><span>giorni di spend bruciato prima di accorgersene</span></div></div><div class="li"><span class="x">✕</span><div><b>Stack costoso</b><span>i tool verticali sommati costano €700–900/mese e non si parlano</span></div></div>
+      </div>
+      <div class="glass stat-hero" style="border-top:2px solid #f87171">
+        <div class="big" style="color:#f87171">€3-5k/mese</div>
+        <div class="small">il costo dei consulenti esterni che i brand pagano per avere risposte</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">La soluzione</div>
+    <h2>Dal dato alla decisione, in una piattaforma sola</h2>
+    <div class="grid4">
+      <div class="glass step"><div class="num">01</div><b>Connetti in 5 minuti</b><span>Onboarding guidato a 10 step, OAuth one-click, zero token. Mentre finisci, i dati sono già pronti.</span></div><div class="glass step"><div class="num">02</div><b>Vedi tutto in un posto</b><span>KPI live cross-piattaforma, consolidati e coerenti. Anche da mobile.</span></div><div class="glass step"><div class="num">03</div><b>Capisci cosa è vero</b><span>Incrementalità (MMM), attribuzione, LTV corretto per maturità: i numeri su cui decidere.</span></div><div class="glass step"><div class="num">04</div><b>Agisci con l’AI</b><span>8 agenti C-suite che conoscono il brand, creative generative, report automatici.</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Il prodotto</div>
+    <h2>8 aree · 45+ moduli · tutti inclusi in ogni piano</h2>
+    <div class="grid4 areas">
+      <div class="glass area"><div class="ahead"><span class="aicon">🛒</span><b>Commerce & Analytics</b><span class="count">10 moduli</span></div><span class="adesc">Dashboard live + globo 3D, Inventario (stockout €), P&L per prodotto, Costi landed, KPI Brain, Attribuzione, LTV & Coorti, CRM clienti (RFM), Email multi-provider, Conto Economico</span></div><div class="glass area"><div class="ahead"><span class="aicon">🤖</span><b>Productivity AI</b><span class="count">7 moduli</span></div><span class="adesc">Squadra AI (8 agenti C-suite), Performance Agent, LyftTalk (chat + call di gruppo), Progetti & Task, Lyftimer, Creative Studio & Lab</span></div><div class="glass area"><div class="ahead"><span class="aicon">🌐</span><b>Intelligence Website</b><span class="count">6 moduli</span></div><span class="adesc">CRO giorno-preciso, AI Website Scanner, SEO Audit + AEO, Competitor Intel, Prezzi vs Competitor, Creative Intel</span></div><div class="glass area"><div class="ahead"><span class="aicon">📱</span><b>Meta Ads</b><span class="count">6 moduli</span></div><span class="adesc">Creative, Detail ad-level, KPI + segmenti pubblico, Lighthouse, Creative Fatigue, Budget Advisor</span></div><div class="glass area"><div class="ahead"><span class="aicon">🔍</span><b>Google Ads</b><span class="count">5 moduli</span></div><span class="adesc">Suite gemella: Detail, Prodotti (PMax), KPI, Lighthouse, Budget Advisor</span></div><div class="glass area"><div class="ahead"><span class="aicon">📈</span><b>Incrementalità (MMM)</b><span class="count">4 moduli</span></div><span class="adesc">Contributo reale per canale, curve di saturazione, simulatore budget, geo-lift designer</span></div><div class="glass area"><div class="ahead"><span class="aicon">📊</span><b>Reports</b><span class="count">7 moduli</span></div><span class="adesc">Weekly/Monthly/Quarter/Year, PDF brandizzati multilingua, invii automatici via email</span></div><div class="glass area"><div class="ahead"><span class="aicon">⚙️</span><b>System</b><span class="count">4 moduli</span></div><span class="adesc">Centro assistenza, Integrazioni, Brand Identity, Billing</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Differenziatore nº1</div>
+    <h2>Vendiamo la verità sul marketing</h2>
+    <p class="lead">Le ad platform si auto-attribuiscono vendite che sarebbero arrivate comunque. LyftAI separa il ricavo incrementale dalla baseline organica — la profondità delle suite MMM enterprise, a prezzo SaaS.</p>
+    <div class="cols">
+      <div class="glass bars">
+        <div class="barrow"><span>ROAS riportato da Meta</span><div class="track"><div class="fill" style="width:95%;background:linear-gradient(90deg,#f87171,#f8717188)"></div></div><b style="color:#f87171">3.8×</b></div>
+        <div class="barrow"><span>ROAS incrementale reale</span><div class="track"><div class="fill" style="width:48%;background:linear-gradient(90deg,#22c55e,#22c55e88)"></div></div><b style="color:#22c55e">1.9×</b></div>
+      </div>
+      <div class="list">
+        <div class="li"><span class="v">✓</span><div><b>Curve di saturazione</b><span>quanto rende il prossimo euro, canale per canale</span></div></div><div class="li"><span class="v">✓</span><div><b>Simulatore budget</b><span>sposta la spesa con lo slider → forecast a 2/4/8 settimane</span></div></div><div class="li"><span class="v">✓</span><div><b>Geo-lift designer</b><span>il test causale che trasforma la stima in certezza</span></div></div><div class="li"><span class="v">✓</span><div><b>LTV a maturità</b><span>corregge la sottostima dei brand in crescita → scaling con fiducia</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Differenziatore nº2</div>
+    <h2>AI nativa che conosce il brand</h2>
+    <p class="lead">La Brand Identity (prodotti, tone of voice, competitor, obiettivi) è il contesto di ogni agente: risposte sul TUO brand, coi TUOI numeri, con memoria persistente.</p>
+    <div class="cols">
+      <div class="glass chat">
+        <div class="msg user">Com’è andata la settimana?</div>
+        <div class="msg ai">MER a 2,6× — sopra il tuo target di 2,5×. AOV in linea, ma il CTR Meta cala da 3 giorni. Lo approfondisco?</div>
+      </div>
+      <div class="list">
+        <div class="li"><span class="v" style="color:#bf5af2">◆</span><div><b>Squadra AI</b><span>8 agenti C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con gerarchia e memoria condivisa, anche in call vocale</span></div></div><div class="li"><span class="v" style="color:#bf5af2">◆</span><div><b>Creative Studio</b><span>Immagini prodotto ad alta fedeltà, Try-On, training del modello sul prodotto, board collaborative</span></div></div><div class="li"><span class="v" style="color:#bf5af2">◆</span><div><b>Report che si scrivono da soli</b><span>Insight AI in ogni tab, PDF automatici nella lingua del cliente</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Differenziatore nº3</div>
+    <h2>Una piattaforma, due mercati</h2>
+    <div class="grid4">
+      <div class="glass step"><div class="kpi">€900+/mese sostituiti</div><b>Tutto incluso</b><span>Sostituisce 10+ abbonamenti (BI, MMM, SEO, creative AI, CRM, PM, chat…): valore di mercato €900+/mese</span></div><div class="glass step"><div class="kpi">Zero attrito</div><b>Fair pricing verificato</b><span>Il piano è agganciato al volume ordini REALE letto da Shopify: impossibile sbagliare piano, upgrade solo quando il cliente cresce</span></div><div class="glass step"><div class="kpi">2º motore di revenue</div><b>Multi-tenant per agenzie</b><span>Un account, N workspace clienti isolati, switch in 1 click, white-label, lingua per-cliente</span></div><div class="glass step"><div class="kpi">5 lingue</div><b>Europa-ready</b><span>Prodotto, PDF ed email in 5 lingue con auto-detect. GDPR by design</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Business model</div>
+    <h2>Il prezzo cresce col cliente, mai con le funzioni</h2>
+    <div class="grid4">
+      <div class="glass plan"><div class="pname">Starter</div><div class="price">€69<span>/m</span></div><span>fino a 500 ordini/mese</span></div><div class="glass plan hot"><div class="pname">Growth</div><div class="price">€149<span>/m</span></div><span>500 – 2.000 ordini/mese</span></div><div class="glass plan"><div class="pname">Scale</div><div class="price">€299<span>/m</span></div><span>2.000 – 7.000 ordini/mese</span></div><div class="glass plan"><div class="pname">Enterprise</div><div class="price">€599<span>/m</span></div><span>7.000+ ordini/mese</span></div>
+    </div>
+    <div class="notes"><span>· Agenzie & freelance: €199 → €1.990/mese per portfolio clienti</span><span>· Crediti AI (Creative Lab/Studio) come revenue aggiuntiva</span><span>· Annuale = 2 mesi gratis · Trial 14 giorni senza carta</span><span>· Canali: signup diretto (Stripe) + Shopify App Store (Managed Pricing)</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Perché ora</div>
+    <h2>Tre onde che si incrociano</h2>
+    <div class="grid3">
+      <div class="glass wave"><div class="wnum">1</div><b>CAC in crescita</b><span>La differenza tra chi scala e chi chiude è l’allocazione del budget sulla verità incrementale — oggi riservata a chi spende decine di migliaia di € in suite enterprise</span></div><div class="glass wave"><div class="wnum">2</div><b>Costo marginale AI ~ zero</b><span>La produzione creativa e la consulenza analitica sono state commoditizzate: LyftAI le impacchetta nel workflow quotidiano</span></div><div class="glass wave"><div class="wnum">3</div><b>Consolidamento dello stack</b><span>Chi possiede dati + decisioni + esecuzione possiede il cliente. I tool mono-feature verranno assorbiti</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Moat tecnico</div>
+    <h2>Velocità di esecuzione come vantaggio strutturale</h2>
+    <div class="grid3">
+      <div class="glass stat"><div class="big shine">45+</div><div class="small">moduli spediti in mesi, non anni</div></div><div class="glass stat"><div class="big shine">5</div><div class="small">lingue dal giorno uno</div></div><div class="glass stat"><div class="big shine">1</div><div class="small">codebase multi-tenant per brand e agenzie</div></div>
+    </div>
+    <div class="list" style="margin-top:26px">
+      <div class="li"><span class="v">✓</span><div><span>Isolamento multi-tenant verificato (credenziali per-tenant, RLS, cache per-workspace)</span></div></div><div class="li"><span class="v">✓</span><div><span>GDPR: export/delete self-service, DPA, PII scrubber verso i modelli AI</span></div></div><div class="li"><span class="v">✓</span><div><span>Stack moderno: Next.js · Supabase · Nango · OpenAI · fal.ai · Stripe</span></div></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Dove siamo</div>
+    <h2>Prodotto live, distribuzione in apertura</h2>
+    <div class="cols">
+      <div class="list">
+        <div class="li"><span class="v">✓</span><div><span>Piattaforma completa live su lyftai.io (web + mobile)</span></div></div><div class="li"><span class="v">✓</span><div><span>Landing con demo interattiva (software reale, dati finti)</span></div></div><div class="li"><span class="v">✓</span><div><span>Beta tenant DTC attivo (dogfooding quotidiano) + primo cliente pagante in onboarding</span></div></div><div class="li"><span class="v">✓</span><div><span>Billing attivo: Stripe + Shopify Managed Pricing</span></div></div>
+        <div class="li"><span class="w">⏳</span><div><span>Shopify App Store — in review</span></div></div><div class="li"><span class="w">⏳</span><div><span>Meta Marketing API Advanced Access — re-submission</span></div></div><div class="li"><span class="w">⏳</span><div><span>Google Ads API Basic — richiesto</span></div></div>
+      </div>
+      <div class="phcol">
+        <div class="ph"><div class="phlabel">MRR</div><div class="phval">[ da compilare ]</div></div><div class="ph"><div class="phlabel">Clienti attivi</div><div class="phval">[ da compilare ]</div></div><div class="ph"><div class="phlabel">Pipeline</div><div class="phval">[ da compilare ]</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Roadmap</div>
+    <h2>Da analytics a ciclo chiuso</h2>
+    <div class="timeline">
+      <div class="tstep"><div class="twhen">Ora</div><div class="tdot"></div><b>Cervello unico</b><span>Context engine condiviso: un’AI, tutte le tab, memoria cross-modulo</span></div><div class="tstep"><div class="twhen">Poi</div><div class="tdot"></div><b>Action layer</b><span>Dalla raccomandazione all’esecuzione: campagne email/Meta create dalla piattaforma</span></div><div class="tstep"><div class="twhen">Quindi</div><div class="tdot"></div><b>Geo-lift readout</b><span>Lettura causale dei test: l’incrementalità diventa certezza</span></div><div class="tstep"><div class="twhen">Dopo</div><div class="tdot"></div><b>Creative video & UGC</b><span>Studio in GA per tutti + generazione video</span></div>
+    </div>
+  </section>
+
+  <section class="slide cover">
+    <div class="logo-wrap" style="margin-bottom:18px">
+<svg viewBox="0 0 100 100" class="logo-svg">
+  <defs>
+    <linearGradient id="lgm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#bf5af2"/><stop offset="100%" stop-color="#2997ff"/>
+    </linearGradient>
+    <linearGradient id="lgl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5f5f7" stop-opacity="0.9"/><stop offset="100%" stop-color="#f5f5f7" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  <g class="logo-ring"><circle cx="50" cy="50" r="44" fill="none" stroke="url(#lgm)" stroke-width="2" stroke-dasharray="60 8 30 8" opacity="0.7"/></g>
+  <g transform="translate(50 50)">
+    <rect x="-26" y="-26" width="52" height="52" rx="10" transform="rotate(45)" fill="url(#lgm)" opacity="0.95"/>
+    <rect x="-26" y="-26" width="52" height="26" rx="10" transform="rotate(45)" fill="url(#lgl)" opacity="0.18"/>
+  </g>
+  <g transform="translate(50 50)" fill="#f5f5f7"><rect x="-9" y="-14" width="5" height="28" rx="2"/><rect x="-9" y="9" width="18" height="5" rx="2"/></g>
+  <circle cx="78" cy="22" r="3" fill="#22c55e"><animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/></circle>
+</svg></div>
+    <h1><span class="shine">Smetti di scegliere</span><br>a sentimento.</h1>
+    <p class="sub">LyftAI porta la verità incrementale e una squadra AI dentro ogni brand e-commerce.</p>
+    <div class="ask">ASK: [round / importo / uso dei fondi — da compilare]</div>
+    <div class="meta">lyftai.io · LYFT SRL</div>
+  </section>
+  </div>
+  <div class="hud">
+    <span class="hudbtn" onclick="nav(-1)">←</span>
+    <span id="counter"></span>
+    <span class="hudbtn" onclick="nav(1)">→</span>
+  </div>
+<script>
+  const S = [...document.querySelectorAll('.slide')]
+  let i = 0
+  function show() {
+    S.forEach((s, k) => s.classList.toggle('on', k === i))
+    document.getElementById('counter').textContent = (i + 1) + ' di ' + S.length
+    document.getElementById('bar').style.width = (((i + 1) / S.length) * 100) + '%'
+  }
+  function nav(d) { i = Math.max(0, Math.min(S.length - 1, i + d)); show() }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') nav(1)
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') nav(-1)
+    else if (e.key === 'Home') { i = 0; show() }
+    else if (e.key === 'End') { i = S.length - 1; show() }
+    else if (e.key.toLowerCase() === 'p') window.print()
+    else if (e.key.toLowerCase() === 'f') document.documentElement.requestFullscreen?.()
+  })
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.hudbtn')) return
+    nav(e.clientX > innerWidth / 2 ? 1 : -1)
+  })
+  show()
+</script>
+</body>
+</html>

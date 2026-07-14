@@ -137,7 +137,7 @@ Centro Assistenza (guide per ogni tab + pop-up contestuale) · Integrazioni · B
 ### Dimensione del mercato
 - **TAM** — Software di e-commerce analytics: **$9,6B (2025) → $23,7B (2030)**, CAGR ~20%. Il segmento marketing attribution vale $4,7B (2024) → $10,1B (2030), e la fascia **SMB è quella a crescita più rapida (CAGR 14,5%)**.
 - **SAM** — Brand Shopify in Europa: ~600k store attivi nei primi 5 mercati EU (UK 252k, DE 121k, FR 118k + IT/ES) + 44k merchant Shopify Plus globali + le agenzie che li gestiscono. Analytics/attribution per SMB-mid market: **~$2-3B**.
-- **SOM (36 mesi)** — 1.500 brand a €150/mese ARPA blended ≈ **€2,7M ARR**: meno dello 0,3% degli store attivi europei. Obiettivo volutamente conservativo.
+- **SOM (36 mesi)** — obiettivo **5.000 e-commerce** a €150/mese ARPA blended ≈ **€9M ARR**: meno dello 0,9% degli store attivi europei.
 
 ### Il dato che apre il mercato
 > **L'87% dei brand Shopify Plus non usa alcuna piattaforma di attribution dedicata**: riconcilia i report di Meta/Google/TikTok con gli ordini Shopify in un foglio di calcolo. Il mercato non è "rubare clienti ai competitor": è convertire chi oggi decide alla cieca.
@@ -163,14 +163,29 @@ Due assi: **profondità della verità** (da attribution riportata → incrementa
 
 > ## **€300.000** · round pre-seed
 
-**Uso dei fondi (18 mesi di runway):**
+**Uso dei fondi (36 mesi di runway):**
 | Voce | Quota | Dettaglio |
 |---|---|---|
-| Go-to-market | 45% | Lancio Shopify App Store, paid acquisition, partnership con agenzie EU |
+| Go-to-market | 50% | Lancio Shopify App Store, paid acquisition, partnership con agenzie EU |
 | Prodotto & AI | 35% | Action layer, cervello unico, geo-lift readout, costi inference |
-| Team & ops | 20% | Primo hire growth/support, legale/compliance |
+| Team & ops | 15% | Primo hire growth/support, legale/compliance |
 
-**Milestone target a 18 mesi:** `[DA CONFERMARE: es. 300-500 brand attivi · €40-60k MRR · churn <3%]`
+**Obiettivo:** **5.000 e-commerce attivi** (~€9M ARR run-rate a regime)
+
+### Unit economics & ritorno per l'investitore
+*(modello obiettivo — assunzioni: ARPA blended €150/mese, churn 3-4%/mese)*
+
+| Metrica | Valore | Note |
+|---|---|---|
+| **ARPA** | €150/mese (€1.800/anno) | blended su piani €69-599 + agenzie + crediti AI |
+| **Costo medio di servizio per azienda** | ~€15/mese | infra (Vercel/Supabase/Nango) + inference AI; il grosso dello stack è a costo fisso |
+| **Margine lordo** | **~90%** | economics da puro software |
+| **CAC payback** | < 3 mesi | canali a basso costo: Shopify App Store + partnership agenzie |
+| **LTV (margin-adjusted)** | ~€3.400 | ~25 mesi di vita media × €150 × 90% |
+| **EBITDA breakeven** | ~300 e-commerce (~€45k MRR) | struttura leggera, sviluppo AI-augmented |
+| **EBITDA a regime (5.000 clienti)** | **~35-40%** (~€3M+/anno su €9M ARR) | il pre-seed si ripaga con pochi mesi di utile oltre il breakeven |
+
+**Ritorno atteso per l'investitore:** a €9M ARR con EBITDA ~35-40%, valutazione a multipli SaaS conservativi (4-6× ARR) = €36-54M → su un pre-seed da €300k il ritorno atteso è **10-15× in 36-48 mesi**.
 
 ## 8. Sicurezza & compliance
 

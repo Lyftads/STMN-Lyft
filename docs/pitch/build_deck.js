@@ -108,12 +108,22 @@ const IT = {
     ],
     notes: ['Agenzie & freelance: €199 → €1.990/mese per portfolio clienti', 'Crediti AI (Creative Lab/Studio) come revenue aggiuntiva', 'Annuale = 2 mesi gratis · Trial 14 giorni senza carta', 'Canali: signup diretto (Stripe) + Shopify App Store (Managed Pricing)'],
   },
+  unit: {
+    eyebrow: 'Unit economics', title: 'Margini da software, payback da SaaS sano',
+    stats: [
+      ['€150/m', 'ARPA blended per e-commerce (piani €69–599 + agenzie + crediti AI)'],
+      ['~€15/m', 'costo medio di servizio per azienda (infra + inference AI) → margine lordo ~90%'],
+      ['<3 mesi', 'CAC payback target (canali: App Store Shopify + partnership agenzie)'],
+      ['~300', 'e-commerce per l’EBITDA breakeven (struttura leggera, AI-augmented)'],
+    ],
+    banner: 'A 5.000 e-commerce: €9M ARR con EBITDA target ~35-40% (~€3M+/anno). Il pre-seed da €300k si ripaga con pochi mesi di utile oltre il breakeven; ritorno atteso per l’investitore 10-15× a 36-48 mesi (multipli SaaS 4-6× ARR). Assunzioni: churn 3-4%/mese, ARPA €150.',
+  },
   market: {
     eyebrow: 'Mercato', title: 'Un mercato grande che cresce del 20% l’anno',
     stats: [
       ['$23,7B', 'TAM 2030 · e-commerce analytics software (da $9,6B nel 2025, CAGR ~20%)'],
       ['$2-3B', 'SAM · analytics & attribution per brand Shopify SMB-mid (EU: ~600k store attivi nei top-5 mercati)'],
-      ['€2,7M ARR', 'SOM a 36 mesi · 1.500 brand × €150/mese = <0,3% degli store attivi europei'],
+      ['€9M ARR', 'SOM a 36 mesi · obiettivo 5.000 e-commerce × €150/mese = <0,9% degli store attivi europei'],
     ],
     banner: 'L’87% dei brand Shopify Plus non usa ALCUNA piattaforma di attribution: riconcilia le ads con gli ordini in un foglio di calcolo. Il mercato non è rubare clienti — è convertire chi decide alla cieca.',
   },
@@ -160,8 +170,8 @@ const IT = {
   closing: {
     title1: 'Smetti di scegliere', title2: 'a sentimento.',
     sub: 'LyftAI porta la verità incrementale e una squadra AI dentro ogni brand e-commerce.',
-    askLabel: 'Pre-seed', askAmount: '€300.000', askNote: '18 mesi di runway',
-    funds: [['45%', 'Go-to-market'], ['35%', 'Prodotto & AI'], ['20%', 'Team & ops']],
+    askLabel: 'Pre-seed', askAmount: '€300.000', askNote: '36 mesi di runway',
+    funds: [['50%', 'Go-to-market'], ['35%', 'Prodotto & AI'], ['15%', 'Team & ops']],
     contact: 'lyftai.io · LYFT SRL',
   },
   ui: { counter: 'di', print: 'Premi P per stampare/PDF · frecce per navigare' },
@@ -249,12 +259,22 @@ const EN = {
     ],
     notes: ['Agencies & freelancers: €199 → €1,990/mo per client portfolio', 'AI credits (Creative Lab/Studio) as additional revenue', 'Annual = 2 months free · 14-day trial, no card', 'Channels: direct signup (Stripe) + Shopify App Store (Managed Pricing)'],
   },
+  unit: {
+    eyebrow: 'Unit economics', title: 'Software margins, healthy-SaaS payback',
+    stats: [
+      ['€150/mo', 'blended ARPA per e-commerce (€69–599 plans + agencies + AI credits)'],
+      ['~€15/mo', 'average cost-to-serve per company (infra + AI inference) → ~90% gross margin'],
+      ['<3 months', 'target CAC payback (channels: Shopify App Store + agency partnerships)'],
+      ['~300', 'e-commerce customers to EBITDA breakeven (lean, AI-augmented structure)'],
+    ],
+    banner: 'At 5,000 e-commerce: €9M ARR with ~35-40% target EBITDA (€3M+/yr). The €300k pre-seed pays back with a few months of profit past breakeven; expected investor return 10-15× in 36-48 months (SaaS multiples 4-6× ARR). Assumptions: 3-4% monthly churn, €150 ARPA.',
+  },
   market: {
     eyebrow: 'Market', title: 'A large market growing 20% a year',
     stats: [
       ['$23.7B', 'TAM 2030 · e-commerce analytics software (from $9.6B in 2025, ~20% CAGR)'],
       ['$2-3B', 'SAM · analytics & attribution for SMB-mid Shopify brands (EU: ~600k active stores in top-5 markets)'],
-      ['€2.7M ARR', 'SOM at 36 months · 1,500 brands × €150/mo = <0.3% of active European stores'],
+      ['€9M ARR', 'SOM at 36 months · target 5,000 e-commerce × €150/mo = <0.9% of active European stores'],
     ],
     banner: '87% of Shopify Plus brands use NO dedicated attribution platform: they reconcile ads with orders in a spreadsheet. The market isn’t stealing customers — it’s converting those deciding blind.',
   },
@@ -301,8 +321,8 @@ const EN = {
   closing: {
     title1: 'Stop deciding', title2: 'on gut feeling.',
     sub: 'LyftAI puts incremental truth and an AI team inside every e-commerce brand.',
-    askLabel: 'Pre-seed', askAmount: '€300,000', askNote: '18-month runway',
-    funds: [['45%', 'Go-to-market'], ['35%', 'Product & AI'], ['20%', 'Team & ops']],
+    askLabel: 'Pre-seed', askAmount: '€300,000', askNote: '36-month runway',
+    funds: [['50%', 'Go-to-market'], ['35%', 'Product & AI'], ['15%', 'Team & ops']],
     contact: 'lyftai.io · LYFT SRL',
   },
   ui: { counter: 'of', print: 'Press P to print/PDF · arrows to navigate' },
@@ -437,6 +457,17 @@ function slides(c) {
       ${c.pricing.plans.map(([n, p, d], i) => `<div class="glass plan${i === 1 ? ' hot' : ''}"><div class="pname">${n}</div><div class="price">${p}<span>/m</span></div><span>${d}</span></div>`).join('')}
     </div>
     <div class="notes">${c.pricing.notes.map(n => `<span>· ${n}</span>`).join('')}</div>
+  </section>`)
+
+  // 8b · Unit economics
+  S.push(`
+  <section class="slide">
+    <div class="eyebrow">${c.unit.eyebrow}</div>
+    <h2>${c.unit.title}</h2>
+    <div class="grid4">
+      ${c.unit.stats.map(([v, l]) => `<div class="glass stat"><div class="big shine" style="font-size:clamp(30px,3.4vw,44px)">${v}</div><div class="small">${l}</div></div>`).join('')}
+    </div>
+    <div class="banner87">${c.unit.banner}</div>
   </section>`)
 
   // 9 · Why now

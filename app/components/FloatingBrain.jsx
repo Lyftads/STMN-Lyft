@@ -140,8 +140,37 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const [actions, setActions] = useState([])      // azioni proposte dalla conversazione
   const [actLoading, setActLoading] = useState(false)
   const [added, setAdded] = useState({})          // indici già aggiunti alla Coda
+  // Skills (stile Sidekick): prompt salvati e condivisi nel workspace
+  const [skillsOpen, setSkillsOpen] = useState(false)
+  const [skills, setSkills] = useState(null)      // null = mai caricate
+  const [skillTitle, setSkillTitle] = useState('')
+  const [skillBusy, setSkillBusy] = useState(false)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
+
+  const loadSkills = useCallback(async () => {
+    try { const r = await fetch('/api/brain-skills', { cache: 'no-store' }); const j = await r.json(); setSkills(Array.isArray(j?.skills) ? j.skills : []) } catch { setSkills([]) }
+  }, [])
+  const toggleSkills = () => { setSkillsOpen(v => { const n = !v; if (n && skills === null) loadSkills(); return n }) }
+  const useSkill = (s) => {
+    setInput(s.prompt); setSkillsOpen(false)
+    fetch('/api/brain-skills', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id, used: true }) }).catch(() => {})
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
+  const saveSkill = async () => {
+    const prompt = input.trim(); const title = skillTitle.trim()
+    if (!prompt || !title || skillBusy) return
+    setSkillBusy(true)
+    try {
+      const r = await fetch('/api/brain-skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, prompt }) })
+      const j = await r.json()
+      if (j?.skill) { setSkills(p => [j.skill, ...(p || [])]); setSkillTitle('') }
+    } catch {} finally { setSkillBusy(false) }
+  }
+  const deleteSkill = async (id) => {
+    setSkills(p => (p || []).filter(s => s.id !== id))
+    fetch(`/api/brain-skills?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {})
+  }
 
   // Portal su document.body: così la position:fixed è relativa al VIEWPORT e
   // non a un antenato con transform/filter (che la farebbe scrollare).
@@ -357,8 +386,51 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
             </div>
           )}
 
+          {/* Skills: prompt salvati del workspace */}
+          {skillsOpen && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ color: 'var(--text2)', fontSize: 11, marginBottom: 2 }}>{t('brain.skillsHint', {}, 'Prompt salvati del workspace: riusali in un click.')}</div>
+              {skills === null && <div style={{ color: 'var(--text3)', fontSize: 12 }}>…</div>}
+              {Array.isArray(skills) && skills.length === 0 && (
+                <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.skillsEmpty', {}, 'Nessuna skill salvata. Scrivi il prompt nella casella e premi «Salva prompt attuale».')}</div>
+              )}
+              {(skills || []).map(s => (
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 10px' }}>
+                  <button onClick={() => useSkill(s)} style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <div style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>⚡ {s.title}</div>
+                    <div style={{ color: 'var(--text3)', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.prompt}</div>
+                  </button>
+                  <button onClick={() => deleteSkill(s.id)} aria-label="delete" style={{ ...iconBtn, width: 24, height: 24 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                <input
+                  value={skillTitle}
+                  onChange={e => setSkillTitle(e.target.value)}
+                  placeholder={t('brain.skillsSavePh', {}, 'Titolo della skill…')}
+                  style={{ flex: 1, padding: '7px 10px', borderRadius: 9, background: 'var(--glass)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 12, outline: 'none' }}
+                />
+                <button onClick={saveSkill} disabled={!input.trim() || !skillTitle.trim() || skillBusy} style={{
+                  flex: '0 0 auto', fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 9, border: 'none',
+                  cursor: (!input.trim() || !skillTitle.trim() || skillBusy) ? 'default' : 'pointer',
+                  opacity: (!input.trim() || !skillTitle.trim() || skillBusy) ? 0.45 : 1,
+                  background: 'linear-gradient(135deg, #7c5cff, #5b3df0)', color: 'var(--text)',
+                }}>{t('brain.skillsSave', {}, 'Salva prompt attuale')}</button>
+              </div>
+            </div>
+          )}
+
           {/* Input */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <button onClick={toggleSkills} aria-label={t('brain.skills', {}, 'Skills')} title={t('brain.skills', {}, 'Skills')} style={{
+              ...iconBtn, width: 40, height: 40, borderRadius: 11,
+              border: '1px solid var(--border2)', background: skillsOpen ? 'rgba(124,92,255,0.18)' : 'var(--glass)',
+              color: skillsOpen ? '#a78bfa' : 'var(--text3)',
+            }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" /></svg>
+            </button>
             <textarea
               ref={inputRef}
               value={input}

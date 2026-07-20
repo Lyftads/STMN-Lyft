@@ -6,7 +6,7 @@ import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
-import { TOOLS, executeTool } from '../../../lib/agent/tools'
+import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
 
 const GUARD = 'REGOLA CRITICA: ogni numero, nome prodotto, nome campagna, percentuale che citi DEVE essere copiato letteralmente dal blocco DATI LIVE. Vietato inventare/stimare. Se manca un dato dillo. Rispetta il BRAND GUARD del CONTESTO BRAND.'
 
@@ -55,12 +55,13 @@ export async function POST(req) {
       data: context,
       dataLabel: `DATI LIVE (periodo: ${preset}):`,
       dataMax: 70000,
-      extraSystem: briefBlock ? [{ role: 'system', content: briefBlock + '\n\nHai STRUMENTI per qualsiasi altro dato del software (get_kpis per ogni KPI/periodo, list_creatives, list_adsets, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono, non dire "non ho il dato" se uno strumento può dartelo.' }] : [],
+      extraSystem: [{ role: 'system', content: (briefBlock ? briefBlock + '\n\n' : '') + 'Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis per ogni KPI/periodo, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono, non dire "non ho il dato" se uno strumento può dartelo. Segui le istruzioni "jit" incluse nei risultati.' }],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.4,
-      tools: snapData ? TOOLS : null,
-      onToolCall: snapData ? (n, a) => executeTool(n, a, snapData) : null,
+      // Tool LIVE multi-tenant (auth = cookie di QUESTA sessione), snapshot come fallback
+      tools: ALL_TOOLS,
+      onToolCall: (n, a) => executeToolLive(n, a, { origin: new URL(req.url).origin, cookie: req.headers.get('cookie') || '', snapshot: snapData }),
     })
 
     if (userId && lastUserMsg && reply) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
+import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
 
 // Guardrail anti-invenzione (identico al precedente messaggio system inline).
 const GUARD_NUMBERS = 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende).'
@@ -465,16 +466,27 @@ export async function POST(req) {
   // DATI LIVE + storia + lingua — con gli stessi parametri. La skill è "inline":
   // il prompt resta in questo file, cambia solo chi orchestra la chiamata.
   try {
+    // STRUMENTI LIVE (stile Sidekick): il modello legge on-demand qualsiasi
+    // dato del software con l'auth di QUESTA sessione (multi-tenant), invece
+    // di dipendere solo dal contesto pre-caricato dal client.
+    const toolCtx = {
+      origin: new URL(req.url).origin,
+      cookie: req.headers.get('cookie') || '',
+      snapshot: context,
+    }
     const { userId, content: reply, usage } = await callBrain({
       skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT, guard: GUARD_NUMBERS },
       query: lastUserMsg,
       data: context,
       dataLabel: `DATI LIVE (periodo: ${periodLabel}):`,
+      extraSystem: [{ role: 'system', content: 'Hai STRUMENTI live per QUALSIASI dato del software: get_kpis (ogni KPI per periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console (SEO reale), get_incrementality, get_inventory, get_ltv, list_products, get_competitors, list_tasks, get_time_tracking. Se un dato non è nel contesto o riguarda un altro periodo, USA lo strumento giusto invece di dire "non ho il dato". Ogni risultato strumento include istruzioni "jit": seguile.' }],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.3,
       presencePenalty: 0.2,
       frequencyPenalty: 0.2,
+      tools: ALL_TOOLS,
+      onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
     })
 
     if (userId && lastUserMsg && reply) {

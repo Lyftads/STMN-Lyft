@@ -661,8 +661,10 @@ function GSCPanel() {
             </Block>
           )}
 
-          {/* Tabella per dimensione */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, marginBottom: 30 }}>
+          {/* Tabella per dimensione — position/zIndex: senza, l'ombra delle
+              glass-card sopra/sotto viene dipinta SOPRA i pill (sembrano coperti
+              da un overlay nero) */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, marginBottom: 30, position: 'relative', zIndex: 2 }}>
             {dims.map(([id, lbl]) => <Pill key={id} small active={dim === id} onClick={() => setDim(id)}>{lbl}</Pill>)}
           </div>
           <Block title={t('seo.detailBy', { dim: dimLabel.toLowerCase() }, `Dettaglio per ${dimLabel.toLowerCase()}`)}>

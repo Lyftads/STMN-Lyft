@@ -153,8 +153,8 @@ const IT = {
   },
   status: {
     eyebrow: 'Dove siamo', title: 'Prodotto live, distribuzione in apertura',
-    done: ['Piattaforma completa live su lyftai.io (web + mobile)', 'Landing con demo interattiva (software reale, dati finti)', 'Beta tenant DTC attivo (dogfooding quotidiano) + primo cliente pagante in onboarding', 'Billing attivo: Stripe + Shopify Managed Pricing', 'Meta Marketing API Advanced Access — APPROVATA (lug 2026)'],
-    pending: ['Shopify App Store — in review', 'Google Ads API Basic — richiesto'],
+    done: ['Piattaforma completa live su lyftai.io (web + mobile)', 'Landing con demo interattiva (software reale, dati finti)', 'Beta tenant DTC attivo (dogfooding quotidiano) + primo cliente pagante in onboarding', 'Billing attivo: Stripe + Shopify Managed Pricing', 'Meta Marketing API Advanced Access — APPROVATA (lug 2026)', 'App pubblicata sullo Shopify App Store'],
+    pending: ['Google Ads API Basic — richiesto'],
     placeholders: ['MRR', 'Clienti attivi', 'Pipeline'],
     phLabel: 'da compilare',
   },
@@ -304,8 +304,8 @@ const EN = {
   },
   status: {
     eyebrow: 'Where we are', title: 'Product live, distribution opening up',
-    done: ['Full platform live on lyftai.io (web + mobile)', 'Landing with interactive demo (real software, mock data)', 'Active DTC beta tenant (daily dogfooding) + first paying customer onboarding', 'Billing live: Stripe + Shopify Managed Pricing', 'Meta Marketing API Advanced Access — APPROVED (Jul 2026)'],
-    pending: ['Shopify App Store — in review', 'Google Ads API Basic — requested'],
+    done: ['Full platform live on lyftai.io (web + mobile)', 'Landing with interactive demo (real software, mock data)', 'Active DTC beta tenant (daily dogfooding) + first paying customer onboarding', 'Billing live: Stripe + Shopify Managed Pricing', 'Meta Marketing API Advanced Access — APPROVED (Jul 2026)', 'App published on the Shopify App Store'],
+    pending: ['Google Ads API Basic — requested'],
     placeholders: ['MRR', 'Active customers', 'Pipeline'],
     phLabel: 'to fill in',
   },

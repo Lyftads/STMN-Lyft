@@ -205,7 +205,7 @@ Next.js 14 (App Router) su **Vercel** · **Supabase** (Postgres + RLS + Auth) ·
 - ✅ Landing pubblica con **demo interattiva** (software reale con dati finti, esplorabile senza signup)
 - ✅ Beta tenant di riferimento: brand fitness DTC (dogfooding quotidiano) + primo cliente pagante food/olio in onboarding
 - ✅ **Meta Marketing API Advanced Access: APPROVATA (luglio 2026)** — ads_read, read_insights, business_management: ogni cliente può collegare Meta in self-service
-- ⏳ Shopify App Store: submission in review (Managed Pricing configurato)
+- ✅ **App pubblicata sullo Shopify App Store** (Managed Pricing attivo) — canale di distribuzione self-serve aperto
 - ⏳ Google Ads API Basic Access: richiesto
 - **Traction:** `[DA COMPILARE: MRR, n. clienti attivi, pipeline, churn, risultati pilota]`
 - Risultati comunicati in landing (pilot): +34% ROAS medio a 60gg, −22% CAC

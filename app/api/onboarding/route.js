@@ -56,7 +56,7 @@ export async function GET() {
 
   const { data, error } = await admin
     .from('companies')
-    .select('declared_monthly_orders, verified_monthly_orders, shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, google_ads_customer_id, ga4_property_id, gsc_site_url, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, omnisend_api_key, mailchimp_access_token, nango_connections, onboarding_completed_at')
+    .select('declared_monthly_orders, verified_monthly_orders, shopify_store_url, shopify_admin_token, meta_account_id, meta_access_token, google_ads_customer_id, ga4_property_id, gsc_site_url, google_client_id, google_client_secret, google_refresh_token, klaviyo_api_key, omnisend_api_key, nango_connections, onboarding_completed_at')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -71,7 +71,9 @@ export async function GET() {
     ga4:       stepCompleted(data, 'ga4'),
     gsc:       stepCompleted(data, 'gsc'),
     klaviyo:   stepCompleted(data, 'klaviyo') || !!conns['klaviyo-oauth'] || !!conns.klaviyo,
-    mailchimp: !!conns.mailchimp || !!(data?.mailchimp_access_token),
+    // Mailchimp si collega solo via Nango: niente colonna DB dedicata
+    // (selezionarla causava "column companies.mailchimp_access_token does not exist").
+    mailchimp: !!conns.mailchimp,
     omnisend:  stepCompleted(data, 'omnisend'),
   }
 

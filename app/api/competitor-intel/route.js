@@ -1076,7 +1076,14 @@ async function resolveFacebookPageId(input) {
     return null
   }
   let id = null
-  for (const url of [`https://www.facebook.com/${handle}/`, `https://m.facebook.com/${handle}/`]) {
+  // L'endpoint embed (plugins/page.php) e' pensato per terze parti: niente
+  // login e niente blocco IP datacenter (www/m.facebook rispondono 400 da
+  // Vercel) → e' la fonte piu' affidabile, provata per prima.
+  for (const url of [
+    `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(`https://www.facebook.com/${handle}`)}&tabs=timeline&width=340`,
+    `https://www.facebook.com/${handle}/`,
+    `https://m.facebook.com/${handle}/`,
+  ]) {
     try {
       const r = await fetch(url, { headers, signal: AbortSignal.timeout(10000), redirect: 'follow' })
       if (!r.ok) continue

@@ -618,7 +618,9 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   // Enrichment additivo: se l'API non ha (ancora) restituito creative, le
   // recuperiamo via Browserless (endpoint isolato). Quando l'app Meta sara'
   // approvata, apiAds sara' popolato e questo blocco non parte nemmeno.
-  const pageId = (meta?.adLibraryUrl || '').match(/view_all_page_id=(\d+)/)?.[1] || null
+  // pageId: prima quello risolto dal server (competitor per-cliente), poi
+  // fallback dall'URL Ad Library (competitor beta hardcoded).
+  const pageId = competitor?.pageId || (meta?.adLibraryUrl || '').match(/view_all_page_id=(\d+)/)?.[1] || null
   const [pageAds, setPageAds] = useState(null)
   const [pageTotal, setPageTotal] = useState(null)
   const [pageCapped, setPageCapped] = useState(false)
@@ -1530,7 +1532,11 @@ export default function CompetitorIntelTab({ onNavigate }) {
         const meta = COMPETITOR_META[comp.id] || {
           name: comp.name,
           color: '#2997ff',
-          adLibraryUrl: '#',
+          // Sempre un link reale: pagina advertiser se il pageId e' noto,
+          // altrimenti ricerca per nome ('#' riapriva l'app in un nuovo tab).
+          adLibraryUrl: comp.pageId
+            ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${comp.pageId}&search_type=page&media_type=all`
+            : `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(comp.name || '')}&search_type=keyword_unordered&media_type=all`,
           websiteUrl: comp.websiteUrl,
         }
 

@@ -95,12 +95,33 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
           preset,
           cfg: cfg || null,
           agentContext,
+          stream: true,
         }),
       })
 
-      const json = await r.json()
-
-      if (!r.ok) {
+      if (r.ok && (r.headers.get('content-type') || '').includes('text/event-stream') && r.body) {
+        // Streaming: i token compaiono appena generati (stile Sidekick)
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+        const reader = r.body.getReader()
+        const dec = new TextDecoder()
+        let acc = '', buf = ''
+        const paint = (text, isError = false) => setMessages(prev => { const c = [...prev]; c[c.length - 1] = { role: 'assistant', content: text, ...(isError ? { isError: true } : {}) }; return c })
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += dec.decode(value, { stream: true })
+          const events = buf.split('\n\n'); buf = events.pop() || ''
+          for (const ev of events) {
+            if (!ev.startsWith('data: ')) continue
+            let j; try { j = JSON.parse(ev.slice(6)) } catch { continue }
+            if (j.d) { acc += j.d; paint(acc) }
+            if (j.error) { setError(j.error); acc = j.error; paint(acc, true) }
+            if (j.done && j.summary) setDataSummary(j.summary)
+          }
+        }
+        if (!acc) paint(t('agent.emptyReply', null, '(risposta vuota)'))
+      } else if (!r.ok) {
+        const json = await r.json().catch(() => null)
         setError(json?.error || t('agent.errorN', { n: r.status }, `Errore ${r.status}`))
         setMessages(prev => [
           ...prev,
@@ -111,9 +132,10 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
           },
         ])
       } else {
+        const json = await r.json().catch(() => null)
         setMessages(prev => [
           ...prev,
-          { role: 'assistant', content: json.reply || t('agent.emptyReply', null, '(risposta vuota)') },
+          { role: 'assistant', content: json?.reply || t('agent.emptyReply', null, '(risposta vuota)') },
         ])
         if (json?.summary) setDataSummary(json.summary)
       }

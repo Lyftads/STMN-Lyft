@@ -189,11 +189,34 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           preset: period && period.preset ? period.preset : (period ? `custom_${period.since}_${period.until}` : 'last_30d'),
           periodLabel,
           locale: getClientLocale(),
+          stream: true,
         }),
       })
-      const data = await r.json()
-      const reply = r.ok ? (data?.reply || '…') : `⚠️ ${data?.error || 'Errore'}`
-      setMsgs(m => [...m, { role: 'assistant', content: reply }])
+      if (r.ok && (r.headers.get('content-type') || '').includes('text/event-stream') && r.body) {
+        // Streaming: i token compaiono appena generati (stile Sidekick)
+        setMsgs(m => [...m, { role: 'assistant', content: '' }])
+        const reader = r.body.getReader()
+        const dec = new TextDecoder()
+        let acc = '', buf = ''
+        const paint = (text) => setMsgs(m => { const c = [...m]; c[c.length - 1] = { role: 'assistant', content: text }; return c })
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += dec.decode(value, { stream: true })
+          const events = buf.split('\n\n'); buf = events.pop() || ''
+          for (const ev of events) {
+            if (!ev.startsWith('data: ')) continue
+            let j; try { j = JSON.parse(ev.slice(6)) } catch { continue }
+            if (j.d) { acc += j.d; paint(acc) }
+            if (j.error) { acc = `⚠️ ${j.error}`; paint(acc) }
+          }
+        }
+        if (!acc) paint('…')
+      } else {
+        const data = await r.json()
+        const reply = r.ok ? (data?.reply || '…') : `⚠️ ${data?.error || 'Errore'}`
+        setMsgs(m => [...m, { role: 'assistant', content: reply }])
+      }
     } catch (e) {
       setMsgs(m => [...m, { role: 'assistant', content: `⚠️ ${e?.message || 'Errore di rete'}` }])
     } finally {

@@ -3,6 +3,7 @@ import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../.
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
 import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
+import { runToolLoopStream } from '../../../lib/agent/streamLoop'
 
 // Guardrail anti-invenzione (identico al precedente messaggio system inline).
 const GUARD_NUMBERS = 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna, percentuale che scrivi DEVE essere copiato letteralmente dal JSON DATI LIVE. Vietato inventare, stimare, approssimare. Se manca un dato, scrivi "Non ho il dato di X per questo periodo" — mai inventare valori. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende).'
@@ -474,7 +475,7 @@ export async function POST(req) {
       cookie: req.headers.get('cookie') || '',
       snapshot: context,
     }
-    const { userId, content: reply, usage } = await callBrain({
+    const brainArgs = {
       skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT, guard: GUARD_NUMBERS },
       query: lastUserMsg,
       data: context,
@@ -488,6 +489,41 @@ export async function POST(req) {
       temperature: 0.3,
       presencePenalty: 0.2,
       frequencyPenalty: 0.2,
+    }
+
+    // ── STREAMING (fase 3): stesso identico prompt (via dryRun del gateway),
+    // loop tool in streaming → i token arrivano al client appena generati.
+    if (body?.stream === true) {
+      const dry = await callBrain({ ...brainArgs, dryRun: true, liveTools: false })
+      const { messages: assembled, ...oaiBody } = dry.body
+      const enc = new TextEncoder()
+      const sse = (obj) => enc.encode(`data: ${JSON.stringify(obj)}\n\n`)
+      const streamBody = new ReadableStream({
+        async start(c) {
+          try {
+            const { content } = await runToolLoopStream({
+              body: oaiBody,
+              messages: assembled,
+              tools: ALL_TOOLS,
+              onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
+              onDelta: (d) => c.enqueue(sse({ d })),
+            })
+            if (dry.userId && lastUserMsg && content) {
+              persistTurnMemory({ agentId: AGENT_ID, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content }).catch(() => {})
+              persistDataMemory({ agentId: AGENT_ID, userId: dry.userId, data: context, timeframe: preset }).catch(() => {})
+            }
+            c.enqueue(sse({ done: true, summary }))
+          } catch (e) {
+            c.enqueue(sse({ error: e?.message || 'Errore' }))
+          }
+          c.close()
+        },
+      })
+      return new Response(streamBody, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' } })
+    }
+
+    const { userId, content: reply, usage } = await callBrain({
+      ...brainArgs,
       tools: ALL_TOOLS,
       onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
     })

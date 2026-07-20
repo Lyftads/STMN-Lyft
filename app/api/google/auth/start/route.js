@@ -17,11 +17,13 @@ import { getServerSupabase } from '../../../../../lib/supabase/server'
 //    NEXT_PUBLIC_APP_URL=https://lyftai.io  (opzionale, usa header host fallback)
 // ============================================================================
 
+// Solo gli scope EFFETTIVAMENTE usati dall'app: la verifica OAuth di Google
+// richiede di dimostrare l'uso di ogni scope sensibile nel video demo — uno
+// scope non usato (com'era bigquery.readonly) fa bocciare la review.
 const SCOPES = [
   'https://www.googleapis.com/auth/analytics.readonly',   // GA4 reporting + Realtime
   'https://www.googleapis.com/auth/adwords',              // Google Ads
   'https://www.googleapis.com/auth/webmasters.readonly',  // Search Console
-  'https://www.googleapis.com/auth/bigquery.readonly',    // User Path (export GA4 → BigQuery)
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ')
 

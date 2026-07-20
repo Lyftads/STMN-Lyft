@@ -479,6 +479,9 @@ export async function POST(req) {
       query: lastUserMsg,
       data: context,
       dataLabel: `DATI LIVE (periodo: ${periodLabel}):`,
+      // Dieta stile Sidekick: contesto pre-caricato ridotto (prima 80k) — per
+      // tutto il resto il modello ha i tool live, più veloci di un prompt obeso.
+      dataMax: 26000,
       extraSystem: [{ role: 'system', content: 'Hai STRUMENTI live per QUALSIASI dato del software: get_kpis (ogni KPI per periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console (SEO reale), get_incrementality, get_inventory, get_ltv, list_products, get_competitors, list_tasks, get_time_tracking. Se un dato non è nel contesto o riguarda un altro periodo, USA lo strumento giusto invece di dire "non ho il dato". Ogni risultato strumento include istruzioni "jit": seguile.' }],
       messages: cleanMessages,
       locale: body?.locale,

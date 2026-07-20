@@ -164,14 +164,17 @@ export function OnboardingInner({ embedded = false } = {}) {
         setStepStatus(j.steps || {})
         // Se gia' completato → redirect home (solo standalone: embedded resta per
         // ri-collegare/cambiare le integrazioni dalla tab in-app).
-        if (j.completed && !embedded) router.push('/')
+        // ECCEZIONE: ritorno dal callback OAuth Google (?gaConnected=1) — un
+        // cliente già onboardato che RICOLLEGA Google deve restare qui per
+        // scegliere account/proprietà/sito, non essere sbalzato in dashboard.
+        if (j.completed && !embedded && searchParams.get('gaConnected') !== '1') router.push('/')
       })
       .catch(e => setError(e?.message))
       .finally(() => setLoading(false))
     // Stato reale delle connessioni OAuth (Shopify/Meta/Google/Klaviyo/Mailchimp)
     // → i chip mostrano ciò che è DAVVERO collegato, non solo i campi salvati.
     fetch('/api/integrations/status').then(r => r.ok ? r.json() : null).then(s => setLiveConn(s)).catch(() => {})
-  }, [router])
+  }, [router, searchParams])
 
   // Un chip è "collegato" se lo dice l'onboarding (campi salvati) OPPURE lo stato
   // reale delle connessioni. Copre i collegamenti Nango (meta='facebook', ecc.).

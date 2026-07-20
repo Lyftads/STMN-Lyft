@@ -113,7 +113,10 @@ async function extractCreativeMedia(snapshotUrl) {
 }
 
 async function viaApi(pageId, country) {
-  const ACCESS_TOKEN = getMeta().accessToken
+  // Ad Library API = gate separato dalla Marketing API (error 10 senza):
+  // token unico a livello app (utente owner con identità confermata), con
+  // fallback al token del tenant. È dato pubblico, nessun vincolo per-tenant.
+  const ACCESS_TOKEN = process.env.ADLIBRARY_ACCESS_TOKEN || getMeta().accessToken
   if (!ACCESS_TOKEN) return null
   try {
     // 'ALL' vale solo sulla pagina web dell'Ad Library: l'API pretende codici
@@ -294,7 +297,7 @@ export async function GET(request) {
     pageId, country, ads, count: ads.length, total, capped,
     source: ads.length ? source : null,
     error: ads.length === 0 ? (apiError || result?.httpError || 'no_results') : null,
-    metaConnected: !!getMeta().accessToken,
+    metaConnected: !!(process.env.ADLIBRARY_ACCESS_TOKEN || getMeta().accessToken),
     libraryUrl: pageUrlFor(pageId, country),
     fetchedAt: new Date().toISOString(),
   }

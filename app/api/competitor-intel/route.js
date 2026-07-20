@@ -12,6 +12,12 @@ export const maxDuration = 60
 const accessToken   = () => getMeta().accessToken || ''
 const graphVersion  = () => getMeta().graphVersion || 'v21.0'
 
+// Token per la Ad Library API (ads_archive): gate SEPARATO dalla Marketing API
+// (error 10 senza) — serve un utente con identità confermata su facebook.com/ID
+// + termini Ad Library accettati. È dato pubblico → si usa un token unico a
+// livello app (owner), con fallback al token del tenant.
+const adlibToken    = () => process.env.ADLIBRARY_ACCESS_TOKEN || getMeta().accessToken || ''
+
 // Store dell'azienda corrente per scrape competitor comparison.
 // 'self' come id stabile (era 'stmn' hardcoded — solo label interna, non
 // referenziata dal frontend).
@@ -519,7 +525,7 @@ async function scrapeAdLibraryPage(pageId, pageName) {
 async function fetchAdLibrary(pageId, countries, pageName) {
   // Try API first
   let apiError = null
-  if (accessToken()) {
+  if (adlibToken()) {
     const url = new URL(`https://graph.facebook.com/${graphVersion()}/ads_archive`)
     url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
     url.searchParams.set('ad_reached_countries', JSON.stringify(countries))
@@ -539,7 +545,7 @@ async function fetchAdLibrary(pageId, countries, pageName) {
       ].join(',')
     )
     url.searchParams.set('limit', '50')
-    url.searchParams.set('access_token', accessToken())
+    url.searchParams.set('access_token', adlibToken())
 
     try {
       const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })

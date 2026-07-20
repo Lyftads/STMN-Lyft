@@ -11,7 +11,9 @@ import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 // Non tocca /api/competitor-intel.
 // Token Meta risolto per-tenant via context (env fallback per STMN beta).
 
-const accessToken  = () => getMeta().accessToken || ''
+// Ad Library API = gate separato dalla Marketing API (error 10 senza): token
+// unico a livello app (owner con identità confermata), fallback token tenant.
+const accessToken  = () => process.env.ADLIBRARY_ACCESS_TOKEN || getMeta().accessToken || ''
 const graphVersion = () => getMeta().graphVersion || 'v21.0'
 
 function sanitize(v) {

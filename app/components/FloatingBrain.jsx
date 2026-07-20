@@ -171,15 +171,10 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
       // Default: ultimi 30 giorni. Così il Cervello risponde su QUALSIASI time frame.
       const period = detectPeriod(text)
       const { qs, label: periodLabel } = periodToQuery(period)
-      // Dati cross-dominio (tutte le piattaforme collegate) per quel periodo
-      let agentContext = null
-      try {
-        const ctxRes = await fetch(`/api/agent-context?${qs}`, { cache: 'no-store' })
-        if (ctxRes.ok) agentContext = await ctxRes.json()
-      } catch {}
-      // Consapevolezza della tab + del periodo: il cervello sa dove sei e che
-      // finestra temporale stai guardando (così non sballa l'etichetta).
-      const ctx = { ...(agentContext || {}), _currentTab: tabLabel, _periodLabel: periodLabel }
+      // Niente più pre-fetch del contesto aggregato (era il collo di bottiglia
+      // prima di OGNI messaggio): il cervello ha i tool live e legge da solo
+      // ciò che serve. Restano solo tab corrente e periodo (consapevolezza).
+      const ctx = { _currentTab: tabLabel, _periodLabel: periodLabel }
       const r = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

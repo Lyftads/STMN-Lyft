@@ -7,6 +7,7 @@ import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
 import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
+import { runToolLoopStream } from '../../../lib/agent/streamLoop'
 
 const GUARD = 'REGOLA CRITICA: ogni numero, nome prodotto, nome campagna, percentuale che citi DEVE essere copiato letteralmente dal blocco DATI LIVE. Vietato inventare/stimare. Se manca un dato dillo. Rispetta il BRAND GUARD del CONTESTO BRAND.'
 
@@ -49,7 +50,9 @@ export async function POST(req) {
   try { const snap = await readSnapshot(process.env.LYFT_OWNER_USER_ID); if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) } } catch {}
 
   try {
-    const { userId, content: reply, usage } = await callBrain({
+    // Tool LIVE multi-tenant (auth = cookie di QUESTA sessione), snapshot come fallback
+    const toolCtx = { origin: new URL(req.url).origin, cookie: req.headers.get('cookie') || '', snapshot: snapData }
+    const brainArgs = {
       skill: { id: `team-${agent.id}`, systemPrompt: skillPrompt, guard: GUARD },
       query: lastUserMsg,
       data: context,
@@ -59,9 +62,41 @@ export async function POST(req) {
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.4,
-      // Tool LIVE multi-tenant (auth = cookie di QUESTA sessione), snapshot come fallback
+    }
+
+    // ── STREAMING: stesso prompt (dryRun del gateway) + loop tool in stream
+    if (body?.stream === true) {
+      const dry = await callBrain({ ...brainArgs, dryRun: true, liveTools: false })
+      const { messages: assembled, ...oaiBody } = dry.body
+      const enc = new TextEncoder()
+      const sse = (obj) => enc.encode(`data: ${JSON.stringify(obj)}\n\n`)
+      const streamBody = new ReadableStream({
+        async start(c) {
+          try {
+            const { content } = await runToolLoopStream({
+              body: oaiBody,
+              messages: assembled,
+              tools: ALL_TOOLS,
+              onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
+              onDelta: (d) => c.enqueue(sse({ d })),
+            })
+            if (dry.userId && lastUserMsg && content) {
+              persistTurnMemory({ agentId: `team-${agent.id}`, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content }).catch(() => {})
+            }
+            c.enqueue(sse({ done: true, agent: { id: agent.id, name: agent.name, role: agent.role } }))
+          } catch (e) {
+            c.enqueue(sse({ error: e?.message || 'Errore' }))
+          }
+          c.close()
+        },
+      })
+      return new Response(streamBody, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' } })
+    }
+
+    const { userId, content: reply, usage } = await callBrain({
+      ...brainArgs,
       tools: ALL_TOOLS,
-      onToolCall: (n, a) => executeToolLive(n, a, { origin: new URL(req.url).origin, cookie: req.headers.get('cookie') || '', snapshot: snapData }),
+      onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
     })
 
     if (userId && lastUserMsg && reply) {

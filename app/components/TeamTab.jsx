@@ -146,12 +146,35 @@ export default function TeamTab() {
       const ctx = await ensureContext() // garantisce i dati reali anche al primo messaggio
       const res = await fetch('/api/team-agent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: sel, messages: next, agentContext: ctx, preset: 'last_30d', locale: getClientLocale() }),
+        body: JSON.stringify({ agentId: sel, messages: next, agentContext: ctx, preset: 'last_30d', locale: getClientLocale(), stream: true }),
       })
-      const d = await res.json()
-      const reply = d.reply || d.error || '…'
-      setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: reply }] }))
-      if (autoVoice && d.reply) speak(d.reply, sel)
+      if (res.ok && (res.headers.get('content-type') || '').includes('text/event-stream') && res.body) {
+        // Streaming: la risposta dell'agente compare parola per parola
+        let acc = '', buf = ''
+        const paint = (text) => setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: text }] }))
+        paint('')
+        const reader = res.body.getReader()
+        const dec = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += dec.decode(value, { stream: true })
+          const events = buf.split('\n\n'); buf = events.pop() || ''
+          for (const ev of events) {
+            if (!ev.startsWith('data: ')) continue
+            let j; try { j = JSON.parse(ev.slice(6)) } catch { continue }
+            if (j.d) { acc += j.d; paint(acc) }
+            if (j.error) { acc = j.error; paint(acc) }
+          }
+        }
+        if (!acc) paint('…')
+        if (autoVoice && acc) speak(acc, sel) // la voce parte a risposta completa
+      } else {
+        const d = await res.json()
+        const reply = d.reply || d.error || '…'
+        setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: reply }] }))
+        if (autoVoice && d.reply) speak(d.reply, sel)
+      }
     } catch {
       setByAgent(p => ({ ...p, [sel]: [...next, { role: 'assistant', content: t('team.error', null, 'Ops, errore. Riprova.') }] }))
     } finally { setBusy(false) }

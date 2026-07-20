@@ -623,6 +623,10 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
   const [pageTotal, setPageTotal] = useState(null)
   const [pageCapped, setPageCapped] = useState(false)
   const [pageAdsLoading, setPageAdsLoading] = useState(false)
+  // Stato reale dell'ultimo fetch: errore API/scrape e presenza token Meta del
+  // tenant — alimenta il banner (niente più messaggi fissi fuorvianti).
+  const [pageAdsError, setPageAdsError] = useState(null)
+  const [pageAdsMetaConnected, setPageAdsMetaConnected] = useState(true)
   useEffect(() => {
     if (apiAds.length > 0 || !pageId) return
     let cancelled = false
@@ -651,6 +655,8 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
         setPageAds(list)
         setPageTotal(Number.isFinite(j?.total) ? j.total : null)
         setPageCapped(!!j?.capped)
+        setPageAdsError(!list.length && j?.error && j.error !== 'no_results' ? String(j.error) : null)
+        if (j?.metaConnected === false) setPageAdsMetaConnected(false)
         if (list.length) {
           try { sessionStorage.setItem(ckey, JSON.stringify({ ts: Date.now(), ads: list, total: j.total ?? null, capped: !!j.capped })) } catch {}
         }
@@ -940,7 +946,7 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                   </svg>
                 </a>
 
-                {/* Status info */}
+                {/* Status info — stato reale del caricamento creative */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '14px 18px', borderRadius: 12,
@@ -952,9 +958,13 @@ function CompetitorSection({ competitor, meta, country = 'IT' }) {
                     animation: 'pulse 2s ease-in-out infinite',
                   }} />
                   <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
-                    <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>{t('ci.awaitingApproval', null, 'In attesa di approvazione')}</strong>
+                    <strong style={{ color: 'var(--accent)', fontWeight: 800 }}>{t('ci.noCreativesTitle', null, 'Creative non caricate')}</strong>
                     {' — '}
-                    {t('ci.approvalMsgPre', null, 'La richiesta di accesso')} <span style={{ color: 'var(--text)', fontWeight: 700 }}>Page Public Content Access</span> {t('ci.approvalMsgPost', null, 'è in review da Meta. Una volta approvata, le creative appariranno automaticamente qui con immagini, video e copy.')}
+                    {!pageAdsMetaConnected
+                      ? t('ci.noCreativesConnect', null, 'Collega Meta Ads dall’Onboarding per leggere le creative via API. Nel frattempo puoi vederle su Ad Library dal link qui sopra.')
+                      : pageAdsError
+                        ? t('ci.noCreativesError', { err: pageAdsError }, `Lettura automatica non riuscita (${pageAdsError}). Puoi vedere tutte le creative su Ad Library dal link qui sopra.`)
+                        : t('ci.noCreativesEmpty', null, 'La pagina non risulta avere inserzioni attive al momento. Verificale su Ad Library dal link qui sopra.')}
                   </div>
                 </div>
               </div>

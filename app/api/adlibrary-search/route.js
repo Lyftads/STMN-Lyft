@@ -107,7 +107,8 @@ async function searchViaApi(q, country) {
 
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
     const json = await res.json()
-    if (json.error || !json.data?.length) return null
+    if (json.error) return { ads: [], apiError: `${json.error.code || ''} ${json.error.message || ''}`.trim(), source: 'api' }
+    if (!json.data?.length) return null
 
     const raw = json.data.map((ad) => ({
       id: ad.id,
@@ -326,7 +327,7 @@ export async function GET(request) {
 
   let result = await searchViaApi(q, country)
   let source = 'api'
-  let lastErr = null
+  let lastErr = result?.apiError || null
 
   if (!result || !result.ads?.length) {
     const bl = await searchViaBrowserless(q, country)

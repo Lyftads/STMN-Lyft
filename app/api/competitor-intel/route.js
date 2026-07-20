@@ -518,6 +518,7 @@ async function scrapeAdLibraryPage(pageId, pageName) {
 
 async function fetchAdLibrary(pageId, countries, pageName) {
   // Try API first
+  let apiError = null
   if (accessToken()) {
     const url = new URL(`https://graph.facebook.com/${graphVersion()}/ads_archive`)
     url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
@@ -543,6 +544,7 @@ async function fetchAdLibrary(pageId, countries, pageName) {
     try {
       const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
       const json = await res.json()
+      if (json.error) apiError = `${json.error.code || ''} ${json.error.message || ''}`.trim()
 
       if (!json.error && json.data?.length > 0) {
         const rawAds = json.data.map((ad) => ({
@@ -578,8 +580,9 @@ async function fetchAdLibrary(pageId, countries, pageName) {
     } catch {}
   }
 
-  // Fallback: scrape public Ad Library page
-  return scrapeAdLibraryPage(pageId, pageName)
+  // Fallback: scrape public Ad Library page (l'eventuale errore API resta visibile a valle)
+  const scraped = await scrapeAdLibraryPage(pageId, pageName)
+  return { ...scraped, apiError }
 }
 
 // ── Scraping prodotti/prezzi GENERICO (siti non-Shopify) ────────────────────

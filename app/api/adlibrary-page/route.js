@@ -116,9 +116,12 @@ async function viaApi(pageId, country) {
   const ACCESS_TOKEN = getMeta().accessToken
   if (!ACCESS_TOKEN) return null
   try {
+    // 'ALL' vale solo sulla pagina web dell'Ad Library: l'API pretende codici
+    // ISO → stessa lista multi-mercato del modulo competitor.
+    const countries = country === 'ALL' ? ['IT', 'ES', 'US', 'AU', 'GB', 'FR', 'DE'] : [country]
     const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/ads_archive`)
     url.searchParams.set('search_page_ids', JSON.stringify([pageId]))
-    url.searchParams.set('ad_reached_countries', JSON.stringify([country]))
+    url.searchParams.set('ad_reached_countries', JSON.stringify(countries))
     url.searchParams.set('ad_active_status', 'ACTIVE')
     url.searchParams.set('ad_type', 'ALL')
     url.searchParams.set('fields', ['ad_creative_bodies','ad_creative_link_captions','ad_creative_link_descriptions','ad_creative_link_titles','ad_delivery_start_time','ad_snapshot_url','page_name','publisher_platforms'].join(','))
@@ -126,7 +129,8 @@ async function viaApi(pageId, country) {
     url.searchParams.set('access_token', ACCESS_TOKEN)
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
     const json = await res.json()
-    if (json.error || !json.data?.length) return null
+    if (json.error) return { ads: [], apiError: `${json.error.code || ''} ${json.error.message || ''}`.trim() }
+    if (!json.data?.length) return { ads: [], apiError: null }
     const raw = json.data.map((ad) => ({
       id: ad.id,
       bodies: (ad.ad_creative_bodies || []).map(sanitize),
@@ -276,6 +280,7 @@ export async function GET(request) {
 
   let result = await viaApi(pageId, country)
   let source = 'api'
+  const apiError = result?.apiError || null
   if (!result || !result.ads?.length) {
     const bl = await viaBrowserless(pageId, country)
     result = bl
@@ -288,7 +293,8 @@ export async function GET(request) {
   const payload = {
     pageId, country, ads, count: ads.length, total, capped,
     source: ads.length ? source : null,
-    error: ads.length === 0 ? (result?.httpError || 'no_results') : null,
+    error: ads.length === 0 ? (apiError || result?.httpError || 'no_results') : null,
+    metaConnected: !!getMeta().accessToken,
     libraryUrl: pageUrlFor(pageId, country),
     fetchedAt: new Date().toISOString(),
   }

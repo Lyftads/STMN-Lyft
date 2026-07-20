@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
+import { withTenantContext, getGoogle, getEffectiveTenantId, invalidateTenantCache } from '../../../lib/tenant/credentials'
 
 const GSC = 'https://searchconsole.googleapis.com/webmasters/v3'
 
@@ -42,6 +42,16 @@ function brandTokens(site, override) {
 }
 
 export async function GET(request) {
+  // Il picker dei siti (onboarding) non deve MAI vedere credenziali stantie:
+  // subito dopo il collegamento Google la credsCache per-istanza può contenere
+  // ancora lo stato "non connesso" (fino a 2 min) → lista vuota. Per la lista
+  // siti forziamo la risoluzione fresca dal DB (route a basso traffico).
+  {
+    const { searchParams } = new URL(request.url)
+    if (searchParams.get('action') === 'sites') {
+      try { invalidateTenantCache(await getEffectiveTenantId()) } catch {}
+    }
+  }
   return withTenantContext(request, async () => {
     const g = getGoogle()
     const { searchParams } = new URL(request.url)

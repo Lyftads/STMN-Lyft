@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getGoogle } from '../../../../lib/tenant/credentials'
+import { withTenantContext, getGoogle, getEffectiveTenantId, invalidateTenantCache } from '../../../../lib/tenant/credentials'
 
 // ============================================================================
 //  Google Ads — lista gli account accessibili dall'utente loggato (per il
@@ -25,6 +25,9 @@ async function getAccessToken(clientId, clientSecret, refreshToken) {
 }
 
 export async function GET(req) {
+  // Picker dell'onboarding: mai credenziali stantie subito dopo il collegamento
+  // Google (credsCache per-istanza fino a 2 min) — vedi gsc/route.js.
+  try { invalidateTenantCache(await getEffectiveTenantId()) } catch {}
   return withTenantContext(req, async () => {
     const g = getGoogle()
     const CLIENT_ID = g.clientId, CLIENT_SECRET = g.clientSecret, REFRESH = g.refreshToken

@@ -55,6 +55,7 @@ import IncrSimulatorTab from './components/IncrSimulatorTab'
 import GeoLiftTab from './components/GeoLiftTab'
 import ProductPerformanceTab from './components/ProductPerformanceTab'
 import ProductCostsTab from './components/ProductCostsTab'
+import CassaTab from './components/CassaTab'
 import CreativeStudio from './components/CreativeStudio'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
@@ -4437,6 +4438,10 @@ export default function App() {
 
 {tab === 'productCosts' && (
   <ProductCostsTab />
+)}
+
+{tab === 'cassa' && (
+  <CassaTab />
 )}
 
 {tab === 'clienti' && (

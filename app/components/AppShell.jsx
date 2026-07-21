@@ -138,6 +138,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
         { id: 'productPerformance', label: 'Performance prodotti', icon: <Icon name="chart-bar" /> },
         { id: 'productCosts', label: 'Costi prodotto', icon: <Icon name="money" /> },
+        { id: 'cassa', label: 'Cassa', icon: <Icon name="euro" /> },
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },

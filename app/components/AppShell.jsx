@@ -56,6 +56,22 @@ export default function AppShell({
 }) {
   const { t, locale } = useI18n()
 
+  // Lock abbonamento SCADUTO: se true, OGNI navigazione viene forzata sulla
+  // tab Settings (pagina piani) finché il cliente non rinnova. Stato dal
+  // server (/api/billing-lock: Stripe/Shopify + esenzioni storiche).
+  const [subLocked, setSubLocked] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/billing-lock', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (alive && j) setSubLocked(!!j.locked) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+  useEffect(() => {
+    if (subLocked && tab !== 'settings' && typeof setTab === 'function') setTab('settings')
+  }, [subLocked, tab, setTab])
+
   // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
   const [pendingActions, setPendingActions] = useState(0)
 const [helpOpen, setHelpOpen] = useState(false)
@@ -226,6 +242,11 @@ const [helpOpen, setHelpOpen] = useState(false)
 
   const goTo = (id) => {
     setMobileNav(false) // su mobile il tap su una voce chiude il drawer
+    // Abbonamento scaduto: qualunque voce clicchi, si torna SEMPRE ai piani.
+    if (subLocked && id !== 'settings') {
+      if (typeof setTab === 'function') setTab('settings')
+      return
+    }
     // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra
     // (la board è importante e merita lo spazio pieno, come "Apri come app").
     if (id === 'creativeStudio') {
@@ -558,6 +579,21 @@ const [helpOpen, setHelpOpen] = useState(false)
             </div>
           </header>
 
+          {subLocked && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 4px',
+              padding: '14px 18px', borderRadius: 14,
+              background: 'rgba(255,69,58,0.10)', border: '1px solid rgba(255,69,58,0.35)',
+              position: 'relative', zIndex: 2,
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+              <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                <strong style={{ color: '#ff6b62', fontWeight: 800 }}>{t('shell.subExpired', null, 'Abbonamento scaduto')}</strong>
+                {' — '}
+                <span style={{ color: 'var(--text2)' }}>{t('shell.subExpiredMsg', null, 'Rinnova il piano per continuare a usare LyftAI: tutte le sezioni si riattivano automaticamente appena l’abbonamento torna attivo.')}</span>
+              </div>
+            </div>
+          )}
           <TabContent key={tab}>
             {children}
           </TabContent>

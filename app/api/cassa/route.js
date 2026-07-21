@@ -204,7 +204,15 @@ export async function GET(request) {
       }
     }
 
-    if (!bankingConfigured()) return NextResponse.json({ configured: false, reason: 'env' })
+    if (!bankingConfigured()) {
+      // Diagnostica sicura: SOLO presenza delle env (mai i valori).
+      return NextResponse.json({
+        configured: false,
+        reason: 'env',
+        hasAppId: !!process.env.ENABLEBANKING_APP_ID,
+        hasKey: !!(process.env.ENABLEBANKING_PRIVATE_KEY_B64 || process.env.ENABLEBANKING_PRIVATE_KEY),
+      })
+    }
 
     // Ritorno dalla banca: scambia il code in sessione PRIMA del sync.
     const code = searchParams.get('code')

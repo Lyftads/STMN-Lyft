@@ -62,6 +62,9 @@ export default function CassaTab() {
         const r = await fetch('/api/cassa?action=institutions&country=IT', { cache: 'no-store' })
         const j = await r.json()
         setBanks(Array.isArray(j?.institutions) ? j.institutions : [])
+        // Se il provider ha risposto con un errore (es. app non ancora attiva),
+        // mostralo: "nessuna banca trovata" da solo è fuorviante.
+        if (j?.error && !(j?.institutions || []).length) setError(j.error)
       } catch { setBanks([]) }
     }
   }

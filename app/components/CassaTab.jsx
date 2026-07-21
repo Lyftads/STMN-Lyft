@@ -22,10 +22,12 @@ export default function CassaTab() {
   const [bankSearch, setBankSearch] = useState('')
   const [showPicker, setShowPicker] = useState(false)
 
-  const load = useCallback(async (refresh = false) => {
+  const load = useCallback(async (arg = false) => {
+    // arg: boolean (refresh) oppure query string già pronta ('?refresh=1&code=…')
+    const qs = typeof arg === 'string' ? arg : (arg ? '?refresh=1' : '')
     setLoading(true); setError(null)
     try {
-      const r = await fetch(`/api/cassa${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' })
+      const r = await fetch(`/api/cassa${qs}`, { cache: 'no-store' })
       const j = await r.json()
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`)
       setData(j)
@@ -34,9 +36,23 @@ export default function CassaTab() {
   }, [])
 
   useEffect(() => {
-    let fresh = false
-    try { fresh = new URLSearchParams(window.location.search).get('bankConnected') === '1' } catch {}
-    load(fresh)
+    // Ritorno dal collegamento banca: passa code+state alla route (scambio
+    // sessione) e pulisci l'URL dai parametri sensibili.
+    let qs = ''
+    try {
+      const p = new URLSearchParams(window.location.search)
+      if (p.get('bankConnected') === '1') {
+        qs = '?refresh=1'
+        const code = p.get('code'), state = p.get('state')
+        if (code && state) qs += `&code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+        try {
+          const clean = new URL(window.location.href)
+          for (const k of ['bankConnected', 'code', 'state', 'error', 'error_description']) clean.searchParams.delete(k)
+          window.history.replaceState({}, '', clean)
+        } catch {}
+      }
+    } catch {}
+    load(qs || false)
   }, [load])
 
   const openPicker = async () => {
@@ -54,7 +70,8 @@ export default function CassaTab() {
     if (connecting) return
     setConnecting(true)
     try {
-      const r = await fetch('/api/cassa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'connect', institutionId: b.id, institutionName: b.name }) })
+      const psuType = Array.isArray(b.psuTypes) && b.psuTypes.includes('business') ? 'business' : (b.psuTypes?.[0] || 'business')
+      const r = await fetch('/api/cassa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'connect', institutionId: b.id, institutionName: b.name, country: b.country || 'IT', psuType }) })
       const j = await r.json()
       if (j?.link) { window.location.href = j.link; return }
       setError(j?.error || 'Errore collegamento')

@@ -7,22 +7,24 @@ import { withTenantContext, getEffectiveTenantId } from '../../../lib/tenant/cre
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { callBrain } from '../../../lib/agent/gateway'
 import {
-  gocardlessConfigured, listInstitutions, createRequisition, getRequisition,
-  getAccountDetails, getBalance, getTransactions,
-} from '../../../lib/cassa/gocardless'
+  bankingConfigured, listInstitutions, startAuth, exchangeSession,
+  getBalance, getTransactions,
+} from '../../../lib/cassa/enablebanking'
 
 // ============================================================================
 //  Modulo CASSA — controllo di cassa via open banking, multi-tenant.
 //
 //  GET  ?action=institutions&country=IT → lista banche collegabili
-//  POST { action:'connect', institutionId } → { link } (redirect banca)
-//  GET  [?refresh=1] → dati: connessioni, saldi, movimenti categorizzati,
-//        entrate/uscite per mese, uscite per categoria, proiezione 30/60/90.
-//        Sincronizza dal provider al massimo ogni 6h (rate limit) e SEMPRE
-//        risolve le requisition pending (ritorno dal collegamento banca).
-//  DELETE ?id=<connectionId> → scollega banca (rimuove saldi+movimenti orfani)
+//  POST { action:'connect', institutionId, institutionName, psuType } → { link }
+//  GET  [?refresh=1][&code=&state=] → dati: al ritorno dalla banca scambia il
+//        code in sessione (state = reference della connessione), poi serve:
+//        connessioni, saldi, movimenti categorizzati AI, entrate/uscite per
+//        mese, uscite per categoria, proiezione 30/60/90.
+//        Sincronizza dal provider al massimo ogni 6h; sempre dal DB altrimenti.
+//  DELETE ?id=<connectionId> → scollega banca (rimuove saldi+movimenti)
 //
-//  Tabelle: supabase/cassa.sql · Env: GOCARDLESS_SECRET_ID/SECRET_KEY
+//  Tabelle: supabase/cassa.sql · Env: ENABLEBANKING_APP_ID + PRIVATE_KEY_B64
+//  Redirect registrato presso il provider: {origin}/cassa-return
 // ============================================================================
 
 const SYNC_TTL_MS = 6 * 3600e3
@@ -41,41 +43,59 @@ async function ctx() {
   return { ws, admin }
 }
 
-// ── Sync dal provider (risoluzione pending + saldi + movimenti) ─────────────
+// ── Ritorno dalla banca: code+state → sessione → account attivi ─────────────
+async function resolveCallback(ws, admin, code, state) {
+  const { data: row } = await admin
+    .from('bank_connections')
+    .select('id, status')
+    .eq('workspace_id', ws)
+    .eq('requisition_id', state)
+    .maybeSingle()
+  if (!row || row.status === 'active') return
+  try {
+    const { accounts } = await exchangeSession(code)
+    if (accounts.length) {
+      await admin.from('bank_connections').update({ status: 'active', accounts: accounts.map(a => a.uid) }).eq('id', row.id)
+      // Pre-popola nome/iban dei conti (il saldo arriva col primo sync).
+      for (const a of accounts) {
+        await admin.from('bank_balances').upsert({
+          account_id: a.uid, workspace_id: ws, connection_id: row.id,
+          name: a.name, iban: a.iban, currency: a.currency, updated_at: new Date().toISOString(),
+        }, { onConflict: 'account_id' })
+      }
+    } else {
+      await admin.from('bank_connections').update({ status: 'error' }).eq('id', row.id)
+    }
+  } catch {
+    await admin.from('bank_connections').update({ status: 'error' }).eq('id', row.id)
+  }
+}
+
+// ── Sync dal provider (saldi + movimenti, con guardia rate limit) ───────────
 async function syncConnections(ws, admin, { force = false } = {}) {
   const { data: conns } = await admin.from('bank_connections').select('*').eq('workspace_id', ws)
   const out = []
   for (const c of (conns || [])) {
     let conn = c
-    // 1) pending → prova a risolvere (l'utente è appena tornato dalla banca)
-    if (c.status === 'pending') {
-      try {
-        const r = await getRequisition(c.requisition_id)
-        if (r.status === 'LN' && r.accounts.length) {
-          const patch = { status: 'active', accounts: r.accounts }
-          await admin.from('bank_connections').update(patch).eq('id', c.id)
-          conn = { ...c, ...patch }
-        } else if (['RJ', 'EX', 'SU'].includes(r.status)) {
-          await admin.from('bank_connections').update({ status: 'error' }).eq('id', c.id)
-          conn = { ...c, status: 'error' }
-        }
-      } catch {}
+    // pending vecchie (l'utente non ha completato l'autorizzazione) → error
+    if (c.status === 'pending' && Date.now() - new Date(c.created_at).getTime() > 24 * 3600e3) {
+      await admin.from('bank_connections').update({ status: 'error' }).eq('id', c.id)
+      conn = { ...c, status: 'error' }
     }
-    // 2) attiva e stantia → sincronizza saldi + movimenti per conto
     const stale = !conn.last_synced_at || (Date.now() - new Date(conn.last_synced_at).getTime() > SYNC_TTL_MS)
     if (conn.status === 'active' && (force || stale)) {
       const since = iso(new Date(Date.now() - 90 * 86400e3))
       for (const accountId of (conn.accounts || [])) {
         try {
-          const [details, balance, txs] = await Promise.all([
-            getAccountDetails(accountId).catch(() => ({})),
+          const [balance, txs] = await Promise.all([
             getBalance(accountId).catch(() => null),
             getTransactions(accountId, since).catch(() => []),
           ])
           if (balance) {
+            const { data: existing } = await admin.from('bank_balances').select('name, iban').eq('account_id', accountId).maybeSingle()
             await admin.from('bank_balances').upsert({
               account_id: accountId, workspace_id: ws, connection_id: conn.id,
-              name: details?.name || conn.institution_name, iban: details?.iban || null,
+              name: existing?.name || conn.institution_name, iban: existing?.iban || null,
               balance: balance.amount, currency: balance.currency, updated_at: new Date().toISOString(),
             }, { onConflict: 'account_id' })
           }
@@ -86,7 +106,6 @@ async function syncConnections(ws, admin, { force = false } = {}) {
               booking_date: t.bookingDate, amount: t.amount, currency: t.currency,
               counterparty: t.counterparty, description: t.description,
             }))
-            // upsert ignorando i duplicati (id = providerTxId|account)
             for (let i = 0; i < rows.length; i += 200) {
               await admin.from('bank_transactions').upsert(rows.slice(i, i + 200), { onConflict: 'id', ignoreDuplicates: true })
             }
@@ -150,7 +169,6 @@ function aggregates(txs, balances) {
     }
     if (!minDate || t.booking_date < minDate) minDate = t.booking_date
   }
-  // Giorni realmente coperti dallo storico (fino a 90)
   const days = minDate ? Math.max(7, Math.min(90, Math.round((Date.now() - new Date(minDate).getTime()) / 86400e3))) : 0
   const netPerDay = days ? (inflow90 - outflow90) / days : 0
   const projection = days ? {
@@ -177,7 +195,7 @@ export async function GET(request) {
     if (!ws || !admin) return NextResponse.json({ configured: false, reason: 'auth' })
 
     if (searchParams.get('action') === 'institutions') {
-      if (!gocardlessConfigured()) return NextResponse.json({ configured: false, reason: 'env' })
+      if (!bankingConfigured()) return NextResponse.json({ configured: false, reason: 'env' })
       try {
         const list = await listInstitutions((searchParams.get('country') || 'IT').toUpperCase())
         return NextResponse.json({ configured: true, institutions: list })
@@ -186,7 +204,12 @@ export async function GET(request) {
       }
     }
 
-    if (!gocardlessConfigured()) return NextResponse.json({ configured: false, reason: 'env' })
+    if (!bankingConfigured()) return NextResponse.json({ configured: false, reason: 'env' })
+
+    // Ritorno dalla banca: scambia il code in sessione PRIMA del sync.
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+    if (code && state) { try { await resolveCallback(ws, admin, code, state) } catch {} }
 
     const force = searchParams.get('refresh') === '1'
     let connections = []
@@ -213,25 +236,28 @@ export async function POST(request) {
   return withTenantContext(request, async () => {
     const { ws, admin } = await ctx()
     if (!ws || !admin) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-    if (!gocardlessConfigured()) return NextResponse.json({ error: 'Open banking non configurato' }, { status: 400 })
+    if (!bankingConfigured()) return NextResponse.json({ error: 'Open banking non configurato' }, { status: 400 })
     let body; try { body = await request.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
 
     if (body?.action === 'connect') {
       const institutionId = String(body.institutionId || '')
-      const institutionName = String(body.institutionName || '').slice(0, 80)
+      const institutionName = String(body.institutionName || institutionId).slice(0, 80)
+      const country = String(body.country || 'IT').toUpperCase()
+      const psuType = ['business', 'personal'].includes(body.psuType) ? body.psuType : 'business'
       if (!institutionId) return NextResponse.json({ error: 'institutionId mancante' }, { status: 400 })
       const origin = new URL(request.url).origin
       const reference = `${ws}_${Date.now()}`
       try {
-        const { requisitionId, link } = await createRequisition({
-          institutionId,
-          redirect: `${origin}/?tab=cassa&bankConnected=1`,
-          reference,
-          language: 'IT',
+        const { link } = await startAuth({
+          aspspName: institutionId,
+          country,
+          psuType,
+          redirect: `${origin}/cassa-return`,
+          state: reference,
         })
         await admin.from('bank_connections').insert({
-          workspace_id: ws, requisition_id: requisitionId,
-          institution_id: institutionId, institution_name: institutionName || institutionId,
+          workspace_id: ws, requisition_id: reference,
+          institution_id: institutionId, institution_name: institutionName,
           status: 'pending',
         })
         return NextResponse.json({ link })

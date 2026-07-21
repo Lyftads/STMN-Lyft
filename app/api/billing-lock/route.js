@@ -8,6 +8,7 @@ import { withTenantContext, getEffectiveTenantId } from '../../../lib/tenant/cre
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { isOrderGateExempt } from '../../../lib/team/orderGateExempt'
 import { checkTenantShopifySubscription } from '../../../lib/shopify/subscription'
+import { invalidateBillingLock } from '../../../lib/tenant/billingLock'
 
 // ============================================================================
 //  Lock d'accesso per abbonamento SCADUTO/NON RINNOVATO.
@@ -69,6 +70,9 @@ export async function GET(request) {
       } catch {}
     }
 
-    return NextResponse.json({ locked: !(stripeActive || shopActive) })
+    const locked = !(stripeActive || shopActive)
+    // Rinnovo rilevato live → sblocca subito anche l'enforcement 402 (cache 60s)
+    if (!locked) invalidateBillingLock(userId)
+    return NextResponse.json({ locked })
   })
 }

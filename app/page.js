@@ -2323,18 +2323,28 @@ export default function App() {
   const [marginData, setMarginData] = useState(null) // { grossMargin, costCoverage }
   useEffect(() => {
     let alive = true
+    // Finestra 30g = la STESSA pre-riscaldata all'avvio sessione (AppShell
+    // prewarm) → snapshot già caldo, risposta immediata. Una finestra diversa
+    // (es. 365g) creava una chiave cache fredda → computo pesante → timeout →
+    // margine mai arrivato → 100% anche coi costi inseriti.
     const until = new Date().toISOString().slice(0, 10)
-    const since = new Date(Date.now() - 365 * 86400e3).toISOString().slice(0, 10)
-    fetch(`/api/product-performance?since=${since}&until=${until}`)
-      .then(r => r.json())
-      .then(j => {
-        if (!alive) return
-        const t = j?.totals
-        if (t && t.grossMargin != null && (t.costCoverage || 0) > 0) {
-          setMarginData({ grossMargin: t.grossMargin, costCoverage: t.costCoverage })
-        }
-      })
-      .catch(() => {})
+    const since = new Date(Date.now() - 30 * 86400e3).toISOString().slice(0, 10)
+    const tryFetch = (attempt) => {
+      fetch(`/api/product-performance?since=${since}&until=${until}`)
+        .then(r => r.json())
+        .then(j => {
+          if (!alive) return
+          const t = j?.totals
+          if (t && t.grossMargin != null && (t.costCoverage || 0) > 0) {
+            setMarginData({ grossMargin: t.grossMargin, costCoverage: t.costCoverage })
+          } else if (attempt < 1) {
+            // primo giro a freddo (snapshot in costruzione) → riprova una volta
+            setTimeout(() => { if (alive) tryFetch(attempt + 1) }, 20000)
+          }
+        })
+        .catch(() => { if (alive && attempt < 1) setTimeout(() => { if (alive) tryFetch(attempt + 1) }, 20000) })
+    }
+    tryFetch(0)
     return () => { alive = false }
   }, [])
 

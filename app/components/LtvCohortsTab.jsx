@@ -33,7 +33,7 @@ export default function LtvCohortsTab() {
   const [months, setMonths] = useState(12)
   // LTV netto: margine lordo (auto dai costi prodotto Shopify, override manuale)
   // + spesa ads del periodo per il CAC e il ratio LTV:CAC.
-  const [margin, setMargin] = useState(60)   // % margine lordo
+  const [margin, setMargin] = useState(100)  // % margine lordo (100 = nessun costo inserito → netto = lordo)
   const [marginAuto, setMarginAuto] = useState(true)
   const [enrich, setEnrich] = useState(null) // { adSpend, metaSpend, googleSpend, grossMargin, costCoverage }
   // LTV proiettato a maturità (ltv-auto): per un brand in crescita la media
@@ -78,7 +78,10 @@ export default function LtvCohortsTab() {
   // Margine di default in automatico dai costi prodotto reali (se coperti).
   useEffect(() => {
     if (!enrich || !marginAuto) return
-    const pct = (enrich.grossMargin != null && enrich.costCoverage > 0) ? Math.round(enrich.grossMargin * 100) : 60
+    // REGOLA: costi prodotto inseriti → margine reale; nessun costo → 100
+    // (LTV netto = lordo, niente riduzioni inventate). L'override manuale
+    // resta possibile disattivando l'auto.
+    const pct = (enrich.grossMargin != null && enrich.costCoverage > 0) ? Math.round(enrich.grossMargin * 100) : 100
     setMargin(pct)
   }, [enrich, marginAuto])
 

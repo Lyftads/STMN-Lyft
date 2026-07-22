@@ -112,7 +112,9 @@ function getMonths() {
 let historyBgInflight = false
 const EMPTY  = { fatturato:0, ordini:0, nuoviClienti:0, googleSpend:0 }
 const WEMPTY = { fatturato:0, fatturNC:0, fatturRC:0, meta:0, google:0, ordini:0, nc:0, rc:0, sessioni:0 }
-const DEF   = { freq:1.69, life:1.57, margin:62 }
+// margin 100 = default quando NON ci sono costi prodotto inseriti (LTV netto
+// = lordo). Se i costi ci sono, il margine REALE li sovrascrive (vedi cfg).
+const DEF   = { freq:1.69, life:1.57, margin:100 }
 
 function load() {
   try { return {
@@ -349,7 +351,9 @@ function Settings({ cfg, onSave, onClose }) {
 // ── Simulatore ────────────────────────────────────────────────
 function Simulator({ cfg }) {
   const { t } = useI18n()
-  const [s, setS] = useState({aov:85, freq:cfg.freq||1.69, life:cfg.life||1.57, margin:cfg.margin||30, cac:35})
+  // margin del simulatore: parte dal margine effettivo ma il suo slider arriva
+  // a 80 → clampa (con margine 100 = nessun costo inserito, parte da 80).
+  const [s, setS] = useState({aov:85, freq:cfg.freq||1.69, life:cfg.life||1.57, margin:Math.min(cfg.margin||30, 80), cac:35})
   const set = (k,v) => setS(x=>({...x,[k]:v}))
   const ltv   = s.aov * s.freq * s.life * s.margin/100
   const ratio = s.cac > 0 ? ltv/s.cac : 0
@@ -2312,14 +2316,41 @@ export default function App() {
     return () => { alive = false }
   }, [])
 
+  // Margine REALE dai costi prodotto (per l'LTV netto): se i costi sono
+  // inseriti (coverage > 0) il margine calcolato vince su default e manuale;
+  // senza costi inseriti si resta al margine di cfgBase (default 100 = netto
+  // uguale al lordo, nessuna riduzione inventata).
+  const [marginData, setMarginData] = useState(null) // { grossMargin, costCoverage }
+  useEffect(() => {
+    let alive = true
+    const until = new Date().toISOString().slice(0, 10)
+    const since = new Date(Date.now() - 365 * 86400e3).toISOString().slice(0, 10)
+    fetch(`/api/product-performance?since=${since}&until=${until}`)
+      .then(r => r.json())
+      .then(j => {
+        if (!alive) return
+        const t = j?.totals
+        if (t && t.grossMargin != null && (t.costCoverage || 0) > 0) {
+          setMarginData({ grossMargin: t.grossMargin, costCoverage: t.costCoverage })
+        }
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
   // cfg "effettiva": se abbiamo l'LTV dai dati, sostituisce gli ordini-a-vita
-  // (freq×life) con il valore reale calcolato sulle coorti. Così OGNI calcolo
+  // (freq×life) con il valore reale calcolato sulle coorti; se abbiamo i costi
+  // prodotto, il margine reale sostituisce quello manuale. Così OGNI calcolo
   // LTV:CAC in App e nei componenti figli (Weekly/KPI Brain/Mensile/...) usa il
   // dato reale, senza toccare la config manuale (cfgBase, usata dall'editor).
   const ltvFromData = !!ltvAuto?.projectedAvgOrders
-  const cfg = ltvFromData
-    ? { ...cfgBase, freq: +(ltvAuto.projectedAvgOrders / (cfgBase.life || 1)).toFixed(4) }
-    : cfgBase
+  const cfg = {
+    ...cfgBase,
+    ...(ltvFromData ? { freq: +(ltvAuto.projectedAvgOrders / (cfgBase.life || 1)).toFixed(4) } : {}),
+    // REGOLA margine: costi prodotto inseriti → margine reale; altrimenti 100.
+    // (Il valore manuale/salvato non conta più: evitava-solo di inventare numeri.)
+    margin: marginData ? Math.max(1, Math.min(100, Math.round(marginData.grossMargin * 100))) : 100,
+  }
 
   // Post-signup: redirect a /onboarding se l'utente non ha ancora completato
   // il wizard di setup integrazioni, oppure a /billing-required se non ha

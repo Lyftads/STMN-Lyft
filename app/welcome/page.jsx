@@ -2019,54 +2019,90 @@ function StatsRow({ t }) {
 }
 
 function TabsTour({ t }) {
+  // Esploratore compatto: pill cliccabili + UN pannello dettaglio (prima era
+  // una griglia di 12 card ≈ 3 schermate di scroll; ora ~1/3 di schermata).
+  const [active, setActive] = useState(0)
+  const tab = t.tabs[active] || t.tabs[0]
   return (
-    <section id="tabs-tour" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
+    <section id="tabs-tour" style={{ maxWidth: 1100, margin: '0 auto', padding: '70px 24px 80px' }}>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
       <Reveal><SectionHeader eyebrow={t.tabsTour.eyebrow} title={t.tabsTour.title} /></Reveal>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 50,
-      }}>
-        {t.tabs.map((tab, i) => (
-          <Reveal key={tab.id} delay={i * 50}>
-            <div className="glass-card-static spot-card" style={{ padding: 24, height: '100%' }} onMouseMove={spotMove}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 42, height: 42, borderRadius: 11,
-                background: `${ACCENT}18`, color: ACCENT,
-                fontSize: 17, fontWeight: 800, marginBottom: 14,
-              }}>{tab.icon}</span>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8, letterSpacing: '-0.01em' }}>
-                {tab.title}
-              </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{tab.desc}</div>
+      <Reveal>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 40 }}>
+          {t.tabs.map((tb, i) => (
+            <button
+              key={tb.id}
+              onClick={() => setActive(i)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+                border: `1px solid ${i === active ? ACCENT : 'rgba(255,255,255,0.12)'}`,
+                background: i === active ? `${ACCENT}22` : 'rgba(255,255,255,0.03)',
+                color: i === active ? '#fff' : 'rgba(255,255,255,0.65)',
+                fontSize: 12.5, fontWeight: 700, letterSpacing: '-0.01em',
+                transition: 'all .18s ease',
+              }}
+            >
+              <span style={{ display: 'inline-flex', color: ACCENT, fontSize: 13 }}>{tb.icon}</span>
+              {tb.title}
+            </button>
+          ))}
+        </div>
+        <div
+          key={tab.id}
+          className="glass-card-static spot-card"
+          onMouseMove={spotMove}
+          style={{
+            marginTop: 22, padding: '30px 34px', minHeight: 140,
+            display: 'flex', gap: 20, alignItems: 'flex-start',
+            animation: 'fadeIn .25s ease',
+          }}
+        >
+          <span style={{
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 52, height: 52, borderRadius: 14,
+            background: `linear-gradient(135deg, ${ACCENT}28, ${BLUE}18)`,
+            border: `1px solid ${ACCENT}44`, color: ACCENT, fontSize: 21, fontWeight: 800,
+          }}>{tab.icon}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 19, fontWeight: 800, color: '#fff', marginBottom: 8, letterSpacing: '-0.01em' }}>
+              {tab.title}
             </div>
-          </Reveal>
-        ))}
-      </div>
+            <div style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, maxWidth: 760 }}>
+              {tab.desc}
+            </div>
+          </div>
+        </div>
+      </Reveal>
     </section>
   )
 }
 
 function FeaturesGrid({ t }) {
+  // Mini-card orizzontali compatte (icona a sinistra, testo a destra): stesso
+  // contenuto delle vecchie card grandi in ~metà dell'altezza. Il dettaglio
+  // interattivo vive nel Tour qui sotto — questa sezione è la scansione rapida.
   return (
-    <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
+    <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 70px' }}>
       <Reveal><SectionHeader eyebrow={t.featuresTitle.eyebrow} title={t.featuresTitle.title} /></Reveal>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 18, marginTop: 50,
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 10, marginTop: 44,
       }}>
         {t.features.map((f, i) => (
-          <Reveal key={f.title} delay={i * 80}>
-            <div className="glass-card-static spot-card" style={{ padding: 28, height: '100%' }} onMouseMove={spotMove}>
+          <Reveal key={f.title} delay={i * 40}>
+            <div className="glass-card-static spot-card" style={{ padding: '14px 16px', height: '100%', display: 'flex', gap: 12, alignItems: 'flex-start' }} onMouseMove={spotMove}>
               <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 52, height: 52, borderRadius: 14,
-                background: `linear-gradient(135deg, ${ACCENT}28, ${BLUE}18)`,
-                border: `1px solid ${ACCENT}44`,
-                color: ACCENT, fontSize: 22, fontWeight: 800, marginBottom: 18,
+                flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 38, height: 38, borderRadius: 10,
+                background: `${ACCENT}18`, border: `1px solid ${ACCENT}33`,
+                color: ACCENT, fontSize: 15, fontWeight: 800,
               }}>{f.icon}</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 10, letterSpacing: '-0.01em' }}>
-                {f.title}
-              </div>
-              <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>{f.desc}</div>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 3, letterSpacing: '-0.01em' }}>
+                  {f.title}
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.45 }}>{f.desc}</span>
+              </span>
             </div>
           </Reveal>
         ))}

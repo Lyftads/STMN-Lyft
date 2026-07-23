@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 
@@ -187,15 +187,15 @@ export default function CassaTab() {
             </div>
             <div className="glass-card" style={{ padding: 16 }}>
               <div className="label" style={{ fontSize: 10, marginBottom: 6 }}>{t('cassa.kpiIn', null, 'Entrate · 90g')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#30d158' }}>{eur(data.inflow90, intlLocale)}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#a78bfa' }}>{eur(data.inflow90, intlLocale)}</div>
             </div>
             <div className="glass-card" style={{ padding: 16 }}>
               <div className="label" style={{ fontSize: 10, marginBottom: 6 }}>{t('cassa.kpiOut', null, 'Uscite · 90g')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#ff6b62' }}>{eur(data.outflow90, intlLocale)}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#2997ff' }}>{eur(data.outflow90, intlLocale)}</div>
             </div>
             <div className="glass-card" style={{ padding: 16 }}>
               <div className="label" style={{ fontSize: 10, marginBottom: 6 }}>{t('cassa.kpiProj30', null, 'Proiezione · 30g')}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: (data.projection?.d30 ?? 0) >= 0 ? 'var(--text)' : '#ff6b62' }}>{eur(data.projection?.d30, intlLocale)}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: (data.projection?.d30 ?? 0) >= 0 ? 'var(--text)' : '#ff9f0a' }}>{eur(data.projection?.d30, intlLocale)}</div>
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export default function CassaTab() {
                     {[['30', data.projection.d30], ['60', data.projection.d60], ['90', data.projection.d90]].map(([d, v]) => (
                       <div key={d}>
                         <div className="label" style={{ fontSize: 9.5, marginBottom: 4 }}>{d} {t('cassa.days', null, 'giorni')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: v >= 0 ? 'var(--text)' : '#ff6b62' }}>{eur(v, intlLocale)}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: v >= 0 ? 'var(--text)' : '#ff9f0a' }}>{eur(v, intlLocale)}</div>
                       </div>
                     ))}
                   </div>
@@ -242,19 +242,44 @@ export default function CassaTab() {
             </div>
           </div>
 
-          {/* Entrate/uscite per mese */}
+          {/* Entrate/uscite per mese — area minimale, palette futuristica */}
           <div className="glass-card" style={{ padding: 18, marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 12 }}>{t('cassa.byMonth', null, 'Entrate e uscite per mese')}</div>
-            <div style={{ width: '100%', height: 240 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 13.5 }}>{t('cassa.byMonth', null, 'Entrate e uscite per mese')}</div>
+              <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text3)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 99, background: '#a78bfa', boxShadow: '0 0 8px #a78bfa88' }} />
+                  {t('cassa.in', null, 'Entrate')}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 99, background: '#2997ff', boxShadow: '0 0 8px #2997ff88' }} />
+                  {t('cassa.out', null, 'Uscite')}
+                </span>
+              </div>
+            </div>
+            <div style={{ width: '100%', height: 230 }}>
               <ResponsiveContainer>
-                <BarChart data={data.byMonth || []} margin={{ top: 4, right: 8, left: -6, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
-                  <Tooltip contentStyle={{ background: '#15151d', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, fontSize: 12 }} formatter={(v, k) => [eur(v, intlLocale), k === 'in' ? t('cassa.in', null, 'Entrate') : t('cassa.out', null, 'Uscite')]} />
-                  <Bar dataKey="in" fill="#30d158" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="out" fill="#ff6b62" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                <AreaChart data={data.byMonth || []} margin={{ top: 8, right: 6, left: 6, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="cassaIn" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="cassaOut" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2997ff" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#2997ff" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" tick={{ fontSize: 10.5, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip
+                    cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeDasharray: '3 3' }}
+                    contentStyle={{ background: 'rgba(12,12,18,0.95)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 12, fontSize: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                    formatter={(v, k) => [eur(v, intlLocale), k === 'in' ? t('cassa.in', null, 'Entrate') : t('cassa.out', null, 'Uscite')]}
+                  />
+                  <Area type="monotone" dataKey="in" stroke="#a78bfa" strokeWidth={2.2} fill="url(#cassaIn)" dot={false} activeDot={{ r: 3.5, strokeWidth: 0 }} animationDuration={900} />
+                  <Area type="monotone" dataKey="out" stroke="#2997ff" strokeWidth={2.2} fill="url(#cassaOut)" dot={false} activeDot={{ r: 3.5, strokeWidth: 0 }} animationDuration={900} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -289,7 +314,7 @@ export default function CassaTab() {
                       {m.counterparty || m.description || '—'}
                       {m.category && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '1px 6px' }}>{m.category}</span>}
                     </span>
-                    <strong style={{ color: (Number(m.amount) || 0) >= 0 ? '#30d158' : 'var(--text)' }}>{eur(m.amount, intlLocale)}</strong>
+                    <strong style={{ color: (Number(m.amount) || 0) >= 0 ? '#a78bfa' : 'var(--text)' }}>{eur(m.amount, intlLocale)}</strong>
                   </div>
                 ))}
               </div>

@@ -46,7 +46,10 @@ export async function GET(req) {
     }
 
     return NextResponse.json(map, {
-      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
+      // MAI 'public, s-maxage' su risposte PER-TENANT (URL uguale per tutti,
+      // la CDN non varia sul cookie → immagini dello store di un tenant
+      // servite a un altro). Stessa classe di bug di competitor-intel.
+      headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch {
     return NextResponse.json({})

@@ -1016,7 +1016,10 @@ async function scrapeProducts(origin, homepage, forceCountry = null) {
 // dell'utente, fallback su COMPETITORS hardcoded (defaults STMN per tenant
 // beta). Normalizza la shape per essere consumabile dal resto del codice.
 async function resolveCompetitors() {
-  const userList = await getUserCompetitors()
+  // Identità UNICA per tutta la richiesta: quella del contesto ALS (stessa
+  // usata per la chiave cache) — mai ri-derivarla qui.
+  const { userId } = getTenantInfo()
+  const userList = await getUserCompetitors(userId)
   if (userList.length === 0) {
     // Fallback ai competitor hardcoded SOLO per il tenant owner/beta (STMN).
     // Un cliente reale che non ha compilato i competitor in Brand Identity NON
@@ -1173,12 +1176,13 @@ export async function GET(request) {
       ? ['IT', 'ES', 'US', 'AU', 'GB', 'FR', 'DE']
       : [country]
 
-  const { userId } = getTenantInfo()
+  const { userId, companyName } = getTenantInfo()
   const cacheKey = `${userId || 'anon'}:${country}`
   const entry = CACHE.get(cacheKey)
   const cacheValid =
     !forceRefresh &&
     !isCron &&
+    !!userId && // mai servire dalla cache condivisa 'anon' a un utente
     entry &&
     Date.now() - entry.at < CACHE_TTL_MS
 
@@ -1189,7 +1193,7 @@ export async function GET(request) {
     results = entry.data
   } else {
     results = await fetchAllCompetitors(countries)
-    if (!competitorId) {
+    if (!competitorId && userId) { // mai scrivere dati utente nel bucket 'anon'
       cachedAt = Date.now()
       CACHE.set(cacheKey, { data: results, at: cachedAt })
     }
@@ -1247,10 +1251,16 @@ export async function GET(request) {
       nextRefresh: cachedAt
         ? new Date(cachedAt + CACHE_TTL_MS).toISOString()
         : null,
+      // Telemetria identità (diagnosi cross-tenant): chi ha risolto la richiesta.
+      _identity: { userId: userId || null, companyName: companyName || null, cacheKey },
     },
     {
       headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        // MAI 'public, s-maxage' su una risposta PER-TENANT: la CDN cachea per
+        // URL senza variare sul cookie → serviva i dati di un tenant all'altro
+        // (bug 22 lug: Saracino vedeva i competitor di STMN). La cache lato
+        // server (CACHE keyed userId) resta ed è quella giusta.
+        'Cache-Control': 'private, no-store',
       },
     }
   )

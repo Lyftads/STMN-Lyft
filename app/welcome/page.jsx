@@ -62,16 +62,25 @@ const I18N = {
     },
     hero: {
       badge: 'Prova gratuita · 14 giorni',
-      title1: 'Il sistema operativo AI',
-      title2: 'del tuo e-commerce.',
-      subtitle: 'Analisi, creatività, agenti AI e team in un\'unica piattaforma che conosce il tuo brand. Connetti Shopify, Meta, Google e Klaviyo in 5 minuti: LyftAI legge i dati e ogni giorno ti mostra dove c\'è leva di crescita e dove stai bruciando soldi.',
+      title1: 'Le tue ads rendono davvero',
+      title2: 'quanto dice Meta?',
+      subtitle: 'LyftAI misura quanto rende ogni canale al netto delle vendite che avresti fatto comunque, ti dice dove va il prossimo euro — e, con la banca collegata, se puoi permettertelo. Un solo cervello AI su Shopify, Meta, Google, SEO ed email.',
       rotPrefix: 'Un solo cervello per',
       rotWords: ['le analisi', 'le creatività', 'gli agenti AI', 'i report', 'il budget'],
       ctaPrimary: 'Inizia la prova gratuita',
-      ctaSecondary: 'Scopri come funziona',
+      ctaSecondary: 'Entra nella demo live',
       perks: ['Niente carta richiesta', 'Setup in 5 minuti', 'Disponibile in 5 lingue'],
     },
     trust: { label: 'Integrazioni native' },
+    hooks: {
+      eyebrow: 'Perché LyftAI',
+      title: 'Tre risposte che nessun altro ti dà',
+      items: [
+        { icon: '∿', title: 'Quanto rendono DAVVERO le tue ads?', text: 'Meta e Google si attribuiscono vendite che avresti fatto comunque. LyftAI misura l\'incrementalità reale di ogni canale — e col simulatore qui sotto vedi dove il prossimo euro rende di più.' },
+        { icon: '€', title: 'Da 10 tool a 1 cervello', text: 'Analytics, ads, SEO, email, CRM, inventario e cassa in un solo software: sostituisce oltre €900/mese di abbonamenti separati. E ogni piano include tutto.' },
+        { icon: '◉', title: 'Non report. Azioni.', text: 'Ogni mattina il Cervello ti dice cosa è successo e cosa fare — scala, taglia, sistema — con l\'impatto previsto in €. Tu approvi, lui prepara.' },
+      ],
+    },
     problem: {
       eyebrow: 'Il problema',
       title: '4 dashboard, 12 spreadsheet, 0 risposte chiare',
@@ -245,16 +254,25 @@ const I18N = {
     },
     hero: {
       badge: 'Free trial · 14 days',
-      title1: 'The AI operating system',
-      title2: 'for your e-commerce.',
-      subtitle: 'Analytics, creative, AI agents and team in one platform that knows your brand. Connect Shopify, Meta, Google and Klaviyo in 5 minutes: LyftAI reads your data and shows you every day where there\'s growth leverage and where you\'re burning money.',
+      title1: 'Do your ads really perform',
+      title2: 'as well as Meta says?',
+      subtitle: 'LyftAI measures what each channel truly adds — net of the sales you would have made anyway — tells you where the next euro should go and, with your bank connected, whether you can afford it. One AI brain across Shopify, Meta, Google, SEO and email.',
       rotPrefix: 'One brain for',
       rotWords: ['analytics', 'creatives', 'AI agents', 'reports', 'budget'],
       ctaPrimary: 'Start free trial',
-      ctaSecondary: 'See how it works',
+      ctaSecondary: 'Enter the live demo',
       perks: ['No credit card required', '5-minute setup', 'Available in 5 languages'],
     },
     trust: { label: 'Native integrations' },
+    hooks: {
+      eyebrow: 'Why LyftAI',
+      title: 'Three answers no other tool gives you',
+      items: [
+        { icon: '∿', title: 'How much do your ads REALLY drive?', text: 'Meta and Google claim sales you would have made anyway. LyftAI measures the true incrementality of every channel — and with the simulator below you see where the next euro performs best.' },
+        { icon: '€', title: 'From 10 tools to 1 brain', text: 'Analytics, ads, SEO, email, CRM, inventory and cash flow in one software: it replaces €900+/month of separate subscriptions. And every plan includes everything.' },
+        { icon: '◉', title: 'Not reports. Actions.', text: 'Every morning the Brain tells you what happened and what to do — scale, cut, fix — with the expected impact in €. You approve, it prepares.' },
+      ],
+    },
     problem: {
       eyebrow: 'The problem',
       title: '4 dashboards, 12 spreadsheets, 0 clear answers',
@@ -428,16 +446,25 @@ const I18N = {
     },
     hero: {
       badge: 'Prueba gratuita · 14 días',
-      title1: 'El sistema operativo IA',
-      title2: 'de tu e-commerce.',
-      subtitle: 'Analytics, creatividades, agentes IA y equipo en una sola plataforma que conoce tu marca. Conecta Shopify, Meta, Google y Klaviyo en 5 minutos: LyftAI lee tus datos y cada día te muestra dónde hay palanca de crecimiento y dónde estás quemando dinero.',
+      title1: '¿Tus ads rinden de verdad',
+      title2: 'lo que dice Meta?',
+      subtitle: 'LyftAI mide lo que aporta realmente cada canal — descontando las ventas que habrías hecho igualmente —, te dice dónde va el próximo euro y, con tu banco conectado, si puedes permitírtelo. Un solo cerebro IA sobre Shopify, Meta, Google, SEO y email.',
       rotPrefix: 'Un solo cerebro para',
       rotWords: ['la analítica', 'las creatividades', 'los agentes IA', 'los reportes', 'el presupuesto'],
       ctaPrimary: 'Iniciar prueba gratuita',
-      ctaSecondary: 'Ver cómo funciona',
+      ctaSecondary: 'Entra en la demo en vivo',
       perks: ['Sin tarjeta de crédito', 'Configuración en 5 minutos', 'Disponible en 5 idiomas'],
     },
     trust: { label: 'Integraciones nativas' },
+    hooks: {
+      eyebrow: 'Por qué LyftAI',
+      title: 'Tres respuestas que ninguna otra herramienta te da',
+      items: [
+        { icon: '∿', title: '¿Cuánto aportan DE VERDAD tus ads?', text: 'Meta y Google se atribuyen ventas que habrías hecho igualmente. LyftAI mide la incrementalidad real de cada canal — y con el simulador de abajo ves dónde rinde más el próximo euro.' },
+        { icon: '€', title: 'De 10 herramientas a 1 cerebro', text: 'Analytics, ads, SEO, email, CRM, inventario y tesorería en un solo software: sustituye más de €900/mes en suscripciones separadas. Y cada plan lo incluye todo.' },
+        { icon: '◉', title: 'No informes. Acciones.', text: 'Cada mañana el Cerebro te dice qué pasó y qué hacer — escalar, cortar, arreglar — con el impacto previsto en €. Tú apruebas, él prepara.' },
+      ],
+    },
     problem: {
       eyebrow: 'El problema',
       title: '4 dashboards, 12 hojas de cálculo, 0 respuestas claras',
@@ -611,16 +638,25 @@ const I18N = {
     },
     hero: {
       badge: 'Essai gratuit · 14 jours',
-      title1: 'Le système d\'exploitation IA',
-      title2: 'de votre e-commerce.',
-      subtitle: 'Analytics, créas, agents IA et équipe dans une seule plateforme qui connaît votre marque. Connectez Shopify, Meta, Google et Klaviyo en 5 minutes : LyftAI lit vos données et vous montre chaque jour où se trouvent les leviers de croissance et où vous brûlez de l\'argent.',
+      title1: 'Vos pubs rapportent-elles vraiment',
+      title2: 'ce que Meta affirme ?',
+      subtitle: 'LyftAI mesure ce que chaque canal apporte réellement — hors ventes que vous auriez faites de toute façon —, vous dit où doit aller le prochain euro et, avec votre banque connectée, si vous pouvez vous le permettre. Un seul cerveau IA sur Shopify, Meta, Google, SEO et email.',
       rotPrefix: 'Un seul cerveau pour',
       rotWords: ['l\'analyse', 'les créas', 'les agents IA', 'les rapports', 'le budget'],
       ctaPrimary: 'Démarrer l\'essai gratuit',
-      ctaSecondary: 'Voir comment ça marche',
+      ctaSecondary: 'Entrer dans la démo live',
       perks: ['Sans carte bancaire', 'Installation en 5 minutes', 'Disponible en 5 langues'],
     },
     trust: { label: 'Intégrations natives' },
+    hooks: {
+      eyebrow: 'Pourquoi LyftAI',
+      title: 'Trois réponses qu\'aucun autre outil ne vous donne',
+      items: [
+        { icon: '∿', title: 'Combien vos pubs rapportent-elles VRAIMENT ?', text: 'Meta et Google s\'attribuent des ventes que vous auriez faites de toute façon. LyftAI mesure l\'incrémentalité réelle de chaque canal — et avec le simulateur ci-dessous, vous voyez où le prochain euro rapporte le plus.' },
+        { icon: '€', title: 'De 10 outils à 1 cerveau', text: 'Analytics, pubs, SEO, email, CRM, stock et trésorerie dans un seul logiciel : il remplace plus de 900 €/mois d\'abonnements séparés. Et chaque plan inclut tout.' },
+        { icon: '◉', title: 'Pas des rapports. Des actions.', text: 'Chaque matin, le Cerveau vous dit ce qui s\'est passé et quoi faire — scaler, couper, corriger — avec l\'impact prévu en €. Vous approuvez, il prépare.' },
+      ],
+    },
     problem: {
       eyebrow: 'Le problème',
       title: '4 dashboards, 12 tableurs, 0 réponse claire',
@@ -794,16 +830,25 @@ const I18N = {
     },
     hero: {
       badge: 'Kostenlos testen · 14 Tage',
-      title1: 'Das KI-Betriebssystem',
-      title2: 'für Ihren E-Commerce.',
-      subtitle: 'Analytics, Kreatives, KI-Agenten und Team in einer Plattform, die Ihre Marke kennt. Verbinden Sie Shopify, Meta, Google und Klaviyo in 5 Minuten: LyftAI liest Ihre Daten und zeigt Ihnen täglich, wo Wachstumshebel liegen und wo Sie Geld verbrennen.',
+      title1: 'Bringen Ihre Ads wirklich das,',
+      title2: 'was Meta behauptet?',
+      subtitle: 'LyftAI misst, was jeder Kanal wirklich beiträgt — abzüglich der Verkäufe, die Sie ohnehin gemacht hätten —, sagt Ihnen, wohin der nächste Euro gehört, und mit verbundener Bank, ob Sie ihn sich leisten können. Ein KI-Gehirn über Shopify, Meta, Google, SEO und E-Mail.',
       rotPrefix: 'Ein Gehirn für',
       rotWords: ['Analytics', 'Creatives', 'KI-Agenten', 'Reports', 'Budget'],
       ctaPrimary: 'Kostenlosen Test starten',
-      ctaSecondary: 'So funktioniert es',
+      ctaSecondary: 'Live-Demo öffnen',
       perks: ['Keine Kreditkarte nötig', 'Einrichtung in 5 Minuten', 'In 5 Sprachen verfügbar'],
     },
     trust: { label: 'Native Integrationen' },
+    hooks: {
+      eyebrow: 'Warum LyftAI',
+      title: 'Drei Antworten, die Ihnen kein anderes Tool gibt',
+      items: [
+        { icon: '∿', title: 'Wie viel bringen Ihre Ads WIRKLICH?', text: 'Meta und Google schreiben sich Verkäufe zu, die Sie ohnehin gemacht hätten. LyftAI misst die echte Inkrementalität jedes Kanals — und mit dem Simulator unten sehen Sie, wo der nächste Euro am meisten bringt.' },
+        { icon: '€', title: 'Von 10 Tools zu 1 Gehirn', text: 'Analytics, Ads, SEO, E-Mail, CRM, Lager und Cashflow in einer Software: ersetzt über 900 €/Monat an separaten Abos. Und jeder Plan enthält alles.' },
+        { icon: '◉', title: 'Keine Reports. Aktionen.', text: 'Jeden Morgen sagt Ihnen das Brain, was passiert ist und was zu tun ist — skalieren, kürzen, beheben — mit erwartetem Impact in €. Sie genehmigen, es bereitet vor.' },
+      ],
+    },
     problem: {
       eyebrow: 'Das Problem',
       title: '4 Dashboards, 12 Tabellen, 0 klare Antworten',
@@ -1000,16 +1045,14 @@ export default function WelcomePage() {
       <BgFx />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Nav t={t} lang={lang} setLang={chooseLang} />
+        {/* Flusso conversione: promessa → 3 ganci (+prova) → demo → tour →
+            agenzie → pricing → fiducia → azione. Tagliate le sezioni ridondanti
+            (Problema/Stats/Showcase/Features/Bundle → fuse nei ganci e nel tour). */}
         <Hero t={t} />
         <TrustBar t={t} />
-        <ProblemSolution t={t} />
-        <StatsRow t={t} />
-        <ProductShowcase t={t} />
-        <TabsTour t={t} />
-        <FeaturesGrid t={t} />
+        <HooksSection t={t} />
         <DemoCharts t={t} />
-        <IncrementalitySection t={t} />
-        <BundleCompare t={t} />
+        <TabsTour t={t} />
         <AgencySection t={t} />
         <Pricing t={t} lang={lang} />
         <Testimonials t={t} />
@@ -1554,7 +1597,7 @@ function Nav({ t, lang, setLang }) {
   // Voci della tendina mobile (ancore + login). Il click chiude il menu.
   const mobileLinks = [
     { href: '#tabs-tour', label: t.nav.solutions },
-    { href: '#features', label: t.nav.features },
+    { href: '#tabs-tour', label: t.nav.features },
     { href: '#pricing', label: t.nav.pricing },
     { href: '#contact', label: t.nav.contact },
   ]
@@ -1816,7 +1859,7 @@ function Hero({ t }) {
         <Reveal variant="zoom" delay={500}>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <MagneticCta href="/register" style={primaryCta}>{t.hero.ctaPrimary} →</MagneticCta>
-            <a href="#tabs-tour" style={secondaryCta}>{t.hero.ctaSecondary}</a>
+            <a href="#demo" style={secondaryCta}>{t.hero.ctaSecondary}</a>
           </div>
           <div style={{
             marginTop: 32, fontSize: 12.5, color: 'rgba(255,255,255,0.5)',
@@ -2018,6 +2061,36 @@ function StatsRow({ t }) {
   )
 }
 
+// I 3 GANCI — sostituisce Problema/Soluzione + Stats + BundleCompare: un
+// pugno per colonna, col simulatore budget subito sotto come PROVA del gancio
+// sull'incrementalità (il differenziale vero vs ogni altro tool).
+function HooksSection({ t }) {
+  return (
+    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 60px' }}>
+      <Reveal><SectionHeader eyebrow={t.hooks.eyebrow} title={t.hooks.title} /></Reveal>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginTop: 44 }}>
+        {t.hooks.items.map((h, i) => (
+          <Reveal key={h.title} delay={i * 90}>
+            <div className="glass-card-static spot-card" onMouseMove={spotMove} style={{ padding: '26px 24px', height: '100%' }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 46, height: 46, borderRadius: 13,
+                background: `linear-gradient(135deg, ${ACCENT}28, ${BLUE}18)`,
+                border: `1px solid ${ACCENT}44`, color: ACCENT, fontSize: 19, fontWeight: 800, marginBottom: 16,
+              }}>{h.icon}</span>
+              <div style={{ fontSize: 17.5, fontWeight: 800, color: '#fff', marginBottom: 9, letterSpacing: '-0.01em' }}>{h.title}</div>
+              <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>{h.text}</div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+      <div style={{ marginTop: 26 }}>
+        <BudgetSimulator t={t} />
+      </div>
+    </section>
+  )
+}
+
 function TabsTour({ t }) {
   // Esploratore compatto: pill cliccabili + UN pannello dettaglio (prima era
   // una griglia di 12 card ≈ 3 schermate di scroll; ora ~1/3 di schermata).
@@ -2166,7 +2239,7 @@ function DemoCharts({ t }) {
     })
   }
   return (
-    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px 100px' }}>
+    <section id="demo" style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 80px' }}>
       <Reveal><SectionHeader eyebrow={t.demoTitle.eyebrow} title={t.demoTitle.title} /></Reveal>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 18, marginTop: 50,

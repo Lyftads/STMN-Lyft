@@ -62,14 +62,14 @@ const I18N = {
     },
     hero: {
       badge: 'Prova gratuita · 14 giorni',
-      title1: 'Le tue ads rendono davvero',
-      title2: 'quanto dice Meta?',
-      subtitle: 'LyftAI misura quanto rende ogni canale al netto delle vendite che avresti fatto comunque, ti dice dove va il prossimo euro — e, con la banca collegata, se puoi permettertelo. Un solo cervello AI su Shopify, Meta, Google, SEO ed email.',
+      title1: 'Tutto il tuo brand Shopify.',
+      title2: 'Un solo cervello AI.',
+      subtitle: 'LyftAI si collega a Shopify, Meta, Google, SEO ed email e impara il tuo brand: prodotti, clienti, numeri. Ogni giorno ti dice cosa sta funzionando, quanto rendono davvero le tue ads e cosa fare — con agenti AI che rispondono coi tuoi dati.',
       rotPrefix: 'Un solo cervello per',
       rotWords: ['le analisi', 'le creatività', 'gli agenti AI', 'i report', 'il budget'],
       ctaPrimary: 'Inizia la prova gratuita',
       ctaSecondary: 'Entra nella demo live',
-      perks: ['Niente carta richiesta', 'Setup in 5 minuti', 'Disponibile in 5 lingue'],
+      perks: ['Per brand e-commerce e agenzie', 'Niente carta richiesta', 'Setup in 5 minuti'],
     },
     trust: { label: 'Integrazioni native' },
     hooks: {
@@ -254,14 +254,14 @@ const I18N = {
     },
     hero: {
       badge: 'Free trial · 14 days',
-      title1: 'Do your ads really perform',
-      title2: 'as well as Meta says?',
-      subtitle: 'LyftAI measures what each channel truly adds — net of the sales you would have made anyway — tells you where the next euro should go and, with your bank connected, whether you can afford it. One AI brain across Shopify, Meta, Google, SEO and email.',
+      title1: 'Your whole Shopify brand.',
+      title2: 'One AI brain.',
+      subtitle: 'LyftAI connects to Shopify, Meta, Google, SEO and email and learns your brand: products, customers, numbers. Every day it tells you what\'s working, what your ads really drive and what to do next — with AI agents that answer with your data.',
       rotPrefix: 'One brain for',
       rotWords: ['analytics', 'creatives', 'AI agents', 'reports', 'budget'],
       ctaPrimary: 'Start free trial',
       ctaSecondary: 'Enter the live demo',
-      perks: ['No credit card required', '5-minute setup', 'Available in 5 languages'],
+      perks: ['For e-commerce brands & agencies', 'No credit card required', '5-minute setup'],
     },
     trust: { label: 'Native integrations' },
     hooks: {
@@ -446,14 +446,14 @@ const I18N = {
     },
     hero: {
       badge: 'Prueba gratuita · 14 días',
-      title1: '¿Tus ads rinden de verdad',
-      title2: 'lo que dice Meta?',
-      subtitle: 'LyftAI mide lo que aporta realmente cada canal — descontando las ventas que habrías hecho igualmente —, te dice dónde va el próximo euro y, con tu banco conectado, si puedes permitírtelo. Un solo cerebro IA sobre Shopify, Meta, Google, SEO y email.',
+      title1: 'Toda tu marca Shopify.',
+      title2: 'Un solo cerebro IA.',
+      subtitle: 'LyftAI se conecta a Shopify, Meta, Google, SEO y email y aprende tu marca: productos, clientes, números. Cada día te dice qué está funcionando, cuánto aportan de verdad tus ads y qué hacer — con agentes IA que responden con tus datos.',
       rotPrefix: 'Un solo cerebro para',
       rotWords: ['la analítica', 'las creatividades', 'los agentes IA', 'los reportes', 'el presupuesto'],
       ctaPrimary: 'Iniciar prueba gratuita',
       ctaSecondary: 'Entra en la demo en vivo',
-      perks: ['Sin tarjeta de crédito', 'Configuración en 5 minutos', 'Disponible en 5 idiomas'],
+      perks: ['Para marcas e-commerce y agencias', 'Sin tarjeta de crédito', 'Configuración en 5 minutos'],
     },
     trust: { label: 'Integraciones nativas' },
     hooks: {
@@ -638,14 +638,14 @@ const I18N = {
     },
     hero: {
       badge: 'Essai gratuit · 14 jours',
-      title1: 'Vos pubs rapportent-elles vraiment',
-      title2: 'ce que Meta affirme ?',
-      subtitle: 'LyftAI mesure ce que chaque canal apporte réellement — hors ventes que vous auriez faites de toute façon —, vous dit où doit aller le prochain euro et, avec votre banque connectée, si vous pouvez vous le permettre. Un seul cerveau IA sur Shopify, Meta, Google, SEO et email.',
+      title1: 'Toute votre marque Shopify.',
+      title2: 'Un seul cerveau IA.',
+      subtitle: 'LyftAI se connecte à Shopify, Meta, Google, SEO et email et apprend votre marque : produits, clients, chiffres. Chaque jour, il vous dit ce qui fonctionne, ce que vos pubs rapportent vraiment et quoi faire — avec des agents IA qui répondent avec vos données.',
       rotPrefix: 'Un seul cerveau pour',
       rotWords: ['l\'analyse', 'les créas', 'les agents IA', 'les rapports', 'le budget'],
       ctaPrimary: 'Démarrer l\'essai gratuit',
       ctaSecondary: 'Entrer dans la démo live',
-      perks: ['Sans carte bancaire', 'Installation en 5 minutes', 'Disponible en 5 langues'],
+      perks: ['Pour marques e-commerce et agences', 'Sans carte bancaire', 'Installation en 5 minutes'],
     },
     trust: { label: 'Intégrations natives' },
     hooks: {
@@ -830,14 +830,14 @@ const I18N = {
     },
     hero: {
       badge: 'Kostenlos testen · 14 Tage',
-      title1: 'Bringen Ihre Ads wirklich das,',
-      title2: 'was Meta behauptet?',
-      subtitle: 'LyftAI misst, was jeder Kanal wirklich beiträgt — abzüglich der Verkäufe, die Sie ohnehin gemacht hätten —, sagt Ihnen, wohin der nächste Euro gehört, und mit verbundener Bank, ob Sie ihn sich leisten können. Ein KI-Gehirn über Shopify, Meta, Google, SEO und E-Mail.',
+      title1: 'Ihre ganze Shopify-Marke.',
+      title2: 'Ein KI-Gehirn.',
+      subtitle: 'LyftAI verbindet sich mit Shopify, Meta, Google, SEO und E-Mail und lernt Ihre Marke: Produkte, Kunden, Zahlen. Jeden Tag sagt es Ihnen, was funktioniert, was Ihre Ads wirklich bringen und was zu tun ist — mit KI-Agenten, die mit Ihren Daten antworten.',
       rotPrefix: 'Ein Gehirn für',
       rotWords: ['Analytics', 'Creatives', 'KI-Agenten', 'Reports', 'Budget'],
       ctaPrimary: 'Kostenlosen Test starten',
       ctaSecondary: 'Live-Demo öffnen',
-      perks: ['Keine Kreditkarte nötig', 'Einrichtung in 5 Minuten', 'In 5 Sprachen verfügbar'],
+      perks: ['Für E-Commerce-Marken & Agenturen', 'Keine Kreditkarte nötig', 'Einrichtung in 5 Minuten'],
     },
     trust: { label: 'Native Integrationen' },
     hooks: {
@@ -1051,7 +1051,7 @@ export default function WelcomePage() {
         <Hero t={t} />
         <TrustBar t={t} />
         <HooksSection t={t} />
-        <DemoCharts t={t} />
+        <ProductShowcase t={t} />
         <TabsTour t={t} />
         <AgencySection t={t} />
         <Pricing t={t} lang={lang} />
@@ -2239,7 +2239,7 @@ function DemoCharts({ t }) {
     })
   }
   return (
-    <section id="demo" style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 80px' }}>
+    <section id="demo-cards" style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 80px' }}>
       <Reveal><SectionHeader eyebrow={t.demoTitle.eyebrow} title={t.demoTitle.title} /></Reveal>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 18, marginTop: 50,
@@ -2715,7 +2715,7 @@ function ProductShowcase({ t }) {
     return () => obs.disconnect()
   }, [])
   return (
-    <section style={{ maxWidth: 1680, margin: '0 auto', padding: '64px clamp(12px,4vw,32px) 40px' }}>
+    <section id="demo" style={{ maxWidth: 1680, margin: '0 auto', padding: '64px clamp(12px,4vw,32px) 40px' }}>
       <Reveal><SectionHeader eyebrow={ia.eyebrow} title={ia.title} /></Reveal>
       <Reveal><p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.55)', maxWidth: 660, margin: '14px auto 0', padding: '0 12px' }}>{ia.sub} <span style={{ color: ACCENT, fontWeight: 700 }}>{ia.explore}</span></p></Reveal>
 

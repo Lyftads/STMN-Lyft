@@ -228,6 +228,30 @@ export default function GeoLiftTab() {
               </ol>
             </div>
 
+            {/* Guida all'esecuzione sulle piattaforme */}
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderLeft: `4px solid ${channel === 'meta' ? '#2997ff' : '#eab308'}` }}>
+              <div className="label" style={{ marginBottom: 4 }}>{t('geo.execTitle', { c: channelName }, `How to set it up on ${channelName}`)}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 12 }}>{t('geo.execSub', null, 'The technical steps to apply the test cleanly. A mistake here invalidates the measurement.')}</div>
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, display: 'grid', gap: 6 }}>
+                {channel === 'google' ? (
+                  <>
+                    <li>{t('geo.execG1', null, 'In the campaign, keep targeting on all of Italy and EXCLUDE the CONTROL regions at campaign level (Locations → Exclude).')}</li>
+                    <li style={{ listStyle: 'none', marginLeft: -18, padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.4)' }}>
+                      <span style={{ fontWeight: 800, color: '#f59e0b' }}>{t('geo.execWarn', null, 'Critical')}: </span>{t('geo.execG2', null, "Set location options to 'Presence: people in your targeted locations', NOT 'Presence or interest' (the default). The default also shows ads to people merely interested in those areas and contaminates the control group.")}</li>
+                    <li>{t('geo.execG3', null, "On Performance Max, geo exclusion is always at campaign level. Google's location accuracy is best-effort, never 100% — factor that in.")}</li>
+                    <li>{t('geo.execGBrand', null, 'Test your brand-keyword ads separately: for well-known brands they often add no incremental sales (eBay study), but for small brands they can matter. Do not assume — test it apart.')}</li>
+                  </>
+                ) : (
+                  <>
+                    <li>{t('geo.execM1', { p: lift }, `In the ad sets, set locations to ONLY the TEST regions (or duplicate the campaign: one on TEST with +${lift}% budget, one on CONTROL unchanged).`)}</li>
+                    <li>{t('geo.execM2', null, "Make sure locations use 'People living in this location', not 'People recently in', so test and control don't bleed into each other.")}</li>
+                    <li>{t('geo.execM3', null, 'If you use Advantage+ Shopping campaigns, targeting is partly automatic: check that the geo exclusion is actually applicable, otherwise use a manual campaign for the test.')}</li>
+                  </>
+                )}
+                <li style={{ color: 'var(--text3)' }}>{t('geo.execCommon', null, "Don't make other major changes (promos, prices, other channels) during the test: they would distort the comparison.")}</li>
+              </ol>
+            </div>
+
             {/* Avvia e traccia il test (lifecycle) */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16 }}>
               <div className="label" style={{ marginBottom: 4 }}>{t('geo.launchTitle', null, 'Launch & track this test')}</div>

@@ -37,7 +37,7 @@ export async function PATCH(req, { params }) {
     }
 
     // 'stop': misura il lift causale e chiude.
-    const readout = await computeTestReadout(test)
+    const readout = await computeTestReadout(test, body.spendIncremental)
     const upd = { status: 'completed', ended_at: now, updated_at: now }
     if (readout?.ok) { upd.readout = readout; upd.readout_at = now; upd.readout_engine = readout.method || 'tbr' }
     await admin.from('geo_tests').update(upd).eq('id', test.id).eq('workspace_id', ws)
@@ -48,7 +48,7 @@ export async function PATCH(req, { params }) {
 // Ricostruisce le serie test/control del test e ne misura l'incrementale.
 // Ibrido: usa il worker R GeoLift se GEOLIFT_R_URL è configurato, altrimenti il
 // fallback JS Time-Based Regression (sempre disponibile).
-async function computeTestReadout(test) {
+async function computeTestReadout(test, spendIncremental) {
   const start = test.start_date
   const testDays = test.planned_days || 28
   const preDays = Math.max(28, testDays * 2) // pre-periodo ampio per un buon fit
@@ -82,11 +82,11 @@ async function computeTestReadout(test) {
     try {
       const res = await fetch(`${process.env.GEOLIFT_R_URL.replace(/\/$/, '')}/readout`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regions, testRegions, controlRegions, startDate: start, alpha }),
+        body: JSON.stringify({ regions, testRegions, controlRegions, startDate: start, alpha, spendIncremental: Number(spendIncremental) || 0 }),
       })
       if (res.ok) { const j = await res.json().catch(() => null); if (j?.ok) return { ...j, method: 'geolift' } }
     } catch { /* cade sul fallback JS */ }
   }
 
-  return computeReadout(dailyTest, dailyControl, testStartIdx, { alpha })
+  return computeReadout(dailyTest, dailyControl, testStartIdx, { alpha, spendIncremental: Number(spendIncremental) || 0 })
 }

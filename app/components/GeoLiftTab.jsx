@@ -63,10 +63,10 @@ export default function GeoLiftTab() {
     }).then(r => r.json()).then(j => { if (j?.ok) { setTestName(''); loadTests() } })
       .catch(() => {}).finally(() => setCreating(false))
   }
-  const patchTest = (id, action) => {
+  const patchTest = (id, action, spendIncremental) => {
     setBusyId(id)
     fetch(`/api/geolift/tests/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, spendIncremental }),
     }).then(r => r.json()).then(() => loadTests()).catch(() => {}).finally(() => setBusyId(null))
   }
 
@@ -277,7 +277,7 @@ export default function GeoLiftTab() {
                     <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('geo.noTests', null, 'No tests yet. Launch your first one above.')}</div>
                   ) : (
                     <div style={{ display: 'grid', gap: 10 }}>
-                      {tests.map(tst => <TestRow key={tst.id} test={tst} busy={busyId === tst.id} onStop={() => patchTest(tst.id, 'stop')} onCancel={() => patchTest(tst.id, 'cancel')} t={t} pct={pct} />)}
+                      {tests.map(tst => <TestRow key={tst.id} test={tst} busy={busyId === tst.id} onStop={(spend) => patchTest(tst.id, 'stop', spend)} onCancel={() => patchTest(tst.id, 'cancel')} t={t} pct={pct} />)}
                     </div>
                   )}
                 </>
@@ -339,6 +339,7 @@ function RegionList({ title, hint, regions, color }) {
 }
 
 function TestRow({ test, busy, onStop, onCancel, t, pct }) {
+  const [spend, setSpend] = useState('')
   const r = test.readout
   const statusColor = test.status === 'completed' ? '#22c55e' : test.status === 'cancelled' ? '#94a3b8' : '#eab308'
   const statusLabel = test.status === 'completed' ? t('geo.stCompleted', null, 'completed') : test.status === 'cancelled' ? t('geo.stCancelled', null, 'cancelled') : t('geo.stRunning', null, 'running')
@@ -352,7 +353,8 @@ function TestRow({ test, busy, onStop, onCancel, t, pct }) {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {test.status === 'running' && (
             <>
-              <button onClick={onStop} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: '#22c55e', borderColor: '#22c55e55' }}>{busy ? t('geo.measuring', null, 'Measuring…') : t('geo.stopMeasure', null, 'End & measure')}</button>
+              <input type="number" value={spend} onChange={e => setSpend(e.target.value)} placeholder={t('geo.spendIncr', null, 'extra spend €')} title={t('geo.spendTip', null, 'Extra budget you actually spent on the TEST regions during the test — enables iROAS')} style={{ width: 120, padding: '5px 9px', fontSize: 11.5, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
+              <button onClick={() => onStop(spend)} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: '#22c55e', borderColor: '#22c55e55' }}>{busy ? t('geo.measuring', null, 'Measuring…') : t('geo.stopMeasure', null, 'End & measure')}</button>
               <button onClick={onCancel} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: 'var(--text3)' }}>{t('geo.cancelTest', null, 'Cancel')}</button>
             </>
           )}

@@ -19,6 +19,12 @@ export default function GeoLiftTab() {
   const [channel, setChannel] = useState('meta')
   const [lift, setLift] = useState(50)
   const [days, setDays] = useState(null)
+  const [tests, setTests] = useState([])
+  const [testsDbMissing, setTestsDbMissing] = useState(false)
+  const [busyId, setBusyId] = useState(null)
+  const [creating, setCreating] = useState(false)
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [testName, setTestName] = useState('')
 
   const load = (force = false) => {
     let cancelled = false
@@ -39,6 +45,30 @@ export default function GeoLiftTab() {
   }
   useEffect(() => { return load() }, [locale]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (data?.ok && days == null) setDays(data.recommendedDays) }, [data, days])
+
+  const loadTests = () => {
+    fetch('/api/geolift/tests').then(r => r.json()).then(j => {
+      if (j?.ok) { setTests(j.tests || []); setTestsDbMissing(false) }
+      else if (j?.reason === 'db') setTestsDbMissing(true)
+    }).catch(() => {})
+  }
+  useEffect(() => { loadTests() }, [])
+
+  const createTest = () => {
+    if (!data?.ok || creating) return
+    setCreating(true)
+    fetch('/api/geolift/tests', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: testName, channel, liftPct: lift, days, startDate, design: data }),
+    }).then(r => r.json()).then(j => { if (j?.ok) { setTestName(''); loadTests() } })
+      .catch(() => {}).finally(() => setCreating(false))
+  }
+  const patchTest = (id, action) => {
+    setBusyId(id)
+    fetch(`/api/geolift/tests/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+    }).then(r => r.json()).then(() => loadTests()).catch(() => {}).finally(() => setBusyId(null))
+  }
 
   const pct = (n) => `${(Number(n) * 100).toFixed(1)}%`
   const selMde = useMemo(() => data?.ok ? (data.mde.find(m => m.days === days) || data.mde[2]) : null, [data, days])
@@ -198,6 +228,38 @@ export default function GeoLiftTab() {
               </ol>
             </div>
 
+            {/* Avvia e traccia il test (lifecycle) */}
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16 }}>
+              <div className="label" style={{ marginBottom: 4 }}>{t('geo.launchTitle', null, 'Launch & track this test')}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 12 }}>{t('geo.launchSub', null, 'Save this design as a running test. When it ends, we measure the real causal lift for you.')}</div>
+              {testsDbMissing ? (
+                <div style={{ fontSize: 12, color: '#f59e0b' }}>{t('geo.testsDbHint', null, 'Test tracking is not active yet: run supabase/geo_tests.sql to enable it.')}</div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginBottom: 14 }}>
+                    <label style={{ flex: 1, minWidth: 160 }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 5 }}>{t('geo.testName', null, 'Test name (optional)')}</div>
+                      <input value={testName} onChange={e => setTestName(e.target.value)} placeholder={`${channelName} +${lift}%`} style={{ width: '100%', padding: '8px 11px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)' }} />
+                    </label>
+                    <label>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 5 }}>{t('geo.startDate', null, 'Start date')}</div>
+                      <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ padding: '8px 11px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)' }} />
+                    </label>
+                    <button onClick={createTest} disabled={creating} className="btn-glass" style={{ padding: '9px 18px', fontWeight: 800, fontSize: 13, cursor: creating ? 'wait' : 'pointer', borderColor: TEAL, color: TEAL }}>
+                      {creating ? t('geo.starting', null, 'Starting…') : t('geo.startTest', { c: channelName }, `Start ${channelName} test`)}
+                    </button>
+                  </div>
+                  {tests.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('geo.noTests', null, 'No tests yet. Launch your first one above.')}</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      {tests.map(tst => <TestRow key={tst.id} test={tst} busy={busyId === tst.id} onStop={() => patchTest(tst.id, 'stop')} onCancel={() => patchTest(tst.id, 'cancel')} t={t} pct={pct} />)}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             {/* Come leggere */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 14 }}>
               <div className="label" style={{ marginBottom: 10 }}>{t('geo.howT', null, 'How to read this')}</div>
@@ -248,6 +310,44 @@ function RegionList({ title, hint, regions, color }) {
           <span key={r} style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', background: color + '14', border: `1px solid ${color}33`, borderRadius: 8, padding: '4px 9px' }}>{r}</span>
         ))}
       </div>
+    </div>
+  )
+}
+
+function TestRow({ test, busy, onStop, onCancel, t, pct }) {
+  const r = test.readout
+  const statusColor = test.status === 'completed' ? '#22c55e' : test.status === 'cancelled' ? '#94a3b8' : '#eab308'
+  const statusLabel = test.status === 'completed' ? t('geo.stCompleted', null, 'completed') : test.status === 'cancelled' ? t('geo.stCancelled', null, 'cancelled') : t('geo.stRunning', null, 'running')
+  const chName = test.channel === 'google' ? 'Google' : 'Meta'
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.02)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{test.name || `${chName} +${test.lift_pct}%`}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color: statusColor, background: statusColor + '1f', borderRadius: 6, padding: '2px 8px', textTransform: 'uppercase' }}>{statusLabel}</span>
+        <span style={{ fontSize: 11, color: 'var(--text3)' }}>{test.start_date} → {test.end_date} · {(test.test_regions || []).length}/{(test.control_regions || []).length}</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          {test.status === 'running' && (
+            <>
+              <button onClick={onStop} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: '#22c55e', borderColor: '#22c55e55' }}>{busy ? t('geo.measuring', null, 'Measuring…') : t('geo.stopMeasure', null, 'End & measure')}</button>
+              <button onClick={onCancel} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: 'var(--text3)' }}>{t('geo.cancelTest', null, 'Cancel')}</button>
+            </>
+          )}
+        </div>
+      </div>
+      {test.status === 'completed' && (
+        r?.ok ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 10, alignItems: 'baseline' }}>
+            <div><span style={{ fontSize: 20, fontWeight: 900, color: r.significant ? '#22c55e' : 'var(--text2)' }}>{r.lift >= 0 ? '+' : ''}{pct(r.lift)}</span> <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('geo.roLift', null, 'causal lift')}</span></div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('geo.roCi', null, 'CI')} [{pct(r.liftCi?.[0] || 0)}, {pct(r.liftCi?.[1] || 0)}]</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: r.significant ? '#22c55e' : '#f59e0b' }}>{r.significant ? t('geo.roSig', null, 'significant') : t('geo.roNs', null, 'not significant')}</div>
+            {r.incremental != null && <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('geo.roIncr', null, 'incremental')} €{Number(r.incremental).toLocaleString()}</div>}
+            {r.iRoas != null && <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>iROAS {Number(r.iRoas).toFixed(2)}</div>}
+            <div style={{ fontSize: 10, color: 'var(--text3)' }}>· {r.method === 'geolift' ? 'GeoLift' : 'TBR'}</div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>{t('geo.roPending', null, 'Readout not available (not enough data in the window).')}</div>
+        )
+      )}
     </div>
   )
 }

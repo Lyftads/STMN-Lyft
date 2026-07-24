@@ -51,7 +51,9 @@ export default function GeoLiftTab() {
       <FxCard delay={1.4}>
         <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
           {t('geo.sub', null, 'Design a causal geo experiment to prove the real lift of a channel — splits your regions into balanced test vs control.')}
-          {data?.ok && data.metric && <span> · {t('geo.basedOn', { m: t('geo.metric_' + data.metric, null, data.metric) }, `based on GA4 ${data.metric}`)}</span>}
+          {data?.ok && <span> · {data.source === 'shopify_province'
+            ? t('geo.srcShopify', null, 'based on real Shopify sales by province')
+            : t('geo.srcGa4', { m: t('geo.metric_' + data.metric, null, data.metric) }, `based on GA4 ${data.metric}`)}</span>}
         </div>
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('geo.designing', null, 'Designing the experiment…')}</div>}
@@ -117,7 +119,7 @@ export default function GeoLiftTab() {
               <Big label={t('geo.recDuration', null, 'Recommended duration')} value={t('geo.weeksVal', { n: data.recommendedWeeks }, `${data.recommendedWeeks} weeks`)} color={TEAL} />
               <Big label={t('geo.detectable', { d: data.mde.find(m => m.days === days)?.weeks ?? '' }, `Detectable lift · ${days}d`)} value={`≥ ${pct(selMde?.mde || 0)}`} sub={t('geo.detectableSub', null, 'smaller lifts may go unnoticed')} />
               <Big label={t('geo.matchQuality', null, 'Match quality')} value={`${matchPct}%`} color={matchColor} sub={matchPct >= 80 ? t('geo.matchGood', null, 'control tracks test well') : t('geo.matchWeak', null, 'control tracks test loosely')} />
-              <Big label={t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
+              <Big label={data.unit === 'province' ? t('geo.provincesUsed', null, 'Provinces used') : t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
               {data.biasAtZero != null && (
                 <Big
                   label={t('geo.stability', null, 'Baseline stability')}
@@ -215,7 +217,9 @@ export default function GeoLiftTab() {
             </div>
 
             <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
-              <Icon name="info" size={12} /> {t('geo.note', null, 'Regions and the metric come from GA4. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')}
+              <Icon name="info" size={12} /> {data.source === 'shopify_province'
+                ? t('geo.noteShopify', null, 'Provinces and revenue come from your real Shopify sales. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')
+                : t('geo.note', null, 'Regions and the metric come from GA4. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')}
             </div>
           </>
         )}

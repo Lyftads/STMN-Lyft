@@ -95,12 +95,37 @@ export default function GeoLiftTab() {
               <Icon name="info" size={12} /> {t('geo.controlsNote', null, 'Regions, duration and statistics depend on your data and are the same for any channel. The channel and the spend % are the treatment you apply in the test regions — see the Plan below.')}
             </div>
 
+            {/* Verdetto di fattibilità: dice onestamente se il test è sensato coi dati del cliente */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderRadius: 14, marginBottom: 16,
+              background: data.feasible ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.09)',
+              border: `1px solid ${data.feasible ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.4)'}`,
+            }}>
+              <span style={{ color: data.feasible ? '#22c55e' : '#f59e0b', flexShrink: 0, marginTop: 1 }}><Icon name={data.feasible ? 'check' : 'warning'} size={15} /></span>
+              <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--text2)' }}>
+                <span style={{ fontWeight: 800, color: data.feasible ? '#22c55e' : '#f59e0b' }}>{t('geo.feasTitle', null, 'Test feasibility')}: </span>
+                {data.feasible
+                  ? t('geo.feasOk', null, 'Statistically sound with your data — you can launch it.')
+                  : data.feasibilityReason === 'weak_match' ? t('geo.feasWeakMatch', null, 'Weak match between test and control: the result would be unreliable. Use a longer pre-period or more homogeneous regions.')
+                    : data.feasibilityReason === 'unstable_baseline' ? t('geo.feasUnstable', null, 'Unstable baseline: test and control already diverge before any campaign, so the test would produce false signals. Don\'t launch it as-is.')
+                      : t('geo.feasMdeHigh', null, 'The minimum detectable lift is too high: with these volumes the test could only prove very large effects. Extend the duration or use a denser metric.')}
+              </div>
+            </div>
+
             {/* Card risultato */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 18 }}>
               <Big label={t('geo.recDuration', null, 'Recommended duration')} value={t('geo.weeksVal', { n: data.recommendedWeeks }, `${data.recommendedWeeks} weeks`)} color={TEAL} />
               <Big label={t('geo.detectable', { d: data.mde.find(m => m.days === days)?.weeks ?? '' }, `Detectable lift · ${days}d`)} value={`≥ ${pct(selMde?.mde || 0)}`} sub={t('geo.detectableSub', null, 'smaller lifts may go unnoticed')} />
               <Big label={t('geo.matchQuality', null, 'Match quality')} value={`${matchPct}%`} color={matchColor} sub={matchPct >= 80 ? t('geo.matchGood', null, 'control tracks test well') : t('geo.matchWeak', null, 'control tracks test loosely')} />
               <Big label={t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
+              {data.biasAtZero != null && (
+                <Big
+                  label={t('geo.stability', null, 'Baseline stability')}
+                  value={`${Math.round((1 - data.biasAtZero) * 100)}%`}
+                  color={data.biasAtZero <= 0.1 ? '#22c55e' : '#f59e0b'}
+                  sub={data.biasAtZero <= 0.1 ? t('geo.stabilityGood', null, 'test & control stable before the test') : t('geo.stabilityWeak', null, 'they already drift before the test')}
+                />
+              )}
             </div>
 
             <RecosCard recos={(() => {
@@ -129,6 +154,19 @@ export default function GeoLiftTab() {
               <RegionList title={t('geo.testRegions', null, 'TEST regions')} hint={t('geo.testHint', { p: lift, c: channelName }, `apply +${lift}% ${channelName} here`)} regions={data.test.regions} color={TEAL} />
               <RegionList title={t('geo.controlRegions', null, 'CONTROL regions')} hint={t('geo.controlHint', null, 'keep spend unchanged here')} regions={data.control.regions} color={CTRL} />
             </div>
+
+            {/* Geo dominanti esclusi dal disegno (trimming) */}
+            {data.trimmed?.length > 0 && (
+              <div className="glass-card" style={{ padding: '12px 16px', marginBottom: 16, borderLeft: '3px solid #f59e0b' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 8 }}>{t('geo.trimmedTitle', null, 'Regions excluded from the design')}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {data.trimmed.map(tr => (
+                    <span key={tr.region} style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', background: '#f59e0b14', border: '1px solid #f59e0b40', borderRadius: 8, padding: '4px 9px' }}>{tr.region} · {Math.round(tr.share * 100)}%</span>
+                  ))}
+                  <span style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>{t('geo.trimmedHint', null, 'too dominant: they unbalance the comparison and inflate the error, so they stay out of the test')}</span>
+                </div>
+              </div>
+            )}
 
             {/* Grafico test vs control */}
             <div className="glass-card-static reveal-zoom" style={{ padding: 18, borderRadius: 16, marginBottom: 16 }}>

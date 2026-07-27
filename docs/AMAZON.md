@@ -93,8 +93,11 @@
 | 3 | Finances (fee reali) → P&L prodotto esteso ad Amazon; FBA nel modulo Inventario; TACOS; canale in incrementalità | estensione moduli esistenti |
 | 4 | Tool `get_amazon` nel Cervello (chat, agenti, report PDF) | lib/agent/tools.js |
 
-**Env previste** (da aggiungere quando arrivano le credenziali):
-`AMZ_SPAPI_APP_ID`, (LWA client id/secret stanno in Nango), `AMZ_ADS_CLIENT_ID`, `AMZ_ADS_CLIENT_SECRET`.
+**Env attive (sandbox, in .env.local)**: `AMZ_SPAPI_SANDBOX_CLIENT_ID`, `AMZ_SPAPI_SANDBOX_CLIENT_SECRET`,
+`AMZ_SPAPI_SANDBOX_REFRESH_TOKEN` (auto-autorizzazione), `AMZ_SPAPI_ENV` (default sandbox).
+Adapter: `lib/amazon/spapi.js` · Route diagnostica: `/api/amazon` (+ `?action=orders`).
+**Env future produzione**: credenziali per-tenant via Nango `amazon-selling-partner`; per Ads
+`AMZ_ADS_CLIENT_ID`, `AMZ_ADS_CLIENT_SECRET`.
 
 ## Fuori scope (deciso)
 

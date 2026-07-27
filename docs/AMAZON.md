@@ -1,6 +1,8 @@
 # Integrazione Amazon — piano e registrazioni
 
-> Stato: **Fase 0 — registrazioni developer** (avviata 27 lug 2026).
+> Stato: **Fase 0 — SP-API registrato** (27 lug 2026): account developer **Lyft SRL** su
+> Solution Provider Portal, app **"Lyft AI"** creata, ID `amzn1.sp.solution.1c7e7488-46b7-4457-a7a2-ad5b803ba18b`,
+> stato **Sandbox**. Prossimi: redirect URI + richiesta produzione + registrazione Ads API (0B).
 > Il collo di bottiglia sono le 2 approvazioni Amazon (SP-API + Ads API), non il codice:
 > si inviano subito, il codice si costruisce in parallelo.
 

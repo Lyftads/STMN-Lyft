@@ -181,6 +181,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'lighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'creativeFatigue', label: 'Creative Fatigue', icon: <Icon name="pulse" /> },
         { id: 'budgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
+        { id: 'metaLeadgen', label: 'Lead Gen', icon: <Icon name="users" /> },
       ],
     },
     {

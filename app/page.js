@@ -39,6 +39,7 @@ import AlertsPanel from './components/AlertsPanel'
 import DownloadReportButton from './components/DownloadReportButton'
 import CreativeFatiguePanel from './components/CreativeFatiguePanel'
 import MetaKpiTab from './components/MetaKpiTab'
+import LeadGenTab from './components/LeadGenTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
 import GoogleProductsTab from './components/GoogleProductsTab'
@@ -4367,6 +4368,10 @@ export default function App() {
 
 {tab === 'metaKpi' && (
   <MetaKpiTab live={live} globalPreset={preset} />
+)}
+
+{tab === 'metaLeadgen' && (
+  <LeadGenTab />
 )}
 
 {tab === 'googleKpi' && (

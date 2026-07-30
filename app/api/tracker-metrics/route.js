@@ -53,15 +53,6 @@ async function shopifyQL(query) {
   return null
 }
 
-// Prova le varianti in ordine; torna { rows, used } della prima che risponde.
-async function firstOk(variants) {
-  for (const v of variants) {
-    const rows = await shopifyQL(v.q)
-    if (rows && rows.length) return { rows, used: v.name }
-  }
-  return { rows: null, used: null }
-}
-
 export async function GET(request) {
   return withTenantContext(request, async () => {
     const { searchParams } = new URL(request.url)
@@ -70,54 +61,28 @@ export async function GET(request) {
     const R = `SINCE ${since} UNTIL ${until}`
     const H = { 'Cache-Control': 'private, no-store' }
 
-    // Debug: eco di colonne e prime righe grezze di una query base, per
-    // capire come questo store nomina colonne/dimensioni.
-    if (searchParams.get('debug') === '1') {
-      const probe = async (q) => {
-        const rows = await shopifyQL(q)
-        return { q, cols: rows?._cols || null, rows: (rows || []).slice(0, 4) }
-      }
-      const out = {}
-      const probes = {
-        norc_x_chan: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer, sales_channel ${R}`,
-        chan_x_norc: `FROM sales SHOW orders, total_sales, customers GROUP BY sales_channel, new_or_returning_customer ${R}`,
-        units_chan: `FROM sales SHOW net_items_sold GROUP BY sales_channel ${R}`,
-        gross_items: `FROM sales SHOW gross_items_sold ${R}`,
-        items: `FROM sales SHOW items_sold ${R}`,
-      }
-      for (const [k, q] of Object.entries(probes)) out[k] = await probe(q)
-      return NextResponse.json(out, { headers: H })
-    }
-
-    const [tot, chan, ct, sess] = await Promise.all([
-      firstOk([
-        { name: 'units', q: `FROM sales SHOW orders, total_sales, ordered_item_quantity ${R}` },
-        { name: 'base', q: `FROM sales SHOW orders, total_sales ${R}` },
-      ]),
-      firstOk([
-        { name: 'sales_channel', q: `FROM sales SHOW orders, total_sales, ordered_item_quantity GROUP BY sales_channel ${R}` },
-        { name: 'sales_channel_base', q: `FROM sales SHOW orders, total_sales GROUP BY sales_channel ${R}` },
-        { name: 'channel', q: `FROM sales SHOW orders, total_sales GROUP BY channel ${R}` },
-        { name: 'api_client_title', q: `FROM sales SHOW orders, total_sales GROUP BY api_client_title ${R}` },
-      ]),
-      firstOk([
-        { name: 'ct_x_channel', q: `FROM sales SHOW orders, total_sales GROUP BY customer_type, sales_channel ${R}` },
-        { name: 'ct', q: `FROM sales SHOW orders, total_sales GROUP BY customer_type ${R}` },
-        { name: 'norc_x_channel', q: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer, sales_channel ${R}` },
-        { name: 'norc', q: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer ${R}` },
-      ]),
-      firstOk([{ name: 'sessions', q: `FROM sessions SHOW sessions ${R}` }]),
+    // Query verificate empiricamente su questo tipo di store (30 lug 2026):
+    // dimensioni valide = sales_channel, new_or_returning_customer; unità =
+    // net_items_sold. (customer_type / ordered_item_quantity NON esistono.)
+    const [tot, chan, units, ct, sess] = await Promise.all([
+      shopifyQL(`FROM sales SHOW orders, total_sales, net_items_sold ${R}`),
+      shopifyQL(`FROM sales SHOW orders, total_sales GROUP BY sales_channel ${R}`),
+      shopifyQL(`FROM sales SHOW net_items_sold GROUP BY sales_channel ${R}`),
+      shopifyQL(`FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer, sales_channel ${R}`),
+      shopifyQL(`FROM sessions SHOW sessions ${R}`),
     ])
 
-    const t0 = (tot.rows || [])[0] || {}
-    const channels = (chan.rows || []).map(r => ({
-      name: r.sales_channel ?? r.channel ?? r.api_client_title ?? 'unknown',
+    const t0 = (tot || [])[0] || {}
+    const unitsBy = {}
+    for (const r of (units || [])) unitsBy[r.sales_channel] = Math.round(num(r.net_items_sold))
+    const channels = (chan || []).map(r => ({
+      name: r.sales_channel || 'unknown',
       revenue: num(r.total_sales), orders: Math.round(num(r.orders)),
-      units: r.ordered_item_quantity != null ? Math.round(num(r.ordered_item_quantity)) : null,
+      units: unitsBy[r.sales_channel] ?? null,
     }))
-    const customerTypes = (ct.rows || []).map(r => ({
-      type: r.customer_type ?? r.new_or_returning_customer ?? 'unknown',
-      channel: r.sales_channel ?? null,
+    const customerTypes = (ct || []).map(r => ({
+      type: r.new_or_returning_customer || 'unknown',
+      channel: r.sales_channel || null,
       revenue: num(r.total_sales), orders: Math.round(num(r.orders)),
     }))
 
@@ -125,12 +90,11 @@ export async function GET(request) {
       range: { since, until },
       totals: {
         revenue: num(t0.total_sales), orders: Math.round(num(t0.orders)),
-        units: t0.ordered_item_quantity != null ? Math.round(num(t0.ordered_item_quantity)) : null,
+        units: t0.net_items_sold != null ? Math.round(num(t0.net_items_sold)) : null,
       },
       channels, customerTypes,
-      sessions: Math.round(num(((sess.rows || [])[0] || {}).sessions)),
-      chosen: { totals: tot.used, channels: chan.used, customerTypes: ct.used },
-      source: 'shopifyql',
+      sessions: Math.round(num(((sess || [])[0] || {}).sessions)),
+      source: (tot && tot.length) ? 'shopifyql' : 'empty',
     }, { headers: H })
   })
 }

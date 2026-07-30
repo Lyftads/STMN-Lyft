@@ -43,7 +43,10 @@ async function klaviyoGet(path, retries = 3) {
 // Segue i cursori di paginazione Klaviyo. Necessario su /campaigns (default
 // ~10 risultati/pagina): senza, la lista si fermava alla prima pagina e le
 // campagne più vecchie sparivano dalla tab.
-async function klaviyoGetPages(path, maxPages = 6) {
+// NB: NIENTE page[size] custom — su alcuni account/connessioni l'endpoint
+// campagne lo rifiuta con 400 e la lista risultava VUOTA. Si segue il
+// page[cursor] dei link `next` generati da Klaviyo, con più pagine.
+async function klaviyoGetPages(path, maxPages = 15) {
   const out = { data: [], included: [] }
   let next = path, guard = 0
   while (next && guard < maxPages) {
@@ -116,8 +119,8 @@ async function getCampaigns(status) {
   // della campagna è spesso un nome interno generico ("Email 1") mentre il
   // subject è l'identificatore utile mostrato in tabella. Se l'include non è
   // supportato/permesso, fallback alla chiamata semplice (nessuna regressione).
-  let data = await klaviyoGetPages(`/campaigns?filter=${enc}&page[size]=100&include=campaign-messages`)
-  if (!data?.data) data = await klaviyoGetPages(`/campaigns?filter=${enc}&page[size]=100`)
+  let data = await klaviyoGetPages(`/campaigns?filter=${enc}&include=campaign-messages`)
+  if (!data?.data) data = await klaviyoGetPages(`/campaigns?filter=${enc}`)
 
   // messageId → subject dai record inclusi. Il path del subject cambia tra le
   // revision dell'API Klaviyo: provo tutte le forme note.
@@ -351,9 +354,9 @@ export async function GET(request) {
   // separata (?part=breakdown) così la tab carica subito i dati veloci.
   const part = searchParams.get('part') || 'main'
 
-  // tab key versionata 'klaviyo3': invalida gli snapshot calcolati prima della
-  // paginazione campagne e delle stats senza revenue (liste troncate a 1 pagina).
-  return swrSnapshot(request, { tab: 'klaviyo3', compute: async () => {
+  // tab key versionata 'klaviyo4': invalida sia le liste troncate a 1 pagina
+  // sia gli snapshot VUOTI cachati quando page[size] veniva rifiutato (400).
+  return swrSnapshot(request, { tab: 'klaviyo4', compute: async () => {
     try {
       if (part === 'breakdown') {
         const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])

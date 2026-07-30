@@ -15,7 +15,6 @@ import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
 import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
-import { CreativeStudioMark } from './ui/CreativeStudioLogo'
 import PreparingDataBanner from './PreparingDataBanner'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -138,7 +137,6 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
         { id: 'productPerformance', label: 'Performance prodotti', icon: <Icon name="chart-bar" /> },
         { id: 'productCosts', label: 'Costi prodotto', icon: <Icon name="money" /> },
-        { id: 'cassa', label: 'Cassa', icon: <Icon name="euro" /> },
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
@@ -155,7 +153,6 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
-        { id: 'creativeStudio', label: 'Creative Studio', icon: <CreativeStudioMark size={15} /> },
         { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },
@@ -167,7 +164,6 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
         { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
         { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
-        { id: 'priceComparison', label: 'Prezzi vs Competitor', icon: <Icon name="scale" /> },
         { id: 'creativeIntel', label: 'Creative Intel', icon: <Icon name="eye" /> },
       ],
     },
@@ -247,16 +243,6 @@ const [helpOpen, setHelpOpen] = useState(false)
     // Abbonamento scaduto: qualunque voce clicchi, si torna SEMPRE ai piani.
     if (subLocked && id !== 'settings') {
       if (typeof setTab === 'function') setTab('settings')
-      return
-    }
-    // Creative Studio: apre direttamente l'app a tutto schermo in una nuova finestra
-    // (la board è importante e merita lo spazio pieno, come "Apri come app").
-    if (id === 'creativeStudio') {
-      // Solo STMN (ownerWorkspace, qui prop isOwner) apre l'app reale a tutto
-      // schermo; per i clienti la voce resta visibile ma mostra il placeholder
-      // "coming soon" gestito in page.js (tab creativeStudio).
-      if (isOwner) { try { window.open('/creative-studio', '_blank', 'noopener') } catch {} }
-      else if (typeof setTab === 'function') setTab(id)
       return
     }
     if (typeof setTab === 'function') setTab(id)
@@ -512,7 +498,7 @@ const [helpOpen, setHelpOpen] = useState(false)
             <button type="button" className="app-burger" aria-label="Menu" onClick={() => setMobileNav(true)}>
               <span /><span /><span />
             </button>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'creativeStudio' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' && tab !== 'helpCenter' ? (
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' && tab !== 'helpCenter' ? (
               <div>
                 <h1 className="heading-lg" style={{ marginBottom: 6 }}>
                   {getPageTitle(tab, t)}

@@ -17,7 +17,6 @@ import PerformanceAgentTab from './components/PerformanceAgentTab'
 import EmailMarketingTab from './components/EmailMarketingTab'
 import CompetitorIntelTab from './components/CompetitorIntelTab'
 import CreativeIntelTab from './components/CreativeIntelTab'
-import PriceComparisonTab from './components/PriceComparisonTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import SettingsTab from './components/SettingsTab'
 import BrandIdentityPanel from './components/BrandIdentityPanel'
@@ -56,8 +55,6 @@ import IncrSimulatorTab from './components/IncrSimulatorTab'
 import GeoLiftTab from './components/GeoLiftTab'
 import ProductPerformanceTab from './components/ProductPerformanceTab'
 import ProductCostsTab from './components/ProductCostsTab'
-import CassaTab from './components/CassaTab'
-import CreativeStudio from './components/CreativeStudio'
 import AttributionPanel from './components/AttributionPanel'
 import LtvCohortsTab from './components/LtvCohortsTab'
 import TimeframeSelector from './components/TimeframeSelector'
@@ -4426,18 +4423,6 @@ export default function App() {
   <ActionQueueTab metrics={live} />
 )}
 
-{tab === 'creativeStudio' && (
-  isOwner ? (
-    <CreativeStudio onNavigate={setTab} />
-  ) : (
-    <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center', padding: '40px 32px', borderRadius: 20, background: 'var(--glass)', border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 40, marginBottom: 14 }}>🎨</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>{t('creativeStudio.lockedTitle', null, 'Creative Studio — in arrivo')}</div>
-      <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{t('creativeStudio.lockedBody', null, 'Stiamo perfezionando la generazione delle immagini per darti risultati all\'altezza. La funzione sarà disponibile a breve.')}</div>
-    </div>
-  )
-)}
-
 {tab === 'budgetAdvisor' && (
   <BudgetAdvisorPanel />
 )}
@@ -4469,11 +4454,6 @@ export default function App() {
   <CreativeIntelTab />
 )}
 
-{/* PRICE COMPARISON TAB */}
-{tab === 'priceComparison' && (
-  <PriceComparisonTab onNavigate={setTab} />
-)}
-
 {tab === 'inventory' && (
   <InventoryTab />
 )}
@@ -4484,10 +4464,6 @@ export default function App() {
 
 {tab === 'productCosts' && (
   <ProductCostsTab />
-)}
-
-{tab === 'cassa' && (
-  <CassaTab />
 )}
 
 {tab === 'clienti' && (

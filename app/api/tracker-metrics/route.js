@@ -77,11 +77,19 @@ export async function GET(request) {
         const rows = await shopifyQL(q)
         return { q, cols: rows?._cols || null, rows: (rows || []).slice(0, 4) }
       }
-      return NextResponse.json({
-        base: await probe(`FROM sales SHOW orders, total_sales ${R}`),
-        chan: await probe(`FROM sales SHOW orders, total_sales GROUP BY sales_channel ${R}`),
-        ct: await probe(`FROM sales SHOW orders, total_sales GROUP BY customer_type ${R}`),
-      }, { headers: H })
+      const out = {}
+      const probes = {
+        cust_by_chan: `FROM sales SHOW customers, returning_customers GROUP BY sales_channel ${R}`,
+        norc: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer ${R}`,
+        cohort: `FROM sales SHOW orders, total_sales GROUP BY customer_cohort ${R}`,
+        nc_sales: `FROM sales SHOW new_customer_sales, returning_customer_sales ${R}`,
+        units1: `FROM sales SHOW ordered_item_quantity ${R}`,
+        units2: `FROM sales SHOW net_items_sold ${R}`,
+        units3: `FROM sales SHOW net_quantity ${R}`,
+        orders_ds: `FROM orders SHOW orders ${R}`,
+      }
+      for (const [k, q] of Object.entries(probes)) out[k] = await probe(q)
+      return NextResponse.json(out, { headers: H })
     }
 
     const [tot, chan, ct, sess] = await Promise.all([

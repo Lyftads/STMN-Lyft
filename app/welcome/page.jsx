@@ -22,9 +22,9 @@ const GREEN = '#22c55e'
 // (nomi prodotto neutri, validi in tutte le lingue).
 const SOLUTIONS = [
   { key: 'commerce', items: ['Dashboard live', 'KPI Brain', 'Inventario', 'Performance prodotti', 'Costi prodotto', 'Clienti (CRM)', 'Email Marketing multi-provider', 'Attribution', 'LTV & Cohorts', 'Conto Economico (P&L)'] },
-  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Incrementalità & MMM', 'Competitor Intel', 'Price comparison'] },
+  { key: 'ads', items: ['Meta Detail & KPI', 'Google KPI & Detail', 'Google Products (PMax)', 'Google Lighthouse & Budget', 'Creative & Budget Advisor', 'Creative Fatigue', 'Incrementalità & MMM', 'Competitor Intel'] },
   { key: 'website', items: ['CRO & Funnel', 'AI Website Scanner', 'SEO Audit + GSC', 'Keyword AI & AEO'] },
-  { key: 'ai', items: ['Performance Agent AI', 'Creative Lab', 'Report PDF completo', 'Report PDF automatici'] },
+  { key: 'ai', items: ['Performance Agent AI', 'Report PDF completo', 'Report PDF automatici'] },
   { key: 'team', items: ['Progetti & Task', 'Lyftimer · time tracking', 'LyftTalk · chat', 'Onboarding guidato'] },
 ]
 
@@ -77,7 +77,7 @@ const I18N = {
       title: 'Tre risposte che nessun altro ti dà',
       items: [
         { icon: '∿', title: 'Quanto rendono DAVVERO le tue ads?', text: 'Meta e Google si attribuiscono vendite che avresti fatto comunque. LyftAI misura l\'incrementalità reale di ogni canale — e col simulatore qui sotto vedi dove il prossimo euro rende di più.' },
-        { icon: '€', title: 'Da 10 tool a 1 cervello', text: 'Analytics, ads, SEO, email, CRM, inventario e cassa in un solo software: sostituisce oltre €900/mese di abbonamenti separati. E ogni piano include tutto.' },
+        { icon: '€', title: 'Da 10 tool a 1 cervello', text: 'Analytics, ads, SEO, email, CRM e inventario in un solo software: sostituisce oltre €900/mese di abbonamenti separati. E ogni piano include tutto.' },
         { icon: '◉', title: 'Non report. Azioni.', text: 'Ogni mattina il Cervello ti dice cosa è successo e cosa fare — scala, taglia, sistema — con l\'impatto previsto in €. Tu approvi, lui prepara.' },
       ],
     },
@@ -129,7 +129,6 @@ const I18N = {
       { id: 'meta', icon: '⊞', title: 'Meta Ads completo', desc: 'Creative, Meta Detail ad-level, Budget Advisor, Creative Fatigue e Lighthouse.' },
       { id: 'google', icon: <Icon name="search" size={18} />, title: 'Google Ads completo', desc: 'Suite gemella di Meta: KPI, Detail, Prodotti, Budget Advisor e Lighthouse.' },
       { id: 'seo', icon: '⌕', title: 'SEO + CRO + Website', desc: 'Audit SEO, GSC reale, Keyword AI, AI Visibility (AEO), CRO e AI Website Scanner.' },
-      { id: 'studio', icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Produzione generativa di immagini e creative sul tuo brand, Try-On sul prodotto e board collaborative.' },
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Squadra AI', desc: '8 agenti C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria condivisa che conoscono il tuo brand.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con agenti AI e call vocali, Lyftimer time-tracking, Progetti & Task.' },
       { id: 'reports', icon: '▦', title: 'Report periodici', desc: 'Weekly, Monthly, Quarter, Year + digest email automatici. Confronto period-over-period, export PDF.' },
@@ -140,7 +139,6 @@ const I18N = {
       { icon: '◎', title: 'Dashboard real-time + Live View', desc: 'KPI core (Fatturato, AOV, MER, CAC, LTV) live + globo 3D dei visitatori in tempo reale da GA4.' },
       { icon: <Icon name="sparkle" size={18} />, title: 'Squadra AI', desc: '8 agenti C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria condivisa. Leggono Shopify, Meta, GA4 e Search Console e rispondono coi tuoi numeri.' },
       { icon: <Icon name="scale" size={18} />, title: 'Meta + Google Ads completo', desc: 'Entrambe le suite: KPI, Detail ad-level, Budget Advisor, Creative Fatigue e Lighthouse. Vedi dove stai bruciando budget.' },
-      { icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Produzione generativa di immagini e creative sul tuo brand identity, Try-On sul prodotto e board collaborative.' },
       { icon: '⌕', title: 'Suite SEO + AI', desc: 'Audit on-page e multipagina, Google Search Console reale, Keyword AI, AI Visibility (AEO), Editor contenuti, Competitor.' },
       { icon: '€', title: 'Commerce intelligence', desc: 'Conto Economico fino all\'EBIT, Inventario (stockout & vendite perse €), Clienti (segmenti RFM) e LTV & Coorti.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con i tuoi agenti AI e call vocali, Lyftimer per il time-tracking, Progetti & Task. Tutto il team in un posto.' },
@@ -170,8 +168,8 @@ const I18N = {
     pricingUI: { founder: 'Founder: −30% A VITA per le prime 100 aziende', founderCum: '· cumulabile con lo sconto annuale', audBrand: 'Aziende', audAgency: 'Agenzie & Freelance', agencySub: 'Gestisci tutti i tuoi clienti da un unico posto. Paghi per numero di aziende, switch immediato tra una e l’altra.', cadMonthly: 'Mensile', cadAnnual: 'Annuale', billAnnual: 'all’anno', twoFree: '2 mesi gratis', save: 'Risparmi', billed: 'fatturato' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mese', tagline: 'Fino a 500 ordini/mese. Perfetto per partire con tutto già incluso.', features: ['✨ Tutti i tool inclusi', 'Fino a 500 ordini/mese', 'Tutte le integrazioni (Shopify, Meta, Google, Klaviyo)', '2 utenti del team', 'Email support 48h'], cta: 'Inizia con Starter' },
-      { id: 'growth', name: 'Growth', price: '€149', period: '/mese', tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', features: ['✨ Tutti i tool inclusi', '500 – 2.000 ordini/mese', '5 utenti del team', 'Crediti Creative Lab (AI) estesi', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'PIÙ SCELTO' },
-      { id: 'scale', name: 'Scale', price: '€299', period: '/mese', tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.', features: ['✨ Tutti i tool inclusi', '2.000 – 7.000 ordini/mese', 'Utenti del team illimitati', 'Crediti Creative Lab (AI) massimi', 'CSM dedicato'], cta: 'Inizia con Scale' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/mese', tagline: 'Da 500 a 2.000 ordini/mese. Per brand in crescita.', features: ['✨ Tutti i tool inclusi', '500 – 2.000 ordini/mese', '5 utenti del team', 'Priority support 12h'], cta: 'Inizia con Growth', popular: true, popularLabel: 'PIÙ SCELTO' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/mese', tagline: 'Da 2.000 a 7.000 ordini/mese. Per brand strutturati.', features: ['✨ Tutti i tool inclusi', '2.000 – 7.000 ordini/mese', 'Utenti del team illimitati', 'CSM dedicato'], cta: 'Inizia con Scale' },
       { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/mese', tagline: 'Oltre 7.000 ordini/mese. Volumi alti ed esigenze custom.', features: ['✨ Tutti i tool inclusi', '7.000+ ordini/mese', 'SLA e onboarding dedicato', 'Integrazioni custom', 'Account manager dedicato'], cta: 'Inizia con Enterprise' },
     ],
     agency: {
@@ -269,7 +267,7 @@ const I18N = {
       title: 'Three answers no other tool gives you',
       items: [
         { icon: '∿', title: 'How much do your ads REALLY drive?', text: 'Meta and Google claim sales you would have made anyway. LyftAI measures the true incrementality of every channel — and with the simulator below you see where the next euro performs best.' },
-        { icon: '€', title: 'From 10 tools to 1 brain', text: 'Analytics, ads, SEO, email, CRM, inventory and cash flow in one software: it replaces €900+/month of separate subscriptions. And every plan includes everything.' },
+        { icon: '€', title: 'From 10 tools to 1 brain', text: 'Analytics, ads, SEO, email, CRM and inventory in one software: it replaces €900+/month of separate subscriptions. And every plan includes everything.' },
         { icon: '◉', title: 'Not reports. Actions.', text: 'Every morning the Brain tells you what happened and what to do — scale, cut, fix — with the expected impact in €. You approve, it prepares.' },
       ],
     },
@@ -321,7 +319,6 @@ const I18N = {
       { id: 'meta', icon: '⊞', title: 'Full Meta Ads', desc: 'Creative, ad-level Meta Detail, Budget Advisor, Creative Fatigue and Lighthouse.' },
       { id: 'google', icon: <Icon name="search" size={18} />, title: 'Full Google Ads', desc: 'Twin suite to Meta: KPI, Detail, Products, Budget Advisor and Lighthouse.' },
       { id: 'seo', icon: '⌕', title: 'SEO + CRO + Website', desc: 'SEO audit, real GSC, Keyword AI, AI Visibility (AEO), CRO and AI Website Scanner.' },
-      { id: 'studio', icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Generative production of on-brand images and creatives, product Try-On and collaborative boards.' },
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'AI Squad', desc: '8 C-suite agents (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) with shared memory that know your brand.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk chat with AI agents and voice calls, Lyftimer time-tracking, Projects & Tasks.' },
       { id: 'reports', icon: '▦', title: 'Periodic reports', desc: 'Weekly, Monthly, Quarter, Year + automatic email digests. Period-over-period comparison, PDF export.' },
@@ -332,7 +329,6 @@ const I18N = {
       { icon: '◎', title: 'Real-time Dashboard + Live View', desc: 'Core KPIs (Revenue, AOV, MER, CAC, LTV) live + 3D globe of real-time visitors from GA4.' },
       { icon: <Icon name="sparkle" size={18} />, title: 'AI Squad', desc: '8 C-suite agents (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) with shared memory. They read Shopify, Meta, GA4 and Search Console and answer with your numbers.' },
       { icon: <Icon name="scale" size={18} />, title: 'Full Meta + Google Ads', desc: 'Both suites: KPI, ad-level Detail, Budget Advisor, Creative Fatigue and Lighthouse. See where you\'re burning budget.' },
-      { icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Generative production of on-brand images and creatives, product Try-On and collaborative boards.' },
       { icon: '⌕', title: 'SEO Suite + AI', desc: 'On-page & multi-page audit, real Google Search Console, Keyword AI, AI Visibility (AEO), content Editor, Competitor.' },
       { icon: '€', title: 'Commerce intelligence', desc: 'P&L down to EBIT, Inventory (stockout & lost sales €), Customers (RFM segments) and LTV & Cohorts.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk chat with your AI agents and voice calls, Lyftimer time-tracking, Projects & Tasks. Your whole team in one place.' },
@@ -362,8 +358,8 @@ const I18N = {
     pricingUI: { founder: 'Founder: −30% FOR LIFE for the first 100 companies', founderCum: '· stacks with the annual discount', audBrand: 'Companies', audAgency: 'Agencies & Freelancers', agencySub: 'Manage all your clients from one place. You pay per number of companies, switch instantly between them.', cadMonthly: 'Monthly', cadAnnual: 'Annual', billAnnual: 'per year', twoFree: '2 months free', save: 'You save', billed: 'billed' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/month', tagline: 'Up to 500 orders/month. Perfect to start, with everything already included.', features: ['✨ All tools included', 'Up to 500 orders/month', 'All integrations (Shopify, Meta, Google, Klaviyo)', '2 team users', 'Email support 48h'], cta: 'Start with Starter' },
-      { id: 'growth', name: 'Growth', price: '€149', period: '/month', tagline: '500 to 2,000 orders/month. For growing brands.', features: ['✨ All tools included', '500 – 2,000 orders/month', '5 team users', 'Extended Creative Lab (AI) credits', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'MOST CHOSEN' },
-      { id: 'scale', name: 'Scale', price: '€299', period: '/month', tagline: '2,000 to 7,000 orders/month. For structured brands.', features: ['✨ All tools included', '2,000 – 7,000 orders/month', 'Unlimited team users', 'Maximum Creative Lab (AI) credits', 'Dedicated CSM'], cta: 'Start with Scale' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/month', tagline: '500 to 2,000 orders/month. For growing brands.', features: ['✨ All tools included', '500 – 2,000 orders/month', '5 team users', 'Priority support 12h'], cta: 'Start with Growth', popular: true, popularLabel: 'MOST CHOSEN' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/month', tagline: '2,000 to 7,000 orders/month. For structured brands.', features: ['✨ All tools included', '2,000 – 7,000 orders/month', 'Unlimited team users', 'Dedicated CSM'], cta: 'Start with Scale' },
       { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/month', tagline: 'Over 7,000 orders/month. High volume and custom needs.', features: ['✨ All tools included', '7,000+ orders/month', 'Dedicated SLA & onboarding', 'Custom integrations', 'Dedicated account manager'], cta: 'Start with Enterprise' },
     ],
     agency: {
@@ -461,7 +457,7 @@ const I18N = {
       title: 'Tres respuestas que ninguna otra herramienta te da',
       items: [
         { icon: '∿', title: '¿Cuánto aportan DE VERDAD tus ads?', text: 'Meta y Google se atribuyen ventas que habrías hecho igualmente. LyftAI mide la incrementalidad real de cada canal — y con el simulador de abajo ves dónde rinde más el próximo euro.' },
-        { icon: '€', title: 'De 10 herramientas a 1 cerebro', text: 'Analytics, ads, SEO, email, CRM, inventario y tesorería en un solo software: sustituye más de €900/mes en suscripciones separadas. Y cada plan lo incluye todo.' },
+        { icon: '€', title: 'De 10 herramientas a 1 cerebro', text: 'Analytics, ads, SEO, email, CRM e inventario en un solo software: sustituye más de €900/mes en suscripciones separadas. Y cada plan lo incluye todo.' },
         { icon: '◉', title: 'No informes. Acciones.', text: 'Cada mañana el Cerebro te dice qué pasó y qué hacer — escalar, cortar, arreglar — con el impacto previsto en €. Tú apruebas, él prepara.' },
       ],
     },
@@ -513,7 +509,6 @@ const I18N = {
       { id: 'meta', icon: '⊞', title: 'Meta Ads completo', desc: 'Creative, Meta Detail ad-level, Budget Advisor, Creative Fatigue y Lighthouse.' },
       { id: 'google', icon: <Icon name="search" size={18} />, title: 'Google Ads completo', desc: 'Suite gemela de Meta: KPI, Detail, Productos, Budget Advisor y Lighthouse.' },
       { id: 'seo', icon: '⌕', title: 'SEO + CRO + Website', desc: 'Auditoría SEO, GSC real, Keyword AI, AI Visibility (AEO), CRO y AI Website Scanner.' },
-      { id: 'studio', icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Producción generativa de imágenes y creatividades de tu marca, Try-On de producto y boards colaborativos.' },
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Escuadrón IA', desc: '8 agentes C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria compartida que conocen tu marca.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con agentes IA y llamadas de voz, Lyftimer time-tracking, Proyectos & Tareas.' },
       { id: 'reports', icon: '▦', title: 'Reportes periódicos', desc: 'Semanal, Mensual, Trimestral, Anual + digests por email automáticos. Comparación período sobre período, exporte PDF.' },
@@ -524,7 +519,6 @@ const I18N = {
       { icon: '◎', title: 'Dashboard en tiempo real + Live View', desc: 'KPIs core (Revenue, AOV, MER, CAC, LTV) en vivo + globo 3D de visitantes en tiempo real desde GA4.' },
       { icon: <Icon name="sparkle" size={18} />, title: 'Escuadrón IA', desc: '8 agentes C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) con memoria compartida. Leen Shopify, Meta, GA4 y Search Console y responden con tus números.' },
       { icon: <Icon name="scale" size={18} />, title: 'Meta + Google Ads completo', desc: 'Ambas suites: KPI, Detail a nivel de ad, Budget Advisor, Creative Fatigue y Lighthouse. Ves dónde estás quemando budget.' },
-      { icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Producción generativa de imágenes y creatividades de tu brand identity, Try-On de producto y boards colaborativos.' },
       { icon: '⌕', title: 'Suite SEO + IA', desc: 'Auditoría on-page y multipágina, Google Search Console real, Keyword AI, AI Visibility (AEO), Editor de contenidos, Competidores.' },
       { icon: '€', title: 'Commerce intelligence', desc: 'P&L hasta el EBIT, Inventario (stockout & ventas perdidas €), Clientes (segmentos RFM) y LTV & Cohortes.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk con tus agentes IA y llamadas de voz, Lyftimer para time-tracking, Proyectos & Tareas. Todo el equipo en un lugar.' },
@@ -554,8 +548,8 @@ const I18N = {
     pricingUI: { founder: 'Founder: −30% DE POR VIDA para las primeras 100 empresas', founderCum: '· acumulable con el descuento anual', audBrand: 'Empresas', audAgency: 'Agencias y Freelancers', agencySub: 'Gestiona todos tus clientes desde un solo lugar. Pagas por número de empresas, cambias al instante entre ellas.', cadMonthly: 'Mensual', cadAnnual: 'Anual', billAnnual: 'al año', twoFree: '2 meses gratis', save: 'Ahorras', billed: 'facturado' },
     plans: [
       { id: 'starter', name: 'Starter', price: '€69', period: '/mes', tagline: 'Hasta 500 pedidos/mes. Perfecto para empezar, con todo ya incluido.', features: ['✨ Todas las herramientas incluidas', 'Hasta 500 pedidos/mes', 'Todas las integraciones (Shopify, Meta, Google, Klaviyo)', '2 usuarios del equipo', 'Email support 48h'], cta: 'Iniciar con Starter' },
-      { id: 'growth', name: 'Growth', price: '€149', period: '/mes', tagline: 'De 500 a 2.000 pedidos/mes. Para marcas en crecimiento.', features: ['✨ Todas las herramientas incluidas', '500 – 2.000 pedidos/mes', '5 usuarios del equipo', 'Créditos Creative Lab (IA) ampliados', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'MÁS ELEGIDO' },
-      { id: 'scale', name: 'Scale', price: '€299', period: '/mes', tagline: 'De 2.000 a 7.000 pedidos/mes. Para marcas estructuradas.', features: ['✨ Todas las herramientas incluidas', '2.000 – 7.000 pedidos/mes', 'Usuarios del equipo ilimitados', 'Créditos Creative Lab (IA) máximos', 'CSM dedicado'], cta: 'Iniciar con Scale' },
+      { id: 'growth', name: 'Growth', price: '€149', period: '/mes', tagline: 'De 500 a 2.000 pedidos/mes. Para marcas en crecimiento.', features: ['✨ Todas las herramientas incluidas', '500 – 2.000 pedidos/mes', '5 usuarios del equipo', 'Priority support 12h'], cta: 'Iniciar con Growth', popular: true, popularLabel: 'MÁS ELEGIDO' },
+      { id: 'scale', name: 'Scale', price: '€299', period: '/mes', tagline: 'De 2.000 a 7.000 pedidos/mes. Para marcas estructuradas.', features: ['✨ Todas las herramientas incluidas', '2.000 – 7.000 pedidos/mes', 'Usuarios del equipo ilimitados', 'CSM dedicado'], cta: 'Iniciar con Scale' },
       { id: 'enterprise', name: 'Enterprise', price: '€599', period: '/mes', tagline: 'Más de 7.000 pedidos/mes. Alto volumen y necesidades custom.', features: ['✨ Todas las herramientas incluidas', '7.000+ pedidos/mes', 'SLA y onboarding dedicado', 'Integraciones custom', 'Account manager dedicado'], cta: 'Iniciar con Enterprise' },
     ],
     agency: {
@@ -653,7 +647,7 @@ const I18N = {
       title: 'Trois réponses qu\'aucun autre outil ne vous donne',
       items: [
         { icon: '∿', title: 'Combien vos pubs rapportent-elles VRAIMENT ?', text: 'Meta et Google s\'attribuent des ventes que vous auriez faites de toute façon. LyftAI mesure l\'incrémentalité réelle de chaque canal — et avec le simulateur ci-dessous, vous voyez où le prochain euro rapporte le plus.' },
-        { icon: '€', title: 'De 10 outils à 1 cerveau', text: 'Analytics, pubs, SEO, email, CRM, stock et trésorerie dans un seul logiciel : il remplace plus de 900 €/mois d\'abonnements séparés. Et chaque plan inclut tout.' },
+        { icon: '€', title: 'De 10 outils à 1 cerveau', text: 'Analytics, pubs, SEO, email, CRM et stock dans un seul logiciel : il remplace plus de 900 €/mois d\'abonnements séparés. Et chaque plan inclut tout.' },
         { icon: '◉', title: 'Pas des rapports. Des actions.', text: 'Chaque matin, le Cerveau vous dit ce qui s\'est passé et quoi faire — scaler, couper, corriger — avec l\'impact prévu en €. Vous approuvez, il prépare.' },
       ],
     },
@@ -705,7 +699,6 @@ const I18N = {
       { id: 'meta', icon: '⊞', title: 'Meta Ads complet', desc: 'Créa, Meta Detail au niveau de l\'annonce, Budget Advisor, Creative Fatigue et Lighthouse.' },
       { id: 'google', icon: <Icon name="search" size={18} />, title: 'Google Ads complet', desc: 'Suite jumelle de Meta : KPI, Detail, Produits, Budget Advisor et Lighthouse.' },
       { id: 'seo', icon: '⌕', title: 'SEO + CRO + Website', desc: 'Audit SEO, GSC réel, Keyword AI, AI Visibility (AEO), CRO et AI Website Scanner.' },
-      { id: 'studio', icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Production générative d\'images et de créas à votre marque, Try-On produit et boards collaboratifs.' },
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'Escouade IA', desc: '8 agents C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) avec mémoire partagée qui connaissent votre marque.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk avec agents IA et appels vocaux, Lyftimer time-tracking, Projets & Tâches.' },
       { id: 'reports', icon: '▦', title: 'Rapports périodiques', desc: 'Hebdo, Mensuel, Trimestre, Année + digests email automatiques. Comparaison période sur période, export PDF.' },
@@ -716,7 +709,6 @@ const I18N = {
       { icon: '◎', title: 'Dashboard temps réel + Live View', desc: 'KPI clés (Revenu, AOV, MER, CAC, LTV) en direct + globe 3D des visiteurs en temps réel depuis GA4.' },
       { icon: <Icon name="sparkle" size={18} />, title: 'Escouade IA', desc: '8 agents C-suite (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) avec mémoire partagée. Ils lisent Shopify, Meta, GA4 et Search Console et répondent avec vos chiffres.' },
       { icon: <Icon name="scale" size={18} />, title: 'Meta + Google Ads complet', desc: 'Les deux suites : KPI, Detail au niveau de l\'annonce, Budget Advisor, Creative Fatigue et Lighthouse. Voyez où vous brûlez du budget.' },
-      { icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Production générative d\'images et de créas à votre identité de marque, Try-On produit et boards collaboratifs.' },
       { icon: '⌕', title: 'Suite SEO + IA', desc: 'Audit on-page & multi-pages, Google Search Console réel, Keyword AI, AI Visibility (AEO), éditeur de contenu, Competitor.' },
       { icon: '€', title: 'Commerce intelligence', desc: 'Compte de résultat jusqu\'à l\'EBIT, Inventaire (stockout & ventes perdues €), Clients (segments RFM) et LTV & Cohortes.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'Chat LyftTalk avec vos agents IA et appels vocaux, Lyftimer pour le time-tracking, Projets & Tâches. Toute l\'équipe au même endroit.' },
@@ -746,8 +738,8 @@ const I18N = {
     pricingUI: { founder: 'Founder : −30% À VIE pour les 100 premières entreprises', founderCum: '· cumulable avec la remise annuelle', audBrand: 'Entreprises', audAgency: 'Agences & Freelances', agencySub: 'Gérez tous vos clients depuis un seul endroit. Vous payez selon le nombre d’entreprises, basculez instantanément de l’une à l’autre.', cadMonthly: 'Mensuel', cadAnnual: 'Annuel', billAnnual: 'par an', twoFree: '2 mois offerts', save: 'Vous économisez', billed: 'facturé' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/mois', tagline: 'Jusqu\'à 500 commandes/mois. Parfait pour démarrer, tout déjà inclus.', features: ['✨ Tous les outils inclus', 'Jusqu\'à 500 commandes/mois', 'Toutes les intégrations (Shopify, Meta, Google, Klaviyo)', '2 utilisateurs', 'Support email 48h'], cta: 'Commencer avec Starter' },
-      { id: 'growth', name: 'Growth', price: '149€', period: '/mois', tagline: 'De 500 à 2 000 commandes/mois. Pour les marques en croissance.', features: ['✨ Tous les outils inclus', '500 – 2 000 commandes/mois', '5 utilisateurs', 'Crédits Creative Lab (IA) étendus', 'Support prioritaire 12h'], cta: 'Commencer avec Growth', popular: true, popularLabel: 'LE PLUS CHOISI' },
-      { id: 'scale', name: 'Scale', price: '299€', period: '/mois', tagline: 'De 2 000 à 7 000 commandes/mois. Pour les marques structurées.', features: ['✨ Tous les outils inclus', '2 000 – 7 000 commandes/mois', 'Utilisateurs illimités', 'Crédits Creative Lab (IA) maximum', 'CSM dédié'], cta: 'Commencer avec Scale' },
+      { id: 'growth', name: 'Growth', price: '149€', period: '/mois', tagline: 'De 500 à 2 000 commandes/mois. Pour les marques en croissance.', features: ['✨ Tous les outils inclus', '500 – 2 000 commandes/mois', '5 utilisateurs', 'Support prioritaire 12h'], cta: 'Commencer avec Growth', popular: true, popularLabel: 'LE PLUS CHOISI' },
+      { id: 'scale', name: 'Scale', price: '299€', period: '/mois', tagline: 'De 2 000 à 7 000 commandes/mois. Pour les marques structurées.', features: ['✨ Tous les outils inclus', '2 000 – 7 000 commandes/mois', 'Utilisateurs illimités', 'CSM dédié'], cta: 'Commencer avec Scale' },
       { id: 'enterprise', name: 'Enterprise', price: '599€', period: '/mois', tagline: 'Plus de 7 000 commandes/mois. Gros volumes et besoins personnalisés.', features: ['✨ Tous les outils inclus', '7 000+ commandes/mois', 'SLA & onboarding dédiés', 'Intégrations personnalisées', 'Account manager dédié'], cta: 'Commencer avec Enterprise' },
     ],
     agency: {
@@ -845,7 +837,7 @@ const I18N = {
       title: 'Drei Antworten, die Ihnen kein anderes Tool gibt',
       items: [
         { icon: '∿', title: 'Wie viel bringen Ihre Ads WIRKLICH?', text: 'Meta und Google schreiben sich Verkäufe zu, die Sie ohnehin gemacht hätten. LyftAI misst die echte Inkrementalität jedes Kanals — und mit dem Simulator unten sehen Sie, wo der nächste Euro am meisten bringt.' },
-        { icon: '€', title: 'Von 10 Tools zu 1 Gehirn', text: 'Analytics, Ads, SEO, E-Mail, CRM, Lager und Cashflow in einer Software: ersetzt über 900 €/Monat an separaten Abos. Und jeder Plan enthält alles.' },
+        { icon: '€', title: 'Von 10 Tools zu 1 Gehirn', text: 'Analytics, Ads, SEO, E-Mail, CRM und Lager in einer Software: ersetzt über 900 €/Monat an separaten Abos. Und jeder Plan enthält alles.' },
         { icon: '◉', title: 'Keine Reports. Aktionen.', text: 'Jeden Morgen sagt Ihnen das Brain, was passiert ist und was zu tun ist — skalieren, kürzen, beheben — mit erwartetem Impact in €. Sie genehmigen, es bereitet vor.' },
       ],
     },
@@ -897,7 +889,6 @@ const I18N = {
       { id: 'meta', icon: '⊞', title: 'Komplettes Meta Ads', desc: 'Kreativ, Meta Detail auf Anzeigenebene, Budget Advisor, Creative Fatigue und Lighthouse.' },
       { id: 'google', icon: <Icon name="search" size={18} />, title: 'Komplettes Google Ads', desc: 'Zwillings-Suite zu Meta: KPI, Detail, Produkte, Budget Advisor und Lighthouse.' },
       { id: 'seo', icon: '⌕', title: 'SEO + CRO + Website', desc: 'SEO-Audit, echte GSC, Keyword AI, AI Visibility (AEO), CRO und AI Website Scanner.' },
-      { id: 'studio', icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Generative Produktion markengerechter Bilder und Kreativen, Produkt-Try-On und kollaborative Boards.' },
       { id: 'team', icon: <Icon name="sparkle" size={18} />, title: 'KI-Squad', desc: '8 C-Suite-Agenten (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) mit geteiltem Gedächtnis, die Ihre Marke kennen.' },
       { id: 'ops', icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk-Chat mit KI-Agenten und Sprachanrufen, Lyftimer-Zeiterfassung, Projekte & Aufgaben.' },
       { id: 'reports', icon: '▦', title: 'Periodische Berichte', desc: 'Woche, Monat, Quartal, Jahr + automatische E-Mail-Digests. Periodenvergleich, PDF-Export.' },
@@ -908,7 +899,6 @@ const I18N = {
       { icon: '◎', title: 'Echtzeit-Dashboard + Live View', desc: 'Kern-KPIs (Umsatz, AOV, MER, CAC, LTV) live + 3D-Globus der Echtzeit-Besucher aus GA4.' },
       { icon: <Icon name="sparkle" size={18} />, title: 'KI-Squad', desc: '8 C-Suite-Agenten (CEO · CFO · CMO · Ads · SEO · CRO · Data · Creative) mit geteiltem Gedächtnis. Sie lesen Shopify, Meta, GA4 und Search Console und antworten mit Ihren Zahlen.' },
       { icon: <Icon name="scale" size={18} />, title: 'Komplettes Meta + Google Ads', desc: 'Beide Suites: KPI, Detail auf Anzeigenebene, Budget Advisor, Creative Fatigue und Lighthouse. Sehen Sie, wo Sie Budget verbrennen.' },
-      { icon: <Icon name="sparkles" size={18} />, title: 'Creative Studio', desc: 'Generative Produktion markengerechter Bilder und Kreativen, Produkt-Try-On und kollaborative Boards.' },
       { icon: '⌕', title: 'SEO-Suite + KI', desc: 'On-Page- & Multi-Page-Audit, echte Google Search Console, Keyword AI, AI Visibility (AEO), Content-Editor, Competitor.' },
       { icon: '€', title: 'Commerce-Intelligence', desc: 'GuV bis zum EBIT, Inventar (Stockout & entgangene Umsätze €), Kunden (RFM-Segmente) und LTV & Kohorten.' },
       { icon: <Icon name="chat" size={18} />, title: 'Team & Operations', desc: 'LyftTalk-Chat mit Ihren KI-Agenten und Sprachanrufen, Lyftimer-Zeiterfassung, Projekte & Aufgaben. Ihr ganzes Team an einem Ort.' },
@@ -938,8 +928,8 @@ const I18N = {
     pricingUI: { founder: 'Founder: −30% LEBENSLANG für die ersten 100 Unternehmen', founderCum: '· kombinierbar mit dem Jahresrabatt', audBrand: 'Unternehmen', audAgency: 'Agenturen & Freelancer', agencySub: 'Verwalten Sie alle Ihre Kunden an einem Ort. Sie zahlen pro Anzahl der Unternehmen und wechseln sofort zwischen ihnen.', cadMonthly: 'Monatlich', cadAnnual: 'Jährlich', billAnnual: 'pro Jahr', twoFree: '2 Monate gratis', save: 'Sie sparen', billed: 'abgerechnet' },
     plans: [
       { id: 'starter', name: 'Starter', price: '69€', period: '/Monat', tagline: 'Bis zu 500 Bestellungen/Monat. Perfekt zum Start, alles schon dabei.', features: ['✨ Alle Tools inklusive', 'Bis zu 500 Bestellungen/Monat', 'Alle Integrationen (Shopify, Meta, Google, Klaviyo)', '2 Team-Nutzer', 'E-Mail-Support 48h'], cta: 'Mit Starter beginnen' },
-      { id: 'growth', name: 'Growth', price: '149€', period: '/Monat', tagline: '500 bis 2.000 Bestellungen/Monat. Für wachsende Marken.', features: ['✨ Alle Tools inklusive', '500 – 2.000 Bestellungen/Monat', '5 Team-Nutzer', 'Erweiterte Creative-Lab-(KI)-Credits', 'Priority-Support 12h'], cta: 'Mit Growth beginnen', popular: true, popularLabel: 'AM HÄUFIGSTEN GEWÄHLT' },
-      { id: 'scale', name: 'Scale', price: '299€', period: '/Monat', tagline: '2.000 bis 7.000 Bestellungen/Monat. Für strukturierte Marken.', features: ['✨ Alle Tools inklusive', '2.000 – 7.000 Bestellungen/Monat', 'Unbegrenzte Team-Nutzer', 'Maximale Creative-Lab-(KI)-Credits', 'Dedizierter CSM'], cta: 'Mit Scale beginnen' },
+      { id: 'growth', name: 'Growth', price: '149€', period: '/Monat', tagline: '500 bis 2.000 Bestellungen/Monat. Für wachsende Marken.', features: ['✨ Alle Tools inklusive', '500 – 2.000 Bestellungen/Monat', '5 Team-Nutzer', 'Priority-Support 12h'], cta: 'Mit Growth beginnen', popular: true, popularLabel: 'AM HÄUFIGSTEN GEWÄHLT' },
+      { id: 'scale', name: 'Scale', price: '299€', period: '/Monat', tagline: '2.000 bis 7.000 Bestellungen/Monat. Für strukturierte Marken.', features: ['✨ Alle Tools inklusive', '2.000 – 7.000 Bestellungen/Monat', 'Unbegrenzte Team-Nutzer', 'Dedizierter CSM'], cta: 'Mit Scale beginnen' },
       { id: 'enterprise', name: 'Enterprise', price: '599€', period: '/Monat', tagline: 'Über 7.000 Bestellungen/Monat. Hohe Volumen und individuelle Anforderungen.', features: ['✨ Alle Tools inklusive', '7.000+ Bestellungen/Monat', 'Dediziertes SLA & Onboarding', 'Individuelle Integrationen', 'Dedizierter Account Manager'], cta: 'Mit Enterprise starten' },
     ],
     agency: {

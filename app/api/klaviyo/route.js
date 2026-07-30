@@ -40,6 +40,23 @@ async function klaviyoGet(path, retries = 3) {
   return null
 }
 
+// Segue i cursori di paginazione Klaviyo. Necessario su /campaigns (default
+// ~10 risultati/pagina): senza, la lista si fermava alla prima pagina e le
+// campagne più vecchie sparivano dalla tab.
+async function klaviyoGetPages(path, maxPages = 6) {
+  const out = { data: [], included: [] }
+  let next = path, guard = 0
+  while (next && guard < maxPages) {
+    guard++
+    const page = await klaviyoGet(next)
+    if (!page?.data) break
+    out.data.push(...page.data)
+    if (Array.isArray(page.included)) out.included.push(...page.included)
+    next = page.links?.next || null
+  }
+  return out.data.length ? out : null
+}
+
 async function klaviyoPost(path, body, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -99,8 +116,8 @@ async function getCampaigns(status) {
   // della campagna è spesso un nome interno generico ("Email 1") mentre il
   // subject è l'identificatore utile mostrato in tabella. Se l'include non è
   // supportato/permesso, fallback alla chiamata semplice (nessuna regressione).
-  let data = await klaviyoGet(`/campaigns?filter=${enc}&include=campaign-messages`)
-  if (!data?.data) data = await klaviyoGet(`/campaigns?filter=${enc}`)
+  let data = await klaviyoGetPages(`/campaigns?filter=${enc}&page[size]=100&include=campaign-messages`)
+  if (!data?.data) data = await klaviyoGetPages(`/campaigns?filter=${enc}&page[size]=100`)
 
   // messageId → subject dai record inclusi. Il path del subject cambia tra le
   // revision dell'API Klaviyo: provo tutte le forme note.
@@ -295,7 +312,11 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
       revenuePerRecipient: m.recipients > 0 ? m.revenue / m.recipients : 0,
       openRate: m.recipients > 0 ? (m.wOpen / m.recipients) * 100 : 0,
       clickRate: m.recipients > 0 ? (m.wClick / m.recipients) * 100 : 0,
-    })).filter(r => r.revenue > 0).sort((a, b) => b.revenue - a.revenue)
+    // Tengo anche le righe SENZA revenue: sono la fonte di open/click/
+    // destinatari della tabella campagne (prima sparivano tutte le stats
+    // delle campagne senza vendite attribuite).
+    })).filter(r => r.revenue > 0 || r.recipients > 0 || r.conversions > 0)
+      .sort((a, b) => b.revenue - a.revenue)
   }
 
   const campRows = aggregate(campRes?.data?.attributes?.results, 'campaign_id', campaignMap)
@@ -330,9 +351,9 @@ export async function GET(request) {
   // separata (?part=breakdown) così la tab carica subito i dati veloci.
   const part = searchParams.get('part') || 'main'
 
-  // tab key versionata 'klaviyo2': invalida gli snapshot vecchi calcolati quando
-  // il nome campagna era il `name` interno ("E-mail 1") invece del subject email.
-  return swrSnapshot(request, { tab: 'klaviyo2', compute: async () => {
+  // tab key versionata 'klaviyo3': invalida gli snapshot calcolati prima della
+  // paginazione campagne e delle stats senza revenue (liste troncate a 1 pagina).
+  return swrSnapshot(request, { tab: 'klaviyo3', compute: async () => {
     try {
       if (part === 'breakdown') {
         const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])

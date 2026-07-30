@@ -79,14 +79,11 @@ export async function GET(request) {
       }
       const out = {}
       const probes = {
-        cust_by_chan: `FROM sales SHOW customers, returning_customers GROUP BY sales_channel ${R}`,
-        norc: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer ${R}`,
-        cohort: `FROM sales SHOW orders, total_sales GROUP BY customer_cohort ${R}`,
-        nc_sales: `FROM sales SHOW new_customer_sales, returning_customer_sales ${R}`,
-        units1: `FROM sales SHOW ordered_item_quantity ${R}`,
-        units2: `FROM sales SHOW net_items_sold ${R}`,
-        units3: `FROM sales SHOW net_quantity ${R}`,
-        orders_ds: `FROM orders SHOW orders ${R}`,
+        norc_x_chan: `FROM sales SHOW orders, total_sales GROUP BY new_or_returning_customer, sales_channel ${R}`,
+        chan_x_norc: `FROM sales SHOW orders, total_sales, customers GROUP BY sales_channel, new_or_returning_customer ${R}`,
+        units_chan: `FROM sales SHOW net_items_sold GROUP BY sales_channel ${R}`,
+        gross_items: `FROM sales SHOW gross_items_sold ${R}`,
+        items: `FROM sales SHOW items_sold ${R}`,
       }
       for (const [k, q] of Object.entries(probes)) out[k] = await probe(q)
       return NextResponse.json(out, { headers: H })

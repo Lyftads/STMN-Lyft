@@ -41,11 +41,13 @@ async function shopifyQL(query) {
       const payload = json?.data?.shopifyqlQuery
       if (payload?.parseErrors?.length) return null
       const cols = payload?.tableData?.columns || []
-      return (payload?.tableData?.rows || []).map(row => {
+      const rows = (payload?.tableData?.rows || []).map(row => {
         const o = {}
-        cols.forEach((c, i) => { o[c.name || `c${i}`] = row[i] })
+        cols.forEach((c, i) => { o[c.name || `c${i}`] = Array.isArray(row) ? row[i] : row?.[c.name] })
         return o
       })
+      rows._cols = cols.map(c => c.name)
+      return rows
     } catch { if (attempt < 4) { await sleep(900 * attempt); continue } return null }
   }
   return null
@@ -67,6 +69,20 @@ export async function GET(request) {
     if (!since || !until) return NextResponse.json({ error: 'since/until richiesti' }, { status: 400 })
     const R = `SINCE ${since} UNTIL ${until}`
     const H = { 'Cache-Control': 'private, no-store' }
+
+    // Debug: eco di colonne e prime righe grezze di una query base, per
+    // capire come questo store nomina colonne/dimensioni.
+    if (searchParams.get('debug') === '1') {
+      const probe = async (q) => {
+        const rows = await shopifyQL(q)
+        return { q, cols: rows?._cols || null, rows: (rows || []).slice(0, 4) }
+      }
+      return NextResponse.json({
+        base: await probe(`FROM sales SHOW orders, total_sales ${R}`),
+        chan: await probe(`FROM sales SHOW orders, total_sales GROUP BY sales_channel ${R}`),
+        ct: await probe(`FROM sales SHOW orders, total_sales GROUP BY customer_type ${R}`),
+      }, { headers: H })
+    }
 
     const [tot, chan, ct, sess] = await Promise.all([
       firstOk([

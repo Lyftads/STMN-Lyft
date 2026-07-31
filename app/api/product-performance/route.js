@@ -276,12 +276,20 @@ export async function GET(req) {
       for (const [pid, cost] of googleProduct.byProduct) { mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost); googleMatched += cost }
       unmappedSpend += Math.max(0, googleSpend - googleMatched)
 
-      // Prodotti con spesa mappata ma ZERO vendite nel periodo: senza riga la
-      // loro spesa spariva (marginOp totale gonfiato). Riga a ricavo 0.
-      for (const pid of mappedByProduct.keys()) {
-        if (!cur.has(pid)) {
+      // Prodotti con spesa mappata ma ZERO vendite: una riga per ognuno rendeva
+      // la tabella illeggibile (con una campagna su "tutto il catalogo" si
+      // creavano migliaia di righe da pochi centesimi). Riga SOLO se la spesa
+      // allocata è significativa; il resto confluisce nel pool non mappato,
+      // così i totali continuano a quadrare.
+      const ZERO_SALE_MIN_SPEND = 5
+      for (const [pid, spend] of [...mappedByProduct.entries()]) {
+        if (cur.has(pid)) continue
+        if (spend >= ZERO_SALE_MIN_SPEND) {
           const t = pmeta.meta.get(pid)?.title || productList.find(x => x.id === pid)?.title || `#${pid}`
           cur.set(pid, { productId: pid, title: t, units: 0, revenue: 0, variantQty: new Map() })
+        } else {
+          unmappedSpend += spend
+          mappedByProduct.delete(pid)
         }
       }
 

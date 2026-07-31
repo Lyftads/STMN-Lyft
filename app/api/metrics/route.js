@@ -893,7 +893,14 @@ async function fetchAOV() {
     let url = `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`
     let revenue = 0, count = 0
     for (let page = 0; page < 40 && url; page++) {
-      const res = await tfetch(url, { headers: shopifyAuth() })
+      let res
+      try {
+        res = await tfetch(url, { headers: shopifyAuth() })
+      } catch (e) {
+        // timeout a pagina N: teniamo le pagine già lette invece di azzerare
+        console.log('[metrics] AOV pagina interrotta:', e?.message)
+        break
+      }
       if (!res.ok) break
       const data = await res.json().catch(() => null)
       for (const order of (data?.orders || [])) { revenue += parseFloat(order.total_price || 0); count++ }
@@ -1433,8 +1440,12 @@ async function safeShopifyRange(range) {
     }
   }
 
+  // Fonte Shopify GIÙ → null, NON un oggetto di zeri: con gli zeri la dashboard
+  // li trattava come dato valido e gli alert gridavano "ROAS sotto 1", "spesa
+  // senza fatturato", "-100%" — allarmi critici falsi su un semplice timeout.
   if (!sales) {
-    sales = { fatturato: 0, fatturNC: 0, fatturRC: 0, resi: 0, resiNC: 0, resiRC: 0, ordini: 0, nc: 0, rc: 0 }
+    console.log('[metrics] safeShopifyRange: nessuna fonte disponibile', range)
+    return null
   }
 
   return {

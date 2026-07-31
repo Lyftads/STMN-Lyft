@@ -19,8 +19,14 @@ export async function POST(req) {
     const uid = await getCurrentUserId()
     if (!uid) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
     const adminDb = getAdminSupabase()
-    const { data: me } = await adminDb.from('companies').select('is_agency').eq('user_id', uid).maybeSingle()
-    if (!me?.is_agency) return NextResponse.json({ ok: false, error: 'Funzione riservata agli account agency.' }, { status: 403 })
+    const { data: me } = await adminDb.from('companies').select('is_agency, is_client_workspace').eq('user_id', uid).maybeSingle()
+    // Un workspace-CLIENTE non può creare altri clienti. Chi non è ancora
+    // agency può creare il PRIMO cliente (è così che si diventa agency):
+    // richiedere is_agency a priori creava un deadlock — nessuno poteva più
+    // diventarlo, perché il flag si scrive solo DOPO la prima creazione.
+    if (me?.is_client_workspace) {
+      return NextResponse.json({ ok: false, error: 'Un workspace cliente non può creare altri workspace.' }, { status: 403 })
+    }
   }
   const uid = await getCurrentUserId()
   if (!uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })

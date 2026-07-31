@@ -684,7 +684,9 @@ function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, hidd
           {created && (
             <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
               <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}><Icon name="check" size={13} /> {t('tk.accessReadyFor', { email: created.email }, 'Access ready for {email}')}</div>
-              <div style={{ fontSize: 14 }}>{t('tk.tempPassword', null, 'Temporary password:')} <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
+              {created.password
+                ? <div style={{ fontSize: 14 }}>{t('tk.tempPassword', null, 'Temporary password:')} <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
+                : <div style={{ fontSize: 14 }}>{t('tk.existingAccount', null, 'Questa email ha già un account LyftAI: accede con la sua password abituale.')}</div>}
               <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
                 {created.emailSent ? t('tk.emailSentToo', null, 'Also sent via email. ') : t('tk.emailNotSent', null, 'Email not sent: share these credentials yourself. ')}
                 {t('tk.loginInstructions', null, 'The collaborator logs in at /login and can change the password from the reset page.')}

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { auditPage, discoverUrls } from '../../../../lib/seo/audit'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 import { callBrain } from '../../../../lib/agent/gateway'
 import { assertPublicUrl } from '../../../../lib/security/ssrf'
 
@@ -101,7 +101,7 @@ export async function POST(request) {
 
   if (body.save !== false) {
     try {
-      const userId = await getCurrentUserId()
+      const userId = await getEffectiveTenantId()
       const admin = getAdminSupabase()
       if (userId && admin) {
         const { data } = await admin.from('seo_audits').insert({

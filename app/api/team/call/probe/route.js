@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { getEffectiveTenantId } from '../../../../../lib/tenant/credentials'
+import { getCurrentUserId } from '../../../../../lib/tenant/credentials'
 import { verifyCallToken } from '../../../../../lib/agent/callToken'
 import { getAdminSupabase } from '../../../../../lib/supabase/server'
 import { buildBrief } from '../../../../../lib/agent/brandSnapshot'
@@ -16,7 +16,7 @@ import { buildBrief } from '../../../../../lib/agent/brandSnapshot'
 // ============================================================================
 
 export async function POST(req) {
-  const me = await getEffectiveTenantId().catch(() => null)
+  const me = await getCurrentUserId().catch(() => null)
   if (!me || me !== process.env.LYFT_OWNER_USER_ID) {
     return NextResponse.json({ error: 'solo owner' }, { status: 403 })
   }

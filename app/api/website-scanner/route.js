@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 import { getAdminSupabase } from '../../../lib/supabase/server'
-import { getCurrentUserId } from '../../../lib/tenant/credentials'
+import { getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { assertPublicUrl } from '../../../lib/security/ssrf'
 import { complete } from '../../../lib/agent/router'
 
@@ -457,7 +457,7 @@ export async function POST(req) {
     let savedId = null
     if (analysis && body?.save !== false) {
       try {
-        const userId = await getCurrentUserId()
+        const userId = await getEffectiveTenantId()
         const admin = getAdminSupabase()
         if (userId && admin) {
           // Lo screenshot va su Storage (bucket pubblico) → nel DB solo la URL,

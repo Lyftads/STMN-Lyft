@@ -258,7 +258,7 @@ export async function GET(req) {
           const c = pmeta.costByVariant.get(vid)
           if (c != null) { cogs += c * qty; hasCost = true }
         }
-        costTotal++; if (hasCost) costCovered++
+        if (p.units > 0) { costTotal++; if (hasCost) costCovered++ } // le righe a zero vendite non diluiscono la copertura
         const mapped = mappedByProduct.get(p.productId) || 0
         const allocAds = mapped + (totalRevenue > 0 ? unmappedSpend * (p.revenue / totalRevenue) : 0)
         const marginOp = p.revenue - cogs - allocAds
@@ -292,9 +292,13 @@ export async function GET(req) {
           // COGS totale (somma costi prodotto venduti) + margine lordo blended,
           // usati per l'LTV netto: grossMargin = (ricavo − COGS) / ricavo.
           cogs: Math.round(products.reduce((s, p) => s + p.cogs, 0) * 100) / 100,
-          grossMargin: totalRevenue > 0
-            ? Math.round((1 - products.reduce((s, p) => s + p.cogs, 0) / totalRevenue) * 1000) / 1000
-            : null,
+          // Margine NEGATIVO = costi incoerenti col ricavo (IVA/sconti): meglio
+          // "non disponibile" che un 1% che collassa l'LTV netto in dashboard.
+          grossMargin: (() => {
+            if (!(totalRevenue > 0)) return null
+            const gm = 1 - products.reduce((s, p) => s + p.cogs, 0) / totalRevenue
+            return gm > 0 ? Math.round(gm * 1000) / 1000 : null
+          })(),
           ads: Math.round(adsTotal * 100) / 100,
           metaSpend: Math.round(metaSpend * 100) / 100,
           googleSpend: Math.round(googleSpend * 100) / 100,

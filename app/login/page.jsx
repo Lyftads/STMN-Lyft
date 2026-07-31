@@ -22,7 +22,15 @@ function LoginForm() {
   const search = useSearchParams()
   // Solo path interni: '?next=https://evil.tld' o '//evil.tld' → phishing
   const nextRaw = search.get('next') || '/'
-  const nextUrl = (nextRaw.startsWith('/') && !nextRaw.startsWith('//')) ? nextRaw : '/'
+  // Validazione con URL parser: '/\evil.tld' passava il controllo sui prefissi
+  // ma il browser lo risolve come host esterno.
+  const nextUrl = (() => {
+    try {
+      const u = new URL(nextRaw, typeof window !== 'undefined' ? window.location.origin : 'https://lyftai.io')
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lyftai.io'
+      return u.origin === origin ? u.pathname + u.search + u.hash : '/'
+    } catch { return '/' }
+  })()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

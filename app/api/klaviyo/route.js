@@ -46,10 +46,12 @@ async function klaviyoGet(path, retries = 3) {
 // NB: NIENTE page[size] custom — su alcuni account/connessioni l'endpoint
 // campagne lo rifiuta con 400 e la lista risultava VUOTA. Si segue il
 // page[cursor] dei link `next` generati da Klaviyo, con più pagine.
-async function klaviyoGetPages(path, maxPages = 15) {
+async function klaviyoGetPages(path, maxPages = 15, budgetMs = 20000) {
   const out = { data: [], included: [] }
+  const t0 = Date.now()
   let next = path, guard = 0
-  while (next && guard < maxPages) {
+  // budget cumulativo: 15 pagine × 12s superavano il maxDuration della route
+  while (next && guard < maxPages && (Date.now() - t0) < budgetMs) {
     guard++
     const page = await klaviyoGet(next)
     if (!page?.data) break
@@ -95,7 +97,7 @@ async function getAccount() {
 }
 
 async function getLists() {
-  const data = await klaviyoGetPages('/lists')
+  const data = await klaviyoGetPages('/lists', 5)
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
@@ -103,7 +105,7 @@ async function getLists() {
 }
 
 async function getSegments() {
-  const data = await klaviyoGetPages('/segments')
+  const data = await klaviyoGetPages('/segments', 5)
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,

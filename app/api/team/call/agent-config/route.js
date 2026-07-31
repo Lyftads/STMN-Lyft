@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { getEffectiveTenantId } from '../../../../../lib/tenant/credentials'
+import { getCurrentUserId } from '../../../../../lib/tenant/credentials'
 import { CALL_AGENTS } from '../../../../../lib/agent/callAgents'
 
 // ============================================================================
@@ -16,8 +16,10 @@ import { CALL_AGENTS } from '../../../../../lib/agent/callAgents'
 const EL = 'https://api.elevenlabs.io/v1/convai/agents'
 
 async function ownerOnly() {
-  const ws = await getEffectiveTenantId().catch(() => null)
-  return !!(ws && ws === process.env.LYFT_OWNER_USER_ID)
+  // Identità REALE: col tenant effettivo qualunque membro/guest del
+  // workspace owner passava il gate (e poteva riconfigurare gli agenti).
+  const uid = await getCurrentUserId().catch(() => null)
+  return !!(uid && uid === process.env.LYFT_OWNER_USER_ID)
 }
 
 export async function GET(req) {
@@ -65,8 +67,19 @@ export async function POST(req) {
   const results = {}
   for (const [name, id] of Object.entries(CALL_AGENTS)) {
     try {
-      const cur = await fetch(`${EL}/${id}`, { headers: { 'xi-api-key': key }, cache: 'no-store' }).then(r => r.json())
-      const merged = { ...(cur.platform_settings?.overrides || {}), ...patch }
+      const curRes = await fetch(`${EL}/${id}`, { headers: { 'xi-api-key': key }, cache: 'no-store' })
+      if (!curRes.ok) {
+        // Senza la config attuale la PATCH cancellerebbe platform_settings
+        // (widget, privacy, evaluation): meglio saltare questo agente.
+        results[name] = { ok: false, error: `lettura config fallita: ${curRes.status}` }
+        continue
+      }
+      const cur = await curRes.json()
+      if (!cur?.platform_settings) {
+        results[name] = { ok: false, error: 'platform_settings assente: PATCH annullata' }
+        continue
+      }
+      const merged = { ...(cur.platform_settings.overrides || {}), ...patch }
       const r = await fetch(`${EL}/${id}`, {
         method: 'PATCH',
         headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },

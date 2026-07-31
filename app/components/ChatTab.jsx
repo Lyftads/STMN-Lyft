@@ -220,7 +220,7 @@ export default function ChatTab({ standalone = false }) {
     } else if (!r.ok) {
       // Invio fallito: prima il testo spariva senza dire nulla
       setText(body)
-      setSendError(r.error || t('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
+      setSendError(r.error || tr('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
       return
     }
     setSendError('')
@@ -329,10 +329,10 @@ export default function ChatTab({ standalone = false }) {
       seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
       setMessages(prev => [...prev, r.message]); scrollBottom()
     } else if (!r.ok) {
-      // Invio fallito: prima il testo spariva senza dire nulla
-      setText(body)
-      setSendError(r.error || t('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
-      return
+      // Invio fallito: qui NON si ripristina il composer (payload può essere un
+      // allegato/vocale, non il testo digitato): solo il banner d'errore.
+      setSendError(r.error || tr('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
+      return r
     }
     setSendError('')
     return r
@@ -840,7 +840,7 @@ export default function ChatTab({ standalone = false }) {
                 <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: '#e7e7ef', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
                 {(agentTyping || sendError) && (
                   <div style={{ padding: '6px 14px', fontSize: 12, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {sendError || t('chat.agentTyping', null, 'L\'agente sta scrivendo…')}
+                    {sendError || tr('chat.agentTyping', null, 'L\'agente sta scrivendo…')}
                   </div>
                 )}
 

@@ -15,7 +15,9 @@ import { getAdminSupabase } from '../../../../lib/supabase/server'
 export async function GET(req) {
   const auth = req.headers.get('authorization') || ''
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  // fail-closed come gli altri cron: senza secret l'endpoint restava pubblico
+  // e chiunque poteva far partire l'invio dei report per email.
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

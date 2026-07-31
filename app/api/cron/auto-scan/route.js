@@ -69,7 +69,7 @@ export async function GET(req) {
   const { data: companies, error } = await admin
     .from('companies')
     .select('user_id, name, company_name, is_beta, stripe_subscription_status')
-    .eq('user_id', process.env.LYFT_OWNER_USER_ID || '')
+    .eq('user_id', process.env.LYFT_OWNER_USER_ID || '00000000-0000-0000-0000-000000000000')
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

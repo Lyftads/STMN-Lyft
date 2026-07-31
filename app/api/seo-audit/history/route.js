@@ -3,12 +3,12 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 
 // GET            → lista audit recenti (id, url, mode, score, created_at)
 // GET ?id=xxx    → audit completo (per ricaricarlo / confronto prima-dopo)
 export async function GET(request) {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ items: [] })
@@ -38,7 +38,7 @@ export async function GET(request) {
 
 // DELETE ?id=xxx → elimina un audit dallo storico
 export async function DELETE(request) {
-  const userId = await getCurrentUserId()
+  const userId = await getEffectiveTenantId()
   if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false })

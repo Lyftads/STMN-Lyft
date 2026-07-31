@@ -225,7 +225,11 @@ export async function POST(req) {
     const { data, error } = await admin
       .from('team_members')
       .upsert(
-        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, user_id: auth.userId, roles, status: auth.password ? 'active' : 'invited', accepted_at: auth.password ? new Date().toISOString() : null },
+        // Attivo in entrambi i casi: è l'INVITO dell'admin ad autorizzare, non
+        // la password. Con status 'invited' + user_id valorizzato la riga non
+        // veniva mai promossa (acceptPendingInvites filtra user_id null) e
+        // l'invitato restava fuori per sempre.
+        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, user_id: auth.userId, roles, status: 'active', accepted_at: new Date().toISOString() },
         { onConflict: 'workspace_id,email' }
       )
       .select('*').single()

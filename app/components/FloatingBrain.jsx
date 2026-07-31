@@ -29,14 +29,20 @@ const TOOL_LABELS = {
   get_pnl: 'pnl', get_cro: 'cro', get_customers: 'customers', get_ga4_traffic: 'ga4',
 }
 const STORE_BASE = 'lyft_brain_msgs'
-function storeKey() {
-  if (typeof document === 'undefined') return STORE_BASE
+// Chiave PER UTENTE: derivarla dai cookie non funzionava (prefisso costante,
+// cookie splittati) → si prende l'id dal server una volta per sessione.
+let __brainKey = null
+async function ensureStoreKey() {
+  if (__brainKey) return __brainKey
   try {
-    const ws = (document.cookie.match(/(?:^|;\s*)active_workspace=([^;]+)/) || [])[1] || ''
-    const sb = (document.cookie.match(/sb-[a-z0-9]+-auth-token=([^;]{0,24})/) || [])[1] || ''
-    return `${STORE_BASE}_${ws || 'own'}_${sb.slice(-12)}`
-  } catch { return STORE_BASE }
+    const j = await fetch('/api/account', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+    const uid = j?.userId || j?.user?.id || j?.id || null
+    const ws = (document.cookie.match(/(?:^|;\s*)active_workspace=([^;]+)/) || [])[1] || 'own'
+    __brainKey = uid ? `${STORE_BASE}_${uid}_${ws}` : null
+  } catch { __brainKey = null }
+  return __brainKey
 }
+function storeKey() { return __brainKey }
 const STORE_KEY = STORE_BASE // compat: le vecchie chiavi vengono ripulite sotto
 
 // Render leggero del markdown: **grassetto** → bold (niente più ** a schermo).
@@ -146,7 +152,9 @@ function periodToQuery(p) {
 
 function loadMsgs() {
   try {
-    const raw = localStorage.getItem(storeKey())
+    const k = storeKey()
+    if (!k) return []          // chiave non ancora risolta: niente cronologia
+    const raw = localStorage.getItem(k)
     const arr = raw ? JSON.parse(raw) : []
     return Array.isArray(arr) ? arr.slice(-40) : []
   } catch { return [] }
@@ -212,9 +220,10 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   // Portal su document.body: così la position:fixed è relativa al VIEWPORT e
   // non a un antenato con transform/filter (che la farebbe scrollare).
   useEffect(() => { setMounted(true) }, [])
-  useEffect(() => { setMsgs(loadMsgs()) }, [])
+  // Prima si risolve la chiave per-utente dal server, poi si carica la storia.
+  useEffect(() => { let alive = true; ensureStoreKey().then(() => { if (alive) setMsgs(loadMsgs()) }); return () => { alive = false } }, [])
   useEffect(() => {
-    try { localStorage.setItem(storeKey(), JSON.stringify(msgs.slice(-40))) } catch {}
+    try { const k = storeKey(); if (k) localStorage.setItem(k, JSON.stringify(msgs.slice(-40))) } catch {}
   }, [msgs])
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -296,7 +305,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { localStorage.removeItem(storeKey()) } catch {} }
+  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { const k = storeKey(); if (k) localStorage.removeItem(k) } catch {} }
 
   // Estrae azioni concrete dalla conversazione (proposte per la Coda Azioni).
   const proposeActions = useCallback(async () => {

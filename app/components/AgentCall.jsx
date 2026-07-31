@@ -39,19 +39,25 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
     if (!id || finalizedRef.current) return
     finalizedRef.current = true
     const payload = JSON.stringify({ conversationId: id, agentId: agent.id })
+    const unlockIfPending = (j) => { if (j && j.pending) finalizedRef.current = false }
     // keepalive: la richiesta sopravvive alla chiusura della tab (prima la call
     // chiusa a browser aperto perdeva trascrizione, task e memorie).
     fetch('/api/team/call/finalize', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: payload, keepalive: true,
-    }).catch(() => {
+    }).then(r => r.json().catch(() => null)).then(unlockIfPending).catch(() => {
       try { navigator.sendBeacon?.('/api/team/call/finalize', new Blob([payload], { type: 'application/json' })) } catch {}
     })
   }
 
   // Chiusura/refresh della tab con call attiva → finalize comunque.
   useEffect(() => {
-    const onHide = () => { if (convIdRef.current && !finalizedRef.current) finalize() }
+    // Solo a call TERMINATA: su mobile pagehide scatta anche mettendo l'app in
+    // background e bruciava il finalize (ref a true) → trascrizione persa.
+    const onHide = () => {
+      const ended = !convRef.current
+      if (ended && convIdRef.current && !finalizedRef.current) finalize()
+    }
     window.addEventListener('pagehide', onHide)
     return () => window.removeEventListener('pagehide', onHide)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

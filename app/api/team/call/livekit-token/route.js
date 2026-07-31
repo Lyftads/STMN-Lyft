@@ -18,7 +18,8 @@ export async function POST(req) {
   {
     const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
     const eff = await getEffectiveTenantId().catch(() => null)
-    if (!eff || eff !== process.env.LYFT_OWNER_USER_ID) {
+    const multiTenantVoice = process.env.VOICE_MULTITENANT === 'true'
+    if (!eff || (!multiTenantVoice && eff !== process.env.LYFT_OWNER_USER_ID)) {
       return NextResponse.json({ ok: false, configured: false, reason: 'Le call vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
     }
   }

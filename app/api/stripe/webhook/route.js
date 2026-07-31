@@ -108,9 +108,21 @@ export async function POST(req) {
           // Match by stripe_customer_id (piu' affidabile dell'user_id su metadata che potrebbe mancare su evento delta)
           const { data: cur } = await admin.from('companies')
             .select('stripe_subscription_id').eq('stripe_customer_id', sub.customer).maybeSingle()
+          // Regola: vince la subscription ATTIVA più recente del customer.
+          // (Col solo confronto sul puntatore memorizzato, durante un cambio
+          // piano la vecchia sub "active" se lo riprendeva e il deleted
+          // successivo azzerava il piano di un cliente pagante.)
           const isCurrent = !cur?.stripe_subscription_id || cur.stripe_subscription_id === sub.id
           const active = ['active', 'trialing'].includes(sub.status)
-          if (!isCurrent && !active) { console.log('[stripe webhook] update ignorato: sub non corrente'); break }
+          if (!isCurrent) {
+            if (!active) { console.log('[stripe webhook] update ignorato: sub non corrente e non attiva'); break }
+            try {
+              const list = await stripe.subscriptions.list({ customer: sub.customer, status: 'all', limit: 10 })
+              const actives = (list.data || []).filter(x => ['active', 'trialing'].includes(x.status))
+              const newest = actives.sort((a, b) => (b.created || 0) - (a.created || 0))[0]
+              if (newest && newest.id !== sub.id) { console.log('[stripe webhook] update ignorato: esiste una sub attiva più recente'); break }
+            } catch (e) { console.log('[stripe webhook] list subs fallita:', e?.message) }
+          }
           await admin.from('companies').update({
             stripe_subscription_id: sub.id,
             stripe_subscription_status: sub.status,
@@ -132,7 +144,12 @@ export async function POST(req) {
           const { data: row } = await admin.from('companies')
             .select('user_id, stripe_subscription_id')
             .eq('stripe_customer_id', sub.customer).maybeSingle()
-          if (row && (!row.stripe_subscription_id || row.stripe_subscription_id === sub.id)) {
+          let noOtherActive = false
+          try {
+            const list = await stripe.subscriptions.list({ customer: sub.customer, status: 'all', limit: 10 })
+            noOtherActive = !(list.data || []).some(x => x.id !== sub.id && ['active', 'trialing', 'past_due'].includes(x.status))
+          } catch { noOtherActive = false }
+          if (row && (!row.stripe_subscription_id || row.stripe_subscription_id === sub.id || noOtherActive)) {
             await admin.from('companies').update({
               stripe_subscription_status: 'canceled',
               plan: null,

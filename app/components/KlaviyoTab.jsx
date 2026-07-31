@@ -336,7 +336,7 @@ export default function KlaviyoTab() {
               </tr>
             </thead>
             <tbody>
-              {flowsSorted.map((f, i) => {
+              {flowsSorted.slice(0, 40).map((f, i) => {
                 const st = flowStatsMap[f.id]
                 return (
                   <tr key={f.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -365,7 +365,7 @@ export default function KlaviyoTab() {
       <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <Section title={tr('klaviyo.segments', null, 'Segmenti')} color="#06b6d4" style={{ marginBottom: 0 }}>
           <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
-            {(segments || []).map((s, i) => (
+            {(segments || []).slice(0, 40).map((s, i) => (
               <div key={s.id || i} style={{ padding: '8px 0', borderBottom: i < segments.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center' }}>
                 <StatusDot active={s.isActive} />
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{s.name}</span>
@@ -375,7 +375,7 @@ export default function KlaviyoTab() {
         </Section>
         <Section title={tr('klaviyo.lists', null, 'Liste')} color="#a855f7" style={{ marginBottom: 0 }}>
           <div className="glass-panel" style={{ ...panelStyle, padding: 16 }}>
-            {(lists || []).map((l, i) => (
+            {(lists || []).slice(0, 40).map((l, i) => (
               <div key={l.id || i} style={{ padding: '8px 0', borderBottom: i < lists.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 13 }}>{l.name}</span>
               </div>

@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { getAuthUser } from '../../../../lib/studio/credits'
+import { getAuthUser } from '../../../../lib/tenant/authUser'
 import { getAgentVoice } from '../../../../lib/agent/team'
 import { requireCaller } from '../../../../lib/tenant/credentials'
 

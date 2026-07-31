@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
-import { getAuthUser } from '../../../../../lib/studio/credits'
+import { getAuthUser } from '../../../../../lib/tenant/authUser'
 import { getCallAgentId } from '../../../../../lib/agent/callAgents'
 
 // GET ?agentId=<id squadra> → { configured, signedUrl?, agentId? }

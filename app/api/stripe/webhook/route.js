@@ -4,7 +4,6 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { addCredits } from '../../../../lib/studio/credits'
 
 // Stripe Webhook handler.
 //
@@ -60,17 +59,6 @@ export async function POST(req) {
         const customerId = s.customer
         const planId = s.metadata?.plan
         console.log('[stripe webhook] checkout completed', { customer: customerId, subscription: s.subscription, plan: planId, user: userId, kind: s.metadata?.kind })
-
-        // Acquisto crediti Creative Studio (mode: payment, kind=credits).
-        // Idempotente: ref = session.id (indice unico su credit_transactions).
-        if (s.metadata?.kind === 'credits' && userId && s.payment_status === 'paid') {
-          const credits = parseInt(s.metadata?.credits || '0')
-          if (credits > 0) {
-            await addCredits(userId, credits, 'purchase', s.id, null)
-            console.log('[stripe webhook] credits added', { user: userId, credits, ref: s.id })
-          }
-          break
-        }
 
         // Persiste sul record companies (abbonamenti)
         if (userId && customerId) {

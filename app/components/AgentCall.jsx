@@ -38,11 +38,23 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
     const id = convIdRef.current
     if (!id || finalizedRef.current) return
     finalizedRef.current = true
+    const payload = JSON.stringify({ conversationId: id, agentId: agent.id })
+    // keepalive: la richiesta sopravvive alla chiusura della tab (prima la call
+    // chiusa a browser aperto perdeva trascrizione, task e memorie).
     fetch('/api/team/call/finalize', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversationId: id, agentId: agent.id }),
-    }).catch(() => {})
+      body: payload, keepalive: true,
+    }).catch(() => {
+      try { navigator.sendBeacon?.('/api/team/call/finalize', new Blob([payload], { type: 'application/json' })) } catch {}
+    })
   }
+
+  // Chiusura/refresh della tab con call attiva → finalize comunque.
+  useEffect(() => {
+    const onHide = () => { if (convIdRef.current && !finalizedRef.current) finalize() }
+    window.addEventListener('pagehide', onHide)
+    return () => window.removeEventListener('pagehide', onHide)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function startCall() {
     setCall({ status: 'connecting', mode: 'listening' })
@@ -52,7 +64,7 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
       // lo snapshot già pronto; il prime aggiorna i dati per i turni successivi.
       fetch('/api/team/call/prime', { method: 'POST' }).catch(() => {})
       const cfg = await fetch(`/api/team/call/signed-url?agentId=${encodeURIComponent(agent.id)}`).then(r => r.json()).catch(() => ({}))
-      if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || t('ac.notConfigured', null, 'Call not configured.') }); return }
+      if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || cfg.error || t('ac.notConfigured', null, 'Call not configured.') }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || t('ac.cannotStart', null, 'Unable to start the call.') }); return }
       const { Conversation } = await import('@elevenlabs/client')
       // NB: niente customLlmExtraBody (l'agente lo rifiuta, error 1008). L'agente

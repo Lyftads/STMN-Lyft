@@ -11,17 +11,31 @@ import { getAdminSupabase } from '../../../../../lib/supabase/server'
 export async function POST(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+
+  // Gate INTERIM (come signed-url): la pipeline vocale legge i dati del
+  // workspace OWNER → finché il workspaceId non viaggia nella call, la voce
+  // è disponibile solo all'owner. Fix audit AI 31 lug.
+  {
+    const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
+    const eff = await getEffectiveTenantId().catch(() => null)
+    if (!eff || eff !== process.env.LYFT_OWNER_USER_ID) {
+      return NextResponse.json({ ok: false, configured: false, reason: 'Le call vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
+    }
+  }
   const apiKey = process.env.LIVEKIT_API_KEY, apiSecret = process.env.LIVEKIT_API_SECRET, url = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL
   if (!apiKey || !apiSecret || !url) return NextResponse.json({ ok: false, configured: false, reason: 'LIVEKIT_* mancanti' })
 
   let b = {}
   try { b = await req.json() } catch {}
-  const room = String(b.room || `team-${ws.workspaceId.slice(0, 8)}`).slice(0, 60)
+  // Stanza SEMPRE derivata server-side dal workspace: col nome dal body si
+  // poteva entrare (o origliare) nelle stanze di altri tenant.
+  const slug = String(b.room || 'main').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'main'
+  const room = `ws-${ws.workspaceId}-${slug}`.slice(0, 100)
 
   // Nome/identità/foto del partecipante (dal team_members se possibile).
   let name = String(b.name || '').trim()
   let avatar = ''
-  const identity = `member-${ws.memberId || ws.userId || Math.random().toString(36).slice(2, 8)}`
+  const identity = `member-${ws.memberId || ws.userId}-${Math.random().toString(36).slice(2, 8)}`
   try {
     const admin = getAdminSupabase()
     if (admin && ws.memberId) {

@@ -18,6 +18,8 @@ import { notifyAssignment, sendEmail } from '../../../../../lib/team/notify'
 
 const AGENT_ROLE = { ads: 'advertising_manager', creative: 'advertising_manager', cro: 'cro_specialist', data: 'data_analyst', seo: 'cro_specialist', cmo: 'ecommerce_manager', cfo: 'ecommerce_manager', ceo: 'admin' }
 const PRIORITIES = ['low', 'medium', 'high', 'urgent']
+// Marcatore riga call in attesa di trascrizione (schema senza colonna status)
+const PENDING_MARK = '__pending_transcript__'
 
 async function fetchTranscript(conversationId, key) {
   // La trascrizione può non essere pronta subito: piccolo retry.
@@ -50,12 +52,25 @@ export async function POST(req) {
 
   try {
   // Evita doppi processi della stessa call.
-  const { data: existing } = await admin.from('call_sessions').select('id').eq('conversation_id', conversationId).maybeSingle()
-  if (existing) return NextResponse.json({ ok: true, already: true })
+  const { data: existing } = await admin.from('call_sessions').select('id, summary').eq('conversation_id', conversationId).maybeSingle()
+  if (existing && existing.summary !== PENDING_MARK) return NextResponse.json({ ok: true, already: true })
+  // riga "in attesa di trascrizione" → si può riprocessare
+  if (existing?.summary === PENDING_MARK) { try { await admin.from('call_sessions').delete().eq('id', existing.id) } catch {} }
 
   const transcript = await fetchTranscript(conversationId, key)
-  if (!transcript.length) return NextResponse.json({ ok: false, error: 'trascrizione non disponibile' })
-  const transcriptText = transcript.map(t => `${t.role === 'agent' ? 'Agente' : 'Marino'}: ${t.text}`).join('\n')
+  if (!transcript.length) {
+    // Trascrizione non ancora pronta: registro la sessione come PENDING così
+    // non si perde (prima la call spariva e nessuno riprovava mai).
+    try {
+      await admin.from('call_sessions').insert({
+        workspace_id: ws.workspaceId, conversation_id: conversationId,
+        agent_id: entryAgent?.id || null, summary: PENDING_MARK,
+      })
+    } catch {}
+    return NextResponse.json({ ok: false, pending: true, error: 'trascrizione non ancora disponibile' })
+  }
+  const userLabel = 'Utente'
+  const transcriptText = transcript.map(t => `${t.role === 'agent' ? 'Agente' : userLabel}: ${t.text}`).join('\n')
 
   // ── Estrazione azioni (LLM, JSON) ─────────────────────────────────────────
   let plan = {}

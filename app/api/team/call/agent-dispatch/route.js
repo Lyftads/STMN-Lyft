@@ -13,13 +13,26 @@ import { getTeamAgent } from '../../../../../lib/agent/team'
 export async function POST(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+
+  // Gate INTERIM (come signed-url): la pipeline vocale legge i dati del
+  // workspace OWNER → finché il workspaceId non viaggia nella call, la voce
+  // è disponibile solo all'owner. Fix audit AI 31 lug.
+  {
+    const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
+    const eff = await getEffectiveTenantId().catch(() => null)
+    if (!eff || eff !== process.env.LYFT_OWNER_USER_ID) {
+      return NextResponse.json({ ok: false, configured: false, reason: 'Le call vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
+    }
+  }
   const apiKey = process.env.LIVEKIT_API_KEY, apiSecret = process.env.LIVEKIT_API_SECRET
   const host = (process.env.LIVEKIT_URL || '').replace(/^wss?:\/\//, 'https://')
   if (!apiKey || !apiSecret || !host) return NextResponse.json({ ok: false, configured: false, reason: 'LIVEKIT_* mancanti' })
 
   let b = {}
   try { b = await req.json() } catch {}
-  const room = String(b.room || '').trim()
+  // Stessa derivazione server-side della stanza usata da livekit-token.
+  const slug = String(b.room || 'main').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'main'
+  const room = `ws-${ws.workspaceId}-${slug}`.slice(0, 100)
   const agent = getTeamAgent(b.agentId)
   if (!room || !agent) return NextResponse.json({ ok: false, error: 'room o agentId mancante' }, { status: 400 })
 

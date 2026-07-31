@@ -15,6 +15,17 @@ import { periodStats } from '../../../../../lib/agent/shopifyWeeks'
 export async function POST(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+
+  // Gate INTERIM (come signed-url): la pipeline vocale legge i dati del
+  // workspace OWNER → finché il workspaceId non viaggia nella call, la voce
+  // è disponibile solo all'owner. Fix audit AI 31 lug.
+  {
+    const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
+    const eff = await getEffectiveTenantId().catch(() => null)
+    if (!eff || eff !== process.env.LYFT_OWNER_USER_ID) {
+      return NextResponse.json({ ok: false, configured: false, reason: 'Le call vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
+    }
+  }
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false, error: 'no db' }, { status: 500 })
 

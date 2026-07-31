@@ -33,7 +33,14 @@ export async function POST(req) {
 
   // Messaggio in LyftTalk (col contesto per entrare).
   try {
+    // Il canale deve appartenere a QUESTO workspace: col solo id dal body si
+    // poteva iniettare un messaggio nel canale di un altro tenant.
+    let channelOk = false
     if (channelId) {
+      const { data: ch } = await admin.from('channels').select('id').eq('id', channelId).eq('workspace_id', ws.workspaceId).maybeSingle()
+      channelOk = !!ch
+    }
+    if (channelOk) {
       await admin.from('channel_messages').insert({
         channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: 'Sistema',
         body: `📞 ${inviter} ha invitato ${target.full_name || target.email?.split('@')[0] || 'un membro'} alla call di gruppo. Entrate dal pulsante "👥 Call di gruppo" qui sopra.`,

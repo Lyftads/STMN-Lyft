@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
@@ -152,10 +153,10 @@ export async function POST(req) {
   const langMsg = aiLangSystemMessage(body?.locale)
 
   // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → tenantSystem() → lingua → COMPETITOR DATA → storia → REMINDER.
+  // contextBlock → tenantSystem() + ACTION_QUALITY → lingua → COMPETITOR DATA → storia → REMINDER.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantSystem() },
+      skill: { id: AGENT_ID, systemPrompt: tenantSystem() + ACTION_QUALITY },
       query: lastUserMsg,
       data: context,
       dataLabel: 'COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',

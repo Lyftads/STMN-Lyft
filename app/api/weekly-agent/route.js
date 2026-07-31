@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
@@ -132,7 +133,7 @@ export async function POST(req) {
   // Migrato al gateway callBrain. Ordine e parametri IDENTICI.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantSystem() },
+      skill: { id: AGENT_ID, systemPrompt: tenantSystem() + ACTION_QUALITY },
       query: lastUserMsg,
       data: context,
       dataLabel: 'DATI SETTIMANALI — usa SOLO questi numeri:',

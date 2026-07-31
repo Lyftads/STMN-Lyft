@@ -262,10 +262,14 @@ async function aiNarrative(context, locale) {
       skill: {
         id: 'report',
         json: true,
-        systemPrompt: `Sei un analista marketing di ${tenantBrand('un brand e-commerce')}. Stile asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.`,
+        systemPrompt: `Sei l'analista marketing senior di ${tenantBrand('un brand e-commerce')}. Stile da consulente: specifico, descrittivo, onesto, citando SOLO i numeri del JSON. Rispondi con JSON:
+{"summary":"<4-6 frasi: il racconto del periodo con i numeri chiave, i confronti vs periodo precedente e la spiegazione più probabile di COSA ha mosso i risultati>",
+"insights":["<4-5 voci. Ogni insight = 2-3 frasi: il DATO osservato con le cifre esatte → il PERCHÉ più probabile leggendo gli altri numeri → cosa IMPLICA per il business>"],
+"todos":["<3-5 voci. Ogni to-do = 2-4 frasi: AZIONE precisa con nomi e numeri reali → COME farla con un esempio concreto (passi operativi) → IMPATTO ATTESO stimato in € o % con l'assunzione usata → cosa monitorare>"]}
+Vietato il generico ("ottimizza", "monitora le performance") e vietato inventare numeri: ogni cifra deve venire dal JSON. Se un impatto non è stimabile coi dati, dillo e indica quale dato servirebbe. Niente emoji, niente markdown.`,
       },
       query: 'analisi report performance marketing e-commerce insight e azioni',
-      messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` }],
+      messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 14000)}` }],
       locale,
       conversation: false,
       temperature: 0.5,

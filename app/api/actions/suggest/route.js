@@ -3,6 +3,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../../lib/agent/actionQuality'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
@@ -24,8 +25,9 @@ Rispondi SOLO con JSON: { "actions": [ { "channel": "...", "type": "...", "targe
 - type ∈ pause_campaign | scale_budget | shift_budget | refresh_creative | create_campaign | custom
 - priority ∈ urgent | high | medium | low
 - "summary" = l'azione all'imperativo, NELLA LINGUA DELL'UTENTE (es. "Sposta budget dalla campagna X alla Y")
-- "why" = una frase di motivazione basata sui dati, nella lingua dell'utente
-Non aggiungere testo fuori dal JSON.`
+- "why" = 2-3 frasi nella lingua dell'utente: il dato esatto che motiva l'azione, un esempio concreto di esecuzione, e l'impatto atteso QUANTIFICATO (€ o %) con l'assunzione usata
+Non aggiungere testo fuori dal JSON.
+${ACTION_QUALITY}`
 
 function compactMetrics(m) {
   if (!m) return null

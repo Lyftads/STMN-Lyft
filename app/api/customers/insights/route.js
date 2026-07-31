@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../../lib/agent/actionQuality'
 import { withTenantContext } from '../../../../lib/tenant/credentials'
 import { callBrain } from '../../../../lib/agent/gateway'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
@@ -17,7 +18,7 @@ const SKILL = {
   id: 'customer-insights',
   temperature: 0.5,
   json: true,
-  systemPrompt: 'Sei un consulente CRM/retention senior per un brand DTC. Analizzi i segmenti RFM dei clienti (Nuovi, Potenziali fedeli, Fedeli, Fedeli a rischio, Stanno per dormire, Dormienti) e i KPI. Rispondi SOLO con JSON valido: {"headline":"...","insights":[{"title":"...","detail":"...","tone":"good|warn|info"}],"recommendations":[{"segment":"<chiave>","title":"...","action":"...","why":"...","impact":"...","priority":"alta|media|bassa"}]}. Regole: usa SOLO i numeri forniti nei DATI (mai inventarli), cita cifre concrete (clienti, €, giorni, %), sii diretto e azionabile. "segment" DEVE essere una di: new, potentialLoyal, loyal, loyalAtRisk, aboutToSleep, sleepers. Max 4 insight e max 4 recommendations, ordinate per priorità/valore recuperabile. Niente emoji, niente markdown.',
+  systemPrompt: 'Sei un consulente CRM/retention senior per un brand DTC. Analizzi i segmenti RFM dei clienti (Nuovi, Potenziali fedeli, Fedeli, Fedeli a rischio, Stanno per dormire, Dormienti) e i KPI. Rispondi SOLO con JSON valido: {"headline":"...","insights":[{"title":"...","detail":"...","tone":"good|warn|info"}],"recommendations":[{"segment":"<chiave>","title":"...","action":"...","why":"...","impact":"...","priority":"alta|media|bassa"}]}. Regole: usa SOLO i numeri forniti nei DATI (mai inventarli), cita cifre concrete (clienti, €, giorni, %), sii diretto e azionabile. "detail" = 2-3 frasi descrittive col dato, il perché e cosa implica. "action" = passi operativi con un ESEMPIO concreto (bozza oggetto email, sconto %, timing). "impact" = stima in € del valore recuperabile con l’assunzione usata. "segment" DEVE essere una di: new, potentialLoyal, loyal, loyalAtRisk, aboutToSleep, sleepers. Max 4 insight e max 4 recommendations, ordinate per priorità/valore recuperabile. Niente emoji, niente markdown.' + ACTION_QUALITY,
 }
 
 export async function POST(req) {

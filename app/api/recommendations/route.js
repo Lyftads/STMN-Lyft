@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
 import { buildBrandContext } from '../../../lib/tenant/brand'
@@ -130,13 +131,14 @@ Output JSON:
       "priority": "urgent|high|medium|low",
       "category": "meta_ads|shopify_product|pricing|creative|audience|klaviyo|cro",
       "title": "azione breve (max 12 parole)",
-      "action": "cosa fare esattamente, con numeri (1-2 frasi)",
-      "why": "perche' adesso, quale segnale (1 frase)",
-      "expected_impact": "stima qualitativa breve"
+      "action": "cosa fare esattamente con numeri e nomi reali + COME farlo in 1-2 passi con un esempio concreto (3-4 frasi)",
+      "why": "perche' adesso: il dato esatto che lo giustifica e il confronto col periodo precedente (2 frasi)",
+      "expected_impact": "stima QUANTIFICATA in € o % con l'assunzione usata + cosa monitorare per l'eventuale rollback"
     }
   ]
 }
-Se i dati non bastano per raccomandazioni significative: { "recommendations": [] }`
+Se i dati non bastano per raccomandazioni significative: { "recommendations": [] }
+${ACTION_QUALITY}`
 
   const userPayload = `## CONTESTO BRAND\n${brandBlock || 'N/A'}\n\n## MEMORIE PRECEDENTI\n${memText || 'Nessuna memoria ancora.'}\n\n## METRICHE LIVE (${preset})\n${JSON.stringify(compactMetrics(metrics)).slice(0, 30_000)}`
 

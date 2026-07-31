@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
@@ -112,7 +113,7 @@ export async function POST(req) {
       skill: {
         id: 'insights',
         json: true,
-        systemPrompt: tenantSystem(),
+        systemPrompt: tenantSystem() + ACTION_QUALITY,
         guard: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".',
       },
       query: `insight performance marketing advertising e-commerce ${preset}`,

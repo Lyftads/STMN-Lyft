@@ -20,7 +20,9 @@ function clean(body) {
     name: String(body?.name || '').trim().slice(0, 80) || 'Report',
     sections,
     frequency,
-    weekday: frequency === 'weekly' ? Math.min(6, Math.max(0, parseInt(body?.weekday ?? 1, 10) || 1)) : null,
+    // UI usa 1-7 (7=domenica), il cron confronta con getUTCDay() 0-6 → 7→0.
+    // Prima il clamp a 6 rendeva la domenica un sabato.
+    weekday: frequency === 'weekly' ? (() => { const w = parseInt(body?.weekday ?? 1, 10) || 1; return w === 7 ? 0 : Math.min(6, Math.max(0, w)) })() : null,
     monthday: frequency === 'monthly' ? Math.min(28, Math.max(1, parseInt(body?.monthday ?? 1, 10) || 1)) : null,
     timeframe: String(body?.timeframe || 'last_7d'),
     recipients,

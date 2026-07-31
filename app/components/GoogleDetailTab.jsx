@@ -180,7 +180,7 @@ export default function GoogleDetailTab() {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
-          <DownloadReportButton tab="Google Detail" preset={preset} />
+          <DownloadReportButton tab="Google Detail" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
 

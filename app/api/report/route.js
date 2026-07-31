@@ -262,7 +262,7 @@ async function aiNarrative(context, locale) {
       skill: {
         id: 'report',
         json: true,
-        systemPrompt: `Sei un analista marketing di ${tenantBrand('un brand e-commerce')}. Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.`,
+        systemPrompt: `Sei un analista marketing di ${tenantBrand('un brand e-commerce')}. Stile asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.`,
       },
       query: 'analisi report performance marketing e-commerce insight e azioni',
       messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` }],

@@ -20,7 +20,9 @@ function LoginForm() {
   const { t } = useI18n()
   const router = useRouter()
   const search = useSearchParams()
-  const nextUrl = search.get('next') || '/'
+  // Solo path interni: '?next=https://evil.tld' o '//evil.tld' → phishing
+  const nextRaw = search.get('next') || '/'
+  const nextUrl = (nextRaw.startsWith('/') && !nextRaw.startsWith('//')) ? nextRaw : '/'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

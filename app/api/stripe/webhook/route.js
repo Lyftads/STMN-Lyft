@@ -106,6 +106,11 @@ export async function POST(req) {
         const admin = getAdminSupabase()
         if (admin) {
           // Match by stripe_customer_id (piu' affidabile dell'user_id su metadata che potrebbe mancare su evento delta)
+          const { data: cur } = await admin.from('companies')
+            .select('stripe_subscription_id').eq('stripe_customer_id', sub.customer).maybeSingle()
+          const isCurrent = !cur?.stripe_subscription_id || cur.stripe_subscription_id === sub.id
+          const active = ['active', 'trialing'].includes(sub.status)
+          if (!isCurrent && !active) { console.log('[stripe webhook] update ignorato: sub non corrente'); break }
           await admin.from('companies').update({
             stripe_subscription_id: sub.id,
             stripe_subscription_status: sub.status,
@@ -121,11 +126,21 @@ export async function POST(req) {
         console.log('[stripe webhook] subscription cancelled', { id: sub.id, customer: sub.customer })
         const admin = getAdminSupabase()
         if (admin) {
-          await admin.from('companies').update({
-            stripe_subscription_status: 'canceled',
-            plan: null,
-            updated_at: new Date().toISOString(),
-          }).eq('stripe_customer_id', sub.customer)
+          // Cambio piano = nuova sub sullo stesso customer: il deleted della
+          // VECCHIA non deve azzerare piano/status della nuova (cliente pagante
+          // finiva in 402) — si applica solo se la sub cancellata è la corrente.
+          const { data: row } = await admin.from('companies')
+            .select('user_id, stripe_subscription_id')
+            .eq('stripe_customer_id', sub.customer).maybeSingle()
+          if (row && (!row.stripe_subscription_id || row.stripe_subscription_id === sub.id)) {
+            await admin.from('companies').update({
+              stripe_subscription_status: 'canceled',
+              plan: null,
+              updated_at: new Date().toISOString(),
+            }).eq('stripe_customer_id', sub.customer)
+          } else {
+            console.log('[stripe webhook] deleted ignorato: non è la sub corrente')
+          }
         }
         break
       }
@@ -165,9 +180,6 @@ export async function POST(req) {
 // GET per debug: ritorna gli ultimi N eventi visti (utile per verificare
 // che il webhook sia stato chiamato senza dover guardare i log Vercel)
 export async function GET() {
-  return NextResponse.json({
-    received: eventLog.length,
-    last: eventLog.slice(-20),
-    note: 'In-memory log, si resetta ad ogni cold start',
-  })
+  // Niente dettagli eventi senza auth (id/tipi/timestamp erano pubblici)
+  return NextResponse.json({ ok: true })
 }

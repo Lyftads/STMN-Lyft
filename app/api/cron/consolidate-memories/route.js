@@ -93,6 +93,11 @@ async function embedText(text) {
 
 // Cosine similarity tra 2 vettori (per clustering locale)
 function cosineSim(a, b) {
+  // pgvector via PostgREST arriva come STRINGA "[0.1,...]" → senza parse la
+  // similarità era sempre NaN/0 e il clustering non scattava mai.
+  if (typeof a === 'string') { try { a = JSON.parse(a) } catch { return 0 } }
+  if (typeof b === 'string') { try { b = JSON.parse(b) } catch { return 0 } }
+
   if (!a || !b || a.length !== b.length) return 0
   let dot = 0, na = 0, nb = 0
   for (let i = 0; i < a.length; i++) {

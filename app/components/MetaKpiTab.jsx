@@ -187,7 +187,7 @@ export default function MetaKpiTab({ live, globalPreset }) {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
-          <DownloadReportButton tab="Meta KPI" preset={preset} />
+          <DownloadReportButton tab="Meta KPI" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
 

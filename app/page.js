@@ -2301,9 +2301,13 @@ export default function App() {
     return () => { active = false }
   }, [])
 
-  // Se la tab attiva non è consentita per il ruolo, riportala su Progetti & Task.
+  // Tab non consentita per il ruolo → prima tab consentita. 'settings' resta
+  // SEMPRE passante: il billing-lock ci forza sopra anche i membri (senza
+  // eccezione i due effect si rimbalzavano settings↔tasks in loop infinito).
   useEffect(() => {
-    if (allowedTabs && !allowedTabs.has(tab)) setTab('tasks')
+    if (allowedTabs && !allowedTabs.has(tab) && tab !== 'settings') {
+      setTab(allowedTabs.has('tasks') ? 'tasks' : ([...allowedTabs][0] || 'chat'))
+    }
   }, [allowedTabs, tab])
 
   useEffect(() => {
@@ -2411,12 +2415,19 @@ export default function App() {
           return
         }
         // Onboarding ok → verifica subscription status
-        const sub = await fetch('/api/stripe/subscription').then(r => r.ok ? r.json() : null)
+        const subRes = await fetch('/api/stripe/subscription')
         if (cancelled) return
-        const status = sub?.subscription?.status
-        const isPaying = status === 'active' || status === 'trialing'
-        if (!isPaying) {
-          window.location.href = '/billing-required'
+        // Redirect SOLO con risposta valida e status esplicito non-pagante:
+        // un 500/timeout transitorio non deve buttare fuori un cliente pagante.
+        if (subRes.ok) {
+          const sub = await subRes.json().catch(() => null)
+          if (sub) { // corpo valido: anche "nessun abbonamento" (status assente) manda al billing
+            const status = sub?.subscription?.status
+            // stessi stati "grace" del server (billingLock): past_due/incomplete
+            // NON buttano fuori un pagante con un addebito in retry
+            const isPaying = ['active', 'trialing', 'past_due', 'incomplete'].includes(status)
+            if (!isPaying) window.location.href = '/billing-required'
+          }
         }
       } catch {}
     })()

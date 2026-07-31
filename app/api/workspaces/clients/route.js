@@ -11,6 +11,17 @@ import { getAdminSupabase } from '../../../../lib/supabase/server'
 // L'agency poi collega le integrazioni del cliente (Nango/Google) entrando nel
 // workspace e usando l'onboarding/integrazioni esistenti.
 export async function POST(req) {
+  // Solo account AGENCY possono creare workspace-cliente (prima era aperto a
+  // chiunque e aggirava anche il billing-lock creando workspace "mai fatturati").
+  {
+    const { getAdminSupabase } = await import('../../../../lib/supabase/server')
+    const { getCurrentUserId } = await import('../../../../lib/tenant/credentials')
+    const uid = await getCurrentUserId()
+    if (!uid) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
+    const adminDb = getAdminSupabase()
+    const { data: me } = await adminDb.from('companies').select('is_agency').eq('user_id', uid).maybeSingle()
+    if (!me?.is_agency) return NextResponse.json({ ok: false, error: 'Funzione riservata agli account agency.' }, { status: 403 })
+  }
   const uid = await getCurrentUserId()
   if (!uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   const admin = getAdminSupabase()

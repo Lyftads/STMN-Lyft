@@ -87,8 +87,9 @@ async function ensureAuthUser(admin, email) {
   // probabile "already registered" → trova e aggiorna (conferma + nuova password)
   const existing = await findAuthUserByEmail(admin, email)
   if (existing) {
-    await admin.auth.admin.updateUserById(existing.id, { password, email_confirm: true })
-    return { userId: existing.id, password }
+    // Utente GIÀ registrato: MAI resettare la password (takeover!). Si collega
+    // l'account esistente senza credenziali nuove — fix audit 31 lug.
+    return { userId: existing.id, password: null }
   }
   throw new Error(error?.message || 'createUser fallito')
 }
@@ -106,7 +107,7 @@ async function sendCredentialsEmail({ to, origin, roles, password }) {
       <p>Accedi con queste credenziali:</p>
       <p style="background:#f4f4f8;padding:14px 16px;border-radius:8px;font-size:15px">
         Email: <b>${to}</b><br>
-        Password temporanea: <b style="font-family:monospace">${password}</b>
+        ${password ? `Password temporanea: <b style=\"font-family:monospace\">${password}</b>` : 'Accedi con la password del tuo account esistente.'}
       </p>
       <p><a href="${link}" style="background:#5b8bff;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">Accedi →</a></p>
       <p style="color:#888;font-size:13px">Dopo il primo accesso puoi cambiare la password dalla pagina di reset.</p>
@@ -224,7 +225,7 @@ export async function POST(req) {
     const { data, error } = await admin
       .from('team_members')
       .upsert(
-        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, user_id: auth.userId, roles, status: 'active', accepted_at: new Date().toISOString() },
+        { workspace_id: ws.workspaceId, email, full_name: b.full_name || null, user_id: auth.userId, roles, status: auth.password ? 'active' : 'invited', accepted_at: auth.password ? new Date().toISOString() : null },
         { onConflict: 'workspace_id,email' }
       )
       .select('*').single()
@@ -236,7 +237,7 @@ export async function POST(req) {
 
   // 3) email con credenziali via Resend (password mostrata anche all'admin come fallback)
   const mail = await sendCredentialsEmail({ to: email, origin: originOf(req), roles, password: auth.password })
-  return NextResponse.json({ ok: true, member, emailSent: mail.ok, emailError: mail.ok ? null : mail.reason, tempPassword: auth.password })
+  return NextResponse.json({ ok: true, member, emailSent: mail.ok, emailError: mail.ok ? null : mail.reason, tempPassword: auth.password || undefined })
 }
 
 export async function PATCH(req) {

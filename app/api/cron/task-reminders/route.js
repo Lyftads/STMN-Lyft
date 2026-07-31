@@ -9,7 +9,7 @@ import { sendEmail, postSlack } from '../../../../lib/team/notify'
 // completati. Vercel cron invia 'authorization: Bearer <CRON_SECRET>'.
 function authorized(req) {
   const secret = process.env.CRON_SECRET
-  if (!secret) return true
+  if (!secret) return false // fail-closed: mai endpoint pubblico
   return (req.headers.get('authorization') || '') === `Bearer ${secret}`
 }
 

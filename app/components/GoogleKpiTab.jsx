@@ -152,7 +152,7 @@ export default function GoogleKpiTab() {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
-          <DownloadReportButton tab="Google KPI" preset={preset} />
+          <DownloadReportButton tab="Google KPI" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
 

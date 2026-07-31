@@ -62,11 +62,14 @@ export async function GET(req) {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
     'https://lyftai.io'
 
-  // Lista tenant da scansionare. Per ora: tutti i tenant con subscription
-  // attiva/trialing. Per il beta (STMN) anche se sub non attiva: is_beta=true.
+  // SOLO l'owner: i dati vengono fetchati con creds owner (x-internal-cron),
+  // salvarli come insight per ALTRI tenant = numeri di STMN nel recall dei
+  // clienti (stesso pattern del leak già vissuto) — fix audit 31 lug.
+  // Per estendere ai clienti serve il fetch per-tenant, non la replica.
   const { data: companies, error } = await admin
     .from('companies')
     .select('user_id, name, company_name, is_beta, stripe_subscription_status')
+    .eq('user_id', process.env.LYFT_OWNER_USER_ID || '')
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

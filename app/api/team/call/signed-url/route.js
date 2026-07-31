@@ -13,6 +13,16 @@ export async function GET(req) {
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ configured: false, error: 'Non autenticato' }, { status: 401 })
 
+  // INTERIM (audit 31 lug): la pipeline vocale legge i dati del workspace
+  // OWNER (call_context/env) e ElevenLabs non veicola il tenant → per un
+  // cliente la voce leggerebbe i numeri di un'altra azienda. Finché il
+  // workspaceId non viaggia nella call, la voce è disponibile solo all'owner.
+  const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
+  const ws = await getEffectiveTenantId().catch(() => null)
+  if (!ws || ws !== process.env.LYFT_OWNER_USER_ID) {
+    return NextResponse.json({ configured: false, error: 'Le chiamate vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
+  }
+
   const key = process.env.ELEVENLABS_API_KEY
   const teamAgentId = new URL(req.url).searchParams.get('agentId') || 'ceo'
   const agentId = getCallAgentId(teamAgentId)

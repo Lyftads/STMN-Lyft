@@ -43,6 +43,23 @@ export async function GET(req) {
   const sessionId = searchParams.get('sessionId')
   const customerId = searchParams.get('customerId')
 
+  // I path con parametro esponevano anagrafica/fatture a chiunque avesse un
+  // cs_/cus_ (nessuna auth). Ora: sessione obbligatoria e il customer deve
+  // appartenere alla company dell'utente loggato — fix audit 31 lug.
+  let authedUserId = null, myCustomerId = null
+  if (sessionId || customerId) {
+    const { getCurrentUserId } = await import('../../../../lib/tenant/credentials')
+    const { getAdminSupabase } = await import('../../../../lib/supabase/server')
+    authedUserId = await getCurrentUserId()
+    if (!authedUserId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+    const adminDb = getAdminSupabase()
+    const { data: co } = await adminDb.from('companies').select('stripe_customer_id').eq('user_id', authedUserId).maybeSingle()
+    myCustomerId = co?.stripe_customer_id || null
+    if (customerId && customerId !== myCustomerId) {
+      return NextResponse.json({ error: 'customer non autorizzato' }, { status: 403 })
+    }
+  }
+
   try {
     // Path 1: scambio session → customer dopo redirect checkout success
     if (sessionId) {
@@ -50,6 +67,9 @@ export async function GET(req) {
         return NextResponse.json({ error: 'sessionId deve iniziare con cs_' }, { status: 400 })
       }
       const session = await stripe.checkout.sessions.retrieve(sessionId)
+      if (myCustomerId && session.customer && session.customer !== myCustomerId) {
+        return NextResponse.json({ error: 'sessione non autorizzata' }, { status: 403 })
+      }
       return NextResponse.json({
         customerId: session.customer,
         subscriptionId: session.subscription,

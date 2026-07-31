@@ -190,7 +190,7 @@ export default function LeadGenTab() {
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
             {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
           </button>
-          <DownloadReportButton tab="Lead Gen" preset={tf.preset} />
+          <DownloadReportButton tab="Lead Gen" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
 

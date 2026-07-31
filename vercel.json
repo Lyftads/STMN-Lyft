@@ -5,10 +5,6 @@
   "installCommand": "npm install",
   "crons": [
     {
-      "path": "/api/competitor-intel?refresh=1",
-      "schedule": "0 6 */2 * *"
-    },
-    {
       "path": "/api/cron/auto-scan",
       "schedule": "0 4 * * *"
     },

@@ -47,6 +47,7 @@ export function presetToRange(preset, custom) {
   switch (preset) {
     case 'today': return withPrev(today, today, 'Oggi')
     case 'yesterday': { const y = addDays(today, -1); return withPrev(y, y, 'Ieri') }
+    case 'today_yesterday': return withPrev(addDays(today, -1), today, 'Oggi e ieri')
     case 'last_7d': return withPrev(addDays(today, -7), today, 'Ultimi 7 giorni')
     case 'last_14d': return withPrev(addDays(today, -14), today, 'Ultimi 14 giorni')
     case 'last_28d': return withPrev(addDays(today, -28), today, 'Ultimi 28 giorni')

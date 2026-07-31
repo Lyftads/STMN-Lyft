@@ -34,6 +34,6 @@ export async function POST(req) {
     ok: true,
     workspace: ws,
     company: co?.company_name || null,
-    snapshot: row ? { updatedAt: row.updated_at, briefPreview: String(brief || '').slice(0, 700) } : null,
+    snapshot: row ? { updatedAt: row.updated_at, briefPreview: String(brief || '').slice(0, 3000) } : null,
   }, { headers: { 'Cache-Control': 'private, no-store' } })
 }

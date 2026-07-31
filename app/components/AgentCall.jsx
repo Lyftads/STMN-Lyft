@@ -67,11 +67,13 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || cfg.error || t('ac.notConfigured', null, 'Call not configured.') }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || t('ac.cannotStart', null, 'Unable to start the call.') }); return }
       const { Conversation } = await import('@elevenlabs/client')
-      // NB: niente customLlmExtraBody (l'agente lo rifiuta, error 1008). L'agente
-      // è identificato dal `model` (team-<id>) configurato sull'agent ElevenLabs.
       const conv = await Conversation.startSession({
         signedUrl: cfg.signedUrl,
         connectionType: 'websocket',
+        // Workspace della call nel token firmato dal server: il webhook LLM
+        // risolve il tenant giusto (richiede "Custom LLM extra body" abilitato
+        // sull'agente ElevenLabs — era la causa dell'error 1008).
+        ...(cfg.callToken ? { customLlmExtraBody: { lyft_ws: cfg.callToken, lyft_agent: agent.id } } : {}),
         onConnect: (e) => { convIdRef.current = e?.conversationId || convIdRef.current },
         onStatusChange: (s) => setCall(c => c ? { ...c, status: s?.status === 'connected' ? 'connected' : c.status } : c),
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),

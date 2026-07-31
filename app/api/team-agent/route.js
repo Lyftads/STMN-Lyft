@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120 // stream+tool possono superare i 60s: evitava chiusure a metà
 
 import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
@@ -95,9 +96,11 @@ export async function POST(req) {
               tools: ALL_TOOLS,
               onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
               onDelta: (d) => c.enqueue(sse({ d })),
+              onToolStart: (names) => c.enqueue(sse({ tools: names })),
+              onToolEnd: () => c.enqueue(sse({ tools: [] })),
             })
             if (dry.userId && lastUserMsg && content) {
-              persistTurnMemory({ agentId: `team-${agent.id}`, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content }).catch(() => {})
+              waitUntil(Promise.resolve(persistTurnMemory({ agentId: `team-${agent.id}`, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content })).catch(() => {}))
             }
             c.enqueue(sse({ done: true, agent: { id: agent.id, name: agent.name, role: agent.role } }))
           } catch (e) {
@@ -116,7 +119,7 @@ export async function POST(req) {
     })
 
     if (userId && lastUserMsg && reply) {
-      persistTurnMemory({ agentId: `team-${agent.id}`, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+      waitUntil(Promise.resolve(persistTurnMemory({ agentId: `team-${agent.id}`, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
     }
 
     return NextResponse.json({

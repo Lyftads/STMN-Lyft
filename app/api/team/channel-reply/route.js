@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { callBrain } from '../../../../lib/agent/gateway'

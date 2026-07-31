@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
@@ -540,10 +541,12 @@ export async function POST(req) {
               tools: ALL_TOOLS,
               onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
               onDelta: (d) => c.enqueue(sse({ d })),
+              onToolStart: (names) => c.enqueue(sse({ tools: names })),
+              onToolEnd: () => c.enqueue(sse({ tools: [] })),
             })
             if (dry.userId && lastUserMsg && content) {
-              persistTurnMemory({ agentId: AGENT_ID, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content }).catch(() => {})
-              persistDataMemory({ agentId: AGENT_ID, userId: dry.userId, data: context, timeframe: preset }).catch(() => {})
+              waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId: dry.userId, userMessage: lastUserMsg, assistantMessage: content })).catch(() => {}))
+              waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId: dry.userId, data: context, timeframe: preset })).catch(() => {}))
             }
             c.enqueue(sse({ done: true, summary }))
           } catch (e) {
@@ -562,10 +565,10 @@ export async function POST(req) {
     })
 
     if (userId && lastUserMsg && reply) {
-      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
     }
     if (userId && context) {
-      persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: preset }).catch(() => {})
+      waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: preset })).catch(() => {}))
     }
 
     return NextResponse.json({

@@ -18,6 +18,16 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 // Chiave PER UTENTE+WORKSPACE: con la chiave globale, dopo un logout l'utente
 // successivo sullo stesso browser vedeva la conversazione del precedente (e la
 // rispediva al server come contesto). Fix audit AI 31 lug.
+
+// Etichette leggibili degli strumenti: durante i round tool l'utente vedeva
+// solo silenzio (3-10s). Ora vede cosa sta facendo l'AI.
+const TOOL_LABELS = {
+  get_kpis: 'kpi', list_creatives: 'meta', list_adsets: 'meta', get_google_campaigns: 'google',
+  get_search_console: 'gsc', get_incrementality: 'incr', get_inventory: 'inventory',
+  get_ltv: 'ltv', get_competitors: 'competitors', list_tasks: 'tasks',
+  get_time_tracking: 'time', list_products: 'products', get_email_marketing: 'email',
+  get_pnl: 'pnl', get_cro: 'cro', get_customers: 'customers', get_ga4_traffic: 'ga4',
+}
 const STORE_BASE = 'lyft_brain_msgs'
 function storeKey() {
   if (typeof document === 'undefined') return STORE_BASE
@@ -150,6 +160,20 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const [msgs, setMsgs] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [toolStatus, setToolStatus] = useState('')
+
+  // Warm-up: all'apertura scaldiamo i dati più richiesti così il primo round
+  // tool trova la cache calda (da 3-10s a <300ms).
+  useEffect(() => {
+    if (!open) return
+    let done = false
+    try { if (sessionStorage.getItem('lyft_brain_warm') === '1') done = true } catch {}
+    if (done) return
+    try { sessionStorage.setItem('lyft_brain_warm', '1') } catch {}
+    for (const u of ['/api/metrics?preset=last_30d', '/api/metrics?preset=last_7d']) {
+      fetch(u, { cache: 'no-store', keepalive: true }).catch(() => {})
+    }
+  }, [open])
   const [actions, setActions] = useState([])      // azioni proposte dalla conversazione
   const [actLoading, setActLoading] = useState(false)
   const [added, setAdded] = useState({})          // indici già aggiunti alla Coda
@@ -244,8 +268,14 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           for (const ev of events) {
             if (!ev.startsWith('data: ')) continue
             let j; try { j = JSON.parse(ev.slice(6)) } catch { continue }
-            if (j.d) { acc += j.d; paint(acc) }
-            if (j.error) { acc = `⚠️ ${j.error}`; paint(acc) }
+            if (j.d) { acc += j.d; setToolStatus(''); paint(acc) }
+            if (Array.isArray(j.tools)) {
+              const keys = j.tools.map(n => TOOL_LABELS[n]).filter(Boolean)
+              setToolStatus(keys.length
+                ? t('brain.toolStatus', { what: keys.map(k => t('brain.tool.' + k, null, k)).join(', ') }, `Sto guardando i dati (${keys.join(', ')})…`)
+                : '')
+            }
+            if (j.error) { acc = `⚠️ ${j.error}`; setToolStatus(''); paint(acc) }
           }
         }
         if (!acc) paint('…')
@@ -257,6 +287,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     } catch (e) {
       setMsgs(m => [...m, { role: 'assistant', content: `⚠️ ${e?.message || 'Errore di rete'}` }])
     } finally {
+      setToolStatus('')
       setLoading(false)
     }
   }, [input, loading, msgs, tabLabel])
@@ -369,7 +400,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
             ))}
             {loading && (
               <div style={{ alignSelf: 'flex-start', color: 'var(--text3)', fontSize: 13, padding: '6px 2px' }}>
-                {t('brain.thinking', {}, 'Sto ragionando…')}
+                {toolStatus || t('brain.thinking', {}, 'Sto ragionando…')}
               </div>
             )}
           </div>
@@ -380,7 +411,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
               <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {t('brain.actionsTitle', {}, 'Azioni proposte')}
               </div>
-              {actLoading && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.thinking', {}, 'Sto ragionando…')}</div>}
+              {actLoading && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{toolStatus || t('brain.thinking', {}, 'Sto ragionando…')}</div>}
               {!actLoading && actions.length === 0 && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.noActions', {}, 'Nessuna azione concreta emersa.')}</div>}
               {actions.map((a, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 10px' }}>

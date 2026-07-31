@@ -95,6 +95,33 @@ async function fetchOrders(store, token, sinceISO, untilISO) {
 }
 
 // ── Shopify: mappa prodotto/variante → costo (COGS), immagine, titolo ──
+
+// Costi delle varianti VENDUTE che non stanno nel catalogo "attivo": i prodotti
+// messi in bozza/archiviati dopo la vendita sparivano dalla query status:active
+// e restavano senza COGS (margini gonfiati e copertura costi sottostimata).
+async function fetchCostsForVariants(store, token, variantIds) {
+  const out = new Map()
+  const ids = [...new Set(variantIds)].filter(Boolean)
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100).map(v => `"gid://shopify/ProductVariant/${v}"`).join(',')
+    try {
+      const res = await fetch(`https://${store}/admin/api/2024-04/graphql.json`, {
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ query: `{ nodes(ids: [${chunk}]) { ... on ProductVariant { legacyResourceId inventoryItem { unitCost { amount } } } } }` }),
+      })
+      if (!res.ok) continue
+      const json = await res.json()
+      for (const n of (json?.data?.nodes || [])) {
+        const c = n?.inventoryItem?.unitCost?.amount
+        if (n?.legacyResourceId && c != null) out.set(String(n.legacyResourceId), parseFloat(c))
+      }
+    } catch {}
+  }
+  return out
+}
+
 async function fetchProductMeta(store, token) {
   const costByVariant = new Map()
   const meta = new Map() // productId -> { title, image }
@@ -107,7 +134,7 @@ async function fetchProductMeta(store, token) {
       headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
       cache: 'no-store',
       body: JSON.stringify({ query: `{
-        products(first: 100${after}, query: "status:active") {
+        products(first: 100${after}, query: "status:active OR status:draft") {
           pageInfo { hasNextPage endCursor }
           edges { node {
             legacyResourceId title handle isGiftCard featuredImage { url }
@@ -195,6 +222,18 @@ export async function GET(req) {
       ])
       // Periodo precedente DOPO (sequenziale) per non saturare il rate limit Shopify
       const prev = await fetchOrders(store, token, prevSince + 'T00:00:00Z', prevUntil + 'T23:59:59Z')
+      // COGS Shopify per le varianti vendute assenti dal catalogo attivo
+      // (prodotti passati in bozza/archiviati dopo la vendita).
+      const soldVariants = []
+      for (const p of cur.values()) for (const vid of p.variantQty.keys()) {
+        if (!pmeta.costByVariant.has(vid)) soldVariants.push(vid)
+      }
+      if (soldVariants.length) {
+        const extra = await fetchCostsForVariants(store, token, soldVariants)
+        for (const [vid, c] of extra) pmeta.costByVariant.set(vid, c)
+        console.log('[product-performance] costi recuperati fuori catalogo attivo:', extra.size, 'su', soldVariants.length)
+      }
+
       // COGS: override col costo landed manuale dove presente (modulo Costi prodotto)
       if (landed.size) for (const [vid, c] of landed) pmeta.costByVariant.set(vid, c)
 

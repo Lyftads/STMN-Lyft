@@ -78,7 +78,7 @@ export async function POST(req) {
       data: context,
       dataLabel: `DATI LIVE (periodo: ${preset}):`,
       dataMax: 70000,
-      extraSystem: [{ role: 'system', content: (briefBlock ? briefBlock + '\n\n' : '') + 'Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis per ogni KPI/periodo, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono, non dire "non ho il dato" se uno strumento può dartelo. Segui le istruzioni "jit" incluse nei risultati.' }],
+      extraSystem: [{ role: 'system', content: (briefBlock ? briefBlock + '\n\n' : '') + 'Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis per ogni KPI/periodo, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono, non dire "non ho il dato" se uno strumento può dartelo. REGOLA FERREA: è VIETATO dire "non ho il dato" senza aver PRIMA chiamato lo strumento pertinente; se il periodo chiesto è diverso da quello dei DATI, chiama lo strumento con QUEL periodo. Segui le istruzioni "jit" incluse nei risultati.' }],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.4,

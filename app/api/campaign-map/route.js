@@ -29,6 +29,46 @@ async function fetchProducts(store, token) {
   return out
 }
 
+// Collezioni dello store (per la mappatura rapida campagna → collezione)
+async function fetchCollections(store, token) {
+  const out = []
+  let cursor = null
+  for (let p = 0; p < 10; p++) {
+    const after = cursor ? `, after: "${cursor}"` : ''
+    const res = await fetch(`https://${store}/admin/api/2024-04/graphql.json`, {
+      method: 'POST', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' }, cache: 'no-store',
+      body: JSON.stringify({ query: `{ collections(first: 250${after}) { pageInfo { hasNextPage endCursor } edges { node { legacyResourceId title } } } }` }),
+    })
+    if (!res.ok) break
+    const json = await res.json()
+    const conn = json?.data?.collections
+    for (const { node: n } of (conn?.edges || [])) out.push({ id: String(n.legacyResourceId), title: n.title })
+    if (!conn?.pageInfo?.hasNextPage) break
+    cursor = conn.pageInfo.endCursor
+  }
+  return out
+}
+
+// Prodotti ATTIVI di una collezione → array di product id (stringhe)
+async function fetchCollectionProductIds(store, token, collectionId) {
+  const ids = []
+  let cursor = null
+  for (let p = 0; p < 20; p++) {
+    const after = cursor ? `, after: "${cursor}"` : ''
+    const res = await fetch(`https://${store}/admin/api/2024-04/graphql.json`, {
+      method: 'POST', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' }, cache: 'no-store',
+      body: JSON.stringify({ query: `{ collection(id: "gid://shopify/Collection/${collectionId}") { products(first: 250${after}) { pageInfo { hasNextPage endCursor } edges { node { legacyResourceId status } } } } }` }),
+    })
+    if (!res.ok) break
+    const json = await res.json()
+    const conn = json?.data?.collection?.products
+    for (const { node: n } of (conn?.edges || [])) { if (n.status === 'ACTIVE') ids.push(String(n.legacyResourceId)) }
+    if (!conn?.pageInfo?.hasNextPage) break
+    cursor = conn.pageInfo.endCursor
+  }
+  return ids
+}
+
 // Normalizza i prodotti salvati di una riga → [{id, title}] (gestisce legacy)
 function normalizeProducts(row) {
   if (Array.isArray(row?.products) && row.products.length) return row.products.map(p => ({ id: String(p.id), title: p.title || '' })).filter(p => p.id)
@@ -53,16 +93,30 @@ export async function GET(req) {
     const { storeUrl: store, adminToken: token } = getShopify()
     if (!store || !token) return NextResponse.json({ ok: false, error: 'Shopify non configurato' }, { status: 400 })
     const sp = new URL(req.url).searchParams
+
+    // Prodotti di una collezione (on demand dal picker, risposta leggera)
+    const collectionId = sp.get('collection')
+    if (collectionId) {
+      if (!/^[0-9]+$/.test(collectionId)) return NextResponse.json({ ok: false, error: 'collection non valida' }, { status: 400 })
+      try {
+        const ids = await fetchCollectionProductIds(store, token, collectionId)
+        return NextResponse.json({ ok: true, ids })
+      } catch (e) {
+        return NextResponse.json({ ok: false, error: e.message || 'Errore' }, { status: 500 })
+      }
+    }
+
     const until = sp.get('until') || isoDay(new Date())
     const since = sp.get('since') || isoDay(new Date(Date.now() - 90 * 86400000))
     try {
       const ws = await resolveWorkspace()
       const { accessToken: metaToken, adAccountId } = getMeta()
       const accounts = String(adAccountId || '').split(',').map(s => s.trim()).filter(Boolean).map(a => a.startsWith('act_') ? a : `act_${a}`)
-      const [campaigns, products, mapping] = await Promise.all([
+      const [campaigns, products, mapping, collections] = await Promise.all([
         fetchAllCampaignSpend(since, until),
         fetchProducts(store, token),
         loadMapping(ws?.workspaceId),
+        fetchCollections(store, token).catch(() => []),
       ])
       // Solo Meta: Google è già attribuito in automatico ESATTO per prodotto
       // (shopping_performance_view) in Performance prodotti → niente mappatura.
@@ -97,7 +151,7 @@ export async function GET(req) {
             suggestedScore: sug?.score || null,
           }
         })
-      return NextResponse.json({ ok: true, range: { since, until }, campaigns: rows, products, savedAvailable: !!ws, googleAuto: true })
+      return NextResponse.json({ ok: true, range: { since, until }, campaigns: rows, products, collections, savedAvailable: !!ws, googleAuto: true })
     } catch (e) {
       return NextResponse.json({ ok: false, error: e.message || 'Errore' }, { status: 500 })
     }

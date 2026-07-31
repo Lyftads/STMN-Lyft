@@ -10,6 +10,7 @@ const isoDay = (d) => d.toISOString().slice(0, 10)
 
 // Cache di modulo: sopravvive al cambio tab → riaprendo non rifà la fetch.
 let __ppCache = null // { key, payload }
+let __collCache = {} // collectionId -> [productIds] (per sessione)
 
 export default function ProductPerformanceTab() {
   const { t, intlLocale } = useI18n()
@@ -29,6 +30,30 @@ export default function ProductPerformanceTab() {
   const [mapErr, setMapErr] = useState('')
   const [pickerFor, setPickerFor] = useState(null) // campaign key con picker aperto
   const [pickerQuery, setPickerQuery] = useState('')
+  const [collBusy, setCollBusy] = useState(null) // collection id in caricamento
+
+  // Aggiunge tutti i prodotti attivi di una collezione alla campagna
+  const addCollection = async (key, collId) => {
+    if (collBusy) return
+    setCollBusy(collId)
+    try {
+      let ids = __collCache[collId]
+      if (!ids) {
+        const r = await fetch(`/api/campaign-map?collection=${collId}`, { cache: 'no-store' })
+        const j = await r.json()
+        if (!j.ok) throw new Error(j.error || 'Errore collezione')
+        ids = j.ids || []
+        __collCache[collId] = ids
+      }
+      const known = new Set((mapData?.products || []).map(p => p.id))
+      const add = ids.filter(id => known.has(id))
+      setMapSel(s => ({ ...s, [key]: [...new Set([...(s[key] || []), ...add])] }))
+    } catch (e) {
+      setMapErr(e.message)
+    } finally {
+      setCollBusy(null)
+    }
+  }
 
   // mapSel[key] = array di product id selezionati per la campagna
   const addProduct = (key, id) => setMapSel(s => ({ ...s, [key]: (s[key] || []).includes(id) ? s[key] : [...(s[key] || []), id] }))
@@ -252,6 +277,19 @@ export default function ProductPerformanceTab() {
                               <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', overflow: 'hidden', maxWidth: 380 }}>
                                 <input value={pickerQuery} onChange={e => setPickerQuery(e.target.value)} autoFocus placeholder={t('pp.mapSearch', null, 'Cerca prodotto…')} style={{ width: '100%', background: 'var(--glass)', border: 'none', borderBottom: '1px solid var(--border)', padding: '9px 11px', color: 'var(--text)', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' }} />
                                 <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                                  {(mapData.collections || []).filter(cl => cl.title.toLowerCase().includes(pickerQuery.trim().toLowerCase())).length > 0 && (
+                                    <>
+                                      <div style={{ padding: '6px 11px', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>{t('pp.mapCollections', null, 'Collezioni')}</div>
+                                      {(mapData.collections || []).filter(cl => cl.title.toLowerCase().includes(pickerQuery.trim().toLowerCase())).map(cl => (
+                                        <div key={`coll-${cl.id}`} onClick={() => addCollection(key, cl.id)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 11px', cursor: collBusy ? 'wait' : 'pointer', fontSize: 12.5, color: 'var(--text)', opacity: collBusy && collBusy !== cl.id ? 0.5 : 1 }}>
+                                          <span style={{ color: 'var(--accent)', display: 'inline-flex', flexShrink: 0 }}><Icon name="layers" size={13} /></span>
+                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{cl.title}</span>
+                                          <span style={{ fontSize: 10.5, color: 'var(--accent)', fontWeight: 800, flexShrink: 0 }}>{collBusy === cl.id ? t('pp.mapCollLoading', null, 'Aggiungo…') : `+ ${t('pp.mapCollAll', null, 'tutta')}`}</span>
+                                        </div>
+                                      ))}
+                                      <div style={{ padding: '6px 11px', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>{t('pp.mapProducts', null, 'Prodotti')}</div>
+                                    </>
+                                  )}
                                   {mapData.products.filter(p => p.title.toLowerCase().includes(pickerQuery.trim().toLowerCase())).map(p => {
                                     const on = sel.includes(p.id)
                                     return (

@@ -276,20 +276,18 @@ export async function GET(req) {
       for (const [pid, cost] of googleProduct.byProduct) { mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost); googleMatched += cost }
       unmappedSpend += Math.max(0, googleSpend - googleMatched)
 
-      // Prodotti con spesa mappata ma ZERO vendite: una riga per ognuno rendeva
-      // la tabella illeggibile (con una campagna su "tutto il catalogo" si
-      // creavano migliaia di righe da pochi centesimi). Riga SOLO se la spesa
-      // allocata è significativa; il resto confluisce nel pool non mappato,
-      // così i totali continuano a quadrare.
-      const ZERO_SALE_MIN_SPEND = 5
-      for (const [pid, spend] of [...mappedByProduct.entries()]) {
-        if (cur.has(pid)) continue
-        if (spend >= ZERO_SALE_MIN_SPEND) {
-          const t = pmeta.meta.get(pid)?.title || productList.find(x => x.id === pid)?.title || `#${pid}`
+      // TUTTO IL CATALOGO in tabella, anche i prodotti fermi a zero vendite nel
+      // periodo (scelta di prodotto: si vede subito cosa non gira). I venduti
+      // restano in cima grazie all'ordinamento; la spesa ads allocata a
+      // prodotti non venduti resta visibile sulla loro riga.
+      for (const [pid, m] of pmeta.meta) {
+        if (!cur.has(pid)) cur.set(pid, { productId: pid, title: m.title || `#${pid}`, units: 0, revenue: 0, variantQty: new Map() })
+      }
+      // Prodotti venduti ma non più in catalogo (archiviati): già presenti in cur.
+      for (const pid of mappedByProduct.keys()) {
+        if (!cur.has(pid)) {
+          const t = productList.find(x => x.id === pid)?.title || `#${pid}`
           cur.set(pid, { productId: pid, title: t, units: 0, revenue: 0, variantQty: new Map() })
-        } else {
-          unmappedSpend += spend
-          mappedByProduct.delete(pid)
         }
       }
 

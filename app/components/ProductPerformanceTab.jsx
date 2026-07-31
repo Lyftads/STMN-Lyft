@@ -20,6 +20,7 @@ export default function ProductPerformanceTab() {
   const [loading, setLoading] = useState(!__ppCache)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('margin') // margin | net | units
+  const [showAll, setShowAll] = useState(false) // false = solo prodotti venduti nel periodo
 
   // ── Mappatura campagne → prodotto ──
   const [mapOpen, setMapOpen] = useState(false)
@@ -114,11 +115,13 @@ export default function ProductPerformanceTab() {
   const fmtMoney = (n, d = 0) => (n == null ? '—' : new Intl.NumberFormat(intlLocale, { style: 'currency', currency: cur, maximumFractionDigits: d }).format(n))
   const fmtInt = (n) => (n == null ? '—' : new Intl.NumberFormat(intlLocale).format(Math.round(n)))
 
+  const allProducts = data?.products || []
+  const soldCount = useMemo(() => allProducts.filter(p => (p.units || 0) > 0).length, [allProducts])
   const products = useMemo(() => {
-    const arr = [...(data?.products || [])]
+    const arr = showAll ? [...allProducts] : allProducts.filter(p => (p.units || 0) > 0)
     const key = sortBy === 'net' ? 'netRevenue' : sortBy === 'units' ? 'units' : 'marginOp'
-    return arr.sort((a, b) => b[key] - a[key])
-  }, [data, sortBy])
+    return [...arr].sort((a, b) => (b[key] || 0) - (a[key] || 0))
+  }, [allProducts, sortBy, showAll])
 
   const k = data?.totals
   const mapProdTitle = new Map((mapData?.products || []).map(p => [p.id, p.title]))
@@ -168,6 +171,16 @@ export default function ProductPerformanceTab() {
           {sortBtn('margin', t('pp.sortMargin', null, 'Margine'))}
           {sortBtn('net', t('pp.sortNet', null, 'Netto'))}
           {sortBtn('units', t('pp.sortUnits', null, 'Unità'))}
+          <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 6px' }} />
+          <button
+            onClick={() => setShowAll(v => !v)}
+            title={t('pp.showAllHint', null, 'Include i prodotti senza vendite nel periodo')}
+            style={{ padding: '6px 12px', border: 'none', background: 'transparent', cursor: 'pointer', color: showAll ? 'var(--text)' : 'var(--text2)', fontSize: 12.5, fontWeight: showAll ? 900 : 700, borderBottom: showAll ? '2px solid var(--accent)' : '2px solid transparent' }}
+          >
+            {showAll
+              ? t('pp.showSold', { n: soldCount }, `Solo venduti (${soldCount})`)
+              : t('pp.showAll', { n: allProducts.length }, `Tutto il catalogo (${allProducts.length})`)}
+          </button>
         </div>
       </div>
 

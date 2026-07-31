@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { callBrain } from '../../../lib/agent/gateway'
@@ -47,6 +48,21 @@ Ricevi un JSON \`DATI SETTIMANALI\` con:
 OGNI numero, ogni label, ogni percentuale che scrivi DEVE essere copiato letteralmente dal JSON. Se manca, scrivi "Non ho questo dato". NON inventare. STMN vende paracalli/corde/accessori CrossFit, non supplementi.
 
 Se Marino chiede di una settimana non nei dati, rispondi: "Quella settimana non è nei miei dati. Posso analizzarti queste: [elenco label]".`
+
+// Prompt personalizzato per il workspace corrente (fix "STMN Fitness ovunque").
+// Per STMN il prompt resta ORIGINALE; per gli altri tenant: nome azienda
+// sostituito e righe con fatti specifici STMN eliminate.
+const tenantSystem = () => {
+  const brand = getTenantInfo().companyName
+  if (brand && /stmn/i.test(brand)) return SYSTEM_PROMPT
+  const b = brand || 'il brand'
+  return SYSTEM_PROMPT
+    .replaceAll('di Marino, founder di STMN Fitness', `del founder di ${b}`)
+    .replaceAll('STMN Fitness (Stamina Fitness)', b)
+    .replaceAll('STMN Fitness', b)
+    .replace(/\bSTMN\b/g, b)
+    .split('\n').filter(l => !/stamina|paracalli|crossfit|supplementi/i.test(l)).join('\n')
+}
 
 function safeJson(value, max = 70000) {
   try {
@@ -116,7 +132,7 @@ export async function POST(req) {
   // Migrato al gateway callBrain. Ordine e parametri IDENTICI.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      skill: { id: AGENT_ID, systemPrompt: tenantSystem() },
       query: lastUserMsg,
       data: context,
       dataLabel: 'DATI SETTIMANALI — usa SOLO questi numeri:',

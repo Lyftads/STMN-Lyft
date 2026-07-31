@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { callBrain } from '../../../lib/agent/gateway'
@@ -66,6 +67,21 @@ Ricevi un JSON \`COMPETITOR DATA\` con:
 - competitors[]: per ogni competitor → name, websiteUrl, isShopify, stats (totalProducts, avgPrice, minPrice, maxPrice, onSaleCount, onSalePct, avgDiscount, categories), promos, adLibrary (count, source) + ads campione (title, body, platforms, startDate), products campione (title, type, price, compareAtPrice, onSale, discountPct, available)
 
 OGNI numero che citi DEVE essere copiato dal JSON. NON inventare prodotti, prezzi o ads. Se un dato manca (es. ads a 0 perché l'accesso Meta è in approvazione, o prodotti non scrapati), dillo esplicitamente invece di inventare. STMN e competitor vendono accessori CrossFit — MAI supplementi/integratori.`
+
+// Prompt personalizzato per il workspace corrente (fix "STMN Fitness ovunque").
+// Per STMN il prompt resta ORIGINALE; per gli altri tenant: nome azienda
+// sostituito e righe con fatti specifici STMN eliminate.
+const tenantSystem = () => {
+  const brand = getTenantInfo().companyName
+  if (brand && /stmn/i.test(brand)) return SYSTEM_PROMPT
+  const b = brand || 'il brand'
+  return SYSTEM_PROMPT
+    .replaceAll('di Marino, founder di STMN Fitness', `del founder di ${b}`)
+    .replaceAll('STMN Fitness (Stamina Fitness)', b)
+    .replaceAll('STMN Fitness', b)
+    .replace(/\bSTMN\b/g, b)
+    .split('\n').filter(l => !/stamina|paracalli|crossfit|supplementi/i.test(l)).join('\n')
+}
 
 function safeJson(value, max = 60000) {
   try {
@@ -136,10 +152,10 @@ export async function POST(req) {
   const langMsg = aiLangSystemMessage(body?.locale)
 
   // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → SYSTEM_PROMPT → lingua → COMPETITOR DATA → storia → REMINDER.
+  // contextBlock → tenantSystem() → lingua → COMPETITOR DATA → storia → REMINDER.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      skill: { id: AGENT_ID, systemPrompt: tenantSystem() },
       query: lastUserMsg,
       data: context,
       dataLabel: 'COMPETITOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',

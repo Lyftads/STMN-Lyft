@@ -450,7 +450,7 @@ function AeoPanel() {
   return (
     <div>
       <div style={{ fontSize: 13, opacity: 0.55, marginBottom: 12 }}>{t('seo.aeoIntro', null, 'Verifica se gli answer engine (ChatGPT/Gemini) citano il tuo brand per certe domande. Stima basata su LLM.')}</div>
-      <Row><input value={brand} onChange={e => setBrand(e.target.value)} placeholder={t('seo.phBrand', null, 'Nome brand — es. STMN Fitness')} style={inputStyle} /><input value={site} onChange={e => setSite(e.target.value)} placeholder={t('seo.phSiteOpt', null, 'sito (opz.)')} style={{ ...inputStyle, flex: 'none', width: 200 }} /></Row>
+      <Row><input value={brand} onChange={e => setBrand(e.target.value)} placeholder={t('seo.phBrand', null, 'Nome brand — es. Acme Store')} style={inputStyle} /><input value={site} onChange={e => setSite(e.target.value)} placeholder={t('seo.phSiteOpt', null, 'sito (opz.)')} style={{ ...inputStyle, flex: 'none', width: 200 }} /></Row>
       <textarea value={prompts} onChange={e => setPrompts(e.target.value)} placeholder={t('seo.phPrompts', null, 'Prompt da testare (uno per riga)\nMigliori accessori per crossfit\nDove comprare attrezzatura crossfit online')} style={{ ...inputStyle, marginTop: 12, minHeight: 90, fontFamily: 'inherit' }} />
       <Row><button onClick={run} disabled={loading} style={{ ...btnStyle(loading), marginTop: 12 }}>{loading ? t('seo.verifying', null, 'Verifico…') : t('seo.verifyAi', null, 'Verifica visibilità AI')}</button></Row>
       {error && <Err>{error}</Err>}

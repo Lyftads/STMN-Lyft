@@ -3,7 +3,11 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { withTenantContext, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+
+// Nome azienda del workspace corrente (mai hardcodare il brand: ogni tenant
+// deve vedere il SUO nome su PDF e analisi AI).
+const tenantBrand = (fallback = 'LyftAI') => getTenantInfo().companyName || fallback
 import { callBrain } from '../../../lib/agent/gateway'
 import { reportT, localeTag, normLocale } from '../../../lib/reportI18n'
 import { reportLogoBar } from '../../../lib/reports/logo'
@@ -258,7 +262,7 @@ async function aiNarrative(context, locale) {
       skill: {
         id: 'report',
         json: true,
-        systemPrompt: 'Sei un analista marketing di STMN Fitness (accessori CrossFit, no integratori). Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.',
+        systemPrompt: `Sei un analista marketing di ${tenantBrand('un brand e-commerce')}. Scrivi in italiano, asciutto e concreto, citando SOLO i numeri del JSON. Rispondi con JSON: {"summary":"<3-5 frasi descrittive di cosa è successo nel periodo, con i numeri chiave e i confronti vs periodo precedente>","insights":["<insight 1>","<2>","<3>","<4>"],"todos":["<azione 1>","<2>","<3>"]}. Niente emoji, niente markdown.`,
       },
       query: 'analisi report performance marketing e-commerce insight e azioni',
       messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 8000)}` }],
@@ -406,7 +410,7 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
   </style></head><body><div class="page">${reportLogoBar()}
     <div class="head">
-      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">STMN Fitness · Report ${esc(tab)}</div></div>
+      <div><div class="brand">Lyft<span>AI</span></div><div class="sub">${esc(tenantBrand())} · Report ${esc(tab)}</div></div>
       <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until} · vs ${range.prevSince} → ${range.prevUntil}</span><br><span>${_tr('Generato il')} ${today}</span></div>
     </div>
 
@@ -631,7 +635,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #eee; font-size: 9px; color: #aaa; text-align: center; }
   </style></head><body><div class="page">${reportLogoBar()}
     <div class="head">
-      <div><div class="sub">STMN Fitness · ${_tr('Report completo')}</div></div>
+      <div><div class="sub">${esc(tenantBrand())} · ${_tr('Report completo')}</div></div>
       <div class="period"><span>${_tr('Periodo')}</span><b>${esc(label)}</b><span>${range.since} → ${range.until}${range.prevSince ? ` · vs ${range.prevSince} → ${range.prevUntil}` : ''}</span><br><span>${_tr('Generato il')} ${today}</span></div>
     </div>
     ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}

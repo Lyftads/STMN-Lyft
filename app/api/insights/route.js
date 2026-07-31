@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
 
@@ -27,6 +28,21 @@ REGOLE:
 - To-do = azione specifica e azionabile (es. "Spegni la campagna XYZ, ROAS 0.8x con €420 di spesa").
 - Usa SOLO numeri presenti nei dati forniti. Mai inventare.
 - Niente saluti, niente preamboli, niente conclusioni.`
+
+// Prompt personalizzato per il workspace corrente (fix "STMN Fitness ovunque").
+// Per STMN il prompt resta ORIGINALE; per gli altri tenant: nome azienda
+// sostituito e righe con fatti specifici STMN eliminate.
+const tenantSystem = () => {
+  const brand = getTenantInfo().companyName
+  if (brand && /stmn/i.test(brand)) return SYSTEM_PROMPT
+  const b = brand || 'il brand'
+  return SYSTEM_PROMPT
+    .replaceAll('di Marino, founder di STMN Fitness', `del founder di ${b}`)
+    .replaceAll('STMN Fitness (Stamina Fitness)', b)
+    .replaceAll('STMN Fitness', b)
+    .replace(/\bSTMN\b/g, b)
+    .split('\n').filter(l => !/stamina|paracalli|crossfit|supplementi/i.test(l)).join('\n')
+}
 
 function safeJson(value, max = 60000) {
   try {
@@ -96,7 +112,7 @@ export async function POST(req) {
       skill: {
         id: 'insights',
         json: true,
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt: tenantSystem(),
         guard: 'OGNI numero e OGNI nome (prodotti, campagne) nella tua risposta DEVE essere copiato letteralmente dal JSON dati. Vietato inventare. Se manca, scrivi "Dati insufficienti".',
       },
       query: `insight performance marketing advertising e-commerce ${preset}`,

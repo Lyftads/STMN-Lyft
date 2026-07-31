@@ -67,7 +67,7 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
       if (!cfg.configured) { setCall({ status: 'ended', error: cfg.reason || cfg.error || t('ac.notConfigured', null, 'Call not configured.') }); return }
       if (!cfg.signedUrl) { setCall({ status: 'ended', error: cfg.error || t('ac.cannotStart', null, 'Unable to start the call.') }); return }
       const { Conversation } = await import('@elevenlabs/client')
-      const conv = await Conversation.startSession({
+      const startOpts = {
         signedUrl: cfg.signedUrl,
         connectionType: 'websocket',
         // Workspace della call nel token firmato dal server: il webhook LLM
@@ -79,7 +79,18 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
         onModeChange: (m) => setCall(c => c ? { ...c, mode: m?.mode === 'speaking' ? 'speaking' : 'listening' } : c),
         onError: (e) => setCall(c => ({ ...(c || {}), status: 'ended', error: String(e?.message || e || t('ac.callError', null, 'Call error')) })),
         onDisconnect: () => { finalize(); setCall(c => c && c.status !== 'ended' ? { ...c, status: 'ended' } : c) },
-      })
+      }
+      let conv
+      try {
+        conv = await Conversation.startSession(startOpts)
+      } catch (e) {
+        // 1008 = override non consentiti sull'agente ElevenLabs: la call parte
+        // comunque (senza token → dati del workspace owner, gate a monte).
+        const { customLlmExtraBody, ...noExtra } = startOpts
+        if (!customLlmExtraBody) throw e
+        console.log('[call] extra body rifiutato, riprovo senza:', e?.message)
+        conv = await Conversation.startSession(noExtra)
+      }
       convRef.current = conv
       try { convIdRef.current = convIdRef.current || conv.getId?.() } catch {}
       setCall(c => ({ ...(c || {}), status: 'connected', mode: 'listening' }))

@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
-import { resolveWorkspace } from '../../../lib/team/workspace'
+import { resolveWorkspace, isCollaborator } from '../../../lib/team/workspace'
 import { addNotification } from '../../../lib/team/notify'
 import { withTenantContext } from '../../../lib/tenant/credentials'
 import { executeMetaAction } from '../../../lib/actions/executors/meta'
@@ -45,7 +45,7 @@ export async function GET(req) {
     return NextResponse.json({
       actions: rows,
       counts,
-      me: { memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin },
+      me: { memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin , canManage: isCollaborator(ws) },
     })
   } catch (e) {
     return NextResponse.json({ actions: [], error: e.message })
@@ -118,8 +118,8 @@ export async function PATCH(req) {
     } catch (e) { return NextResponse.json({ ok: false, error: e.message }) }
   }
 
-  // Operazioni di stato: solo admin.
-  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo un admin può gestire le azioni' }, { status: 403 })
+  // Operazioni di stato: aperte ai collaboratori (guest esclusi).
+  if (!isCollaborator(ws)) return NextResponse.json({ ok: false, error: 'Riservato ai membri del team' }, { status: 403 })
 
   const patch = { updated_at: new Date().toISOString() }
   if (b.note != null) patch.note = String(b.note)

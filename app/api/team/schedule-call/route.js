@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { resolveWorkspace } from '../../../../lib/team/workspace'
+import { resolveWorkspace, isCollaborator } from '../../../../lib/team/workspace'
 import { sendEmail } from '../../../../lib/team/notify'
 import { getTeamAgent } from '../../../../lib/agent/team'
 
@@ -41,7 +41,8 @@ function buildRecurringICS({ localDate, startHHMMSS, endHHMMSS, jitsi, attendees
 export async function POST(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
-  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo admin' }, { status: 403 })
+  // Aperto ai collaboratori: programmare la call di squadra è lavoro di team.
+  if (!isCollaborator(ws)) return NextResponse.json({ ok: false, error: 'Riservato ai membri del team' }, { status: 403 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false, error: 'no db' }, { status: 500 })
 

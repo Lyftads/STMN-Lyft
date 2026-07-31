@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
-import { resolveWorkspace } from '../../../lib/team/workspace'
+import { resolveWorkspace, isCollaborator } from '../../../lib/team/workspace'
 
 async function ensureDefault(admin, ws) {
   try {
@@ -88,7 +88,9 @@ export async function POST(req) {
 export async function DELETE(req) {
   const ws = await resolveWorkspace()
   if (!ws) return NextResponse.json({ ok: false }, { status: 401 })
-  if (!ws.isAdmin) return NextResponse.json({ ok: false, error: 'Solo Admin' }, { status: 403 })
+  // Aperto ai collaboratori (guest esclusi): creare/eliminare canali non è
+  // un'operazione amministrativa.
+  if (!isCollaborator(ws)) return NextResponse.json({ ok: false, error: 'Riservato ai membri del team' }, { status: 403 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false })
   const { searchParams } = new URL(req.url)

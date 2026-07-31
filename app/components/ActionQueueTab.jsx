@@ -306,7 +306,7 @@ export default function ActionQueueTab({ metrics }) {
   const { t } = useI18n()
   const [actions, setActions] = useState([])
   const [counts, setCounts] = useState({})
-  const [me, setMe] = useState({ isAdmin: false })
+  const [me, setMe] = useState({ isAdmin: false, canManage: false })
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [busy, setBusy] = useState(null)
@@ -411,7 +411,7 @@ export default function ActionQueueTab({ metrics }) {
                   </span>
                 </div>
 
-                {me.isAdmin && a.status !== 'executed' && (
+                {(me.canManage ?? me.isAdmin) && a.status !== 'executed' && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                     {a.status === 'pending' && <>
                       <button disabled={busy === a.id} onClick={() => op(a.id, 'approve')} style={btn('#30d158')}><Icon name="check" size={13} /> {t('aq.approve')}</button>

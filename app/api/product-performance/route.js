@@ -134,7 +134,7 @@ async function fetchProductMeta(store, token) {
       headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
       cache: 'no-store',
       body: JSON.stringify({ query: `{
-        products(first: 100${after}, query: "status:active OR status:draft") {
+        products(first: 100${after}, query: "status:active") {
           pageInfo { hasNextPage endCursor }
           edges { node {
             legacyResourceId title handle isGiftCard featuredImage { url }
@@ -276,10 +276,11 @@ export async function GET(req) {
       for (const [pid, cost] of googleProduct.byProduct) { mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost); googleMatched += cost }
       unmappedSpend += Math.max(0, googleSpend - googleMatched)
 
-      // TUTTO IL CATALOGO in tabella, anche i prodotti fermi a zero vendite nel
-      // periodo (scelta di prodotto: si vede subito cosa non gira). I venduti
-      // restano in cima grazie all'ordinamento; la spesa ads allocata a
-      // prodotti non venduti resta visibile sulla loro riga.
+      // TUTTO IL CATALOGO ATTIVO in tabella, anche i prodotti fermi a zero
+      // vendite nel periodo (si vede subito cosa non gira) — stesso perimetro
+      // di Inventario e Costi prodotto. Le bozze restano fuori: non vendibili.
+      // I costi dei prodotti VENDUTI e non più in catalogo si recuperano
+      // comunque per variante (fetchCostsForVariants).
       for (const [pid, m] of pmeta.meta) {
         if (!cur.has(pid)) cur.set(pid, { productId: pid, title: m.title || `#${pid}`, units: 0, revenue: 0, variantQty: new Map() })
       }

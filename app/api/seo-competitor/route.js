@@ -4,13 +4,23 @@ export const maxDuration = 45
 
 import { NextResponse } from 'next/server'
 import { auditPage } from '../../../lib/seo/audit'
+import { assertPublicUrl } from '../../../lib/security/ssrf'
+import { withTenantContext } from '../../../lib/tenant/credentials'
 
 // Confronto on-page affiancato di più URL (la tua + competitor).
 export async function POST(request) {
+  return withTenantContext(request, async () => {
   let body = {}
   try { body = await request.json() } catch {}
   const urls = (Array.isArray(body.urls) ? body.urls : []).map(u => String(u || '').trim()).filter(Boolean).slice(0, 5)
   if (urls.length < 2) return NextResponse.json({ error: 'Servono almeno 2 URL.' }, { status: 400 })
+
+  // Anti-SSRF: solo URL pubblici (stessa guardia di seo-audit/website-scanner)
+  for (const u of urls) {
+    try { await assertPublicUrl(u) } catch (e) {
+      return NextResponse.json({ error: `URL non consentito: ${u}` }, { status: 400 })
+    }
+  }
 
   const audits = await Promise.all(urls.map(u => auditPage(u, { targetKeyword: body.targetKeyword })))
 
@@ -36,4 +46,5 @@ export async function POST(request) {
   })
 
   return NextResponse.json({ rows, updatedAt: new Date().toISOString() })
+  })
 }

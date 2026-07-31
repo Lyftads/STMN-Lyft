@@ -6,6 +6,7 @@ import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
+import { resolveWorkspace } from '../../../lib/team/workspace'
 import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
 import { runToolLoopStream } from '../../../lib/agent/streamLoop'
 
@@ -47,7 +48,15 @@ export async function POST(req) {
 
   // Stessi DATI PRECISI per periodo + STRUMENTI live degli agent in call (snapshot).
   let briefBlock = null, snapData = null
-  try { const snap = await readSnapshot(process.env.LYFT_OWNER_USER_ID); if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) } } catch {}
+  // Snapshot del WORKSPACE EFFETTIVO (mai dell'owner: i KPI di un tenant non
+  // devono finire nei prompt di un altro — fix audit 31 lug).
+  try {
+    const ws = await resolveWorkspace()
+    if (ws?.workspaceId) {
+      const snap = await readSnapshot(ws.workspaceId)
+      if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) }
+    }
+  } catch {}
 
   try {
     // Tool LIVE multi-tenant (auth = cookie di QUESTA sessione), snapshot come fallback

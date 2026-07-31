@@ -115,7 +115,9 @@ export async function POST(req) {
 
   // ── MEMORIA: sintesi + decisioni salvate come agent_memories (recall futuro) ─
   const memItems = []
-  const ownerUser = process.env.LYFT_OWNER_USER_ID || ws.workspaceId
+  // Memorie della call nel workspace EFFETTIVO (mai sotto l'owner: le call dei
+  // clienti finivano nel recall degli agenti STMN — fix audit 31 lug).
+  const ownerUser = ws.workspaceId
   if (plan.summary) memItems.push({ userId: ownerUser, agentId: 'team-call', content: `[Call ${new Date().toLocaleDateString('it-IT')}] ${plan.summary}`, role: 'insight', importance: 8, source: 'call' })
   for (const d of (Array.isArray(plan.decisions) ? plan.decisions : [])) memItems.push({ userId: ownerUser, agentId: 'team-call', content: `[Decisione in call] ${d}`, role: 'fact', importance: 7, source: 'call' })
   if (memItems.length) await rememberBatch(memItems).catch(() => {})

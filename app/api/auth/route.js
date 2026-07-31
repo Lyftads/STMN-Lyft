@@ -74,7 +74,7 @@ export async function GET(request) {
   </div>
 </body>
 </html>`
-      return new NextResponse(html, { headers: { 'Content-Type': 'text/html' } })
+      return new NextResponse(html, { headers: { 'Content-Type': 'text/html', 'Cache-Control': 'private, no-store' } })
     } catch (err) {
       return NextResponse.json({ error: err.message }, { status: 500 })
     }

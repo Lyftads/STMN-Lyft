@@ -10,6 +10,10 @@ import { readSnapshot, buildBrief } from '../../../../lib/agent/brandSnapshot'
 import { ALL_TOOLS, executeToolLive } from '../../../../lib/agent/tools'
 import { getTeamAgent, findMentionedAgent, teamSkillPrompt } from '../../../../lib/agent/team'
 
+// Ack umano: variato, come scriverebbe un collega mentre va a controllare.
+const ACKS = ['Aspetta che guardo…', 'Un attimo, controllo…', 'Ci sto guardando adesso…', 'Dammi due secondi che apro i dati…']
+const ACK_FALLBACK = () => ACKS[Math.floor(Math.random() * ACKS.length)]
+
 // Genera la risposta di un agente del team a una menzione in un canale LyftTalk,
 // e la posta nel canale come messaggio dell'agente. Chiamato dal frontend dopo
 // che un utente ha scritto un messaggio che nomina un agente.
@@ -97,7 +101,7 @@ export async function POST(req) {
     }
 
     // Domanda che richiede dati → posta SUBITO l'ack, poi cerca i dati.
-    await post(tr || 'Un attimo, controllo i dati…')
+    await post(tr || ACK_FALLBACK())
 
     // ── 2) Dati reali (agent-context include già le creative con i nomi) ──
     // Stessi DATI PRECISI per periodo + STRUMENTI live (snapshot condiviso).

@@ -15,7 +15,6 @@ import CreativeTab from './components/CreativeTab'
 import MetaDetailTab from './components/MetaDetailTab'
 import PerformanceAgentTab from './components/PerformanceAgentTab'
 import EmailMarketingTab from './components/EmailMarketingTab'
-import CompetitorIntelTab from './components/CompetitorIntelTab'
 import CreativeIntelTab from './components/CreativeIntelTab'
 import IntegrationsTab from './components/IntegrationsTab'
 import SettingsTab from './components/SettingsTab'
@@ -4443,11 +4442,6 @@ export default function App() {
 {/* KLAVIYO TAB */}
 {tab === 'klaviyo' && (
   <EmailMarketingTab />
-)}
-
-{/* COMPETITOR INTEL TAB */}
-{tab === 'competitorIntel' && (
-  <CompetitorIntelTab onNavigate={setTab} />
 )}
 
 {tab === 'creativeIntel' && (

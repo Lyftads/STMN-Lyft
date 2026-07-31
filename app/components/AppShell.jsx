@@ -163,7 +163,6 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'cro', label: 'CRO', icon: <Icon name="funnel" /> },
         { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
         { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
-        { id: 'competitorIntel', label: 'Competitor Intel', icon: <Icon name="target" /> },
         { id: 'creativeIntel', label: 'Creative Intel', icon: <Icon name="eye" /> },
       ],
     },

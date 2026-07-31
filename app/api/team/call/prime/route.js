@@ -94,6 +94,15 @@ export async function POST(req) {
     return out
   })().catch(() => null)
 
+  // 6ter) SPESA GOOGLE ADS per periodo. Nel brief c'era solo Meta: alla domanda
+  // "quanto ho speso su Google oggi/ieri" l'agent in call non trovava la riga e
+  // rispondeva "non ho il dato". Basta UNA chiamata: la serie giornaliera a 90
+  // giorni copre tutti i periodi, sommati nel brief con le stesse date di Meta.
+  const googleDailyP = fetch(`${origin}/api/google-detail?level=campaigns&preset=last_90d`, { cache: 'no-store', headers: H })
+    .then(r => r.ok ? r.json() : null)
+    .then(g => (Array.isArray(g?.dailySeries) && g.dailySeries.length) ? g.dailySeries : null)
+    .catch(() => null)
+
   // 6) Task, Lyftimer, Competitor (per gli strumenti live degli agent).
   const tasksP = fetch(`${origin}/api/tasks`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
   const lyftimerP = fetch(`${origin}/api/time-entries`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
@@ -110,9 +119,10 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp, metaPeriods] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP, metaPeriodsP])
+  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp, metaPeriods, googleDaily] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP, metaPeriodsP, googleDailyP])
   if (periods) data._periods = periods
   if (metaPeriods && Object.keys(metaPeriods).length) data._metaPeriods = metaPeriods
+  if (googleDaily) data._googleDaily = googleDaily
   if (klaviyo) data._klaviyo = klaviyo
   if (gsc) data._gsc = gsc
   if (ga4p) data._ga4 = ga4p
@@ -144,6 +154,10 @@ export async function POST(req) {
         if ((!nw || !(Number(nw.orders) || Number(nw.fatturato))) && (Number(prevP[k]?.orders) || Number(prevP[k]?.fatturato))) data._periods[k] = prevP[k]
       }
     }
+    // _googleDaily: se Google non risponde, tieni l'ultima serie buona (meglio
+    // un dato di poco fa che nessun dato in voce).
+    const prevG = prev?.data?._googleDaily
+    if (!data._googleDaily && Array.isArray(prevG) && prevG.length) data._googleDaily = prevG
     // _metaPeriods (meta-detail): idem per la spesa Meta.
     const prevM = prev?.data?._metaPeriods
     if (prevM) {

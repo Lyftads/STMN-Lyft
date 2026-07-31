@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -34,6 +35,7 @@ function formatMessage(text) {
 }
 
 export default function CROAgent({ current, previous, funnel, insights, tfLabel }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -95,7 +97,7 @@ export default function CROAgent({ current, previous, funnel, insights, tfLabel 
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri CRO Agent"
+          aria-label={`${t('common.open', null, 'Apri')} CRO Agent`}
           title="CRO Agent"
           style={{
             position: 'fixed',

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { callBrain } from '../../../lib/agent/gateway'
+import { requireCaller } from '../../../lib/tenant/credentials'
+import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
 
 const AGENT_ID = 'scanner'
 
@@ -67,6 +69,8 @@ function safeJson(value, max = 50000) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
   }
@@ -104,7 +108,7 @@ export async function POST(req) {
   // contextBlock → SYSTEM_PROMPT → lingua → SCAN DATA → storia → REMINDER finale.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) },
       query: lastUserMsg,
       data: context,
       dataLabel: "SCAN DATA — l'analisi CRO di riferimento per ogni domanda:",

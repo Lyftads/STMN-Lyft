@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -36,6 +37,7 @@ function formatMessage(text) {
 }
 
 export default function SimulatorAgent({ ltvInputs, ltvOutputs, scenarios, cashFlowAnalysis }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -97,7 +99,7 @@ export default function SimulatorAgent({ ltvInputs, ltvOutputs, scenarios, cashF
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri Simulator Agent"
+          aria-label={`${t('common.open', null, 'Apri')} Simulator Agent`}
           title="CMO + CFO Agent"
           style={{
             position: 'fixed',

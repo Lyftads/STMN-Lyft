@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 import { complete } from '../../../lib/agent/router'
+import { requireCaller } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -53,6 +54,8 @@ async function generateImage(prompt) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   if (!OPENAI_KEY) return NextResponse.json({ error: 'OPENAI_API_KEY non configurata' }, { status: 500 })
   let body
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -34,6 +35,7 @@ function formatMessage(text) {
 }
 
 export default function CompetitorAgent({ data, country }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -95,7 +97,7 @@ export default function CompetitorAgent({ data, country }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri Competitor Agent"
+          aria-label={`${t('common.open', null, 'Apri')} Competitor Agent`}
           title="Competitor Agent"
           style={{
             position: 'fixed',

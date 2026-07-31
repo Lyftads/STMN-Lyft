@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { reportLogoBar } from '../../../../lib/reports/logo'
+import { requireCaller } from '../../../../lib/tenant/credentials'
 
 // Etichette PDF localizzate (poche → inline, self-contained).
 const L = {
@@ -86,6 +87,8 @@ async function renderPdf(html) {
 }
 
 export async function GET(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   const { searchParams } = new URL(req.url)
   const days = searchParams.get('days') || '150'
   const loc = (searchParams.get('locale') || 'it').slice(0, 2)

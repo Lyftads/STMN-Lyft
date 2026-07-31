@@ -5,6 +5,7 @@ export const maxDuration = 45
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
+import { requireCaller } from '../../../lib/tenant/credentials'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -39,6 +40,8 @@ async function pageDigest(url) {
 }
 
 export async function POST(request) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(request); if (_gate) return _gate
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
   let body = {}
   try { body = await request.json() } catch {}

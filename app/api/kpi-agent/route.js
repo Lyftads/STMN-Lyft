@@ -3,6 +3,7 @@ import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
 import { callBrain } from '../../../lib/agent/gateway'
+import { requireCaller } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -82,6 +83,8 @@ function safeJson(value, max = 60000) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       { error: 'OPENAI_API_KEY non configurata.' },

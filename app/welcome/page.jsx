@@ -990,6 +990,15 @@ export default function WelcomePage() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     let alive = true
+    // 0) ?lang= nell'URL: vince su tutto e resta salvato. Serve per i link delle
+    // campagne per paese (es. annuncio DE → lyftai.io/welcome?lang=de): senza,
+    // il visitatore atterrava in italiano finché non cambiava lingua a mano.
+    try {
+      const q = new URLSearchParams(window.location.search).get('lang')
+      const ql = q ? String(q).slice(0, 2).toLowerCase() : null
+      if (ql && I18N[ql]) { langChosen.current = true; setLang(ql); return }
+    } catch {}
+
     try {
       const saved = localStorage.getItem('lyftai_lang')
       if (saved && I18N[saved]) { langChosen.current = true; setLang(saved); return }

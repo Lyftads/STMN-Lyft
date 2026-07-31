@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { callBrain } from '../../../lib/agent/gateway'
+import { requireCaller } from '../../../lib/tenant/credentials'
+import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
 
 const AGENT_ID = 'weekly'
 
@@ -53,17 +54,10 @@ Se Marino chiede di una settimana non nei dati, rispondi: "Quella settimana non 
 // Prompt personalizzato per il workspace corrente (fix "STMN Fitness ovunque").
 // Per STMN il prompt resta ORIGINALE; per gli altri tenant: nome azienda
 // sostituito e righe con fatti specifici STMN eliminate.
-const tenantSystem = () => {
-  const brand = getTenantInfo().companyName
-  if (brand && /stmn/i.test(brand)) return SYSTEM_PROMPT
-  const b = brand || 'il brand'
-  return SYSTEM_PROMPT
-    .replaceAll('di Marino, founder di STMN Fitness', `del founder di ${b}`)
-    .replaceAll('STMN Fitness (Stamina Fitness)', b)
-    .replaceAll('STMN Fitness', b)
-    .replace(/\bSTMN\b/g, b)
-    .split('\n').filter(l => !/stamina|paracalli|crossfit|supplementi/i.test(l)).join('\n')
-}
+// Personalizzazione multi-tenant: helper CONDIVISO (lib/agent/tenantPrompt).
+// Il filtro locale toglieva la RIGA intera, e in questo prompt la frase su
+// STMN sta insieme alla regola anti-invenzione: i clienti restavano senza.
+const tenantSystem = () => tenantPrompt(SYSTEM_PROMPT)
 
 function safeJson(value, max = 70000) {
   try {
@@ -73,6 +67,8 @@ function safeJson(value, max = 70000) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
   }

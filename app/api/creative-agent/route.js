@@ -6,6 +6,8 @@ export const maxDuration = 60
 
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { complete } from '../../../lib/agent/router'
+import { requireCaller } from '../../../lib/tenant/credentials'
+import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
 
 const AGENT_ID = 'creative'
 
@@ -76,6 +78,8 @@ function safeJson(value, max = 90000) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
   }
@@ -141,7 +145,7 @@ export async function POST(req) {
         topP: 0.9,
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: tenantPrompt(SYSTEM_PROMPT) },
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `CREATIVE DATA — usa SOLO questi numeri/nomi per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,

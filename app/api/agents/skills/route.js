@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { listSkills, getSkill, matchSkillsForContext } from '../../../../lib/agents/skillRegistry'
+import { requireCaller } from '../../../../lib/tenant/credentials'
 
 // ─────────────────────────────────────────────────────────────
 //  /api/agents/skills
@@ -11,6 +12,8 @@ import { listSkills, getSkill, matchSkillsForContext } from '../../../../lib/age
 // ─────────────────────────────────────────────────────────────
 
 export async function GET(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   const { searchParams } = new URL(req.url)
   const name = searchParams.get('name')
   const match = searchParams.get('match')

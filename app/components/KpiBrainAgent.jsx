@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { createPortal } from 'react-dom'
 
 const SUGGESTIONS = [
@@ -34,6 +35,7 @@ function formatMessage(text) {
 }
 
 export default function KpiBrainAgent({ tf, preset }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -103,7 +105,7 @@ export default function KpiBrainAgent({ tf, preset }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri KPI Brain Agent"
+          aria-label={`${t('common.open', null, 'Apri')} KPI Brain Agent`}
           title="KPI Brain Agent"
           style={{
             position: 'fixed',

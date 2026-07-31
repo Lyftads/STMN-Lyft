@@ -5,6 +5,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { reportT, localeTag } from '../../../../lib/reportI18n'
 import { reportLogoBar } from '../../../../lib/reports/logo'
+import { requireCaller } from '../../../../lib/tenant/credentials'
 
 // Lingua del cliente: il PDF SEO esce nella sua lingua, non solo in italiano.
 let _loc = 'it-IT'
@@ -165,6 +166,8 @@ async function renderPdf(html) {
 }
 
 export async function POST(request) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(request); if (_gate) return _gate
   let body = {}
   try { body = await request.json() } catch {}
   setLocale(body.locale) // lingua del cliente per le etichette del PDF

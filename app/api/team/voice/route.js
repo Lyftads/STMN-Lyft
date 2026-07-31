@@ -5,6 +5,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { getAuthUser } from '../../../../lib/studio/credits'
 import { getAgentVoice } from '../../../../lib/agent/team'
+import { requireCaller } from '../../../../lib/tenant/credentials'
 
 // POST {agentId, text} → audio/mpeg con la voce ElevenLabs dell'agente.
 // Voce per genere (vedi VOICES in lib/agent/team.js), model multilingua → italiano.
@@ -24,6 +25,8 @@ function speakable(t) {
 }
 
 export async function POST(req) {
+  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
+  const _gate = await requireCaller(req); if (_gate) return _gate
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   const key = process.env.ELEVENLABS_API_KEY

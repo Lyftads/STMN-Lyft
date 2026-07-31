@@ -66,7 +66,13 @@ function compactMetrics(m) {
     topProducts: (m.shopifyTopProducts || []).slice(0, 6).map(p => ({
       name: p.label || p.product, revenue: p.value || p.revenue, orders: p.orders,
     })),
-    marketingSources: (m.shopifyMarketingSources || []).slice(0, 6),
+    // Nome ESPLICITO: si chiamava 'marketingSources' e il modello lo scambiava
+    // per un elenco di adset CON SPESA → raccomandava di "mettere in pausa
+    // l'adset Meta_SS che ha speso 3.468 euro" (3.468 e' FATTURATO, e l'adset
+    // non esiste). Qui dentro non c'e' nessuna spesa: solo ricavi attribuiti.
+    revenueByUtmSource: (m.shopifyMarketingSources || []).slice(0, 6).map(s => ({
+      source: s.source || s.label, revenue: s.revenue ?? s.value, orders: s.orders,
+    })),
     metaSpend: m.metaSpend,
   }
 }
@@ -114,8 +120,16 @@ ESEMPI BUONI:
 - "Testa nuova creative video sul prodotto Paracalli Premium (top revenue questa settimana, vecchia creative ha frequency 3.8 — saturata)"
 - "Sposta 30% budget da Audience Cold a Retargeting (CPM cold cresce +40% vs settimana scorsa)"
 
+LEGENDA DEI DATI (leggila prima di scrivere: qui si sbagliava di piu'):
+- revenueByUtmSource = FATTURATO e ORDINI che Shopify attribuisce al parametro UTM "source". NON e' spesa pubblicitaria, NON sono adset, NON sono campagne. Da questi numeri NON si puo' ricavare un ROAS ne' un budget. Una voce "Google" o "Meta_SS" qui e' una sorgente di traffico, non un adset da mettere in pausa.
+- metaRange / metaSpend = spesa e risultati reali di Meta Ads. Solo questi contengono spesa.
+- shopifyRange = vendite del periodo; *PrevRange = stesso dato nel periodo precedente, per i confronti.
+- Se ti serve un dato che NON e' in queste metriche (spesa di un canale, budget di una campagna, nome di un adset), quel dato NON lo hai: non proporre un'azione che lo richiede e non stimarlo.
+
 REGOLE:
 - Cita SEMPRE numeri esatti dalle metriche fornite
+- MAI inventare cifre: ogni numero che scrivi deve comparire nei dati (o essere un calcolo esplicito tra numeri presenti, dichiarato come tale). Niente budget "da 12.000 a 14.400" se il budget non c'e'.
+- MAI citare per nome un adset, una campagna o una creative che non compare nei dati.
 - Azioni SPECIFICHE (cosa fare, dove, quando, quanto)
 - Priorita': 'urgent' (anomalia critica), 'high' (impatto alto), 'medium' (opportunita'), 'low' (nice-to-have)
 - Categoria: 'meta_ads', 'shopify_product', 'pricing', 'creative', 'audience', 'klaviyo', 'cro'

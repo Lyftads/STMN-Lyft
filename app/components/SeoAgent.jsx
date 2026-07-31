@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { createPortal } from 'react-dom'
 
 // ─────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ const ACCENT = '#ff9f0a'   // arancio (matcha il gruppo Website nella sidebar)
 const ACCENT2 = '#f97316'
 
 export default function SeoAgent({ audit, context, hint, suggestions: customSug }) {
+  const t = useT()
   // Backward-compat: se passano `audit` lo wrappiamo come context.
   const ctx = context || (audit ? { type: audit.mode === 'site' ? 'site-audit' : 'page-audit', data: audit } : null)
   const [open, setOpen] = useState(false)
@@ -117,7 +119,7 @@ export default function SeoAgent({ audit, context, hint, suggestions: customSug 
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Apri Esperto SEO"
+          aria-label={`${t('common.open', null, 'Apri')} Esperto SEO`}
           title="Esperto SEO"
           style={{
             position: 'fixed',

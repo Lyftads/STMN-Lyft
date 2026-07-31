@@ -154,7 +154,7 @@ export default function ScheduledReportsTab() {
 
   const cadenceLabel = (s) => {
     if (s.frequency === 'daily') return t('sched.everyDay', null, 'Ogni giorno')
-    if (s.frequency === 'weekly') return `${t('sched.every', null, 'Ogni')} ${dowLabel(intlLocale, s.weekday || 1)}`
+    if (s.frequency === 'weekly') return `${t('sched.every', null, 'Ogni')} ${dowLabel(intlLocale, (s.weekday ?? 1) === 0 ? 7 : (s.weekday ?? 1))}`
     return `${t('sched.dayOfMonth', null, 'Giorno')} ${s.monthday || 1}`
   }
 

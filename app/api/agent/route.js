@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
@@ -396,6 +397,17 @@ Andromeda è il sistema di delivery di Meta (sostituto di quello precedente basa
 
 Una cosa importante: non sei un AI generico che sta cercando di sembrare umano. Sei uno che lavora con Marino e il suo brand, e ne parla come se ne stesse parlando ad un coffee, davanti al laptop con i grafici aperti.`
 
+// Il prompt sopra è verticale STMN: per gli ALTRI workspace si usa un prompt
+// neutro (l'identità del brand arriva dal brand context di callBrain).
+const NEUTRAL_PROMPT = `Sei il consulente marketing senior del brand (e-commerce). Rispondi con i numeri del contesto e dei tool, in modo asciutto, concreto e onesto: se un dato non c'è, dillo. Niente preamboli da AI, niente emoji.`
+async function tenantSystemPrompt() {
+  try {
+    const ws = await getEffectiveTenantId()
+    if (ws && ws === process.env.LYFT_OWNER_USER_ID) return SYSTEM_PROMPT
+  } catch {}
+  return NEUTRAL_PROMPT
+}
+
 function safeJson(value, max = 80000) {
   try {
     const str = JSON.stringify(value)
@@ -408,6 +420,10 @@ function safeJson(value, max = 80000) {
 
 
 export async function POST(req) {
+  // Auth: senza sessione niente LLM a spese nostre (audit 31 lug)
+  if (!(await getCurrentUserId().catch(() => null))) {
+    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  }
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       {
@@ -463,7 +479,7 @@ export async function POST(req) {
   const lastUserMsg = [...cleanMessages].reverse().find(m => m.role === 'user')?.content || ''
 
   // Migrato al gateway unico (callBrain). Assembla lo stesso identico prompt di
-  // prima — context engine (brand+memorie+knowledge) + SYSTEM_PROMPT + guard +
+  // prima — context engine (brand+memorie+knowledge) + (await tenantSystemPrompt()) + guard +
   // DATI LIVE + storia + lingua — con gli stessi parametri. La skill è "inline":
   // il prompt resta in questo file, cambia solo chi orchestra la chiamata.
   try {
@@ -476,7 +492,7 @@ export async function POST(req) {
       snapshot: context,
     }
     const brainArgs = {
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT, guard: GUARD_NUMBERS },
+      skill: { id: AGENT_ID, systemPrompt: (await tenantSystemPrompt()), guard: GUARD_NUMBERS },
       query: lastUserMsg,
       data: context,
       dataLabel: `DATI LIVE (periodo: ${periodLabel}):`,

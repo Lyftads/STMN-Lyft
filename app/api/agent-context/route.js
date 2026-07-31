@@ -45,7 +45,7 @@ export async function GET(request) {
   const cron = request.headers.get('x-internal-cron') || ''
   const cookie = request.headers.get('cookie') || (cron ? { 'x-internal-cron': cron } : '')
 
-  const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, tiktok, pinterest, snapchat, competitorIntel, productCosts, marketIntel, realtime] =
+  const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, competitorIntel, productCosts, realtime] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`, cookie),
       safeFetch(`${base}/api/meta-detail?${detailQs}&level=campaigns`, cookie),
@@ -53,12 +53,8 @@ export async function GET(request) {
       safeFetch(`${base}/api/klaviyo?days=${days}`, cookie),
       safeFetch(`${base}/api/google`, cookie),
       safeFetch(`${base}/api/ga4?days=${days}`, cookie),
-      safeFetch(`${base}/api/tiktok?days=${days}`, cookie),
-      safeFetch(`${base}/api/pinterest?days=${days}`, cookie),
-      safeFetch(`${base}/api/snapchat?days=${days}`, cookie),
       safeFetch(`${base}/api/competitor-intel`, cookie),
       safeFetch(`${base}/api/product-costs`, cookie),
-      safeFetch(`${base}/api/market-intel`, cookie),
       safeFetch(`${base}/api/realtime`, cookie),
     ])
 
@@ -77,9 +73,7 @@ export async function GET(request) {
     klaviyo: !!klaviyo?.kpis,
     googleAds: !!googleAds?.configured,
     ga4: !!ga4?.configured,
-    tiktok: !!tiktok?.configured,
-    pinterest: !!pinterest?.configured,
-    snapchat: !!snapchat?.configured,
+    tiktok: false, pinterest: false, snapchat: false, // route social legacy eliminate
     searchConsole: !!gsc?.totals,
     realtime: !!realtime?.configured,
   }
@@ -185,21 +179,6 @@ export async function GET(request) {
       topPages: ga4.topPages,
       topCountries: ga4.topCountries,
     }
-  }
-
-  if (tiktok?.configured) {
-    context.tiktok = {
-      totals: tiktok.totals,
-      campaigns: tiktok.campaigns,
-    }
-  }
-
-  if (pinterest?.configured) {
-    context.pinterest = { totals: pinterest.totals }
-  }
-
-  if (snapchat?.configured) {
-    context.snapchat = { totals: snapchat.totals }
   }
 
   if (productCosts?.products?.length) {

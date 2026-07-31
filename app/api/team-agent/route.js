@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
+import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
 import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
@@ -17,6 +18,10 @@ function safeJson(value, max = 70000) {
 }
 
 export async function POST(req) {
+  // Auth: senza sessione niente LLM a spese nostre (audit 31 lug)
+  if (!(await getCurrentUserId().catch(() => null))) {
+    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  }
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
 
   let body

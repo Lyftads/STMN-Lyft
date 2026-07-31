@@ -1307,7 +1307,7 @@ export default function MetaDetailTab() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="16" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
+                      <td colSpan="17" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
                         {bmLoading ? t('meta.loadingCampaigns', null, 'Sto caricando…')
                           : bmError ? (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>

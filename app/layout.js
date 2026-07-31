@@ -10,7 +10,6 @@ export const metadata = {
   title: 'LyftAI — Dashboard',
   description: 'LyftAI — analytics LTV, CAC, retention e creative intel per brand Shopify.',
   manifest: '/manifest.webmanifest',
-  alternates: { canonical: '/' },
   appleWebApp: {
     capable: true,
     title: 'LyftAI',

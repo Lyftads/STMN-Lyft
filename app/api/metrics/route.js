@@ -8,7 +8,7 @@ import { getAdminSupabase } from '../../../lib/supabase/server'
 
 // fetch esterno con timeout: un socket Shopify/Meta che stalla non deve
 // bruciare i 60s della funzione (dashboard/report/agent a cascata).
-const tfetch = (url, opts = {}) => fetch(url, { ...opts, signal: AbortSignal.timeout(15000) })
+const tfetch = (url, opts = {}) => fetch(url, { ...opts, signal: opts.signal ?? AbortSignal.timeout(15000) })
 
 // ── Cache server-side della risposta /api/metrics ──────────────────────────
 // La route è pesante (decine di query Shopify). Senza cache, ogni cambio tab /

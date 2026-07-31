@@ -252,7 +252,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  const clear = () => { setMsgs([]); setActions([]); setAdded({}); try { localStorage.removeItem(STORE_KEY) } catch {} }
+  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { localStorage.removeItem(STORE_KEY) } catch {} }
 
   // Estrae azioni concrete dalla conversazione (proposte per la Coda Azioni).
   const proposeActions = useCallback(async () => {

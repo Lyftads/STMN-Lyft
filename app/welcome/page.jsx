@@ -1605,7 +1605,7 @@ function Nav({ t, lang, setLang }) {
           <button onClick={() => setOpenSol(o => !o)} style={{ ...navLinkStyle, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', color: openSol ? '#fff' : navLinkStyle.color }}>
             {t.nav.solutions} <span style={{ fontSize: 8, opacity: 0.6, transform: openSol ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
           </button>
-          <a href="#features" style={navLinkStyle}>{t.nav.features}</a>
+          <a href="#tabs-tour" style={navLinkStyle}>{t.nav.features}</a>
           <a href="#pricing" style={navLinkStyle}>{t.nav.pricing}</a>
           <a href="#contact" style={navLinkStyle}>{t.nav.contact}</a>
 
@@ -1726,7 +1726,7 @@ function Nav({ t, lang, setLang }) {
               ))}
             </div>
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 22px' }}>
-              <a href="#features" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, fontWeight: 800, color: BLUE, textDecoration: 'none' }}>{t.solMenu?.all || 'Explore →'}</a>
+              <a href="#tabs-tour" onClick={() => setOpenSol(false)} style={{ fontSize: 13.5, fontWeight: 800, color: BLUE, textDecoration: 'none' }}>{t.solMenu?.all || 'Explore →'}</a>
             </div>
           </div>
         </>
@@ -3099,7 +3099,7 @@ function Footer({ t }) {
             Link
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
-            <a href="#features" style={footerLinkStyle}>{t.nav.features}</a>
+            <a href="#tabs-tour" style={footerLinkStyle}>{t.nav.features}</a>
             <a href="#pricing" style={footerLinkStyle}>{t.nav.pricing}</a>
             <a href="#contact" style={footerLinkStyle}>{t.nav.contact}</a>
             <Link href="/login" style={footerLinkStyle}>{t.nav.login}</Link>

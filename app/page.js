@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+
+// anti-race fetchLive: la risposta di un preset vecchio non sovrascrive l'attivo
+let __liveKey = null
 import Icon from './components/ui/Icon'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
 import { allowedTabsFor, ALL_TABS } from '../lib/team/roleTabs'
@@ -2441,6 +2444,7 @@ export default function App() {
   // - force=true (bottone Aggiorna): bypass cache, fetch sync
   const fetchLive = useCallback(async (force = false) => {
     const key = `metrics:${preset}`
+    __liveKey = key // anti-race: la risposta di un preset vecchio non deve sovrascrivere quello attivo
     const cached = !force ? getCached(key) : null
 
     if (cached) {
@@ -2462,10 +2466,12 @@ export default function App() {
         },
         // Revalidate background completata: aggiorna silent (no spinner)
         onUpdate: (fresh) => {
+          if (__liveKey !== key) return
           setLive(fresh)
           setUpdated(new Date())
         },
       })
+      if (__liveKey !== key) return
       // Se era miss/force, scrivi i dati appena arrivati
       if (!cached || force) {
         setLive(data)

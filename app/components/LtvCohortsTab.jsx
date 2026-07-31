@@ -54,7 +54,9 @@ export default function LtvCohortsTab() {
   useEffect(() => {
     let cancelled = false
     const today = new Date()
-    const start = new Date(today.getFullYear(), today.getMonth() - (months - 1), 1)
+    // Primo del mese in UTC: con new Date() locale + toISOString il since
+    // slittava al giorno prima (GMT+2) e la finestra CAC non combaciava.
+    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (months - 1), 1))
     const since = start.toISOString().slice(0, 10)
     const until = today.toISOString().slice(0, 10)
     const q = `preset=custom&since=${since}&until=${until}`

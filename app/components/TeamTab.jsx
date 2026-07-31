@@ -242,7 +242,7 @@ export default function TeamTab() {
           : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
               style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? 'var(--text)' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
               {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
-        <AgentCall agent={agent} label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />Chiama</span>} />
+        <AgentCall agent={agent} label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />{t('team.callBtn', null, 'Chiama')}</span>} />
       </div>
 
       {/* Messaggi */}

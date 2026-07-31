@@ -223,7 +223,7 @@ export default function CreativeIntelTab() {
       {!searched && !error && (
         <div style={{ textAlign: 'center', padding: 70, color: '#6b6580' }}>
           <div style={{ marginBottom: 12, opacity: 0.5 }}><Icon name="search" size={36} /></div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#8b8aa0' }}>{t('ci.emptyTitle', null, 'Spia le creatività dei competitor')}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#8b8aa0' }}>{t('ci.emptyTitleSpy', null, 'Spia le creatività dei competitor')}</div>
           <div style={{ fontSize: 13, marginTop: 4 }}>{t('ci.emptyHint', null, 'Cerca un brand o una keyword per vedere copy, hook, formato e da quanto girano.')}</div>
         </div>
       )}

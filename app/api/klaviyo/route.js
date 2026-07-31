@@ -95,7 +95,7 @@ async function getAccount() {
 }
 
 async function getLists() {
-  const data = await klaviyoGet('/lists')
+  const data = await klaviyoGetPages('/lists')
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
@@ -103,7 +103,7 @@ async function getLists() {
 }
 
 async function getSegments() {
-  const data = await klaviyoGet('/segments')
+  const data = await klaviyoGetPages('/segments')
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
@@ -153,7 +153,7 @@ async function getCampaigns(status) {
 }
 
 async function getFlows() {
-  const data = await klaviyoGet('/flows')
+  const data = await klaviyoGetPages('/flows')
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
@@ -163,9 +163,9 @@ async function getFlows() {
 }
 
 async function getMetrics() {
-  // Una sola pagina: ci servono solo poche metriche standard (Received/Opened/
-  // Clicked Email, Placed Order). La paginazione completa rendeva la tab lenta.
-  const data = await klaviyoGet('/metrics')
+  // Paginato: le metriche standard (Received/Opened/Clicked Email, Placed
+  // Order) possono stare OLTRE la prima pagina → KPI a zero in silenzio.
+  const data = await klaviyoGetPages('/metrics')
   return (data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
@@ -251,7 +251,10 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
   const placedOrder = metrics.find(m =>
     m.name.toLowerCase() === 'placed order' && m.integrationKey === 'shopify'
   )
-  const placedOrderMetric = placedOrder?.id || 'RnKt7J'
+  // Metric ID hardcoded = di UN account specifico: su altri tenant produceva
+  // breakdown vuoto cachato come valido. Senza metric → null → __noCache.
+  if (!placedOrder?.id) return null
+  const placedOrderMetric = placedOrder.id
 
   const now = new Date()
   const start = new Date(now)

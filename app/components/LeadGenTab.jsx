@@ -146,7 +146,7 @@ export default function LeadGenTab() {
 
   const delta = (cur, prev, lower = false) => {
     const c = Number(cur || 0), p = Number(prev || 0)
-    if (!p) return null
+    if (!p || !c) return null // niente −100% "buono" quando il corrente è a zero
     const d = ((c - p) / Math.abs(p)) * 100
     return { d, good: lower ? d < 0 : d > 0 }
   }

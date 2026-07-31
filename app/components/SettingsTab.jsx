@@ -52,7 +52,7 @@ const PLANS = [
       '✨ Tutti i tool inclusi',
       '500 – 2.000 ordini/mese',
       '5 utenti del team',
-      'Crediti Creative Lab (AI) estesi',
+      'Storico dati 24 mesi',
       'Priority support 12h',
     ],
     featureKeys: ['settings.plan.allTools', 'settings.plan.growth.f2', 'settings.plan.growth.f3', 'settings.plan.growth.f4', 'settings.plan.growth.f5'],
@@ -72,7 +72,7 @@ const PLANS = [
       '✨ Tutti i tool inclusi',
       '2.000 – 7.000 ordini/mese',
       'Utenti del team illimitati',
-      'Crediti Creative Lab (AI) massimi',
+      'Storico dati illimitato',
       'CSM dedicato',
     ],
     featureKeys: ['settings.plan.allTools', 'settings.plan.scale.f2', 'settings.plan.scale.f3', 'settings.plan.scale.f4', 'settings.plan.scale.f5'],
@@ -107,12 +107,11 @@ const FEATURE_MATRIX = [
   { featureKey: 'settings.fm2', feature: 'Report Weekly / Monthly / Quarter / Year', starter: true, growth: true, scale: true, enterprise: true },
   { featureKey: 'settings.fm3', feature: 'Klaviyo · CRO · AI Website Scanner', starter: true, growth: true, scale: true, enterprise: true },
   { featureKey: 'settings.fm4', feature: 'Creative · Meta Detail · Meta KPI', starter: true, growth: true, scale: true, enterprise: true },
-  { featureKey: 'settings.fm5', feature: 'Creative Lab AI · Competitor Intel', starter: true, growth: true, scale: true, enterprise: true },
+  { featureKey: 'settings.fm5', feature: 'Lead Gen · Incrementalità & MMM', starter: true, growth: true, scale: true, enterprise: true },
   { featureKey: 'settings.fm6', feature: 'Performance Agent AI · Simulatore LTV:CAC', starter: true, growth: true, scale: true, enterprise: true },
   { featureKey: 'settings.fm7', feature: 'Integrazioni (Shopify, Meta, Google, Klaviyo)', starter: true, growth: true, scale: true, enterprise: 'Custom' },
   { featureKey: 'settings.fm8', feature: 'Ordini/mese inclusi', starter: 'Fino a 500', growth: '500 – 2.000', scale: '2.000 – 7.000', enterprise: '7.000+' },
   { featureKey: 'settings.fm9', feature: 'Utenti del team', starter: '2', growth: '5', scale: 'Illimitati', enterprise: 'Illimitati' },
-  { featureKey: 'settings.fm10', feature: 'Crediti Creative Lab (AI)', starter: 'Base', growth: 'Estesi', scale: 'Massimi', enterprise: 'Massimi' },
   { featureKey: 'settings.fm11', feature: 'Storico dati', starter: '12 mesi', growth: '24 mesi', scale: 'Illimitato', enterprise: 'Illimitato' },
   { featureKey: 'settings.fm12', feature: 'White-label (logo + dominio)', starter: false, growth: false, scale: 'Opzionale', enterprise: true },
   { featureKey: 'settings.fm13', feature: 'SLA e onboarding dedicato', starter: false, growth: false, scale: false, enterprise: true },
@@ -492,7 +491,7 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
               return (
                 <td key={j} style={{ textAlign: 'center', padding: '12px 16px', fontSize: 12.5, fontWeight: 800, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent' }}>
                   {m == null ? (
-                    <span style={{ color: 'var(--text2)' }}>Su misura</span>
+                    <span style={{ color: 'var(--text2)' }}>{t('settings.customPrice', null, 'Su misura')}</span>
                   ) : (
                     <span style={{ color: 'var(--text)' }}>
                       {eur0(eff)}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>/m</span>

@@ -130,7 +130,9 @@ function getRange(preset, searchParams) {
     if (since && until) return { since, until }
   }
 
-  return { since: today, until: today }
+  // Preset sconosciuto → 28gg come gli altri resolver (mai "oggi" in silenzio)
+  const d28 = new Date(); d28.setDate(d28.getDate() - 28)
+  return { since: d28.toISOString().slice(0, 10), until: today }
 }
 
 function getPreviousRange(range) {
@@ -1025,7 +1027,8 @@ export async function GET(req) {
       const rows = await getCampaignRows(accounts, range)
       const summary = sumRows(rows)
       const [previousRows, daily] = await Promise.all([
-        getCampaignRows(accounts, previousRange),
+        // throttle Meta sul periodo prec. → confronto degradato, non 500
+        getCampaignRows(accounts, previousRange).catch(() => []),
         fetchDailySeries(accounts, range).catch(() => []),
       ])
       const previousSummary = sumRows(previousRows)

@@ -15,7 +15,10 @@ import { REPORT_SECTIONS, REPORT_TIMEFRAMES, REPORT_FREQUENCIES, sectionsNeedUrl
 //  - Lista schedulazioni salvate (attiva/disattiva, invia, elimina)
 // ─────────────────────────────────────────────────────────────
 
-const WEEKDAYS = [[1, 'Lun'], [2, 'Mar'], [3, 'Mer'], [4, 'Gio'], [5, 'Ven'], [6, 'Sab'], [0, 'Dom']]
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]
+// Etichetta giorno (1=lun..7=dom) nella lingua dell'utente — 1/1/2024 è lunedì.
+const dowLabel = (locale, day) =>
+  new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(Date.UTC(2024, 0, day)))
 
 export default function ScheduledReportsTab() {
   const { t, intlLocale } = useI18n()
@@ -151,7 +154,7 @@ export default function ScheduledReportsTab() {
 
   const cadenceLabel = (s) => {
     if (s.frequency === 'daily') return t('sched.everyDay', null, 'Ogni giorno')
-    if (s.frequency === 'weekly') return `${t('sched.every', null, 'Ogni')} ${(WEEKDAYS.find(w => w[0] === s.weekday) || [1, 'Lun'])[1]}`
+    if (s.frequency === 'weekly') return `${t('sched.every', null, 'Ogni')} ${dowLabel(intlLocale, s.weekday || 1)}`
     return `${t('sched.dayOfMonth', null, 'Giorno')} ${s.monthday || 1}`
   }
 
@@ -244,7 +247,7 @@ export default function ScheduledReportsTab() {
             <div>
               <div style={labelStyle}>{t('sched.weekday', null, 'Giorno settimana')}</div>
               <select value={weekday} onChange={e => setWeekday(+e.target.value)} style={inputStyle}>
-                {WEEKDAYS.map(([v, l]) => <option key={v} value={v} style={{ background: 'var(--surface)' }}>{l}</option>)}
+                {WEEKDAYS.map(v => <option key={v} value={v} style={{ background: 'var(--surface)' }}>{dowLabel(intlLocale, v)}</option>)}
               </select>
             </div>
           )}

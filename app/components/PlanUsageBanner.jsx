@@ -33,14 +33,14 @@ export default function PlanUsageBanner({ onGoSettings }) {
     }}>
       <span style={{ color: '#ff9f0a', display: 'inline-flex' }}><Icon name="chart-line" size={20} /></span>
       <div style={{ flex: 1, minWidth: 240, fontSize: 13.5, lineHeight: 1.5 }}>
-        <b>Sei sopra la tua fascia.</b> Hai registrato <b>{data.orders.toLocaleString('it-IT')} ordini</b> negli ultimi 30 giorni
-        {data.current ? <> — oltre il limite del piano <b>{data.current.label}</b>{data.current.max ? ` (${data.current.max.toLocaleString('it-IT')} ordini/mese)` : ''}</> : ''}.
-        Passa al piano <b style={{ color: '#ffd60a' }}>{data.recommended.label}</b> {data.recommended.price !== 'su misura' ? `(${data.recommended.price}/mese)` : '(su misura)'} per restare in regola.
+        <b>{t('plan.overTitle', null, 'Sei sopra la tua fascia.')}</b> {t('plan.overBody', { n: data.orders.toLocaleString() }, `Hai registrato ${data.orders.toLocaleString()} ordini negli ultimi 30 giorni`)}
+        {data.current ? <> — {t('plan.overLimit', { plan: data.current.label }, `oltre il limite del piano ${data.current.label}`)}{data.current.max ? ` (${data.current.max.toLocaleString()} ${t('plan.ordersMonth', null, 'ordini/mese')})` : ''}</> : ''}.
+        {' '}{t('plan.upgradeTo', null, 'Passa al piano')} <b style={{ color: '#ffd60a' }}>{data.recommended.label}</b> {data.recommended.price !== 'su misura' ? `(${data.recommended.price}/mese)` : `(${t('plan.customPriceLc', null, 'su misura')})`} {t('plan.stayCompliant', null, 'per restare in regola.')}
       </div>
       <button onClick={() => (onGoSettings ? onGoSettings() : null)} style={{
         background: 'linear-gradient(135deg,#ff9f0a,#ff375f)', border: 'none', borderRadius: 9,
         padding: '9px 16px', color: 'var(--text)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'Barlow', whiteSpace: 'nowrap',
-      }}>Passa a {data.recommended.label}</button>
+      }}>{t('plan.upgradeBtnTo', { plan: data.recommended.label }, `Passa a ${data.recommended.label}`)}</button>
       <button onClick={dismiss} title={t('plan.hideThisMonth', null, 'Hide for this month')} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
     </div>
   )

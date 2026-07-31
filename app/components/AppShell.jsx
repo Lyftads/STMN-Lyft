@@ -539,7 +539,7 @@ const [helpOpen, setHelpOpen] = useState(false)
               )}
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','competitorIntel','clienti'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','clienti'].includes(tab) && (
                 <button
                   type="button"
                   onClick={onRefresh}

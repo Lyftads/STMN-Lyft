@@ -6,6 +6,10 @@ import { format, subDays } from 'date-fns'
 import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 
+// fetch esterno con timeout: un socket Shopify/Meta che stalla non deve
+// bruciare i 60s della funzione (dashboard/report/agent a cascata).
+const tfetch = (url, opts = {}) => fetch(url, { ...opts, signal: AbortSignal.timeout(15000) })
+
 // ── Cache server-side della risposta /api/metrics ──────────────────────────
 // La route è pesante (decine di query Shopify). Senza cache, ogni cambio tab /
 // refresh ricalcola tutto e satura il rate limit Shopify → dati intermittenti.
@@ -393,7 +397,7 @@ async function shopifyQL(query) {
 
   for (let attempt = 1; attempt <= MAX; attempt++) {
     try {
-      const res = await fetch(
+      const res = await tfetch(
         `https://${shopifyStoreUrl()}/admin/api/2026-04/graphql.json`,
         {
           method: 'POST',
@@ -489,7 +493,7 @@ async function fetchNcRcFromOrdersRest(start, end, { timeoutMs = 12000 } = {}) {
   try {
     while (url && safety < 50) {
       safety++
-      const res = await fetch(url, {
+      const res = await tfetch(url, {
         headers: { 'X-Shopify-Access-Token': shopifyToken() },
         cache: 'no-store',
         signal: controller.signal,
@@ -553,7 +557,7 @@ async function fetchShopifyOrdersAdminGQL(start, end, maxPages = 20) {
 
   try {
     while (pages < maxPages) {
-      const res = await fetch(
+      const res = await tfetch(
         `https://${shopifyStoreUrl()}/admin/api/2024-01/graphql.json`,
         {
           method: 'POST',
@@ -884,26 +888,24 @@ async function fetchAOV() {
 
     const since = subDays(new Date(), 30).toISOString()
 
-    const res = await fetch(
-      `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`,
-      {
-        headers: shopifyAuth(),
-      }
-    )
-
-    if (!res.ok) return { aov: 0, orders: 0 }
-
-    const data = await res.json()
-    const orders = data.orders || []
-
-    const revenue = orders.reduce(
-      (sum, order) => sum + parseFloat(order.total_price || 0),
-      0
-    )
+    // Paginato (Link header): con >250 ordini/30gg l'AOV usciva da un
+    // sottoinsieme e alimentava recommendations/agent con numeri sbagliati.
+    let url = `https://${shopifyStoreUrl()}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${since}&limit=250&fields=total_price`
+    let revenue = 0, count = 0
+    for (let page = 0; page < 40 && url; page++) {
+      const res = await tfetch(url, { headers: shopifyAuth() })
+      if (!res.ok) break
+      const data = await res.json().catch(() => null)
+      for (const order of (data?.orders || [])) { revenue += parseFloat(order.total_price || 0); count++ }
+      const link = res.headers.get('Link') || res.headers.get('link') || ''
+      const m = /<([^>]+)>;\s*rel="next"/.exec(link)
+      url = m ? m[1] : null
+    }
+    if (count === 0) return { aov: 0, orders: 0 }
 
     return {
-      aov: orders.length > 0 ? revenue / orders.length : 0,
-      orders: orders.length,
+      aov: revenue / count,
+      orders: count,
     }
   } catch {
     return { aov: 0, orders: 0 }
@@ -929,7 +931,7 @@ async function fetchShopifyOrdersSince(startDate = START_DATE, endDate = null) {
 
   try {
     while (url) {
-      const res = await fetch(url, {
+      const res = await tfetch(url, {
         headers: shopifyAuth(),
       })
 
@@ -1196,7 +1198,7 @@ async function fetchMetaWeekly() {
           `&limit=500` +
           `&access_token=${metaToken()}`
 
-        const res = await fetch(url)
+        const res = await tfetch(url)
         const data = await res.json()
 
         if (data.error) {
@@ -1314,7 +1316,7 @@ async function fetchMeta() {
           `&limit=500` +
           `&access_token=${metaToken()}`
 
-        const res = await fetch(url)
+        const res = await tfetch(url)
         const data = await res.json()
 
         if (data.error) {
@@ -1364,7 +1366,7 @@ async function fetchShopifyOrdersAdmin(start, end, maxPages = 20) {
     let page = 0
     let truncated = false
     while (url && page < maxPages) {
-      const res = await fetch(url, { headers: shopifyAuth() })
+      const res = await tfetch(url, { headers: shopifyAuth() })
       if (!res.ok) break
       const data = await res.json()
       for (const o of (data.orders || [])) {
@@ -1463,7 +1465,7 @@ async function safeMetaRange(range) {
     let spend = 0, impressions = 0, reach = 0, clicks = 0, purchases = 0, purchaseValue = 0
     for (const id of accounts) {
       const url = `https://graph.facebook.com/v19.0/${id}/insights?fields=${fields}&time_range={"since":"${range.since}","until":"${range.until}"}&access_token=${metaToken()}`
-      const res = await fetch(url)
+      const res = await tfetch(url)
       const data = await res.json()
       if (data.error) continue
       for (const d of (data.data || [])) {

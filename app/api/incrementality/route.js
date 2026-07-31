@@ -85,7 +85,7 @@ export async function GET(req) {
       }
       if (google?.daily?.length) {
         channels.push('google')
-        for (const d of google.daily) { const row = byDate.get(d.date); if (row) { row.channels.google = Number(d.spend) || 0; row.attributed.google = Number(d.revenue ?? d.conversions_value) || 0 } }
+        for (const d of google.daily) { const row = byDate.get(d.date); if (row) { row.channels.google = Number(d.spend) || 0; row.attributed.google = Number(d.convValue ?? d.revenue ?? d.conversions_value) || 0 } }
       }
 
       const rows = [...byDate.values()].filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date))

@@ -39,7 +39,7 @@ async function shopFetch(url, token) {
 
 // Pagina UNA finestra temporale (Link header, con retry via shopFetch).
 async function fetchOrdersWindow(store, token, sinceISO, untilISO, onOrder) {
-  let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&created_at_max=${encodeURIComponent(untilISO)}&limit=250&fields=id,created_at,line_items`
+  let url = `https://${store}/admin/api/2024-01/orders.json?status=any&financial_status=paid&created_at_min=${encodeURIComponent(sinceISO)}&created_at_max=${encodeURIComponent(untilISO)}&limit=250&fields=id,created_at,taxes_included,line_items`
   for (let page = 0; page < 200 && url; page++) {
     const res = await shopFetch(url, token)
     if (!res || !res.ok) break
@@ -63,7 +63,15 @@ async function fetchOrders(store, token, sinceISO, untilISO) {
       const pid = li.product_id != null ? String(li.product_id) : null
       if (!pid) continue
       const qty = num(li.quantity)
-      const rev = num(li.price) * qty - num(li.total_discount)
+      // Sconti: discount_allocations copre ANCHE i codici a livello ordine
+      // (total_discount no); IVA scorporata se il prezzo la include, cosi'
+      // margini e grossMargin (usato dall'LTV netto) sono su ricavo netto.
+      const allocs = Array.isArray(li.discount_allocations)
+        ? li.discount_allocations.reduce((s2, a) => s2 + num(a.amount), 0) : 0
+      const discount = allocs > 0 ? allocs : num(li.total_discount)
+      const lineTax = o.taxes_included && Array.isArray(li.tax_lines)
+        ? li.tax_lines.reduce((s2, tl) => s2 + num(tl.price), 0) : 0
+      const rev = num(li.price) * qty - discount - lineTax
       if (!byProduct.has(pid)) byProduct.set(pid, { productId: pid, title: li.title || '', units: 0, revenue: 0, variantQty: new Map() })
       const p = byProduct.get(pid)
       p.units += qty
@@ -78,7 +86,7 @@ async function fetchOrders(store, token, sinceISO, untilISO) {
   const spanMs = (endMs - startMs) / CHUNKS
   const windows = []
   for (let i = 0; i < CHUNKS; i++) {
-    const wMin = startMs + i * spanMs + (i > 0 ? 1 : 0) // +1ms: niente doppio conteggio al bordo
+    const wMin = startMs + i * spanMs + (i > 0 ? 1000 : 0) // +1s: Shopify tronca i filtri al secondo, +1ms non basta
     const wMax = (i === CHUNKS - 1) ? endMs : startMs + (i + 1) * spanMs
     windows.push([new Date(wMin).toISOString(), new Date(wMax).toISOString()])
   }
@@ -228,6 +236,15 @@ export async function GET(req) {
       let googleMatched = 0
       for (const [pid, cost] of googleProduct.byProduct) { mappedByProduct.set(pid, (mappedByProduct.get(pid) || 0) + cost); googleMatched += cost }
       unmappedSpend += Math.max(0, googleSpend - googleMatched)
+
+      // Prodotti con spesa mappata ma ZERO vendite nel periodo: senza riga la
+      // loro spesa spariva (marginOp totale gonfiato). Riga a ricavo 0.
+      for (const pid of mappedByProduct.keys()) {
+        if (!cur.has(pid)) {
+          const t = pmeta.meta.get(pid)?.title || productList.find(x => x.id === pid)?.title || `#${pid}`
+          cur.set(pid, { productId: pid, title: t, units: 0, revenue: 0, variantQty: new Map() })
+        }
+      }
 
       const adsTotal = metaSpend + googleSpend
       const mappedSpend = adsTotal - unmappedSpend

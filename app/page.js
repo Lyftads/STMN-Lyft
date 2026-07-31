@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from './components/ui/Icon'
 import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
-import { allowedTabsFor } from '../lib/team/roleTabs'
+import { allowedTabsFor, ALL_TABS } from '../lib/team/roleTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import AppShell from './components/AppShell'
 import dynamicImport from 'next/dynamic'
@@ -585,7 +585,7 @@ function Simulator({ cfg }) {
         ), { glow: '#2997ff', delay: 0 })}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <RatioWidget ratio={ratio} mer={s.cac>0&&s.aov>0?ltv/s.cac:null} />
+          <RatioWidget ratio={ratio} mer={null} />
 
           {fxBlock((
             <>
@@ -2256,7 +2256,8 @@ export default function App() {
   // Deep-link: ?tab=<id> apre direttamente quella sezione (usato anche dal
   // generatore video per inquadrare la tab giusta senza ambiguità di menu).
   useEffect(() => {
-    try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(p) } catch {}
+    // Id sconosciuti (tab rimosse, link vecchi) → dashboard, mai schermata vuota.
+    try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(ALL_TABS.includes(p) ? p : 'dashboard') } catch {}
   }, [])
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   // Creative Studio attiva SOLO sul workspace STMN (owner sul proprio workspace).
@@ -2956,11 +2957,11 @@ export default function App() {
 
           <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.merBlended', null, 'MER blended')} value={avgMER ? `${fr(avgMER)}x` : '—'} sources={['shopify','meta','google']} sub="Revenue / Ad Spend"
-              current={avgMER} previous={prevTotals.metaSpend > 0 ? prevTotals.revenue / prevTotals.metaSpend : null} />
+              current={avgMER} previous={(prevTotals.metaSpend + prevTotals.googleSpend) > 0 ? prevTotals.revenue / (prevTotals.metaSpend + prevTotals.googleSpend) : null} />
             <Stat label={t('dash.ltvGross', null, 'LTV lordo')} value={avgLTVGross ? f2(avgLTVGross) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvSubData', { orders: lifeOrders, months: ltvAuto.months }, `${lifeOrders} ord./cliente · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a`} />
             <Stat label={t('dash.ltvNet', null, 'LTV netto')} value={avgLTV ? f2(avgLTV) : '—'} sources={['shopify']} sub={ltvFromData ? t('dash.ltvNetSubData', { orders: lifeOrders, margin: cfg.margin, months: ltvAuto.months }, `${lifeOrders} ord. · ${cfg.margin}% margine · dati ${ltvAuto.months}m`) : `${cfg.freq}× · ${cfg.life}a · ${cfg.margin}%`} />
             <Stat label="CAC" value={avgCAC ? f2(avgCAC) : '—'} sources={['shopify','meta','google']} sub={`${fn(totNC)} NC`}
-              current={avgCAC} previous={prevTotals.nc > 0 ? (Number(mr?.spend || prevTotals.metaSpend))/prevTotals.nc : null} inverse />
+              current={avgCAC} previous={prevTotals.nc > 0 && (prevTotals.metaSpend + prevTotals.googleSpend) > 0 ? (prevTotals.metaSpend + prevTotals.googleSpend) / prevTotals.nc : null} inverse />
           </div>
 
           <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:14,marginBottom:20}}>

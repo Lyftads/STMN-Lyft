@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120 // stream+tool possono superare i 60s: evitava chiusure a metà
 
 import { NextResponse } from 'next/server'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'

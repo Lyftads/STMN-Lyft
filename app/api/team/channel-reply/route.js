@@ -85,6 +85,7 @@ export async function POST(req) {
       messages: conversation,
       locale: b.locale || null,
       temperature: 0.4,
+      liveTools: false, // ack immediato: mai tool live (25s) prima di rispondere
       guardTail: 'Decidi in base all\'ultima richiesta. Se per rispondere ti servono DATI del brand (creative, campagne, adset, numeri, prodotti, performance, vendite…), NON dare ancora i dati: scrivi un messaggio breve e naturale che (a) risponde all\'eventuale parte social/saluto del messaggio (es. se chiede "come stai?": "Ciao Marino, tutto bene grazie!") e (b) dice che vai a controllare (es. "dammi un attimo, controllo le creative migliori 👀"). Se invece è SOLO un saluto/chiacchiera che NON richiede dati, rispondi direttamente e fai iniziare il messaggio ESATTAMENTE con "DIRETTO: " seguito dalla risposta breve.',
     })
     const tr = String(triage.content || '').trim()

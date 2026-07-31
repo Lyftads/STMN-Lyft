@@ -12,7 +12,7 @@ const GUARD_NUMBERS = 'REGOLA CRITICA: OGNI numero, nome prodotto, nome campagna
 const AGENT_ID = 'performance'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120 // stream+tool possono superare i 60s: evitava chiusure a metà
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'

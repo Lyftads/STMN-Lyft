@@ -107,6 +107,7 @@ ${openList}`
   let plan = null
   try {
     const res = await callBrain({
+      conversation: false, // estrattore JSON: niente saluti/persona nel prompt
       skill: { id: 'team-planner', systemPrompt: planSkill, guard: 'Ogni nome/numero citato DEVE essere nei DATI LIVE. Non inventare.' },
       query: 'Pianifica i task operativi della settimana per il team a partire dai dati reali.',
       data: liveData,

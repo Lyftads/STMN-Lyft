@@ -61,6 +61,7 @@ export async function POST(req) {
   let plan = {}
   try {
     const res = await callBrain({
+      conversation: false, // estrattore JSON: niente saluti/persona nel prompt
       skill: { id: 'call-finalizer', systemPrompt: 'Analizzi la trascrizione di una call tra l\'utente e la Squadra AI di un brand e-commerce ed estrai cosa è stato deciso e cosa va fatto.', guard: 'Estrai solo ciò che emerge DAVVERO dalla call. Non inventare.' },
       query: 'Estrai sintesi e azioni dalla call.',
       data: { transcript: transcriptText }, dataLabel: 'TRASCRIZIONE DELLA CALL:', dataMax: 30000,
@@ -157,6 +158,7 @@ export async function POST(req) {
         const myTasks = byAgent[aid].map(t => `"${t.title}" (scad. ${t.due_date})`).join(', ')
         try {
           const r = await callBrain({
+      conversation: false, // estrattore JSON: niente saluti/persona nel prompt
             skill: { id: `team-${ag.id}`, systemPrompt: teamSkillPrompt(ag) },
             query: `Dalla call sono usciti questi task per te: ${myTasks}. Commenta brevemente come li affronterai.`,
             messages: [], locale: 'it', temperature: 0.5,

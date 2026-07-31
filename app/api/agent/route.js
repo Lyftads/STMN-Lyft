@@ -59,18 +59,9 @@ Usa solo numeri che trovi nel JSON. Se una piattaforma è attiva ma i dati sono 
 
 PERIODO: i DATI LIVE che ricevi sono SEMPRE già filtrati sul periodo che Marino ha chiesto — lo trovi scritto in "DATI LIVE (periodo: …)" e nel campo periodLabel/periodRange del contesto. Se chiede "l'8 maggio", i numeri sono dell'8 maggio; se chiede "mese scorso", sono del mese scorso. Rispondi riferendoti a QUEL periodo ("l'8 maggio il ROAS era X"). NON assumere mai "ultimi 30 giorni" se il periodo indicato è un altro. Se per quel periodo un dato è vuoto/zero, dillo ("per l'8 maggio non risulta spesa Meta") invece di inventare o usare un altro periodo.
 
-## Competitor Intelligence
-I competitor del brand sono quelli configurati nella Brand Identity (li trovi nel CONTESTO BRAND) e i dati live arrivano dallo strumento get_competitors: prezzi, catalogo, promozioni, creative attive.
-Quando ne parli: confronta SEMPRE coi numeri reali dello strumento, mai a memoria; distingui ciò che vedi (prezzi, ads attive) da ciò che ipotizzi; e traduci l'osservazione in una mossa concreta per il brand.
-
-### Come usare tutti questi dati
-Quando Marino chiede dei competitor:
-1. Parti dai **dati live** nel JSON (catalogo, prezzi, saldi, ads, social)
-2. Integra con il **profilo strategico** sopra
-3. **Confronta con STMN**: pricing, positioning, social presence, content strategy
-4. **Suggerisci azioni**: se un competitor sta facendo saldi aggressivi, valuta se rispondere sul prezzo o differenziare sul valore — con il numero che motiva la scelta.
-5. **Interpreta le ads**: tono, angolo, piattaforme — cosa testano? Che audience targettizzano?
-6. Sii un consulente strategico, non un report generator
+## Competitor
+I competitor del brand sono SOLO quelli scritti nella Brand Identity (li trovi nel CONTESTO BRAND): è testo dichiarato dal cliente, non un dato misurato. Non esiste più uno strumento che legge prezzi, cataloghi o ads dei competitor in tempo reale.
+Quindi: parlane a livello di posizionamento e strategia, e NON citare mai prezzi, promozioni, numero di ads o follower di un competitor — non li hai. Se te li chiedono, dillo chiaramente e proponi cosa guardare sui dati del brand (margine, prezzo medio, mix prodotti) per prendere comunque la decisione.
 
 ## Capability creative e strategiche
 
@@ -486,7 +477,7 @@ export async function POST(req) {
       // Dieta stile Sidekick: contesto pre-caricato ridotto (prima 80k) — per
       // tutto il resto il modello ha i tool live, più veloci di un prompt obeso.
       dataMax: 26000,
-      extraSystem: [{ role: 'system', content: 'STRUMENTI LIVE su QUALSIASI dato del software: get_kpis (ogni KPI, ogni periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console, get_email_marketing, get_pnl, get_cro, get_customers, get_ga4_traffic, get_incrementality, get_inventory, get_ltv, list_products, get_competitors, list_tasks, get_time_tracking. REGOLA FERREA: è VIETATO rispondere "non ho il dato" / "non ho accesso" / "controlla in piattaforma" senza aver PRIMA chiamato lo strumento pertinente. Se la domanda riguarda un periodo diverso da quello dei DATI in contesto, chiama lo strumento con QUEL periodo invece di adattare i numeri. Ogni risultato include istruzioni "jit": seguile.' }],
+      extraSystem: [{ role: 'system', content: 'STRUMENTI LIVE su QUALSIASI dato del software: get_kpis (ogni KPI, ogni periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console, get_email_marketing, get_pnl, get_cro, get_customers, get_ga4_traffic, get_incrementality, get_inventory, get_ltv, list_products, list_tasks, get_time_tracking. REGOLA FERREA: è VIETATO rispondere "non ho il dato" / "non ho accesso" / "controlla in piattaforma" senza aver PRIMA chiamato lo strumento pertinente. Se la domanda riguarda un periodo diverso da quello dei DATI in contesto, chiama lo strumento con QUEL periodo invece di adattare i numeri. Ogni risultato include istruzioni "jit": seguile.' }],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.3,

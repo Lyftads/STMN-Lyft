@@ -24,7 +24,7 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 const TOOL_LABELS = {
   get_kpis: 'kpi', list_creatives: 'meta', list_adsets: 'meta', get_google_campaigns: 'google',
   get_search_console: 'gsc', get_incrementality: 'incr', get_inventory: 'inventory',
-  get_ltv: 'ltv', get_competitors: 'competitors', list_tasks: 'tasks',
+  get_ltv: 'ltv', list_tasks: 'tasks',
   get_time_tracking: 'time', list_products: 'products', get_email_marketing: 'email',
   get_pnl: 'pnl', get_cro: 'cro', get_customers: 'customers', get_ga4_traffic: 'ga4',
 }

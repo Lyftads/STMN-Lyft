@@ -45,7 +45,7 @@ export async function GET(request) {
   const cron = request.headers.get('x-internal-cron') || ''
   const cookie = request.headers.get('cookie') || (cron ? { 'x-internal-cron': cron } : '')
 
-  const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, competitorIntel, productCosts, realtime] =
+  const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, productCosts, realtime] =
     await Promise.all([
       safeFetch(`${base}/api/metrics?preset=${encodeURIComponent(preset)}`, cookie),
       safeFetch(`${base}/api/meta-detail?${detailQs}&level=campaigns`, cookie),
@@ -53,7 +53,6 @@ export async function GET(request) {
       safeFetch(`${base}/api/klaviyo?days=${days}`, cookie),
       safeFetch(`${base}/api/google`, cookie),
       safeFetch(`${base}/api/ga4?days=${days}`, cookie),
-      safeFetch(`${base}/api/competitor-intel`, cookie),
       safeFetch(`${base}/api/product-costs`, cookie),
       safeFetch(`${base}/api/realtime`, cookie),
     ])
@@ -184,84 +183,6 @@ export async function GET(request) {
   if (productCosts?.products?.length) {
     context.productCosts = productCosts.products
     context.productCostsSummary = productCosts.summary
-  }
-
-  if (competitorIntel?.competitors?.length) {
-    context.competitors = competitorIntel.competitors.map((c) => {
-      const ws = c.websiteData || {}
-      const al = c.adLibrary || {}
-      const stats = ws.stats || {}
-
-      const onSaleProducts = (ws.products || [])
-        .filter((p) => p.onSale)
-        .slice(0, 5)
-        .map((p) => ({
-          title: p.title,
-          price: p.price,
-          was: p.compareAtPrice,
-          discount: p.discountPct + '%',
-        }))
-
-      const topByPrice = [...(ws.products || [])]
-        .filter((p) => p.price > 0)
-        .sort((a, b) => b.price - a.price)
-        .slice(0, 5)
-        .map((p) => ({
-          title: p.title,
-          price: p.price,
-          type: p.type,
-        }))
-
-      const social = c.social || {}
-      const fb = social.facebook || {}
-      const ig = social.instagram || {}
-
-      return {
-        name: c.name,
-        website: c.websiteUrl,
-        isShopify: ws.isShopify || false,
-        activeAds: al.count || 0,
-        adLibraryError: al.error || null,
-        ads: (al.ads || []).slice(0, 10).map((a) => ({
-          titles: a.titles,
-          bodies: a.bodies,
-          platforms: a.platforms,
-          startDate: a.startDate,
-        })),
-        catalog: {
-          totalProducts: stats.totalProducts || 0,
-          avgPrice: stats.avgPrice ? Math.round(stats.avgPrice * 100) / 100 : 0,
-          minPrice: stats.minPrice || 0,
-          maxPrice: stats.maxPrice || 0,
-          onSaleCount: stats.onSaleCount || 0,
-          onSalePct: stats.onSalePct || 0,
-          avgDiscount: stats.avgDiscount || 0,
-          categories: stats.categories || [],
-          outOfStock: stats.outOfStockCount || 0,
-        },
-        promos: ws.promos || [],
-        topByPrice,
-        onSaleProducts,
-        facebook: fb ? {
-          fans: fb.fans || 0,
-          avgEngagement: fb.avgEngagement || 0,
-          engagementRate: fb.engagementRate || null,
-          recentPosts: (fb.recentPosts || []).slice(0, 3),
-        } : null,
-        instagram: ig && !ig.error ? {
-          username: ig.username,
-          followers: ig.followers || 0,
-          following: ig.following || 0,
-          posts: ig.posts || 0,
-          bio: ig.bio || '',
-          isVerified: ig.isVerified || false,
-          avgEngagement: ig.avgEngagement || 0,
-          engagementRate: ig.engagementRate || null,
-          recentMedia: (ig.recentMedia || []).slice(0, 3),
-        } : null,
-      }
-    })
-    context.competitorsFetchedAt = competitorIntel.fetchedAt
   }
 
   if (gsc?.totals) {

@@ -6,7 +6,7 @@ import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 
 // ── Ads attive di UNA pagina (advertiser) dalla Meta Ad Library ──
-// Endpoint AGGIUNTIVO e isolato: NON tocca /api/competitor-intel.
+// Endpoint AGGIUNTIVO e isolato.
 // Usato dal client per popolare le creative dei competitor quando l'API
 // ufficiale non e' ancora approvata. Fonti: 1) Ad Library API (search_page_ids)
 // → 2) Browserless headless (render + intercetta GraphQL) → 3) link.

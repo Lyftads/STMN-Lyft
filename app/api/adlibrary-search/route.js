@@ -8,7 +8,7 @@ import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 // Fonti, in ordine: 1) Ad Library API ufficiale (search_terms) se il token e'
 // approvato → 2) Browserless headless (renderizza la pagina pubblica, bypassa
 // il 403 dello scraping statico) → 3) scrape statico → 4) link esterno.
-// Non tocca /api/competitor-intel.
+// Endpoint isolato e autonomo.
 // Token Meta risolto per-tenant via context (env fallback per STMN beta).
 
 // Ad Library API = gate separato dalla Marketing API (error 10 senza): token

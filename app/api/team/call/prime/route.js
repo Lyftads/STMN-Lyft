@@ -103,10 +103,9 @@ export async function POST(req) {
     .then(g => (Array.isArray(g?.dailySeries) && g.dailySeries.length) ? g.dailySeries : null)
     .catch(() => null)
 
-  // 6) Task, Lyftimer, Competitor (per gli strumenti live degli agent).
+  // 6) Task e Lyftimer (per gli strumenti live degli agent).
   const tasksP = fetch(`${origin}/api/tasks`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
   const lyftimerP = fetch(`${origin}/api/time-entries`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
-  const compP = fetch(`${origin}/api/competitor-intel`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
 
   // ── agent-context con retry (la weekly ShopifyQL a volte torna a zero) ─────
   let data = null
@@ -119,7 +118,7 @@ export async function POST(req) {
   }
   if (!data) return NextResponse.json({ ok: false, error: 'agent-context non disponibile' })
 
-  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, comp, metaPeriods, googleDaily] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, compP, metaPeriodsP, googleDailyP])
+  const [periods, klaviyo, gsc, ga4p, pnl, tasks, lyftimer, metaPeriods, googleDaily] = await Promise.all([periodsP, klaviyoP, gscP, ga4P, pnlP, tasksP, lyftimerP, metaPeriodsP, googleDailyP])
   if (periods) data._periods = periods
   if (metaPeriods && Object.keys(metaPeriods).length) data._metaPeriods = metaPeriods
   if (googleDaily) data._googleDaily = googleDaily
@@ -129,7 +128,6 @@ export async function POST(req) {
   if (pnl?.series) data._pnl = { series: pnl.series, cogsByMonth: pnl.cogsByMonth || null }
   if (tasks?.tasks) data._tasks = tasks.tasks.slice(0, 60)
   if (lyftimer) data._lyftimer = { entries: (lyftimer.entries || []).slice(0, 40), summary: lyftimer.summary || null }
-  if (comp) data._competitors = comp
 
   // Preserva la weekly BUONA precedente: se ShopifyQL ora torna a ZERO su una
   // settimana, riusa il valore non-zero dello snapshot precedente → Shopify resta

@@ -48,7 +48,7 @@ export async function GET(req) {
     return NextResponse.json(map, {
       // MAI 'public, s-maxage' su risposte PER-TENANT (URL uguale per tutti,
       // la CDN non varia sul cookie → immagini dello store di un tenant
-      // servite a un altro). Stessa classe di bug di competitor-intel.
+      // servite a un altro).
       headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch {

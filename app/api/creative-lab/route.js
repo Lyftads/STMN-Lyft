@@ -156,7 +156,6 @@ export async function GET(request) {
   const [creative, metrics, competitors, shopifyProducts] = await Promise.all([
     safeFetch(`${base}/api/creative?preset=last_28d`),
     safeFetch(`${base}/api/metrics`),
-    safeFetch(`${base}/api/competitor-intel`),
     fetchShopifyProducts(),
   ])
 

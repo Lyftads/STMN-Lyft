@@ -145,7 +145,7 @@ export async function POST(req) {
       // Tool LIVE multi-tenant (cookie della sessione che ha scritto in chat)
       tools: ALL_TOOLS,
       onToolCall: (n, a) => executeToolLive(n, a, { origin, cookie, snapshot: snapData }),
-      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente "Ciao Marino" un\'altra volta. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, get_competitors, list_tasks, get_time_tracking, list_products): usali quando servono e segui le istruzioni "jit" nei risultati.',
+      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente "Ciao Marino" un\'altra volta. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, list_tasks, get_time_tracking, list_products): usali quando servono e segui le istruzioni "jit" nei risultati.',
     })
     const answerMsg = await post(reply)
 

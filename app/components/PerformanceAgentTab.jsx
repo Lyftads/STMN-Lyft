@@ -77,10 +77,24 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
     setInput('')
     setLoading(true)
 
+    // Contesto in cache per sessione+periodo: prima si rifetchava l'intero
+    // aggregatore multi-piattaforma PRIMA di ogni messaggio (secondi di attesa
+    // a ogni domanda). I dati freschi arrivano comunque dai tool live.
     let agentContext = null
     try {
-      const ctxRes = await fetch(`/api/agent-context?preset=${encodeURIComponent(preset)}&days=30`, { cache: 'no-store' })
-      if (ctxRes.ok) agentContext = await ctxRes.json()
+      const ck = `lyft_agentctx_${preset}`
+      const cached = sessionStorage.getItem(ck)
+      if (cached) {
+        const { ts, data } = JSON.parse(cached)
+        if (Date.now() - ts < 5 * 60000) agentContext = data
+      }
+      if (!agentContext) {
+        const ctxRes = await fetch(`/api/agent-context?preset=${encodeURIComponent(preset)}&days=30`, { cache: 'no-store' })
+        if (ctxRes.ok) {
+          agentContext = await ctxRes.json()
+          try { sessionStorage.setItem(ck, JSON.stringify({ ts: Date.now(), data: agentContext })) } catch {}
+        }
+      }
     } catch (e) {
       console.log('Agent context fetch error:', e?.message)
     }

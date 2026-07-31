@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
-import { getTeamAgent, teamRoster } from '../../../lib/agent/team'
+import { getTeamAgent, teamRoster, teamSkillPrompt } from '../../../lib/agent/team'
 import { persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { readSnapshot, buildBrief } from '../../../lib/agent/brandSnapshot'
 import { resolveWorkspace } from '../../../lib/team/workspace'
@@ -52,7 +52,10 @@ export async function POST(req) {
 
   // Persona del team = skill inline su callBrain (chat mode → ha persona + brand
   // + memorie + knowledge + i DATI LIVE cross-dominio).
-  const skillPrompt = `${agent.systemPrompt}\n\n${rosterNote}\n\nParli SEMPRE in prima persona come ${agent.name} (${agent.role}). Tono umano, come una persona vera al telefono/in call — niente preamboli da AI, niente "come assistente". Rispondi nella lingua dell'utente.`
+  // Persona UNICA da teamSkillPrompt: prima la chat 1:1 costruiva un wrapper
+  // proprio e lo stesso agente si comportava diversamente tra chat, canali,
+  // call e standup (mancavano gerarchia e regole di stile).
+  const skillPrompt = teamSkillPrompt(agent)
 
   // Stessi DATI PRECISI per periodo + STRUMENTI live degli agent in call (snapshot).
   let briefBlock = null, snapData = null

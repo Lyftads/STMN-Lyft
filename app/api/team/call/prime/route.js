@@ -22,7 +22,10 @@ export async function POST(req) {
   {
     const { getEffectiveTenantId } = await import('../../../../../lib/tenant/credentials')
     const eff = await getEffectiveTenantId().catch(() => null)
-    if (!eff || eff !== process.env.LYFT_OWNER_USER_ID) {
+    // Con la voce multi-tenant attiva ogni workspace deve poter scaldare i
+    // PROPRI dati (prime scrive call_context per-workspace).
+    const multiTenantVoice = process.env.VOICE_MULTITENANT === 'true'
+    if (!eff || (!multiTenantVoice && eff !== process.env.LYFT_OWNER_USER_ID)) {
       return NextResponse.json({ ok: false, configured: false, reason: 'Le call vocali non sono ancora disponibili per questo workspace.' }, { status: 403 })
     }
   }

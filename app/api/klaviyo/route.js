@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120 // account grandi: 7 risorse paginate andavano in 504
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getKlaviyo, getTenantInfo } from '../../../lib/tenant/credentials'

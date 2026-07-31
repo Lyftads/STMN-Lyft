@@ -127,14 +127,14 @@ function getRange(preset, sp = null) {
 
   if (preset === 'last_7d') {
     return {
-      since: ymd(addDays(today, -6)),
+      since: ymd(addDays(today, -7)), // stessa convenzione di lib/metaRange
       until: ymd(today),
     }
   }
 
   if (preset === 'last_14d') {
     return {
-      since: ymd(addDays(today, -13)),
+      since: ymd(addDays(today, -14)),
       until: ymd(today),
     }
   }

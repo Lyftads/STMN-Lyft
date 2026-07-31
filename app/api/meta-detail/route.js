@@ -61,6 +61,8 @@ function startOfPreviousMonth(date) {
   return startOfMonth(endPrev)
 }
 
+// NB: stessa convenzione di lib/metaRange (last_Nd = oggi-N → oggi): con -6/-13/-27
+// Meta Detail mostrava fino al 12% di spesa in meno di Meta KPI sullo stesso preset.
 function getRange(preset, searchParams) {
   const today = todayISO()
 
@@ -70,15 +72,15 @@ function getRange(preset, searchParams) {
   }
 
   if (preset === 'last_7d') {
-    return { since: addDays(today, -6), until: today }
+    return { since: addDays(today, -7), until: today }
   }
 
   if (preset === 'last_14d') {
-    return { since: addDays(today, -13), until: today }
+    return { since: addDays(today, -14), until: today }
   }
 
   if (preset === 'last_28d') {
-    return { since: addDays(today, -27), until: today }
+    return { since: addDays(today, -28), until: today }
   }
 
   if (preset === 'today') {

@@ -352,6 +352,33 @@ function Simulator({ cfg }) {
   // a 80 → clampa (con margine 100 = nessun costo inserito, parte da 80).
   const [s, setS] = useState({aov:85, freq:cfg.freq||1.69, life:cfg.life||1.57, margin:Math.min(cfg.margin||30, 80), cac:35})
   const set = (k,v) => setS(x=>({...x,[k]:v}))
+
+  // AOV e CAC iniziali = medie REALI degli ultimi 90 giorni del workspace
+  // (prima erano fissi 85/35 = STMN per tutte le aziende). Se l'utente ha
+  // già mosso gli slider (valore ≠ default), non si sovrascrive.
+  useEffect(() => {
+    let alive = true
+    const iso = d => d.toISOString().slice(0, 10)
+    const since = iso(new Date(Date.now() - 89 * 86400000)), until = iso(new Date())
+    Promise.all([
+      fetch(`/api/cro?since=${since}&until=${until}`).then(r => r.json()).catch(() => null),
+      fetch('/api/meta-kpi?preset=last_90d').then(r => r.json()).catch(() => null),
+      fetch('/api/google-kpi?preset=last_90d').then(r => r.json()).catch(() => null),
+    ]).then(([cro, mk, gk]) => {
+      if (!alive || !cro) return
+      const orders = cro.totalOrders || 0
+      const aov90 = orders > 0 ? Math.round(cro.totalRevenue / orders) : 0
+      const spend = ((mk?.totals?.spend) || 0) + ((gk?.totals?.spend) || 0)
+      const nc = cro.newCustomers || 0
+      const cac90 = nc > 0 ? Math.round(spend / nc) : 0
+      setS(x => ({
+        ...x,
+        ...(aov90 > 0 && x.aov === 85 ? { aov: aov90 } : {}),
+        ...(cac90 > 0 && x.cac === 35 ? { cac: cac90 } : {}),
+      }))
+    })
+    return () => { alive = false }
+  }, [])
   const ltv   = s.aov * s.freq * s.life * s.margin/100
   const ratio = s.cac > 0 ? ltv/s.cac : 0
   const col   = ratioColor(ratio)
@@ -568,6 +595,9 @@ function Simulator({ cfg }) {
                 </h2>
                 <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12 }}>
                   {t('sim.toReach3Sub', null, 'Cosa devi cambiare per arrivare al ratio target')}
+                </p>
+                <p style={{ margin: '3px 0 0', color: 'var(--text3)', fontSize: 11, opacity: 0.8 }}>
+                  {t('sim.auto90', null, 'AOV e CAC partono dalla media reale degli ultimi 90 giorni.')}
                 </p>
               </div>
 

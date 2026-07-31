@@ -122,7 +122,7 @@ export async function GET(req) {
       // quando faremo query con agent_id IN ('kpi', 'auto-scan') in futuro.
       // Per ora, replichiamo gli insight su ogni agent principale per visibility
       // immediata (storage cost: trascurabile).
-      const targetAgents = ['kpi', 'auto-scan', 'performance']
+      const targetAgents = ['auto-scan'] // niente replica: buildAgentContext richiama già auto-scan per OGNI agente (prima lo stesso insight compariva 2 volte nel prompt)
       for (const agentId of targetAgents) {
         await rememberBatch(insights.map(i => ({
           userId: c.user_id,

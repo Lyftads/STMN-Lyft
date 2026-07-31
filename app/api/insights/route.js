@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getCurrentUserId } from '../../../lib/tenant/credentials'
 import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getTenantInfo } from '../../../lib/tenant/credentials'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
@@ -55,6 +56,8 @@ function safeJson(value, max = 60000) {
 }
 
 export async function POST(req) {
+  // Auth: senza sessione niente chiamate LLM a nostro carico
+  if (!(await getCurrentUserId().catch(() => null))) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       { error: 'OPENAI_API_KEY non configurata su Vercel.' },

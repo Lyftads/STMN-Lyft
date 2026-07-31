@@ -181,6 +181,15 @@ export async function POST(req) {
 
     return done(answerMsg)
   } catch (e) {
+        // L'agente aveva detto "un attimo, controllo" e poi restava muto per
+    // sempre: ora l'errore diventa un messaggio nel canale.
+    try {
+      await admin.from('channel_messages').insert({
+        channel_id: channelId, workspace_id: ws.workspaceId, author_id: null,
+        author_name: agent?.name || 'Agente',
+        body: 'Non riesco a recuperare i dati in questo momento — riprova tra poco.',
+      })
+    } catch {}
     return NextResponse.json({ ok: false, error: e?.message || 'Errore' })
   }
 }

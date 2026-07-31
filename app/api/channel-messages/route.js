@@ -25,17 +25,20 @@ export async function GET(req) {
   const threadRoot = searchParams.get('thread_root')
   if (!channelId) return NextResponse.json({ messages: [] })
   try {
+    // Gli ULTIMI 300 (poi invertiti): con ascending si caricavano i 300 più
+    // VECCHI e un canale attivo si apriva su messaggi di mesi fa.
     let q = admin.from('channel_messages').select('*')
       .eq('workspace_id', ws.workspaceId)
       .eq('channel_id', channelId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: !!after })
       .limit(300)
     // vista canale: solo top-level; vista thread: solo le risposte del root
     if (threadRoot) q = q.eq('thread_root', threadRoot)
     else q = q.is('thread_root', null)
     if (after) q = q.gt('created_at', after)
     const { data } = await q
-    return NextResponse.json({ messages: data || [] })
+    const rows = data || []
+    return NextResponse.json({ messages: after ? rows : rows.slice().reverse() })
   } catch (e) {
     return NextResponse.json({ messages: [], error: e.message })
   }

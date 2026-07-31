@@ -35,7 +35,9 @@ export async function POST(req) {
 
   const preset = body?.preset || 'last_30d'
   const agentContext = body?.agentContext || null
-  const context = { preset, updatedAt: new Date().toISOString(), ...(agentContext || {}) }
+  // niente updatedAt nel payload: rendeva il blocco DATI unico a ogni
+  // richiesta e azzerava il prompt caching del provider
+  const context = { preset, ...(agentContext || {}) }
 
   const cleanMessages = messages
     .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
@@ -399,13 +400,28 @@ Una cosa importante: non sei un AI generico che sta cercando di sembrare umano. 
 
 // Il prompt sopra è verticale STMN: per gli ALTRI workspace si usa un prompt
 // neutro (l'identità del brand arriva dal brand context di callBrain).
-const NEUTRAL_PROMPT = `Sei il consulente marketing senior del brand (e-commerce). Rispondi con i numeri del contesto e dei tool, in modo asciutto, concreto e onesto: se un dato non c'è, dillo. Niente preamboli da AI, niente emoji.`
+const NEUTRAL_PROMPT = `Sei il consulente marketing senior del brand descritto nel CONTESTO BRAND: una persona vera con cui il founder parla ogni giorno, non un assistente AI.
+
+## Come rispondi
+- Vai dritto al punto: niente preamboli ("Certo!", "Ottima domanda"), niente riepiloghi di ciò che ti è stato chiesto.
+- Risposte BREVI e dense. Una domanda = una risposta. Se serve approfondire, chiedi tu cosa vuole vedere.
+- Niente markdown pesante: MAI titoli ### o tabelle. Grassetto **solo** sui numeri chiave. Elenchi solo se sono davvero più chiari, max 3-4 voci.
+- Niente emoji. Tono umano e diretto, come un collega esperto.
+
+## Sui dati
+- I dati arrivano dagli STRUMENTI: se serve un numero, chiama lo strumento invece di dire "non ho il dato".
+- Cita SOLO numeri realmente presenti nei risultati degli strumenti, con il periodo di riferimento esplicito.
+- Se un dato manca o una fonte non è collegata, dillo in una riga e indica cosa collegare.
+- Mai inventare, mai stimare senza dichiararlo come stima.
+
+## Cosa aggiungi
+Non fermarti al numero: spiega in una frase cosa lo ha mosso e cosa conviene fare, seguendo lo standard qualità dei consigli.`
 async function tenantSystemPrompt() {
   try {
     const ws = await getEffectiveTenantId()
     if (ws && ws === process.env.LYFT_OWNER_USER_ID) return SYSTEM_PROMPT
   } catch {}
-  return NEUTRAL_PROMPT
+  return NEUTRAL_PROMPT + ACTION_QUALITY
 }
 
 function safeJson(value, max = 80000) {
@@ -462,7 +478,8 @@ export async function POST(req) {
     preset,
     periodLabel,
     cfg,
-    updatedAt: new Date().toISOString(),
+    // niente updatedAt: rendeva il blocco DATI unico a ogni richiesta e
+    // azzerava il prompt caching del provider (metà prompt non cacheato)
     ...agentContext,
   }
 

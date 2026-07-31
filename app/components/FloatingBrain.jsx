@@ -15,7 +15,19 @@ import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 
-const STORE_KEY = 'lyft_brain_msgs'
+// Chiave PER UTENTE+WORKSPACE: con la chiave globale, dopo un logout l'utente
+// successivo sullo stesso browser vedeva la conversazione del precedente (e la
+// rispediva al server come contesto). Fix audit AI 31 lug.
+const STORE_BASE = 'lyft_brain_msgs'
+function storeKey() {
+  if (typeof document === 'undefined') return STORE_BASE
+  try {
+    const ws = (document.cookie.match(/(?:^|;\s*)active_workspace=([^;]+)/) || [])[1] || ''
+    const sb = (document.cookie.match(/sb-[a-z0-9]+-auth-token=([^;]{0,24})/) || [])[1] || ''
+    return `${STORE_BASE}_${ws || 'own'}_${sb.slice(-12)}`
+  } catch { return STORE_BASE }
+}
+const STORE_KEY = STORE_BASE // compat: le vecchie chiavi vengono ripulite sotto
 
 // Render leggero del markdown: **grassetto** → bold (niente più ** a schermo).
 // Mantiene i newline (il bubble ha whiteSpace pre-wrap).
@@ -124,7 +136,7 @@ function periodToQuery(p) {
 
 function loadMsgs() {
   try {
-    const raw = localStorage.getItem(STORE_KEY)
+    const raw = localStorage.getItem(storeKey())
     const arr = raw ? JSON.parse(raw) : []
     return Array.isArray(arr) ? arr.slice(-40) : []
   } catch { return [] }
@@ -132,6 +144,7 @@ function loadMsgs() {
 
 export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const { t } = useI18n()
+  useEffect(() => { try { localStorage.removeItem(STORE_BASE) } catch {} }, [])
   const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState([])
@@ -177,7 +190,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setMsgs(loadMsgs()) }, [])
   useEffect(() => {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(msgs.slice(-40))) } catch {}
+    try { localStorage.setItem(storeKey(), JSON.stringify(msgs.slice(-40))) } catch {}
   }, [msgs])
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -252,7 +265,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { localStorage.removeItem(STORE_KEY) } catch {} }
+  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { localStorage.removeItem(storeKey()) } catch {} }
 
   // Estrae azioni concrete dalla conversazione (proposte per la Coda Azioni).
   const proposeActions = useCallback(async () => {

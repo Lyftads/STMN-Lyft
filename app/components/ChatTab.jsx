@@ -61,6 +61,8 @@ export default function ChatTab({ standalone = false }) {
   const [manageId, setManageId] = useState(null)
   const [manageMemberIds, setManageMemberIds] = useState([])
   const [replyTo, setReplyTo] = useState(null)
+  const [sendError, setSendError] = useState('')
+  const [agentTyping, setAgentTyping] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [mentionOpen, setMentionOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -215,22 +217,46 @@ export default function ChatTab({ standalone = false }) {
     if (r.ok && r.message && !seenRef.current.has(r.message.id)) {
       seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
       setMessages(prev => [...prev, r.message]); scrollBottom()
+    } else if (!r.ok) {
+      // Invio fallito: prima il testo spariva senza dire nulla
+      setText(body)
+      setSendError(r.error || t('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
+      return
     }
+    setSendError('')
     // Risposta degli agenti del team AI:
     //  - se il messaggio NOMINA un agente, oppure
     //  - se l'ULTIMO a parlare nel canale era un agente (continua la conversazione
     //    senza dover richiamare il nome ogni volta).
     // I messaggi degli agenti hanno author_id null.
+    // Trigger agenti: SOLO menzione esplicita con @ (i nomi propri da soli
+    // facevano irrompere l'AI nelle conversazioni tra colleghi umani) oppure
+    // continuazione entro 3 minuti da una risposta dell'agente.
     const prevMsg = messages[messages.length - 1]
-    const continueAgent = !!(prevMsg && !prevMsg.author_id)
-    const mentionsAgent = /(^|[^a-zà-ù])(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)([^a-zà-ù]|$)/i.test(body)
-    if (mentionsAgent || continueAgent) {
+    const recentAgent = !!(prevMsg && !prevMsg.author_id &&
+      (Date.now() - new Date(prevMsg.created_at).getTime()) < 3 * 60000)
+    const mentionsAgent = /@\s*(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)\b/i.test(body)
+    if (mentionsAgent || recentAgent) {
       let locale = null
       try { locale = localStorage.getItem('lyft_lang') } catch {}
+      setAgentTyping(true)
       fetch('/api/team/channel-reply', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel_id: active, locale }),
-      }).catch(() => {})
+      })
+        .then(x => x.json()).catch(() => ({}))
+        .then(j => {
+          // La risposta CONTIENE già i messaggi dell'agente: dipingerli subito
+          // invece di aspettare il poll (prima il canale restava immobile).
+          const list = Array.isArray(j?.messages) ? j.messages : (j?.message ? [j.message] : [])
+          const fresh = list.filter(m => m?.id && !seenRef.current.has(m.id))
+          if (fresh.length) {
+            fresh.forEach(m => seenRef.current.add(m.id))
+            lastAtRef.current = fresh[fresh.length - 1].created_at || lastAtRef.current
+            setMessages(prev => [...prev, ...fresh]); scrollBottom()
+          }
+        })
+        .finally(() => setAgentTyping(false))
     }
   }
 
@@ -302,7 +328,13 @@ export default function ChatTab({ standalone = false }) {
     if (r.ok && r.message && !seenRef.current.has(r.message.id)) {
       seenRef.current.add(r.message.id); lastAtRef.current = r.message.created_at
       setMessages(prev => [...prev, r.message]); scrollBottom()
+    } else if (!r.ok) {
+      // Invio fallito: prima il testo spariva senza dire nulla
+      setText(body)
+      setSendError(r.error || t('chat.sendFailed', null, 'Messaggio non inviato. Riprova.'))
+      return
     }
+    setSendError('')
     return r
   }
 
@@ -806,6 +838,12 @@ export default function ChatTab({ standalone = false }) {
               {/* Input con evidenziazione menzioni */}
               <div style={{ position: 'relative' }}>
                 <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: '#e7e7ef', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
+                {(agentTyping || sendError) && (
+                  <div style={{ padding: '6px 14px', fontSize: 12, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {sendError || t('chat.agentTyping', null, 'L\'agente sta scrivendo…')}
+                  </div>
+                )}
+
                 <textarea
                   ref={taRef}
                   rows={2}

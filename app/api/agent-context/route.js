@@ -186,25 +186,6 @@ export async function GET(request) {
     context.productCostsSummary = productCosts.summary
   }
 
-  if (marketIntel) {
-    context.marketIntel = {
-      trustpilot: marketIntel.trustpilot || {},
-      amazon: marketIntel.amazon || {},
-      influencers: (marketIntel.influencers || []).map(inf => ({
-        name: inf.name,
-        youtube: inf.youtube ? {
-          subscribers: inf.youtube.subscribers,
-          recentVideos: (inf.youtube.videos || []).slice(0, 3).map(v => ({ title: v.title, date: v.published, views: v.views })),
-        } : null,
-        instagram: inf.instagram && !inf.instagram.error ? {
-          followers: inf.instagram.followers,
-          bio: inf.instagram.bio,
-        } : null,
-      })),
-      fetchedAt: marketIntel.fetchedAt,
-    }
-  }
-
   if (competitorIntel?.competitors?.length) {
     context.competitors = competitorIntel.competitors.map((c) => {
       const ws = c.websiteData || {}

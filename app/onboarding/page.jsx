@@ -857,18 +857,41 @@ function MetaStep({ step, values, setField }) {
             placeholder="act_123456789"
             style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
           />
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6 }}>{t('obp.metaMultiHint', null, 'Più account: separali con una virgola.')}</div>
         </div>
       ) : (
-        <select
-          value={values.meta_account_id || ''}
-          onChange={e => setField('meta_account_id', e.target.value)}
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}
-        >
-          <option value="">{t('obp.selectMeta', null, '— Seleziona account —')}</option>
-          {accounts.map(a => (
-            <option key={a.id} value={a.id}>{`${a.name || a.id}${a.business ? ' · ' + a.business : ''} — ${a.id}`}</option>
-          ))}
-        </select>
+        // Selezione MULTIPLA: meta_account_id e' una lista separata da virgole
+        // (le route Meta fanno split(',')). Stesso comportamento del picker
+        // in-app in MetaConnectButton: con un <select> singolo un account
+        // pubblicitario in piu' era impossibile da collegare.
+        (() => {
+          const selected = String(values.meta_account_id || '').split(',').map(s => s.trim()).filter(Boolean)
+          const toggle = (id) => {
+            const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]
+            setField('meta_account_id', next.join(','))
+          }
+          return (
+            <div style={{ display: 'grid', gap: 5 }}>
+              {accounts.map(a => {
+                const on = selected.includes(a.id)
+                return (
+                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(123,91,255,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(123,91,255,0.40)' : 'rgba(255,255,255,0.08)'}` }}>
+                    <input type="checkbox" checked={on} onChange={() => toggle(a.id)} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{a.name || a.id}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{a.business || '—'} · {a.id}</div>
+                    </div>
+                  </label>
+                )
+              })}
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                {selected.length > 0
+                  ? t('obp.metaSelectedCount', { n: selected.length }, `${selected.length} account selezionati`)
+                  : t('obp.metaSelectAtLeastOne', null, 'Seleziona almeno un account pubblicitario.')}
+              </div>
+            </div>
+          )
+        })()
       )}
     </div>
   )

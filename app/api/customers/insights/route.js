@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { ACTION_QUALITY } from '../../../../lib/agent/actionQuality'
 import { withTenantContext } from '../../../../lib/tenant/credentials'
 import { callBrain } from '../../../../lib/agent/gateway'
+import { pickEnum } from '../../../../lib/agent/pickEnum'
 import { buildBrandContext } from '../../../../lib/tenant/brand'
 
 // ── Insight & raccomandazioni proattive sui clienti (RFM) ───────────────────
@@ -64,8 +65,12 @@ export async function POST(req) {
       if (!out.insights && !out.recommendations) {
         return NextResponse.json({ ok: false, error: 'Generazione non riuscita', raw: content?.slice(0, 400) }, { status: 200 })
       }
-      // Filtra recommendations con segment valido
-      const recommendations = (out.recommendations || []).filter(r => SEG_KEYS.includes(r.segment))
+      // Filtra recommendations con segment valido. NB: si normalizza PRIMA di
+      // filtrare — con il confronto secco un "New" al posto di "new" faceva
+      // sparire la raccomandazione senza lasciare traccia.
+      const recommendations = (out.recommendations || [])
+        .map(r => ({ ...r, segment: pickEnum(r.segment, SEG_KEYS) }))
+        .filter(r => r.segment)
       return NextResponse.json({ ok: true, headline: out.headline || '', insights: out.insights || [], recommendations })
     } catch (e) {
       return NextResponse.json({ ok: false, error: e?.message || 'Errore generazione' }, { status: 200 })

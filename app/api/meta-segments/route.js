@@ -82,11 +82,11 @@ async function fb(path, params) {
 }
 
 // Totals per segmento sul range (no timeseries)
-async function segTotals(since, until) {
+async function segTotals(since, until, errors = []) {
   const agg = {}
   for (const acc of accounts()) {
     let rows = []
-    try { rows = await fb(`${acc}/insights`, { level: 'account', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', fields: 'spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '50' }) } catch {}
+    try { rows = await fb(`${acc}/insights`, { level: 'account', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', fields: 'spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '50' }) } catch (e) { errors.push(`${acc} (periodo precedente): ${e?.message || 'errore Meta'}`) }
     for (const row of rows) {
       const b = SEG_MAP[row.user_segment_key] || 'unknown'
       if (!agg[b]) agg[b] = zero()
@@ -97,12 +97,12 @@ async function segTotals(since, until) {
 }
 
 // Totals + daily per segmento sul range
-async function segDetailed(since, until) {
+async function segDetailed(since, until, errors = []) {
   const totalsAgg = {}
   const dailyAgg = {} // segment → date → acc
   for (const acc of accounts()) {
     let rows = []
-    try { rows = await fb(`${acc}/insights`, { level: 'account', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', time_increment: '1', fields: 'spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '500' }) } catch {}
+    try { rows = await fb(`${acc}/insights`, { level: 'account', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', time_increment: '1', fields: 'spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '500' }) } catch (e) { errors.push(`${acc}: ${e?.message || 'errore Meta'}`) }
     for (const row of rows) {
       const b = SEG_MAP[row.user_segment_key] || 'unknown'
       const date = row.date_start
@@ -121,11 +121,11 @@ async function segDetailed(since, until) {
 // Per-CAMPAGNA: insights level=campaign + breakdown segmento → mappa
 // campaignId → { name, segments: { new/returning/engaged/unknown: KPI } }.
 // On-demand (toggle in Meta Detail): una sola chiamata per account.
-async function byCampaign(since, until) {
+async function byCampaign(since, until, errors = []) {
   const map = {} // campaignId → { name, agg: { seg → acc } }
   for (const acc of accounts()) {
     let rows = []
-    try { rows = await fb(`${acc}/insights`, { level: 'campaign', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', fields: 'campaign_id,campaign_name,spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '500' }) } catch {}
+    try { rows = await fb(`${acc}/insights`, { level: 'campaign', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key', fields: 'campaign_id,campaign_name,spend,impressions,reach,inline_link_clicks,clicks,actions,action_values', limit: '500' }) } catch (e) { errors.push(`${acc}: ${e?.message || 'errore Meta'}`) }
     for (const row of rows) {
       const cid = row.campaign_id || row.campaign_name
       if (!cid) continue
@@ -157,8 +157,11 @@ export async function GET(req) {
     // Modalità per-campagna (toggle Meta Detail): più leggera, niente daily/prev.
     if (level === 'campaign') {
       return swrSnapshot(req, { tab: 'metaSegmentsByCampaign', ttlMs: 30 * 60 * 1000, compute: async () => {
-        const campaigns = await byCampaign(range.since, range.until)
-        return { ok: true, configured: true, level: 'campaign', preset, range, campaigns, updatedAt: new Date().toISOString() }
+        const metaErrors = []
+        const campaigns = await byCampaign(range.since, range.until, metaErrors)
+        return { ok: true, configured: true, level: 'campaign', preset, range, campaigns,
+          ...(metaErrors.length ? { error: metaErrors[0], metaErrors, __noCache: true } : {}),
+          updatedAt: new Date().toISOString() }
       } })
     }
     // periodo precedente, stessa lunghezza
@@ -169,9 +172,13 @@ export async function GET(req) {
     const prevRange = { since: prevSince.toISOString().slice(0, 10), until: prevUntil.toISOString().slice(0, 10) }
 
     return swrSnapshot(req, { tab: 'metaSegments', ttlMs: 30 * 60 * 1000, compute: async () => {
+      // Errori Graph RACCOLTI, non ingoiati: un token scaduto altrimenti
+      // produce segmenti tutti a zero, indistinguibili da "nessuna spesa"
+      // (e cachati come validi per la TTL).
+      const metaErrors = []
       const [{ totalsAgg, dailyAgg }, prevAgg] = await Promise.all([
-        segDetailed(range.since, range.until),
-        segTotals(prevRange.since, prevRange.until),
+        segDetailed(range.since, range.until, metaErrors),
+        segTotals(prevRange.since, prevRange.until, metaErrors),
       ])
       const segments = {}
       for (const key of ['new', 'returning', 'engaged', 'unknown']) {
@@ -191,6 +198,7 @@ export async function GET(req) {
         ok: true, configured: true, preset, range, prevRange,
         segments,
         cacNew: segments.new?.cpo ?? null,
+        ...(metaErrors.length ? { error: metaErrors[0], metaErrors, __noCache: true } : {}),
         updatedAt: new Date().toISOString(),
       }
     } })

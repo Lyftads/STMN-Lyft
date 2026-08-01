@@ -38,14 +38,19 @@ export async function GET(req) {
     return swrSnapshot(req, { tab: 'metaKpi', compute: async () => {
       try {
         const prevRange = previousRange(range)
-        const [{ totals, daily }, prevAgg] = await Promise.all([
+        const [{ totals, daily, errors }, prevAgg] = await Promise.all([
           buildKpi({ accessToken, accountIds, range }),
           buildKpiTotalsOnly({ accessToken, accountIds, range: prevRange }),
         ])
+        // Se anche UNA sola chiamata Graph e' fallita i numeri sono parziali:
+        // lo diciamo al client e NON cachiamo (__noCache), altrimenti un errore
+        // transitorio resta servito come verita' per tutta la TTL.
+        const metaErrors = [...errors, ...(prevAgg.errors || [])]
         return {
           preset, range, prevRange,
           accounts: accountIds,
           totals, prevTotals: prevAgg.totals, daily,
+          ...(metaErrors.length ? { error: metaErrors[0], metaErrors, __noCache: true } : {}),
           updatedAt: new Date().toISOString(),
         }
       } catch (err) {
@@ -122,6 +127,7 @@ function previousRange({ since, until }) {
 
 async function buildKpiTotalsOnly({ accessToken, accountIds, range }) {
   const totals = zeroBucket()
+  const errors = []
   for (const accId of accountIds) {
     const fields = encodeURIComponent('spend,impressions,clicks,inline_link_clicks,reach,frequency,actions,action_values')
     const timeRange = encodeURIComponent(JSON.stringify({ since: range.since, until: range.until }))
@@ -131,16 +137,21 @@ async function buildKpiTotalsOnly({ accessToken, accountIds, range }) {
       for (const r of (data.data || [])) accumulate(totals, r)
     } catch (e) {
       console.log('[meta-kpi] prev totals failed', accId, e?.message)
+      errors.push(`${accId} (periodo precedente): ${e?.message || 'errore Meta'}`)
     }
   }
   finalize(totals)
-  return { totals }
+  return { totals, errors }
 }
 
 async function buildKpi({ accessToken, accountIds, range }) {
   // Aggregato totale account (somma di account multipli se applicable)
   const totals = zeroBucket()
   const dailyMap = new Map() // date → bucket
+  // Ogni chiamata Graph che fallisce viene RACCOLTA, non solo loggata: senza
+  // questo un token scaduto produce una risposta 200 di zeri indistinguibile
+  // da "non hai speso niente" (e lo snapshot SWR la cacha come valida).
+  const errors = []
 
   for (const accId of accountIds) {
     // Aggregato totale
@@ -153,6 +164,7 @@ async function buildKpi({ accessToken, accountIds, range }) {
         for (const r of (data.data || [])) accumulate(totals, r)
       } catch (e) {
         console.log('[meta-kpi] totals failed', accId, e?.message)
+        errors.push(`${accId} (totali): ${e?.message || 'errore Meta'}`)
       }
     }
 
@@ -170,6 +182,7 @@ async function buildKpi({ accessToken, accountIds, range }) {
         }
       } catch (e) {
         console.log('[meta-kpi] daily failed', accId, e?.message)
+        errors.push(`${accId} (serie giornaliera): ${e?.message || 'errore Meta'}`)
       }
     }
   }
@@ -185,7 +198,7 @@ async function buildKpi({ accessToken, accountIds, range }) {
       return b
     })
 
-  return { totals, daily }
+  return { totals, daily, errors }
 }
 
 function zeroBucket(date = null) {

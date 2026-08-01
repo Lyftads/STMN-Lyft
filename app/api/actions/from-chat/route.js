@@ -5,6 +5,7 @@ export const maxDuration = 45
 import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { callBrain } from '../../../../lib/agent/gateway'
+import { pickEnum } from '../../../../lib/agent/pickEnum'
 
 // Estrae dalla CONVERSAZIONE col cervello le azioni concrete eseguibili, da
 // proporre nella Coda Azioni. NON esegue nulla: ritorna proposte che l'utente
@@ -44,8 +45,8 @@ export async function POST(req) {
     })
     const raw = Array.isArray(parsed?.actions) ? parsed.actions : []
     const actions = raw.map(a => ({
-      channel: CHANNELS.includes(a.channel) ? a.channel : 'other',
-      type: TYPES.includes(a.type) ? a.type : 'custom',
+      channel: pickEnum(a.channel, CHANNELS, 'other'),
+      type: pickEnum(a.type, TYPES, 'custom'),
       target_name: a.target_name ? String(a.target_name).slice(0, 160) : null,
       summary: String(a.summary || '').slice(0, 300),
       why: a.why ? String(a.why).slice(0, 300) : null,

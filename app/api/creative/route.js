@@ -957,9 +957,14 @@ export async function GET(req) {
     ])
 
     // Fetch ad-level: account in PARALLELO.
+    // Gli errori Graph del fetch ad-level vengono RACCOLTI: prima un token
+    // scaduto svuotava la tabella senza alcun messaggio, indistinguibile da
+    // "nessuna creativita' attiva".
+    const metaErrors = []
     const perAccountRows = await Promise.all(accounts.map(account =>
       metaGetAll(`${account}/insights`, { level: 'ad', fields, time_range: range }, 500)
-        .then(rows => rows.map(r => normalizeInsight(r, account))).catch(() => [])
+        .then(rows => rows.map(r => normalizeInsight(r, account)))
+        .catch(e => { metaErrors.push(`${account}: ${e?.message || 'errore Meta'}`); return [] })
     ))
     let allRows = perAccountRows.flat()
 
@@ -1018,6 +1023,7 @@ export async function GET(req) {
       summary,
       prevSummary,
       dailySeries,
+      ...(metaErrors.length ? { error: metaErrors[0], metaErrors } : {}),
       debug: debug ? {
         env: getSafeEnvDebug(),
         rawAccountRows,

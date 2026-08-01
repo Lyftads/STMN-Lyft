@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { resolveWorkspace } from '../../../../lib/team/workspace'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { callBrain } from '../../../../lib/agent/gateway'
+import { pickEnum } from '../../../../lib/agent/pickEnum'
 
 // Trasforma una descrizione in linguaggio naturale in una BOZZA strutturata di
 // campagna Meta. Non crea nulla: restituisce la bozza, che l'utente rivede e
@@ -13,6 +14,8 @@ import { callBrain } from '../../../../lib/agent/gateway'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
+
+const OBJECTIVES = ['OUTCOME_SALES', 'OUTCOME_LEADS', 'OUTCOME_TRAFFIC', 'OUTCOME_AWARENESS', 'OUTCOME_ENGAGEMENT']
 
 const SYSTEM_PROMPT = `Sei un media buyer esperto di Meta Ads. Trasforma la richiesta dell'utente in una bozza di campagna Meta strutturata e realistica.
 Rispondi SOLO con un oggetto JSON con ESATTAMENTE queste chiavi:
@@ -50,10 +53,10 @@ export async function POST(req) {
     // normalizzazione difensiva
     const out = {
       name: String(draft.name || 'Nuova campagna').slice(0, 120),
-      objective: String(draft.objective || 'OUTCOME_SALES'),
+      objective: pickEnum(draft.objective, OBJECTIVES, 'OUTCOME_SALES'),
       daily_budget_eur: Math.max(1, Math.round(Number(draft.daily_budget_eur) || 20)),
       audience: String(draft.audience || '').slice(0, 400),
-      optimization_goal: String(draft.optimization_goal || 'PURCHASE'),
+      optimization_goal: String(draft.optimization_goal || 'PURCHASE').trim().toUpperCase(),
       summary: String(draft.summary || draft.name || 'Nuova campagna Meta').slice(0, 300),
     }
     return NextResponse.json({ ok: true, draft: out })

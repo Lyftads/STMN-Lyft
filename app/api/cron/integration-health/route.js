@@ -3,7 +3,7 @@ export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { getTenantCreds } from '../../../../lib/tenant/credentials'
+import { getTenantCreds, getCurrentUserId } from '../../../../lib/tenant/credentials'
 import { CHECKS } from '../../../../lib/health/checks'
 import { buildHealthEmail, resolveRecipient } from '../../../../lib/health/healthEmail'
 import { sendEmail } from '../../../../lib/team/notify'
@@ -31,12 +31,24 @@ function isAuthorized(req) {
   return !!secret && auth === `Bearer ${secret}`
 }
 
+// L OWNER autenticato puo' lanciare il solo dry-run (nessun invio, nessuna
+// scrittura): serve per verificare a mano senza il CRON_SECRET, che Vercel non
+// rivela piu' dopo la creazione. L esecuzione REALE resta legata al segreto.
+async function isOwnerSession() {
+  try {
+    const owner = process.env.LYFT_OWNER_USER_ID
+    if (!owner) return false
+    return (await getCurrentUserId()) === owner
+  } catch { return false }
+}
+
 export async function GET(req) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const dry = new URL(req.url).searchParams.get('dry') === '1'
+  if (!isAuthorized(req) && !(dry && await isOwnerSession())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ error: 'Supabase non configurato' }, { status: 500 })
-
-  const dry = new URL(req.url).searchParams.get('dry') === '1'
 
   const { data: companies, error } = await admin
     .from('companies')

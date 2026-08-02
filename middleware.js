@@ -14,6 +14,12 @@ const PUBLIC_PATHS = [
   '/auth/callback',
   '/onboarding',
   '/welcome',
+  // Landing nelle altre lingue: stessa pagina di /welcome, una URL per lingua
+  // (servono a Google, che di una sola URL indicizza una sola lingua).
+  '/en',
+  '/es',
+  '/fr',
+  '/de',
   '/privacy',
   '/terms',
   '/demo',

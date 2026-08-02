@@ -4,6 +4,7 @@ import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentC
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
 import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 
 const AGENT_ID = 'scanner'
 
@@ -108,7 +109,7 @@ export async function POST(req) {
   // contextBlock → SYSTEM_PROMPT → lingua → SCAN DATA → storia → REMINDER finale.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) },
+      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
       query: lastUserMsg,
       data: context,
       dataLabel: "SCAN DATA — l'analisi CRO di riferimento per ogni domanda:",

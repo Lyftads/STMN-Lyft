@@ -8,6 +8,7 @@ import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentC
 import { complete } from '../../../lib/agent/router'
 import { requireCaller } from '../../../lib/tenant/credentials'
 import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 
 const AGENT_ID = 'creative'
 
@@ -145,7 +146,7 @@ export async function POST(req) {
         topP: 0.9,
         messages: [
           ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: tenantPrompt(SYSTEM_PROMPT) },
+          { role: 'system', content: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           { role: 'system', content: `CREATIVE DATA — usa SOLO questi numeri/nomi per le citazioni, mai inventare:\n${safeJson(context)}` },
           ...clean,

@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
@@ -77,7 +78,7 @@ export async function POST(req) {
     // all'auditBlock. La lingua e l'auditBlock passano via extraSystem per
     // restare subito dopo il SYSTEM_PROMPT, prima della storia (ordine come prima).
     const { content: reply } = await callBrain({
-      skill: { id: 'seo', systemPrompt: SYSTEM_PROMPT },
+      skill: { id: 'seo', systemPrompt: SYSTEM_PROMPT + ACTION_QUALITY },
       query: String(lastUserMsg).slice(0, 500),
       messages,
       locale: null,

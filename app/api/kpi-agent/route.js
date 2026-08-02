@@ -4,6 +4,7 @@ import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../.
 import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -160,7 +161,7 @@ export async function POST(req) {
   // evita doppia direttiva-lingua. temp 0, top_p 0.1, troncamento dati 60k.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT },
+      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT + ACTION_QUALITY },
       query: lastUserMsg,
       data: context,
       dataLabel: 'DATI LIVE — usa SOLO questi numeri, mai inventare:',

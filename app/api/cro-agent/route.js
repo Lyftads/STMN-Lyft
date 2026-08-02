@@ -4,6 +4,7 @@ import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../.
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
 import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
+import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
 
 const AGENT_ID = 'cro'
 
@@ -106,7 +107,7 @@ export async function POST(req) {
   // contextBlock → SYSTEM_PROMPT → lingua → CRO DATA → storia → REMINDER finale.
   try {
     const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) },
+      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
       query: lastUserMsg,
       data: context,
       dataLabel: 'CRO DATA — usa SOLO questi numeri per le citazioni, mai inventare:',

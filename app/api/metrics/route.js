@@ -1538,7 +1538,17 @@ export async function GET(req) {
   return withTenantContext(req, async () => {
   try {
     const { searchParams } = new URL(req.url)
-    const preset = searchParams.get('preset') || 'last_90d'
+    let preset = searchParams.get('preset') || 'last_90d'
+    // Range custom: due formati in giro nel software. La dashboard manda la
+    // stringa "custom_<da>_<a>", le tab col calendario (tfQuery) mandano invece
+    // preset=custom + since/until separati. Qui si capiva SOLO il primo: col
+    // secondo il preset "custom" non corrispondeva a nulla e si cadeva sul
+    // default a 90 giorni, restituendo quei numeri come se fossero il periodo
+    // scelto (fallimento silenzioso: dato plausibile ma sbagliato).
+    if (preset === 'custom') {
+      const s = searchParams.get('since'), u = searchParams.get('until')
+      if (s && u) preset = `custom_${s}_${u}`
+    }
     const force = searchParams.get('force') === '1'
 
     // Cache hit → ritorna subito (niente query Shopify)

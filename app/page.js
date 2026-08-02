@@ -1816,8 +1816,16 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
     tfPrevWeeks = allWeeks.filter(w => w.key === prevPrevMonday)
     tfLabel = `Settimana precedente vs quella prima`
   } else if (weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until) {
-    // Custom: solo la settimana selezionata (range), delta vs periodo precedente
-    tfWeeks = allWeeks.filter(w => w.key >= weeklyCustom.since && w.key <= weeklyCustom.until)
+    // Custom: tutte le settimane che si SOVRAPPONGONO all'intervallo scelto.
+    // Prima si filtrava per w.key, cioè il LUNEDÌ, dentro il range: bastava
+    // scegliere sul calendario un intervallo senza lunedì (es. mar→dom, o un
+    // giorno solo) perché non restasse nessuna settimana → tab Weekly vuota,
+    // "non traccia nessun dato da Shopify". Una settimana va da key a key+6.
+    const weekEnd = k => {
+      const d = new Date(k + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 6)
+      return d.toISOString().slice(0, 10)
+    }
+    tfWeeks = allWeeks.filter(w => weekEnd(w.key) >= weeklyCustom.since && w.key <= weeklyCustom.until)
     const span = tfWeeks.length || 1
     const firstKey = tfWeeks[0]?.key || weeklyCustom.since
     const prevEnd = (() => { const d = new Date(firstKey); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0,10) })()

@@ -5,6 +5,7 @@ import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentC
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
 import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
+import { waitUntil } from '@vercel/functions'
 
 const AGENT_ID = 'simulator'
 
@@ -164,7 +165,7 @@ export async function POST(req) {
     })
 
     if (userId && lastUserMsg && reply) {
-      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
     }
 
     return NextResponse.json({

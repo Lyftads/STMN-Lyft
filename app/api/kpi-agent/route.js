@@ -5,6 +5,7 @@ import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
 import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
 import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
+import { waitUntil } from '@vercel/functions'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -175,10 +176,10 @@ export async function POST(req) {
     })
 
     if (userId && lastUserMsg && reply) {
-      persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply }).catch(() => {})
+      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
     }
     if (userId && context) {
-      persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: tf }).catch(() => {})
+      waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: tf })).catch(() => {}))
     }
 
     return NextResponse.json({

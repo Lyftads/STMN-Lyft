@@ -43,6 +43,18 @@ const PRESET_FALLBACK = {
 const pad = n => String(n).padStart(2, '0')
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const parse = (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1) }
+
+// Mese da mostrare a SINISTRA nel calendario doppio: quello PRIMA della data di
+// fine. Il pannello disegna viewM e viewM+1, e viewM partiva dal mese di
+// `until` (di norma oggi) → si vedevano MESE CORRENTE + MESE PROSSIMO, cioe'
+// quasi solo giorni futuri, tutti disabilitati: con oggi = 2 del mese restavano
+// cliccabili 2 giorni su 61 e non si riusciva a selezionare un periodo passato.
+// Cosi' invece si vede MESE PRECEDENTE + MESE CORRENTE, come nel Business Manager.
+const leftMonthOf = (s) => {
+  const d = parse(s)
+  const p = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+  return { y: p.getFullYear(), m: p.getMonth() }
+}
 const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d) }
 const todayIso = () => iso(new Date())
 const mondayOf = (s) => { const d = parse(s); const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); return iso(d) }
@@ -94,7 +106,7 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(val)
   const [anchor, setAnchor] = useState(null) // primo click del range
-  const [viewM, setViewM] = useState(() => { const d = parse(val.until || todayIso()); return { y: d.getFullYear(), m: d.getMonth() } })
+  const [viewM, setViewM] = useState(() => leftMonthOf(val.until || todayIso()))
   const [compare, setCompare] = useState(false)
   const [pos, setPos] = useState({ top: 0, right: 0 })
   const ref = useRef(null)
@@ -128,8 +140,7 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
     if (disabled) return
     setDraft(val)
     setAnchor(null)
-    const d = parse(val.until || todayIso())
-    setViewM({ y: d.getFullYear(), m: d.getMonth() })
+    setViewM(leftMonthOf(val.until || todayIso()))
     const r = triggerRef.current?.getBoundingClientRect()
     if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
     setOpen(true)
@@ -139,8 +150,7 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
     const r = presetRange(id)
     setDraft({ preset: id, ...r })
     setAnchor(null)
-    const d = parse(r.until)
-    setViewM({ y: d.getFullYear(), m: d.getMonth() })
+    setViewM(leftMonthOf(r.until))
   }
 
   const pickDay = (dayIso) => {

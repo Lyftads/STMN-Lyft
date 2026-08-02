@@ -23,7 +23,14 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/terms',
   '/demo',
+  // File per i motori di ricerca: senza questi due il middleware li rediregge
+  // al login e Google non riesce a leggerli, quindi la sitemap non serve a nulla.
+  '/sitemap.xml',
+  '/robots.txt',
 ]
+
+// Landing pubbliche (una per lingua): chi e' gia' loggato va al software.
+const LANDING_PATHS = ['/welcome', '/en', '/es', '/fr', '/de']
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl
@@ -88,7 +95,7 @@ export async function middleware(request) {
   }
 
   // Se gia' autenticato e cerca /login, /register o /welcome → vai a dashboard
-  if (user && (pathname === '/login' || pathname === '/register' || pathname === '/welcome')) {
+  if (user && (pathname === '/login' || pathname === '/register' || LANDING_PATHS.includes(pathname))) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/'
     redirectUrl.search = ''

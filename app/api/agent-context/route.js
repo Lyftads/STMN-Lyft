@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 import { NextResponse } from 'next/server'
-import { getTenantInfo } from '../../../lib/tenant/credentials'
+import { getEffectiveTenantId } from '../../../lib/tenant/credentials'
+import { getAdminSupabase } from '../../../lib/supabase/server'
 
 async function safeFetch(url, auth) {
   try {
@@ -68,6 +69,22 @@ export async function GET(request) {
     if (chosenSite) gsc = await safeFetch(`${base}/api/gsc?site=${encodeURIComponent(chosenSite)}&days=${days}`, cookie)
   } catch {}
 
+  // Nome dell'azienda: i consumatori (report settimanale, standup) lo leggono da
+  // qui. Prima non c'era e il report intestava sempre "il tuo brand".
+  // getTenantInfo() qui non serve: questa route non gira dentro withTenantContext.
+  // L'header x-lyft-workspace si accetta SOLO col segreto cron valido, altrimenti
+  // sarebbe un modo per farsi dire il nome di un'azienda qualsiasi.
+  let brandName = null
+  try {
+    const cronOk = !!process.env.CRON_SECRET && cron === process.env.CRON_SECRET
+    const wsId = (cronOk && request.headers.get('x-lyft-workspace')) || await getEffectiveTenantId()
+    const admin = getAdminSupabase()
+    if (wsId && admin) {
+      const { data } = await admin.from('companies').select('company_name').eq('user_id', wsId).maybeSingle()
+      brandName = data?.company_name || null
+    }
+  } catch {}
+
   const sources = {
     shopify: !!metrics?.sources?.shopify,
     meta: !!metrics?.sources?.meta || !!metaDetail,
@@ -82,9 +99,7 @@ export async function GET(request) {
   const activeCount = Object.values(sources).filter(Boolean).length
 
   const context = {
-    // Nome dell'azienda: i consumatori (report settimanale, standup) lo leggono
-    // da qui. Prima non c'era e il report intestava sempre "il tuo brand".
-    brand: { name: getTenantInfo().companyName || null },
+    brand: { name: brandName },
     sources,
     activeIntegrations: activeCount,
     preset,

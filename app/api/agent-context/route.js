@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 import { NextResponse } from 'next/server'
+import { getTenantInfo } from '../../../lib/tenant/credentials'
 
 async function safeFetch(url, auth) {
   try {
@@ -43,7 +44,8 @@ export async function GET(request) {
   // Auth da inoltrare ai fetch interni: cookie di sessione (utente loggato) o,
   // se assente, il segreto cron (standup automatico → creds STMN via isAuthorizedCron).
   const cron = request.headers.get('x-internal-cron') || ''
-  const cookie = request.headers.get('cookie') || (cron ? { 'x-internal-cron': cron } : '')
+  const cronWs = request.headers.get('x-lyft-workspace') || ''
+  const cookie = request.headers.get('cookie') || (cron ? { 'x-internal-cron': cron, ...(cronWs ? { 'x-lyft-workspace': cronWs } : {}) } : '')
 
   const [metrics, metaDetail, creative, klaviyo, googleAds, ga4, productCosts, realtime] =
     await Promise.all([
@@ -80,6 +82,9 @@ export async function GET(request) {
   const activeCount = Object.values(sources).filter(Boolean).length
 
   const context = {
+    // Nome dell'azienda: i consumatori (report settimanale, standup) lo leggono
+    // da qui. Prima non c'era e il report intestava sempre "il tuo brand".
+    brand: { name: getTenantInfo().companyName || null },
     sources,
     activeIntegrations: activeCount,
     preset,

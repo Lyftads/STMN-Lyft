@@ -39,7 +39,7 @@ export async function GET(req) {
   if (isAuthorizedCron(req)) {
     workspaceId = process.env.LYFT_OWNER_USER_ID
     if (!workspaceId) return NextResponse.json({ ok: false, error: 'LYFT_OWNER_USER_ID assente' }, { status: 500 })
-    dataAuthHeaders = { 'x-internal-cron': process.env.CRON_SECRET || '' }
+    dataAuthHeaders = { 'x-internal-cron': process.env.CRON_SECRET || '', 'x-lyft-workspace': workspaceId }
   } else {
     const ws = await resolveWorkspace()
     if (!ws) return NextResponse.json({ ok: false, error: 'Non autorizzato' }, { status: 401 })

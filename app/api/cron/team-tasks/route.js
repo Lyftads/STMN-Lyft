@@ -63,7 +63,7 @@ export async function GET(req) {
   const origin = new URL(req.url).origin
   let liveData = null
   try {
-    const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: dataAuthHeaders })
+    const r = await fetch(`${origin}/api/agent-context?preset=last_28d&days=28`, { cache: 'no-store', headers: dataAuthHeaders })
     if (r.ok) liveData = await r.json()
   } catch {}
 
@@ -198,7 +198,7 @@ ${openList}`
     if (new URL(req.url).searchParams.get('preview')) {
       const narrative = await buildReportNarrative(liveData)
       if (plan?.summary && !narrative.executive) narrative.executive = String(plan.summary)
-      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName: liveData?.brand?.name || 'il tuo brand', periodLabel: 'ultimi 30 giorni', appUrl: origin })
+      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName: liveData?.brand?.name || 'il tuo brand', periodLabel: 'ultime 4 settimane', appUrl: origin })
       return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
     }
     return NextResponse.json({ ok: true, dry: true, created: 0, would_create: created.length, summary: plan?.summary || null, tasks: created })
@@ -228,7 +228,7 @@ ${openList}`
       const narrative = await buildReportNarrative(liveData)
       if (plan?.summary && !narrative.executive) narrative.executive = String(plan.summary)
       const brandName = liveData?.brand?.name || liveData?.brandName || 'il tuo brand'
-      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName, periodLabel: 'ultimi 30 giorni', appUrl: origin })
+      const html = renderReportHTML({ liveData, narrative, tasks: created, brandName, periodLabel: 'ultime 4 settimane', appUrl: origin })
       reported = await sendEmail({
         to: ownerMember.email,
         subject: `📊 Report settimanale della Squadra AI — ${created.length} task assegnati`,

@@ -86,7 +86,7 @@ export async function GET(req) {
   const origin = new URL(req.url).origin
   let liveData = null
   try {
-    const r = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: dataAuthHeaders })
+    const r = await fetch(`${origin}/api/agent-context?preset=last_28d&days=28`, { cache: 'no-store', headers: dataAuthHeaders })
     if (r.ok) liveData = await r.json()
   } catch {}
   const creativeBlock = buildCreativeBlock(liveData)

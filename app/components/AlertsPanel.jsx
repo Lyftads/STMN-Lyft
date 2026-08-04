@@ -36,6 +36,23 @@ function computeAlerts(live) {
   const prev = deriveMetrics(live.shopifyPrevRange, live.metaPrevRange)
   const out = []
 
+  // GIORNATA IN CORSO: se il periodo selezionato e' il giorno di oggi, i dati
+  // sono parziali per definizione. Confrontare qualche ora con un giorno intero
+  // produceva allarmi rossi ogni mattina — "ROAS sotto 1, stai perdendo",
+  // "fatturato -100%" — su negozi che semplicemente non avevano ancora ricevuto
+  // ordini. Qui si dice che la giornata e' in corso e si tace il resto.
+  const today = new Date().toISOString().slice(0, 10)
+  const since = String(live.shopifyRange?.since || '').slice(0, 10)
+  const until = String(live.shopifyRange?.until || '').slice(0, 10)
+  const partialDay = since && since === until && until === today
+  if (partialDay) {
+    if (cur.spend > 0 || cur.rev > 0) {
+      out.push({ sev: 'info', metric: 'Periodo', title: 'Giornata in corso',
+        text: `Stai guardando oggi: i dati si completano durante la giornata${cur.rev === 0 ? ' e al momento non risultano ordini' : ''}. Per un confronto attendibile usa ieri o gli ultimi 7 giorni.` })
+    }
+    return out
+  }
+
   // Tracking / redditività
   if (cur.spend > 0 && cur.rev === 0) {
     out.push({ sev: 'critical', metric: 'Tracking', title: 'Spesa senza fatturato',

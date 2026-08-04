@@ -154,7 +154,18 @@ Output JSON:
 Se i dati non bastano per raccomandazioni significative: { "recommendations": [] }
 ${ACTION_QUALITY}`
 
-  const userPayload = `## CONTESTO BRAND\n${brandBlock || 'N/A'}\n\n## MEMORIE PRECEDENTI\n${memText || 'Nessuna memoria ancora.'}\n\n## METRICHE LIVE (${preset})\n${JSON.stringify(compactMetrics(metrics)).slice(0, 30_000)}`
+  // Periodo = giornata IN CORSO: i dati sono parziali per definizione. Senza
+  // questo avviso il modello leggeva "fatturato 0 vs 1.028 ieri" e proponeva
+  // come URGENTE di controllare se il sito era rotto, su un negozio che
+  // semplicemente non aveva ancora ricevuto ordini alle nove del mattino.
+  const _today = new Date().toISOString().slice(0, 10)
+  const _sr = metrics?.shopifyRange || {}
+  const partialDay = String(_sr.since || '').slice(0, 10) === _today && String(_sr.until || '').slice(0, 10) === _today
+  const partialNote = partialDay
+    ? `\n\n## ATTENZIONE SUL PERIODO\nIl periodo selezionato e' la GIORNATA IN CORSO (${_today}): i numeri sono parziali e si completano durante il giorno. NON interpretare un fatturato basso o a zero come un calo, un guasto o un problema di tracking, e non confrontarlo con giornate intere. Se non c'e' abbastanza segnale, dillo e proponi di guardare ieri o gli ultimi 7 giorni.`
+    : ''
+
+  const userPayload = `## CONTESTO BRAND\n${brandBlock || 'N/A'}\n\n## MEMORIE PRECEDENTI\n${memText || 'Nessuna memoria ancora.'}\n\n## METRICHE LIVE (${preset})\n${JSON.stringify(compactMetrics(metrics)).slice(0, 30_000)}${partialNote}`
 
   // Knowledge globale (corso + video): principi di advertising/marketing come
   // metodo. Si auto-esclude se non c'è nulla di semanticamente pertinente.

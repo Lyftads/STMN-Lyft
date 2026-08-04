@@ -8,21 +8,51 @@ export async function GET(req) {
   const SHOPIFY_STORE = getShopify().storeUrl
   if (!SHOPIFY_STORE) return NextResponse.json({})
   try {
-    const res = await fetch(`https://${SHOPIFY_STORE}/products.json?limit=250`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'application/json',
-        Cookie: 'localization=IT; cart_currency=EUR',
-      },
-      signal: AbortSignal.timeout(10000),
-    })
+    // Catalogo PAGINATO. Prima si leggeva una pagina sola (250 prodotti): su un
+    // catalogo grande restava senza miniatura tutto il resto — Anna Virgili ha
+    // 2.336 prodotti, quindi ne copriva circa il 10%. Ci si ferma quando la
+    // pagina torna corta (fine catalogo) o al tetto di sicurezza.
+    const MAX_PAGES = 20              // tetto di sicurezza: fino a 5.000 prodotti
+    const PER_PAGE = 250
+    const fetchPage = async (page) => {
+      try {
+        const res = await fetch(`https://${SHOPIFY_STORE}/products.json?limit=${PER_PAGE}&page=${page}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            Accept: 'application/json',
+            Cookie: 'localization=IT; cart_currency=EUR',
+          },
+          signal: AbortSignal.timeout(10000),
+        })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.products || []
+      } catch { return null }
+    }
 
-    if (!res.ok) return NextResponse.json({})
+    const products = []
+    const first = await fetchPage(1)
+    if (first) products.push(...first)
+    // Pagine successive a gruppi PARALLELI: in sequenza un catalogo da 2.300
+    // prodotti costava una decina di secondi di attesa per le miniature.
+    if (first && first.length === PER_PAGE) {
+      outer: for (let start = 2; start <= MAX_PAGES; start += 5) {
+        const batch = await Promise.all(
+          Array.from({ length: 5 }, (_, i) => start + i).filter(n => n <= MAX_PAGES).map(fetchPage)
+        )
+        for (const b of batch) {
+          if (!b) break outer                 // errore/rate limit: tieni quello che hai
+          products.push(...b)
+          if (b.length < PER_PAGE) break outer // fine catalogo
+        }
+      }
+    }
 
-    const data = await res.json()
+    if (!products.length) return NextResponse.json({})
+
     const map = {}
 
-    for (const p of (data.products || [])) {
+    for (const p of products) {
       const title = p.title || ''
       const image = p.images?.[0]?.src || ''
       if (!title || !image) continue

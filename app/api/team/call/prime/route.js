@@ -60,7 +60,8 @@ export async function POST(req) {
   const gscP = (async () => {
     const sites = await fetch(`${origin}/api/gsc?action=sites`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
     const list = (sites?.sites || []).map(s => (typeof s === 'string' ? s : s.siteUrl || s.url)).filter(Boolean)
-    const site = list.find(s => /stmn/i.test(s)) || list.find(s => !/lyftai/i.test(s)) || list[0] || null
+    // (qui c'era una preferenza esplicita per il dominio di STMN)
+    const site = list.find(s => !/lyftai/i.test(s)) || list[0] || null
     if (!site) return null
     const gf = days => fetch(`${origin}/api/gsc?site=${encodeURIComponent(site)}&days=${days}`, { cache: 'no-store', headers: H }).then(r => r.ok ? r.json() : null).catch(() => null)
     const [g7, g30] = await Promise.all([gf(7), gf(30)])

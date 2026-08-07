@@ -1,19 +1,11 @@
-import { NextResponse } from 'next/server'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
-import { callBrain } from '../../../lib/agent/gateway'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
-import { waitUntil } from '@vercel/functions'
 
 const AGENT_ID = 'simulator'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM_PROMPT = `Sei "CMO + CFO Agent", il consulente strategico di Marino, founder di STMN Fitness. Hai una doppia identità: marketing officer + chief financial officer in una sola persona. Senior, niente fronzoli.
 
@@ -109,72 +101,21 @@ Per la generazione di PIANI/STRATEGIE/ROADMAP sei creativo MA ancorato ai numeri
 // STMN sta insieme alla regola anti-invenzione: i clienti restavano senza.
 const tenantSystem = () => tenantPrompt(SYSTEM_PROMPT)
 
-function safeJson(value, max = 50000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
-
 export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
-  }
-
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
-
-  const ltvInputs = body?.ltvInputs || null
-  const ltvOutputs = body?.ltvOutputs || null
-  const scenarios = Array.isArray(body?.scenarios) ? body.scenarios : []
-  const cashFlowAnalysis = Array.isArray(body?.cashFlowAnalysis) ? body.cashFlowAnalysis : []
-
-  const context = {
-    ltvInputs,
-    ltvOutputs,
-    scenarios,
-    cashFlowAnalysis,
-  }
-
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const langMsg = aiLangSystemMessage(body?.locale)
-
-  // Migrato al gateway callBrain. Ordine e parametri IDENTICI.
-  try {
-    const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantSystem() + ACTION_QUALITY },
-      query: lastUserMsg,
-      data: context,
-      dataLabel: 'SIMULATOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
-      dataMax: 50000,
-      messages: clean,
-      locale: null,
-      extraSystem: langMsg ? [langMsg] : [],
-      temperature: 0.35,
-      topP: 0.9,
-      guardTail: 'REMINDER: verifica che OGNI numero, nome scenario, percentuale citata sia letteralmente nel JSON SIMULATOR DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Per piani/strategie/roadmap sei creativo MA ancorato ai dati reali.',
-    })
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-
-    return NextResponse.json({
-      reply,
-      usage: usage || null,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (err) {
-    const status = err?.status ? 502 : 500
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
-  }
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    buildContext: (body) => ({
+      ltvInputs: body?.ltvInputs || null,
+      ltvOutputs: body?.ltvOutputs || null,
+      scenarios: Array.isArray(body?.scenarios) ? body.scenarios : [],
+      cashFlowAnalysis: Array.isArray(body?.cashFlowAnalysis) ? body.cashFlowAnalysis : [],
+    }),
+    dataLabel: 'SIMULATOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
+    dataMax: 50000,
+    temperature: 0.35,
+    topP: 0.9,
+    guardTail: 'REMINDER: verifica che OGNI numero, nome scenario, percentuale citata sia letteralmente nel JSON SIMULATOR DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Per piani/strategie/roadmap sei creativo MA ancorato ai dati reali.',
+    actionQuality: false, // il prompt di questa verticale lo include gia'
+  })
 }

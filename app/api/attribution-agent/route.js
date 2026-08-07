@@ -1,19 +1,9 @@
-import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
-import { callBrain } from '../../../lib/agent/gateway'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { waitUntil } from '@vercel/functions'
-
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 const AGENT_ID = 'attribution'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM_PROMPT = `Sei "Attribution Agent", l'analista di marketing analytics & attribuzione di fiducia di Marino, founder di STMN Fitness.
 
@@ -62,76 +52,24 @@ Ricevi un JSON \`ATTRIBUTION DATA\` con:
 
 OGNI numero che CITI deve essere copiato dal JSON. Se manca un dato, dillo. STMN vende accessori CrossFit — MAI supplementi/integratori.`
 
-function safeJson(value, max = 80000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
-
 export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
-  }
-
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
-
-  const data = body?.data || {}
-  const preset = body?.preset || null
-
-  const context = {
-    preset,
-    range: data.range,
-    label: data.label,
-    totals: data.totals,
-    delta: data.delta,
-    split: data.split,
-    channels: data.channels,
-    customers: data.customers,
-    attribution: data.attribution,
-    daily: (data.daily || []).map(d => ({ date: d.date, revenue: d.revenue, spend: d.spend, mer: d.mer, metaRevenue: d.metaRevenue, metaRoas: d.metaRoas })),
-  }
-
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const langMsg = aiLangSystemMessage(body?.locale)
-
-  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → SYSTEM_PROMPT → lingua → ATTRIBUTION DATA → storia → REMINDER.
-  try {
-    const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
-      query: lastUserMsg,
-      data: context,
-      dataLabel: 'ATTRIBUTION DATA — usa SOLO questi numeri per CITAZIONI, mai inventare:',
-      dataMax: 80000,
-      messages: clean,
-      locale: null,
-      extraSystem: langMsg ? [langMsg] : [],
-      temperature: 0.35,
-      topP: 0.9,
-      guardTail: 'REMINDER: ogni numero citato deve essere nel JSON ATTRIBUTION DATA. Usa il MER blended come bussola, non il ROAS di piattaforma. STMN vende accessori CrossFit, mai integratori.',
-    })
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-    if (userId && context) {
-      waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId, data: context })).catch(() => {}))
-    }
-
-    return NextResponse.json({ reply, usage: usage || null, updatedAt: new Date().toISOString() })
-  } catch (err) {
-    const status = err?.status ? 502 : 500
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
-  }
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    buildContext: (body) => {
+      const data = body?.data || {}
+      return {
+        preset: body?.preset || null,
+        range: data.range, label: data.label, totals: data.totals, delta: data.delta,
+        split: data.split, channels: data.channels, customers: data.customers,
+        attribution: data.attribution,
+        daily: (data.daily || []).map(d => ({ date: d.date, revenue: d.revenue, spend: d.spend, mer: d.mer, metaRevenue: d.metaRevenue, metaRoas: d.metaRoas })),
+      }
+    },
+    dataLabel: 'ATTRIBUTION DATA — usa SOLO questi numeri per CITAZIONI, mai inventare:',
+    dataMax: 80000,
+    temperature: 0.35,
+    topP: 0.9,
+    guardTail: 'REMINDER: ogni numero citato deve essere nel JSON ATTRIBUTION DATA. Usa il MER blended come bussola, non il ROAS di piattaforma. STMN vende accessori CrossFit, mai integratori.',
+  })
 }

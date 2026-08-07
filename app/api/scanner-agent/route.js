@@ -1,19 +1,11 @@
-import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
-import { callBrain } from '../../../lib/agent/gateway'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { waitUntil } from '@vercel/functions'
 
 const AGENT_ID = 'scanner'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM_PROMPT = `Sei "Scanner Agent", il Senior Landing Page CRO specialist di fiducia di Marino, founder di STMN Fitness.
 
@@ -63,77 +55,25 @@ OGNI riferimento all'analisi deve essere coerente col JSON. Non inventare elemen
 
 Quando GENERI nuovi copy/CTA/varianti A/B: e' OK essere creativo lì, perche' stai producendo asset nuovi — ma resta coerente col target STMN (atleti CrossFit) e col tono brand (pratico, no-bullshit, no supplementi/integratori).`
 
-function safeJson(value, max = 50000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
-
 export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
-  }
-
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
-
-  const scan = body?.scan || {}
-  // Lo screenshotDataUrl pesa MB — non lo mandiamo a OpenAI nel context,
-  // l'analisi e' gia' stata fatta. Teniamo solo i campi rilevanti.
-  const context = {
-    url: scan?.url || null,
-    viewport: scan?.viewport || 'desktop',
-    provider: scan?.provider || null,
-    analysis: scan?.analysis || null,
-  }
-
-  if (!context.analysis) {
-    return NextResponse.json({
-      reply: 'Non ho un\'analisi a cui fare riferimento. Lancia prima una scansione della pagina, poi possiamo entrare nei dettagli.',
-    })
-  }
-
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const langMsg = aiLangSystemMessage(body?.locale)
-
-  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → SYSTEM_PROMPT → lingua → SCAN DATA → storia → REMINDER finale.
-  try {
-    const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
-      query: lastUserMsg,
-      data: context,
-      dataLabel: "SCAN DATA — l'analisi CRO di riferimento per ogni domanda:",
-      dataMax: 50000,
-      messages: clean,
-      locale: null, // lingua via extraSystem per preservare la posizione esatta
-      extraSystem: langMsg ? [langMsg] : [],
-      temperature: 0.4,
-      topP: 0.9,
-      guardTail: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.',
-    })
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-
-    return NextResponse.json({
-      reply,
-      usage: usage || null,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (err) {
-    const status = err?.status ? 502 : 500
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
-  }
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    buildContext: (body) => ({
+      url: body?.scan?.url || null,
+      viewport: body?.scan?.viewport || 'desktop',
+      provider: body?.scan?.provider || null,
+      // Lo screenshot pesa MB: al modello serve solo l'analisi gia' fatta.
+      analysis: body?.scan?.analysis || null,
+    }),
+    dataLabel: "SCAN DATA — l'analisi CRO di riferimento per ogni domanda:",
+    dataMax: 50000,
+    temperature: 0.4,
+    topP: 0.9,
+    guardTail: 'REMINDER: ogni riferimento deve essere coerente con SCAN DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Copy concreti, A/B test specifici, stima impatto. Bold limitato. Niente intestazioni markdown.',
+    emptyContext: {
+      test: (c) => !c?.analysis,
+      reply: "Non ho un'analisi a cui fare riferimento. Lancia prima una scansione della pagina, poi possiamo entrare nei dettagli.",
+    },
+  })
 }

@@ -1,19 +1,9 @@
-import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
-import { callBrain } from '../../../lib/agent/gateway'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { waitUntil } from '@vercel/functions'
-
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 const AGENT_ID = 'cro'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 const SYSTEM_PROMPT = `Sei "CRO Agent", il Senior Conversion Rate Optimization specialist di fiducia di Marino, founder di STMN Fitness.
 
@@ -69,72 +59,22 @@ OGNI numero che citi DEVE essere copiato letteralmente dal JSON. NON inventare m
 
 Se Marino chiede di una metrica che non c'e' nei dati, dillo: "Quel dato non e' nel periodo, ho: [elenco]".`
 
-function safeJson(value, max = 50000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
-
 export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
-  }
-
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
-
-  const context = {
-    tfLabel: body?.tfLabel || null,
-    current: body?.current || null,
-    previous: body?.previous || null,
-    funnel: body?.funnel || null,
-    insights: Array.isArray(body?.insights) ? body.insights : [],
-  }
-
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const langMsg = aiLangSystemMessage(body?.locale)
-
-  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → SYSTEM_PROMPT → lingua → CRO DATA → storia → REMINDER finale.
-  try {
-    const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
-      query: lastUserMsg,
-      data: context,
-      dataLabel: 'CRO DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
-      dataMax: 50000,
-      messages: clean,
-      locale: null, // lingua via extraSystem per preservare la posizione esatta
-      extraSystem: langMsg ? [langMsg] : [],
-      temperature: 0.4,
-      topP: 0.9,
-      guardTail: 'REMINDER: ogni numero/metrica che citi deve essere nel JSON CRO DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Quick wins concreti con stima impatto. Bold limitato. Niente intestazioni markdown.',
-    })
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-    if (userId && context) {
-      waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId, data: context })).catch(() => {}))
-    }
-
-    return NextResponse.json({
-      reply,
-      usage: usage || null,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (err) {
-    const status = err?.status ? 502 : 500
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
-  }
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    // L'unica parte davvero specifica di questa verticale: quali dati riceve.
+    buildContext: (body) => ({
+      tfLabel: body?.tfLabel || null,
+      current: body?.current || null,
+      previous: body?.previous || null,
+      funnel: body?.funnel || null,
+      insights: Array.isArray(body?.insights) ? body.insights : [],
+    }),
+    dataLabel: 'CRO DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
+    dataMax: 50000,
+    temperature: 0.4,
+    topP: 0.9,
+    guardTail: 'REMINDER: ogni numero/metrica che citi deve essere nel JSON CRO DATA. Rispetta il BRAND GUARD del CONTESTO BRAND. Quick wins concreti con stima impatto. Bold limitato. Niente intestazioni markdown.',
+  })
 }

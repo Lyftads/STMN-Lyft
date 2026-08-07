@@ -1,18 +1,10 @@
-import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 import { matchSkillsForContext } from '../../../lib/agents/skillRegistry'
-import { callBrain } from '../../../lib/agent/gateway'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { waitUntil } from '@vercel/functions'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const AGENT_ID = 'kpi'
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
 // System prompt CORE: identita' agent + regole stile + competenze.
 // La descrizione brand-specifica (chi e' il cliente, cosa vende, brand guard)
@@ -77,28 +69,10 @@ L'utente ti ha già salutato implicitamente aprendo la chat. NON ripetere saluti
 ## Memorie
 Se nel CONTESTO sopra trovi un blocco "MEMORIE RILEVANTI", usalo come knowledge persistente dell'utente (preferenze, fatti del brand, pattern). Hanno priorità sulle assunzioni generiche.`
 
-function safeJson(value, max = 60000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
+// Preparazione dati specifica di questa verticale (invariata).
+function buildContext(body) {
 
-export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      { error: 'OPENAI_API_KEY non configurata.' },
-      { status: 500 }
-    )
-  }
 
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
 
   const metrics = body?.metrics || null
   const tf = body?.tf || 'unknown'
@@ -139,56 +113,18 @@ export async function POST(req) {
       prevClicks: metrics?.metaPrevRange?.clicks,
     },
   } : null
+  return context
+}
 
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  // Brand context + memory recall (semantic) per ultima query utente
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-
-  // Skill matching contestuale: carica solo le skill rilevanti per la query
-  // utente (max 2). Le skill aggiunte come system messages dedicati.
-  const matchedSkills = matchSkillsForContext(lastUserMsg, { limit: 2 })
-  const skillBlocks = matchedSkills.map(s => ({
-    role: 'system',
-    content: `SKILL ATTIVATA: ${s.name} (v${s.version})\nUsa le istruzioni seguenti per strutturare la risposta:\n\n${s.body}`,
-  }))
-  const langMsg = aiLangSystemMessage(body?.locale)
-
-  // Migrato al gateway callBrain. Ordine messaggi e parametri IDENTICI:
-  // contextBlock → SYSTEM_PROMPT → lingua → skillBlocks → DATI LIVE → storia →
-  // REMINDER finale. extraSystem preserva l'ordine lingua+skill; locale:null
-  // evita doppia direttiva-lingua. temp 0, top_p 0.1, troncamento dati 60k.
-  try {
-    const { userId, content: reply, usage } = await callBrain({
-      skill: { id: AGENT_ID, systemPrompt: SYSTEM_PROMPT + ACTION_QUALITY },
-      query: lastUserMsg,
-      data: context,
-      dataLabel: 'DATI LIVE — usa SOLO questi numeri, mai inventare:',
-      dataMax: 60000,
-      messages: clean,
-      locale: null,
-      extraSystem: [...(langMsg ? [langMsg] : []), ...skillBlocks],
-      temperature: 0,
-      topP: 0.1,
-      guardTail: 'REMINDER: prima di rispondere, verifica che OGNI numero e OGNI nome (prodotti, campagne) che stai per scrivere sia letteralmente presente nel JSON DATI LIVE. Se manca anche un solo dato, scrivi "Non ho questo dato" invece di inventare.',
-    })
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-    if (userId && context) {
-      waitUntil(Promise.resolve(persistDataMemory({ agentId: AGENT_ID, userId, data: context, timeframe: tf })).catch(() => {}))
-    }
-
-    return NextResponse.json({
-      reply,
-      usage: usage || null,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (err) {
-    const status = err?.status ? 502 : 500
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status })
-  }
+export async function POST(req) {
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    buildContext,
+    dataLabel: 'DATI LIVE — usa SOLO questi numeri, mai inventare:',
+    dataMax: 60000,
+    temperature: 0,
+    topP: 0.1,
+    guardTail: 'REMINDER: prima di rispondere, verifica che OGNI numero e OGNI nome (prodotti, campagne) che stai per scrivere sia letteralmente presente nel JSON DATI LIVE. Se manca anche un solo dato, scrivi "Non ho questo dato" invece di inventare.',
+  })
 }

@@ -1,15 +1,9 @@
-import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-
+import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
 import { complete } from '../../../lib/agent/router'
-import { requireCaller } from '../../../lib/tenant/credentials'
-import { tenantPrompt } from '../../../lib/agent/tenantPrompt'
-import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
-import { waitUntil } from '@vercel/functions'
 
 const AGENT_ID = 'creative'
 
@@ -72,25 +66,10 @@ Se Marino chiede di una creative che non è nei dati, dillo: "Quella creative no
 
 Per la generazione di NUOVI angoli/copy/script: è OK essere creativo lì, perché stai producendo asset nuovi — ma DEVI basarti sui pattern dei winners reali del JSON ricevuto (es. "ho notato che le video con hook 'difficoltà weakness' performano meglio → ti propongo 5 varianti su quella linea").`
 
-function safeJson(value, max = 90000) {
-  try {
-    const str = JSON.stringify(value)
-    return str.length <= max ? str : str.slice(0, max) + '... [troncato]'
-  } catch { return 'null' }
-}
+// Preparazione dati specifica di questa verticale (invariata).
+function buildContext(body) {
 
-export async function POST(req) {
-  // Gate: route a pagamento (AI/PDF/voce) — mai anonima.
-  const _gate = await requireCaller(req); if (_gate) return _gate
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 500 })
-  }
 
-  let body
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
-
-  const messages = Array.isArray(body?.messages) ? body.messages : []
-  if (!messages.length) return NextResponse.json({ error: 'messages mancante' }, { status: 400 })
 
   const rows = Array.isArray(body?.rows) ? body.rows : []
   const summary = body?.summary || null
@@ -130,45 +109,15 @@ export async function POST(req) {
     totalCreatives: rows.length,
     creatives: slimRows,
   }
+  return context
+}
 
-  const clean = messages
-    .filter(m => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-20)
-
-  const lastUserMsg = [...clean].reverse().find(m => m.role === 'user')?.content || ''
-  const { userId, contextBlock } = await buildAgentContext({ agentId: AGENT_ID, query: lastUserMsg, conversationLength: clean.length })
-
-  try {
-    let res
-    try {
-      res = await complete({
-        tier: 'smart',
-        temperature: 0.4,
-        topP: 0.9,
-        messages: [
-          ...(contextBlock ? [{ role: 'system', content: contextBlock }] : []),
-          { role: 'system', content: tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY },
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'system', content: `CREATIVE DATA — usa SOLO questi numeri/nomi per le citazioni, mai inventare:\n${safeJson(context)}` },
-          ...clean,
-          { role: 'system', content: 'REMINDER: prima di rispondere verifica che OGNI numero, nome inserzione, copy, headline che CITI sia letteralmente presente nel JSON CREATIVE DATA. Rispetta il BRAND GUARD del CONTESTO BRAND (cosa il brand NON vende). Se stai GENERANDO nuovi angoli/copy/script puoi essere creativo, ma resta brand-coherent e basa il lavoro sui pattern dei winners reali del JSON.' },
-        ],
-      })
-    } catch (e) {
-      return NextResponse.json({ error: `OpenAI ${e?.status || ''}: ${(e?.message || '').slice(0, 300)}` }, { status: 502 })
-    }
-    const reply = res?.content || ''
-
-    if (userId && lastUserMsg && reply) {
-      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
-    }
-
-    return NextResponse.json({
-      reply,
-      usage: res?.usage || null,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (err) {
-    return NextResponse.json({ error: err?.message || 'Errore OpenAI' }, { status: 500 })
-  }
+export async function POST(req) {
+  return handleVerticalAgent(req, {
+    id: AGENT_ID,
+    systemPrompt: SYSTEM_PROMPT,
+    buildContext,
+    temperature: 0.4,
+    topP: 0.9,
+  })
 }

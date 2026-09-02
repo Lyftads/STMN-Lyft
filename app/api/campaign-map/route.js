@@ -6,7 +6,7 @@ import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/cred
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend, suggestProduct } from '../../../lib/ads/campaignSpend'
-import { buildShopifyMaps, fetchMetaCampaignProducts } from '../../../lib/ads/campaignProducts'
+import { buildShopifyMaps, fetchMetaCampaignProducts, deriveMetaLinkProducts } from '../../../lib/ads/campaignProducts'
 
 const isoDay = (d) => d.toISOString().slice(0, 10)
 
@@ -129,13 +129,28 @@ export async function GET(req) {
       const metaProducts = metaToken ? await fetchMetaCampaignProducts(metaToken, accounts, maps, true).catch(() => new Map()) : new Map()
       const titleById = new Map(products.map(p => [String(p.id), p.title]))
 
+      // Per le campagne senza mappatura salvata e senza catalogo, il prodotto si
+      // legge dal LINK di destinazione delle creatività: l'handle nell'URL è un
+      // fatto, il nome campagna solo una convenzione. Query mirata a queste.
+      const daLink = metaCampaigns
+        .filter(c => !normalizeProducts(mapping.get(`meta:${c.campaign_id}`)).length)
+        .filter(c => !metaProducts.get(String(c.campaign_id))?.productIds?.size)
+        .map(c => String(c.campaign_id))
+      const metaByLink = metaToken
+        ? await deriveMetaLinkProducts({ token: metaToken, accounts, products, campaignIds: daLink }).catch(() => new Map())
+        : new Map()
+
       const rows = metaCampaigns
         .sort((a, b) => b.spend - a.spend)
         .map(c => {
           const saved = mapping.get(`meta:${c.campaign_id}`)
           const selected = saved ? normalizeProducts(saved) : []
           const der = metaProducts.get(String(c.campaign_id))
-          const auto = der ? [...der.productIds].map(id => ({ id, title: titleById.get(id) || '' })) : []
+          const lnk = metaByLink.get(String(c.campaign_id))
+          const auto = der ? [...der.productIds].map(id => ({ id, title: titleById.get(id) || '' }))
+            : lnk ? [...lnk].map(id => ({ id, title: titleById.get(id) || '' }))
+            : []
+          const autoKind = der?.kind || (lnk?.size ? 'direct' : null)
           const sug = (selected.length || auto.length) ? null : suggestProduct(c.campaign_name, products)
           return {
             platform: 'meta',
@@ -145,7 +160,7 @@ export async function GET(req) {
             selected,                       // [{id, title}] già salvati
             mapped: selected.length > 0,
             auto,                           // [{id, title}] derivati in automatico
-            autoKind: der?.kind || null,    // 'catalog' | 'direct'
+            autoKind,                       // 'catalog' | 'direct'
             suggestedProductId: sug?.id || null,
             suggestedTitle: sug?.title || null,
             suggestedScore: sug?.score || null,

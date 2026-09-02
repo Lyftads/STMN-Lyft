@@ -6,7 +6,7 @@ import { withTenantContext, getShopify, getMeta } from '../../../lib/tenant/cred
 import { resolveWorkspace } from '../../../lib/team/workspace'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { fetchAllCampaignSpend, suggestProduct } from '../../../lib/ads/campaignSpend'
-import { fetchGoogleProductCost, buildShopifyMaps, deriveMetaProducts } from '../../../lib/ads/campaignProducts'
+import { fetchGoogleProductCost, buildShopifyMaps, deriveMetaProducts, deriveMetaLinkProducts } from '../../../lib/ads/campaignProducts'
 import { loadLatestLanded } from '../../../lib/cost/landed'
 import { getSnapshot, setSnapshot } from '../../../lib/cache/snapshot'
 
@@ -252,14 +252,28 @@ export async function GET(req) {
       // Lista prodotti (id+titolo) per il match-per-nome delle campagne mirate.
       const productList = [...pmeta.meta.entries()].map(([id, m]) => ({ id, title: m.title }))
 
+      // Campagne Meta con spesa ancora senza attribuzione dopo mappatura salvata e
+      // catalogo: per queste si legge il LINK di destinazione delle creatività.
+      // L'handle nell'URL dice cosa pubblicizza davvero l'inserzione — è un fatto,
+      // mentre il nome campagna è una convenzione che nessuno garantisce.
+      const daLink = campaigns
+        .filter(c => c.platform === 'meta' && c.spend > 0)
+        .filter(c => !(mapping.get(`meta:${c.campaign_id}`) || []).length)
+        .filter(c => !metaDerived.get(String(c.campaign_id))?.productIds?.size)
+        .map(c => String(c.campaign_id))
+      const metaByLink = meta.accessToken
+        ? await deriveMetaLinkProducts({ token: meta.accessToken, accounts: metaAccounts, products: pmeta.catalog, campaignIds: daLink }).catch(() => new Map())
+        : new Map()
+
       let metaSpend = 0, googleSpend = 0, unmappedSpend = 0
       const mappedByProduct = new Map()
       for (const c of campaigns) {
         if (c.platform === 'google') { googleSpend += c.spend; continue } // Google gestito per prodotto sotto
         metaSpend += c.spend
-        // Priorità: mappatura salvata → catalogo (product set) → nome campagna → proporzionale
+        // Priorità: mappatura salvata → catalogo (product set) → link creatività → nome campagna → proporzionale
         let ids = mapping.get(`meta:${c.campaign_id}`) || []
         if (!ids.length) { const der = metaDerived.get(String(c.campaign_id)); if (der?.productIds?.size) ids = [...der.productIds] }
+        if (!ids.length) { const lnk = metaByLink.get(String(c.campaign_id)); if (lnk?.size) ids = [...lnk] }
         // Campagne MIRATE: il nome contiene il prodotto (es. "Paracalli HYBRID") → match esatto
         if (!ids.length) { const sug = suggestProduct(c.campaign_name, productList); if (sug) ids = [sug.id] }
         if (!ids.length) { unmappedSpend += c.spend; continue }

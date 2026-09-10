@@ -176,7 +176,10 @@ async function getMetrics() {
   }))
 }
 
-async function queryMetric(metricId, measurement, days) {
+// `by` raggruppa il risultato su una dimensione Klaviyo; `pickDim` sceglie
+// quale gruppo tenere. Serve per l'unica cosa che questa tab deve dire sulle
+// entrate: quelle ATTRIBUITE all'email, non quelle del negozio.
+async function queryMetric(metricId, measurement, days, { by = null, pickDim = null } = {}) {
   const now = new Date()
   const start = new Date(now)
   if (days === 0) {
@@ -198,13 +201,20 @@ async function queryMetric(metricId, measurement, days) {
           `less-than(datetime,${now.toISOString()})`,
         ],
         timezone: 'Europe/Rome',
+        ...(by ? { by } : {}),
       },
     },
   }
   const data = await klaviyoPost('/metric-aggregates', body)
   const attrs = data?.data?.attributes || {}
   const dates = attrs.dates || []
-  const row = (attrs.data || [])[0]
+  const righe = attrs.data || []
+  // Senza raggruppamento c'e' una riga sola. Con il raggruppamento si tiene
+  // SOLO il gruppo chiesto: se non c'e', il totale e' zero — ed e' la verita',
+  // non un motivo per ripiegare sul totale generale.
+  const row = pickDim
+    ? righe.find(r => (r.dimensions || []).some(d => pickDim(String(d || ''))))
+    : righe[0]
   const values = row?.measurements?.[measurement] || []
   const total = values.reduce((a, v) => a + (v || 0), 0)
   return { dates, values, total }
@@ -222,14 +232,25 @@ async function getEmailKPIs(days, metrics) {
     clicked: { metric: find('Clicked Email', 'klaviyo'), measurement: 'count' },
     bounced: { metric: find('Bounced Email', 'klaviyo'), measurement: 'count' },
     unsubscribed: { metric: find('Unsubscribed from List', 'klaviyo'), measurement: 'count' },
-    revenue: { metric: find('Placed Order', 'shopify'), measurement: 'sum_value' },
+    // Le entrate sono quelle ATTRIBUITE AL CANALE EMAIL. Prima questa riga
+    // chiedeva "Placed Order" senza attribuzione: cioe' ogni ordine del
+    // negozio, da qualunque parte arrivasse. Su Anna Virgili faceva 45.732 €
+    // al posto di 9.909 €, quattro volte e mezzo tanto, dentro una tab che
+    // parla solo di email. Un numero plausibile e sbagliato e' peggio di un
+    // numero assente, perche' nessuno va a controllarlo.
+    revenue: {
+      metric: find('Placed Order', 'shopify'),
+      measurement: 'sum_value',
+      by: ['$attributed_channel'],
+      pickDim: d => d.toLowerCase().includes('email'),
+    },
   }
 
   const results = {}
   // Query metriche IN PARALLELO (prima erano 6 chiamate sequenziali → lentissimo)
   const entries = Object.entries(targets)
-  const fetched = await Promise.all(entries.map(([, { metric, measurement }]) =>
-    metric ? queryMetric(metric.id, measurement, days) : Promise.resolve({ total: 0, dates: [], values: [] })
+  const fetched = await Promise.all(entries.map(([, { metric, measurement, by, pickDim }]) =>
+    metric ? queryMetric(metric.id, measurement, days, { by, pickDim }) : Promise.resolve({ total: 0, dates: [], values: [] })
   ))
   entries.forEach(([key], i) => { results[key] = fetched[i] })
 

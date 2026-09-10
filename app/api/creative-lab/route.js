@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { callBrain } from '../../../lib/agent/gateway'
+import { STATIC_CREATIVE_SYSTEM } from '../../../lib/agent/staticCreativeSystem'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -299,7 +300,7 @@ export async function POST(request) {
             content: [
               {
                 type: 'text',
-                text: `Describe this fitness product in extreme detail for AI image generation. Include: exact colors (hex if possible), materials (leather, synthetic, neoprene, etc.), textures (smooth, textured grip, matte, glossy), shape and proportions, any visible logos/branding/text, stitching details, hardware (buckles, velcro, snaps), distinctive design features. Be specific enough that an image AI can recreate this product with 95% accuracy. Output ONLY the description, no preamble.`,
+                text: `Describe this product in extreme detail for AI image generation. Include: exact colors (hex if possible), materials (leather, synthetic, neoprene, etc.), textures (smooth, textured grip, matte, glossy), shape and proportions, any visible logos/branding/text, stitching details, hardware (buckles, velcro, snaps), distinctive design features. Be specific enough that an image AI can recreate this product with 95% accuracy. Output ONLY the description, no preamble.`,
               },
               ...imageContent,
             ],
@@ -319,7 +320,7 @@ export async function POST(request) {
   const styleGuide = {
     performance:
       'Direct response, benefit-focused, urgency. Focus su risultati concreti, social proof, e CTA forte.',
-    ugc: 'Stile user-generated content: tono personale, come se un atleta stesse parlando della propria esperienza. Raw, più autentico.',
+    ugc: 'Stile user-generated content: tono personale, come se un cliente reale stesse parlando della propria esperienza. Raw, più autentico.',
     lifestyle:
       'Aspirazionale, mood-driven. Evoca la sensazione di allenarsi con questi prodotti. Meno copy, più emozione.',
     comparison:
@@ -359,24 +360,26 @@ export async function POST(request) {
 
   const stage = funnelStrategy[funnelStage] || funnelStrategy.tofu
 
-  const andromedaVariants = [
-    { avatar: 'male CrossFit athlete, 25-35, muscular, sweaty, intense expression', location: 'inside a CrossFit box/gym with rigs and barbells', mood: 'intense, dramatic side lighting, gritty', palette: 'dark background with warm orange/red accent lighting' },
-    { avatar: 'female fitness enthusiast, 28-38, athletic build, confident smile', location: 'outdoor training area, park or seaside at golden hour', mood: 'energetic, natural golden sunlight, fresh air feel', palette: 'bright natural tones, blues and warm gold' },
-    { avatar: 'everyday person/beginner, 30-45, relatable build, determined look', location: 'home garage gym with minimal equipment', mood: 'warm, inviting, approachable, soft window light', palette: 'warm earth tones, cozy atmosphere' },
-    { avatar: 'competition athlete, any gender, chalk on hands, focused', location: 'competition venue with crowd blur in background', mood: 'adrenaline, high contrast, flash photography feel', palette: 'black background with neon/gold highlights' },
-    { avatar: 'female coach/trainer, 35-45, professional, motivating expression', location: 'modern urban rooftop gym with city skyline', mood: 'professional, clean, aspirational, early morning light', palette: 'minimalist cool tones with one warm accent' },
-    { avatar: 'young male athlete, 20-28, lean/wiry build, action pose', location: 'grungy industrial gym, exposed brick and steel', mood: 'raw, editorial, street-style photography', palette: 'desaturated with one pop color matching the product' },
+  // Sistema di varianti = i 12 formati statici (lib/agent/staticCreativeSystem).
+  // Prima qui c'erano 6 ambientazioni fitness hardcoded (atleta in box, chalk,
+  // rig e bilancieri): erano i template di un'azienda sola e finivano addosso a
+  // ogni cliente. I formati sono brand-agnostici per costruzione; ambientazione,
+  // soggetto e palette li deriva il modello dal CONTESTO BRAND.
+  const formatVariants = [
+    { name: 'Product Hero', stage: 'BOF', brief: 'prodotto pulito su fondo neutro o brandizzato, zero distrazioni; luce e angolo che creano desiderio' },
+    { name: 'Social Proof', stage: 'MOF/BOF', brief: 'prodotto + prova quantificabile (stelle, numero recensioni, citazione cliente breve e specifica)' },
+    { name: 'Feature Callout', stage: 'MOF', brief: 'prodotto con 3-5 annotazioni che indicano benefici concreti, non specifiche tecniche' },
+    { name: 'Noi vs Loro', stage: 'TOF/MOF', brief: 'confronto visivo con la categoria o col "vecchio modo"; mai un concorrente nominato' },
+    { name: 'Griglia / Collage', stage: 'TOF/MOF', brief: '4-9 celle miste (prodotto, contesto d\'uso, dettaglio materico) con trattamento colore coerente' },
+    { name: 'Listicle', stage: 'MOF', brief: '3-5 motivi o benefici in gerarchia visiva chiara, ognuno autonomo' },
+    { name: 'Data Callout', stage: 'MOF', brief: 'UN solo numero protagonista, preso dai dati reali del brand, con il minimo contesto che lo rende leggibile' },
+    { name: 'UGC-Native', stage: 'TOF', brief: 'sembra contenuto organico: scatto casuale, imperfetto, elementi nativi della piattaforma' },
   ]
 
   const isSingle = singleIndex !== null
   const count = isSingle ? 1 : 3
 
-  const copyPrompt = `Sei un senior Meta Ads creative strategist per STMN Fitness, un brand italiano di attrezzatura per functional fitness e CrossFit (paracalli, corde, polsiere, accessori, abbigliamento).
-
-## Buyer Personas STMN Fitness
-1. "L'Atleta Serio" — 25-40, fa CrossFit/functional fitness 4-5 volte a settimana, cerca prodotti performanti, segue atleti su IG, sensibile al rapporto qualità-prezzo
-2. "Il Principiante Motivato" — 20-35, ha iniziato da poco, cerca i primi accessori giusti, vuole sentirsi parte della community
-3. "Il Coach" — 30-50, gestisce un box/palestra, compra per sé e consiglia ai clienti, vuole affidabilità
+  const copyPrompt = `Sei un senior Meta Ads creative strategist. Il brand — categoria, catalogo, target, tono di voce, buyer personas — e' descritto nel CONTESTO BRAND che ricevi: usa SOLO quello. Non dare per scontato il settore, non inventare prodotti o personas che non compaiono nel contesto, e non trasferire su questo brand ambientazioni o linguaggi tipici di un altro settore.
 
 ## Fase del Funnel: ${stage.name}
 - Obiettivo: ${stage.goal}
@@ -412,12 +415,14 @@ ${manualBrief.productFeatures ? `**Caratteristiche prodotto da evidenziare:** ${
 Ogni creative DEVE essere VISIVAMENTE UNICA per massimizzare la varianza che Andromeda premia.
 Per ogni creative usa un DIVERSO template visivo dalla lista sotto.
 
-Template visivi disponibili (usa uno diverso per ogni creative):
-${andromedaVariants.slice(0, count + 2).map((v, i) => `${i + 1}. Avatar: ${v.avatar} | Location: ${v.location} | Mood: ${v.mood} | Palette: ${v.palette}`).join('\n')}
+Formati disponibili (usane uno DIVERSO per ogni creative):
+${formatVariants.slice(0, count + 2).map((v, i) => `${i + 1}. ${v.name} (${v.stage}) — ${v.brief}`).join('\n')}
+
+Per ogni formato scegli TU soggetto, ambientazione, mood e palette, derivandoli dal CONTESTO BRAND: devono essere plausibili per questo brand e per il suo cliente reale. Due creative non devono mai condividere ne' il formato ne' l'ambientazione.
 
 ## Task
 Per OGNI prodotto, genera ${count} varianti creative per Meta Ads (Feed).
-Scrivi TUTTO in italiano. Ogni variante deve avere un angolo DIVERSO, un avatar DIVERSO, un contesto DIVERSO.
+Ogni variante deve avere un formato DIVERSO, un angolo DIVERSO e un contesto DIVERSO.
 
 Per ogni variante restituisci un oggetto JSON con:
 - "productTitle": nome esatto del prodotto
@@ -427,14 +432,15 @@ Per ogni variante restituisci un oggetto JSON con:
 - "description": descrizione sotto il link (max 80 chars)
 - "cta": testo CTA adatto a ${stage.name}
 - "angle": l'angolo creativo in 1 frase
-- "persona": quale buyer persona target (Atleta Serio / Principiante Motivato / Coach)
-- "reasoning": perché questa creative funziona per la fase ${funnelStage} (1-2 frasi, in italiano)
+- "format": il nome del formato usato, preso dalla lista sopra
+- "persona": a quale buyer persona del CONTESTO BRAND parla questa creative
+- "reasoning": perché questa creative funziona per la fase ${funnelStage} (1-2 frasi)
 - "imagePrompt": prompt DETTAGLIATO in inglese per generare l'immagine. REGOLE OBBLIGATORIE per l'imagePrompt:
-  1. Il PRODOTTO deve essere SEMPRE visibile e centrale nell'immagine. Descrivi il prodotto specifico (es. "a pair of black and red CrossFit hand grips with textured palm surface", "a tactical fitness backpack in dark grey"). Il prodotto deve occupare almeno il 30% dell'immagine.
-  2. DEVI usare il template visivo assegnato (avatar, location, mood, palette specifici).
+  1. Il PRODOTTO deve essere SEMPRE visibile e centrale nell'immagine. Descrivi il prodotto specifico con materiale, colore e dettagli presi dal catalogo nel contesto. Il prodotto deve occupare almeno il 30% dell'immagine.
+  2. DEVI rispettare il formato assegnato: la composizione dell'immagine deve rendere riconoscibile quel formato.
   3. Il formato è ${format === 'story' ? '9:16 portrait' : '1:1 square'}. Stile: fotografia realistica, advertising quality, 4K.
   4. INCLUDI nell'immagine un overlay testuale con l'headline in italiano (grande, leggibile) e il CTA in un bottone.
-  5. VARIA il tipo di composizione tra le creative: alcune con il prodotto indossato/usato da un atleta, altre con il prodotto da solo in primo piano (flat lay, studio shot, ambientato su una superficie in un contesto fitness). Non tutte le immagini devono avere persone — alterna product-only e lifestyle.
+  5. VARIA il tipo di composizione tra le creative: alcune con il prodotto indossato/usato dalla persona target, altre con il prodotto da solo in primo piano (flat lay, studio shot, still life in un contesto d'uso coerente col brand). Non tutte le immagini devono avere persone — alterna product-only e lifestyle.
 
 IMPORTANTE: ogni imagePrompt DEVE descrivere una scena COMPLETAMENTE diversa dalle altre. Diverso avatar, diversa location, diversa palette. Il PRODOTTO è sempre presente e visibile. Meta Andromeda penalizza creative simili.
 
@@ -443,7 +449,7 @@ Rispondi con un JSON valido: { "creatives": [...] }`
   try {
     // Tool mode: brand+memorie+knowledge nel contesto, schema output invariato.
     const { content } = await callBrain({
-      skill: { id: 'creative', json: true, systemPrompt: 'Sei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.' },
+      skill: { id: 'creative', json: true, systemPrompt: STATIC_CREATIVE_SYSTEM + '\n\nSei un creative strategist per Meta Ads. Rispondi SOLO con JSON valido.' },
       query: 'creative strategy Meta Ads hook angoli copy UGC advertising',
       messages: [{ role: 'user', content: copyPrompt }],
       locale: body?.locale,

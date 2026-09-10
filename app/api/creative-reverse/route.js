@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
-import { complete } from '../../../lib/agent/router'
+import { callBrain } from '../../../lib/agent/gateway'
 import { requireCaller } from '../../../lib/tenant/credentials'
 
 export const dynamic = 'force-dynamic'
@@ -10,24 +8,24 @@ export const maxDuration = 60
 // OPENAI_KEY serve ancora alla generazione immagine (gpt-image-1/dall-e-3) qui sotto.
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 
-const SYSTEM = `Sei un Senior Creative Strategist di STMN Fitness (Stamina Fitness), brand di accessori CrossFit di alta qualità: paracalli/grips, polsiere, corde da salto, fasce, ginocchiere, cinture. NIENTE supplementi/integratori/nutrizione. Target: atleti CrossFit/functional/home gym in IT, FR, EU. Tono: pratico, no-bullshit, performance-driven.
+const SYSTEM = `Sei un Senior Creative Strategist. Il brand per cui lavori — categoria, catalogo, target, tono di voce — e' descritto nel CONTESTO BRAND che ricevi: usa SOLO quello. Non dare per scontato il settore e non inventare prodotti che non compaiono nel contesto.
 
-Ti viene dato il testo di un'inserzione ATTIVA (di un competitor o trovata in Ad Library). Devi fare REVERSE-ENGINEERING: capire perché funziona e produrre un adattamento ON-BRAND per STMN — non copiare, ma riadattare l'angolo a un prodotto STMN coerente.
+Ti viene dato il testo di un'inserzione ATTIVA (di un concorrente o trovata in Ad Library). Devi fare REVERSE-ENGINEERING: capire perche' funziona e produrre un adattamento ON-BRAND — non copiare, ma riadattare l'angolo a un prodotto del brand che sia coerente.
 
 Rispondi SOLO con JSON valido (nessun testo fuori dal JSON), in questa forma:
 {
   "sourceAngle": "<l'angolo/leva persuasiva dell'ad originale, 1 frase>",
-  "whyItWorks": "<perché funziona: hook, formato, leva psicologica (Cialdini/Fogg), 1-2 frasi>",
-  "stmnProduct": "<quale prodotto STMN usare per riadattarlo (es. paracalli, corda, polsiere)>",
-  "angle": "<l'angolo on-brand per STMN, 1 frase>",
-  "hook": "<hook/prima riga ad alto impatto in italiano>",
-  "primaryTexts": ["<variante copy 1 IT>", "<variante 2>", "<variante 3>"],
-  "headline": "<headline breve IT>",
-  "visualBrief": "<direzione visiva dello scatto/video: soggetto, ambientazione, luce, mood>",
-  "imagePrompt": "<prompt in INGLESE per generare un'immagine pubblicitaria fotorealistica on-brand del prodotto STMN; specifica prodotto, atleta CrossFit, ambientazione box/home gym, luce, composizione, niente testo nell'immagine>"
+  "whyItWorks": "<perche' funziona: hook, formato, leva psicologica (Cialdini/Fogg), 1-2 frasi>",
+  "product": "<quale prodotto del brand usare per riadattarlo, preso dal contesto>",
+  "angle": "<l'angolo on-brand, 1 frase>",
+  "hook": "<hook/prima riga ad alto impatto>",
+  "primaryTexts": ["<variante copy 1>", "<variante 2>", "<variante 3>"],
+  "headline": "<headline breve>",
+  "visualBrief": "<direzione visiva dello scatto: soggetto, ambientazione, luce, mood, coerenti col brand>",
+  "imagePrompt": "<prompt in INGLESE per generare un'immagine pubblicitaria fotorealistica on-brand; specifica prodotto, soggetto, ambientazione, luce, composizione, niente testo nell'immagine>"
 }
 
-Regole: copy in italiano, concreti e performance-driven, nessun integratore/nutrizione, niente claim medici. Sii specifico e azionabile.`
+Regole: copy concreti e performance-driven, coerenti con il tono di voce del brand, niente claim medici o promesse di risultato non verificabili. Sii specifico e azionabile.`
 
 async function generateImage(prompt) {
   if (!OPENAI_KEY) return { error: 'OPENAI_API_KEY non configurata' }
@@ -77,28 +75,24 @@ export async function POST(req) {
 
   if (!adText) return NextResponse.json({ error: 'Nessun testo dall\'inserzione da analizzare' }, { status: 400 })
 
-  const kb = await buildKnowledgeBlock('creative strategy hook angoli copy advertising adattamento on-brand')
-
   try {
     let res
     try {
-      res = await complete({
-        tier: 'smart',
+      // Tool mode: il CONTESTO BRAND (+ memorie e knowledge) arriva da callBrain,
+      // non piu' hardcoded nel prompt. Stesso tier 'smart' di prima.
+      res = await callBrain({
+        skill: { id: 'creative', json: true, systemPrompt: SYSTEM },
+        query: 'creative strategy hook angoli copy advertising adattamento on-brand',
+        messages: [{ role: 'user', content: `Inserzione attiva da riadattare on-brand:\n\n${adText}` }],
+        locale: body?.locale,
+        conversation: false,
         temperature: 0.6,
-        json: true,
-        messages: [
-          { role: 'system', content: SYSTEM },
-          ...(kb ? [{ role: 'system', content: kb }] : []),
-          ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
-          { role: 'user', content: `Inserzione attiva da riadattare on-brand per STMN:\n\n${adText}` },
-        ],
-        signal: AbortSignal.timeout(45000),
       })
     } catch (e) {
       return NextResponse.json({ error: `OpenAI ${e?.status || ''}: ${(e?.message || '').slice(0, 200)}` }, { status: 502 })
     }
     let brief
-    try { brief = JSON.parse(res?.content || '{}') } catch { brief = null }
+    try { brief = res?.parsed || JSON.parse(res?.content || '{}') } catch { brief = null }
     if (!brief) return NextResponse.json({ error: 'Risposta non valida' }, { status: 502 })
     return NextResponse.json({ brief, updatedAt: new Date().toISOString() })
   } catch (err) {

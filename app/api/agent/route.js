@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { ACTION_QUALITY } from '../../../lib/agent/actionQuality'
+import { STATIC_CREATIVE_SYSTEM } from '../../../lib/agent/staticCreativeSystem'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
@@ -308,7 +309,7 @@ async function tenantSystemPrompt() {
   // le sezioni su performance marketing, CRO, retention, Meta e Google Ads.
   // Tolti i fatti dell'azienda che non esiste piu', quella competenza e' generica
   // e vale per chiunque. tenantPrompt resta come rete di sicurezza.
-  return tenantPrompt(SYSTEM_PROMPT) + ACTION_QUALITY
+  return tenantPrompt(SYSTEM_PROMPT) + STATIC_CREATIVE_SYSTEM + ACTION_QUALITY
 }
 
 function safeJson(value, max = 80000) {

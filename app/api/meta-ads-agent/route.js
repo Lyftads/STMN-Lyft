@@ -1,4 +1,5 @@
 import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
+import { STATIC_CREATIVE_SYSTEM } from '../../../lib/agent/staticCreativeSystem'
 const AGENT_ID = 'meta-ads'
 
 export const dynamic = 'force-dynamic'
@@ -173,7 +174,7 @@ function buildContext(body) {
 export async function POST(req) {
   return handleVerticalAgent(req, {
     id: AGENT_ID,
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: SYSTEM_PROMPT + STATIC_CREATIVE_SYSTEM,
     buildContext,
     dataLabel: 'META DATA — usa SOLO questi numeri/nomi per CITAZIONI, mai inventare:',
     dataMax: 100000,

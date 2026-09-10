@@ -501,7 +501,7 @@ function CampaignPreview({ campaign, tr, onClose }) {
               ) : (
                 <div style={{ padding: 20, fontSize: 12.5, color: '#9b90aa', lineHeight: 1.6 }}>
                   {d.body.error === 'scope'
-                    ? tr('klaviyo.bodyScope', null, 'Il corpo dell’email richiede il permesso «templates:read», che il collegamento a Klaviyo non ha ancora. Ricollega Klaviyo dalle Integrazioni per vederlo: oggetto, anteprima e destinatari restano visibili anche adesso.')
+                    ? tr('klaviyo.bodyScope', null, 'Il corpo dell’email richiede il permesso «templates:read». Klaviyo lo concede solo se è abilitato nell’app OAuth: aprilo su Klaviyo in Impostazioni → App → la tua app → Scopes, spunta templates:read, poi ricollega Klaviyo dalle Integrazioni. Oggetto, testo di anteprima e destinatari si vedono già adesso.')
                     : tr('klaviyo.bodyMissing', null, 'Klaviyo non restituisce il corpo di questa campagna.')}
                 </div>
               )}

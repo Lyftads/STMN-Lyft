@@ -5,6 +5,7 @@ import { swrFetch, getCached } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import EnqueueButton from './ui/EnqueueButton'
 import BmTimeframe from './ui/BmTimeframe'
+import Icon from './ui/Icon'
 import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -68,9 +69,9 @@ function Section({ title, subtitle, color = '#8b5cf6', children, style }) {
   )
 }
 
-function Card({ title, value, badge, color = '#8b5cf6' }) {
+function Card({ title, value, badge, color = '#8b5cf6', hint }) {
   return (
-    <div className="glass-card" style={cardStyle}>
+    <div className="glass-card" style={cardStyle} title={hint || undefined}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ fontSize: 11, color: '#9b90aa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em' }}>{title}</span>
         {badge && (
@@ -81,6 +82,9 @@ function Card({ title, value, badge, color = '#8b5cf6' }) {
         )}
       </div>
       <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--text)', letterSpacing: '-0.03em' }}>{value}</div>
+      {/* Sotto al numero, non solo nel suggerimento: se un dato puo' essere
+          scambiato per un altro, dirlo va scritto dove si guarda. */}
+      {hint && <div style={{ fontSize: 10.5, color: '#776a86', marginTop: 6, lineHeight: 1.4 }}>{hint}</div>}
     </div>
   )
 }
@@ -98,6 +102,7 @@ function StatusDot({ active }) {
 export default function KlaviyoTab() {
   const { t: tr } = useI18n()
   const [data, setData] = useState(null)
+  const [preview, setPreview] = useState(null)     // campagna aperta in anteprima
   const [breakdown, setBreakdown] = useState(null)  // revenue/OR/CR per campagna+flusso (caricato a parte)
   const [loading, setLoading] = useState(true)
   const [tf, setTf] = useState({ preset: 'last_30d' })
@@ -199,7 +204,8 @@ export default function KlaviyoTab() {
         <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
           <Card title="Bounce" value={fmtN(kpis?.bounced?.total)} badge="Health" color="#ef4444" />
           <Card title="Unsub" value={fmtN(kpis?.unsubscribed?.total)} badge="Health" color="#ef4444" />
-          <Card title="Revenue" value={fmtE(kpis?.revenue?.total)} badge="€" color="#22c55e" />
+          <Card title={tr('klaviyo.revenueEmail', null, 'Entrate email')} value={fmtE(kpis?.revenue?.total)} badge="€" color="#22c55e"
+            hint={tr('klaviyo.revenueEmailHint', null, 'Ordini attribuiti da Klaviyo al canale email (campagne e flussi), non il fatturato del negozio.')} />
         </div>
       </Section>
 
@@ -288,10 +294,16 @@ export default function KlaviyoTab() {
               {(campaigns?.[campTab] || []).slice(0, 20).map((c, i) => {
                 const st = campStatsMap[c.id]
                 return (
-                <tr key={c.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={c.id || i}
+                  onClick={() => c.id && setPreview(c)}
+                  title={tr('klaviyo.openPreview', null, 'Apri l’anteprima dell’email')}
+                  style={{ borderBottom: '1px solid var(--border)', cursor: c.id ? 'pointer' : 'default' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.035)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                   <td style={{ padding: '10px 16px', color: '#f7f2ff', fontWeight: 700 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span>{c.name}</span>
+                      <Icon name="eye" size={12} style={{ color: '#776a86' }} />
                       {c.status === 'Draft' && (
                         <EnqueueButton compact build={() => ({
                           channel: 'klaviyo', source: 'klaviyo', type: 'custom', target_name: c.name,
@@ -383,6 +395,129 @@ export default function KlaviyoTab() {
           </div>
         </Section>
       </div>
+
+      {preview && <CampaignPreview campaign={preview} tr={tr} onClose={() => setPreview(null)} />}
+    </div>
+  )
+}
+
+// ── Anteprima di una campagna ──────────────────────────────────────────────
+// Nell'ordine in cui la si guarda: a chi va, che oggetto ha, cosa si legge in
+// casella prima di aprirla, da chi arriva, e infine l'email intera.
+function CampaignPreview({ campaign, tr, onClose }) {
+  const [d, setD] = useState(null)
+  const [err, setErr] = useState(null)
+
+  useEffect(() => {
+    let vivo = true
+    setD(null); setErr(null)
+    fetch(`/api/klaviyo/campaign?id=${encodeURIComponent(campaign.id)}`, { cache: 'no-store', signal: AbortSignal.timeout(30000) })
+      .then(r => r.json())
+      .then(j => { if (!vivo) return; j?.ok ? setD(j) : setErr(j?.error || 'errore') })
+      .catch(() => { if (vivo) setErr('rete') })
+    return () => { vivo = false }
+  }, [campaign.id])
+
+  useEffect(() => {
+    const esc = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [onClose])
+
+  const pubblico = [
+    ...(d?.audiences?.included || []).map(a => ({ ...a, incluso: true })),
+    ...(d?.audiences?.excluded || []).map(a => ({ ...a, incluso: false })),
+  ]
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3vh 16px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 'min(760px, 100%)', maxHeight: '94vh', display: 'flex', flexDirection: 'column',
+        background: '#15111c', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden',
+      }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#f7f2ff', letterSpacing: '-0.01em' }}>{campaign.name}</div>
+            <div style={{ fontSize: 11.5, color: '#9b90aa', marginTop: 3 }}>
+              {campaign.status}{campaign.sendTime ? ` · ${new Date(campaign.sendTime).toLocaleString('it-IT')}` : ''}
+            </div>
+          </div>
+          <button onClick={onClose} aria-label={tr('klaviyo.close', null, 'Chiudi')} style={{ background: 'none', border: 'none', color: '#9b90aa', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {!d && !err && <div style={{ padding: 40, textAlign: 'center', color: '#9b90aa', fontSize: 13 }}>{tr('klaviyo.loadingPreview', null, 'Carico l’anteprima…')}</div>}
+          {err && <div style={{ padding: 30, color: '#fca5a5', fontSize: 13 }}>{tr('klaviyo.previewError', null, 'Non riesco a leggere questa campagna da Klaviyo.')}</div>}
+
+          {d && (
+            <>
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid var(--border)' }}>
+                {pubblico.length > 0 && (
+                  <Riga label={tr('klaviyo.audience', null, 'A chi va')}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {pubblico.map(a => (
+                        <span key={`${a.incluso}-${a.id}`} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700,
+                          padding: '4px 10px', borderRadius: 999,
+                          background: a.incluso ? '#06b6d422' : '#ef444422',
+                          color: a.incluso ? '#67e8f9' : '#fca5a5',
+                          border: `1px solid ${a.incluso ? '#06b6d444' : '#ef444444'}`,
+                        }}>
+                          <Icon name={a.type === 'list' ? 'list' : 'funnel'} size={11} />
+                          {a.name}
+                          <span style={{ opacity: 0.7, fontWeight: 600 }}>
+                            {a.incluso ? '' : tr('klaviyo.excluded', null, 'esclusi')}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </Riga>
+                )}
+                <Riga label={tr('klaviyo.subject', null, 'Oggetto')}>
+                  <span style={{ color: '#f7f2ff', fontWeight: 700, fontSize: 14 }}>{d.message.subject || '—'}</span>
+                </Riga>
+                <Riga label={tr('klaviyo.previewText', null, 'Testo di anteprima')}>
+                  <span style={{ color: '#c9c2d4', fontSize: 13 }}>{d.message.previewText || '—'}</span>
+                </Riga>
+                <Riga label={tr('klaviyo.sender', null, 'Mittente')}>
+                  <span style={{ color: '#c9c2d4', fontSize: 13 }}>
+                    {d.message.fromLabel || '—'}{d.message.fromEmail ? ` · ${d.message.fromEmail}` : ''}
+                    {d.message.replyTo ? ` · ${tr('klaviyo.replyTo', null, 'risposte a')} ${d.message.replyTo}` : ''}
+                  </span>
+                </Riga>
+              </div>
+
+              {d.body.html ? (
+                // L'email gira in una cornice isolata e SENZA script: e' HTML
+                // scritto da terzi, e non deve poter toccare la pagina.
+                <iframe title={d.message.subject || campaign.name} srcDoc={d.body.html}
+                  sandbox="allow-popups allow-popups-to-escape-sandbox"
+                  style={{ width: '100%', height: '58vh', border: 'none', background: '#fff', display: 'block' }} />
+              ) : d.body.text ? (
+                <pre style={{ margin: 0, padding: 20, whiteSpace: 'pre-wrap', color: '#c9c2d4', fontSize: 12.5, lineHeight: 1.6 }}>{d.body.text}</pre>
+              ) : (
+                <div style={{ padding: 20, fontSize: 12.5, color: '#9b90aa', lineHeight: 1.6 }}>
+                  {d.body.error === 'scope'
+                    ? tr('klaviyo.bodyScope', null, 'Il corpo dell’email richiede il permesso «templates:read», che il collegamento a Klaviyo non ha ancora. Ricollega Klaviyo dalle Integrazioni per vederlo: oggetto, anteprima e destinatari restano visibili anche adesso.')
+                    : tr('klaviyo.bodyMissing', null, 'Klaviyo non restituisce il corpo di questa campagna.')}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Riga({ label, children }) {
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 10.5, color: '#776a86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.07em', minWidth: 118 }}>{label}</span>
+      <div style={{ flex: 1, minWidth: 200 }}>{children}</div>
     </div>
   )
 }

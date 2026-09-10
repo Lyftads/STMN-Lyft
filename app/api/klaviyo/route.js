@@ -380,9 +380,11 @@ export async function GET(request) {
   // separata (?part=breakdown) così la tab carica subito i dati veloci.
   const part = searchParams.get('part') || 'main'
 
-  // tab key versionata 'klaviyo4': invalida sia le liste troncate a 1 pagina
-  // sia gli snapshot VUOTI cachati quando page[size] veniva rifiutato (400).
-  return swrSnapshot(request, { tab: 'klaviyo4', compute: async () => {
+  // tab key versionata 'klaviyo5': oltre alle liste troncate e agli snapshot
+  // vuoti, invalida quelli in cui "revenue" voleva dire il fatturato di TUTTO
+  // il negozio. Il campo ha lo stesso nome ma un altro significato: se non si
+  // butta la cache, si continua a servire il numero sbagliato senza accorgersene.
+  return swrSnapshot(request, { tab: 'klaviyo5', compute: async () => {
     try {
       if (part === 'breakdown') {
         const [flows, metrics, sent] = await Promise.all([getFlows(), getMetrics(), getCampaigns('Sent')])

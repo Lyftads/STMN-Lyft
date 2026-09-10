@@ -152,6 +152,14 @@ export default function KlaviyoTab() {
     return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>{tr('klaviyo.loading', null, 'Un attimo, sto tirando su i dati da Klaviyo...')}</div>
   }
 
+  if (data?.error === 'not_connected') {
+    return (
+      <div style={{ padding: 40, color: '#9b90aa', fontSize: 13.5, lineHeight: 1.6, maxWidth: 560 }}>
+        {tr('klaviyo.notConnected', null, 'Klaviyo non è collegato a questo spazio di lavoro. Collegalo dalle Integrazioni: se l’hai appena fatto, ricarica fra qualche secondo.')}
+      </div>
+    )
+  }
+
   if (!data || data.error) {
     return <div style={{ color: '#ef4444', padding: 40 }}>{tr('klaviyo.errorPrefix', null, 'Errore:')} {data?.error || tr('klaviyo.connFailed', null, 'Connessione Klaviyo fallita')}</div>
   }

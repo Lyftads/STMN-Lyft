@@ -368,7 +368,7 @@ async function getRevenueBreakdown(campaigns, flowsList, days, metrics) {
 export async function GET(request) {
   return withTenantContext(request, async () => {
   if (!klaviyoApiKey()) {
-    return NextResponse.json({ error: 'KLAVIYO_API_KEY not configured' }, { status: 500 })
+    return NextResponse.json({ error: 'not_connected' }, { status: 200 })
   }
 
   const { searchParams } = new URL(request.url)

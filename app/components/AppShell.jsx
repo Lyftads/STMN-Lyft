@@ -596,11 +596,27 @@ const [helpOpen, setHelpOpen] = useState(false)
 function TabContent({ children }) {
   const ref = useRef(null)
   const [entered, setEntered] = useState(false)
+  // A entrata finita il transform va TOLTO, non lasciato a identita'. Un
+  // transform diverso da none rende questo div il contenitore di riferimento
+  // per ogni position:fixed che sta dentro la tab: menu del tasto destro,
+  // rettangoli di selezione e finestre a schermo intero si posizionavano
+  // rispetto a questo riquadro invece che alla finestra, e uscivano spostati
+  // della colonna laterale piu' l'intestazione.
+  const [posato, setPosato] = useState(false)
 
   useEffect(() => {
     setEntered(false)
+    setPosato(false)
     requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)))
   }, [])
+
+  useEffect(() => {
+    if (!entered) return
+    // Un filo oltre i 600ms della transizione: il transform sparisce quando
+    // ha gia' finito di muoversi, cosi' l'entrata resta quella di prima.
+    const id = setTimeout(() => setPosato(true), 700)
+    return () => clearTimeout(id)
+  }, [entered])
 
   useEffect(() => {
     if (!entered || !ref.current) return
@@ -657,7 +673,7 @@ function TabContent({ children }) {
       ref={ref}
       style={{
         opacity: entered ? 1 : 0,
-        transform: entered ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.97)',
+        transform: posato ? 'none' : entered ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.97)',
         transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)',
       }}
     >

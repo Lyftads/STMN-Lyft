@@ -258,22 +258,61 @@ async function alreadyDone(sourceRef) {
   try { const { count } = await sb.from('knowledge_base').select('id', { count: 'exact', head: true }).eq('source_ref', sourceRef); return (count || 0) > 0 } catch { return false }
 }
 
+// Quanti fallimenti di fila prima di arrendersi. Il 30 agosto la rete è caduta
+// a metà coda e la corsa ha macinato a vuoto per 131 video, chiudendo con una
+// riga di totale che sembrava un successo. Un errore isolato è normale (video
+// privato, rimosso); otto di fila non sono i video, è la connessione.
+const ERRORI_DI_FILA_MAX = 8
+const RETE = /Failed to resolve|ENOTFOUND|ECONNRESET|ETIMEDOUT|network|Temporary failure|getaddrinfo/i
+const attendi = (ms) => new Promise(r => setTimeout(r, ms))
+
 async function ingestYouTube(urls) {
-  let total = 0
+  let total = 0, fatti = 0, saltati = 0, falliti = 0, diFila = 0
+  const nonRiusciti = []
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i]; const id = videoId(url); const tag = `yt_${id}`
     log(`[YT ${i + 1}/${urls.length}] ${url}`)
-    if (!FORCE && await alreadyDone(`yt:${id}`)) { log('  già fatto, salto'); continue }
-    try {
-      let text = await ytSubtitles(url, tag)
-      if (text) log('  sottotitoli ok'); else { log('  niente sub → audio+Whisper'); text = await transcribeInput(await ytAudio(url, tag), tag) }
-      if (!text || text.length < 80) { warn('  testo insufficiente, skip'); continue }
-      const { topic, notes } = await distill(text)
-      const n = await saveNotes(notes, { topic, source: 'youtube', sourceRef: `yt:${id}` })
-      log(`  ✓ ${n} note (topic: ${topic})`); total += n
-    } catch (e) { warn('  errore:', e.message) }
+    if (!FORCE && await alreadyDone(`yt:${id}`)) { log('  già fatto, salto'); saltati++; continue }
+
+    // Su errore di RETE si riprova: una caduta momentanea non deve costare il
+    // video. Su errore del video (privato, rimosso) riprovare è solo tempo.
+    let esito = null, ultimo = null
+    for (let tentativo = 1; tentativo <= 3; tentativo++) {
+      try {
+        let text = await ytSubtitles(url, tag)
+        if (text) log('  sottotitoli ok'); else { log('  niente sub → audio+Whisper'); text = await transcribeInput(await ytAudio(url, tag), tag) }
+        if (!text || text.length < 80) { warn('  testo insufficiente, skip'); esito = 'vuoto'; break }
+        const { topic, notes } = await distill(text)
+        const n = await saveNotes(notes, { topic, source: 'youtube', sourceRef: `yt:${id}` })
+        log(`  ✓ ${n} note (topic: ${topic})`); total += n; esito = 'ok'; break
+      } catch (e) {
+        ultimo = e.message
+        if (RETE.test(e.message) && tentativo < 3) {
+          const pausa = tentativo * 20000
+          warn(`  rete giù (tentativo ${tentativo}/3), riprovo fra ${pausa / 1000}s`)
+          await attendi(pausa); continue
+        }
+        warn('  errore:', e.message); esito = 'errore'; break
+      }
+    }
+
+    if (esito === 'ok') { fatti++; diFila = 0 }
+    else if (esito === 'vuoto') { saltati++; diFila = 0 }
+    else {
+      falliti++; diFila++; nonRiusciti.push(url)
+      if (diFila >= ERRORI_DI_FILA_MAX) {
+        warn(`\nFERMO QUI: ${diFila} errori consecutivi — non sono i video, è l'ambiente.`)
+        warn(`Ultimo errore: ${ultimo}`)
+        warn(`Rimasti da fare: ${urls.length - i - 1}. Riprendere con lo stesso comando: i già fatti vengono saltati.`)
+        break
+      }
+    }
   }
-  log(`Totale note YouTube: ${total}`)
+  log(`\nRIEPILOGO — ingeriti ${fatti} · già presenti/vuoti ${saltati} · falliti ${falliti} · note nuove ${total}`)
+  if (nonRiusciti.length) {
+    const f = `/tmp/kb_non_riusciti.txt`
+    try { fs.writeFileSync(f, nonRiusciti.join('\n')) ; log(`URL non riusciti scritti in ${f}`) } catch {}
+  }
 }
 
 // ── Circle (corso) ───────────────────────────────────────────────────────────

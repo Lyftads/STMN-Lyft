@@ -32,3 +32,4 @@ yarn-error.log*
 next-env.d.ts
 
 livekit-worker/node_modules
+.env*

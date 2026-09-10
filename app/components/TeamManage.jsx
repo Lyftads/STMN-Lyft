@@ -23,13 +23,27 @@ const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius
 const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }
 const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 12.5, cursor: 'pointer' }
 
-export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleLabels, ownerUserId, seats, hiddenTabs = [], onSaveHiddenTabs, onClose, onInvite, onUpdateRoles, onRemove }) {
+export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleLabels, ownerUserId, seats, hiddenTabs = [], customRoles = [], onSaveHiddenTabs, onAddRole, onRemoveRole, onClose, onInvite, onUpdateRoles, onRemove }) {
   const { t } = useI18n()
   const atLimit = seats && seats.limit != null && seats.used >= seats.limit
   const [email, setEmail] = useState('')
   const [roles, setRoles] = useState([])
   const [sending, setSending] = useState(false)
   const [created, setCreated] = useState(null)
+  const [newRole, setNewRole] = useState('')
+  const [roleBusy, setRoleBusy] = useState(false)
+  const [roleErr, setRoleErr] = useState(null)
+  const customIds = new Set((customRoles || []).map(r => r.id))
+
+  async function addRole() {
+    const label = newRole.trim()
+    if (!label) return
+    setRoleBusy(true); setRoleErr(null)
+    const r = await onAddRole?.(label)
+    if (r && r.ok === false) setRoleErr(r.error || 'Errore')
+    else setNewRole('')
+    setRoleBusy(false)
+  }
 
   const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
 
@@ -56,8 +70,13 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
   }
 
   // Come tab occupa la pagina; come modale resta sovrapposto. Stesso contenuto.
+  // Da tab le sezioni sono card affiancate al resto dell'app, a tutta
+  // larghezza; da modale restano dentro la scatola sovrapposta.
+  const sec = embedded
+    ? { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }
+    : null
   const Wrapper = ({ children }) => embedded ? (
-    <div style={{ ...PANEL, maxWidth: 820, position: 'relative', zIndex: 2 }}>{children}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 2 }}>{children}</div>
   ) : (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
       <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(680px, 100%)', maxWidth: 680, maxHeight: '86vh', overflowY: 'auto' }}>{children}</div>
@@ -74,14 +93,14 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
 
         {/* Contatore posti del piano */}
         {seats && (
-          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 10, border: `1px solid ${atLimit ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`, background: atLimit ? 'rgba(255,55,95,0.08)' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+          <div style={{ ...(sec || {}), marginTop: embedded ? 0 : 14, padding: embedded ? 18 : '10px 14px', borderRadius: embedded ? 14 : 10, border: `1px solid ${atLimit ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`, background: atLimit ? 'rgba(255,55,95,0.08)' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
             <span style={{ fontWeight: 700 }}>{t('tk.teamUsersLabel', null, 'Team users:')} {seats.used}{seats.limit != null ? ` / ${seats.limit}` : ''}</span>
             <span style={{ color: '#b0b0bd' }}>{seats.limit == null ? t('tk.unlimitedPlan', null, 'unlimited on your plan') : atLimit ? t('tk.limitReached', null, '· limit reached, upgrade to add more') : t('tk.planLabel', { plan: seats.plan || '' }, '· {plan} plan')}</span>
           </div>
         )}
 
         {/* Invita */}
-        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10, opacity: atLimit ? 0.55 : 1 }}>
+        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 10 }), marginTop: embedded ? 0 : 16, opacity: atLimit ? 0.55 : 1 }}>
           <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{t('tk.inviteCollaborator', null, 'Invite a collaborator')}</div>
           <input style={input} placeholder={t('tk.emailPlaceholder', null, 'email@example.com')} value={email} onChange={e => setEmail(e.target.value)} disabled={atLimit} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
@@ -89,8 +108,29 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
               <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? '#5b8bff' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={roles.includes(r)} onChange={() => setRoles(prev => toggle(prev, r))} />
                 {roleLabels[r] || r}
+                {customIds.has(r) && onRemoveRole && (
+                  <span role="button" title={t('tk.removeRole', null, 'Elimina ruolo')}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (confirm(t('tk.removeRoleConfirm', null, 'Eliminare il ruolo?'))) onRemoveRole(r) }}
+                    style={{ marginLeft: 2, color: '#b0b0bd', fontSize: 15, lineHeight: 1, cursor: 'pointer' }}>x</span>
+                )}
               </label>
             ))}
+          </div>
+
+          {/* Ruolo su misura: i quattro di serie non bastano a tutti */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <input
+              style={{ ...input, width: 'auto', flex: '1 1 220px', maxWidth: 300 }}
+              placeholder={t('tk.newRolePlaceholder', null, 'Nuovo ruolo (es. Store manager)')}
+              value={newRole}
+              onChange={e => setNewRole(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRole() } }}
+            />
+            <button type="button" style={{ ...btnGhost, opacity: (roleBusy || !newRole.trim()) ? 0.5 : 1 }}
+              disabled={roleBusy || !newRole.trim()} onClick={addRole}>
+              + {t('tk.addRole', null, 'Crea ruolo')}
+            </button>
+            {roleErr && <span style={{ fontSize: 12, color: '#fca5a5' }}>{roleErr}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
             <button style={{ ...btn, opacity: (sending || atLimit) ? 0.6 : 1 }} disabled={sending || atLimit} onClick={submit}>
@@ -113,7 +153,7 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
         </div>
 
         {/* Visibilità tab per i membri (Admin) */}
-        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 10 }), marginTop: embedded ? 0 : 16 }}>
           <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{t('tk.tabVisibility', null, 'Tab visibility for members')}</div>
           <div style={{ fontSize: 12, color: '#8a8a98', marginBottom: 10 }}>{t('tk.tabVisibilityHint', null, 'Members see everything by default. Click a tab to hide it from them (you, the Admin, always see all).')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
@@ -134,7 +174,14 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
         </div>
 
         {/* Membri */}
-        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Card dei membri solo se ce ne sono: da tab una scatola vuota in
+            fondo alla pagina sembra un errore di caricamento. */}
+        <div style={{ ...((embedded && members.length === 0) ? { display: 'none' } : (sec || {})), marginTop: embedded ? 0 : 18, display: (embedded && members.length === 0) ? 'none' : 'flex', flexDirection: 'column', gap: 8 }}>
+          {embedded && members.length > 0 && (
+            <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 2 }}>
+              {t('tk.teamMembers', null, 'Membri del team')}
+            </div>
+          )}
           {members.map(m => {
             const isOwner = m.user_id && m.user_id === ownerUserId || (m.roles || []).includes('admin')
             const badge = STATUS_BADGE[m.status] || STATUS_BADGE.invited

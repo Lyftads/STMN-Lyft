@@ -17,6 +17,7 @@ export default function TeamManageTab() {
   const [roleLabels, setRoleLabels] = useState({})
   const [seats, setSeats] = useState(null)
   const [hiddenTabs, setHiddenTabs] = useState([])
+  const [customRoles, setCustomRoles] = useState([])
   const [me, setMe] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +30,7 @@ export default function TeamManageTab() {
         setRoleLabels(j.roleLabels || {})
         setSeats(j.seats || null)
         setHiddenTabs(Array.isArray(j.hiddenTabs) ? j.hiddenTabs : [])
+        setCustomRoles(Array.isArray(j.customRoles) ? j.customRoles : [])
         setMe(j.me || null)
       }
     } finally { setLoading(false) }
@@ -42,6 +44,26 @@ export default function TeamManageTab() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hiddenTabs: next }),
     })
+  }
+
+  // I ruoli su misura vivono sul workspace, come le tab nascoste: dopo il
+  // salvataggio si ricarica, così il catalogo dei ruoli è quello vero del server.
+  async function addRole(label) {
+    const r = await fetch('/api/team-members', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addRole: label }),
+    }).then(x => x.json()).catch(() => ({ ok: false, error: 'network' }))
+    if (r?.ok) await load()
+    return r
+  }
+
+  async function removeRole(id) {
+    const r = await fetch('/api/team-members', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ removeRole: id }),
+    }).then(x => x.json()).catch(() => ({ ok: false }))
+    if (r?.ok) await load()
+    return r
   }
 
   async function inviteMember(email, roles) {
@@ -91,7 +113,10 @@ export default function TeamManageTab() {
       ownerUserId={me?.userId}
       seats={seats}
       hiddenTabs={hiddenTabs}
+      customRoles={customRoles}
       onSaveHiddenTabs={saveHiddenTabs}
+      onAddRole={addRole}
+      onRemoveRole={removeRole}
       onInvite={inviteMember}
       onUpdateRoles={updateMemberRoles}
       onRemove={removeMember}

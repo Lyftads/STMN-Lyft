@@ -23,6 +23,26 @@ const ROLE_LABELS = {
   data_analyst: 'Data Analyst / Revisore',
 }
 
+// Ruoli personalizzati del workspace (companies.team_custom_roles).
+// Se la colonna non esiste ancora (supabase/team_custom_roles.sql non eseguito)
+// si degrada a lista vuota: i ruoli di serie continuano a funzionare.
+async function customRolesOf(admin, workspaceId) {
+  try {
+    const { data } = await admin.from('companies').select('team_custom_roles').eq('user_id', workspaceId).maybeSingle()
+    const raw = Array.isArray(data?.team_custom_roles) ? data.team_custom_roles : []
+    return raw
+      .filter(r => r && typeof r.id === 'string' && typeof r.label === 'string')
+      .map(r => ({ id: r.id.slice(0, 40), label: r.label.slice(0, 60) }))
+  } catch { return [] }
+}
+
+// Un ruolo inventato dall'utente diventa un id stabile: senza, rinominare
+// l'etichetta scollegherebbe i membri che ce l'hanno già.
+function roleId(label) {
+  return String(label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40)
+}
+
 async function currentEmail() {
   try {
     const sb = getServerSupabase()
@@ -148,12 +168,14 @@ export async function GET() {
       plan = comp?.plan || null
       hiddenTabs = Array.isArray(comp?.team_hidden_tabs) ? comp.team_hidden_tabs : []
     } catch {}
+    const custom = await customRolesOf(admin, ws.workspaceId)
     const limit = seatLimit(plan)
     const used = (data || []).filter(m => ['active', 'invited'].includes(m.status)).length
     return NextResponse.json({
       members: data || [],
-      roles: ROLES,
-      roleLabels: ROLE_LABELS,
+      roles: [...ROLES, ...custom.map(r => r.id)],
+      roleLabels: { ...ROLE_LABELS, ...Object.fromEntries(custom.map(r => [r.id, r.label])) },
+      customRoles: custom,
       seats: { plan, limit: limit === Infinity ? null : limit, used },
       hiddenTabs,
       me: { userId: ws.userId, memberId: ws.memberId, roles: ws.roles, isAdmin: ws.isAdmin, isMember: ws.workspaceId !== ws.userId, hiddenTabs },
@@ -173,6 +195,40 @@ export async function PUT(req) {
   if (!admin) return NextResponse.json({ ok: false })
   let b = {}
   try { b = await req.json() } catch {}
+  // Creazione/rimozione di un ruolo personalizzato: passa da qui perché è
+  // un'impostazione del workspace, come le tab nascoste.
+  if (b?.addRole || b?.removeRole) {
+    const current = await customRolesOf(admin, ws.workspaceId)
+    let next = current
+    if (b.addRole) {
+      const label = String(b.addRole).trim().slice(0, 60)
+      const id = roleId(label)
+      if (!label || !id) return NextResponse.json({ ok: false, error: 'Nome ruolo non valido' }, { status: 400 })
+      if (ROLES.includes(id) || id === 'admin' || current.some(r => r.id === id)) {
+        return NextResponse.json({ ok: false, error: 'Ruolo già esistente' }, { status: 400 })
+      }
+      if (current.length >= 20) return NextResponse.json({ ok: false, error: 'Troppi ruoli' }, { status: 400 })
+      next = [...current, { id, label }]
+    } else {
+      const id = String(b.removeRole)
+      next = current.filter(r => r.id !== id)
+      // Il ruolo va tolto anche a chi ce l'ha, altrimenti resterebbe appiccicato
+      // a un membro senza comparire più da nessuna parte.
+      try {
+        const { data: withRole } = await admin.from('team_members').select('id, roles').eq('workspace_id', ws.workspaceId).contains('roles', [id])
+        for (const m of (withRole || [])) {
+          await admin.from('team_members').update({ roles: (m.roles || []).filter(r => r !== id) }).eq('id', m.id)
+        }
+      } catch {}
+    }
+    const { error } = await admin.from('companies').update({ team_custom_roles: next }).eq('user_id', ws.workspaceId)
+    if (error) {
+      const missing = /team_custom_roles|column/i.test(error.message || '')
+      return NextResponse.json({ ok: false, needsSetup: missing, error: missing ? 'Colonna team_custom_roles assente' : error.message }, { status: 200 })
+    }
+    return NextResponse.json({ ok: true, customRoles: next })
+  }
+
   const hiddenTabs = Array.isArray(b?.hiddenTabs) ? b.hiddenTabs.filter(t => typeof t === 'string').slice(0, 100) : []
   try {
     await admin.from('companies').update({ team_hidden_tabs: hiddenTabs }).eq('user_id', ws.workspaceId)
@@ -196,7 +252,8 @@ export async function POST(req) {
   if (!email || !email.includes('@')) {
     return NextResponse.json({ ok: false, error: 'Email non valida' }, { status: 400 })
   }
-  const roles = Array.isArray(b.roles) ? b.roles.filter(r => ROLES.includes(r)) : []
+  const allowed = new Set([...ROLES, ...(await customRolesOf(admin, ws.workspaceId)).map(r => r.id)])
+  const roles = Array.isArray(b.roles) ? b.roles.filter(r => allowed.has(r)) : []
 
   // 0) limite posti del piano (conta owner + membri attivi/invitati)
   try {
@@ -254,7 +311,10 @@ export async function PATCH(req) {
   try { b = await req.json() } catch {}
   if (!b.id) return NextResponse.json({ ok: false, error: 'id mancante' }, { status: 400 })
   const patch = {}
-  if (b.roles !== undefined) patch.roles = Array.isArray(b.roles) ? b.roles.filter(r => ROLES.includes(r) || r === 'admin') : []
+  if (b.roles !== undefined) {
+    const ok = new Set([...ROLES, 'admin', ...(await customRolesOf(admin, ws.workspaceId)).map(r => r.id)])
+    patch.roles = Array.isArray(b.roles) ? b.roles.filter(r => ok.has(r)) : []
+  }
   if (b.full_name !== undefined) patch.full_name = b.full_name || null
   if (b.status !== undefined && ['invited', 'active', 'disabled'].includes(b.status)) patch.status = b.status
   try {

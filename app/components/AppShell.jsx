@@ -218,6 +218,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       color: '#e9e9ee',
       items: [
         { id: 'helpCenter', label: 'Centro Assistenza', icon: <Icon name="info" /> },
+        { id: 'teamManage', label: 'Gestione team', icon: <Icon name="users" /> },
         { id: 'integrations', label: 'Integrazioni', icon: <Icon name="gear" /> },
         { id: 'brandIdentity', label: 'Brand Identity', icon: <Icon name="star" /> },
         { id: 'settings', label: 'Settings', icon: <Icon name="gear" /> },

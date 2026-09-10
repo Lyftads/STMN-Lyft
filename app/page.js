@@ -30,6 +30,7 @@ import OnboardingTab from './components/OnboardingTab'
 import PlanUsageBanner from './components/PlanUsageBanner'
 import PendingActionsBanner from './components/PendingActionsBanner'
 import TasksTab from './components/TasksTab'
+import TeamManageTab from './components/TeamManageTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
 import TeamTab from './components/TeamTab'
@@ -4565,6 +4566,10 @@ export default function App() {
 {/* TEAM · PROGETTI & TASK */}
 {tab === 'tasks' && (
   <TasksTab />
+)}
+
+{tab === 'teamManage' && (
+  <TeamManageTab />
 )}
 
 {/* TEAM · LYFTIMER (time tracking) */}

@@ -49,13 +49,12 @@ export default function TasksTab() {
   const [me, setMe] = useState(null)
   const [rolesCatalog, setRolesCatalog] = useState([])
   const [roleLabels, setRoleLabels] = useState({})
-  const [showTeam, setShowTeam] = useState(false)
   const [hiddenTabs, setHiddenTabs] = useState([])
   async function saveHiddenTabs(next) {
     setHiddenTabs(next)
     await fetch('/api/team-members', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hiddenTabs: next }) }).catch(() => {})
   }
-  const [view, setView] = useState('board')
+  const [view, setView] = useState('projects')
   const [activeProject, setActiveProject] = useState('all')
   const [personProject, setPersonProject] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -195,6 +194,18 @@ export default function TasksTab() {
     activeProject === 'all' ? true : activeProject === 'none' ? !t.project_id : t.project_id === activeProject)
   const detailTask = detailId ? tasks.find(t => t.id === detailId) : null
   const myTasks = tasks.filter(t => me?.memberId && t.assignee_id === me.memberId)
+  const createdByMe = tasks.filter(t => me?.memberId && t.created_by === me.memberId)
+
+  // Riepilogo per progetto: avanzamento, persone coinvolte e conteggio task.
+  // Le "persone" sono i responsabili distinti delle task del progetto: qui i
+  // progetti non hanno una lista membri propria, e inventarne una avrebbe
+  // mostrato un numero che non corrisponde a nulla.
+  const projectStats = (id) => {
+    const ts = tasks.filter(x => (id === 'none' ? !x.project_id : x.project_id === id))
+    const done = ts.filter(x => x.status === 'done' || x.status === 'approved').length
+    const people = new Set(ts.map(x => x.assignee_id).filter(Boolean)).size
+    return { total: ts.length, done, people, pct: ts.length ? Math.round((done / ts.length) * 100) : 0 }
+  }
 
   if (loading) {
     return <div style={{ padding: 40, color: '#b0b0bd', fontFamily: 'Barlow' }}>{t('tk.loadingBoard', null, 'Loading board…')}</div>
@@ -210,14 +221,120 @@ export default function TasksTab() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
-            <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: view !== 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view !== 'overview' ? 700 : 400 }}>{t('tk.board', null, 'Board')}</button>
+            <button onClick={() => { setView('projects'); setActiveProject('all') }} style={{ ...btnGhost, border: 'none', background: view === 'projects' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', color: 'var(--text)' }}>{t('tk.projects', null, 'Progetti')}</button>
+            <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: (view === 'board' || view === 'mine') ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: (view === 'board' || view === 'mine') ? 700 : 400 }}>{t('tk.board', null, 'Board')}</button>
             <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view === 'overview' ? 700 : 400 }}><Icon name="chart-bar" size={14} /> {t('tk.charts', null, 'Charts')}</button>
           </div>
-          {me?.isAdmin && <button style={btnGhost} onClick={() => setShowTeam(true)}><Icon name="users" size={14} /> {t('tk.teamMgmt', null, 'Team management')}</button>}
         </div>
       </div>
 
-      {(view === 'board' || view === 'mine') && (
+      {view === 'projects' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* Le mie task: due scorciatoie prima dei progetti */}
+          <div style={{ ...PANEL }}>
+            <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+              {t('tk.myTasksBlock', null, 'Le mie task')}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+              <button type="button" onClick={() => setView('mine')} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}>
+                <Icon name="clipboard" size={16} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{t('tk.assignedToMe', null, 'Assegnate a me')}</div>
+                  <div style={{ fontSize: 11.5, color: '#b0b0bd' }}>{t('tk.assignedToMeSub', null, 'Devo eseguirle io')}</div>
+                </div>
+                <span style={{ fontSize: 18, fontWeight: 800 }}>{myTasks.length}</span>
+              </button>
+              <button type="button" onClick={() => { setActiveProject('all'); setView('board') }} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}>
+                <Icon name="edit" size={16} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{t('tk.allTasks', null, 'Tutte le task')}</div>
+                  <div style={{ fontSize: 11.5, color: '#b0b0bd' }}>{t('tk.createdByMe', null, 'Create da me')}: {createdByMe.length}</div>
+                </div>
+                <span style={{ fontSize: 18, fontWeight: 800 }}>{tasks.length}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Elenco progetti */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20 }}>
+              {t('tk.projectsTitle', null, 'Progetti')}
+              <span style={{ fontSize: 12.5, color: '#b0b0bd', fontWeight: 400, fontFamily: 'Barlow', marginLeft: 10 }}>
+                {t('tk.projectsSub', null, 'Spazi condivisi con attività e responsabili')}
+              </span>
+            </div>
+            <button style={btn} onClick={addProject}>+ {t('tk.newProject', null, 'Nuovo progetto')}</button>
+          </div>
+
+          {projects.length === 0 && !tasks.some(x => !x.project_id) ? (
+            <div style={{ ...PANEL, textAlign: 'center', color: '#b0b0bd', padding: 40, fontSize: 13 }}>
+              {t('tk.noProjectsYet', null, 'Nessun progetto ancora. Creane uno per raggruppare le attività.')}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+              {[...projects.map(p => ({ id: p.id, name: p.name, description: p.description, color: p.color || '#7b5bff', owner: p.created_by })),
+                ...(tasks.some(x => !x.project_id) ? [{ id: 'none', name: t('tk.noProject', null, 'Senza progetto'), color: '#8e8e93', owner: null }] : [])
+              ].map(p => {
+                const st = projectStats(p.id)
+                return (
+                  <button key={p.id} type="button" onClick={() => { setActiveProject(p.id); setView('board') }}
+                    style={{ ...PANEL, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 999, background: p.color, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                    </div>
+                    {p.description && (
+                      <div style={{ fontSize: 12, color: '#b0b0bd', lineHeight: 1.45, whiteSpace: 'pre-line' }}>{p.description}</div>
+                    )}
+                    <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                      <div style={{ width: `${st.pct}%`, height: '100%', background: st.pct === 100 ? '#30d158' : p.color, transition: 'width .3s' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, color: '#b0b0bd', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <Icon name="users" size={12} /> {t('tk.peopleN', { n: st.people }, `${st.people} persone`)}
+                      </span>
+                      <span style={{ marginLeft: 'auto' }}>{st.done}/{st.total} task</span>
+                    </div>
+                    {p.owner && (
+                      <div style={{ fontSize: 11.5, color: '#b0b0bd', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="user" size={12} /> {memberName(p.owner)}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {(view === 'board' || view === 'mine') && (() => {
+        const openProject = activeProject !== 'all' && activeProject !== 'none'
+          ? projects.find(x => x.id === activeProject) : null
+        return (
+        <>
+        {/* Intestazione del progetto aperto, con il ritorno all'elenco */}
+        {view !== 'mine' && (openProject || activeProject === 'none') && (
+          <div style={{ marginBottom: 16 }}>
+            <button type="button" onClick={() => { setView('projects'); setActiveProject('all') }}
+              style={{ ...btnGhost, border: 'none', padding: '4px 0', color: '#b0b0bd', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              ← {t('tk.backToProjects', null, 'Progetti')}
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: openProject?.color || '#8e8e93' }} />
+              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 24, fontWeight: 700 }}>
+                {openProject ? openProject.name : t('tk.noProject', null, 'Senza progetto')}
+              </h3>
+              <span style={{ fontSize: 12, color: '#b0b0bd' }}>
+                {(() => { const st = projectStats(activeProject); return `${st.done}/${st.total} task` })()}
+              </span>
+            </div>
+            {openProject?.description && (
+              <div style={{ fontSize: 12.5, color: '#b0b0bd', marginTop: 4, whiteSpace: 'pre-line' }}>{openProject.description}</div>
+            )}
+          </div>
+        )}
         <div className="m-cols" style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
           {/* Sidebar progetti */}
           <aside className="m-sidenav" style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
@@ -277,7 +394,9 @@ export default function TasksTab() {
             </>)}
           </div>
         </div>
-      )}
+        </>
+        )
+      })()}
 
       {view === 'overview' && (() => {
         const isDone = t => t.status === 'done' || t.status === 'approved'
@@ -420,21 +539,6 @@ export default function TasksTab() {
         />
       )}
 
-      {showTeam && (
-        <TeamModal
-          members={members}
-          rolesCatalog={rolesCatalog}
-          roleLabels={roleLabels}
-          ownerUserId={me?.userId}
-          onClose={() => setShowTeam(false)}
-          seats={seats}
-          hiddenTabs={hiddenTabs}
-          onSaveHiddenTabs={saveHiddenTabs}
-          onInvite={inviteMember}
-          onUpdateRoles={updateMemberRoles}
-          onRemove={removeMember}
-        />
-      )}
     </div>
   )
 }
@@ -613,152 +717,6 @@ const STATUS_BADGE = {
   invited: { key: 'tk.statusInvited', en: 'Invited', label: 'Invitato', color: '#ff9f0a' },
   active: { key: 'tk.statusActive', en: 'Active', label: 'Attivo', color: '#30d158' },
   disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: '#b0b0bd' },
-}
-
-function TeamModal({ members, rolesCatalog, roleLabels, ownerUserId, seats, hiddenTabs = [], onSaveHiddenTabs, onClose, onInvite, onUpdateRoles, onRemove }) {
-  const { t } = useI18n()
-  const atLimit = seats && seats.limit != null && seats.used >= seats.limit
-  const [email, setEmail] = useState('')
-  const [roles, setRoles] = useState([])
-  const [sending, setSending] = useState(false)
-  const [created, setCreated] = useState(null)
-
-  const toggle = (arr, r) => arr.includes(r) ? arr.filter(x => x !== r) : [...arr, r]
-
-  // Visibilità tab per i membri: l'Admin nasconde/mostra singole tab. Una tab è
-  // "nascosta" se presente in hiddenTabs → i membri (non Admin) non la vedono.
-  const hidden = new Set(hiddenTabs)
-  const toggleTab = (id) => {
-    const next = hidden.has(id) ? hiddenTabs.filter(x => x !== id) : [...hiddenTabs, id]
-    onSaveHiddenTabs?.(next)
-  }
-
-  async function submit() {
-    if (!email.trim() || !email.includes('@')) { alert(t('tk.invalidEmail', null, 'Enter a valid email')); return }
-    setSending(true)
-    setCreated(null)
-    try {
-      const target = email.trim().toLowerCase()
-      const r = await onInvite(target, roles)
-      if (r && r.ok) {
-        setEmail(''); setRoles([])
-        setCreated({ email: target, password: r.tempPassword, emailSent: r.emailSent })
-      }
-    } finally { setSending(false) }
-  }
-
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(680px, 100%)', maxWidth: 680, maxHeight: '86vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700 }}>{t('tk.teamMgmt', null, 'Team management')}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
-        </div>
-
-        {/* Contatore posti del piano */}
-        {seats && (
-          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 10, border: `1px solid ${atLimit ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`, background: atLimit ? 'rgba(255,55,95,0.08)' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-            <span style={{ fontWeight: 700 }}>{t('tk.teamUsersLabel', null, 'Team users:')} {seats.used}{seats.limit != null ? ` / ${seats.limit}` : ''}</span>
-            <span style={{ color: '#b0b0bd' }}>{seats.limit == null ? t('tk.unlimitedPlan', null, 'unlimited on your plan') : atLimit ? t('tk.limitReached', null, '· limit reached, upgrade to add more') : t('tk.planLabel', { plan: seats.plan || '' }, '· {plan} plan')}</span>
-          </div>
-        )}
-
-        {/* Invita */}
-        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10, opacity: atLimit ? 0.55 : 1 }}>
-          <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{t('tk.inviteCollaborator', null, 'Invite a collaborator')}</div>
-          <input style={input} placeholder={t('tk.emailPlaceholder', null, 'email@example.com')} value={email} onChange={e => setEmail(e.target.value)} disabled={atLimit} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            {rolesCatalog.map(r => (
-              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? '#5b8bff' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={roles.includes(r)} onChange={() => setRoles(prev => toggle(prev, r))} />
-                {roleLabels[r] || r}
-              </label>
-            ))}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-            <button style={{ ...btn, opacity: (sending || atLimit) ? 0.6 : 1 }} disabled={sending || atLimit} onClick={submit}>
-              {sending ? t('tk.creatingAccess', null, 'Creating access…') : atLimit ? t('tk.planLimitReached', null, 'Plan limit reached') : t('tk.createAccessInvite', null, 'Create access & invite')}
-            </button>
-          </div>
-
-          {created && (
-            <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
-              <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}><Icon name="check" size={13} /> {t('tk.accessReadyFor', { email: created.email }, 'Access ready for {email}')}</div>
-              {created.password
-                ? <div style={{ fontSize: 14 }}>{t('tk.tempPassword', null, 'Temporary password:')} <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
-                : <div style={{ fontSize: 14 }}>{t('tk.existingAccount', null, 'Questa email ha già un account LyftAI: accede con la sua password abituale.')}</div>}
-              <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
-                {created.emailSent ? t('tk.emailSentToo', null, 'Also sent via email. ') : t('tk.emailNotSent', null, 'Email not sent: share these credentials yourself. ')}
-                {t('tk.loginInstructions', null, 'The collaborator logs in at /login and can change the password from the reset page.')}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Visibilità tab per i membri (Admin) */}
-        <div style={{ marginTop: 16, padding: 14, border: '1px solid var(--border)', borderRadius: 10 }}>
-          <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{t('tk.tabVisibility', null, 'Tab visibility for members')}</div>
-          <div style={{ fontSize: 12, color: '#8a8a98', marginBottom: 10 }}>{t('tk.tabVisibilityHint', null, 'Members see everything by default. Click a tab to hide it from them (you, the Admin, always see all).')}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {MEMBER_TABS.map(id => {
-              const isHidden = hidden.has(id)
-              return (
-                <button key={id} type="button" onClick={() => toggleTab(id)} title={isHidden ? t('tk.tabHiddenTip', null, 'Hidden from members — click to show') : t('tk.tabVisibleTip', null, 'Visible to members — click to hide')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
-                    border: `1px solid ${isHidden ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`,
-                    background: isHidden ? 'rgba(255,55,95,0.10)' : 'rgba(255,255,255,0.02)',
-                    color: isHidden ? '#ff6482' : 'var(--text)', textDecoration: isHidden ? 'line-through' : 'none' }}>
-                  <Icon name={isHidden ? 'eye-off' : 'eye'} size={12} />
-                  {TAB_LABELS[id] || id}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Membri */}
-        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {members.map(m => {
-            const isOwner = m.user_id && m.user_id === ownerUserId || (m.roles || []).includes('admin')
-            const badge = STATUS_BADGE[m.status] || STATUS_BADGE.invited
-            return (
-              <div key={m.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.full_name || m.email}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, border: `1px solid ${badge.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{isOwner ? t('tk.admin', null, 'Admin') : t(badge.key, null, badge.en)}</span>
-                  {!isOwner && (
-                    <button
-                      onClick={async () => {
-                        const r = await onInvite(m.email, m.roles || [])
-                        if (r && r.ok) setCreated({ email: m.email, password: r.tempPassword, emailSent: r.emailSent })
-                      }}
-                      title={t('tk.resendAccessTip', null, 'Regenerate and resend the password')}
-                      style={{ ...btnGhost, padding: '4px 10px', fontSize: 11 }}
-                    ><Icon name="key" size={12} /> {t('tk.resendAccess', null, 'Resend access')}</button>
-                  )}
-                  {!isOwner && <button onClick={() => onRemove(m.id)} title={t('tk.removeTip', null, 'Remove')} style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>}
-                </div>
-                {m.full_name && <div style={{ fontSize: 12, color: '#b0b0bd' }}>{m.email}</div>}
-                {!isOwner && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                    {rolesCatalog.map(r => {
-                      const on = (m.roles || []).includes(r)
-                      return (
-                        <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 8px', border: `1px solid ${on ? '#5b8bff' : 'var(--border)'}`, borderRadius: 7, cursor: 'pointer' }}>
-                          <input type="checkbox" checked={on} onChange={() => onUpdateRoles(m.id, toggle(m.roles || [], r))} />
-                          {roleLabels[r] || r}
-                        </label>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {

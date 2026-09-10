@@ -265,6 +265,15 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
 
   function reloadMembers() { fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {}) }
 
+  // Elimina un canale (non quelli di progetto: quelli muoiono col progetto).
+  async function deleteChannel(c) {
+    if (!confirm(tr('ch.deleteConfirm', { name: c.name }, `Eliminare il canale "${c.name}"? I messaggi non si recuperano.`))) return
+    const r = await fetch(`/api/channels?id=${c.id}`, { method: 'DELETE' }).then(x => x.json()).catch(() => ({ ok: false }))
+    if (!r?.ok) { alert(r?.error || tr('ch.deleteFailed', null, 'Eliminazione non riuscita.')); return }
+    setChannels(prev => prev.filter(x => x.id !== c.id))
+    if (active === c.id) setActive(null)
+  }
+
   async function createChannel({ name, is_private, member_ids, externals }) {
     const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, is_private, member_ids }) }).then(x => x.json())
     if (!r.ok || !r.channel) { alert(r.error || tr('ch.errCreateChannel', null, 'Channel creation error')); return }
@@ -554,10 +563,17 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
             {rail === 'home' && (<>
               <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.channels', null, 'Channels')}</div>
               {groupChannels.map(c => (
-                <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
+                <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)} className="ch-row">
                   <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? 'var(--text)' : undefined }}>{c.name}</span>
                   {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                  {!c.project_id && (
+                    <span className="ch-del" role="button" title={tr('ch.delete', null, 'Elimina canale')}
+                      onClick={(e) => { e.stopPropagation(); deleteChannel(c) }}
+                      style={{ display: 'inline-flex', color: '#f87171', opacity: 0, transition: 'opacity .12s' }}>
+                      <Icon name="trash" size={12} />
+                    </span>
+                  )}
                 </div>
               ))}
               <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: 'var(--text)', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ {tr('ch.newChannel', null, 'New channel')}</button>
@@ -963,7 +979,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
         </div>
       )}
 
-      <style>{`.chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
+      <style>{`.ch-row:hover .ch-del{opacity:1 !important} .chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1} .chat-actions.show{opacity:1} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
       {/* Call 1:1 con l'agente scelto dal picker (un solo agente alla volta) */}
       {callAgent && (
         <AgentCall key={callAgent.id} agent={callAgent} autoStart hideButton onClose={() => setCallAgent(null)} />

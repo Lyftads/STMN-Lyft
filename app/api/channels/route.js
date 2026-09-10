@@ -97,6 +97,16 @@ export async function DELETE(req) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ ok: false, error: 'id mancante' }, { status: 400 })
   try {
+    // Il canale di un progetto non si elimina da qui: sparirebbe la chat del
+    // progetto e l'app ne ricreerebbe una vuota alla prima apertura. Si
+    // elimina il progetto, oppure niente.
+    try {
+      const { data: ch } = await admin.from('channels').select('project_id')
+        .eq('id', id).eq('workspace_id', ws.workspaceId).maybeSingle()
+      if (ch?.project_id) {
+        return NextResponse.json({ ok: false, error: 'È la chat di un progetto: si elimina eliminando il progetto.' }, { status: 200 })
+      }
+    } catch {}
     await admin.from('channels').delete().eq('id', id).eq('workspace_id', ws.workspaceId)
     return NextResponse.json({ ok: true })
   } catch (e) {

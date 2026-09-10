@@ -4,23 +4,19 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { resolveWorkspace, isCollaborator } from '../../../../lib/team/workspace'
+import { ensureProjectChannel } from '../../../../lib/team/projectChannel'
 
 // ============================================================================
 //  Canale LyftTalk di un progetto.
 //
 //  La chat del progetto NON è una chat separata: è un canale di LyftTalk
 //  legato al progetto. Stessa conversazione vista da due punti — chi scrive
-//  dal progetto lo trova in LyftTalk e viceversa. Così allegati, menzioni e
-//  reazioni funzionano senza riscriverli, e nessuno si perde metà dei
-//  messaggi perché li ha letti "nel posto sbagliato".
+//  dal progetto lo trova in LyftTalk e viceversa.
 //
-//  GET  ?projectId=… → { channelId } (lo crea alla prima apertura)
+//  GET ?projectId=… → { channelId }. Il canale nasce col progetto; qui si
+//  recupera, e se manca (progetti creati prima) lo si crea o si adotta quello
+//  omonimo già esistente. La logica sta tutta in lib/team/projectChannel.
 // ============================================================================
-
-function isMissing(error) {
-  const s = `${error?.code || ''} ${error?.message || ''}`.toLowerCase()
-  return s.includes('42p01') || s.includes('does not exist') || s.includes('could not find')
-}
 
 export async function GET(req) {
   const ws = await resolveWorkspace()
@@ -35,31 +31,25 @@ export async function GET(req) {
     .eq('id', projectId).eq('workspace_id', ws.workspaceId).maybeSingle()
   if (!proj) return NextResponse.json({ ok: false, error: 'Progetto non trovato' }, { status: 404 })
 
+  // Chi è in sola lettura non deve creare canali aprendo una tab: se non
+  // esiste ancora, per lui la chat semplicemente non c'è.
+  const canWrite = ws.isAdmin || isCollaborator(ws)
+  const { data: existing } = await admin.from('channels').select('id, name')
+    .eq('workspace_id', ws.workspaceId).eq('project_id', projectId).maybeSingle()
+  if (existing) return NextResponse.json({ ok: true, channelId: existing.id, name: existing.name })
+  if (!canWrite) return NextResponse.json({ ok: true, channelId: null })
+
+  let memberIds = []
   try {
-    const { data: existing, error } = await admin.from('channels').select('id, name')
-      .eq('workspace_id', ws.workspaceId).eq('project_id', projectId).maybeSingle()
-    if (error && isMissing(error)) return NextResponse.json({ ok: false, needsSetup: true })
-    if (existing) return NextResponse.json({ ok: true, channelId: existing.id, name: existing.name })
-  } catch (e) {
-    if (isMissing(e)) return NextResponse.json({ ok: false, needsSetup: true })
-  }
+    const { data } = await admin.from('project_members').select('member_id')
+      .eq('workspace_id', ws.workspaceId).eq('project_id', projectId)
+    memberIds = (data || []).map(r => r.member_id)
+  } catch {}
 
-  // Nessun canale ancora: lo crea chi può scrivere. Un membro in sola lettura
-  // che apre la tab non deve creare canali per sbaglio.
-  if (!(ws.isAdmin || isCollaborator(ws))) return NextResponse.json({ ok: true, channelId: null })
-
-  // Il nome del canale deve essere unico nel workspace (vincolo esistente):
-  // se "back-to-box" è già preso si aggiunge un suffisso invece di fallire.
-  const base = String(proj.name || 'progetto').toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'progetto'
-
-  for (const name of [base, `${base}-2`, `${base}-${Date.now().toString().slice(-4)}`]) {
-    const { data, error } = await admin.from('channels')
-      .insert({ workspace_id: ws.workspaceId, name, created_by: ws.memberId, project_id: projectId })
-      .select('id, name').single()
-    if (!error && data) return NextResponse.json({ ok: true, channelId: data.id, name: data.name, created: true })
-    if (error && isMissing(error)) return NextResponse.json({ ok: false, needsSetup: true })
-  }
-  return NextResponse.json({ ok: false, error: 'Canale non creato' }, { status: 200 })
+  const res = await ensureProjectChannel(admin, {
+    workspaceId: ws.workspaceId, projectId, projectName: proj.name,
+    createdBy: ws.memberId, memberIds,
+  })
+  if (res.needsSetup) return NextResponse.json({ ok: false, needsSetup: true })
+  return NextResponse.json({ ok: !!res.channelId, channelId: res.channelId || null, adopted: !!res.adopted })
 }

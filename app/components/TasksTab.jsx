@@ -2,6 +2,8 @@
 
 import { Fragment, useEffect, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
+import ProjectMembers from './ProjectMembers'
+import ChatTab from './ChatTab'
 import Avatar from './Avatar'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { MEMBER_TABS, TAB_LABELS } from '../../lib/team/roleTabs'
@@ -55,12 +57,19 @@ export default function TasksTab() {
     await fetch('/api/team-members', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hiddenTabs: next }) }).catch(() => {})
   }
   const [view, setView] = useState('projects')
+  // Sotto-tab del progetto aperto: attività · chat · membri.
+  const [projView, setProjView] = useState('tasks')
+  const [projChannel, setProjChannel] = useState(null)
+  const [projMemberCount, setProjMemberCount] = useState(null)
   const [activeProject, setActiveProject] = useState('all')
   const [personProject, setPersonProject] = useState('all')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [detailId, setDetailId] = useState(null)
-  const [form, setForm] = useState({ title: '', assignee_id: '', priority: 'medium', due_date: '', project_id: '' })
+  const [form, setForm] = useState({ title: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
+  // Chi è assente oggi: assegnare una task a chi non c'è è l'errore che il
+  // bollino serve a evitare. Arriva dallo stesso registro di Ferie e permessi.
+  const [onLeave, setOnLeave] = useState({})
 
   const memberName = useCallback((id) => {
     const m = members.find(x => x.id === id)
@@ -90,6 +99,32 @@ export default function TasksTab() {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => {
+    let alive = true
+    fetch('/api/projects/members', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!alive || !j) return
+        setOnLeave(Object.fromEntries((j.team || []).filter(m => m.leave).map(m => [m.id, m.leave])))
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
+  // Canale LyftTalk del progetto: serve solo quando si apre la sua chat.
+  useEffect(() => {
+    if (projView !== 'chat' || !activeProject || activeProject === 'all' || activeProject === 'none') return
+    let alive = true
+    setProjChannel(null)
+    fetch(`/api/projects/channel?projectId=${activeProject}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { if (alive) setProjChannel(j?.channelId || (j?.needsSetup ? 'needsSetup' : null)) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [projView, activeProject])
+
+  useEffect(() => { setProjMemberCount(null) }, [activeProject])
+
   async function addProject() {
     const name = prompt(t('tk.promptProjectName', null, 'Project name:'))
     if (!name || !name.trim()) return
@@ -111,7 +146,8 @@ export default function TasksTab() {
     try {
       const body = {
         title: form.title.trim(),
-        assignee_id: form.assignee_id || null,
+        assignee_id: form.assignee_id || form.assignees[0] || null,
+        assignees: form.assignees.length ? form.assignees : (form.assignee_id ? [form.assignee_id] : []),
         priority: form.priority,
         due_date: form.due_date || null,
         project_id: form.project_id || (activeProject !== 'all' ? activeProject : null),
@@ -119,7 +155,7 @@ export default function TasksTab() {
       const r = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json())
       if (r.ok && r.task) {
         setTasks(prev => [r.task, ...prev])
-        setForm({ title: '', assignee_id: '', priority: 'medium', due_date: '', project_id: '' })
+        setForm({ title: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
         setDetailId(r.task.id) // apri subito il dettaglio per scrivere note/allegare file
       }
     } finally {
@@ -278,7 +314,7 @@ export default function TasksTab() {
               ].map(p => {
                 const st = projectStats(p.id)
                 return (
-                  <button key={p.id} type="button" onClick={() => { setActiveProject(p.id); setView('board') }}
+                  <button key={p.id} type="button" onClick={() => { setActiveProject(p.id); setView('board'); setProjView('tasks') }}
                     style={{ ...PANEL, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       <span style={{ width: 9, height: 9, borderRadius: 999, background: p.color, flexShrink: 0 }} />
@@ -333,16 +369,59 @@ export default function TasksTab() {
             {openProject?.description && (
               <div style={{ fontSize: 12.5, color: '#b0b0bd', marginTop: 4, whiteSpace: 'pre-line' }}>{openProject.description}</div>
             )}
+            {(openProject?.start_date || openProject?.end_date) && (
+              <div style={{ fontSize: 12.5, color: '#b0b0bd', marginTop: 2 }}>
+                {[openProject.start_date, openProject.end_date].filter(Boolean).join(' → ')}
+              </div>
+            )}
+
+            {/* Attività · Chat · Membri: il progetto è uno spazio, non solo una board */}
+            {openProject && (
+              <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 10, background: '#14141d', border: '1px solid var(--border)', marginTop: 12 }}>
+                {[
+                  ['tasks', t('tk.projTasks', null, 'Attività'), 'kanban'],
+                  ['chat', t('tk.projChat', null, 'Chat'), 'chat'],
+                  ['members', t('tk.projMembers', null, 'Membri') + (projMemberCount != null ? ` (${projMemberCount})` : ''), 'users'],
+                ].map(([id, label, icon]) => (
+                  <button key={id} type="button" onClick={() => setProjView(id)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5,
+                    fontWeight: projView === id ? 800 : 600,
+                    background: projView === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent',
+                    color: 'var(--text)',
+                  }}>
+                    <Icon name={icon} size={13} /> {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        <div className="m-cols" style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+        {/* Chat e Membri sostituiscono la board: stesso progetto, altra vista */}
+        {openProject && projView === 'members' && (
+          <ProjectMembers projectId={activeProject} onCountChange={setProjMemberCount} />
+        )}
+        {openProject && projView === 'chat' && (
+          projChannel === 'needsSetup' ? (
+            <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', fontSize: 12.5, lineHeight: 1.5 }}>
+              <strong style={{ color: '#ffb340', fontWeight: 800 }}>{t('tk.chatSetupTitle', null, 'Chat di progetto non attiva')}</strong>
+              <div style={{ color: 'var(--text3)', marginTop: 3 }}>{t('tk.chatSetupBody', null, 'Esegui supabase/project_workspace.sql: il gruppo su LyftTalk nasce insieme al progetto.')}</div>
+            </div>
+          ) : projChannel ? (
+            <ChatTab initialChannelId={projChannel} hideSidebar />
+          ) : (
+            <div style={{ padding: 30, color: '#b0b0bd', fontSize: 13 }}>{t('tk.chatLoading', null, 'Apro la chat del progetto…')}</div>
+          )
+        )}
+        <div className="m-cols" style={{ display: (openProject && projView !== 'tasks') ? 'none' : 'flex', gap: 16, alignItems: 'flex-start' }}>
           {/* Sidebar progetti */}
           <aside className="m-sidenav" style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
             <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>{t('tk.projects', null, 'Projects')}</div>
             <SideItem label={t('tk.allProjects', null, 'All projects')} count={tasks.length} active={view === 'board' && activeProject === 'all'} onClick={() => { setActiveProject('all'); setView('board') }} />
             {projects.map(p => (
               <SideItem key={p.id} label={p.name} color={p.color || '#7b5bff'} count={tasks.filter(t => t.project_id === p.id).length}
-                active={view === 'board' && activeProject === p.id} onClick={() => { setActiveProject(p.id); setView('board') }} onDelete={() => deleteProject(p.id)} />
+                active={view === 'board' && activeProject === p.id} onClick={() => { setActiveProject(p.id); setView('board'); setProjView('tasks') }} onDelete={() => deleteProject(p.id)} />
             ))}
             {tasks.some(t => !t.project_id) && (
               <SideItem label={t('tk.noProject', null, 'No project')} count={tasks.filter(t => !t.project_id).length} active={view === 'board' && activeProject === 'none'} onClick={() => { setActiveProject('none'); setView('board') }} />
@@ -369,12 +448,31 @@ export default function TasksTab() {
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   onKeyDown={e => { if (e.key === 'Enter') createTask() }} />
               </div>
-              <div style={{ flex: '1 1 150px' }}>
-                <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.assignee', null, 'Assignee')}</label>
-                <select style={input} value={form.assignee_id} onChange={e => setForm(f => ({ ...f, assignee_id: e.target.value }))}>
-                  <option value="">{t('tk.none', null, 'None')}</option>
-                  {members.map(m => <option key={m.id} value={m.id}>{m.full_name || m.email}</option>)}
-                </select>
+              <div style={{ flex: '1 1 220px', minWidth: 200 }}>
+                <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.assignees', null, 'Assegna a')}</label>
+                <div style={{ fontSize: 10.5, color: '#8a8a98', marginBottom: 4 }}>{t('tk.assigneesHint', null, 'Puoi selezionare più persone.')}</div>
+                <div style={{ maxHeight: 108, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, background: '#14141d', padding: 6 }}>
+                  {members.length === 0 && <div style={{ fontSize: 12, color: '#8a8a98', padding: 4 }}>{t('tk.noMembers', null, 'Nessun membro')}</div>}
+                  {members.map(m => {
+                    const on = form.assignees.includes(m.id)
+                    const leave = onLeave[m.id]
+                    return (
+                      <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 4px', fontSize: 12.5, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={on}
+                          onChange={() => setForm(f => ({
+                            ...f,
+                            assignees: on ? f.assignees.filter(x => x !== m.id) : [...f.assignees, m.id],
+                          }))} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.full_name || m.email}</span>
+                        {leave && (
+                          <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: 'rgba(255,159,10,0.18)', color: '#ffb340', whiteSpace: 'nowrap' }}>
+                            {t(`tk.leave.${leave.type}`, null, leave.type === 'ferie' ? 'In ferie' : leave.type === 'permesso' ? 'In permesso' : 'In malattia')}
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
               <div style={{ flex: '1 1 120px' }}>
                 <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.priority', null, 'Priority')}</label>

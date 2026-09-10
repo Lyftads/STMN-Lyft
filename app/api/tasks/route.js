@@ -61,7 +61,10 @@ export async function POST(req) {
     description: b.description || null,
     status: STATUSES.includes(b.status) ? b.status : 'todo',
     priority: PRIORITIES.includes(b.priority) ? b.priority : 'medium',
-    assignee_id: b.assignee_id || null,
+    // Più persone sulla stessa task: `assignee_id` resta il responsabile
+    // principale (board, filtri, promemoria), `assignees` li elenca tutti.
+    assignee_id: b.assignee_id || (Array.isArray(b.assignees) && b.assignees[0]) || null,
+    assignees: Array.isArray(b.assignees) ? b.assignees.filter(Boolean).slice(0, 20) : (b.assignee_id ? [b.assignee_id] : []),
     due_date: b.due_date || null,
     links: Array.isArray(b.links) ? b.links : [],
     created_by: ws.memberId,
@@ -91,6 +94,14 @@ export async function PATCH(req) {
   if (b.description !== undefined) patch.description = b.description || null
   if (b.priority !== undefined && PRIORITIES.includes(b.priority)) patch.priority = b.priority
   if (b.assignee_id !== undefined) patch.assignee_id = b.assignee_id || null
+  if (b.assignees !== undefined) {
+    const list = Array.isArray(b.assignees) ? b.assignees.filter(Boolean).slice(0, 20) : []
+    patch.assignees = list
+    // Se il principale non è più fra gli assegnatari la task resterebbe
+    // attribuita a chi non ci lavora più: si riallinea al primo dell'elenco.
+    if (patch.assignee_id === undefined && list.length && !list.includes(b.assignee_id)) patch.assignee_id = list[0]
+    if (!list.length && patch.assignee_id === undefined) patch.assignee_id = null
+  }
   if (b.due_date !== undefined) patch.due_date = b.due_date || null
   if (b.project_id !== undefined) patch.project_id = b.project_id || null
   if (b.links !== undefined) patch.links = Array.isArray(b.links) ? b.links : []

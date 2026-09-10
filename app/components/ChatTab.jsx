@@ -45,7 +45,10 @@ function highlightComposer(text) {
   return escHtml(text).replace(/(^|\s)(@[\p{L}\w.\-]+)/gu, '$1<span style="color:#7b9cff;font-weight:700">$2</span>').replace(/\n/g, '<br>')
 }
 
-export default function ChatTab({ standalone = false }) {
+// `initialChannelId` apre direttamente un canale (la tab Chat di un progetto
+// apre il canale di quel progetto); `hideSidebar` toglie l'elenco canali,
+// perché lì il canale è uno solo e sceglierne un altro non avrebbe senso.
+export default function ChatTab({ standalone = false, initialChannelId = null, hideSidebar = false }) {
   const { t: tr, intlLocale } = useI18n()
   const [channels, setChannels] = useState([])
   const [active, setActive] = useState(null)
@@ -123,7 +126,7 @@ export default function ChatTab({ standalone = false }) {
       setChannels(d.channels || [])
       setMe(d.me || null)
       setLastAt(d.lastAt || {})
-      if (d.channels && d.channels.length) setActive(prev => prev || (d.channels.find(c => !c.is_dm)?.id || d.channels[0].id))
+      if (d.channels && d.channels.length) setActive(prev => prev || initialChannelId || (d.channels.find(c => !c.is_dm)?.id || d.channels[0].id))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
@@ -546,7 +549,7 @@ export default function ChatTab({ standalone = false }) {
           <RailBtn active={rail === 'files'} onClick={() => selectRail('files')} title={tr('ch.sharedFiles', null, 'Shared files')}><Icon name="folder" size={20} /></RailBtn>
         </div>
         {/* Sidebar */}
-        <aside className="m-chanlist" style={{ ...PANEL, width: 248, flexShrink: 0, padding: 10, display: 'flex', flexDirection: 'column' }}>
+        <aside className="m-chanlist" style={{ ...PANEL, display: hideSidebar ? 'none' : 'flex', width: 248, flexShrink: 0, padding: 10, flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {rail === 'home' && (<>
               <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.channels', null, 'Channels')}</div>

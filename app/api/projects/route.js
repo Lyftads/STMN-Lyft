@@ -4,6 +4,7 @@ export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { resolveWorkspace } from '../../../lib/team/workspace'
+import { ensureProjectChannel } from '../../../lib/team/projectChannel'
 
 export async function GET() {
   const ws = await resolveWorkspace()
@@ -46,7 +47,27 @@ export async function POST(req) {
       .select('*')
       .single()
     if (error) throw error
-    return NextResponse.json({ ok: true, project: data })
+
+    // Il progetto nasce con il suo gruppo su LyftTalk e con chi lo crea
+    // dentro: una chat di progetto che va creata a mano non la crea nessuno.
+    let channel = { channelId: null }
+    if (data?.id) {
+      const initial = Array.isArray(b.memberIds) ? b.memberIds.filter(Boolean) : []
+      const memberIds = [...new Set([ws.memberId, ...initial].filter(Boolean))]
+      try {
+        if (ws.memberId) {
+          await admin.from('project_members').upsert(
+            memberIds.map(id => ({ workspace_id: ws.workspaceId, project_id: data.id, member_id: id, is_lead: id === ws.memberId, added_by: ws.memberId })),
+            { onConflict: 'project_id,member_id' }
+          )
+        }
+      } catch {}
+      channel = await ensureProjectChannel(admin, {
+        workspaceId: ws.workspaceId, projectId: data.id, projectName: data.name,
+        createdBy: ws.memberId, memberIds,
+      })
+    }
+    return NextResponse.json({ ok: true, project: data, channelId: channel.channelId || null })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
   }

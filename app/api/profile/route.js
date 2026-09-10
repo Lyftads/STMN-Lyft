@@ -24,14 +24,16 @@ export async function GET() {
     if (comp?.language && LOCALES.includes(comp.language)) language = comp.language
   } catch {}
 
+  // Il profilo si cerca per memberId quando c'e', altrimenti per utente: chi
+  // comanda il workspace senza esserne membro puo' comunque avere una riga.
   let profile = null
-  if (ws.memberId) {
-    try {
-      const { data } = await admin.from('team_members').select('id, full_name, email, avatar_url, roles').eq('workspace_id', ws.workspaceId).eq('id', ws.memberId).maybeSingle()
-      profile = data || null
-    } catch (e) {
-      return NextResponse.json({ profile: null, language, error: e.message })
-    }
+  try {
+    let q = admin.from('team_members').select('id, full_name, email, avatar_url, roles').eq('workspace_id', ws.workspaceId)
+    q = ws.memberId ? q.eq('id', ws.memberId) : q.eq('user_id', ws.userId)
+    const { data } = await q.maybeSingle()
+    profile = data || null
+  } catch (e) {
+    return NextResponse.json({ profile: null, language, error: e.message })
   }
   return NextResponse.json({ profile, language })
 }
@@ -54,11 +56,61 @@ export async function PATCH(req) {
   }
 }
 
+// Chi comanda il workspace ma non ha una riga in team_members non ha un
+// profilo da scrivere: e' il caso dell'agency entrata in un workspace cliente.
+// Prima il salvataggio veniva rifiutato con un 401 muto, e in LyftTalk quella
+// persona restava "Utente" senza volto, senza modo di rimediare. Se ha i
+// diritti sul workspace, la riga si crea: e' esattamente cio' che manca.
+async function ensureMemberId(admin, ws) {
+  if (ws.memberId) return ws.memberId
+  if (!ws.isAdmin) return null
+
+  const { data: gia } = await admin.from('team_members').select('id')
+    .eq('workspace_id', ws.workspaceId).eq('user_id', ws.userId).maybeSingle()
+  if (gia?.id) return gia.id
+
+  let email = null
+  try {
+    const { data } = await admin.auth.admin.getUserById(ws.userId)
+    email = data?.user?.email || null
+  } catch {}
+  if (!email) return null
+
+  // Un invito con quella email puo' esistere gia', non ancora collegato a un
+  // utente: (workspace_id, email) e' unico, quindi inserire sbatterebbe sul
+  // vincolo. Si adotta la riga invece di duplicarla.
+  const { data: invito } = await admin.from('team_members').select('id, user_id')
+    .eq('workspace_id', ws.workspaceId).eq('email', email).maybeSingle()
+  if (invito?.id) {
+    if (!invito.user_id) {
+      await admin.from('team_members')
+        .update({ user_id: ws.userId, status: 'active', accepted_at: new Date().toISOString() })
+        .eq('id', invito.id)
+    }
+    return invito.id
+  }
+
+  const { data: nuovo, error } = await admin.from('team_members').insert({
+    workspace_id: ws.workspaceId, user_id: ws.userId, email,
+    roles: ['admin'], status: 'active', accepted_at: new Date().toISOString(),
+  }).select('id').single()
+  if (error) throw error
+  return nuovo?.id || null
+}
+
 export async function POST(req) {
   const ws = await resolveWorkspace()
-  if (!ws || !ws.memberId) return NextResponse.json({ ok: false }, { status: 401 })
+  if (!ws) return NextResponse.json({ ok: false, error: 'Non autenticato' }, { status: 401 })
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ ok: false })
+
+  let memberId
+  try {
+    memberId = await ensureMemberId(admin, ws)
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 200 })
+  }
+  if (!memberId) return NextResponse.json({ ok: false, error: 'Nessun profilo su questo spazio di lavoro' }, { status: 403 })
 
   let form
   try { form = await req.formData() } catch { return NextResponse.json({ ok: false, error: 'Formato non valido' }, { status: 400 }) }
@@ -72,20 +124,28 @@ export async function POST(req) {
     if (!ALLOWED.includes(e)) return NextResponse.json({ ok: false, error: 'Immagine non valida (png/jpg/webp/gif)' }, { status: 400 })
     if ((file.size || 0) > 3 * 1024 * 1024) return NextResponse.json({ ok: false, error: 'Immagine troppo grande (max 3MB)' }, { status: 400 })
     try { await admin.storage.createBucket(BUCKET, { public: true }) } catch {}
-    const path = `${ws.workspaceId}/${ws.memberId}-${Date.now()}.${e}`
+    const path = `${ws.workspaceId}/${memberId}-${Date.now()}.${e}`
+    // Se il caricamento fallisce si DEVE dire: prima l'errore veniva
+    // inghiottito e la risposta era "salvato" con la foto rimasta indietro.
     try {
       const buf = Buffer.from(await file.arrayBuffer())
       const { error: upErr } = await admin.storage.from(BUCKET).upload(path, buf, { contentType: file.type || 'image/png', upsert: true })
-      if (!upErr) {
-        const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path)
-        patch.avatar_url = pub.publicUrl
-      }
-    } catch {}
+      if (upErr) return NextResponse.json({ ok: false, error: `Caricamento immagine non riuscito: ${upErr.message}` }, { status: 200 })
+      const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path)
+      patch.avatar_url = pub.publicUrl
+    } catch (err) {
+      return NextResponse.json({ ok: false, error: `Caricamento immagine non riuscito: ${err.message}` }, { status: 200 })
+    }
   }
 
   if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true })
   try {
-    const { data } = await admin.from('team_members').update(patch).eq('id', ws.memberId).eq('workspace_id', ws.workspaceId).select('id, full_name, email, avatar_url, roles').single()
+    const { data, error } = await admin.from('team_members').update(patch)
+      .eq('id', memberId).eq('workspace_id', ws.workspaceId)
+      .select('id, full_name, email, avatar_url, roles').single()
+    // L'errore c'era gia' nella risposta di Supabase e veniva ignorato: si
+    // rispondeva "salvato" con un profilo vuoto.
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 200 })
     return NextResponse.json({ ok: true, profile: data })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 })

@@ -66,7 +66,8 @@ export default function TasksTab() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [detailId, setDetailId] = useState(null)
-  const [form, setForm] = useState({ title: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
+  const [form, setForm] = useState({ title: '', description: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
+  const [newTaskOpen, setNewTaskOpen] = useState(false)
   // Chi è assente oggi: assegnare una task a chi non c'è è l'errore che il
   // bollino serve a evitare. Arriva dallo stesso registro di Ferie e permessi.
   const [onLeave, setOnLeave] = useState({})
@@ -146,6 +147,7 @@ export default function TasksTab() {
     try {
       const body = {
         title: form.title.trim(),
+        description: form.description.trim() || null,
         assignee_id: form.assignee_id || form.assignees[0] || null,
         assignees: form.assignees.length ? form.assignees : (form.assignee_id ? [form.assignee_id] : []),
         priority: form.priority,
@@ -155,8 +157,8 @@ export default function TasksTab() {
       const r = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json())
       if (r.ok && r.task) {
         setTasks(prev => [r.task, ...prev])
-        setForm({ title: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
-        setDetailId(r.task.id) // apri subito il dettaglio per scrivere note/allegare file
+        setForm({ title: '', description: '', assignee_id: '', assignees: [], priority: 'medium', due_date: '', project_id: '' })
+        setNewTaskOpen(false)
       }
     } finally {
       setCreating(false)
@@ -440,52 +442,15 @@ export default function TasksTab() {
               </>
             )}
             {view === 'board' && (<>
-            {/* Nuovo task */}
-            <div style={{ ...card, marginBottom: 18, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: '2 1 240px' }}>
-                <label style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.newTask', null, 'New task')}</label>
-                <input style={input} placeholder={t('tk.taskTitlePlaceholder', null, 'Task title…')} value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  onKeyDown={e => { if (e.key === 'Enter') createTask() }} />
-              </div>
-              <div style={{ flex: '1 1 220px', minWidth: 200 }}>
-                <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.assignees', null, 'Assegna a')}</label>
-                <div style={{ fontSize: 10.5, color: '#8a8a98', marginBottom: 4 }}>{t('tk.assigneesHint', null, 'Puoi selezionare più persone.')}</div>
-                <div style={{ maxHeight: 108, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, background: '#14141d', padding: 6 }}>
-                  {members.length === 0 && <div style={{ fontSize: 12, color: '#8a8a98', padding: 4 }}>{t('tk.noMembers', null, 'Nessun membro')}</div>}
-                  {members.map(m => {
-                    const on = form.assignees.includes(m.id)
-                    const leave = onLeave[m.id]
-                    return (
-                      <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 4px', fontSize: 12.5, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={on}
-                          onChange={() => setForm(f => ({
-                            ...f,
-                            assignees: on ? f.assignees.filter(x => x !== m.id) : [...f.assignees, m.id],
-                          }))} />
-                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.full_name || m.email}</span>
-                        {leave && (
-                          <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: 'rgba(255,159,10,0.18)', color: '#ffb340', whiteSpace: 'nowrap' }}>
-                            {t(`tk.leave.${leave.type}`, null, leave.type === 'ferie' ? 'In ferie' : leave.type === 'permesso' ? 'In permesso' : 'In malattia')}
-                          </span>
-                        )}
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
-              <div style={{ flex: '1 1 120px' }}>
-                <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.priority', null, 'Priority')}</label>
-                <select style={input} value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
-                  {PRIORITIES.map(p => <option key={p.id} value={p.id}>{t(p.key, null, p.en)}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: '1 1 130px' }}>
-                <label style={{ fontSize: 11, color: '#b0b0bd' }}>{t('tk.dueDate', null, 'Due date')}</label>
-                <input type="date" style={input} value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
-              </div>
-              <button style={{ ...btn, opacity: creating ? 0.6 : 1 }} disabled={creating} onClick={createTask}>+ {t('tk.create', null, 'Create')}</button>
-            </div>
+            {/* Nuova task: un pulsante, e la finestra chiede tutto in una volta.
+                La barra sempre aperta occupava spazio a ogni sguardo e non
+                aveva posto per la descrizione. */}
+            <button type="button" onClick={() => setNewTaskOpen(true)} style={{
+              ...btn, display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '10px 18px', fontSize: 13.5, marginBottom: 18,
+            }}>
+              <Icon name="plus" size={13} /> {t('tk.newTask', null, 'Nuova task')}
+            </button>
 
             {/* Griglia: colonne di stato × righe di priorità */}
             <SwimlaneBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
@@ -625,6 +590,17 @@ export default function TasksTab() {
         )
       })()}
 
+      {newTaskOpen && (
+        <NewTaskModal
+          form={form} setForm={setForm} creating={creating}
+          members={members} onLeave={onLeave}
+          projects={projects}
+          openProjectId={activeProject !== 'all' && activeProject !== 'none' ? activeProject : null}
+          onClose={() => setNewTaskOpen(false)}
+          onCreate={createTask}
+        />
+      )}
+
       {detailTask && (
         <TaskDetail
           task={detailTask}
@@ -637,6 +613,126 @@ export default function TasksTab() {
         />
       )}
 
+    </div>
+  )
+}
+
+// ── Nuova task ─────────────────────────────────────────────────────────────
+// Chiede tutto in una volta e nell'ordine in cui si pensa: cosa va fatto, i
+// dettagli, quanto stringe, entro quando, e solo alla fine chi lo fa. Gli
+// assegnatari stanno in fondo perche' si decide a chi darla quando si e' gia'
+// capito che cos'e'.
+function NewTaskModal({ form, setForm, creating, members, onLeave, projects, openProjectId, onClose, onCreate }) {
+  const { t } = useI18n()
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    const esc = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [onClose])
+
+  const Campo = ({ label, hint, children }) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: hint ? 2 : 6 }}>{label}</label>
+      {hint && <div style={{ fontSize: 11, color: '#8a8a98', marginBottom: 6 }}>{hint}</div>}
+      {children}
+    </div>
+  )
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PANEL, padding: 0, width: 'min(520px, 100%)', maxHeight: '92vh',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        <div style={{ padding: '18px 20px 12px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, fontFamily: 'Barlow Condensed', letterSpacing: '-.01em' }}>
+              {t('tk.newTask', null, 'Nuova task')}
+            </h3>
+            <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 3 }}>
+              {t('tk.newTaskSub', null, 'Crea una task personale o all’interno di un progetto.')}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label={t('tk.cancel', null, 'Annulla')}
+            style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+
+        <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+          <Campo label={t('tk.taskTitle', null, 'Titolo')}>
+            <input autoFocus style={input} value={form.title}
+              placeholder={t('tk.taskTitlePlaceholder', null, 'Cosa va fatto?')}
+              onChange={e => set('title', e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && form.title.trim()) onCreate() }} />
+          </Campo>
+
+          <Campo label={t('tk.description', null, 'Descrizione')}>
+            <textarea rows={3} style={{ ...input, resize: 'vertical', lineHeight: 1.5 }} value={form.description}
+              placeholder={t('tk.taskDescPlaceholder', null, 'Dettagli, contesto, link…')}
+              onChange={e => set('description', e.target.value)} />
+          </Campo>
+
+          {/* Il progetto si sceglie solo quando non si e' gia' dentro a uno:
+              dentro un progetto la risposta e' ovvia e chiederla e' rumore. */}
+          {!openProjectId && projects.length > 0 && (
+            <Campo label={t('tk.project', null, 'Progetto')}>
+              <select style={input} value={form.project_id} onChange={e => set('project_id', e.target.value)}>
+                <option value="">{t('tk.personalTask', null, 'Task personale · senza progetto')}</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Campo>
+          )}
+
+          <Campo label={t('tk.priority', null, 'Priorità')}>
+            <select style={{ ...input, width: 'auto', minWidth: 170 }} value={form.priority} onChange={e => set('priority', e.target.value)}>
+              {PRIORITIES.map(p => <option key={p.id} value={p.id}>{t(p.key, null, p.en)}</option>)}
+            </select>
+          </Campo>
+
+          <Campo label={t('tk.dueDate', null, 'Scadenza')}>
+            <input type="date" style={input} value={form.due_date} onChange={e => set('due_date', e.target.value)} />
+          </Campo>
+
+          <Campo label={t('tk.assignees', null, 'Assegna a')}
+            hint={t('tk.assigneesHint', null, 'Puoi selezionare più persone contemporaneamente.')}>
+            <div style={{ maxHeight: 132, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, background: '#14141d', padding: 6 }}>
+              {members.length === 0 && <div style={{ fontSize: 12, color: '#8a8a98', padding: 6 }}>{t('tk.noMembers', null, 'Nessun membro')}</div>}
+              {members.map(m => {
+                const on = form.assignees.includes(m.id)
+                const leave = onLeave[m.id]
+                return (
+                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 5px', fontSize: 13, cursor: 'pointer', borderRadius: 6 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.04)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+                    <input type="checkbox" checked={on}
+                      onChange={() => set('assignees', on ? form.assignees.filter(x => x !== m.id) : [...form.assignees, m.id])} />
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.full_name || m.email}</span>
+                    {/* Chi e' via si vede PRIMA di assegnare, non dopo: e' il
+                        momento in cui la cosa cambia una decisione. */}
+                    {leave && (
+                      <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: 'rgba(255,159,10,0.18)', color: '#ffb340', whiteSpace: 'nowrap' }}>
+                        {t(`tk.leave.${leave.type}`, null, leave.type === 'ferie' ? 'In ferie' : leave.type === 'permesso' ? 'In permesso' : 'In malattia')}
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
+            </div>
+          </Campo>
+        </div>
+
+        <div style={{ padding: '12px 20px 16px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--border)' }}>
+          <button type="button" onClick={onClose} style={btnGhost}>{t('tk.cancel', null, 'Annulla')}</button>
+          <button type="button" onClick={onCreate} disabled={creating || !form.title.trim()}
+            style={{ ...btn, opacity: (creating || !form.title.trim()) ? 0.5 : 1, cursor: (creating || !form.title.trim()) ? 'default' : 'pointer' }}>
+            {creating ? t('tk.creating', null, 'Creo…') : t('tk.createTask', null, 'Crea task')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

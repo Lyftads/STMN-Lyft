@@ -35,7 +35,12 @@ export default function LtvCohortsTab() {
   // + spesa ads del periodo per il CAC e il ratio LTV:CAC.
   const [margin, setMargin] = useState(100)  // % margine lordo (100 = nessun costo inserito → netto = lordo)
   const [marginAuto, setMarginAuto] = useState(true)
-  const [enrich, setEnrich] = useState(null) // { adSpend, metaSpend, googleSpend, grossMargin, costCoverage }
+  // Spesa ads e margine arrivano SEPARATI apposta: la spesa ci mette 8 secondi,
+  // il margine anche un minuto. Tenerli in un Promise.all faceva aspettare il
+  // CAC dietro al margine, e sulla finestra a 12 mesi il margine non arrivava
+  // mai (la route viene uccisa a 60s): CAC e LTV:CAC restavano a "—".
+  const [ads, setAds] = useState({ status: 'loading' })        // { status, adSpend, metaSpend, googleSpend }
+  const [marginSrc, setMarginSrc] = useState({ status: 'loading' }) // { status, grossMargin, costCoverage }
   // LTV proiettato a maturità (ltv-auto): per un brand in crescita la media
   // semplice della finestra è schiacciata dai clienti recentissimi (censoring);
   // il proiettato usa i clienti con ≥3/6/12 mesi di anzianità = valore a cui
@@ -49,10 +54,10 @@ export default function LtvCohortsTab() {
     return () => { cancelled = true }
   }, [])
 
-  // Enrichment: margine reale (product-performance) + spesa Meta/Google (kpi) sul
-  // periodo selezionato → CAC = spesa ads ÷ nuovi clienti acquisiti.
+  // Spesa ads del periodo → CAC = spesa ÷ nuovi clienti acquisiti.
   useEffect(() => {
     let cancelled = false
+    setAds({ status: 'loading' })
     const today = new Date()
     // Primo del mese in UTC: con new Date() locale + toISOString il since
     // slittava al giorno prima (GMT+2) e la finestra CAC non combaciava.
@@ -60,32 +65,56 @@ export default function LtvCohortsTab() {
     const since = start.toISOString().slice(0, 10)
     const until = today.toISOString().slice(0, 10)
     const q = `preset=custom&since=${since}&until=${until}`
-    Promise.all([
-      fetch(`/api/product-performance?since=${since}&until=${until}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/meta-kpi?${q}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/google-kpi?${q}`).then(r => r.json()).catch(() => null),
-    ]).then(([pp, mk, gk]) => {
-      if (cancelled) return
-      const metaSpend = Number(mk?.totals?.spend || 0)
-      const googleSpend = Number(gk?.totals?.spend || 0)
-      setEnrich({
-        adSpend: metaSpend + googleSpend, metaSpend, googleSpend,
-        grossMargin: pp?.totals?.grossMargin ?? null,
-        costCoverage: pp?.totals?.costCoverage || 0,
+    const prendi = (u) => fetch(u, { signal: AbortSignal.timeout(45000) })
+      .then(r => r.ok ? r.json() : null).catch(() => null)
+
+    Promise.all([prendi(`/api/meta-kpi?${q}`), prendi(`/api/google-kpi?${q}`)])
+      .then(([mk, gk]) => {
+        if (cancelled) return
+        // Nessuna delle due ha risposto: e' un guasto, non "spesa zero". La
+        // differenza conta, perche' zero fa sparire il CAC senza spiegazioni.
+        if (!mk && !gk) return setAds({ status: 'fail' })
+        const metaSpend = Number(mk?.totals?.spend || 0)
+        const googleSpend = Number(gk?.totals?.spend || 0)
+        setAds({ status: 'ok', adSpend: metaSpend + googleSpend, metaSpend, googleSpend })
       })
-    })
     return () => { cancelled = true }
   }, [months])
 
+  // Margine lordo reale dai costi prodotto. Finestra fissa a 90 giorni, non
+  // quella dell'LTV: il conto e' un P&L per prodotto su tutti gli ordini, e a
+  // 12 mesi supera i 60 secondi che la route ha a disposizione — veniva ucciso
+  // e il margine ripiegava su 100%, cioe' LTV netto uguale al lordo. Il
+  // margine e' un rapporto e a 90 giorni e' lo stesso numero, ma arriva.
+  useEffect(() => {
+    let cancelled = false
+    setMarginSrc({ status: 'loading' })
+    const until = new Date().toISOString().slice(0, 10)
+    const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)
+    fetch(`/api/product-performance?since=${since}&until=${until}`, { signal: AbortSignal.timeout(55000) })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(pp => {
+        if (cancelled) return
+        if (!pp) return setMarginSrc({ status: 'fail' })
+        setMarginSrc({
+          status: 'ok',
+          grossMargin: pp?.totals?.grossMargin ?? null,
+          costCoverage: pp?.totals?.costCoverage || 0,
+        })
+      })
+    return () => { cancelled = true }
+  }, [])
+
   // Margine di default in automatico dai costi prodotto reali (se coperti).
   useEffect(() => {
-    if (!enrich || !marginAuto) return
+    if (marginSrc.status !== 'ok' || !marginAuto) return
     // REGOLA: costi prodotto inseriti → margine reale; nessun costo → 100
     // (LTV netto = lordo, niente riduzioni inventate). L'override manuale
     // resta possibile disattivando l'auto.
-    const pct = (enrich.grossMargin != null && enrich.costCoverage > 0) ? Math.round(enrich.grossMargin * 100) : 100
+    const pct = (marginSrc.grossMargin != null && marginSrc.costCoverage > 0) ? Math.round(marginSrc.grossMargin * 100) : 100
     setMargin(pct)
-  }, [enrich, marginAuto])
+  }, [marginSrc, marginAuto])
 
   const load = (force = false) => {
     let cancelled = false
@@ -132,11 +161,11 @@ export default function LtvCohortsTab() {
   const m = Math.max(0, Math.min(100, Number(margin) || 0)) / 100
   const netLtv = grossLtv * m                          // × margine lordo
   const newCustomers = Number(s.customers || 0)
-  const adSpend = Number(enrich?.adSpend || 0)
+  const adSpend = ads.status === 'ok' ? Number(ads.adSpend || 0) : 0
   const cac = newCustomers > 0 && adSpend > 0 ? adSpend / newCustomers : null
   const ratioGross = cac ? grossLtv / cac : null
   const ratioNet = cac ? netLtv / cac : null
-  const marginReal = enrich && enrich.grossMargin != null && enrich.costCoverage > 0
+  const marginReal = marginSrc.status === 'ok' && marginSrc.grossMargin != null && marginSrc.costCoverage > 0
   const ratioColor = (r) => r == null ? 'var(--text)' : r >= 3 ? '#30d158' : r >= 1 ? '#ff9f0a' : '#ff453a'
   const fmtX = (r) => r == null ? '—' : `${r.toFixed(2)}×`
 
@@ -186,16 +215,27 @@ export default function LtvCohortsTab() {
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.netLtv', null, 'Net LTV')}</div>
                 <div className="metric-value-sm" style={{ color: '#30d158' }}>{eur2(netLtv)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.marginLine', { pct: Math.round(m * 100), src: marginReal ? t('ltv.realShopify', null, 'real Shopify') : t('ltv.estimate', null, 'estimate') }, `margin ${Math.round(m * 100)}%`)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.marginLine', { pct: Math.round(m * 100), src: marginReal ? t('ltv.realShopify90', null, 'costi reali Shopify · ultimi 90 giorni') : marginSrc.status === 'loading' ? t('ltv.marginLoading', null, 'leggo i costi prodotto…') : t('ltv.estimate', null, 'estimate') }, `margin ${Math.round(m * 100)}%`)}</div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.cac', null, 'CAC')}</div>
-                <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{cac == null ? '—' : eur2(cac)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{adSpend > 0 ? t('ltv.adsPerCustomers', { spend: eur(adSpend), n: nf(newCustomers) }, `${eur(adSpend)} ads / ${nf(newCustomers)} customers`) : t('ltv.adsUnavailable', null, 'ad spend unavailable')}</div>
+                <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{cac == null ? (ads.status === 'loading' ? '…' : '—') : eur2(cac)}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>
+                  {/* Tre stati diversi, tre frasi diverse: mentre la spesa sta
+                      arrivando NON si scrive "non disponibile", che e' un
+                      verdetto su un conto non ancora fatto. */}
+                  {adSpend > 0
+                    ? t('ltv.adsPerCustomers', { spend: eur(adSpend), n: nf(newCustomers) }, `${eur(adSpend)} ads / ${nf(newCustomers)} customers`)
+                    : ads.status === 'loading'
+                      ? t('ltv.adsLoading', null, 'leggo la spesa pubblicitaria…')
+                      : ads.status === 'fail'
+                        ? t('ltv.adsFailed', null, 'spesa non leggibile da Meta e Google')
+                        : t('ltv.adsZero', null, 'nessuna spesa pubblicitaria nel periodo')}
+                </div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 9, marginBottom: 8 }}>{t('ltv.ltvCacNet', null, 'LTV:CAC (net)')}</div>
-                <div className="metric-value-sm" style={{ color: ratioColor(ratioNet) }}>{fmtX(ratioNet)}</div>
+                <div className="metric-value-sm" style={{ color: ratioColor(ratioNet) }}>{ratioNet == null && ads.status === 'loading' ? '…' : fmtX(ratioNet)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.grossRatioHealthy', { x: fmtX(ratioGross) }, `gross ${fmtX(ratioGross)} · healthy ≥ 3×`)}</div>
               </div>
             </div>

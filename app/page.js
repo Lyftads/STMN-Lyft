@@ -30,6 +30,9 @@ import OnboardingTab from './components/OnboardingTab'
 import PlanUsageBanner from './components/PlanUsageBanner'
 import PendingActionsBanner from './components/PendingActionsBanner'
 import TasksTab from './components/TasksTab'
+import CalendarTab from './components/CalendarTab'
+import TimeOffTab from './components/TimeOffTab'
+import CreativeLibraryTab from './components/CreativeLibraryTab'
 import TeamManageTab from './components/TeamManageTab'
 import TimeTrackingTab from './components/TimeTrackingTab'
 import ChatTab from './components/ChatTab'
@@ -4329,6 +4332,18 @@ export default function App() {
 {/* TEAM · PROGETTI & TASK */}
 {tab === 'tasks' && (
   <TasksTab />
+)}
+
+{tab === 'calendar' && (
+  <CalendarTab />
+)}
+
+{tab === 'timeOff' && (
+  <TimeOffTab />
+)}
+
+{tab === 'creativeLibrary' && (
+  <CreativeLibraryTab />
 )}
 
 {tab === 'teamManage' && (

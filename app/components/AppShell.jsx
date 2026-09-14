@@ -149,8 +149,11 @@ const [helpOpen, setHelpOpen] = useState(false)
       color: '#7b5bff',
       items: [
         { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
+        { id: 'calendar', label: 'Calendario', icon: <Icon name="calendar" /> },
+        { id: 'timeOff', label: 'Ferie e permessi', icon: <Icon name="clock" /> },
         { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
+        { id: 'creativeLibrary', label: 'Creatività', icon: <Icon name="image" /> },
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
         { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },

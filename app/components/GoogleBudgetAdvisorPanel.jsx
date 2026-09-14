@@ -11,22 +11,7 @@ import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 // Budget Advisor per Google Ads — gemella della versione Meta. Riusa le stesse
-// chiavi i18n ba.*/aq.* (etichette platform-agnostic). Accoda in Coda Azioni.
-
-function ApplyButton({ qstate, onClick }) {
-  const { t } = useI18n()
-  if (qstate === 'queued') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: 'var(--green)', flexShrink: 0 }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
-  return (
-    <button onClick={onClick} disabled={qstate === 'busy'} title={t('aq.applyTitle')} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-      padding: '7px 12px', borderRadius: 9, cursor: qstate === 'busy' ? 'wait' : 'pointer',
-      background: 'rgba(234,179,8,0.16)', border: '1px solid rgba(234,179,8,0.4)',
-      color: '#fde68a', fontSize: 11.5, fontWeight: 800,
-    }}>
-      <Icon name="bolt" size={13} /> {qstate === 'busy' ? '…' : qstate === 'err' ? t('aq.retry') : t('aq.apply')}
-    </button>
-  )
-}
+// chiavi i18n ba.* (etichette platform-agnostic).
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -51,17 +36,6 @@ export default function GoogleBudgetAdvisorPanel() {
   const [showAll, setShowAll] = useState(false)
   const [tf, setTf] = useState({ preset: 'last_7d' })
   const preset = tf.preset
-  const [queued, setQueued] = useState({})
-
-  const enqueue = async (key, body) => {
-    setQueued(q => ({ ...q, [key]: 'busy' }))
-    try {
-      const r = await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const j = await r.json()
-      setQueued(q => ({ ...q, [key]: j.ok ? 'queued' : 'err' }))
-    } catch { setQueued(q => ({ ...q, [key]: 'err' })) }
-  }
-
   useEffect(() => {
     let cancelled = false
     setError(null)
@@ -139,12 +113,6 @@ export default function GoogleBudgetAdvisorPanel() {
                     </div>
                   )}
                 </div>
-                <ApplyButton qstate={queued.realloc} onClick={() => enqueue('realloc', {
-                  channel: 'google', source: 'google_budget_advisor', type: 'shift_budget',
-                  target_name: t('aq.target.realloc'),
-                  payload: { freed: re.freed, avgCutRoas: re.avgCutRoas, avgScaleRoas: re.avgScaleRoas, forecastDelta: re.forecastDelta || 0 },
-                  summary: t('aq.sum.shift', { amount: eur(re.freed), cut: re.avgCutRoas, scale: re.avgScaleRoas }),
-                })} />
               </div>
             )}
 
@@ -169,21 +137,6 @@ export default function GoogleBudgetAdvisorPanel() {
                       <Metric label={t('m.roas')} value={`${c.roas}x`} tone={c.roas >= 2 ? 'var(--green)' : c.roas >= 1 ? 'var(--orange)' : 'var(--red)'} />
                       <Metric label={t('m.cpa')} value={eur2(c.cpa)} />
                     </div>
-                    {c.action !== 'mantieni' && (() => {
-                      const key = c.id || `c${i}`
-                      const isPause = c.deltaPct === -100
-                      return <ApplyButton qstate={queued[key]} onClick={() => enqueue(key, {
-                        channel: 'google', source: 'google_budget_advisor',
-                        type: isPause ? 'pause_campaign' : 'scale_budget',
-                        target_ref: c.id || null, target_name: c.name,
-                        payload: { delta_pct: c.deltaPct, from_spend: c.spend, to_spend: c.suggestedSpend, roas: c.roas, action: c.action },
-                        summary: isPause
-                          ? t('aq.sum.pause', { name: c.name, roas: c.roas })
-                          : c.deltaPct > 0
-                            ? t('aq.sum.scale', { name: c.name, pct: c.deltaPct, from: eur2(c.spend), to: eur2(c.suggestedSpend) })
-                            : t('aq.sum.reduce', { name: c.name, pct: Math.abs(c.deltaPct), from: eur2(c.spend), to: eur2(c.suggestedSpend) }),
-                      })} />
-                    })()}
                   </div>
                 )
               })}

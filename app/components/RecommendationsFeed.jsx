@@ -20,20 +20,6 @@ const CAT_CHANNEL = {
   pricing: 'shopify', shopify_product: 'shopify', cro: 'other', other: 'other',
 }
 
-function ApplyButton({ qstate, onClick }) {
-  const { t } = useI18n()
-  if (qstate === 'queued') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#86efac', flexShrink: 0 }}><Icon name="check" size={13} /> {t('aq.inQueue')}</span>
-  return (
-    <button onClick={onClick} disabled={qstate === 'busy'} title={t('aq.applyTitle')} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-      padding: '6px 11px', borderRadius: 8, cursor: qstate === 'busy' ? 'wait' : 'pointer',
-      background: 'rgba(123,91,255,0.16)', border: '1px solid rgba(123,91,255,0.4)',
-      color: '#c4b5fd', fontSize: 11, fontWeight: 800,
-    }}>
-      <Icon name="bolt" size={12} /> {qstate === 'busy' ? '…' : qstate === 'err' ? t('aq.retry') : t('aq.apply')}
-    </button>
-  )
-}
 
 export default function RecommendationsFeed({ metrics, preset }) {
   const { t, intlLocale } = useI18n()
@@ -167,26 +153,9 @@ export default function RecommendationsFeed({ metrics, preset }) {
 
 function RecCard({ rec, onDismiss }) {
   const { t } = useI18n()
-  const [q, setQ] = useState(null)
   const cfg = PRIORITY_CONFIG[rec.priority] || PRIORITY_CONFIG.medium
   const catLabel = t('reccat.' + rec.category, null, rec.category)
 
-  const apply = async () => {
-    setQ('busy')
-    try {
-      const r = await fetch('/api/actions', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel: CAT_CHANNEL[rec.category] || 'other', source: 'recommendations', type: 'custom',
-          target_name: rec.title,
-          payload: { priority: rec.priority, category: rec.category, why: rec.why || null, expected_impact: rec.expected_impact || null },
-          summary: rec.action || rec.title,
-        }),
-      })
-      const j = await r.json()
-      setQ(j.ok ? 'queued' : 'err')
-    } catch { setQ('err') }
-  }
 
   return (
     <div className="glass-panel" style={{
@@ -237,9 +206,6 @@ function RecCard({ rec, onDismiss }) {
               )}
             </div>
           )}
-          <div style={{ marginTop: 12 }}>
-            <ApplyButton qstate={q} onClick={apply} />
-          </div>
         </div>
 
         <button

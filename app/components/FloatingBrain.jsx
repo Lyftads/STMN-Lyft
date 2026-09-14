@@ -182,9 +182,6 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
       fetch(u, { cache: 'no-store', keepalive: true }).catch(() => {})
     }
   }, [open])
-  const [actions, setActions] = useState([])      // azioni proposte dalla conversazione
-  const [actLoading, setActLoading] = useState(false)
-  const [added, setAdded] = useState({})          // indici già aggiunti alla Coda
   // Skills (stile Sidekick): prompt salvati e condivisi nel workspace
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [skills, setSkills] = useState(null)      // null = mai caricate
@@ -305,34 +302,8 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  const clear = () => { if (loading) return; setMsgs([]); setActions([]); setAdded({}); try { const k = storeKey(); if (k) localStorage.removeItem(k) } catch {} }
+  const clear = () => { if (loading) return; setMsgs([]); try { const k = storeKey(); if (k) localStorage.removeItem(k) } catch {} }
 
-  // Estrae azioni concrete dalla conversazione (proposte per la Coda Azioni).
-  const proposeActions = useCallback(async () => {
-    if (actLoading || msgs.length === 0) return
-    setActLoading(true); setActions([]); setAdded({})
-    try {
-      const r = await fetch('/api/actions/from-chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: msgs.map(m => ({ role: m.role, content: m.content })), locale: getClientLocale() }),
-      })
-      const data = await r.json()
-      setActions(Array.isArray(data?.actions) ? data.actions : [])
-    } catch {} finally { setActLoading(false) }
-  }, [actLoading, msgs])
-
-  // Aggiunge un'azione proposta alla Coda Azioni (status 'pending' → approvazione manuale).
-  const enqueue = useCallback(async (a, idx) => {
-    if (added[idx]) return
-    try {
-      const r = await fetch('/api/actions', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel: a.channel, type: a.type, target_name: a.target_name, summary: a.summary, source: 'brain', payload: {} }),
-      })
-      const data = await r.json()
-      if (data?.ok) setAdded(s => ({ ...s, [idx]: true }))
-    } catch {}
-  }, [added])
 
   if (!mounted) return null
 
@@ -377,11 +348,6 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
                 {t('brain.context', {}, 'Tutti i dati')} · {tabLabel}
               </div>
             </div>
-            {msgs.length > 0 && (
-              <button onClick={proposeActions} disabled={actLoading} title={t('brain.createActions', {}, 'Crea azioni dalla conversazione')} style={{ ...iconBtn, color: '#a78bfa' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" /></svg>
-              </button>
-            )}
             <button onClick={clear} title={t('brain.clear', {}, 'Pulisci')} style={iconBtn}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
             </button>
@@ -414,30 +380,6 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
             )}
           </div>
 
-          {/* Azioni proposte dalla conversazione → Coda Azioni */}
-          {(actLoading || actions.length > 0) && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: 12, maxHeight: 210, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {t('brain.actionsTitle', {}, 'Azioni proposte')}
-              </div>
-              {actLoading && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{toolStatus || t('brain.thinking', {}, 'Sto ragionando…')}</div>}
-              {!actLoading && actions.length === 0 && <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.noActions', {}, 'Nessuna azione concreta emersa.')}</div>}
-              {actions.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 10px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: 'var(--text)', fontSize: 12.5, lineHeight: 1.35 }}>{a.summary}</div>
-                    <div style={{ color: 'var(--text3)', fontSize: 10.5, marginTop: 2 }}>{a.channel} · {a.type}{a.target_name ? ` · ${a.target_name}` : ''}</div>
-                  </div>
-                  <button onClick={() => enqueue(a, i)} disabled={!!added[i]} style={{
-                    flex: '0 0 auto', fontSize: 11.5, fontWeight: 600, padding: '6px 10px', borderRadius: 8, border: 'none',
-                    cursor: added[i] ? 'default' : 'pointer', whiteSpace: 'nowrap',
-                    background: added[i] ? 'rgba(48,209,88,0.16)' : 'linear-gradient(135deg, #7c5cff, #5b3df0)',
-                    color: added[i] ? '#30d158' : 'var(--text)',
-                  }}>{added[i] ? t('brain.added', {}, '✓ Aggiunta') : t('brain.addToQueue', {}, 'Aggiungi')}</button>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Skills: prompt salvati del workspace */}
           {skillsOpen && (

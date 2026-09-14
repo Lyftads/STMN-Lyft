@@ -71,22 +71,9 @@ export default function AppShell({
     if (subLocked && tab !== 'settings' && typeof setTab === 'function') setTab('settings')
   }, [subLocked, tab, setTab])
 
-  // Badge "azioni in attesa" sulla voce Coda Azioni (Fase 1).
-  const [pendingActions, setPendingActions] = useState(0)
 const [helpOpen, setHelpOpen] = useState(false)
   // Mobile: sidebar come drawer a scomparsa (hamburger). Desktop invariato.
   const [mobileNav, setMobileNav] = useState(false)
-  useEffect(() => {
-    let alive = true
-    const load = () => fetch('/api/actions?status=pending')
-      .then(r => r.ok ? r.json() : null)
-      .then(j => { if (alive && j) setPendingActions((j.actions || []).length) })
-      .catch(() => {})
-    load()
-    const id = setInterval(load, 60_000)
-    return () => { alive = false; clearInterval(id) }
-  }, [tab])
-
   // Pre-riscaldamento snapshot (una volta per sessione): mentre l'utente guarda
   // la dashboard, scaldiamo in background le tab analitiche pesanti ai loro
   // default, così la PRIMA apertura di ognuna è istantanea. Le richieste portano
@@ -156,7 +143,6 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'creativeLibrary', label: 'Creatività', icon: <Icon name="image" /> },
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
         { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
-        { id: 'actionQueue', label: 'Coda Azioni', icon: <Icon name="bolt" /> },
       ],
     },
     {
@@ -454,13 +440,6 @@ const [helpOpen, setHelpOpen] = useState(false)
                         {item.icon}
                       </span>
                       <span style={{ flex: 1 }}>{t('tab.' + item.id, null, item.label)}</span>
-                      {item.id === 'actionQueue' && pendingActions > 0 && (
-                        <span style={{
-                          minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
-                          background: '#fbbf24', color: '#1a1400', fontSize: 11, fontWeight: 800,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        }}>{pendingActions > 99 ? '99+' : pendingActions}</span>
-                      )}
                     </button>
                   )
                 })}

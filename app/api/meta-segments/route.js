@@ -31,6 +31,9 @@ function accounts() {
 
 const SEG_MAP = { prospecting: 'new', existing: 'returning', engaged: 'engaged', unknown: 'unknown' }
 const SEG_LABEL = { new: 'Nuovo pubblico', returning: 'Clienti esistenti', engaged: 'Pubblico che ha interagito', unknown: 'Sconosciuto' }
+// Ordine freddo → caldo: e' l'ordine in cui si legge il funnel, e quello che
+// la barra dei pubblici deve rispettare.
+const SEG_KEYS = ['new', 'engaged', 'returning', 'unknown']
 const PURCHASE = ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase']
 
 function actVal(arr, names) {
@@ -144,6 +147,72 @@ async function byCampaign(since, until, errors = []) {
   return out
 }
 
+// Segue la paginazione di Graph. Serve solo per il livello creativita': con
+// quattro segmenti per ogni annuncio le righe si moltiplicano e Graph le
+// spezza in pagine. Senza seguire `paging.next` le creative in fondo alla
+// lista tornerebbero a zero — indistinguibili da "non ha speso", che e' il
+// tipo di bugia silenziosa piu' difficile da notare.
+async function fbPaged(path, params, maxPagine = 12) {
+  const url = new URL(`https://graph.facebook.com/${GRAPH}/${path}`)
+  for (const [k, v] of Object.entries(params || {})) {
+    if (v != null && v !== '') url.searchParams.set(k, typeof v === 'string' ? v : JSON.stringify(v))
+  }
+  url.searchParams.set('access_token', metaToken())
+  let next = url.toString()
+  const out = []
+  for (let i = 0; i < maxPagine && next; i++) {
+    const res = await fetch(next, { cache: 'no-store' })
+    const data = await res.json().catch(() => ({}))
+    if (data?.error) throw new Error(data.error.message || 'Meta API')
+    if (Array.isArray(data?.data)) out.push(...data.data)
+    next = data?.paging?.next || null
+  }
+  return out
+}
+
+// Per-CREATIVITA' (level=ad): la stessa lettura per pubblico, ma sulla singola
+// creativita'. Serve a distinguere chi ACQUISISCE da chi RACCOGLIE: sul
+// pubblico che gia' ci conosce il ROAS e' alto per costruzione — quella gente
+// sarebbe tornata comunque — e sommato al resto nasconde quale creativita' sta
+// davvero portando gente nuova.
+// On-demand come per le campagne: e' una chiamata pesante e Meta ha un tetto.
+async function byAd(since, until, errors = []) {
+  const map = {} // adId → { name, agg: { seg → acc } }
+  for (const acc of accounts()) {
+    let rows = []
+    try {
+      rows = await fbPaged(`${acc}/insights`, {
+        level: 'ad', time_range: JSON.stringify({ since, until }), breakdowns: 'user_segment_key',
+        fields: 'ad_id,ad_name,spend,impressions,reach,inline_link_clicks,clicks,actions,action_values',
+        limit: '500',
+      })
+    } catch (e) { errors.push(`${acc}: ${e?.message || 'errore Meta'}`) }
+    for (const row of rows) {
+      const aid = row.ad_id || row.ad_name
+      if (!aid) continue
+      const b = SEG_MAP[row.user_segment_key] || 'unknown'
+      if (!map[aid]) map[aid] = { name: row.ad_name || aid, agg: {} }
+      if (!map[aid].agg[b]) map[aid].agg[b] = zero()
+      addRow(map[aid].agg[b], row)
+    }
+  }
+  const out = {}
+  for (const [aid, v] of Object.entries(map)) {
+    const segments = {}
+    let spesaTotale = 0
+    for (const key of SEG_KEYS) spesaTotale += (v.agg[key] || zero()).spend
+    // La quota si calcola QUI, una volta sola: rifare le divisioni nel client
+    // vuol dire poterle sbagliare in un modo diverso da qui.
+    for (const key of SEG_KEYS) {
+      const a = v.agg[key] || zero()
+      segments[key] = { ...finalize(a), label: SEG_LABEL[key], share: spesaTotale > 0 ? r2((a.spend / spesaTotale) * 100) : 0 }
+    }
+    if (spesaTotale <= 0) continue // creativita' senza spesa nel periodo: non dice niente
+    out[aid] = { name: v.name, spend: r2(spesaTotale), segments }
+  }
+  return out
+}
+
 export async function GET(req) {
   return withTenantContext(req, async () => {
     if (!metaToken() || !metaAccount()) {
@@ -153,6 +222,17 @@ export async function GET(req) {
     const preset = searchParams.get('preset') || 'last_28d'
     const level = searchParams.get('level') || 'account'
     const range = getRange(preset, searchParams)
+
+    // Modalità per-CREATIVITÀ (toggle nella tab Creative): niente daily/prev.
+    if (level === 'ad') {
+      return swrSnapshot(req, { tab: 'metaSegmentsByAd', ttlMs: 30 * 60 * 1000, compute: async () => {
+        const metaErrors = []
+        const ads = await byAd(range.since, range.until, metaErrors)
+        return { ok: true, configured: true, level: 'ad', preset, range, ads,
+          ...(metaErrors.length ? { error: metaErrors[0], metaErrors, __noCache: true } : {}),
+          updatedAt: new Date().toISOString() }
+      } })
+    }
 
     // Modalità per-campagna (toggle Meta Detail): più leggera, niente daily/prev.
     if (level === 'campaign') {

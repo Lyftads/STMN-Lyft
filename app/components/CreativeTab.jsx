@@ -160,7 +160,122 @@ function Stat({ label, value, tone = 'var(--text)', prev, daily, dataKey, isLowe
   )
 }
 
-function CreativeCard({ row, index, onClick }) {
+// ============================================================================
+//  Spaccato per pubblico — quanto ha speso ogni creativita' su gente nuova,
+//  su chi ha gia' interagito e su chi e' gia' cliente.
+//
+//  Perche' serve: sono tre economie diverse. Sul pubblico che ci conosce gia'
+//  il ROAS e' alto per costruzione — quella gente sarebbe tornata comunque — e
+//  sommato al resto nasconde se una creativita' sta ACQUISENDO o sta solo
+//  RACCOGLIENDO. Due creative con lo stesso ROAS possono fare cose opposte.
+//
+//  COLORE: un solo colore in tre intensita', non tre colori. I pubblici hanno
+//  un ordine naturale (freddo → caldo) e la scala di intensita' dice qualcosa
+//  di vero; tre tinte suggerirebbero categorie senza relazione fra loro. Il
+//  verde/ambra/rosso resta ai verdetti sul ROAS, qui non c'entra.
+// ============================================================================
+
+const SEG_ORDER = ['new', 'engaged', 'returning', 'unknown']
+const SEG_FILL = {
+  new:       'rgba(167,139,250,0.95)',
+  engaged:   'rgba(167,139,250,0.62)',
+  returning: 'rgba(167,139,250,0.32)',
+  unknown:   'rgba(148,163,184,0.28)',
+}
+
+function segLabels(t) {
+  return {
+    new: t('cr.segNew', null, 'Nuovo'),
+    engaged: t('cr.segEngaged', null, 'Ha interagito'),
+    returning: t('cr.segReturning', null, 'Già clienti'),
+    unknown: t('cr.segUnknown', null, 'Sconosciuto'),
+  }
+}
+
+// Barra compatta per la scheda: la sola cosa che deve dire a colpo d'occhio e'
+// quanta parte della spesa e' andata su gente nuova.
+function BarraPubblici({ segments }) {
+  const { t } = useI18n()
+  if (!segments) return null
+  const lab = segLabels(t)
+  const presenti = SEG_ORDER.filter(k => asNum(segments[k]?.spend) > 0)
+  if (presenti.length === 0) return null
+  const quotaNuovo = asNum(segments.new?.share)
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+          {t('cr.audienceSplit', null, 'Spesa per pubblico')}
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 800, color: '#c4b5fd' }}>
+          {t('cr.newShare', { pct: quotaNuovo }, `${quotaNuovo}% nuovo`)}
+        </span>
+      </div>
+      <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+        {presenti.map(k => (
+          <div
+            key={k}
+            title={`${lab[k]} · ${asNum(segments[k]?.share)}%`}
+            style={{ width: `${asNum(segments[k]?.share)}%`, background: SEG_FILL[k] }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Tabella nel dettaglio: qui ci sta tutto, e le quattro colonne che contano
+// sono spesa, acquisti, ROAS e CPA — le stesse su cui si decide.
+function TabellaPubblici({ segments }) {
+  const { t } = useI18n()
+  if (!segments) return null
+  const lab = segLabels(t)
+  const presenti = SEG_ORDER.filter(k => asNum(segments[k]?.spend) > 0)
+  if (presenti.length === 0) {
+    return <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('cr.audienceNone', null, 'Meta non ha attribuito la spesa a nessun pubblico in questo periodo.')}</div>
+  }
+  const th = { padding: '6px 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'right', whiteSpace: 'nowrap' }
+  const td = { padding: '7px 8px', fontSize: 12.5, textAlign: 'right', color: 'var(--text)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      {/* min-width azzerato: il foglio di stile globale ne impone uno pensato
+          per le tabelle a piena pagina, e qui dentro farebbe uscire le colonne
+          di destra dal bordo senza barra di scorrimento. */}
+      <table style={{ width: '100%', minWidth: 0, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ ...th, textAlign: 'left' }}>{t('cr.audience', null, 'Pubblico')}</th>
+            <th style={th}>{t('cr.spend', null, 'Spesa')}</th>
+            <th style={th}>{t('cr.share', null, 'Quota')}</th>
+            <th style={th}>{t('cr.orders', null, 'Ordini')}</th>
+            <th style={th}>ROAS</th>
+            <th style={th}>CPA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {presenti.map(k => {
+            const s = segments[k] || {}
+            return (
+              <tr key={k} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ ...td, textAlign: 'left' }}>
+                  <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: 3, background: SEG_FILL[k], marginRight: 7, verticalAlign: 'middle' }} />
+                  {lab[k]}
+                </td>
+                <td style={td}>{money(asNum(s.spend))}</td>
+                <td style={{ ...td, color: 'var(--text2)' }}>{asNum(s.share)}%</td>
+                <td style={td}>{num(asNum(s.purchases))}</td>
+                <td style={{ ...td, fontWeight: 800 }}>{s.roas ? ratio(asNum(s.roas)) : '—'}</td>
+                <td style={td}>{s.cpa != null ? money2(asNum(s.cpa)) : '—'}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function CreativeCard({ row, index, onClick, segments }) {
   const { t } = useI18n()
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
@@ -418,6 +533,8 @@ function CreativeCard({ row, index, onClick }) {
           <Mini label={t('cr.impressions', null, 'Impression')} value={num(impressions)} curr={impressions} prev={prev?.impressions} />
           <Mini label={t('cr.clicks', null, 'Click')} value={num(clicks)} curr={clicks} prev={prev?.link_clicks} />
         </div>
+
+        <BarraPubblici segments={segments} />
       </div>
     </div>
   )
@@ -502,7 +619,7 @@ function formatCta(cta) {
     .join(' ')
 }
 
-function CreativeDetailModal({ row, onClose }) {
+function CreativeDetailModal({ row, onClose, segments }) {
   const { t } = useI18n()
   const [mounted, setMounted] = useState(false)
 
@@ -648,6 +765,15 @@ function CreativeDetailModal({ row, onClose }) {
               <MiniStat label="CPC" value={money2(row.cpc_link)} />
               <MiniStat label="CTR" value={pct(row.ctr_link)} />
             </div>
+
+            {segments && (
+              <Section label={t('cr.audienceSplitTitle', null, 'Risultati per pubblico')}>
+                <TabellaPubblici segments={segments} />
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', lineHeight: 1.45 }}>
+                  {t('cr.audienceHint', null, 'Sul pubblico che ti conosce già il ROAS è alto per costruzione: quella gente sarebbe tornata comunque. Guarda la riga «Nuovo» per capire se questa creatività sta acquisendo o solo raccogliendo.')}
+                </div>
+              </Section>
+            )}
 
             {copies.length > 0 && (
               <Section label={`Copy${copies.length > 1 ? ` · ${t('cr.variantsN', { n: copies.length }, `${copies.length} varianti`)}` : ''}`}>
@@ -813,6 +939,36 @@ export default function CreativeTab() {
   const [accountFilter, setAccountFilter] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  // Spaccato per pubblico: si chiede SOLO se lo accendi. È una lettura pesante
+  // (una riga per creatività per pubblico, impaginata) e Meta ha un tetto di
+  // chiamate: accesa sempre, brucerebbe quota anche a chi non la guarda.
+  const [segOn, setSegOn] = useState(false)
+  const [segData, setSegData] = useState(null)
+  const [segLoading, setSegLoading] = useState(false)
+  const [segError, setSegError] = useState(null)
+
+  useEffect(() => {
+    if (!segOn) return
+    let vivo = true
+    setSegLoading(true); setSegError(null)
+    const params = new URLSearchParams(tfQuery(tf))
+    params.set('level', 'ad')
+    fetch(`/api/meta-segments?${params.toString()}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => {
+        if (!vivo) return
+        // Un errore di Meta non deve travestirsi da "nessuna spesa su nessun
+        // pubblico": se la chiamata è andata storta lo si dice.
+        if (j?.ok === false || j?.error) { setSegError(j?.error || 'Meta'); setSegData(null) }
+        else setSegData(j?.ads || null)
+      })
+      .catch(e => { if (vivo) { setSegError(e.message); setSegData(null) } })
+      .finally(() => { if (vivo) setSegLoading(false) })
+    return () => { vivo = false }
+  }, [segOn, tf])
+
+  const segmentiDi = (row) => (segData && (segData[row?.ad_id] || segData[row?.id]))?.segments || null
 
   useEffect(() => {
     const key = `${tfQuery(tf)}|${accountFilter}`
@@ -1113,6 +1269,18 @@ export default function CreativeTab() {
               ))}
             </select>
 
+            <button
+              type="button"
+              onClick={() => setSegOn(v => !v)}
+              style={segOn
+                ? { ...chipStyle, borderColor: 'rgba(167,139,250,0.55)', color: '#c4b5fd', background: 'rgba(167,139,250,0.14)' }
+                : chipStyle}
+            >
+              {segLoading
+                ? t('cr.audienceLoading', null, 'Pubblici…')
+                : t('cr.audienceToggle', null, 'Segmenti di pubblico')}
+            </button>
+
             {(search || campaignFilter || quickFilter || accountFilter) && (
               <button
                 type="button"
@@ -1123,6 +1291,14 @@ export default function CreativeTab() {
               </button>
             )}
           </div>
+
+          {/* Un errore di Meta si dice: senza questa riga le barre sparite
+              sembrerebbero "nessuna spesa", che e' un'altra cosa. */}
+          {segOn && segError && (
+            <div style={{ marginTop: 12, fontSize: 12, color: '#fca5a5' }}>
+              {t('cr.audienceError', { err: segError }, `Segmenti di pubblico non disponibili: ${segError}`)}
+            </div>
+          )}
 
           {/* Filtro per ad account Meta */}
           <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1199,6 +1375,7 @@ export default function CreativeTab() {
                 key={`${row.id || row.ad_id || index}-${index}`}
                 row={row}
                 index={index}
+                segments={segmentiDi(row)}
                 onClick={() => setSelectedCreative(row)}
               />
             ))}
@@ -1223,6 +1400,7 @@ export default function CreativeTab() {
       {selectedCreative && (
         <CreativeDetailModal
           row={selectedCreative}
+          segments={segmentiDi(selectedCreative)}
           onClose={() => setSelectedCreative(null)}
         />
       )}

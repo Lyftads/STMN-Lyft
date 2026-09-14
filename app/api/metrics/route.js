@@ -1436,7 +1436,34 @@ async function safeShopifyRange(range) {
   if (classificationMissing && endsRecently && windowDays <= 10 && shopifyStoreUrl() && shopifyToken()) {
     const admin = await fetchShopifyOrdersAdminGQL(range.since, range.until)
     if (admin && admin.ordini > 0) {
-      sales = admin
+      // L'Admin API serve SOLO a dire chi e' nuovo e chi ritorna: e' l'unica
+      // cosa che ShopifyQL non ha ancora consolidato. Prima prendeva il posto
+      // dell'intero blocco, e con lui arrivava un'ALTRA definizione di
+      // fatturato — currentTotalPrice per ordine, che non sottrae i resi,
+      // contro total_sales che li sottrae. Risultato: la Dashboard non tornava
+      // ne' col Weekly ne' coi report di Shopify.
+      //
+      // Quindi: i totali restano di ShopifyQL, e dall'Admin si prende solo la
+      // ripartizione, applicata in proporzione — cosi' le parti sommano al
+      // totale invece di raccontare due storie diverse.
+      const totAdmin = (admin.fatturNC || 0) + (admin.fatturRC || 0)
+      if (salesQL && salesQL.fatturato > 0 && totAdmin > 0) {
+        const quotaNC = admin.fatturNC / totAdmin
+        const fatturNC = roundMoney(salesQL.fatturato * quotaNC)
+        const resiNC = roundMoney((salesQL.resi || 0) * quotaNC)
+        const ordini = salesQL.ordini || 0
+        const nc = Math.round(ordini * (admin.nc / Math.max(1, admin.nc + admin.rc)))
+        sales = {
+          ...salesQL,
+          nc, rc: Math.max(0, ordini - nc),
+          fatturNC, fatturRC: roundMoney(salesQL.fatturato - fatturNC),
+          resiNC, resiRC: roundMoney((salesQL.resi || 0) - resiNC),
+        }
+      } else {
+        // ShopifyQL non ha proprio numeri per questa finestra: meglio quelli
+        // dell'Admin che niente.
+        sales = admin
+      }
     }
   }
 

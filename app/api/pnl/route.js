@@ -163,7 +163,7 @@ export async function GET(req) {
     const origin = new URL(req.url).origin
     const cookie = req.headers.get('cookie') || '' // sessione utente → fetch interni autenticati (post-fix multi-tenant)
 
-    return swrSnapshot(req, { tab: 'pnl', compute: async () => {
+    return swrSnapshot(req, { tab: 'pnl2', compute: async () => {
     try {
       // Interrogo OGNI metrica separatamente (query a singola metrica = robuste:
       // se un nome non è valido in questa versione ShopifyQL non azzera le altre).
@@ -173,7 +173,11 @@ export async function GET(req) {
         for (const row of rows) { const m = monthOfRow(row); if (m) map[m] = row[metric] }
         return map
       }
-      const NAMES = ['total_sales', 'net_sales', 'gross_sales', 'discounts', 'returns', 'taxes', 'shipping', 'orders']
+      // 'shipping' NON esiste in ShopifyQL: la colonna si chiama
+      // 'shipping_charges'. Con il nome sbagliato una delle otto query falliva
+      // a ogni giro — una chiamata buttata dentro una raffica che Shopify
+      // strozza, e il ripiego di total_sales calcolato senza le spedizioni.
+      const NAMES = ['total_sales', 'net_sales', 'gross_sales', 'discounts', 'returns', 'taxes', 'shipping_charges', 'orders']
       const maps = {}
       // SEQUENZIALI (non in parallelo): 8 query ShopifyQL in burst venivano
       // throttlate da Shopify → metriche vuote in modo intermittente/variabile.
@@ -188,7 +192,7 @@ export async function GET(req) {
       const series = [...allMonths].sort().map(month => {
         const netSales = r2(maps.net_sales[month])
         const taxes = r2(maps.taxes[month])
-        const shipping = r2(maps.shipping[month])
+        const shipping = r2(maps.shipping_charges[month])
         const ts = r2(maps.total_sales[month])
         // Fatturato (incl. IVA): total_sales se valorizzato, altrimenti ricostruito
         // da net_sales + IVA + spedizione (total_sales a volte torna 0 in ShopifyQL)

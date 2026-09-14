@@ -478,11 +478,14 @@ const [helpOpen, setHelpOpen] = useState(false)
         minWidth: 0,
         height: '100vh',
         overflowY: 'auto',
-        padding: '40px 48px 80px',
+        padding: tab === 'pnl' ? '40px 24px 80px' : '40px 48px 80px',
         position: 'relative',
         zIndex: 1,
       }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto' }}>
+        {/* Il conto economico e' una griglia di mesi: il tetto di 1440px, che
+            altrove tiene il testo leggibile, qui toglie colonne alla vista e
+            costringe a scorrere. Solo per quella tab la pagina va larga. */}
+        <div style={{ maxWidth: tab === 'pnl' ? 'none' : 1440, margin: '0 auto' }}>
           {/* Header */}
           <header className="app-header" style={{
             display: 'flex',

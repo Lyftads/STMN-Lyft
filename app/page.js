@@ -68,6 +68,7 @@ import YearAgent from './components/YearAgent'
 import SimulatorAgent from './components/SimulatorAgent'
 import { PlatformBadges } from './components/PlatformIcon'
 import FloatingBrain from './components/FloatingBrain'
+import MatriceReport from './components/ui/MatriceReport'
 import { useI18n } from '../lib/i18n/I18nProvider'
 
 // ── Utils ─────────────────────────────────────────────────────
@@ -76,6 +77,70 @@ const f2 = n => n>0 ? `€${Number(n).toLocaleString('it-IT',{minimumFractionDig
 const fn = n => n>0 ? Number(n).toLocaleString('it-IT') : '—'
 const fp = n => n!=null ? `${Number(n).toFixed(1)}x` : '—'
 const fr = n => n!=null ? `${Number(n).toFixed(2).replace('.',',')}` : '—'
+
+// Stesso mese dell'anno prima: '2026-08' → '2025-08'
+// Stessa settimana dell'anno prima: 364 giorni indietro, cosi' resta un lunedi'
+const settimanaMenoUnAnno = (k) => {
+  if (!k) return null
+  const d = new Date(`${k}T00:00:00Z`)
+  if (Number.isNaN(d.getTime())) return null
+  d.setUTCDate(d.getUTCDate() - 364)
+  return d.toISOString().slice(0, 10)
+}
+
+const meseMenoUnAnno = (m) => {
+  if (!m) return null
+  const [y, mm] = String(m).split('-')
+  return `${Number(y) - 1}-${mm}`
+}
+
+// Le voci dei report, una volta sola per Weekly, Monthly, Quarter e Year.
+// L'ordine e' quello in cui si ragiona: cosa e' entrato, da chi, quanto e'
+// costato portarlo, quanto rende, quanta gente e' passata.
+const righeReport = ({ t, googleAuto, chiavi = {} }) => {
+  const k = { fatturato: 'fatturato', fatturNC: 'fatturNC', fatturRC: 'fatturRC',
+    resi: 'resi', ordini: 'ordini', nc: 'nc', rc: 'rc', sessioni: 'sessioni',
+    metaSpend: 'metaSpend', googleSpend: 'googleSpend', totalSpend: 'totalSpend',
+    mer: 'mer', aMer: 'aMer', cac: 'cac', cpo: 'cpo', aov: 'aov', aovNC: 'aovNC', aovRC: 'aovRC',
+    retention: 'retention', cro: 'cro', ltv: 'ltv', ratio: 'ratio', ...chiavi }
+  const euro0 = v => f0(v)
+  const euro2 = v => f2(v)
+  const interi = v => fn(v)
+  const volte = v => v != null ? `${fr(v)}×` : '—'
+  const perc = v => v != null ? `${fr(v)}%` : '—'
+  const rapporto = v => v != null ? `${fr(v)}:1` : '—'
+
+  // Una voce che in quella tab non esiste NON si mostra: una riga di trattini
+  // occupa spazio e fa dubitare del dato invece di dire che non c'e'.
+  return [
+    { key: k.fatturato, label: t('dash.revenue', null, 'Fatturato'), fmt: euro0, strong: true },
+    { key: k.fatturNC, label: t('dash.thRevNCShort', null, 'Fatt. NC'), fmt: euro0, sub: true },
+    { key: k.fatturRC, label: t('dash.thRevRCShort', null, 'Fatt. RC'), fmt: euro0, sub: true },
+    { key: k.resi, label: t('dash.thReturns', null, 'Resi'), fmt: euro0, inverse: true, gapAfter: true },
+
+    { key: k.ordini, label: t('dash.orders', null, 'Ordini'), fmt: interi, noPct: true, strong: true },
+    { key: k.nc, label: t('dash.newCustomersShort', null, 'Nuovi Clienti'), fmt: interi, noPct: true, sub: true },
+    { key: k.rc, label: t('dash.returningShort', null, 'Clienti Ritorno'), fmt: interi, noPct: true, sub: true, gapAfter: true },
+
+    { key: k.totalSpend, label: 'ADV', fmt: euro0, inverse: true, strong: true },
+    { key: k.metaSpend, label: t('pnl.lineAdsMeta', null, 'di cui Meta'), fmt: euro0, inverse: true, sub: true },
+    { key: k.googleSpend, label: t('pnl.lineAdsGoogle', null, 'di cui Google'), fmt: euro0, inverse: true, sub: true, badge: googleAuto?.configured ? null : t('pnl.badgeEst', null, 'stima'), gapAfter: true },
+
+    { key: k.mer, label: 'MER', fmt: volte, noPct: true, strong: true },
+    { key: k.aMer, label: 'aMER', fmt: volte, noPct: true },
+    { key: k.cac, label: 'CAC', fmt: euro2, noPct: true, inverse: true },
+    { key: k.cpo, label: 'CPO', fmt: euro2, noPct: true, inverse: true },
+    { key: k.aov, label: 'AOV', fmt: euro2, noPct: true },
+    { key: k.aovNC, label: 'AOV NC', fmt: euro2, noPct: true, sub: true },
+    { key: k.aovRC, label: 'AOV RC', fmt: euro2, noPct: true, sub: true },
+    { key: k.ltv, label: 'LTV', fmt: euro2, noPct: true },
+    { key: k.ratio, label: t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC'), fmt: rapporto, noPct: true, gapAfter: true },
+
+    { key: k.sessioni, label: t('dash.thSessions', null, 'Sessioni'), fmt: interi, noPct: true },
+    { key: k.cro, label: 'CRO%', fmt: perc, noPct: true },
+    { key: k.retention, label: 'Ret%', fmt: perc, noPct: true },
+  ].filter(r => r.key)
+}
 
 const ratioStatus = r => r==null?'nd':r<1?'bad':r<3?'warn':'ok'
 const ratioColor  = r => ({nd:'#555',bad:'#ef4444',warn:'#f59e0b',ok:'#22c55e'})[ratioStatus(r)]
@@ -1839,8 +1904,25 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
     tfLabel = `Settimana corrente vs precedente`
   }
 
-  // Righe tabella: settimana selezionata + precedente (più recente in alto)
-  const tableWeeks = [...tfWeeks, ...tfPrevWeeks].sort((a, b) => b.key.localeCompare(a.key))
+  // Colonne tabella: la settimana scelta, la precedente, e poi indietro fino
+  // ad avere almeno due mesi. Con due sole colonne c'era il confronto ma non
+  // l'andamento: una settimana storta sembrava una tendenza. Le settimane in
+  // piu' escono dallo storico gia' in memoria, quindi non costano una chiamata,
+  // e si fermano dove finiscono i dati invece di allineare colonne di zeri.
+  const MIN_SETTIMANE_TABELLA = 8
+  const settimanaHaDati = w => w.fat > 0 || w.adv > 0 || w.ord > 0 || w.metaAuto || w.shopifyAuto
+  const tableWeeks = (() => {
+    const scelte = [...tfWeeks, ...tfPrevWeeks].sort((a, b) => b.key.localeCompare(a.key))
+    const gia = new Set(scelte.map(w => w.key))
+    const piuVecchia = scelte.length ? scelte[scelte.length - 1].key : null
+    const mancanti = MIN_SETTIMANE_TABELLA - scelte.length
+    if (mancanti <= 0) return scelte
+    const prima = allWeeks
+      .filter(w => !gia.has(w.key) && (piuVecchia == null || w.key < piuVecchia) && settimanaHaDati(w))
+      .sort((a, b) => b.key.localeCompare(a.key))
+      .slice(0, mancanti)
+    return [...scelte, ...prima]
+  })()
 
   // Available weeks for custom selector (all Monday dates with data)
   const availableWeeks = allWeeks.filter(w => w.fat > 0 || w.adv > 0 || w.metaAuto || w.shopifyAuto)
@@ -1957,195 +2039,32 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
         ))}
       </div>
 
-      {/* Data entry table */}
-      <FxChartCard title={t('dash.weeklyData', null, 'Dati settimanali')} glowColor="#22c55e" subtitle={(googleWeekly && googleWeekly.length > 0) ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
-        <div style={tableWrap}>
-          <table style={{ width: '100%', minWidth: 1450, borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {[
-                  t('dash.thWeek', null, 'Settimana'),
-                  t('dash.thRevenue', null, 'Fatturato €'),
-                  t('dash.thRevNC', null, 'Fatt. NC €'),
-                  t('dash.thRevRC', null, 'Fatt. RC €'),
-                  t('dash.thMetaAds', null, 'Meta ADS €'),
-                  t('dash.thGoogleAds', null, 'Google ADS €'),
-                  t('dash.thTotOrders', null, 'Tot Ordini'),
-                  'NC #',
-                  'RC #',
-                  t('dash.thVisitors', null, 'Visitatori online'),
-                ].map(h => (
-                  <th key={h} style={TH}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {tableWeeks.map((w, i) => {
-                const p = tableWeeks[i + 1]
-
-                return (
-                  <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--surface)' }}>
-                    <td style={{
-                      ...TD,
-                      color: WHITE,
-                      fontWeight: 900,
-                      whiteSpace: 'nowrap',
-                      fontSize: 16,
-                    }}>
-                      {w.label}
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="fatturato" value={w.fat} prev={p?.fat} disabled={w.shopifyAuto} />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="fatturNC" value={w.fatNC} prev={p?.fatNC} disabled={w.shopifyAuto} />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="fatturRC" value={w.fatRC} prev={p?.fatRC} disabled={w.shopifyAuto} />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="meta" value={w.meta} prev={p?.meta} disabled={w.metaAuto} />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="google" value={w.google} prev={p?.google} disabled={w.googleAuto} />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="ordini" value={w.ord} prev={p?.ord} disabled={w.shopifyAuto} isCount />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="nc" value={w.nc} prev={p?.nc} disabled={w.shopifyAuto} isCount />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="rc" value={w.rc} prev={p?.rc} disabled={w.shopifyAuto} isCount />
-                    </td>
-
-                    <td style={TD}>
-                      <InputOrValue week={w.key} field="sessioni" value={w.ses} prev={p?.ses} disabled={w.shopifyAuto && w.ses > 0} isCount />
-                    </td>
-                  </tr>
-                )
-              })}
-
-              {tfWeeks.length > 1 && (
-              <tr style={{ background: 'var(--glass)', borderTop: '1px solid var(--border)' }}>
-                <td style={{
-                  ...TD, color: '#94a3b8', fontWeight: 900, fontSize: 10,
-                  textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Barlow Condensed',
-                }}>{t('dash.total', null, 'Totale')}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.meta)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.google>0?money0(tf.google):'—'}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.ord)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.nc)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.rc)}</td>
-                <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{int0(tf.ses)}</td>
-              </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Come il conto economico: voci in riga, settimane in colonna. Prima
+          era girata, con venti metriche in orizzontale. */}
+      <FxChartCard title={t('dash.weeklyData', null, 'Dati settimanali')} glowColor="#22c55e"
+        subtitle={(googleWeekly && googleWeekly.length > 0) ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
+        <MatriceReport t={t} chiaveBase="fat" etichettaColonna={t('dash.thItem', null, 'Voce')}
+          periodi={tableWeeks.map((w, i) => {
+            // Stessa settimana dell'anno prima: 52 settimane indietro. Se lo
+            // storico non ci arriva la colonna resta vuota invece di mentire.
+            const chiaveAnno = settimanaMenoUnAnno(w.key)
+            const annoPrima = allWeeks.find(x => x.key === chiaveAnno) || null
+            return {
+              key: w.key,
+              label: w.label,
+              labelPrec: tableWeeks[i + 1]?.label || null,
+              labelAnnoPrima: annoPrima?.label || null,
+              siglaAnnoPrima: String(chiaveAnno || '').slice(2, 4),
+              valori: w,
+              valoriPrec: tableWeeks[i + 1] || null,
+              valoriAnnoPrima: (annoPrima && (annoPrima.fat > 0 || annoPrima.adv > 0)) ? annoPrima : null,
+            }
+          })}
+          righe={righeReport({ t, googleAuto: { configured: (googleWeekly || []).length > 0 },
+            chiavi: { fatturato: 'fat', fatturNC: 'fatNC', fatturRC: 'fatRC', ordini: 'ord',
+                      sessioni: 'ses', totalSpend: 'adv', metaSpend: 'meta', googleSpend: 'google',
+                      resi: null } })} />
       </FxChartCard>
-
-      {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 0 && (
-        <FxChartCard title={t('dash.kpiCalc', null, 'KPI calcolati')} glowColor="#a78bfa">
-          <div style={tableWrap}>
-            <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {[
-                    t('dash.thWeekShort', null, 'Sett.'),
-                    t('dash.revenue', null, 'Fatturato'),
-                    t('dash.thRevNCShort', null, 'Fatt. NC'),
-                    t('dash.thRevRCShort', null, 'Fatt. RC'),
-                    'ADV',
-                    'MER',
-                    'aMER',
-                    'CAC',
-                    'CPO',
-                    'AOV',
-                    'AOV NC',
-                    'AOV RC',
-                    'Ret%',
-                    'CRO%',
-                    'LTV',
-                    'Ratio',
-                  ].map(h => (
-                    <th key={h} style={TH}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {tableWeeks.map((w, i, arr) => {
-                  const p = arr[i + 1]
-
-                  return (
-                    <tr key={w.key} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--surface)' }}>
-                      <td style={{
-                        ...TD,
-                        color: WHITE,
-                        fontSize: 16,
-                        fontWeight: 900,
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {w.label}
-                      </td>
-
-                      <td style={TD}><Value value={w.fat} prev={p?.fat} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.fatNC} prev={p?.fatNC} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.fatRC} prev={p?.fatRC} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.adv} prev={p?.adv} kind="euro0" /></td>
-                      <td style={TD}><Value value={w.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
-                      <td style={TD}><Value value={w.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
-                      <td style={TD}><Value value={w.cac} prev={p?.cac} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.cpo} prev={p?.cpo} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aov} prev={p?.aov} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aovNC} prev={p?.aovNC} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.aovRC} prev={p?.aovRC} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.retention} prev={p?.retention} kind="percent1" /></td>
-                      <td style={TD}><Value value={w.cro} prev={p?.cro} kind="percent2" /></td>
-                      <td style={TD}><Value value={w.ltv} prev={p?.ltv} kind="euro2" /></td>
-                      <td style={TD}><Value value={w.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
-                    </tr>
-                  )
-                })}
-
-                {tfWeeks.filter(w => w.fat > 0 || w.adv > 0).length > 1 && (
-                <tr style={{ background: 'var(--glass)', borderTop: '1px solid var(--border)' }}>
-                  <td style={{ ...TD, color:'var(--text2)', fontWeight:900, fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', fontFamily:'Barlow Condensed' }}>{t('dash.avgTotal', null, 'Media / Totale')}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.fat)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatNC'))}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(sumW(tfWeeks,'fatRC'))}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{money0(tf.adv)}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.mer!=null?`${dec2(tf.mer)}×`:'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatNC'),tf.adv)!=null?`${dec2(divW(sumW(tfWeeks,'fatNC'),tf.adv))}×`:'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.cac?money2(tf.cac):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(tf.adv,tf.ord)?money2(divW(tf.adv,tf.ord)):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.aov?money2(tf.aov):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatNC'),tf.nc)?money2(divW(sumW(tfWeeks,'fatNC'),tf.nc)):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{divW(sumW(tfWeeks,'fatRC'),tf.rc)?money2(divW(sumW(tfWeeks,'fatRC'),tf.rc)):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.nc+tf.rc>0?pct1(tf.rc/(tf.nc+tf.rc)*100):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.ses>0&&tf.ord>0?pct2(tf.ord/tf.ses*100):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.aov?money2(tf.aov*cfg.freq*cfg.life*cfg.margin/100):'—'}</td>
-                  <td style={{ ...TD, color: WHITE, fontWeight: 900 }}>{tf.ratio?`${dec2(tf.ratio)}:1`:'—'}</td>
-                </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </FxChartCard>
-      )}
 
       {filled.length > 0 && (
         <>
@@ -3170,8 +3089,21 @@ export default function App() {
         const tfMonths = [overlayLive(ensureMonthRow(m0))]
         const tfPrevMonths = [ensureMonthRow(m1)]
 
-        // Righe tabella: entrambi i mesi (più recente in alto)
-        const tableMonths = [overlayLive(ensureMonthRow(m0)), ensureMonthRow(m1)]
+        // Colonne tabella: il mese scelto, il precedente, e poi indietro fino a
+        // cinque. Stesso motivo del Weekly: due colonne dicono se sale o scende,
+        // cinque dicono da quanto. I mesi anteriori allo storico non entrano —
+        // meglio quattro colonne vere che una quinta di zeri.
+        const MIN_MESI_TABELLA = 5
+        const tableMonths = (() => {
+          const out = [overlayLive(ensureMonthRow(m0)), ensureMonthRow(m1)]
+          for (let i = 2; i < MIN_MESI_TABELLA; i++) {
+            const label = monthMinus(baseMonth, i)
+            const riga = data.find(m => m.month === label)
+            if (!riga) break
+            out.push(riga)
+          }
+          return out
+        })()
 
         const tfLabel = `${m0} vs ${m1}`
 
@@ -3302,86 +3234,28 @@ export default function App() {
             ))}
           </div>
 
-          {/* Data Entry Table */}
-          <FxChartCard title={t("dash.monthlyData", null, "Dati mensili")} glowColor="#22c55e" subtitle={googleAuto.configured ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t("dash.weeklyDataSub", null, "Shopify + Meta automatici · Google manuale")}>
-            <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
-                <thead>
-                  <tr>
-                    {[t('dash.thMonth', null, 'Mese'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
-                      <th key={h} style={mTH}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableMonths.map((m,i) => {
-                    const p = tableMonths[i+1]
-                    return (
-                      <tr key={m.month} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                        <td style={{...mTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{monthName(m.month)}</td>
-                        <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.resi||null} prev={p?.resi||null} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
-                        <td style={mTD}>
-                          {googleAuto.configured
-                            ? <MV value={m.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" />
-                            : <NumInput value={m.googleSpend} onChange={vn=>updateMonth(m.month,'googleSpend',vn)} placeholder="0" color="#eab308" />}
-                        </td>
-                        <td style={mTD}><MV value={m.ordini} prev={p?.ordini} kind="int" /></td>
-                        <td style={mTD}><MV value={m.nc} prev={p?.nc} kind="int" /></td>
-                        <td style={mTD}><MV value={m.rc} prev={p?.rc} kind="int" /></td>
-                        <td style={mTD}><MV value={m.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+          {/* Una tabella sola, come il conto economico: voci in riga e mesi in
+              colonna. Prima erano due tabelle girate — sedici metriche in
+              orizzontale — e per leggere un mese si scorreva di lato mentre il
+              confronto fra due mesi stava su righe lontane. */}
+          <FxChartCard title={t('dash.monthlyData', null, 'Dati mensili')} glowColor="#22c55e"
+            subtitle={googleAuto.configured ? t('dash.allAutoSub', null, 'Shopify, Meta e Google automatici') : t('dash.weeklyDataSub', null, 'Shopify + Meta automatici · Google manuale')}>
+            <MatriceReport t={t} chiaveBase="fatturato" etichettaColonna={t('dash.thItem', null, 'Voce')}
+              periodi={tableMonths.map((m, i) => {
+                const annoPrima = data.find(x => x.month === meseMenoUnAnno(m.month)) || null
+                return {
+                  key: m.month,
+                  label: monthName(m.month),
+                  labelPrec: tableMonths[i + 1] ? monthName(tableMonths[i + 1].month) : null,
+                  labelAnnoPrima: annoPrima ? monthName(annoPrima.month) : null,
+                  siglaAnnoPrima: String(meseMenoUnAnno(m.month) || '').slice(2, 4),
+                  valori: m,
+                  valoriPrec: tableMonths[i + 1] || null,
+                  valoriAnnoPrima: annoPrima,
+                }
+              })}
+              righe={righeReport({ t, googleAuto })} />
           </FxChartCard>
-
-          {/* KPI Calcolati Table */}
-          {tfMonths.filter(m => m.fatturato > 0 || m.totalSpend > 0).length > 0 && (
-          <FxChartCard title={t('dash.kpiCalc', null, 'KPI calcolati')} glowColor="#a78bfa">
-            <div style={{overflow:'auto',maxHeight:'72vh',position:'relative'}}>
-              <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
-                <thead>
-                  <tr>
-                    {[t('dash.thMonth', null, 'Mese'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
-                      <th key={h} style={mTH}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableMonths.map((m,i) => {
-                    const p = tableMonths[i+1]
-                    return (
-                      <tr key={m.month} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                        <td style={{...mTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{monthName(m.month)}</td>
-                        <td style={mTD}><MV value={m.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
-                        <td style={mTD}><MV value={m.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
-                        <td style={mTD}><MV value={m.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
-                        <td style={mTD}><MV value={m.cac} prev={p?.cac} kind="euro2" inverse /></td>
-                        <td style={mTD}><MV value={m.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
-                        <td style={mTD}><MV value={m.aov} prev={p?.aov} kind="euro2" /></td>
-                        <td style={mTD}><MV value={m.aovNC} prev={p?.aovNC} kind="euro2" /></td>
-                        <td style={mTD}><MV value={m.aovRC} prev={p?.aovRC} kind="euro2" /></td>
-                        <td style={mTD}><MV value={m.retention} prev={p?.retention} kind="percent1" /></td>
-                        <td style={mTD}><MV value={m.cro} prev={p?.cro} kind="percent2" /></td>
-                        <td style={mTD}><MV value={m.ltv} prev={p?.ltv} kind="euro2" /></td>
-                        <td style={mTD}><MV value={m.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </FxChartCard>
-          )}
 
           {/* Charts — futuristic */}
           {filled.length > 0 && (
@@ -3774,79 +3648,26 @@ export default function App() {
               ))}
             </div>
 
-            {/* Dati trimestrali table */}
-            <FxChartCard title={t("dash.quarterData", null, "Dati trimestrali")} glowColor="#22c55e" subtitle={t("dash.aggMonthly", null, "Aggregato da dati mensili")}>
-              <div style={{overflow:'auto',maxHeight:'72vh'}}>
-                <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>
-                      {[t('dash.thQuarter', null, 'Trimestre'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
-                        <th key={h} style={qTH}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableQuarters.map((q,i) => {
-                      const p = tableQuarters[i+1]
-                      return (
-                        <tr key={q.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                          <td style={{...qTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{q.label}</td>
-                          <td style={qTD}><QV value={q.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.resi||null} prev={p?.resi||null} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.ordini} prev={p?.ordini} kind="int" /></td>
-                          <td style={qTD}><QV value={q.nc} prev={p?.nc} kind="int" /></td>
-                          <td style={qTD}><QV value={q.rc} prev={p?.rc} kind="int" /></td>
-                          <td style={qTD}><QV value={q.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </FxChartCard>
-
-            {/* KPI calcolati table */}
-            <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
-              <div style={{overflow:'auto',maxHeight:'72vh'}}>
-                <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>
-                      {[t('dash.thQuarter', null, 'Trimestre'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
-                        <th key={h} style={qTH}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableQuarters.map((q,i) => {
-                      const p = tableQuarters[i+1]
-                      return (
-                        <tr key={q.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                          <td style={{...qTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{q.label}</td>
-                          <td style={qTD}><QV value={q.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
-                          <td style={qTD}><QV value={q.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
-                          <td style={qTD}><QV value={q.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
-                          <td style={qTD}><QV value={q.cac} prev={p?.cac} kind="euro2" inverse /></td>
-                          <td style={qTD}><QV value={q.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
-                          <td style={qTD}><QV value={q.aov} prev={p?.aov} kind="euro2" /></td>
-                          <td style={qTD}><QV value={q.aovNC} prev={p?.aovNC} kind="euro2" /></td>
-                          <td style={qTD}><QV value={q.aovRC} prev={p?.aovRC} kind="euro2" /></td>
-                          <td style={qTD}><QV value={q.retention} prev={p?.retention} kind="percent1" /></td>
-                          <td style={qTD}><QV value={q.cro} prev={p?.cro} kind="percent2" /></td>
-                          <td style={qTD}><QV value={q.ltv} prev={p?.ltv} kind="euro2" /></td>
-                          <td style={qTD}><QV value={q.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            {/* Come il conto economico: voci in riga, trimestri in colonna. */}
+            <FxChartCard title={t('dash.quarterData', null, 'Dati trimestrali')} glowColor="#22c55e" subtitle={t('dash.aggMonthly', null, 'Aggregato da dati mensili')}>
+              <MatriceReport t={t} chiaveBase="fatturato" etichettaColonna={t('dash.thItem', null, 'Voce')}
+                periodi={tableQuarters.map((q, i) => {
+                  const chiaveAnnoPrima = quarterMinus(q.key, 4)
+                  const annoPrima = aggregateQuarter(chiaveAnnoPrima)
+                  return {
+                    key: q.key,
+                    label: q.label,
+                    labelPrec: tableQuarters[i + 1]?.label || null,
+                    labelAnnoPrima: quarterLabel(chiaveAnnoPrima),
+                    siglaAnnoPrima: String(chiaveAnnoPrima || '').slice(2, 4),
+                    valori: q,
+                    valoriPrec: tableQuarters[i + 1] || null,
+                    // Un trimestre senza fatturato ne' spesa non e' un calo:
+                    // e' storico che non c'e'. Meglio un trattino di uno zero.
+                    valoriAnnoPrima: (annoPrima && (annoPrima.fatturato > 0 || annoPrima.totalSpend > 0)) ? annoPrima : null,
+                  }
+                })}
+                righe={righeReport({ t, googleAuto })} />
             </FxChartCard>
 
             {quarterChartData.length > 0 && (
@@ -4219,79 +4040,21 @@ export default function App() {
               ))}
             </div>
 
-            {/* Dati annuali table */}
-            <FxChartCard title={t("dash.yearData", null, "Dati annuali")} glowColor="#22c55e" subtitle={t("dash.aggMonthly", null, "Aggregato da dati mensili")}>
-              <div style={{overflow:'auto',maxHeight:'72vh'}}>
-                <table style={{width:'100%',minWidth:1450,borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>
-                      {[t('dash.thYear', null, 'Anno'),t('dash.thRevenue', null, 'Fatturato €'),t('dash.thRevNC', null, 'Fatt. NC €'),t('dash.thRevRC', null, 'Fatt. RC €'),t('dash.thReturns', null, 'Resi €'),t('dash.thMetaAds', null, 'Meta ADS €'),t('dash.thGoogleAds', null, 'Google ADS €'),t('dash.thTotOrders', null, 'Tot Ordini'),'NC #','RC #',t('dash.thSessions', null, 'Sessioni')].map(h=>(
-                        <th key={h} style={qTH}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableYears.map((y,i) => {
-                      const p = tableYears[i+1]
-                      return (
-                        <tr key={y.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                          <td style={{...qTD,color:'var(--text)',fontWeight:900,whiteSpace:'nowrap',fontSize:15}}>{y.label}</td>
-                          <td style={qTD}><YV value={y.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.resi||null} prev={p?.resi||null} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.metaSpend||null} prev={p?.metaSpend||null} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.googleSpend||null} prev={p?.googleSpend||null} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.ordini} prev={p?.ordini} kind="int" /></td>
-                          <td style={qTD}><YV value={y.nc} prev={p?.nc} kind="int" /></td>
-                          <td style={qTD}><YV value={y.rc} prev={p?.rc} kind="int" /></td>
-                          <td style={qTD}><YV value={y.sessioni||null} prev={p?.sessioni||null} kind="int" /></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </FxChartCard>
-
-            {/* KPI calcolati table */}
-            <FxChartCard title="KPI calcolati" glowColor="#a78bfa">
-              <div style={{overflow:'auto',maxHeight:'72vh'}}>
-                <table style={{width:'100%',minWidth:1600,borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>
-                      {[t('dash.thYear', null, 'Anno'),t('dash.revenue', null, 'Fatturato'),t('dash.thRevNCShort', null, 'Fatt. NC'),t('dash.thRevRCShort', null, 'Fatt. RC'),'ADV','MER','aMER','CAC','CPO','AOV','AOV NC','AOV RC','Ret%','CRO%','LTV','Ratio'].map(h=>(
-                        <th key={h} style={qTH}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableYears.map((y,i) => {
-                      const p = tableYears[i+1]
-                      return (
-                        <tr key={y.key} style={{background: i%2===0?'transparent':'var(--surface)'}}>
-                          <td style={{...qTD,color:'var(--text)',fontSize:15,fontWeight:900,whiteSpace:'nowrap'}}>{y.label}</td>
-                          <td style={qTD}><YV value={y.fatturato} prev={p?.fatturato} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.fatturNC} prev={p?.fatturNC} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.fatturRC} prev={p?.fatturRC} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.totalSpend} prev={p?.totalSpend} kind="euro0" /></td>
-                          <td style={qTD}><YV value={y.mer} prev={p?.mer} kind="ratio" suffix="×" /></td>
-                          <td style={qTD}><YV value={y.aMer} prev={p?.aMer} kind="ratio" suffix="×" /></td>
-                          <td style={qTD}><YV value={y.cac} prev={p?.cac} kind="euro2" inverse /></td>
-                          <td style={qTD}><YV value={y.cpo} prev={p?.cpo} kind="euro2" inverse /></td>
-                          <td style={qTD}><YV value={y.aov} prev={p?.aov} kind="euro2" /></td>
-                          <td style={qTD}><YV value={y.aovNC} prev={p?.aovNC} kind="euro2" /></td>
-                          <td style={qTD}><YV value={y.aovRC} prev={p?.aovRC} kind="euro2" /></td>
-                          <td style={qTD}><YV value={y.retention} prev={p?.retention} kind="percent1" /></td>
-                          <td style={qTD}><YV value={y.cro} prev={p?.cro} kind="percent2" /></td>
-                          <td style={qTD}><YV value={y.ltv} prev={p?.ltv} kind="euro2" /></td>
-                          <td style={qTD}><YV value={y.ratio} prev={p?.ratio} kind="ratio" suffix=":1" /></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            {/* Una tabella sola, come il conto economico: prima erano due
+                tabelle girate e i due anni stavano su righe lontane. */}
+            <FxChartCard title={t('dash.yearData', null, 'Dati annuali')} glowColor="#22c55e" subtitle={t('dash.aggMonthly', null, 'Aggregato da dati mensili')}>
+              <MatriceReport t={t} chiaveBase="fatturato" etichettaColonna={t('dash.thItem', null, 'Voce')}
+                periodi={tableYears.map((y, i) => ({
+                  key: y.key,
+                  label: y.label,
+                  labelPrec: tableYears[i + 1]?.label || null,
+                  valori: y,
+                  valoriPrec: tableYears[i + 1] || null,
+                  // Niente colonna "anno prima" qui: la colonna accanto E' gia'
+                  // l'anno prima, e ripeterla sarebbe lo stesso numero due volte.
+                  valoriAnnoPrima: null,
+                }))}
+                righe={righeReport({ t, googleAuto })} />
             </FxChartCard>
 
             {yearChartData.length > 0 && (

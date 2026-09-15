@@ -1906,12 +1906,16 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
   }
 
   // Colonne tabella: la settimana scelta, la precedente, e poi indietro fino
-  // ad avere almeno due mesi. Con due sole colonne c'era il confronto ma non
-  // l'andamento: una settimana storta sembrava una tendenza. Le settimane in
-  // piu' escono dallo storico gia' in memoria, quindi non costano una chiamata,
-  // e si fermano dove finiscono i dati invece di allineare colonne di zeri.
+  // ad avere SEMPRE almeno due mesi. Con due sole colonne c'era il confronto ma
+  // non l'andamento: una settimana storta sembrava una tendenza.
+  //
+  // Le colonne NON dipendono dall'arrivo dei dati. La prima versione le
+  // fermava "dove finiva lo storico", ma la serie settimanale puo' tornare
+  // vuota per un momento (Shopify strozza le query) e allora la tabella
+  // ripiombava a due colonne: sembrava che la modifica fosse sparita. Una
+  // settimana senza numeri mostra un trattino; il limite vero e' solo l'inizio
+  // dell'elenco delle settimane.
   const MIN_SETTIMANE_TABELLA = 8
-  const settimanaHaDati = w => w.fat > 0 || w.adv > 0 || w.ord > 0 || w.metaAuto || w.shopifyAuto
   const tableWeeks = (() => {
     const scelte = [...tfWeeks, ...tfPrevWeeks].sort((a, b) => b.key.localeCompare(a.key))
     const gia = new Set(scelte.map(w => w.key))
@@ -1919,7 +1923,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
     const mancanti = MIN_SETTIMANE_TABELLA - scelte.length
     if (mancanti <= 0) return scelte
     const prima = allWeeks
-      .filter(w => !gia.has(w.key) && (piuVecchia == null || w.key < piuVecchia) && settimanaHaDati(w))
+      .filter(w => !gia.has(w.key) && (piuVecchia == null || w.key < piuVecchia))
       .sort((a, b) => b.key.localeCompare(a.key))
       .slice(0, mancanti)
     return [...scelte, ...prima]
@@ -3089,18 +3093,18 @@ export default function App() {
         const tfMonths = [overlayLive(ensureMonthRow(m0))]
         const tfPrevMonths = [ensureMonthRow(m1)]
 
-        // Colonne tabella: il mese scelto, il precedente, e poi indietro fino a
-        // cinque. Stesso motivo del Weekly: due colonne dicono se sale o scende,
-        // cinque dicono da quanto. I mesi anteriori allo storico non entrano —
-        // meglio quattro colonne vere che una quinta di zeri.
+        // Colonne tabella: il mese scelto e i quattro precedenti, SEMPRE. Come
+        // nel Weekly, le colonne non aspettano i dati: se la serie mensile arriva
+        // vuota per un momento il mese resta in tabella con i trattini, invece
+        // di sparire e far sembrare persa la vista. Il limite e' solo l'inizio
+        // dello storico dell'app (MONTHS_START).
         const MIN_MESI_TABELLA = 5
         const tableMonths = (() => {
           const out = [overlayLive(ensureMonthRow(m0)), ensureMonthRow(m1)]
           for (let i = 2; i < MIN_MESI_TABELLA; i++) {
             const label = monthMinus(baseMonth, i)
-            const riga = data.find(m => m.month === label)
-            if (!riga) break
-            out.push(riga)
+            if (label < MONTHS_START) break
+            out.push(ensureMonthRow(label))
           }
           return out
         })()
@@ -3497,7 +3501,13 @@ export default function App() {
           return { key, label: quarterLabel(key), fatturato, fatturNC, fatturRC, resi, resiNC, resiRC, ordini, nc, rc, sessioni, metaSpend, googleSpend, totalSpend, aov, aovNC, aovRC, mer, aMer, cac, cpo, retention, cro, ltv, ratio }
         }
 
-        const tableQuarters = [aggregateQuarter(q0), aggregateQuarter(q1)]
+        // Il trimestre scelto e i quattro precedenti: con due colonne si vedeva
+        // solo se saliva o scendeva, con cinque si vede anche l'anno intero e lo
+        // stesso trimestre dell'anno prima accanto. aggregateQuarter su un
+        // trimestre senza dati restituisce zeri: la colonna resta, coi trattini.
+        const MIN_TRIMESTRI_TABELLA = 5
+        const tableQuarters = Array.from({ length: MIN_TRIMESTRI_TABELLA }, (_, i) =>
+          aggregateQuarter(i === 0 ? q0 : quarterMinus(q0, i)))
         const cur = tableQuarters[0]
         const prev = tableQuarters[1]
 

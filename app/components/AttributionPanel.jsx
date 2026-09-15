@@ -153,12 +153,30 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && !(t.revenue > 0) && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{tr('attr.noData', null, 'Nessun dato nel periodo selezionato.')}</div>}
 
+        {/* Google collegato ma non letto: il MER qui sotto conta solo Meta. Si dice,
+            invece di lasciare un numero che sembra migliore di com'e'. */}
+        {t.revenue > 0 && data?.metaError && (
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, fontSize: 12.5, color: 'var(--orange)', background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)' }}>
+            {tr('attr.metaSpendError', { err: data.metaError }, `Spesa Meta non disponibile (${data.metaError}): la spesa Ads e il MER blended sono incompleti, il MER risulta più alto del reale.`)}
+          </div>
+        )}
+
+        {t.revenue > 0 && data?.googleError && (
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, fontSize: 12.5, color: 'var(--orange)', background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.3)' }}>
+            {tr('attr.googleSpendError', { err: data.googleError }, `Spesa Google Ads non disponibile (${data.googleError}): MER blended calcolato solo sulla spesa Meta, quindi più alto del reale.`)}
+          </div>
+        )}
+
         {t.revenue > 0 && (
           <>
             {/* KPI Total Impact */}
             <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
               <Stat label={tr('attr.totalRevenue', null, 'Fatturato totale')} value={eur(t.revenue)} sub={`${nf(t.orders)} ${tr('kpi.ordersWord', null, 'ordini')}`} dd={d.revenue} dataKey="revenue" sparkColor="#30d158" />
-              <Stat label={tr('attr.adSpendMeta', null, 'Spesa Ads (Meta)')} value={eur(t.adSpend)} dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
+              <Stat
+                label={tr('attr.adSpendTotal', null, 'Spesa Ads (Meta + Google)')}
+                value={eur(t.adSpend)}
+                sub={tr('attr.spendSplit', { meta: eur(t.metaSpend), google: eur(t.googleSpend) }, `Meta ${eur(t.metaSpend)} · Google ${eur(t.googleSpend)}`)}
+                dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
               <Stat label={tr('attr.merBlended', null, 'MER blended')} value={`${(t.blendedMer || 0).toFixed(2)}x`} sub={tr('attr.revPerSpend', null, 'Fatturato / Ad Spend')} dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
               <Stat label={tr('attr.roasDeclared', null, 'ROAS Meta (dichiarato)')} value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={tr('attr.attributedPurchases', { n: nf(t.metaPurchases) }, `${nf(t.metaPurchases)} acquisti attribuiti`)} dd={d.metaRoas} dataKey="metaRoas" sparkColor="#64d2ff" />
             </div>

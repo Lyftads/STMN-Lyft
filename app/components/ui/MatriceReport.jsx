@@ -105,14 +105,14 @@ export default function MatriceReport({
 
   const intestazioneGruppo = (p, chiave) => [
     haAnnoPrima && (
-      <th key={`${chiave}-yoy`} onClick={() => setYoyAperta(x => !x)}
+      <th key={`${chiave}-yoy`} className="rep-side" onClick={() => setYoyAperta(x => !x)}
         style={{ ...thYoy, ...(yoyAperta ? null : thYoyChiusa) }}
         title={yoyAperta ? t('rep.yoyHide', null, 'Nascondi lo stesso periodo dell’anno prima') : t('rep.yoyShow', null, 'Mostra lo stesso periodo dell’anno prima')}>
         {yoyAperta ? (p.labelAnnoPrima || t('rep.prevShort', null, 'prec.')) : (p.siglaAnnoPrima || '·')}
       </th>
     ),
-    <th key={chiave} style={{ ...th, minWidth: 118, color: p.forte ? 'var(--accent)' : undefined }}>{p.label}</th>,
-    <th key={`${chiave}-inc`} onClick={() => setIncAperta(x => !x)}
+    <th key={chiave} className="rep-val" style={{ ...th, minWidth: 118, color: p.forte ? 'var(--accent)' : undefined }}>{p.label}</th>,
+    <th key={`${chiave}-inc`} className="rep-side" onClick={() => setIncAperta(x => !x)}
       style={{ ...thInc, ...(incAperta ? null : thIncChiusa) }}
       title={incAperta ? t('rep.incHide', null, 'Nascondi l’incidenza') : t('rep.incShow', null, 'Mostra l’incidenza')}>
       {incAperta ? t('rep.incShort', null, '%') : '%'}
@@ -126,19 +126,19 @@ export default function MatriceReport({
     const prev = riga.noConfronto ? null : num(confronto?.[riga.key])
     return [
       haAnnoPrima && (
-        <td key={`${chiave}-yoy`} onClick={() => setYoyAperta(x => !x)}
+        <td key={`${chiave}-yoy`} className="rep-side" onClick={() => setYoyAperta(x => !x)}
           style={{ ...baseTd, ...tdYoy, ...(yoyAperta ? null : tdYoyChiusa), ...sfondo }}>
           {yoyAperta ? (p.valoriAnnoPrima ? cellaValore(riga, p.valoriAnnoPrima) : '—') : ''}
         </td>
       ),
-      <td key={chiave} style={{ ...baseTd, ...sfondo, color: riga.sub ? 'var(--text2)' : undefined }}>
+      <td key={chiave} className="rep-val" style={{ ...baseTd, ...sfondo, color: riga.sub ? 'var(--text2)' : undefined }}>
         <div>{cellaValore(riga, valori)}</div>
         {prev != null && cur != null && (
           <Delta cur={cur} prev={prev} inverse={riga.inverse}
             titolo={t('rep.vs', { p: (yoyAperta ? p.labelAnnoPrima : p.labelPrec) || '' }, `rispetto a ${(yoyAperta ? p.labelAnnoPrima : p.labelPrec) || ''}`)} />
         )}
       </td>,
-      <td key={`${chiave}-inc`} onClick={() => setIncAperta(x => !x)}
+      <td key={`${chiave}-inc`} className="rep-side" onClick={() => setIncAperta(x => !x)}
         style={{ ...baseTd, ...tdInc, ...(incAperta ? null : tdIncChiusa), ...sfondo }}>
         {incAperta ? fmtInc(incidenza(riga, valori?.[riga.key], valori)) : ''}
       </td>,
@@ -155,13 +155,13 @@ export default function MatriceReport({
         </div>
       )}
 
-      <div ref={tabRef}
+      <div ref={tabRef} className="rep-matrix"
         onScroll={() => { if (topRef.current && tabRef.current) topRef.current.scrollLeft = tabRef.current.scrollLeft }}
         style={{ position: 'relative', zIndex: 2, width: '100%', overflowX: 'auto', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: '#0c0c16' }}>
         <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
           <thead>
             <tr>
-              <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{etichettaColonna}</th>
+              <th className="rep-label" style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{etichettaColonna}</th>
               {periodi.map(p => intestazioneGruppo(p, p.key))}
               {totale && intestazioneGruppo({ ...totale, forte: true }, '__tot')}
             </tr>
@@ -171,7 +171,7 @@ export default function MatriceReport({
               const baseTd = { ...td, borderBottom: '1px solid var(--border)', ...(riga.strong ? { fontWeight: 700 } : {}) }
               const rigaJsx = (
                 <tr key={riga.key} style={riga.forte ? { background: 'rgba(48,209,88,0.05)' } : riga.strong ? { background: 'var(--glass)' } : undefined}>
-                  <td style={{
+                  <td className={riga.sub ? 'rep-label rep-sub' : 'rep-label'} style={{
                     ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16',
                     paddingLeft: riga.sub ? 28 : undefined, color: riga.sub ? 'var(--text2)' : undefined,
                     fontWeight: riga.strong || riga.forte ? 700 : 500,

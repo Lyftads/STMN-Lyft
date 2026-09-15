@@ -546,7 +546,8 @@ const [helpOpen, setHelpOpen] = useState(false)
                   {loading ? t('shell.refreshing') : t('shell.refresh')}
                 </button>
               )}
-              {['monthly', 'quarter', 'year', 'attribution'].includes(tab) && (
+              {/* Nei report il PDF sta nella barra della tab, come in Weekly. */}
+              {['attribution'].includes(tab) && (
                 <DownloadReportButton tab={getPageTitle(tab, t)} preset={preset} />
               )}
             </div>

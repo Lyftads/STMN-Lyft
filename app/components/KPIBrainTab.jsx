@@ -342,7 +342,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         <div style={{color:'var(--text2)',fontSize:13}}>{item.title}</div>
         <PlatformBadges sources={groupSources(item.group)} size={16} />
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+      <div className="kb-metric-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
         <div style={{color:'var(--text)',fontSize:28,fontWeight:900,letterSpacing:'-0.03em'}}>{item.value}</div>
         {item.sparkKey && <Sparkline data={sparkFor(item.sparkKey)} color={item.color} width={80} height={32} />}
       </div>
@@ -607,7 +607,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                     }}
                   >
                     {/* TOP ROW */}
-                    <div style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto auto auto',alignItems:'center',gap:14}}>
+                    <div className="kb-country-top" style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto auto auto',alignItems:'center',gap:14}}>
                       <div style={{fontSize:28,lineHeight:1,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'}}>{countryFlag(row.country_code)}</div>
                       <div style={{minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:800,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>

@@ -309,8 +309,8 @@ export default function PnLTab({ data = [] }) {
     // Nessun tetto di larghezza: un conto economico e' una griglia di mesi, e
     // ogni pixel tolto e' una colonna in meno che si legge senza scorrere.
     <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>{t('pnl.desc', null, 'Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.')}</div>
+      <div className="rep-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="rep-desc" style={{ fontSize: 13, opacity: 0.6, flex: 1 }}>{t('pnl.desc', null, 'Conto economico mensile · ricavi e costi reali (Shopify + Ads) con variazioni mese su mese e totale annuale.')}</div>
         {(() => {
           const tfLabel = tf.kind === 'this_month' ? t('pnl.tfThisMonth', null, 'Questo mese')
             : tf.kind === 'last_month' ? t('pnl.tfLastMonth', null, 'Mese scorso')
@@ -322,7 +322,7 @@ export default function PnLTab({ data = [] }) {
             ...YEARS.map(y => ({ id: 'y' + y, label: String(y), on: tf.kind === 'year' && tf.year === y, set: () => setTf({ kind: 'year', year: y }) })),
           ]
           return (
-            <div style={{ position: 'relative' }}>
+            <div className="rep-period" style={{ position: 'relative' }}>
               <button onClick={() => setTfOpen(o => !o)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 150, justifyContent: 'space-between' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Icon name="calendar" size={13} /> {tfLabel}</span>
                 <span style={{ fontSize: 9, opacity: 0.6 }}>▼</span>
@@ -330,7 +330,7 @@ export default function PnLTab({ data = [] }) {
               {tfOpen && (
                 <>
                   <div onClick={() => setTfOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 8, minWidth: 240, boxShadow: '0 18px 44px rgba(0,0,0,0.5)' }}>
+                  <div className="tfs-pop" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 8, minWidth: 240, boxShadow: '0 18px 44px rgba(0,0,0,0.5)' }}>
                     {presets.map(p => (
                       <button key={p.id} onClick={() => { p.set(); setTfOpen(false) }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: p.on ? 'rgba(123,91,255,0.15)' : 'transparent', border: 'none', borderRadius: 9, padding: '9px 11px', color: 'var(--text)', fontSize: 13, fontWeight: p.on ? 800 : 600, cursor: 'pointer' }}>
                         {p.label}{p.on && <Icon name="check" size={13} />}
@@ -350,8 +350,8 @@ export default function PnLTab({ data = [] }) {
             </div>
           )
         })()}
-        <button onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="gear" size={13} /> {t('pnl.costsSettings', null, 'Costi & impostazioni')}</button>
-        <button onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: 'var(--text)', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
+        <button className="rep-btn" onClick={() => setShowCfg(v => !v)} style={{ ...inp, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="gear" size={13} /> {t('pnl.costsSettings', null, 'Costi & impostazioni')}</button>
+        <button className="rep-btn rep-refresh" onClick={() => { cacheRef.current = {}; setRefreshKey(k => k + 1) }} disabled={state.loading} style={{ ...inp, cursor: state.loading ? 'wait' : 'pointer', background: 'var(--accent)', color: 'var(--text)', border: 'none', fontWeight: 600 }}>↻ {state.loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}</button>
       </div>
 
       {showCfg && (
@@ -427,21 +427,21 @@ export default function PnLTab({ data = [] }) {
             <div style={{ width: larghezzaTab, height: 1 }} />
           </div>
         )}
-        <div ref={tabRef}
+        <div ref={tabRef} className="rep-matrix"
           onScroll={() => { if (topRef.current && tabRef.current) topRef.current.scrollLeft = tabRef.current.scrollLeft }}
           style={{ position: 'relative', zIndex: 2, width: '100%', overflowX: 'auto', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: '#0c0c16' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{t('pnl.colItem', null, 'Voce')}</th>
+                <th className="rep-label" style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{t('pnl.colItem', null, 'Voce')}</th>
                 {asc.map(r => [
-                  <th key={`${r.month}-yoy`} onClick={() => setYoyAperta(v => !v)}
+                  <th key={`${r.month}-yoy`} className="rep-side" onClick={() => setYoyAperta(v => !v)}
                     style={{ ...thYoy, ...(yoyAperta ? null : thYoyChiusa) }}
                     title={yoyAperta ? t('pnl.colYoyHide', null, 'Nascondi lo stesso mese dell’anno prima') : t('pnl.colYoyShow', null, 'Mostra lo stesso mese dell’anno prima')}>
                     {yoyAperta ? monthFullL(meseAnnoPrima(r.month)) : String(meseAnnoPrima(r.month) || '').slice(2, 4)}
                   </th>,
-                  <th key={r.month} style={{ ...th, minWidth: 110 }}>{monthFullL(r.month)}</th>,
-                  <th key={`${r.month}-inc`} onClick={() => setIncAperta(v => !v)}
+                  <th key={r.month} className="rep-val" style={{ ...th, minWidth: 110 }}>{monthFullL(r.month)}</th>,
+                  <th key={`${r.month}-inc`} className="rep-side" onClick={() => setIncAperta(v => !v)}
                     style={{ ...thInc, ...(incAperta ? null : thIncChiusa) }}
                     title={incAperta ? t('pnl.colIncidenceHide', null, 'Nascondi l’incidenza sul fatturato') : t('pnl.colIncidenceShow', null, 'Mostra l’incidenza sul fatturato')}>
                     {incAperta ? t('pnl.colIncidence', null, '% fatt.') : '%'}
@@ -452,7 +452,7 @@ export default function PnLTab({ data = [] }) {
                   title={yoyAperta ? t('pnl.colYoyHide', null, 'Nascondi lo stesso mese dell’anno prima') : t('pnl.colYoyShow', null, 'Mostra lo stesso mese dell’anno prima')}>
                   {yoyAperta ? t('pnl.colTotalPrev', null, 'Totale anno prima') : t('pnl.colPrevShort', null, 'prec.')}
                 </th>}
-                {showTotal && <th style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>{t('pnl.colTotal', null, 'Totale')}</th>}
+                {showTotal && <th className="rep-val" style={{ ...th, minWidth: 120, color: 'var(--accent)' }}>{t('pnl.colTotal', null, 'Totale')}</th>}
                 {showTotal && <th onClick={() => setIncAperta(v => !v)}
                   style={{ ...thInc, ...(incAperta ? null : thIncChiusa) }}
                   title={incAperta ? t('pnl.colIncidenceHide', null, 'Nascondi l’incidenza sul fatturato') : t('pnl.colIncidenceShow', null, 'Mostra l’incidenza sul fatturato')}>
@@ -467,7 +467,7 @@ export default function PnLTab({ data = [] }) {
                 const colorOf = (v) => line.ebit ? (v >= 0 ? '#30d158' : '#ff375f') : undefined
                 const riga = (
                   <tr key={line.key} style={line.ebit ? { background: 'rgba(48,209,88,0.05)' } : line.strong ? { background: 'var(--glass)' } : undefined}>
-                    <td style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', paddingLeft: line.sub ? 28 : undefined, color: line.sub ? 'var(--text2)' : undefined, fontWeight: line.strong || line.ebit ? 700 : line.sub ? 500 : 500 }}>{line.label}{line.badge && <span style={{ marginLeft: 8, fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 999, color: line.badge.real ? '#34d399' : '#f59e0b', background: line.badge.real ? 'rgba(52,211,153,0.12)' : 'rgba(245,158,11,0.12)', border: `1px solid ${line.badge.real ? 'rgba(52,211,153,0.3)' : 'rgba(245,158,11,0.3)'}` }}>{line.badge.text}</span>}</td>
+                    <td className={line.sub ? 'rep-label rep-sub' : 'rep-label'} style={{ ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16', paddingLeft: line.sub ? 28 : undefined, color: line.sub ? 'var(--text2)' : undefined, fontWeight: line.strong || line.ebit ? 700 : line.sub ? 500 : 500 }}>{line.label}{line.badge && <span style={{ marginLeft: 8, fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 999, color: line.badge.real ? '#34d399' : '#f59e0b', background: line.badge.real ? 'rgba(52,211,153,0.12)' : 'rgba(245,158,11,0.12)', border: `1px solid ${line.badge.real ? 'rgba(52,211,153,0.3)' : 'rgba(245,158,11,0.3)'}` }}>{line.badge.text}</span>}</td>
                     {asc.map((r) => {
                       const cur = line.fixedVal != null ? line.fixedVal : r[line.key]
                       const inc = incidenza(line, cur, r.fatturato)
@@ -481,18 +481,18 @@ export default function PnLTab({ data = [] }) {
                       const rigaConfronto = yoyAperta ? rp : prevOf[r.month]
                       const prev = (!line.noMoM && rigaConfronto) ? rigaConfronto[line.key] : null
                       return [
-                        <td key={`${r.month}-yoy`} onClick={() => setYoyAperta(v => !v)}
+                        <td key={`${r.month}-yoy`} className="rep-side" onClick={() => setYoyAperta(v => !v)}
                           style={{ ...baseTd, ...tdYoy, ...(yoyAperta ? null : tdYoyChiusa) }}>
                           {yoyAperta ? (rp ? fmtCell(line, curPrec) : '—') : ''}
                         </td>,
-                        <td key={r.month} style={{ ...baseTd, color: line.sub ? 'var(--text2)' : colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
+                        <td key={r.month} className="rep-val" style={{ ...baseTd, color: line.sub ? 'var(--text2)' : colorOf(cur), fontWeight: line.ebit ? 700 : baseTd.fontWeight }}>
                           <div>{fmtCell(line, cur)}</div>
                           {!line.pct && !line.int && !line.noMoM && prev != null && (
                             <MoM cur={cur} prev={prev} lowerBetter={line.neg}
                               titolo={t('pnl.vsMonth', { m: monthFullL(rigaConfronto?.month) }, `rispetto a ${monthFullL(rigaConfronto?.month)}`)} />
                           )}
                         </td>,
-                        <td key={`${r.month}-inc`} onClick={() => setIncAperta(v => !v)}
+                        <td key={`${r.month}-inc`} className="rep-side" onClick={() => setIncAperta(v => !v)}
                           style={{ ...baseTd, ...tdInc, ...(incAperta ? null : tdIncChiusa) }}>{incAperta ? fmtInc(inc) : ''}</td>,
                       ]
                     })}
@@ -500,7 +500,7 @@ export default function PnLTab({ data = [] }) {
                       style={{ ...baseTd, ...tdYoy, ...(yoyAperta ? null : tdYoyChiusa), background: 'rgba(41,151,255,0.05)' }}>
                       {yoyAperta ? fmtCell(line, totalePrec(line)) : ''}
                     </td>}
-                    {showTotal && <td style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>}
+                    {showTotal && <td className="rep-val" style={{ ...baseTd, fontWeight: 800, color: line.ebit ? colorOf(total) : 'var(--text)', background: 'rgba(41,151,255,0.05)' }}>{fmtCell(line, total)}</td>}
                     {showTotal && <td onClick={() => setIncAperta(v => !v)}
                       style={{ ...baseTd, ...tdInc, ...(incAperta ? null : tdIncChiusa), background: 'rgba(41,151,255,0.05)' }}>{incAperta ? fmtInc(incidenza(line, total, totalOf('fatturato'))) : ''}</td>}
                   </tr>

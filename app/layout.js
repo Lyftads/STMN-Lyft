@@ -1,4 +1,5 @@
 import './globals.css'
+import './mobile-report.css'
 import PWARegister from './components/PWARegister'
 import CookieConsent from './components/CookieConsent'
 import { I18nProvider } from '../lib/i18n/I18nProvider'

@@ -1,0 +1,132 @@
+/* ============================================================================
+   Report e KPI Brain su telefono — le stesse regole del prodotto Anna Virgili.
+   Weekly, Monthly, Quarter, Year e Conto Economico hanno la barra con la stessa
+   forma; tabelle, card e tendine restano dentro lo schermo fino a 320px.
+   ============================================================================ */
+@media (max-width: 768px) {
+  .app-tab-content { transform: none !important; }
+}
+/* ── Report e KPI Brain su telefono ─────────────────────────────────────────
+   Una sola regola per tutte le tab dei report (Weekly, Monthly, Quarter, Year,
+   Conto Economico): la barra ha sempre la stessa forma — periodo a tutta
+   larghezza, poi i due pulsanti a meta' ciascuno, poi la didascalia a sinistra.
+   Prima ogni tab allineava a modo suo (Refresh al centro, didascalia a destra,
+   PDF ora nella barra ora nell'intestazione). */
+@media (max-width: 768px) {
+  .rep-toolbar { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; align-items: stretch !important; }
+  .rep-toolbar > * { min-width: 0; margin-left: 0 !important; }
+  .rep-toolbar .rep-desc, .rep-toolbar .rep-period, .rep-toolbar .rep-chips,
+  .rep-toolbar .rep-custom, .rep-toolbar .rep-cmp { grid-column: 1 / -1; }
+  .rep-toolbar .rep-desc { order: -2; flex: none !important; font-size: 12.5px !important; line-height: 1.45; }
+  .rep-toolbar .rep-period, .rep-toolbar .rep-chips { order: -1; }
+  .rep-toolbar .rep-period > button { width: 100%; min-width: 0 !important; min-height: 44px; }
+  .rep-toolbar .rep-chips { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .rep-toolbar .rep-chips > button { min-height: 44px; padding: 6px 6px !important; font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rep-toolbar .rep-custom { display: grid !important; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+  .rep-toolbar .rep-custom > span[style*="#555"] { display: none; }
+  .rep-toolbar .rep-custom select { width: 100%; min-height: 44px; }
+  .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn { display: flex !important; align-items: center; justify-content: center !important; min-height: 44px; font-size: 13px !important; padding: 8px 10px !important; }
+  .rep-toolbar .rep-pdf { display: flex !important; }
+  .rep-toolbar .rep-pdf > div { display: flex !important; width: 100%; }
+  .rep-toolbar .rep-pdf button { flex: 1; justify-content: center; min-height: 44px; padding: 8px 10px !important; font-size: 13px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rep-toolbar .rep-cmp { order: 9; font-size: 12px !important; text-align: left; }
+
+  /* Tendina del periodo: un pannello dal basso dentro lo schermo, non un menu
+     ancorato al pulsante che usciva a sinistra. */
+  .tfs-pop { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: calc(12px + env(safe-area-inset-bottom)) !important; width: auto !important; min-width: 0 !important; max-height: min(70dvh, 520px) !important; overflow-y: auto !important; overscroll-behavior: contain; z-index: 1400 !important; }
+
+  /* Card KPI dei report: due colonne compatte, sparkline sotto al numero. */
+  .rep-kpis { gap: 10px !important; margin-bottom: 16px !important; }
+  .rep-kpis > .glass-card { padding: 14px 14px 12px !important; border-radius: 16px; }
+  .rep-kpis .label { font-size: 10.5px !important; }
+  .rep-kpis .rep-kpi-row { flex-direction: column; align-items: flex-start !important; gap: 6px !important; }
+  .rep-kpis .rep-kpi-row .metric-value { font-size: clamp(20px, 6.2vw, 26px) !important; }
+  .rep-kpis .rep-kpi-row svg { width: 100% !important; height: 26px !important; }
+
+  /* Tabelle dei report e del conto economico: colonna delle voci stretta e a
+     capo, cosi' il primo periodo si legge intero senza scorrere. */
+  .rep-matrix table { font-size: 12px !important; }
+  .rep-matrix .rep-label { min-width: 122px !important; width: 122px; max-width: 140px; white-space: normal !important; line-height: 1.25; padding: 8px 8px 8px 10px !important; }
+  .rep-matrix .rep-label.rep-sub { padding-left: 18px !important; }
+  .rep-matrix .rep-label span { margin-left: 4px !important; font-size: 8.5px !important; padding: 1px 5px !important; }
+  .rep-matrix .rep-val { min-width: 88px !important; padding: 8px 8px !important; }
+  .rep-matrix .rep-side { padding-left: 8px !important; padding-right: 4px !important; }
+
+  /* KPI Brain: righe dei paesi su due righe, card con il grafico sotto. */
+  .kb-country-top { grid-template-columns: auto minmax(0, 1fr) auto !important; gap: 10px 12px !important; }
+  .kb-country-top > :nth-child(4) { grid-column: 1 / span 2; min-width: 0 !important; text-align: left !important; }
+  .kb-country-top > :nth-child(4) > div { justify-content: flex-start !important; }
+  .kb-country-top > :nth-child(5) { grid-column: 3; }
+  .kb-country-top > :nth-child(6) { display: none !important; }
+  .kb-metric-row { flex-direction: column; align-items: flex-start !important; }
+  .kb-metric-row > div:first-child { font-size: clamp(22px, 6.5vw, 28px) !important; }
+  .kb-metric-row svg { width: 100% !important; }
+  .kb-brand-rev { white-space: normal !important; text-align: right; font-size: 11px !important; line-height: 1.3; }
+}
+/* Telefoni stretti (≤360px): i pulsanti delle barre restano su una riga.
+   In inline-flex il testo non si tronca con i puntini: qui diventano blocchi
+   centrati, cosi' un'etichetta lunga finisce con "…" invece di uscire dal bordo. */
+@media (max-width: 360px) {
+  .rep-toolbar { gap: 6px !important; }
+  .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn,
+  .rep-toolbar .rep-pdf button {
+    display: block !important; text-align: center; white-space: nowrap !important;
+    overflow: hidden; text-overflow: ellipsis; font-size: 12px !important; padding: 8px 6px !important;
+  }
+  .rep-toolbar .rep-refresh > span, .rep-toolbar .rep-btn > svg,
+  .rep-toolbar .rep-pdf button > span { display: none !important; }
+  .rep-toolbar .rep-chips > button { font-size: 11.5px !important; padding: 6px 4px !important; }
+}
+/* KPI Brain: righe dei brand e chiusura dei pop-up di dettaglio. */
+@media (max-width: 768px) {
+  .kb-brand-line { flex-wrap: wrap; row-gap: 2px !important; }
+  .kb-brand-line > div:nth-child(2) { flex: 1 1 0 !important; }
+  .kb-brand-line .kb-brand-rev { order: 5; flex-basis: 100%; padding-left: 32px; text-align: left !important; font-size: 11.5px !important; color: var(--text3) !important; }
+  .kb-brand-bar { margin-right: 0; }
+  .country-detail-modal .kb-modal-close { position: absolute !important; top: 14px; right: 14px; z-index: 5; }
+  .country-detail-modal > div:last-child > div:first-child > div:first-child { padding-right: 48px; }
+}
+@media (max-width: 768px) {
+  /* La quota accanto al nome ruba spazio al nome del brand: sul telefono resta nel pop-up. */
+  .kb-brand-line > div:nth-child(2) > span { display: none; }
+}
+
+/* Intestazione e hero della Dashboard su telefono: i pulsanti del periodo e di
+   Aggiorna uscivano dallo schermo a destra (fino a 543px su 390), e i comandi
+   di zoom del globo pure. Stesse regole di Anna Virgili. */
+@media (max-width: 768px) {
+  .app-header > div:last-child { flex-wrap: wrap !important; flex-basis: 100%; max-width: 100%; min-width: 0; gap: 6px !important; }
+  .app-header > div:last-child > * { max-width: 100%; }
+  /* Live data first; the globe gets its own area instead of sitting behind text. */
+  .dash-live-hero, :root[data-theme='light'] .dash-live-hero {
+    display: flex; flex-direction: column; min-height: 0; overflow: visible; gap: 20px; margin-bottom: 24px;
+  }
+  .dash-live-left { order: 0; width: 100%; max-width: none; }
+  .dash-live-globe, :root[data-theme='light'] .dash-live-globe {
+    order: 1; position: relative; inset: auto; width: 100%; height: 260px; max-width: none;
+    opacity: 1; overflow: hidden; border-radius: 18px; contain: layout paint;
+  }
+  .dash-live-globe::before { display: none; }
+  .dash-live-left .m-stack { margin-bottom: 16px !important; }
+}
+/* Tabelle dei report sotto i 360px: su un telefono da 320 le cifre mensili
+   (es. €55.298 con la variazione sotto) non entravano accanto a una colonna
+   voci da 122px. */
+@media (max-width: 360px) {
+  .rep-matrix table { font-size: 11.5px !important; }
+  .rep-matrix .rep-label { min-width: 100px !important; width: 100px; max-width: 112px; padding: 7px 6px 7px 8px !important; }
+  .rep-matrix .rep-label.rep-sub { padding-left: 14px !important; }
+  .rep-matrix .rep-val { min-width: 0 !important; padding: 7px 6px !important; }
+  .rep-matrix .rep-side { padding-left: 5px !important; padding-right: 2px !important; min-width: 18px !important; width: 18px !important; }
+}
+
+/* PDF: una riga sola in ogni prodotto. La regola non dipende piu' dalla classe
+   del componente (in un prodotto il contenitore non ce l'ha): prende il pulsante
+   dentro .rep-pdf, qualunque sia il suo contenitore. */
+@media (max-width: 768px) {
+  .rep-toolbar .rep-pdf > div { display: flex !important; width: 100%; }
+  .rep-toolbar .rep-pdf button { flex: 1; width: 100%; justify-content: center; min-height: 44px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 480px) {
+  .rep-toolbar .rep-pdf button, .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn { display: block !important; text-align: center; font-size: 12.5px !important; padding: 8px 6px !important; }
+}

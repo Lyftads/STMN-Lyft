@@ -92,7 +92,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="rep-period tfs" style={{ position: 'relative' }}>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -122,6 +122,7 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
 
       {open && (
         <div
+          className="tfs-pop"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',

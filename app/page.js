@@ -1977,7 +1977,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
   return (
     <>
       {/* Timeframe selector */}
-      <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+      <div className="rep-toolbar" style={{marginBottom:16, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+        <div className="rep-chips" style={{display:'contents'}}>
         {[
           { id:'this_week', l:t('dash.thisWeek', null, 'Questa settimana') },
           { id:'last_week', l:t('dash.lastWeek', null, 'Settimana precedente') },
@@ -1991,8 +1992,9 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
             fontWeight: weeklyTF===b.id?700:500,
           }}>{b.l}</button>
         ))}
+        </div>
         {weeklyTF==='custom' && (
-          <>
+          <div className="rep-custom" style={{display:'contents'}}>
             <span style={{fontSize:11,color:'var(--text3)'}}>{t('dash.from', null, 'Da:')}</span>
             <select value={weeklyCustom.since} onChange={e=>setWeeklyCustom(p=>({...p,since:e.target.value}))}
               style={{background:'var(--glass)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'#e8e8e8',fontSize:12}}>
@@ -2006,10 +2008,10 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
               <option value="">{t('dash.selectWeek', null, 'Seleziona settimana')}</option>
               {availableWeeks.filter(w => !weeklyCustom.since || w.key >= weeklyCustom.since).map(w => <option key={w.key} value={w.key}>{w.label}</option>)}
             </select>
-          </>
+          </div>
         )}
         {onRefresh && (
-          <button onClick={onRefresh} disabled={loadingProp} style={{
+          <button className="rep-refresh" onClick={onRefresh} disabled={loadingProp} style={{
             marginLeft:'auto', fontSize:12, padding:'6px 14px', borderRadius:6,
             border:'1px solid var(--border)', background:loadingProp?'var(--glass)':'transparent',
             color:loadingProp?'#555':'#94a3b8', fontWeight:700, cursor:loadingProp?'wait':'pointer',
@@ -2019,23 +2021,23 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
             {loadingProp?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
           </button>
         )}
-        <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
-        <DownloadReportButton
+        <span className="rep-cmp" style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
+        <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton
           tab="Weekly"
           preset={weeklyTF === 'custom' ? undefined : weeklyTF}
           custom={weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until ? { since: weeklyCustom.since, until: weeklyCustom.until, label: 'Settimane selezionate' } : undefined}
-        />
+        /></div>
       </div>
 
       {/* KPI summary cards */}
-      <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+      <div className="stagger-zoom m-grid2 rep-kpis" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
         {kpiCards.map(kpi => (
           <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
               <div className="label">{kpi.label}</div>
               <PlatformBadges sources={kpi.sources} size={16} />
             </div>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <div className="rep-kpi-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
               <div className="metric-value">{kpi.fmt(kpi.val)}</div>
               <Sparkline dataArr={filled} dataKey={kpi.key} color={kpi.color} />
             </div>
@@ -3186,22 +3188,22 @@ export default function App() {
         }))
 
         const kpiCards = [
-          { label: 'Fatturato', val: tf.fat, prev: tfP.fat, fmt: f0, color: 'var(--green)', key: 'fatturato', sources: ['shopify'] },
-          { label: 'Ordini', val: tf.ord, prev: tfP.ord, fmt: fn, color: 'var(--accent)', key: 'ordini', sources: ['shopify'] },
+          { label: t('dash.revenue', null, 'Fatturato'), val: tf.fat, prev: tfP.fat, fmt: f0, color: 'var(--green)', key: 'fatturato', sources: ['shopify'] },
+          { label: t('dash.orders', null, 'Ordini'), val: tf.ord, prev: tfP.ord, fmt: fn, color: 'var(--accent)', key: 'ordini', sources: ['shopify'] },
           { label: 'AOV', val: tf.aov, prev: tfP.aov, fmt: f2, color: 'var(--orange)', key: 'aov', sources: ['shopify'] },
-          { label: 'Nuovi Clienti', val: tf.nc, prev: tfP.nc, fmt: fn, color: 'var(--cyan)', key: 'nc', sources: ['shopify'] },
-          { label: 'Clienti Ritorno', val: tf.rc, prev: tfP.rc, fmt: fn, color: 'var(--purple)', key: 'rc', sources: ['shopify'] },
+          { label: t('dash.newCustomersShort', null, 'Nuovi Clienti'), val: tf.nc, prev: tfP.nc, fmt: fn, color: 'var(--cyan)', key: 'nc', sources: ['shopify'] },
+          { label: t('dash.returningShort', null, 'Clienti Ritorno'), val: tf.rc, prev: tfP.rc, fmt: fn, color: 'var(--purple)', key: 'rc', sources: ['shopify'] },
           { label: 'MER', val: tf.mer, prev: tfP.mer, fmt: v => v != null ? `${fr(v)}×` : '—', color: tf.mer != null ? (tf.mer >= 3 ? 'var(--green)' : tf.mer >= 2 ? 'var(--orange)' : 'var(--red)') : 'var(--text3)', key: 'mer', sources: ['shopify','meta'] },
           { label: 'CAC', val: tf.cac, prev: tfP.cac, fmt: f2, color: 'var(--text)', key: 'cac', lower: true, sources: ['shopify','meta','google'] },
-          { label: 'Ratio LTV:CAC', val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio', sources: ['shopify','meta'] },
-          { label: 'Meta Spend', val: tf.meta, prev: tfP.meta, fmt: f0, color: 'var(--accent)', key: 'metaSpend', sources: ['meta'] },
-          { label: 'Google Spend', val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: 'var(--yellow)', key: 'googleSpend', sources: ['google'] },
+          { label: t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC'), val: tf.ratio, prev: tfP.ratio, fmt: v => v != null ? `${fr(v)}:1` : '—', color: ratioColor(tf.ratio), key: 'ratio', sources: ['shopify','meta'] },
+          { label: t('dash.metaSpendLabel', null, 'Meta Spend'), val: tf.meta, prev: tfP.meta, fmt: f0, color: 'var(--accent)', key: 'metaSpend', sources: ['meta'] },
+          { label: t('dash.googleSpend', null, 'Google Spend'), val: tf.goog, prev: tfP.goog, fmt: v => v > 0 ? f0(v) : '—', color: 'var(--yellow)', key: 'googleSpend', sources: ['google'] },
         ]
 
         return (
         <>
           {/* Timeframe selector */}
-          <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div className="rep-toolbar" style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
             <TimeframeSelector
               value={preset?.startsWith('month_') ? preset : `month_${baseMonth}`}
               onChange={setPreset}
@@ -3209,25 +3211,26 @@ export default function App() {
               hideDateRange
               monthsCount={18}
             />
-            <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
+            <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass rep-refresh" style={{
               marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
               cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
             }}>
               <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
               {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
             </button>
-            <span style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
+            <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.monthly', null, 'Monthly')} preset={preset} /></div>
+            <span className="rep-cmp" style={{fontSize:11,color:'var(--text3)'}}>{tfLabel}</span>
           </div>
 
           {/* Summary KPI Cards with sparkline + delta */}
-          <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+          <div className="stagger-zoom m-grid2 rep-kpis" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
             {kpiCards.map(kpi => (
               <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
                   <div className="label">{kpi.label}</div>
                   <PlatformBadges sources={kpi.sources} size={16} />
                 </div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                <div className="rep-kpi-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
                   <div className="metric-value">{kpi.fmt(kpi.val)}</div>
                   <Sparkline dataArr={filled} dataKey={kpi.key} color={kpi.color} />
                 </div>
@@ -3622,32 +3625,33 @@ export default function App() {
         return (
           <>
             {/* Timeframe selector */}
-            <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+            <div className="rep-toolbar" style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
               <TimeframeSelector
                 value={preset?.startsWith('quarter_') ? preset : `quarter_${q0}`}
                 onChange={setPreset}
                 disabled={loading}
                 mode="quarter"
               />
-              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
+              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass rep-refresh" style={{
                 marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
                 <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
                 {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
               </button>
-              <span style={{fontSize:11,color:'var(--text3)'}}>{quarterLabel(q0)} vs {quarterLabel(q1)}</span>
+              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.quarter', null, 'Quarter')} preset={preset} /></div>
+              <span className="rep-cmp" style={{fontSize:11,color:'var(--text3)'}}>{quarterLabel(q0)} vs {quarterLabel(q1)}</span>
             </div>
 
             {/* KPI summary cards */}
-            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+            <div className="stagger-zoom m-grid2 rep-kpis" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
               {kpiCards.map(kpi => (
                 <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
                     <div className="label">{kpi.label}</div>
                     <PlatformBadges sources={kpi.sources} size={16} />
                   </div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                  <div className="rep-kpi-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
                     <div className="metric-value">{kpi.fmt(kpi.val)}</div>
                     <Sparkline dataArr={aggregatedQuarters} dataKey={kpi.key} color={kpi.color} />
                   </div>
@@ -4014,32 +4018,33 @@ export default function App() {
         return (
           <>
             {/* Timeframe selector */}
-            <div style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+            <div className="rep-toolbar" style={{marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
               <TimeframeSelector
                 value={preset?.startsWith('year_') ? preset : `year_${y0}`}
                 onChange={setPreset}
                 disabled={loading}
                 mode="year"
               />
-              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass" style={{
+              <button onClick={() => fetchLive(true)} disabled={loading} className="btn-glass rep-refresh" style={{
                 marginLeft:'auto', display:'flex', alignItems:'center', gap:6,
                 cursor:loading?'wait':'pointer', opacity:loading?0.5:1,
               }}>
                 <span style={{animation:loading?'spin 1s linear infinite':'none'}}>↻</span>
                 {loading?t('dash.refreshing', null, 'Aggiorno…'):t('dash.refresh', null, 'Aggiorna')}
               </button>
-              <span style={{fontSize:11,color:'var(--text3)'}}>{yearLabel(y0)} vs {yearLabel(y1)}</span>
+              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.year', null, 'Year')} preset={preset} /></div>
+              <span className="rep-cmp" style={{fontSize:11,color:'var(--text3)'}}>{yearLabel(y0)} vs {yearLabel(y1)}</span>
             </div>
 
             {/* KPI summary cards */}
-            <div className="stagger-zoom" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
+            <div className="stagger-zoom m-grid2 rep-kpis" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
               {kpiCards.map(kpi => (
                 <div key={kpi.label} className="glass-card" style={{padding:'20px 22px'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
                     <div className="label">{kpi.label}</div>
                     <PlatformBadges sources={kpi.sources} size={16} />
                   </div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                  <div className="rep-kpi-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
                     <div className="metric-value">{kpi.fmt(kpi.val)}</div>
                     <Sparkline dataArr={aggregatedYears} dataKey={kpi.key} color={kpi.color} />
                   </div>

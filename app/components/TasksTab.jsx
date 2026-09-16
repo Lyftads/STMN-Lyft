@@ -438,7 +438,7 @@ export default function TasksTab() {
             {view === 'mine' && (
               <>
                 <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20, marginBottom: 14 }}>{t('tk.myTasks', null, 'My tasks')} · {myTasks.length}</div>
-                <SwimlaneBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+                <TaskBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
               </>
             )}
             {view === 'board' && (<>
@@ -453,7 +453,7 @@ export default function TasksTab() {
             </button>
 
             {/* Griglia: colonne di stato × righe di priorità */}
-            <SwimlaneBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+            <TaskBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
             </>)}
           </div>
         </div>
@@ -749,13 +749,15 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
   const prio = PRIORITIES.find(p => p.id === (t.priority || 'medium')) || PRIORITIES[1]
   const overdue = t.due_date && t.status !== 'done' && t.status !== 'approved' && new Date(t.due_date) < new Date(new Date().toDateString())
   return (
-    <div onClick={onOpen} title={tr('tk.openForNotes', null, 'Open for notes, details and attachments')} style={{ ...card, padding: 12, cursor: 'pointer', borderLeft: `4px solid ${prio.color}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
+    <div onClick={onOpen} title={tr('tk.openForNotes', null, 'Open for notes, details and attachments')} style={{ ...card, padding: 12, cursor: 'pointer' }}>
+      {/* La priorita' e' un'etichetta in cima, non piu' una fascia colorata sul
+          bordo: dice la stessa cosa senza tingere tutta la card. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: prio.color, background: `${prio.color}1f`, border: `1px solid ${prio.color}40`, borderRadius: 999, padding: '3px 9px', lineHeight: 1.2 }}>{tr(prio.key, null, prio.en)}</span>
         <button onClick={(e) => { e.stopPropagation(); onDelete(t.id) }} title={tr('tk.delete', null, 'Delete')} style={{ background: 'none', border: 'none', color: '#48484a', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
       </div>
+      <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: prio.color, border: `1px solid ${prio.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{tr(prio.key, null, prio.en)}</span>
         {t.due_date && <span style={{ fontSize: 11, color: overdue ? '#ff375f' : '#b0b0bd' }}><Icon name="calendar" size={12} /> {t.due_date}</span>}
         {t.description && <span title={tr('tk.containsNotes', null, 'Contains notes')} style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="file" size={12} /></span>}
         {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title={tr('tk.attachments', null, 'Attachments')} style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="paperclip" size={12} /> {t.attachments.length}</span>}
@@ -1048,40 +1050,33 @@ function SideItem({ label, count, color, active, onClick, onDelete }) {
   )
 }
 
-// Griglia "tutto in uno": righe = priorità (Urgente/Alta/Media/Bassa),
-// colonne = stato (Da fare/In corso/...). I task finiscono all'incrocio
-// priorità×stato. Usata sia dalla board sia da "Le mie attività".
-function SwimlaneBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
+// Board a colonne: una colonna per stato (Da fare / In corso / ...), le task
+// impilate dentro. Prima le righe erano le priorita', con una fascia colorata
+// per ognuna: quattro bande di colore incrociate con le colonne facevano
+// leggere il colore prima del contenuto, e una colonna mezza vuota sembrava un
+// problema quando era solo una priorita' poco usata. La priorita' ora sta dove
+// serve, cioe' sulla task, come una piccola etichetta.
+function TaskBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
   const { t: tr } = useI18n()
-  const gridCols = `120px repeat(${COLUMNS.length}, minmax(180px, 1fr))`
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 8, minWidth: 980 }}>
-        {/* intestazione colonne (stato) */}
-        <div />
-        {COLUMNS.map(col => (
-          <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color }} />
-            <span style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '.05em' }}>{tr(col.key, null, col.en)}</span>
-          </div>
-        ))}
-        {/* righe per priorità */}
-        {PRIORITY_ROWS.map(row => (
-          <Fragment key={row.id}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 10, borderLeft: `4px solid ${row.color}`, background: `${row.color}14`, borderRadius: 8 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 15, color: row.color, textTransform: 'uppercase' }}>{tr(row.key, null, row.en)}</div>
-              <div style={{ fontSize: 11, color: '#b0b0bd' }}>{tasks.filter(t => (t.priority || 'medium') === row.id).length} {tr('tk.task', null, 'tasks')}</div>
+    // Su telefono le colonne non si stringono: scorrono di lato DENTRO questo
+    // riquadro (una colonna per schermata), cosi' la board non sborda dalla
+    // pagina. Le regole stanno nel foglio mobile, classi tk-board-*.
+    <div className="tk-board-scroll" style={{ overflowX: 'auto', maxWidth: '100%' }}>
+      <div className="tk-board-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(240px, 1fr))`, gap: 12, minWidth: 980, alignItems: 'start' }}>
+        {COLUMNS.map(col => {
+          const items = tasks.filter(t => (t.status || 'todo') === col.id)
+          return (
+            <div key={col.id} className="tk-board-col" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 10, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, minHeight: 80 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 2px 6px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: '.05em' }}>{tr(col.key, null, col.en)}</span>
+                <span style={{ fontSize: 12, color: '#b0b0bd', fontWeight: 600 }}>{items.length}</span>
+              </div>
+              {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
             </div>
-            {COLUMNS.map(col => {
-              const items = tasks.filter(t => (t.priority || 'medium') === row.id && (t.status || 'todo') === col.id)
-              return (
-                <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 8, background: `${row.color}0a`, borderRadius: 8, minHeight: 60 }}>
-                  {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
-                </div>
-              )
-            })}
-          </Fragment>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

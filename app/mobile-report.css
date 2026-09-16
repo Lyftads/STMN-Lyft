@@ -130,3 +130,27 @@
 @media (max-width: 480px) {
   .rep-toolbar .rep-pdf button, .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn { display: block !important; text-align: center; font-size: 12.5px !important; padding: 8px 6px !important; }
 }
+
+/* Board delle task su telefono: le colonne non si comprimono (diventerebbero
+   illeggibili) ma scorrono di lato DENTRO il loro riquadro, una per schermata,
+   con l'aggancio allo scorrimento. Con il minimo di 980px la board usciva dalla
+   pagina e trascinava di lato tutto il resto. */
+@media (max-width: 768px) {
+  .tk-board-scroll { overflow-x: auto !important; max-width: 100% !important; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .tk-board-grid { min-width: 0 !important; grid-auto-flow: column; grid-auto-columns: 78vw; grid-template-columns: none !important; gap: 10px !important; }
+  .tk-board-col { scroll-snap-align: start; min-width: 0; }
+  .tk-board-col select { min-height: 40px; font-size: 16px !important; }
+}
+@media (max-width: 360px) {
+  .tk-board-grid { grid-auto-columns: 84vw; }
+}
+
+/* Perche' la board sbordava: .m-cols su telefono diventa una colonna, ma ha
+   align-items:flex-start inline, quindi i figli si dimensionano sul contenuto
+   e non sulla larghezza dello schermo. Il riquadro della board si allargava
+   a 1561px e il max-width:100% si calcolava su QUELLO. Qui obblighiamo i figli
+   a stare nella larghezza del contenitore: e' la condizione perche' lo
+   scorrimento interno della board funzioni davvero. */
+@media (max-width: 768px) {
+  .m-cols > * { align-self: stretch !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+}

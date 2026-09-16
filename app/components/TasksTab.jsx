@@ -622,6 +622,21 @@ export default function TasksTab() {
 // dettagli, quanto stringe, entro quando, e solo alla fine chi lo fa. Gli
 // assegnatari stanno in fondo perche' si decide a chi darla quando si e' gia'
 // capito che cos'e'.
+// Riquadro di un campo del modale. Sta QUI FUORI, non dentro NewTaskModal:
+// definito nel corpo del componente diventava una funzione nuova a ogni render,
+// quindi a ogni lettera digitata React smontava e rimontava tutti i campi. Si
+// perdeva il fuoco e l'autoFocus del titolo ripartiva: scrivendo nella
+// descrizione il cursore tornava da solo sul Titolo.
+function Campo({ label, hint, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: hint ? 2 : 6 }}>{label}</label>
+      {hint && <div style={{ fontSize: 11, color: '#8a8a98', marginBottom: 6 }}>{hint}</div>}
+      {children}
+    </div>
+  )
+}
+
 function NewTaskModal({ form, setForm, creating, members, onLeave, projects, openProjectId, onClose, onCreate }) {
   const { t } = useI18n()
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -631,14 +646,6 @@ function NewTaskModal({ form, setForm, creating, members, onLeave, projects, ope
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
   }, [onClose])
-
-  const Campo = ({ label, hint, children }) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: hint ? 2 : 6 }}>{label}</label>
-      {hint && <div style={{ fontSize: 11, color: '#8a8a98', marginBottom: 6 }}>{hint}</div>}
-      {children}
-    </div>
-  )
 
   return (
     <div onClick={onClose} style={{

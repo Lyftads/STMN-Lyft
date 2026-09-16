@@ -7,9 +7,18 @@ import { resolveWorkspace } from '../../../lib/team/workspace'
 import { ensureAuthUser, sendChatInviteEmail } from '../../../lib/team/invite'
 
 function originOf(req) {
+  // Questo valore finisce dentro un'EMAIL, quindi deve essere il dominio
+  // PUBBLICO. origin/host sono quelli della richiesta: se chi invita sta
+  // navigando un URL di deployment (…-lyftads-projects.vercel.app, protetto
+  // da Vercel), l'invitato riceveva un link che lo portava al login di Vercel
+  // invece che a quello dell'app. Percio' la variabile canonica viene PRIMA.
+  const canonico = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || '').trim()
+  if (canonico) return canonico.replace(/\/+$/, '')
+  // Niente dominio fisso come ultima risorsa: questo file vive anche nel fork
+  // di Anna Virgili, e un lyftai.io scritto a mano manderebbe le persone
+  // nell'altro prodotto. Meglio il dominio della richiesta.
   return req.headers.get('origin') ||
-    (req.headers.get('host') ? `https://${req.headers.get('host')}` : null) ||
-    process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
+    (req.headers.get('host') ? `https://${req.headers.get('host')}` : '')
 }
 
 // Invita una persona ESTERNA (guest) alla chat, opzionalmente a un canale.

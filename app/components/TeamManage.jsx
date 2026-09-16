@@ -20,6 +20,17 @@ const STATUS_BADGE = {
 const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, padding: 18 }
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
 const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', width: '100%', fontSize: 13, outline: 'none' }
+
+function Wrapper({ embedded, onClose, children }) {
+  return embedded ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 2 }}>{children}</div>
+  ) : (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(680px, 100%)', maxWidth: 680, maxHeight: '86vh', overflowY: 'auto' }}>{children}</div>
+    </div>
+  )
+}
+
 const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }
 const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 12.5, cursor: 'pointer' }
 
@@ -75,16 +86,8 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
   const sec = embedded
     ? { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }
     : null
-  const Wrapper = ({ children }) => embedded ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 2 }}>{children}</div>
-  ) : (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '6vh 16px', overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(680px, 100%)', maxWidth: 680, maxHeight: '86vh', overflowY: 'auto' }}>{children}</div>
-    </div>
-  )
-
   return (
-    <Wrapper>
+    <Wrapper embedded={embedded} onClose={onClose}>
         {/* Come tab il titolo lo mette già il guscio: ripeterlo è rumore. */}
         <div style={{ display: embedded ? 'none' : 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700 }}>{t('tk.teamMgmt', null, 'Gestione team')}</h3>

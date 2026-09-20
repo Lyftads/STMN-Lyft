@@ -267,7 +267,7 @@ export default function GoogleDetailTab() {
                 <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
                   className={`ly-filtro senza-tocco${statusFilter === f.id ? ' acceso' : ''}`}>
                   {f.label}
-                  <span style={{ background: active ? GOOGLE : 'rgba(255,255,255,0.06)', color: active ? 'var(--surface)' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11.5, fontWeight: 640 }}>{countFor(f.id)}</span>
+                  <span style={{ background: active ? 'var(--btn-primario)' : 'rgba(255,255,255,0.06)', color: active ? 'var(--surface)' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11.5, fontWeight: 640 }}>{countFor(f.id)}</span>
                 </button>
               )
             })}

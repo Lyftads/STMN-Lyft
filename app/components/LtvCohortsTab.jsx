@@ -225,7 +225,7 @@ export default function LtvCohortsTab() {
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>
                 <div className="label" style={{ fontSize: 10, marginBottom: 8 }}>{t('ltv.netLtv', null, 'Net LTV')}</div>
-                <div className="metric-value-sm" style={{ color: '#22c55e' }}>{eur2(netLtv)}</div>
+                <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{eur2(netLtv)}</div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{t('ltv.marginLine', { pct: Math.round(m * 100), src: marginReal ? t('ltv.realShopify90', null, 'costi reali Shopify · ultimi 90 giorni') : marginSrc.status === 'loading' ? t('ltv.marginLoading', null, 'leggo i costi prodotto…') : t('ltv.estimate', null, 'estimate') }, `margin ${Math.round(m * 100)}%`)}</div>
               </div>
               <div className="glass-card" style={{ padding: '16px 18px' }}>

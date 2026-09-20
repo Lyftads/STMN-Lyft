@@ -333,7 +333,7 @@ export default function WebsiteScannerTab() {
                 style={{
                   background: scanning
                     ? 'rgba(255,255,255,0.05)'
-                    : `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
+                    : 'var(--btn-primario)',
                   color: scanning ? 'var(--text3)' : 'var(--text)',
                   border: 'none',
                   borderRadius: 12,
@@ -342,7 +342,7 @@ export default function WebsiteScannerTab() {
                   fontWeight: 640,
                   cursor: scanning ? 'wait' : 'pointer',
                   letterSpacing: '0.04em',
-                  boxShadow: scanning ? 'none' : `0 0 24px ${ACCENT_GLOW}44`,
+                  boxShadow: 'none',
                   textTransform: 'uppercase',
                   whiteSpace: 'nowrap',
                   display: 'flex', alignItems: 'center', gap: 8,
@@ -386,7 +386,7 @@ export default function WebsiteScannerTab() {
                       onClick={() => !scanning && setViewport(opt.id)}
                       disabled={scanning}
                       style={{
-                        background: active ? `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)` : 'transparent',
+                        background: active ? 'var(--btn-primario)' : 'transparent',
                         color: active ? 'var(--text)' : 'var(--text3)',
                         border: 'none',
                         borderRadius: 999,
@@ -395,7 +395,7 @@ export default function WebsiteScannerTab() {
                         fontWeight: 600,
                         cursor: scanning ? 'not-allowed' : 'pointer',
                         letterSpacing: '0.04em',
-                        boxShadow: active ? `0 0 16px ${ACCENT_GLOW}44` : 'none',
+                        boxShadow: 'none',
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -572,7 +572,7 @@ export default function WebsiteScannerTab() {
                   href={data?.url || url}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: 11.5, color: ACCENT_GLOW, fontWeight: 600, textDecoration: 'none' }}
+                  style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 600, textDecoration: 'none' }}
                 >
                   {t('ws.open', null, 'Apri ↗')}
                 </a>
@@ -612,7 +612,7 @@ export default function WebsiteScannerTab() {
                   <div style={{
                     width: 32, height: 32,
                     border: '3px solid var(--border2)',
-                    borderTopColor: ACCENT_GLOW,
+                    borderTopColor: 'var(--text)',
                     borderRadius: 999,
                     animation: 'spin 1s linear infinite',
                   }} />
@@ -650,7 +650,7 @@ export default function WebsiteScannerTab() {
                   <div style={{
                     width: 28, height: 28,
                     border: '3px solid var(--border2)',
-                    borderTopColor: ACCENT_GLOW,
+                    borderTopColor: 'var(--text)',
                     borderRadius: 999,
                     animation: 'spin 1s linear infinite',
                   }} />
@@ -680,7 +680,7 @@ export default function WebsiteScannerTab() {
                     }}>
                       <span style={{
                         width: 6, height: 6, borderRadius: 999,
-                        background: ACCENT_GLOW,
+                        background: 'var(--text3)',
                         animation: 'pa-pulse 1.4s infinite',
                         animationDelay: `${i * 80}ms`,
                       }} />
@@ -837,7 +837,7 @@ export default function WebsiteScannerTab() {
                         }}>
                           <div style={{
                             width: 22, height: 22, borderRadius: 8,
-                            background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
+                            background: 'var(--btn-primario)',
                             color: 'var(--text)', fontSize: 11.5, fontWeight: 680,
                             display: 'grid', placeItems: 'center',
                             flexShrink: 0,
@@ -892,7 +892,7 @@ export default function WebsiteScannerTab() {
                   )}
                   {analysis.copyAnalysis && (
                     <GlassCard padding={22} delay={1.5}>
-                      <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 12 }}>
                         {t('ws.copyVp', null, 'Copy & value proposition')}
                       </div>
                       <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 680, fontFamily: 'inherit', letterSpacing: '-0.01em', marginBottom: 10 }}>

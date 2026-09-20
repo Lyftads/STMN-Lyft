@@ -13,7 +13,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 //  Si aggancia come una sezione collassabile dentro BrandIdentityPanel.
 // ─────────────────────────────────────────────────────────────
 
-const ACCENT = '#bf5af2'
+const ACCENT = 'var(--text3)'
 
 const AGENT_LABELS = {
   'kpi': 'KPI Brain',
@@ -89,7 +89,7 @@ export default function AgentMemoryInspector() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
         <span style={{
           width: 42, height: 42, borderRadius: 12,
-          background: `${ACCENT}20`, color: ACCENT,
+          background: 'var(--glass2)', color: 'var(--text2)',
           display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 640,
           flexShrink: 0,
         }}>◓</span>
@@ -251,7 +251,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
           min={1} max={10} step={1}
           value={memory.importance}
           onChange={e => onImportanceChange(parseInt(e.target.value, 10))}
-          style={{ flex: 1, maxWidth: 160, accentColor: ACCENT }}
+          style={{ flex: 1, maxWidth: 160, accentColor: 'var(--text)' }}
         />
         <span style={{
           fontSize: 11.5, color: 'var(--text)', fontWeight: 600,

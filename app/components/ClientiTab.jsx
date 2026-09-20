@@ -153,7 +153,7 @@ export default function ClientiTab({ onNavigate }) {
   if (loading) return <Scheletro kpi={5} righe={6} />
   if (error) return (
     <div style={{ padding: 24 }}>
-      <div style={{ color: '#fca5a5', marginBottom: 12 }}>{error}</div>
+      <div style={{ color: 'var(--negativo)', marginBottom: 12 }}>{error}</div>
       <button onClick={() => load(true)} style={btnGhost}>{t('common.retry', null, 'Riprova')}</button>
     </div>
   )
@@ -186,15 +186,15 @@ export default function ClientiTab({ onNavigate }) {
         <>
           {/* KPI row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginBottom: 26 }}>
-            <KpiCard title={t('cli.kpi.customers', null, 'Clienti')} value={fmtInt(totalCust)} delta={k.deltaCustomers} color="#7b5bff"
+            <KpiCard title={t('cli.kpi.customers', null, 'Clienti')} value={fmtInt(totalCust)} delta={k.deltaCustomers}
               sub={`${LAB_FT} ${fmtInt(k.firstTime)} (${pct(ftPct)}) · ${LAB_RT} ${fmtInt(k.returning)} (${pct(rtPct)})`} />
-            <KpiCard title={t('cli.kpi.value', null, 'Valore cliente (CLV)')} value={fmtMoney(k.clv, 2)} color="#0ea5e9"
+            <KpiCard title={t('cli.kpi.value', null, 'Valore cliente (CLV)')} value={fmtMoney(k.clv, 2)}
               sub={`${LAB_FT} ${fmtMoney(k.ft?.customerValue, 0)} · ${LAB_RT} ${fmtMoney(k.rt?.customerValue, 0)}`} />
-            <KpiCard title={t('cli.kpi.opc', null, 'Ordini per cliente')} value={fmtNum(k.ordersPerCustomer, 1)} color="#22c55e"
+            <KpiCard title={t('cli.kpi.opc', null, 'Ordini per cliente')} value={fmtNum(k.ordersPerCustomer, 1)}
               sub={`${LAB_FT} ${fmtNum(k.ft?.ordersPerCustomer, 1)} · ${LAB_RT} ${fmtNum(k.rt?.ordersPerCustomer, 1)}`} />
-            <KpiCard title={t('cli.kpi.days', null, 'Giorni tra gli ordini')} value={k.daysBetween == null ? '—' : fmtInt(k.daysBetween)} color="#f5b301"
+            <KpiCard title={t('cli.kpi.days', null, 'Giorni tra gli ordini')} value={k.daysBetween == null ? '—' : fmtInt(k.daysBetween)}
               sub={t('cli.retention', null, 'Retention') + ' ' + pct(k.retention)} />
-            <KpiCard title={t('cli.kpi.aov', null, 'Scontrino medio')} value={fmtMoney(k.aov, 2)} color="#ff7849"
+            <KpiCard title={t('cli.kpi.aov', null, 'Scontrino medio')} value={fmtMoney(k.aov, 2)}
               sub={`${LAB_FT} ${fmtMoney(k.ft?.aov, 0)} · ${LAB_RT} ${fmtMoney(k.rt?.aov, 0)}`} />
           </div>
 
@@ -269,7 +269,7 @@ export default function ClientiTab({ onNavigate }) {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))', gap: 16 }}>
               {/* Customers */}
-              <AnalyticsCard accent="#14b8a6" title={t('cli.chart.customers', null, 'Clienti')} headline={fmtInt(totalCust)} delta={k.deltaCustomers} over={t('cli.over.customers', null, 'CLIENTI NEL TEMPO')}>
+              <AnalyticsCard title={t('cli.chart.customers', null, 'Clienti')} headline={fmtInt(totalCust)} delta={k.deltaCustomers} over={t('cli.over.customers', null, 'CLIENTI NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [LAB_FT]: s.firstTime, [LAB_RT]: s.returning }))} barCategoryGap="22%">
                     <defs>
@@ -288,7 +288,7 @@ export default function ClientiTab({ onNavigate }) {
               </AnalyticsCard>
 
               {/* Retention rate */}
-              <AnalyticsCard accent="#22c55e" title={t('cli.chart.retention', null, 'Tasso di retention')} headline={pct(k.retention)} delta={deltaRetention} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtNum(v, 1)}%`} over={t('cli.over.retention', null, 'RETENTION NEL TEMPO')}>
+              <AnalyticsCard title={t('cli.chart.retention', null, 'Tasso di retention')} headline={pct(k.retention)} delta={deltaRetention} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtNum(v, 1)}%`} over={t('cli.over.retention', null, 'RETENTION NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
                   <AreaChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.retention }))}>
                     <defs>
@@ -305,7 +305,7 @@ export default function ClientiTab({ onNavigate }) {
               </AnalyticsCard>
 
               {/* CLV */}
-              <AnalyticsCard accent="#0ea5e9" title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} headline={fmtMoney(k.clv, 2)} delta={deltaClv} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtMoney(v, 0)}`} over={t('cli.over.clv', null, 'CLV NEL TEMPO')}>
+              <AnalyticsCard title={t('cli.chart.clv', null, 'Valore cliente (CLV)')} headline={fmtMoney(k.clv, 2)} delta={deltaClv} deltaFmt={(v) => `${v > 0 ? '+' : ''}${fmtMoney(v, 0)}`} over={t('cli.over.clv', null, 'CLV NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
                   <AreaChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), v: s.clv }))}>
                     <defs>
@@ -322,7 +322,7 @@ export default function ClientiTab({ onNavigate }) {
               </AnalyticsCard>
 
               {/* Loyal & potential loyal */}
-              <AnalyticsCard accent="#0ea5e9" title={t('cli.chart.loyal', null, 'Fedeli e potenziali fedeli')} headline={fmtInt(loyalCount)} over={t('cli.over.loyal', null, 'FEDELI E POTENZIALI NEL TEMPO')}>
+              <AnalyticsCard title={t('cli.chart.loyal', null, 'Fedeli e potenziali fedeli')} headline={fmtInt(loyalCount)} over={t('cli.over.loyal', null, 'FEDELI E POTENZIALI NEL TEMPO')}>
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), [segLabel('loyal')]: s.segments.loyal, [segLabel('potentialLoyal')]: s.segments.potentialLoyal }))} barCategoryGap="22%">
                     <defs>
@@ -341,7 +341,7 @@ export default function ClientiTab({ onNavigate }) {
               </AnalyticsCard>
 
               {/* Customers per segment (100%) */}
-              <AnalyticsCard accent="#7b5bff" title={t('cli.chart.perSegment', null, 'Clienti per segmento')} over={t('cli.over.perSegment', null, 'CLIENTI PER SEGMENTO')}>
+              <AnalyticsCard title={t('cli.chart.perSegment', null, 'Clienti per segmento')} over={t('cli.over.perSegment', null, 'CLIENTI PER SEGMENTO')}>
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={chartSeries.map(s => ({ week: fmtWeek(s.week), ...s.segments }))} stackOffset="expand" barCategoryGap="20%">
                     <defs>
@@ -361,7 +361,7 @@ export default function ClientiTab({ onNavigate }) {
               </AnalyticsCard>
 
               {/* Segment changes */}
-              <AnalyticsCard accent="#7b5bff" title={t('cli.chart.changes', null, 'Variazioni di segmento')} over={t('cli.over.changes', null, 'ULTIMA SETTIMANA')}>
+              <AnalyticsCard title={t('cli.chart.changes', null, 'Variazioni di segmento')} over={t('cli.over.changes', null, 'ULTIMA SETTIMANA')}>
                 <div style={{ padding: '4px 4px 8px' }}>
                   {segChanges.map(c => {
                     const up = c.delta > 0, down = c.delta < 0
@@ -398,7 +398,7 @@ export default function ClientiTab({ onNavigate }) {
           </div>
 
           {insLoading && !insights && (
-            <div style={{ borderRadius: 16, border: '1px solid rgba(167,139,250,0.25)', background: 'radial-gradient(120% 80% at 0% 0%, rgba(123,91,255,0.10), rgba(255,255,255,0.02) 55%)', padding: 30, color: 'var(--text2)', textAlign: 'center' }}>
+            <div style={{ borderRadius: 16, border: '1px solid var(--border)', background: 'var(--glass)', padding: 30, color: 'var(--text2)', textAlign: 'center' }}>
               {t('cli.ins.thinkingLong', null, 'La Squadra AI sta leggendo i segmenti e prepara insight e azioni…')}
             </div>
           )}
@@ -413,9 +413,9 @@ export default function ClientiTab({ onNavigate }) {
             <div style={{ display: 'grid', gap: 20 }}>
               {insights.headline && (
                 <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', padding: '20px 22px',
-                  border: '1px solid rgba(167,139,250,0.28)', background: 'radial-gradient(130% 90% at 0% 0%, rgba(123,91,255,0.16), rgba(255,255,255,0.02) 60%)' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #a78bfa, transparent)', opacity: 0.7 }} />
-                  <div style={{ fontSize: 11.5, color: '#a78bfa', letterSpacing: 0.8, fontWeight: 600, marginBottom: 8 }}>{t('cli.ins.summary', null, 'IN SINTESI')}</div>
+                  border: '1px solid var(--border)', background: 'var(--glass)' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--border2)', opacity: 0.7 }} />
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)', letterSpacing: 0.8, fontWeight: 600, marginBottom: 8 }}>{t('cli.ins.summary', null, 'IN SINTESI')}</div>
                   <div style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600, lineHeight: 1.5 }}>{insights.headline}</div>
                 </div>
               )}
@@ -447,11 +447,11 @@ export default function ClientiTab({ onNavigate }) {
                   <h3 style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', margin: '0 0 12px' }}>{t('cli.ins.actions', null, 'Azioni consigliate')}</h3>
                   <div style={{ display: 'grid', gap: 12 }}>
                     {insights.recommendations.map((rec, i) => {
-                      const c = meta(rec.segment) || '#7b5bff'
+                      const c = meta(rec.segment) || 'var(--text3)'
                       const prio = String(rec.priority || '').toLowerCase()
                       const prioColor = prio.includes('alt') || prio.includes('high') ? '#ef4444' : prio.includes('med') ? '#f59e0b' : '#22c55e'
                       return (
-                        <div key={i} style={{ borderRadius: 16, border: '1px solid var(--border)', background: `radial-gradient(120% 100% at 0% 0%, ${c}12, rgba(255,255,255,0.02) 60%)`, padding: '16px 18px' }}>
+                        <div key={i} style={{ borderRadius: 16, border: '1px solid var(--border)', background: 'var(--glass)', padding: '16px 18px' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                             <div style={{ flex: 1, minWidth: 240 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -583,13 +583,13 @@ function KpiCard({ title, value, sub, delta }) {
   )
 }
 
-function AnalyticsCard({ title, headline, delta, deltaFmt, over, accent = '#7b5bff', children }) {
+function AnalyticsCard({ title, headline, delta, deltaFmt, over, children }) {
   return (
     <div style={{
       position: 'relative', borderRadius: 16, overflow: 'hidden',
       border: '1px solid var(--border)',
-      background: `radial-gradient(120% 80% at 0% 0%, ${accent}14, rgba(255,255,255,0.02) 55%)`,
-      boxShadow: `0 12px 40px ${accent}10, inset 0 1px 0 rgba(255,255,255,0.04)`,
+      background: 'var(--glass)',
+      boxShadow: 'none',
       padding: '18px 16px 10px',
     }}>
       {/* filo luminoso superiore */}
@@ -598,7 +598,7 @@ function AnalyticsCard({ title, headline, delta, deltaFmt, over, accent = '#7b5b
         <div style={{ fontWeight: 640, color: 'var(--text)', fontSize: 15 }}>{title}</div>
         {headline != null && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '6px 0 2px' }}>
-            <span style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', letterSpacing: -0.5, textShadow: `0 0 22px ${accent}66` }}>{headline}</span>
+            <span style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', letterSpacing: -0.5 }}>{headline}</span>
             {delta != null && delta !== 0 && (
               <span style={{ fontSize: 13, fontWeight: 640, padding: '2px 8px', borderRadius: 8,
                 color: delta > 0 ? '#34f5a0' : '#fb7185', background: delta > 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>

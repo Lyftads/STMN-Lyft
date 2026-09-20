@@ -173,9 +173,19 @@ export function TelemetriaGlobo() {
       {guai ? (guai === 1 ? t('mc.anomalyOne', null, '1 anomalia') : t('mc.anomalies', { n: guai }, `${guai} anomalie`)) : t('mc.nominal', null, 'Nominale')}
     </span>
   )
-  // "Il film della settimana" (ReportFilm) non e' ancora in questo repo: il suo tasto tornera' qui
-  // insieme al componente, dispatchando `lyft:film`.
-  const cima = <div className="mc-cima">{stato}<Rigioca /></div>
+  // ReportFilm adesso c'e' (app/components/ReportFilm.jsx, montato in page.js) e
+  // ascolta l'evento `lyft:film`. Finche' questo tasto e' mancato nessuno lo
+  // emetteva: il film era montato e IRRAGGIUNGIBILE — presente nel codice,
+  // inesistente per chi usa il prodotto.
+  const cima = (
+    <div className="mc-cima">
+      {stato}
+      <button type="button" className="mc-stato mc-film" onClick={() => window.dispatchEvent(new Event('lyft:film'))}>
+        <Icon name="play" size={11} />{t('film.cta', null, 'Il film della settimana')}
+      </button>
+      <Rigioca />
+    </div>
+  )
   if (!tr) return <div className="mc-telemetria mc-solo-stato">{cima}</div>
 
   const resa = dati?.resa?.valore

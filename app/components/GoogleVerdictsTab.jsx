@@ -31,7 +31,7 @@ const GRUPPI = [
   { id: 'scala',         chiave: 'gpv.scala',         colore: '#22c55e', icona: 'trending-up' },
   { id: 'standby',       chiave: 'gpv.standby',       colore: '#f59e0b', icona: 'pause' },
   { id: 'uccidi',        chiave: 'gpv.uccidi',        colore: '#ef4444', icona: 'x' },
-  { id: 'daVerificare',  chiave: 'gpv.daVerificare',  colore: '#a78bfa', icona: 'alert' },
+  { id: 'daVerificare',  chiave: 'gpv.daVerificare',  colore: 'var(--text3)', icona: 'alert' },
   { id: 'insufficiente', chiave: 'gpv.insufficiente', colore: 'var(--text3)', icona: 'info' },
 ]
 

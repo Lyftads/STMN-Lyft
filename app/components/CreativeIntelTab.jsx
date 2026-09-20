@@ -61,9 +61,9 @@ function mapAd(a) {
 }
 
 const FUNNEL = {
-  tofu: { label: 'TOFU', color: '#22c55e' },
-  mofu: { label: 'MOFU', color: '#f59e0b' },
-  bofu: { label: 'BOFU', color: '#ef4444' },
+  tofu: { label: 'TOFU', color: 'var(--text3)' },
+  mofu: { label: 'MOFU', color: 'var(--text3)' },
+  bofu: { label: 'BOFU', color: 'var(--text3)' },
 }
 
 function fmtDur(s) {
@@ -72,9 +72,9 @@ function fmtDur(s) {
   return m > 0 ? `${m}:${String(sec).padStart(2, '0')}` : `${sec}s`
 }
 
-function Badge({ children, color = '#8b8aa0', bg }) {
+function Badge({ children, color = 'var(--text3)', bg }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, color, background: bg || `${color}1f`, border: `1px solid ${color}33`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{children}</span>
+    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, color, background: bg || 'var(--glass2)', border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{children}</span>
   )
 }
 
@@ -87,15 +87,15 @@ function AdCard({ ad, onOpen }) {
         {ad.thumbnail || ad.image ? (
           <img src={ad.thumbnail || ad.image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', padding: '34px 16px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(34,34,48,0.4))' }}>
+          <div style={{ width: '100%', height: '100%', padding: '34px 16px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, background: 'var(--glass2)' }}>
             {ad.headline && <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--text)', lineHeight: 1.3, maxHeight: 54, overflow: 'hidden' }}>{ad.headline}</div>}
-            <div style={{ fontSize: 11.5, color: '#c8c0d6', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || t('ci.catalogDco', null, 'Product catalog / DCO')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden' }}>{ad.body || t('ci.catalogDco', null, 'Product catalog / DCO')}</div>
           </div>
         )}
         <div style={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-          <Badge color="#c4b5fd">{ad.format}</Badge>
+          <Badge>{ad.format}</Badge>
           <div style={{ display: 'flex', gap: 5 }}>
-            {ad.live && <Badge color="#22c55e">LIVE</Badge>}
+            {ad.live && <Badge color="var(--positivo)">LIVE</Badge>}
             {f && <Badge color={f.color}>{f.label}</Badge>}
           </div>
         </div>
@@ -104,14 +104,14 @@ function AdCard({ ad, onOpen }) {
         )}
       </div>
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8b8aa0' }}>
-          <span style={{ fontWeight: 800, color: '#c8c0d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.brand}</span>
-          {ad.platforms[0] && <><span style={{ color: '#4a4060' }}>·</span><span>{ad.platforms[0]}</span></>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text3)' }}>
+          <span style={{ fontWeight: 800, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.brand}</span>
+          {ad.platforms[0] && <><span style={{ color: 'var(--text3)' }}>·</span><span>{ad.platforms[0]}</span></>}
         </div>
         {ad.headline && <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3, maxHeight: 34, overflow: 'hidden' }}>{ad.headline}</div>}
-        {ad.body && <div style={{ fontSize: 11.5, color: '#8b8aa0', lineHeight: 1.45, maxHeight: 50, overflow: 'hidden' }}>{ad.body}</div>}
-        <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: '#6b6580', marginTop: 2, fontFamily: 'Barlow' }}>
-          {ad.runningDays != null && <span><span style={{ color: '#22c55e', fontWeight: 800 }}>{ad.runningDays}{t('ci.daysAbbr', null, 'd')}</span> {t('ci.active', null, 'active')}</span>}
+        {ad.body && <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.45, maxHeight: 50, overflow: 'hidden' }}>{ad.body}</div>}
+        <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: 'var(--text3)', marginTop: 2, fontFamily: 'Barlow' }}>
+          {ad.runningDays != null && <span><span style={{ color: 'var(--text2)', fontWeight: 800 }}>{ad.runningDays}{t('ci.daysAbbr', null, 'd')}</span> {t('ci.active', null, 'active')}</span>}
           {ad.cta && <span>{ad.cta}</span>}
         </div>
       </div>
@@ -129,39 +129,39 @@ function DetailModal({ ad, onClose }) {
         <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 320 }}>
           {ad.video ? <video src={ad.video} poster={ad.thumbnail} controls style={{ width: '100%', maxHeight: '92vh', objectFit: 'contain' }} />
             : (ad.thumbnail || ad.image) ? <img src={ad.thumbnail || ad.image} alt="" style={{ width: '100%', maxHeight: '92vh', objectFit: 'contain' }} />
-            : <span style={{ color: '#4a4060' }}>{ad.format}</span>}
+            : <span style={{ color: 'var(--text3)' }}>{ad.format}</span>}
         </div>
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <Badge color="#c4b5fd">{ad.format}</Badge>
-            {ad.live && <Badge color="#22c55e">LIVE</Badge>}
+            <Badge>{ad.format}</Badge>
+            {ad.live && <Badge color="var(--positivo)">LIVE</Badge>}
             {f && <Badge color={f.color}>{f.label}</Badge>}
             <div style={{ flex: 1 }} />
             <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
           <div>
-            <div style={{ fontSize: 12, color: '#8b8aa0', fontWeight: 700 }}>{ad.brand}</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 700 }}>{ad.brand}</div>
             {ad.headline && <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--text)', lineHeight: 1.25, marginTop: 4 }}>{ad.headline}</div>}
           </div>
           <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[[t('ci.activeSince', null, 'Active since'), ad.runningDays != null ? t('ci.daysN', { n: ad.runningDays }, '{n} days') : '—'], [t('ci.format', null, 'Format'), ad.format], ['CTA', ad.cta || '—'], [t('ci.platforms', null, 'Platforms'), ad.platforms.join(', ') || '—']].map(([k, v]) => (
               <div key={k} style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
-                <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{k}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{k}</div>
                 <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginTop: 2 }}>{v}</div>
               </div>
             ))}
           </div>
           {ad.body && (
             <div>
-              <div style={{ fontSize: 10, color: '#6b6580', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 6 }}>{t('ci.copy', null, 'Copy')}</div>
-              <div style={{ fontSize: 13, color: '#c8c0d6', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 240, overflowY: 'auto' }}>{ad.body}</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 6 }}>{t('ci.copy', null, 'Copy')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 240, overflowY: 'auto' }}>{ad.body}</div>
             </div>
           )}
           {ad.linkUrl && (
-            <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#c4b5fd', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.linkUrl}</a>
+            <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--text2)', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.linkUrl}</a>
           )}
           {ad.snapshotUrl && (
-            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: 'var(--text)', background: '#0866FF', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>{t('ci.openInLibrary', null, '↗ Open in Ad Library')}</a>
+            <a href={ad.snapshotUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: 'var(--text)', background: 'var(--glass2)', border: '1px solid var(--border2)', padding: '8px 14px', borderRadius: 10, textDecoration: 'none', alignSelf: 'flex-start' }}>{t('ci.openInLibrary', null, '↗ Open in Ad Library')}</a>
           )}
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function CreativeIntelTab() {
     } catch (e) { setError(e.message) } finally { setLoading(false) }
   }, [query, country, format])
 
-  const chip = (active) => ({ padding: '7px 13px', borderRadius: 10, border: `1px solid ${active ? '#8b5cf6' : 'var(--border)'}`, background: active ? '#8b5cf620' : 'var(--glass)', color: active ? '#c4b5fd' : '#8b8aa0', fontSize: 12, fontWeight: 800, cursor: 'pointer' })
+  const chip = (active) => ({ padding: '7px 13px', borderRadius: 10, border: `1px solid ${active ? 'var(--border3)' : 'var(--border)'}`, background: active ? 'var(--glass2)' : 'var(--glass)', color: active ? 'var(--text)' : 'var(--text3)', fontSize: 12, fontWeight: 800, cursor: 'pointer' })
 
   return (
     <div>
@@ -209,21 +209,21 @@ export default function CreativeIntelTab() {
             <Icon name="search" size={16} />
             <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()} placeholder={t('ci.searchPh', null, 'Cerca brand o keyword (es. supplement, nike, longevity)…')} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 14, fontWeight: 600 }} />
           </div>
-          <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: loading || !query.trim() ? '#6b6580' : 'var(--text)', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
+          <button onClick={() => run()} disabled={loading || !query.trim()} style={{ padding: '11px 24px', borderRadius: 12, border: 'none', background: loading || !query.trim() ? 'var(--glass)' : 'var(--btn-primario)', color: loading || !query.trim() ? 'var(--text3)' : 'var(--btn-primario-testo)', fontSize: 14, fontWeight: 900, cursor: loading || !query.trim() ? 'default' : 'pointer' }}>{loading ? t('ci.searching', null, 'Cerco…') : t('ci.search', null, 'Cerca')}</button>
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{COUNTRIES.map(c => <button key={c.id} onClick={() => setCountry(c.id)} style={chip(country === c.id)}>{t(c.key, null, c.en)}</button>)}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{FORMATS.map(f => <button key={f.id} onClick={() => setFormat(f.id)} style={chip(format === f.id)}>{t(f.key, null, f.en)}</button>)}</div>
-          <div style={{ marginLeft: 'auto', fontSize: 11, color: '#6b6580' }}>{srcUsed ? t('ci.via', { src: srcUsed }, `via ${srcUsed}`) : t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
+          <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text3)' }}>{srcUsed ? t('ci.via', { src: srcUsed }, `via ${srcUsed}`) : t('ci.sourceNote', null, 'Fonte: Meta Ad Library (gratis)')}</div>
         </div>
       </div>
 
-      {error && <div style={{ padding: 16, borderRadius: 14, background: '#ef444415', border: '1px solid #ef444430', color: '#ef4444', fontSize: 13, marginBottom: 18 }}>{error}</div>}
+      {error && <div style={{ padding: 16, borderRadius: 14, background: 'var(--negativo-bg)', border: '1px solid var(--negativo)', color: 'var(--negativo)', fontSize: 13, marginBottom: 18 }}>{error}</div>}
 
       {!searched && !error && (
-        <div style={{ textAlign: 'center', padding: 70, color: '#6b6580' }}>
+        <div style={{ textAlign: 'center', padding: 70, color: 'var(--text3)' }}>
           <div style={{ marginBottom: 12, opacity: 0.5 }}><Icon name="search" size={36} /></div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#8b8aa0' }}>{t('ci.emptyTitleSpy', null, 'Spia le creatività dei competitor')}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text3)' }}>{t('ci.emptyTitleSpy', null, 'Spia le creatività dei competitor')}</div>
           <div style={{ fontSize: 13, marginTop: 4 }}>{t('ci.emptyHint', null, 'Cerca un brand o una keyword per vedere copy, hook, formato e da quanto girano.')}</div>
         </div>
       )}
@@ -232,21 +232,21 @@ export default function CreativeIntelTab() {
         <>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
             <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18, fontWeight: 900 }}>{t('ci.results', null, 'Creatività trovate')}</h2>
-            <span style={{ marginLeft: 10, color: '#6b6580', fontSize: 12, fontFamily: 'Barlow' }}>{ads.length}</span>
+            <span style={{ marginLeft: 10, color: 'var(--text3)', fontSize: 12, fontFamily: 'Barlow' }}>{ads.length}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
             {ads.map(ad => <AdCard key={ad.id} ad={ad} onOpen={setSelected} />)}
           </div>
           {libraryUrl && (
             <div style={{ textAlign: 'center', marginTop: 22 }}>
-              <a href={libraryUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '11px 26px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--glass)', color: '#c8c0d6', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>{t('ci.openLibrary', null, 'Apri tutte nella Ad Library ↗')}</a>
+              <a href={libraryUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '11px 26px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text2)', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>{t('ci.openLibrary', null, 'Apri tutte nella Ad Library ↗')}</a>
             </div>
           )}
         </>
       )}
 
       {searched && !loading && ads.length === 0 && !error && (
-        <div style={{ textAlign: 'center', padding: 60, color: '#6b6580', fontSize: 14 }}>{t('ci.noResults', null, 'Nessuna creatività trovata. Prova un\'altra keyword.')}</div>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text3)', fontSize: 14 }}>{t('ci.noResults', null, 'Nessuna creatività trovata. Prova un\'altra keyword.')}</div>
       )}
 
       {selected && <DetailModal ad={selected} onClose={() => setSelected(null)} />}

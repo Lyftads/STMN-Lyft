@@ -117,13 +117,13 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
     <>
       {!hideButton && (
         <button type="button" onClick={startCall} title={t('ac.callSpeaker', null, 'Call on speaker')}
-          style={buttonStyle || { cursor: 'pointer', background: '#30d158', border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
+          style={buttonStyle || { cursor: 'pointer', background: 'var(--btn-primario)', border: 'none', color: 'var(--btn-primario-testo)', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700 }}>
           {label || t('ac.call', null, '📞 Call')}
         </button>
       )}
 
       {call && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
           <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', inset: -10, borderRadius: '50%', border: `3px solid ${agent.color}`,
               opacity: call.mode === 'speaking' ? 0.9 : 0.3, animation: call.status === 'connected' ? 'lyftPulse 1.2s ease-out infinite' : 'none' }} />
@@ -132,7 +132,7 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
           <div style={{ textAlign: 'center', color: 'var(--text)' }}>
             <div style={{ fontSize: 22, fontWeight: 800 }}>{agent.name}</div>
             <div style={{ color: agent.color, fontSize: 14, fontWeight: 600 }}>{agent.role}</div>
-            <div style={{ marginTop: 8, fontSize: 13, color: '#c7c7cf' }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text3)' }}>
               {call.status === 'connecting' && t('ac.connecting', null, 'Connecting…')}
               {call.status === 'connected' && (call.mode === 'speaking' ? t('ac.speaking', null, '🔊 Speaking…') : t('ac.listening', null, '🎙️ Listening, go ahead'))}
               {call.status === 'ended' && (call.error ? `⚠️ ${call.error}` : t('ac.callEnded', null, 'Call ended'))}
@@ -140,7 +140,7 @@ export default function AgentCall({ agent, label, buttonStyle, autoStart = false
           </div>
           {call.status === 'ended'
             ? <button type="button" onClick={closeOverlay} style={{ cursor: 'pointer', background: 'var(--glass2)', border: '1px solid var(--border3)', color: 'var(--text)', borderRadius: 999, padding: '12px 26px', fontSize: 15, fontWeight: 700 }}>{t('ac.close', null, 'Close')}</button>
-            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: '#ff453a', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>{t('ac.hangUp', null, '📵 Hang up')}</button>}
+            : <button type="button" onClick={endCall} style={{ cursor: 'pointer', background: 'var(--negativo)', border: 'none', color: 'var(--text)', borderRadius: 999, padding: '14px 30px', fontSize: 16, fontWeight: 800 }}>{t('ac.hangUp', null, '📵 Hang up')}</button>}
           <style>{`@keyframes lyftPulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}`}</style>
         </div>
       )}

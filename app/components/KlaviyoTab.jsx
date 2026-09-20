@@ -191,7 +191,7 @@ export default function KlaviyoTab() {
       </div>
 
       {/* Panoramica Email */}
-      <Section title={tr('klaviyo.overview', null, 'Panoramica Email')} subtitle={`Klaviyo · ${days === 0 ? tr('klaviyo.todayLower', null, 'oggi') : tr('klaviyo.lastDays', { n: days }, `ultimi ${days} giorni`)}`} color="#8b5cf6">
+      <Section title={tr('klaviyo.overview', null, 'Panoramica Email')} subtitle={`Klaviyo · ${days === 0 ? tr('klaviyo.todayLower', null, 'oggi') : tr('klaviyo.lastDays', { n: days }, `ultimi ${days} giorni`)}`} >
         <div className="reveal" style={{
           background: 'var(--neutro-bg)',
           border: '1px solid var(--border)', borderRadius: 12,
@@ -201,7 +201,7 @@ export default function KlaviyoTab() {
         </div>
 
         <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 14 }}>
-          <Card title={tr('klaviyo.received', null, 'Email Ricevute')} value={fmtN(kpis?.received?.total)} badge="Klaviyo" color="#8b5cf6" />
+          <Card title={tr('klaviyo.received', null, 'Email Ricevute')} value={fmtN(kpis?.received?.total)} badge="Klaviyo"  />
           <Card title={tr('klaviyo.opened', null, 'Aperte')} value={fmtN(kpis?.opened?.total)} badge="Open" color="#3b82f6" />
           <Card title={tr('klaviyo.clicked', null, 'Cliccate')} value={fmtN(kpis?.clicked?.total)} badge="Click" color="#06b6d4" />
           <Card title="Open Rate" value={fmtP(kpis?.openRate)} badge="Rate" color="#22c55e" />
@@ -219,7 +219,7 @@ export default function KlaviyoTab() {
       {/* Revenue Breakdown */}
 
       {/* Trend Giornaliero */}
-      <Section title={tr('klaviyo.dailyTrend', null, 'Trend Giornaliero')} color="#8b5cf6">
+      <Section title={tr('klaviyo.dailyTrend', null, 'Trend Giornaliero')} >
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {[
             { id: 'received', label: tr('klaviyo.chartReceived', null, 'Ricevute') },
@@ -228,8 +228,8 @@ export default function KlaviyoTab() {
             { id: 'revenue', label: 'Revenue' },
           ].map(t => (
             <button key={t.id} onClick={() => setChartTab(t.id)} className="btn-glass" style={{
-              border: chartTab === t.id ? '1px solid #8b5cf6' : '1px solid var(--border)',
-              background: chartTab === t.id ? '#8b5cf622' : 'var(--glass)',
+              border: chartTab === t.id ? '1px solid var(--border3)' : '1px solid var(--border)',
+              background: chartTab === t.id ? 'var(--glass2)' : 'var(--glass)',
               color: chartTab === t.id ? 'var(--text2)' : 'var(--text3)',
               borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 640, cursor: 'pointer',
             }}>{t.label}</button>

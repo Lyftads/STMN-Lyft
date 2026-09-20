@@ -840,7 +840,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
       <div
         style={{
           position:'relative',
-          background:'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+          background:'var(--surface)',
           backdropFilter:'blur(40px) saturate(2.2)',
           WebkitBackdropFilter:'blur(40px) saturate(2.2)',
           borderRadius:16,
@@ -866,7 +866,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         }}
       >
         {/* shine top edge */}
-        <div style={{position:'absolute',top:0,left:'8%',right:'8%',height:1.5,background:'linear-gradient(90deg, transparent, #0ea5e9aa, transparent)',filter:'blur(0.3px)',opacity:0.85,animation:'cr-shine 4s ease-in-out infinite',zIndex:3,pointerEvents:'none'}} />
+        <div style={{position:'absolute',top:0,left:'8%',right:'8%',height:1.5,background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)',filter:'blur(0.3px)',opacity:0.85,animation:'cr-shine 4s ease-in-out infinite',zIndex:3,pointerEvents:'none'}} />
         {/* scan sweep */}
         <div style={{position:'absolute',top:0,bottom:0,left:'-50%',width:'40%',background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',animation:'sim-scan 9s ease-in-out infinite',pointerEvents:'none',zIndex:1}} />
 
@@ -875,10 +875,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
             <div style={{display:'flex',alignItems:'center',gap:14}}>
               <div style={{
                 width:42,height:42,borderRadius:12,
-                background:'linear-gradient(135deg,#0ea5e9,#1e3a8a)',
+                background:'var(--btn-primario)',
                 display:'grid',placeItems:'center',
-                color:'var(--text)',
-                boxShadow:'0 0 24px rgba(14,165,233,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+                color:'var(--btn-primario-testo)',
+                boxShadow:'none',
               }}><Icon name="globe" size={22} /></div>
               <div>
                 <div style={{fontSize:15,fontWeight:680,color:'var(--text)',letterSpacing:'-0.01em'}}>{t('kpi.billingCountries', null, 'Paesi di fatturazione')}</div>
@@ -954,7 +954,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       <div style={{minWidth:0}}>
                         <div style={{fontSize:15,fontWeight:640,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.country}</div>
                         <div style={{position:'relative',height:5,marginTop:6,borderRadius:999,background:'var(--glass)',overflow:'hidden'}}>
-                          <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'linear-gradient(90deg,#0ea5e9,#1e3a8a)',borderRadius:999,boxShadow:'0 0 12px rgba(14,165,233,0.55)',transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
+                          <div style={{position:'absolute',inset:0,width:`${Math.max(2,Math.min(100,pct))}%`,background:'var(--text3)',borderRadius:999,transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)'}} />
                         </div>
                       </div>
                       <div style={{textAlign:'right'}}>
@@ -1515,7 +1515,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
             }}>
-              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(6,182,212,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />
+              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />
               <div style={{fontSize:10, fontWeight:640, color:'var(--country-accent, #0ea5e9)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.revenueComposition', null, 'Composizione fatturato')}</div>
               {hasPie ? (
                 <>
@@ -1559,11 +1559,11 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                   </ResponsiveContainer>
                   <div style={{display:'flex', justifyContent:'space-around', marginTop:6, fontSize:11.5}}>
                     <div style={{display:'flex', alignItems:'center', gap:6, color:'var(--country-new, #67e8f9)', fontWeight:640}}>
-                      <div style={{width:11, height:11, borderRadius:6, background:'linear-gradient(180deg, #22d3ee, #0e7490)', boxShadow:'0 0 10px rgba(6,182,212,0.7)'}} />
+                      <div style={{width:11, height:11, borderRadius:6, background:'var(--country-new, #67e8f9)', boxShadow:'none'}} />
                       {t('kpi.new', null, 'Nuovi')} {money(row.ncRevenue)}
                     </div>
                     <div style={{display:'flex', alignItems:'center', gap:6, color:'var(--country-returning, #d8b4fe)', fontWeight:640}}>
-                      <div style={{width:11, height:11, borderRadius:6, background:'linear-gradient(180deg, #c084fc, #6b21a8)', boxShadow:'0 0 10px rgba(168,85,247,0.7)'}} />
+                      <div style={{width:11, height:11, borderRadius:6, background:'var(--country-returning, #d8b4fe)', boxShadow:'none'}} />
                       {t('kpi.returning', null, 'Ritorno')} {money(row.rcRevenue)}
                     </div>
                   </div>
@@ -1582,7 +1582,7 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
             }}>
-              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(14,165,233,0.6), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />
+              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />
               <div style={{fontSize:10, fontWeight:640, color:'var(--country-accent, #0ea5e9)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.dailyRevenueTrend', null, 'Trend giornaliero fatturato')}</div>
               {loading ? (
                 <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:240, gap:12, color:'var(--text3)'}}>

@@ -189,7 +189,7 @@ export default function LeadGenTab() {
       </div>
 
       {error && (
-        <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}>
+        <div className="glass-card-static" style={{ padding: 18, color: 'var(--negativo)', fontSize: 13 }}>
           <Icon name="warning" size={13} /> {error}
         </div>
       )}
@@ -229,7 +229,7 @@ export default function LeadGenTab() {
             type="button" onClick={saveEco} disabled={saving}
             style={{
               border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 640,
-              background: `linear-gradient(135deg, ${VIOLET}, ${BLUE})`, color: '#fff',
+              background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)',
               cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1,
             }}
           >

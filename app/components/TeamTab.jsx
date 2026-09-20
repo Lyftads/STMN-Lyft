@@ -202,7 +202,7 @@ export default function TeamTab() {
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <strong style={{ color: 'var(--text)', fontSize: 15 }}>{a.name}</strong>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#30d158', boxShadow: '0 0 6px #30d158' }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--positivo)', boxShadow: 'none' }} />
                 </span>
                 <span style={{ display: 'block', color: a.color, fontSize: 12.5, fontWeight: 600 }}>{a.role}</span>
                 <span style={{ display: 'block', color: 'var(--text2)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.tagline}</span>
@@ -231,7 +231,7 @@ export default function TeamTab() {
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <strong style={{ color: 'var(--text)' }}>{agent.name}</strong>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#30d158', boxShadow: '0 0 6px #30d158' }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--positivo)', boxShadow: 'none' }} />
             <span style={{ color: 'var(--text2)', fontSize: 11 }}>online</span>
           </span>
           <span style={{ display: 'block', color: agent.color, fontSize: 12.5, fontWeight: 600 }}>{agent.role}</span>
@@ -257,8 +257,8 @@ export default function TeamTab() {
           <div key={i} style={{ display: 'flex', gap: 9, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
             {m.role === 'assistant' && <Avatar a={agent} size={30} />}
             <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-              color: m.role === 'user' ? 'var(--text)' : 'var(--text)',
-              background: m.role === 'user' ? 'linear-gradient(135deg, #6d28d9, #2a1746)' : 'var(--glass)',
+              color: m.role === 'user' ? 'var(--btn-primario-testo)' : 'var(--text)',
+              background: m.role === 'user' ? 'var(--btn-primario)' : 'var(--glass)',
               border: m.role === 'user' ? 'none' : '1px solid var(--border)' }}>
               {bubbleText(m.content)}
               {m.role === 'assistant' && (
@@ -280,8 +280,8 @@ export default function TeamTab() {
       <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border)', background: 'var(--glass)', alignItems: 'center' }}>
         <button type="button" onClick={recording ? stopRec : startRec} disabled={transcribing || busy}
           title={recording ? 'Ferma e invia' : 'Parla'}
-          style={{ cursor: transcribing || busy ? 'default' : 'pointer', border: `1px solid ${recording ? '#ff453a' : 'var(--border)'}`, borderRadius: 10, width: 44, height: 44, flexShrink: 0, fontSize: 18,
-            background: recording ? '#ff453a' : 'var(--surface)', color: recording ? 'var(--text)' : 'var(--text2)' }}>
+          style={{ cursor: transcribing || busy ? 'default' : 'pointer', border: `1px solid ${recording ? 'var(--negativo)' : 'var(--border)'}`, borderRadius: 10, width: 44, height: 44, flexShrink: 0, fontSize: 18,
+            background: recording ? 'var(--negativo)' : 'var(--surface)', color: recording ? 'var(--text)' : 'var(--text2)' }}>
           {transcribing ? '…' : recording ? '⏺' : '🎤'}</button>
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}

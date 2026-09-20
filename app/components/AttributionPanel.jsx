@@ -150,12 +150,12 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
   const chartData = channels.slice(0, 8).map((c, i) => ({ name: (c.label || '').slice(0, 14), revenue: c.revenue, color: chColor(c.label, i) }))
   const maxRev = Math.max(...channels.map(c => c.revenue || 0), 1)
 
-  const Stat = ({ label, value, sub, tone, dd, lowerBetter, dataKey, sparkColor = '#2997ff' }) => (
+  const Stat = ({ label, value, sub, tone, dd, lowerBetter, dataKey }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div className="label" style={{ fontSize: 10, marginBottom: 8 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
         <div className="metric-value-sm" style={{ color: 'var(--text)' }}>{value}<DeltaBadge d={dd} lowerBetter={lowerBetter} /></div>
-        {dataKey && <Sparkline data={daily} dataKey={dataKey} color={sparkColor} />}
+        {dataKey && <Sparkline data={daily} dataKey={dataKey} />}
       </div>
       {sub && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 5 }}>{sub}</div>}
     </div>
@@ -186,14 +186,14 @@ export default function AttributionPanel({ preset = 'last_28d', reloadKey, live 
           <>
             {/* KPI Total Impact */}
             <div className="stagger-zoom m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, margin: '16px 0 20px' }}>
-              <Stat label={tr('attr.totalRevenue', null, 'Fatturato totale')} value={eur(t.revenue)} sub={`${nf(t.orders)} ${tr('kpi.ordersWord', null, 'ordini')}`} dd={d.revenue} dataKey="revenue" sparkColor="#22c55e" />
+              <Stat label={tr('attr.totalRevenue', null, 'Fatturato totale')} value={eur(t.revenue)} sub={`${nf(t.orders)} ${tr('kpi.ordersWord', null, 'ordini')}`} dd={d.revenue} dataKey="revenue" />
               <Stat
                 label={tr('attr.adSpendTotal', null, 'Spesa Ads (Meta + Google)')}
                 value={eur(t.adSpend)}
                 sub={tr('attr.spendSplit', { meta: eur(t.metaSpend), google: eur(t.googleSpend) }, `Meta ${eur(t.metaSpend)} · Google ${eur(t.googleSpend)}`)}
-                dd={d.adSpend} lowerBetter dataKey="spend" sparkColor="#2997ff" />
-              <Stat label={tr('attr.merBlended', null, 'MER blended')} value={`${(t.blendedMer || 0).toFixed(2)}x`} sub={tr('attr.revPerSpend', null, 'Fatturato / Ad Spend')} dd={d.blendedMer} dataKey="mer" sparkColor="#bf5af2" />
-              <Stat label={tr('attr.roasDeclared', null, 'ROAS Meta (dichiarato)')} value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={tr('attr.attributedPurchases', { n: nf(t.metaPurchases) }, `${nf(t.metaPurchases)} acquisti attribuiti`)} dd={d.metaRoas} dataKey="metaRoas" sparkColor="#64d2ff" />
+                dd={d.adSpend} lowerBetter dataKey="spend" />
+              <Stat label={tr('attr.merBlended', null, 'MER blended')} value={`${(t.blendedMer || 0).toFixed(2)}x`} sub={tr('attr.revPerSpend', null, 'Fatturato / Ad Spend')} dd={d.blendedMer} dataKey="mer" />
+              <Stat label={tr('attr.roasDeclared', null, 'ROAS Meta (dichiarato)')} value={`${(t.metaRoas || 0).toFixed(2)}x`} sub={tr('attr.attributedPurchases', { n: nf(t.metaPurchases) }, `${nf(t.metaPurchases)} acquisti attribuiti`)} dd={d.metaRoas} dataKey="metaRoas" />
             </div>
 
             {/* Paid vs Organico */}

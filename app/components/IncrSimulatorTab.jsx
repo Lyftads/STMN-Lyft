@@ -96,7 +96,7 @@ export default function IncrSimulatorTab() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('incr.simSub', null, 'Move the sliders to see the expected incremental revenue over the next weeks.')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {[2, 4, 8].map(w => (
-              <button key={w} onClick={() => setWeeks(w)} className="btn-glass" style={{ padding: '7px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: weeks === w ? 1 : 0.55, borderColor: weeks === w ? TEAL : undefined }}>
+              <button key={w} onClick={() => setWeeks(w)} className="btn-glass" style={{ padding: '7px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: weeks === w ? 1 : 0.55, borderColor: weeks === w ? 'var(--border3)' : undefined }}>
                 {t('incr.weeks', { n: w }, `${w} weeks`)}
               </button>
             ))}
@@ -110,7 +110,7 @@ export default function IncrSimulatorTab() {
           <>
             {/* Headline forecast */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, marginBottom: 18 }}>
-              <Big label={t('incr.expectedInc', { w: weeks }, `Expected incremental · ${weeks}w`)} value={eur(sim.incNew)} color={TEAL} />
+              <Big label={t('incr.expectedInc', { w: weeks }, `Expected incremental · ${weeks}w`)} value={eur(sim.incNew)} />
               <Big label={t('incr.vsCurrent', null, 'vs current plan')} value={`${sim.deltaInc >= 0 ? '+' : ''}${eur(sim.deltaInc)}`} color={sim.deltaInc >= 0 ? '#22c55e' : '#ef4444'} />
               <Big label={t('incr.plannedSpend', null, 'Planned spend')} value={eur(sim.spendNew)} />
               <Big label={t('incr.blendedIRoas', null, 'Blended incr. ROAS')} value={x(sim.spendNew > 0 ? sim.incNew / sim.spendNew : 0)} />
@@ -153,7 +153,7 @@ export default function IncrSimulatorTab() {
             </div>
 
             {advice && (
-              <div className="glass-card-static" style={{ padding: '14px 18px', borderRadius: 14, borderLeft: `4px solid ${TEAL}`, marginBottom: 14, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
+              <div className="glass-card-static" style={{ padding: '14px 18px', borderRadius: 14, borderLeft: '4px solid var(--border2)', marginBottom: 14, fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>
                 <Icon name="sparkle" size={14} /> <strong style={{ color: 'var(--text)' }}>{t('incr.suggestion', null, 'Suggestion')}:</strong> {t('incr.reallocate', { from: data.channelNames?.[advice.from.key] || advice.from.key, to: data.channelNames?.[advice.to.key] || advice.to.key, x: x(advice.to.mRoas) }, `${data.channelNames?.[advice.from.key] || advice.from.key} is saturated — the next euro returns more on ${data.channelNames?.[advice.to.key] || advice.to.key} (next-€ ${x(advice.to.mRoas)}). Consider shifting budget there.`)}
               </div>
             )}

@@ -83,12 +83,12 @@ export default function BudgetAdvisorPanel() {
         <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>{t('ba.subtitle')}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--positivo)', boxShadow: 'none' }} />
             LIVE
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <BmTimeframe value={tf} onChange={setTf} accent="#2997ff" disabled={loading} />
+            <BmTimeframe value={tf} onChange={setTf} accent="#8e8e98" disabled={loading} />
             {accounts.length > 1 && (
               <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
                 <option value="" style={{ background: 'var(--surface)' }}>{t('flt.allAccounts')}</option>

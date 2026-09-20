@@ -140,15 +140,15 @@ function FunnelChart({ funnel, delay = 0 }) {
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '6px 12px', borderRadius: 999,
-          background: 'rgba(48,209,88,0.12)',
-          border: '1px solid rgba(48,209,88,0.3)',
-          color: '#86efac',
+          background: 'var(--positivo-bg)',
+          border: '1px solid var(--positivo)',
+          color: 'var(--positivo)',
           fontSize: 10, fontWeight: 640, letterSpacing: '0.08em',
           textTransform: 'uppercase',
         }}>
           <span style={{
             width: 6, height: 6, borderRadius: 999,
-            background: '#22c55e',
+            background: 'var(--positivo)',
             boxShadow: 'none',
             animation: 'card-pulse 2s ease-in-out infinite',
           }} />
@@ -203,11 +203,11 @@ function FunnelChart({ funnel, delay = 0 }) {
               <div style={{ fontSize: 11.5, color: 'var(--text)', fontWeight: 680, marginBottom: 6, fontFamily: 'inherit' }}>{fmtN(s.value)}</div>
               <div className={isBottleneck ? 'imbuto-barra imbuto-barra-collo' : 'imbuto-barra'} style={{
                 width: '78%',
-                background: isBottleneck ? 'linear-gradient(180deg, #f59e0b 0%, #b45309 100%)' : `linear-gradient(180deg, ${ACCENT_GLOW} 0%, #1e3a8a 100%)`,
+                background: isBottleneck ? 'var(--attenzione)' : 'var(--text3)',
                 borderRadius: '8px 8px 0 0',
                 height: `${Math.max(pct, 2)}%`,
                 transition: 'height .8s cubic-bezier(0.16,1,0.3,1)',
-                boxShadow: isBottleneck ? '0 0 16px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' : `0 0 16px ${ACCENT_GLOW}33, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
               }} />
             </div>
           )
@@ -342,8 +342,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       }}>
         {/* Sinistra: badge Live (dove prima c'era il timeframe) */}
         <div className="gruppo-trasparente" style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--positivo)', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
@@ -426,8 +426,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
               }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
-                  background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
-                  color: 'var(--text)',
+                  background: 'var(--btn-primario)',
+                  color: 'var(--btn-primario-testo)',
                   display: 'grid', placeItems: 'center',
                   fontSize: 13, fontWeight: 680,
                   flexShrink: 0,

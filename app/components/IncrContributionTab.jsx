@@ -130,9 +130,9 @@ export default function IncrContributionTab() {
           <>
             {/* Riepilogo affidabile (totale) */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, margin: '2px 0 12px' }}>
-              <div className="glass-card" style={{ padding: '14px 16px', borderTop: `2px solid ${TEAL}` }}>
+              <div className="glass-card" style={{ padding: '14px 16px', borderTop: '2px solid var(--border2)' }}>
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('incr.totalIncremental', null, 'Total incremental · 150d')}</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: TEAL, marginTop: 4 }}>{eur(totalInc)}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{eur(totalInc)}</div>
                 <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{t('incr.ofRevenue', { p: pct(data.totalRevenue > 0 ? totalInc / data.totalRevenue : 0) }, `${pct(data.totalRevenue > 0 ? totalInc / data.totalRevenue : 0)} of revenue`)}</div>
               </div>
               <div className="glass-card" style={{ padding: '14px 16px' }}>
@@ -165,7 +165,7 @@ export default function IncrContributionTab() {
                   <span key={i} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-                    color: w.neutral ? 'var(--text3)' : w.ok ? '#86efac' : '#fbbf24',
+                    color: w.neutral ? 'var(--text3)' : w.ok ? 'var(--positivo)' : 'var(--attenzione)',
                     background: w.neutral ? 'rgba(255,255,255,0.04)' : w.ok ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)',
                     border: `1px solid ${w.neutral ? 'rgba(255,255,255,0.08)' : w.ok ? 'rgba(34,197,94,0.30)' : 'rgba(251,191,36,0.30)'}`,
                   }}>
@@ -189,7 +189,7 @@ export default function IncrContributionTab() {
                 const col = CH_COLOR[c.key] || TEAL
                 const honesty = c.incrementalVsAttributed
                 return (
-                  <div key={c.key} className="glass-card" style={{ padding: 18, borderTop: `2px solid ${col}` }}>
+                  <div key={c.key} className="glass-card" style={{ padding: 18, borderTop: '2px solid var(--border2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                       <span style={{ width: 9, height: 9, borderRadius: 999, background: col }} />
                       <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{data.channelNames?.[c.key] || c.key}</span>

@@ -12,11 +12,14 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Fetch verso /api/time-entries, /api/projects, /api/tasks.
 
 const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '10px 18px', color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const btnStop = { ...btn, background: 'linear-gradient(135deg,#ff375f,#ff5f7a)' }
+const input = { background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
+const btn = { background: 'var(--btn-primario)', border: 'none', borderRadius: 8, padding: '10px 18px', color: 'var(--btn-primario-testo)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
+const btnStop = { ...btn, background: 'var(--negativo)', color: '#fff' }
 const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
 const MUTED = '#8e8e9e'
+// Un andamento non e' un giudizio: lo sparkline e' grigio per tutti, come nel
+// fork. Sta qui come letterale perche' var() non vale negli attributi SVG.
+const GRIGIO_SPARK = '#8e8e98'
 
 function fmtHMS(sec) {
   sec = Math.max(0, Math.floor(sec || 0))
@@ -304,15 +307,15 @@ export default function TimeTrackingTab({ standalone = false }) {
   }
 
   const projName = (id) => projects.find(p => p.id === id)?.name
-  const projColor = (id) => projects.find(p => p.id === id)?.color || '#7b5bff'
+  const projColor = (id) => projects.find(p => p.id === id)?.color || 'var(--text3)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: standalone ? 'none' : 1000, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8, marginRight: 4 }}>
-          <button onClick={winClose} title={t('lt.winClose', null, 'Close')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
-          <button onClick={winMin} title={t('lt.winMin', null, 'Minimize (exit full screen)')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
-          <button onClick={winFull} title={t('lt.winFull', null, 'Full screen')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
+          <button onClick={winClose} title={t('lt.winClose', null, 'Close')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
+          <button onClick={winMin} title={t('lt.winMin', null, 'Minimize (exit full screen)')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
+          <button onClick={winFull} title={t('lt.winFull', null, 'Full screen')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
         </div>
         <LyftimerLogo size={34} />
         <div>
@@ -329,13 +332,13 @@ export default function TimeTrackingTab({ standalone = false }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 18 }}>
             <Avatar name={me?.name} url={me?.avatar} size={46} />
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff375f', boxShadow: '0 0 0 0 rgba(255,55,95,.6)', animation: 'lt-pulse 1.4s infinite' }} />
+              <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--positivo)', boxShadow: '0 0 0 0 rgba(127,127,127,.6)', animation: 'lt-pulse 1.4s infinite' }} />
               <span style={{ fontSize: 40, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 1 }}>{fmtHMS(runningSec)}</span>
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{running.description || t('lt.noDescription', null, 'No description')}</div>
               <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>
-                {running.project_name ? <span style={{ color: running.project_color || '#7b5bff' }}>● {running.project_name}</span> : t('lt.noProject', null, 'No project')}
+                {running.project_name ? <span style={{ color: running.project_color || 'var(--text3)' }}>● {running.project_name}</span> : t('lt.noProject', null, 'No project')}
                 {running.task_title ? ` · ${running.task_title}` : ''} · {t('lt.startedAt', { time: timeOf(running.started_at) }, 'started {time}')}
               </div>
             </div>
@@ -354,7 +357,7 @@ export default function TimeTrackingTab({ standalone = false }) {
       {/* Popup avvio: descrizione dettagliata + progetto + task (anche manuale) */}
       {showStart && (
         <div onClick={() => setShowStart(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 100%)', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 16, padding: 22, boxShadow: '0 24px 70px rgba(0,0,0,0.6)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 100%)', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 16, padding: 22, boxShadow: '0 24px 70px rgba(0,0,0,0.6)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <LyftimerLogo size={28} />
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, flex: 1 }}>{t('lt.startNewTimer', null, 'Start a new timer')}</h3>
@@ -383,7 +386,7 @@ export default function TimeTrackingTab({ standalone = false }) {
             </datalist>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.billable !== false} onChange={e => setForm({ ...form, billable: e.target.checked })} style={{ width: 16, height: 16, accentColor: '#7b5bff' }} />
+              <input type="checkbox" checked={form.billable !== false} onChange={e => setForm({ ...form, billable: e.target.checked })} style={{ width: 16, height: 16, accentColor: 'var(--text)' }} />
               {t('lt.billable', null, 'Billable')} <span style={{ color: MUTED, fontSize: 12 }}>{t('lt.billableHint', null, '(counts toward cost/billing)')}</span>
             </label>
 
@@ -402,9 +405,9 @@ export default function TimeTrackingTab({ standalone = false }) {
       {/* Card riepilogo con sparkline */}
       {section === 'dashboard' && summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-          <StatCard label={t('lt.workToday', null, 'Work today')} value={fmtDur((summary.todaySec || 0) + liveTodaySec)} spark={liveSpark} accent="#ff375f" />
-          <StatCard label={t('lt.workWeek', null, 'Work this week')} value={fmtDur((summary.weekSec || 0) + liveTodaySec)} spark={liveSpark} accent="#5b8bff" />
-          <StatCard label={t('lt.workProjects', null, 'Work across projects')} value={fmtDur((summary.total7 || 0) + liveTodaySec)} sub={`${(summary.projects || []).length} ${(summary.projects || []).length === 1 ? t('lt.projectWord', null, 'project') : t('lt.projectsWord', null, 'projects')} · ${t('lt.sevenDays', null, '7 days')}`} spark={liveSpark} accent="#30d158" />
+          <StatCard label={t('lt.workToday', null, 'Work today')} value={fmtDur((summary.todaySec || 0) + liveTodaySec)} spark={liveSpark}  />
+          <StatCard label={t('lt.workWeek', null, 'Work this week')} value={fmtDur((summary.weekSec || 0) + liveTodaySec)} spark={liveSpark}  />
+          <StatCard label={t('lt.workProjects', null, 'Work across projects')} value={fmtDur((summary.total7 || 0) + liveTodaySec)} sub={`${(summary.projects || []).length} ${(summary.projects || []).length === 1 ? t('lt.projectWord', null, 'project') : t('lt.projectsWord', null, 'projects')} · ${t('lt.sevenDays', null, '7 days')}`} spark={liveSpark}  />
         </div>
       )}
 
@@ -423,8 +426,8 @@ export default function TimeTrackingTab({ standalone = false }) {
                   <Avatar name={m.name} url={m.avatar} size={36} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                    <div style={{ height: 5, background: '#14141d', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.round((m.weekSec / max) * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                    <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.round((m.weekSec / max) * 100)}%`, height: '100%', background: 'var(--text3)' }} />
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -446,11 +449,11 @@ export default function TimeTrackingTab({ standalone = false }) {
               const max = Math.max(1, ...recent.map(e => e.duration_seconds || 0))
               return recent.map((e, i) => (
                 <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: i < recent.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: e.project_color || '#3d3d4c', flexShrink: 0 }} />
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: e.project_color || 'var(--border2)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || e.task_title || e.project_name || t('lt.activity', null, 'Activity')}</div>
-                    <div style={{ height: 5, background: '#14141d', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.round(((e.duration_seconds || 0) / max) * 100)}%`, height: '100%', background: e.project_color || '#5b8bff' }} />
+                    <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.round(((e.duration_seconds || 0) / max) * 100)}%`, height: '100%', background: e.project_color || 'var(--text3)' }} />
                     </div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.ended_at ? fmtDur(e.duration_seconds) : '▶'}</div>
@@ -464,15 +467,15 @@ export default function TimeTrackingTab({ standalone = false }) {
       {/* Filtri + totali */}
       {(section === 'timesheets' || section === 'activity') && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
+        <div style={{ display: 'flex', gap: 6, background: 'var(--surface2)', borderRadius: 10, padding: 4 }}>
           {[['today', t('lt.tabToday', null, 'Today')], ['week', t('lt.tabWeek', null, 'Week')], ['all', t('lt.tabAll', null, 'All')]].map(([id, lbl]) => (
-            <button key={id} onClick={() => setPeriod(id)} style={{ ...btnGhost, border: 'none', background: period === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: period === id ? 700 : 400 }}>{lbl}</button>
+            <button key={id} onClick={() => setPeriod(id)} style={{ ...btnGhost, border: 'none', background: period === id ? 'var(--btn-primario)' : 'transparent', fontWeight: period === id ? 700 : 400 }}>{lbl}</button>
           ))}
         </div>
         {me?.isAdmin && (
-          <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
+          <div style={{ display: 'flex', gap: 6, background: 'var(--surface2)', borderRadius: 10, padding: 4 }}>
             {[['me', t('lt.onlyMe', null, 'Only me')], ['all', t('lt.wholeTeam', null, 'Whole team')]].map(([id, lbl]) => (
-              <button key={id} onClick={() => setScope(id)} style={{ ...btnGhost, border: 'none', background: scope === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: scope === id ? 700 : 400 }}>{lbl}</button>
+              <button key={id} onClick={() => setScope(id)} style={{ ...btnGhost, border: 'none', background: scope === id ? 'var(--btn-primario)' : 'transparent', fontWeight: scope === id ? 700 : 400 }}>{lbl}</button>
             ))}
           </div>
         )}
@@ -493,10 +496,10 @@ export default function TimeTrackingTab({ standalone = false }) {
               const pct = totalSec > 0 ? Math.round((r.sec / (totalSec || 1)) * 100) : 0
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: r.color || '#7b5bff', flexShrink: 0 }} />
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: r.color || 'var(--text3)', flexShrink: 0 }} />
                   <span style={{ width: 160, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                  <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: r.color || '#7b5bff' }} />
+                  <div style={{ flex: 1, height: 8, background: 'var(--surface2)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: r.color || 'var(--text3)' }} />
                   </div>
                   <span style={{ width: 70, textAlign: 'right', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(r.sec)}</span>
                 </div>
@@ -527,10 +530,10 @@ export default function TimeTrackingTab({ standalone = false }) {
                   const pct = m.sec > 0 ? Math.round((p.sec / m.sec) * 100) : 0
                   return (
                     <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.color || '#7b5bff', flexShrink: 0 }} />
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.color || 'var(--text3)', flexShrink: 0 }} />
                       <span style={{ width: 150, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      <div style={{ flex: 1, height: 6, background: '#14141d', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', background: p.color || '#7b5bff' }} />
+                      <div style={{ flex: 1, height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: p.color || 'var(--text3)' }} />
                       </div>
                       <span style={{ width: 66, textAlign: 'right', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(p.sec)}</span>
                     </div>
@@ -558,11 +561,11 @@ export default function TimeTrackingTab({ standalone = false }) {
             </div>
             {g.items.map(e => (
               <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.project_color || '#3d3d4c', flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.project_color || 'var(--border2)', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || t('lt.noDescription', null, 'No description')}</div>
                   <div style={{ color: MUTED, fontSize: 12 }}>
-                    {scope === 'all' && me?.isAdmin && e.member_name ? <b style={{ color: '#b9b9c8' }}>{e.member_name} · </b> : ''}
+                    {scope === 'all' && me?.isAdmin && e.member_name ? <b style={{ color: 'var(--text3)' }}>{e.member_name} · </b> : ''}
                     {e.project_name || t('lt.noProject', null, 'No project')}{e.task_title ? ` · ${e.task_title}` : ''}
                   </div>
                 </div>
@@ -607,11 +610,11 @@ export default function TimeTrackingTab({ standalone = false }) {
             const tot = Math.max(1, summary.projects.reduce((s, p) => s + (p.sec || 0), 0))
             return summary.projects.map((p, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < summary.projects.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: p.color || '#7b5bff', flexShrink: 0 }} />
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: p.color || 'var(--text3)', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                  <div style={{ height: 6, background: '#14141d', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.round((p.sec / tot) * 100)}%`, height: '100%', background: p.color || '#7b5bff' }} />
+                  <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((p.sec / tot) * 100)}%`, height: '100%', background: p.color || 'var(--text3)' }} />
                   </div>
                 </div>
                 <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDur(p.sec)}</span>
@@ -635,9 +638,9 @@ export default function TimeTrackingTab({ standalone = false }) {
               <input type="date" value={range.from} onChange={e => setRange({ ...range, from: e.target.value })} style={{ ...input, width: 'auto' }} />
               <label style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>{t('lt.toDate', null, 'to')}</label>
               <input type="date" value={range.to} onChange={e => setRange({ ...range, to: e.target.value })} style={{ ...input, width: 'auto' }} />
-              <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
+              <div style={{ display: 'flex', gap: 6, background: 'var(--surface2)', borderRadius: 10, padding: 4 }}>
                 {[['project', t('lt.project', null, 'Project')], ['person', t('lt.person', null, 'Person')], ['task', t('lt.task', null, 'Task')]].map(([id, lbl]) => (
-                  <button key={id} onClick={() => setGroupBy(id)} style={{ ...btnGhost, border: 'none', background: groupBy === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: groupBy === id ? 700 : 400 }}>{lbl}</button>
+                  <button key={id} onClick={() => setGroupBy(id)} style={{ ...btnGhost, border: 'none', background: groupBy === id ? 'var(--btn-primario)' : 'transparent', fontWeight: groupBy === id ? 700 : 400 }}>{lbl}</button>
                 ))}
               </div>
               <div style={{ flex: 1 }} />
@@ -700,8 +703,8 @@ export default function TimeTrackingTab({ standalone = false }) {
                           <Avatar name={g.label} size={32} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</div>
-                            <div style={{ height: 6, background: '#14141d', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
-                              <div style={{ width: `${ptot ? Math.round(g.sec / ptot * 100) : 0}%`, height: '100%', background: 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                            <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 3, marginTop: 5, overflow: 'hidden' }}>
+                              <div style={{ width: `${ptot ? Math.round(g.sec / ptot * 100) : 0}%`, height: '100%', background: 'var(--text3)' }} />
                             </div>
                           </div>
                           <span style={{ color: MUTED, fontSize: 13 }}>{t('lt.entriesCount', { count: g.count }, '{count} entries')}</span>
@@ -735,8 +738,8 @@ export default function TimeTrackingTab({ standalone = false }) {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-              <StatCard label={t('lt.totalHoursTracked', null, 'Total hours tracked')} value={fmtDur(totSec)} accent="#5b8bff" spark={[]} />
-              <StatCard label={t('lt.totalCost', null, 'Total cost')} value={euro(totCost)} sub={t('lt.hoursTimesRate', null, 'hours × hourly rate')} accent="#30d158" spark={[]} />
+              <StatCard label={t('lt.totalHoursTracked', null, 'Total hours tracked')} value={fmtDur(totSec)}  spark={[]} />
+              <StatCard label={t('lt.totalCost', null, 'Total cost')} value={euro(totCost)} sub={t('lt.hoursTimesRate', null, 'hours × hourly rate')}  spark={[]} />
             </div>
 
             {/* Budget per progetto */}
@@ -750,7 +753,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                 return (
                   <div key={r.id} style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color || '#7b5bff', flexShrink: 0 }} />
+                      <span style={{ width: 11, height: 11, borderRadius: '50%', background: r.color || 'var(--text3)', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, fontSize: 14, flex: 1, minWidth: 120 }}>{r.name}</span>
                       <span style={{ fontSize: 13, color: MUTED }}>{t('lt.spent', null, 'spent')} <b style={{ color: 'var(--text)' }}>{fmtDur(r.sec)}</b>{r.anyRate ? ` · ${euro(r.cost)}` : ''}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
@@ -761,10 +764,10 @@ export default function TimeTrackingTab({ standalone = false }) {
                     </div>
                     {(r.budget_hours || r.budget_amount) ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                        <div style={{ flex: 1, height: 8, background: '#14141d', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: over ? 'linear-gradient(90deg,#ff375f,#ff5f7a)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                        <div style={{ flex: 1, height: 8, background: 'var(--surface2)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: over ? 'var(--negativo)' : 'var(--text3)' }} />
                         </div>
-                        <span style={{ fontSize: 12, color: over ? '#ff5f7a' : MUTED, fontWeight: 700, width: 90, textAlign: 'right' }}>{pct}%{over ? ` · ${t('lt.overBudget', null, 'over budget')}` : ''}</span>
+                        <span style={{ fontSize: 12, color: over ? 'var(--negativo)' : MUTED, fontWeight: 700, width: 90, textAlign: 'right' }}>{pct}%{over ? ` · ${t('lt.overBudget', null, 'over budget')}` : ''}</span>
                       </div>
                     ) : null}
                   </div>
@@ -797,7 +800,7 @@ export default function TimeTrackingTab({ standalone = false }) {
       {section === 'approvals' && (() => {
         const wEnd = new Date(approveWeek + 'T00:00:00'); wEnd.setDate(wEnd.getDate() + 6)
         const fmtD = d => d.toLocaleDateString(intlLocale, { day: 'numeric', month: 'short' })
-        const badge = (st) => st === 'approved' ? { t: t('lt.approved', null, 'Approved'), c: '#30d158' } : st === 'rejected' ? { t: t('lt.rejected', null, 'Rejected'), c: '#ff375f' } : { t: t('lt.pending', null, 'Pending'), c: '#ff9f0a' }
+        const badge = (st) => st === 'approved' ? { t: t('lt.approved', null, 'Approved'), c: 'var(--positivo)' } : st === 'rejected' ? { t: t('lt.rejected', null, 'Rejected'), c: 'var(--negativo)' } : { t: t('lt.pending', null, 'Pending'), c: 'var(--attenzione)' }
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -826,10 +829,10 @@ export default function TimeTrackingTab({ standalone = false }) {
                         <div style={{ display: 'flex', gap: 6 }}>
                           {st === 'approved'
                             ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ {t('lt.undo', null, 'Undo')}</button>
-                            : <button style={{ ...btn, padding: '7px 12px', background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setApproval(r.id, 'approved', r.sec)}><Icon name="check" size={13} /> {t('lt.approve', null, 'Approve')}</button>}
+                            : <button style={{ ...btn, padding: '7px 12px', background: 'var(--btn-primario)' }} onClick={() => setApproval(r.id, 'approved', r.sec)}><Icon name="check" size={13} /> {t('lt.approve', null, 'Approve')}</button>}
                           {st === 'rejected'
                             ? <button style={btnGhost} onClick={() => resetApproval(r.id)}>↩ {t('lt.undo', null, 'Undo')}</button>
-                            : <button style={{ ...btnGhost, color: '#ff8095', borderColor: 'rgba(255,55,95,0.4)' }} onClick={() => setApproval(r.id, 'rejected', r.sec)}><Icon name="close" size={13} /> {t('lt.reject', null, 'Reject')}</button>}
+                            : <button style={{ ...btnGhost, color: 'var(--negativo)', borderColor: 'var(--border3)' }} onClick={() => setApproval(r.id, 'rejected', r.sec)}><Icon name="close" size={13} /> {t('lt.reject', null, 'Reject')}</button>}
                         </div>
                       )}
                     </div>
@@ -843,8 +846,8 @@ export default function TimeTrackingTab({ standalone = false }) {
       {/* Presenze & ferie */}
       {section === 'attendance' && (() => {
         const isAdmin = !!me?.isAdmin
-        const tBadge = ty => ty === 'permesso' ? { c: '#bf5af2', t: t('lt.permit', null, 'Leave') } : ty === 'malattia' ? { c: '#ff9f0a', t: t('lt.sick', null, 'Sick leave') } : { c: '#5b8bff', t: t('lt.vacation', null, 'Vacation') }
-        const sBadge = s => s === 'approved' ? { c: '#30d158', t: t('lt.approved', null, 'Approved') } : s === 'rejected' ? { c: '#ff375f', t: t('lt.rejected', null, 'Rejected') } : { c: '#ff9f0a', t: t('lt.pending', null, 'Pending') }
+        const tBadge = ty => ty === 'permesso' ? { c: 'var(--text2)', t: t('lt.permit', null, 'Leave') } : ty === 'malattia' ? { c: 'var(--attenzione)', t: t('lt.sick', null, 'Sick leave') } : { c: 'var(--text2)', t: t('lt.vacation', null, 'Vacation') }
+        const sBadge = s => s === 'approved' ? { c: 'var(--positivo)', t: t('lt.approved', null, 'Approved') } : s === 'rejected' ? { c: 'var(--negativo)', t: t('lt.rejected', null, 'Rejected') } : { c: 'var(--attenzione)', t: t('lt.pending', null, 'Pending') }
         const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString(intlLocale, { day: 'numeric', month: 'short', year: 'numeric' })
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -861,7 +864,7 @@ export default function TimeTrackingTab({ standalone = false }) {
                     <Avatar name={r.name} url={r.avatar} size={34} online={r.running ? true : undefined} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                      <div style={{ color: MUTED, fontSize: 12 }}>{t('lt.checkIn', null, 'in')} {timeOf(r.firstIn)} · {t('lt.checkOut', null, 'out')} {r.running ? <span style={{ color: '#30d158' }}>{t('lt.inProgress', null, 'in progress')}</span> : (r.lastOut ? timeOf(r.lastOut) : '—')}</div>
+                      <div style={{ color: MUTED, fontSize: 12 }}>{t('lt.checkIn', null, 'in')} {timeOf(r.firstIn)} · {t('lt.checkOut', null, 'out')} {r.running ? <span style={{ color: 'var(--positivo)' }}>{t('lt.inProgress', null, 'in progress')}</span> : (r.lastOut ? timeOf(r.lastOut) : '—')}</div>
                     </div>
                     <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmtDur(r.sec)}</span>
                   </div>
@@ -886,8 +889,8 @@ export default function TimeTrackingTab({ standalone = false }) {
                         {o.note && <div style={{ color: MUTED, fontSize: 12 }}>{o.note}</div>}
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 700, color: sb.c, background: sb.c + '22', padding: '4px 10px', borderRadius: 20 }}>{sb.t}</span>
-                      {isAdmin && o.status !== 'approved' && <button style={{ ...btn, padding: '6px 11px', fontSize: 12, background: 'linear-gradient(135deg,#30d158,#28b14c)' }} onClick={() => setOffStatus(o.id, 'approved')}><Icon name="check" size={13} /></button>}
-                      {isAdmin && o.status !== 'rejected' && <button style={{ ...btnGhost, padding: '6px 11px', fontSize: 12, color: '#ff8095' }} onClick={() => setOffStatus(o.id, 'rejected')}><Icon name="close" size={13} /></button>}
+                      {isAdmin && o.status !== 'approved' && <button style={{ ...btn, padding: '6px 11px', fontSize: 12, background: 'var(--btn-primario)' }} onClick={() => setOffStatus(o.id, 'approved')}><Icon name="check" size={13} /></button>}
+                      {isAdmin && o.status !== 'rejected' && <button style={{ ...btnGhost, padding: '6px 11px', fontSize: 12, color: 'var(--negativo)' }} onClick={() => setOffStatus(o.id, 'rejected')}><Icon name="close" size={13} /></button>}
                       <button style={{ ...btnGhost, padding: '6px 9px', fontSize: 12 }} onClick={() => delTimeOff(o.id)}><Icon name="trash" size={13} /></button>
                     </div>
                   )
@@ -897,7 +900,7 @@ export default function TimeTrackingTab({ standalone = false }) {
             {/* Modal richiesta */}
             {showOff && (
               <div onClick={() => setShowOff(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px,100%)', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 16, padding: 22 }}>
+                <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px,100%)', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 16, padding: 22 }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, flex: 1 }}>{t('lt.requestAbsence', null, 'Request absence')}</h3>
                     <button onClick={() => setShowOff(false)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
@@ -969,8 +972,8 @@ function LyftSidebar({ section, setSection }) {
             display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
             padding: '10px 12px', marginBottom: 2, borderRadius: 9, border: 'none', cursor: 'pointer',
             fontFamily: 'Barlow', fontSize: 14, fontWeight: active ? 700 : 500,
-            background: active ? 'linear-gradient(135deg,rgba(123,91,255,0.22),rgba(91,139,255,0.22))' : 'transparent',
-            color: active ? 'var(--text)' : '#b9b9c8',
+            background: active ? 'var(--glass2)' : 'transparent',
+            color: active ? 'var(--text)' : 'var(--text3)',
           }}
             onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
             onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
@@ -984,7 +987,7 @@ function LyftSidebar({ section, setSection }) {
 }
 
 function SideIcon({ name, active }) {
-  const p = { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: active ? '#7b9bff' : 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  const p = { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: active ? '#f5f5f5' : 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
   switch (name) {
     case 'grid': return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
     case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
@@ -1004,7 +1007,7 @@ function reportGroups(entries, groupBy) {
   const m = {}
   for (const e of entries) {
     const label = groupBy === 'project' ? (e.project_name || _T('lt.noProjectLabel', null, 'No project')) : groupBy === 'person' ? (e.member_name || '—') : (e.task_title || _T('lt.noTaskLabel', null, 'No task'))
-    const color = groupBy === 'project' ? (e.project_color || '#7b5bff') : '#7b5bff'
+    const color = groupBy === 'project' ? (e.project_color || 'var(--text3)') : 'var(--text3)'
     if (!m[label]) m[label] = { label, color, sec: 0, count: 0 }
     m[label].sec += (e.duration_seconds || 0); m[label].count++
   }
@@ -1049,7 +1052,7 @@ function DailyBars({ days = [] }) {
       {show.map((d, i) => (
         <div key={i} title={`${d.label}: ${fmtDur(d.sec)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
           <div style={{ width: '100%', height: 100, display: 'flex', alignItems: 'flex-end' }}>
-            <div style={{ width: '100%', height: `${Math.round((d.sec / max) * 100)}%`, minHeight: d.sec > 0 ? 3 : 0, background: 'linear-gradient(180deg,#7b5bff,#5b8bff)', borderRadius: '3px 3px 0 0' }} />
+            <div style={{ width: '100%', height: `${Math.round((d.sec / max) * 100)}%`, minHeight: d.sec > 0 ? 3 : 0, background: 'var(--text3)', borderRadius: '3px 3px 0 0' }} />
           </div>
           {show.length <= 16 && <span style={{ fontSize: 9, color: '#8e8e9e', whiteSpace: 'nowrap' }}>{d.label}</span>}
         </div>
@@ -1059,13 +1062,13 @@ function DailyBars({ days = [] }) {
 }
 
 // Card riepilogo: etichetta, valore grande, sparkline.
-function StatCard({ label, value, sub, spark, accent = '#5b8bff' }) {
+function StatCard({ label, value, sub, spark }) {
   return (
     <div style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ color: MUTED, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-        <Sparkline data={spark} accent={accent} />
+        <Sparkline data={spark} />
       </div>
       {sub && <div style={{ color: MUTED, fontSize: 12 }}>{sub}</div>}
     </div>
@@ -1073,7 +1076,7 @@ function StatCard({ label, value, sub, spark, accent = '#5b8bff' }) {
 }
 
 // Sparkline SVG: polilinea + area sfumata sugli ultimi N valori.
-function Sparkline({ data = [], accent = '#5b8bff', w = 96, h = 32 }) {
+function Sparkline({ data = [], accent = GRIGIO_SPARK, w = 96, h = 32 }) {
   if (!data || data.length < 2) return <svg width={w} height={h} />
   const max = Math.max(1, ...data)
   const step = w / (data.length - 1)

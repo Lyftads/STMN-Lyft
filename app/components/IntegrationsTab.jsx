@@ -96,7 +96,7 @@ function ScopeBadge({ scope }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 640, padding: '3px 8px', borderRadius: 8,
-      background: '#8b5cf615', color: 'var(--text2)',
+      background: 'var(--glass2)', color: 'var(--text2)',
       textTransform: 'uppercase', letterSpacing: '.04em',
     }}>
       {scope === 'workspace' ? t('integrations.scopeWorkspace', null, 'Workspace-level') : t('integrations.scopeUser', null, 'User-level')}
@@ -106,17 +106,17 @@ function ScopeBadge({ scope }) {
 
 function CategoryBadge({ category }) {
   const colors = {
-    Commerce: '#22c55e',
-    Advertising: '#3b82f6',
-    'Email Marketing': '#8b5cf6',
-    Analytics: '#f59e0b',
-    AI: '#ec4899',
+    Commerce: 'var(--text3)',
+    Advertising: 'var(--text3)',
+    'Email Marketing': 'var(--text3)',
+    Analytics: 'var(--text3)',
+    AI: 'var(--text3)',
   }
-  const color = colors[category] || '#949494'
+  const color = colors[category] || 'var(--text3)'
   return (
     <span style={{
       fontSize: 10, fontWeight: 640, padding: '3px 8px', borderRadius: 8,
-      background: `${color}18`, color,
+      background: 'var(--glass2)', color,
       textTransform: 'uppercase', letterSpacing: '.04em',
     }}>
       {category}

@@ -23,10 +23,10 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const PERIMETRI = [
   { id: 'all', chiave: 'cor.perimetroTutti', fallback: 'Tutti i perimetri', colore: 'var(--text2)' },
-  { id: 'ITALIA', chiave: 'cor.perimetroItalia', fallback: 'Italia', colore: '#22c55e' },
-  { id: 'OSS', chiave: 'cor.perimetroOss', fallback: 'IVA OSS', colore: '#3b82f6' },
-  { id: 'EXTRA_UE', chiave: 'cor.perimetroExtra', fallback: 'Extra-UE', colore: '#a78bfa' },
-  { id: 'SENZA_PAESE', chiave: 'cor.perimetroSenza', fallback: 'Da verificare', colore: '#f59e0b' },
+  { id: 'ITALIA', chiave: 'cor.perimetroItalia', fallback: 'Italia', colore: 'var(--text2)' },
+  { id: 'OSS', chiave: 'cor.perimetroOss', fallback: 'IVA OSS', colore: 'var(--text2)' },
+  { id: 'EXTRA_UE', chiave: 'cor.perimetroExtra', fallback: 'Extra-UE', colore: 'var(--text2)' },
+  { id: 'SENZA_PAESE', chiave: 'cor.perimetroSenza', fallback: 'Da verificare', colore: 'var(--text2)' },
 ]
 
 const VISTE = [
@@ -154,7 +154,7 @@ export default function CorrispettiviTab() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => carica(mese, true)} disabled={caricamento} gira={caricamento} />
           <a className="riga-tocco" href={`/api/corrispettivi/export?mese=${mese}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'linear-gradient(135deg,#0ea5e9,#0369a1)', border: 'none', borderRadius: 12, padding: '10px 16px', color: '#fff', fontSize: 13, fontWeight: 640, textDecoration: 'none' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--btn-primario)', border: 'none', borderRadius: 12, padding: '10px 16px', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640, textDecoration: 'none' }}>
             <Icon name="download" size={14} />
             {t('cor.export', null, 'Esporta XLSX')}
           </a>
@@ -232,7 +232,7 @@ export default function CorrispettiviTab() {
         )}
       </div>
 
-      {errore && <div style={{ ...pannello, color: '#fca5a5', fontWeight: 600 }}>{errore}</div>}
+      {errore && <div style={{ ...pannello, color: 'var(--negativo)', fontWeight: 600 }}>{errore}</div>}
 
       {dati && (
         <>
@@ -271,9 +271,9 @@ export default function CorrispettiviTab() {
 
             {/* KPI */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 1, marginTop: 16, background: 'var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <Kpi etichetta={t('cor.kpiGross', null, 'Lordo fiscale')} valore={euro(tot.lordo)} colore="#22c55e" />
+              <Kpi etichetta={t('cor.kpiGross', null, 'Lordo fiscale')} valore={euro(tot.lordo)} colore="var(--text)" />
               <Kpi etichetta={t('cor.kpiTaxable', null, 'Imponibile')} valore={euro(tot.imponibile)} colore="var(--text)" />
-              <Kpi etichetta={t('cor.kpiVat', null, 'IVA')} valore={euro(tot.iva)} colore="#3b82f6" />
+              <Kpi etichetta={t('cor.kpiVat', null, 'IVA')} valore={euro(tot.iva)} colore="var(--text)" />
               <Kpi etichetta={t('cor.kpiReturns', null, 'Resi e rimborsi')} valore={euro(tot.resi)} colore={tot.resi < 0 ? '#ef4444' : 'var(--text)'} />
               <Kpi etichetta={t('cor.kpiOrders', null, 'Ordini')} valore={tot.ordini.toLocaleString('it-IT', { useGrouping: 'always' })} colore="var(--text)" />
             </div>
@@ -500,10 +500,10 @@ export default function CorrispettiviTab() {
             {dati.gift?.leggibili && dati.gift?.riscattiLeggibili && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1, marginTop: 12, background: 'var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 <Kpi etichetta={t('cor.chainReport', null, 'Vendite da report')} valore={euro(dati.totali.lordo)} colore="var(--text)" />
-                <Kpi etichetta={t('cor.chainIssued', null, '+ Gift card emesse')} valore={euro(dati.gift.emesse)} colore={dati.gift.emesse ? '#22c55e' : 'var(--text3)'} />
-                <Kpi etichetta={t('cor.chainRedeemed', null, '- Riscatti neutralizzati')} valore={euro(dati.gift.riscatti)} colore={dati.gift.riscatti ? '#ef4444' : 'var(--text3)'} />
-                <Kpi etichetta={t('cor.chainCredited', null, '+ Riaccrediti')} valore={euro(dati.gift.accrediti)} colore={dati.gift.accrediti ? '#22c55e' : 'var(--text3)'} />
-                <Kpi etichetta={t('cor.chainFinal', null, '= Corrispettivo fiscale')} valore={euro(dati.corrispettivoFiscale)} colore="#22c55e" />
+                <Kpi etichetta={t('cor.chainIssued', null, '+ Gift card emesse')} valore={euro(dati.gift.emesse)} colore={dati.gift.emesse ? 'var(--text)' : 'var(--text3)'} />
+                <Kpi etichetta={t('cor.chainRedeemed', null, '- Riscatti neutralizzati')} valore={euro(dati.gift.riscatti)} colore={dati.gift.riscatti ? 'var(--text)' : 'var(--text3)'} />
+                <Kpi etichetta={t('cor.chainCredited', null, '+ Riaccrediti')} valore={euro(dati.gift.accrediti)} colore={dati.gift.accrediti ? 'var(--text)' : 'var(--text3)'} />
+                <Kpi etichetta={t('cor.chainFinal', null, '= Corrispettivo fiscale')} valore={euro(dati.corrispettivoFiscale)} colore="var(--text)" />
               </div>
             )}
 
@@ -651,7 +651,7 @@ function Istogramma({ dati, euro }) {
       {dati.map((d, i) => (
         <div key={i} title={`${d.etichetta}: ${euro(d.valore)}`}
           style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-          <div style={{ height: `${Math.max(2, (d.valore / massimo) * 100)}%`, background: 'linear-gradient(180deg,#8b5cf6,#6d28d9)', borderRadius: '3px 3px 0 0' }} />
+          <div style={{ height: `${Math.max(2, (d.valore / massimo) * 100)}%`, background: 'var(--text3)', borderRadius: '3px 3px 0 0' }} />
         </div>
       ))}
     </div>

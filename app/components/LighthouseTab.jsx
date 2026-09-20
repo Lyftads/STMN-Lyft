@@ -73,13 +73,13 @@ export default function LighthouseTab() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
           <PlatformBadges sources={['meta']} size={26} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--positivo)', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe value={tf} onChange={setTf} accent="#fbbf24" disabled={loading} />
+          <BmTimeframe value={tf} onChange={setTf} accent="#8e8e98" disabled={loading} />
           <button
             type="button" onClick={() => load(true)} disabled={loading}
             style={{
@@ -126,7 +126,7 @@ export default function LighthouseTab() {
       {data?.warning && <div className="glass-card-static" style={{ padding: 18, color: '#fbbf24', fontSize: 13 }}>{data.warning}</div>}
 
       {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
+        <div style={{ color: 'var(--text3)', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
           {t('lighthouse.scanning', null, 'Scanning anomalies…')}
         </div>
       )}
@@ -165,7 +165,7 @@ function SummaryPill({ active, onClick, label, count, color }) {
       {label}
       <span style={{
         background: active ? color : 'rgba(255,255,255,0.06)',
-        color: active ? '#0a0a14' : 'var(--text3)',
+        color: active ? 'var(--bg)' : 'var(--text3)',
         padding: '1px 7px', borderRadius: 999,
         fontSize: 11, fontWeight: 800,
       }}>
@@ -198,7 +198,7 @@ function ProposalCard({ proposal }) {
         <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{proposal.title}</span>
         <span style={{
           fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em',
-          background: c.chip, color: '#0a0a14',
+          background: c.chip, color: 'var(--bg)',
           padding: '3px 8px', borderRadius: 5,
         }}>
           {t(PRIO_TKEY[proposal.priority] || PRIO_TKEY.low, null, PRIORITY_LABEL[proposal.priority])}

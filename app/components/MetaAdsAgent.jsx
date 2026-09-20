@@ -119,7 +119,7 @@ export default function MetaAdsAgent({ data, preset, config }) {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: `linear-gradient(140deg, ${cfg.accent} 0%, ${cfg.accent2} 100%)`,
+            background: 'var(--surface)',
             border: '2px solid var(--border3)',
             cursor: 'pointer',
             zIndex: 50,
@@ -143,8 +143,8 @@ export default function MetaAdsAgent({ data, preset, config }) {
             width: 14,
             height: 14,
             borderRadius: '50%',
-            background: '#30d158',
-            border: '2.5px solid #0a0a14',
+            background: 'var(--positivo)',
+            border: '2.5px solid var(--bg)',
           }} />
         </button>
       )}
@@ -170,7 +170,7 @@ export default function MetaAdsAgent({ data, preset, config }) {
           right: 0,
           height: '100vh',
           width: 'min(460px, 100vw)',
-          background: 'rgba(8,8,15,0.85)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(40px) saturate(1.8)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
           borderLeft: '1.5px solid var(--border)',
@@ -193,9 +193,9 @@ export default function MetaAdsAgent({ data, preset, config }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
-              background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`,
+              background: 'var(--btn-primario)',
               display: 'grid', placeItems: 'center',
-              fontSize: 16, fontWeight: 900, color: 'var(--text)',
+              fontSize: 16, fontWeight: 900, color: 'var(--btn-primario-testo)',
             }}><Icon name="sparkle" size={18} /></div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{cfg.title}</div>
@@ -263,7 +263,7 @@ export default function MetaAdsAgent({ data, preset, config }) {
                       cursor: loading ? 'not-allowed' : 'pointer',
                       transition: 'border-color .15s, color .15s',
                     }}
-                    onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = `${cfg.accent}66`; e.currentTarget.style.color = 'var(--text)' } }}
+                    onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = 'var(--border3)'; e.currentTarget.style.color = 'var(--text)' } }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)' }}
                   >{s}</button>
                 ))}
@@ -276,10 +276,10 @@ export default function MetaAdsAgent({ data, preset, config }) {
               <div style={{
                 maxWidth: '88%',
                 background: m.role === 'user'
-                  ? `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`
+                  ? 'var(--btn-primario)'
                   : 'rgba(255,255,255,0.04)',
                 border: m.role === 'user' ? 'none' : (m.isError ? '1px solid #ef444455' : '1px solid var(--border)'),
-                color: m.isError ? '#fecaca' : (m.role === 'user' ? 'var(--text)' : 'var(--text)'),
+                color: m.isError ? 'var(--negativo)' : (m.role === 'user' ? 'var(--btn-primario-testo)' : 'var(--text)'),
                 borderRadius: 14,
                 padding: '11px 15px',
                 fontSize: 13.5,
@@ -351,8 +351,8 @@ export default function MetaAdsAgent({ data, preset, config }) {
               style={{
                 background: loading || !input.trim()
                   ? 'rgba(255,255,255,0.05)'
-                  : `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent2})`,
-                color: loading || !input.trim() ? 'var(--text3)' : 'var(--text)',
+                  : 'var(--btn-primario)',
+                color: loading || !input.trim() ? 'var(--text3)' : 'var(--btn-primario-testo)',
                 border: 'none',
                 borderRadius: 11,
                 padding: '0 18px',
@@ -374,7 +374,7 @@ function Dot({ delay }) {
   return (
     <span style={{
       width: 6, height: 6, borderRadius: '50%',
-      background: '#0866FF',
+      background: 'var(--text3)',
       display: 'inline-block',
       animation: 'pa-pulse 1.2s infinite',
       animationDelay: `${delay}ms`,

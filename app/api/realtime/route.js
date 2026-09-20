@@ -60,6 +60,40 @@ async function runRealtime(token, propertyId, body) {
 const MEMORIA_MS = 50 * 1000
 const memoria = new Map() // store → { at, dati }
 
+// ── La sede del negozio, per il segnaposto sul globo ────────────────────────
+//  Sul fork era una costante: quel prodotto ha un negozio solo, a San Benedetto
+//  del Tronto. Qui i clienti sono tanti e ognuno ha la sua sede: una costante
+//  pianterebbe il segnaposto di tutti sulla sede di un altro. Se ne accorgerebbe
+//  solo chi conosce la geografia del proprio negozio — cioe' il cliente.
+//
+//  Shopify la sa: shop.json porta latitudine e longitudine dell'indirizzo del
+//  negozio. Si chiede UNA volta per negozio (come il fuso in corrispettivi/giorno)
+//  e si tiene: non e' un dato che cambia mentre si guarda il globo.
+//
+//  Se manca — negozio senza indirizzo, o chiamata fallita — si risponde null e
+//  il globo NON disegna nessun segnaposto. Meglio nessun punto che un punto
+//  sbagliato: un globo senza il pallino di casa si nota e si chiede, un pallino
+//  sulla citta' sbagliata si crede.
+const sedi = new Map() // storeUrl → { lat, lng } | null
+async function sedeNegozio(storeUrl, adminToken) {
+  if (sedi.has(storeUrl)) return sedi.get(storeUrl)
+  let sede = null
+  try {
+    const r = await fetch(`https://${storeUrl}/admin/api/2026-04/shop.json?fields=latitude,longitude`, {
+      headers: { 'X-Shopify-Access-Token': adminToken }, cache: 'no-store',
+    })
+    if (r.ok) {
+      const s = (await r.json().catch(() => null))?.shop
+      const lat = Number(s?.latitude), lng = Number(s?.longitude)
+      // 0,0 e' in mezzo all'Atlantico: e' come Shopify risponde quando
+      // l'indirizzo non e' geolocalizzato, non una sede vera.
+      if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) sede = { lat, lng }
+    }
+  } catch {}
+  sedi.set(storeUrl, sede)
+  return sede
+}
+
 async function visitatoriShopify() {
   const { storeUrl, adminToken } = getShopify()
   if (!storeUrl || !adminToken) return null
@@ -117,6 +151,9 @@ async function visitatoriShopify() {
     activeUsers: adesso, ultimi30,
     ultimoMinuto: ultimo || null,
     byLocation: byLocation.slice(0, 12), points,
+    // Il segnaposto di casa sul globo. Non blocca il resto: se Shopify non
+    // risponde, i puntini delle sessioni si disegnano lo stesso.
+    sede: await sedeNegozio(storeUrl, adminToken).catch(() => null),
     updatedAt: new Date().toISOString(),
   }
   memoria.set(storeUrl, { at: Date.now(), dati })

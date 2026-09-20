@@ -25,7 +25,8 @@ async function startAgencyCheckout(planId, setLoading, setError) {
 //  prezzo pieno barrato). Solo display: il checkout si cabla quando Stripe è Live.
 // ============================================================================
 
-const ACCENT = '#bf5af2'
+// Il piano consigliato non si tinge piu': si distingue col bordo e col fondo.
+const ACCENT = 'var(--btn-primario)'
 
 // label/bill e features sono nei dizionari i18n (ap.*), risolti via t().
 const CADENCES = [
@@ -35,10 +36,10 @@ const CADENCES = [
 ]
 
 const PLANS = [
-  { id: 'freelance', name: 'Freelance', price: 199, clients: 3, extra: 59, accent: '#2997ff', featureCount: 5 },
-  { id: 'agency', name: 'Agency', price: 599, clients: 12, extra: 45, accent: ACCENT, popular: true, featureCount: 5 },
-  { id: 'pro', name: 'Agency Pro', price: 1290, clients: 30, extra: 35, accent: '#30d158', featureCount: 5 },
-  { id: 'enterprise', name: 'Enterprise', price: 1990, flat: true, accent: '#f59e0b', featureCount: 5 },
+  { id: 'freelance', name: 'Freelance', price: 199, clients: 3, extra: 59, accent: 'var(--text3)', featureCount: 5 },
+  { id: 'agency', name: 'Agency', price: 599, clients: 12, extra: 45, accent: 'var(--text3)', popular: true, featureCount: 5 },
+  { id: 'pro', name: 'Agency Pro', price: 1290, clients: 30, extra: 35, accent: 'var(--text3)', featureCount: 5 },
+  { id: 'enterprise', name: 'Enterprise', price: 1990, flat: true, accent: 'var(--text3)', featureCount: 5 },
 ]
 
 // checkout=true (in-app, utente loggato) → bottoni che avviano lo Stripe Checkout.
@@ -58,11 +59,11 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap',
         padding: '12px 18px', borderRadius: 14, textAlign: 'center',
-        background: 'linear-gradient(90deg, rgba(34,197,94,0.16), rgba(41,151,255,0.16))',
-        border: '1px solid rgba(34,197,94,0.35)',
+        background: 'var(--glass2)',
+        border: '1px solid var(--border2)',
       }}>
         <span style={{ fontSize: 18 }}>🎉</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#86efac' }}>{t('ap.founder', null, 'Founder: −30% FOR LIFE for the first 100 sign-ups')}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)' }}>{t('ap.founder', null, 'Founder: −30% FOR LIFE for the first 100 sign-ups')}</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('ap.founderCumulative', null, '· stacks with the annual discount')}</span>
       </div>
 
@@ -74,14 +75,14 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
             return (
               <button key={x.id} type="button" onClick={() => setCad(x.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10, cursor: 'pointer',
-                border: 'none', background: on ? ACCENT : 'transparent', color: on ? '#0a0a14' : 'var(--text2)',
+                border: 'none', background: on ? ACCENT : 'transparent', color: on ? 'var(--btn-primario-testo)' : 'var(--text2)',
                 fontSize: 13.5, fontWeight: 800,
               }}>
                 {t(x.labelKey, null, x.id)}
                 {x.off > 0 && (
                   <span style={{
                     fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
-                    background: on ? 'rgba(10,10,20,0.18)' : 'rgba(34,197,94,0.16)', color: on ? '#0a0a14' : '#22c55e',
+                    background: on ? 'rgba(127,127,127,0.18)' : 'var(--positivo-bg)', color: on ? 'var(--btn-primario-testo)' : 'var(--positivo)',
                   }}>{t('ap.twoMonthsFree', null, '2 months free')}</span>
                 )}
               </button>
@@ -90,13 +91,13 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
         </div>
       </div>
       {c.off > 0 && (
-        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: '#22c55e', fontWeight: 700 }}>
+        <div style={{ textAlign: 'center', marginTop: -8, fontSize: 12.5, color: 'var(--positivo)', fontWeight: 700 }}>
           {t('ap.annualSaves', null, 'With annual: 2 months free every year')}
         </div>
       )}
 
       {error && (
-        <div style={{ textAlign: 'center', padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', color: '#fca5a5', fontSize: 12.5 }}>{error}</div>
+        <div style={{ textAlign: 'center', padding: '10px 14px', borderRadius: 10, background: 'var(--negativo-bg)', border: '1px solid var(--negativo)', color: 'var(--negativo)', fontSize: 12.5 }}>{error}</div>
       )}
 
       {/* Cards */}
@@ -109,12 +110,12 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
           return (
             <div key={p.id} style={{
               position: 'relative', display: 'flex', flexDirection: 'column',
-              background: p.popular ? 'linear-gradient(180deg, rgba(191,90,242,0.10), rgba(0,0,0,0.2))' : 'rgba(255,255,255,0.025)',
-              border: `1px solid ${p.popular ? 'rgba(191,90,242,0.45)' : 'var(--border)'}`,
+              background: p.popular ? 'var(--glass2)' : 'var(--glass)',
+              border: `1px solid ${p.popular ? 'var(--border3)' : 'var(--border)'}`,
               borderRadius: 18, padding: '22px 20px',
             }}>
               {p.popular && (
-                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: '#0a0a14', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('ap.mostChosen', null, 'MOST CHOSEN')}</span>
+                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: 'var(--btn-primario-testo)', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('ap.mostChosen', null, 'MOST CHOSEN')}</span>
               )}
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.accent }}>{p.name}</div>
 
@@ -131,7 +132,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
                   {(c.off > 0 && !p.flat) ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{eur(p.price)}{t('ap.perMonth', null, '/mo')}</span>
-                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.16)', color: '#ef4444' }}>{t('ap.youSave', { amount: eur(savings) }, 'You save {amount}')}</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)' }}>{t('ap.youSave', { amount: eur(savings) }, 'You save {amount}')}</span>
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('ap.billedMonthly', null, 'billed monthly')}</div>
@@ -146,7 +147,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
                 {Array.from({ length: p.featureCount }).map((_, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text2)' }}>
-                    <span style={{ color: '#22c55e', fontWeight: 900, flexShrink: 0 }}>✓</span>{t(`ap.${p.id}.f${i + 1}`, null, '')}
+                    <span style={{ color: 'var(--text3)', fontWeight: 900, flexShrink: 0 }}>✓</span>{t(`ap.${p.id}.f${i + 1}`, null, '')}
                   </li>
                 ))}
               </ul>
@@ -158,7 +159,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
                   marginTop: 18, padding: '11px 14px', borderRadius: 11, width: '100%', display: 'block', textAlign: 'center', boxSizing: 'border-box',
                   border: `1px solid ${p.popular ? ACCENT : 'var(--border)'}`,
                   background: p.popular ? ACCENT : 'transparent',
-                  color: p.popular ? '#0a0a14' : 'var(--text)', fontSize: 13, fontWeight: 800,
+                  color: p.popular ? 'var(--btn-primario-testo)' : 'var(--text)', fontSize: 13, fontWeight: 800,
                   cursor: 'pointer', textDecoration: 'none',
                 }
                 const label = t('ap.selectCta', null, 'Inizia')

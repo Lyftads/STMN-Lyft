@@ -35,7 +35,7 @@ export default function AddClientModal({ open, onClose, onSubmit, busy = false, 
         {/* Header */}
         <div style={{ padding: '22px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            <span style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #2997ff, #bf5af2)', display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 22, fontWeight: 680, color: '#fff' }}>+</span>
+            <span style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--btn-primario)', display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 22, fontWeight: 680, color: 'var(--btn-primario-testo)' }}>+</span>
             <div>
               <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.01em' }}>{t('acm.title', null, 'Add a company')}</div>
               <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{t('acm.subtitle', null, 'Create a new client workspace to manage')}</div>
@@ -59,7 +59,7 @@ export default function AddClientModal({ open, onClose, onSubmit, busy = false, 
               fontSize: 15, fontWeight: 600, outline: 'none',
             }}
           />
-          {error && <div style={{ marginTop: 10, fontSize: 13, color: '#fca5a5' }}>{error}</div>}
+          {error && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--negativo)' }}>{error}</div>}
           <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
             {t('acm.helper', null, 'After creation you will enter the new workspace, where you can connect its integrations (Meta, Klaviyo, Shopify, Google).')}
           </div>
@@ -73,8 +73,8 @@ export default function AddClientModal({ open, onClose, onSubmit, busy = false, 
           }}>{t('common.cancel', null, 'Cancel')}</button>
           <button type="button" onClick={submit} disabled={!canSubmit} style={{
             padding: '11px 22px', borderRadius: 12, border: 'none',
-            background: canSubmit ? 'linear-gradient(135deg, #2997ff, #bf5af2)' : 'var(--glass2, rgba(255,255,255,0.06))',
-            color: canSubmit ? '#fff' : 'var(--text3)', fontSize: 13, fontWeight: 640,
+            background: canSubmit ? 'var(--btn-primario)' : 'var(--glass2, rgba(255,255,255,0.06))',
+            color: canSubmit ? 'var(--btn-primario-testo)' : 'var(--text3)', fontSize: 13, fontWeight: 640,
             cursor: canSubmit ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 8,
           }}>
             {busy && <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: 999, animation: 'spin 1s linear infinite' }} />}

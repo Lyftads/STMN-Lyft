@@ -290,10 +290,10 @@ function Thumb({ url, products, isDpa }) {
       <div title={t('meta.advantageCatalog', null, 'Advantage+ Catalog · Meta dynamic products')} style={{
         width: 50, height: 50,
         borderRadius: 12,
-        border: '1px solid rgba(91,44,255,0.4)',
-        background: 'linear-gradient(135deg, rgba(91,44,255,0.22), rgba(0,0,0,0.4))',
+        border: '1px solid var(--border2)',
+        background: 'var(--glass2)',
         display: 'grid', placeItems: 'center',
-        color: '#a78bfa',
+        color: 'var(--text2)',
       }}><Icon name="image" size={20} /></div>
     )
   }
@@ -1055,8 +1055,8 @@ export default function MetaDetailTab() {
                 onClick={() => setAccountFilter(opt.id)}
                 disabled={loading}
                 style={{
-                  background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
-                  border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                  background: active ? 'var(--glass2)' : 'rgba(255,255,255,0.04)',
+                  border: active ? '1px solid var(--border3)' : '1px solid var(--border)',
                   color: active ? 'var(--text)' : 'var(--text2)',
                   borderRadius: 12,
                   padding: '8px 12px',
@@ -1305,8 +1305,8 @@ export default function MetaDetailTab() {
               }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                  color: 'var(--text)',
+                  background: 'var(--btn-primario)',
+                  color: 'var(--btn-primario-testo)',
                   display: 'grid', placeItems: 'center',
                   fontSize: 13, fontWeight: 680,
                   flexShrink: 0,

@@ -18,7 +18,7 @@ import { num, perc } from '../../lib/client/numeri'
 const STATUS = { pass: { color: '#22c55e', icon: '✓' }, warn: { color: '#f59e0b', icon: '!' }, fail: { color: '#ef4444', icon: '×' } }
 const GROUPS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
 const GROUP_KEYS = { 'Essenziali': 'seo.groupEssentials', 'Social/Sharing': 'seo.groupSocial', 'Strutturati': 'seo.groupStructured', 'Contenuto': 'seo.groupContent', 'Tecnici': 'seo.groupTechnical' }
-const PRIO = { alta: '#ef4444', media: '#f59e0b', bassa: '#64d2ff' }
+const PRIO = { alta: '#ef4444', media: '#f59e0b', bassa: 'var(--text3)' }
 const scoreCol = s => s >= 85 ? '#22c55e' : s >= 70 ? '#64d2ff' : s >= 50 ? '#f59e0b' : '#ef4444'
 const fmtDate = d => new Date(d).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -508,7 +508,7 @@ function SetupGSC() {
       <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.6, maxWidth: 540, margin: '0 auto 18px' }}>
         {t('seo.gscConnectIntro', null, 'Un solo collegamento Google abilita Search Console, GA4 e Google Ads. Clicca qui sotto e autorizza l’accesso in sola lettura.')}
       </div>
-      <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={{ padding: '11px 24px', fontWeight: 640, fontSize: 15, borderRadius: 12, border: 'none', background: '#2997ff', color: '#fff', cursor: 'pointer' }}>
+      <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={{ padding: '11px 24px', fontWeight: 640, fontSize: 15, borderRadius: 12, border: 'none', background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', cursor: 'pointer' }}>
         {t('seo.gscConnectBtn', null, 'Collega Google')}
       </button>
       <div style={{ fontSize: 13, opacity: 0.6, marginTop: 14, lineHeight: 1.5, maxWidth: 540, marginInline: 'auto' }}>
@@ -632,7 +632,7 @@ function GSCPanel() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
                 <span style={{ flex: 1 }}>{t('seo.withBrand', null, 'Con brand')}</span><span style={{ fontWeight: 600 }}>{data.branded.brandedPct}%</span>
               </div>
-              <div style={{ height: 8, borderRadius: 6, background: 'var(--glass2)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 6, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
+              <div style={{ height: 8, borderRadius: 6, background: 'var(--glass2)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 6, width: `${data.branded.brandedPct}%`, background: 'var(--text3)' }} /></div>
               <div style={{ fontSize: 11.5, opacity: 0.5 }}>{nf(data.branded.brandedClicks)} {t('seo.clickBrand', null, 'click brand')} · {nf(data.branded.nonBrandedClicks)} {t('seo.nonBrand', null, 'non-brand')} · token: {data.branded.tokens.join(', ')}</div>
             </Block>
             <Block title={t('seo.topCountries', null, 'Paesi principali (click)')}>
@@ -762,7 +762,7 @@ function Recommendations({ recs }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {recs.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, padding: '3px 8px', borderRadius: 8, color: PRIO[r.priority] || '#64d2ff', border: `1px solid ${PRIO[r.priority] || '#64d2ff'}`, flexShrink: 0, marginTop: 2 }}>{r.priority}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, padding: '3px 8px', borderRadius: 8, color: PRIO[r.priority] || 'var(--text3)', border: `1px solid ${PRIO[r.priority] || 'var(--text3)'}`, flexShrink: 0, marginTop: 2 }}>{r.priority}</span>
             <div><div style={{ fontWeight: 600, fontSize: 15 }}>{r.title}</div><div style={{ fontSize: 13, opacity: 0.7 }}>{r.action}</div></div>
           </div>
         ))}

@@ -76,7 +76,7 @@ export default function IncrCurvesTab() {
           const nowFrac = maxX > 0 ? Math.max(0, Math.min(1, c.avgSpend / maxX)) : 0.5
           const carry = (c.carryover || []).map((w, i) => ({ day: i === 0 ? t('incr.today', null, 'today') : `+${i}`, w: Math.round(w * 100) }))
           return (
-            <div key={c.key} className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderTop: `2px solid ${col}` }}>
+            <div key={c.key} className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderTop: '2px solid var(--border2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 <span style={{ width: 9, height: 9, borderRadius: 999, background: col }} />
                 <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{data.channelNames?.[c.key] || c.key}</span>
@@ -88,8 +88,8 @@ export default function IncrCurvesTab() {
                 <div style={{ minWidth: 0 }}>
                   <div className="label" style={{ marginBottom: 6 }}>{t('incr.responseCurve', null, 'Response curve · daily spend → incremental revenue')}</div>
                   {/* Callout "sei qui" esplicito */}
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: col + '14', border: `1px solid ${col}44`, borderRadius: 10, padding: '6px 12px', marginBottom: 8, fontSize: 12 }}>
-                    <span style={{ color: col, fontWeight: 900 }}>📍 {t('incr.youAreHereNow', null, 'You are here')}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--glass2)', border: '1px solid var(--border2)', borderRadius: 10, padding: '6px 12px', marginBottom: 8, fontSize: 12 }}>
+                    <span style={{ color: 'var(--text)', fontWeight: 900 }}>📍 {t('incr.youAreHereNow', null, 'You are here')}</span>
                     <span style={{ color: 'var(--text2)' }}>{t('incr.hereDetail', { s: eur(c.avgSpend), r: eur(curY) }, `${eur(c.avgSpend)}/day → ${eur(curY)}/day incremental`)}</span>
                     <span style={{ color: c.saturation >= 0.8 ? '#ef4444' : '#22c55e', fontWeight: 800 }}>· {pct(c.saturation)} {t('incr.satWord', null, 'saturated')}</span>
                   </div>

@@ -1,35 +1,57 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import { BottoneIcona } from './ui/AzioneBarra'
+import IntestazioniFerme from './ui/IntestazioniFerme'
+import Spiegazioni from './ui/Spiegazioni'
+import { impostaTema } from './AutoTheme'
+import Avvisi from './ui/Avvisi'
+import RicercaRapida from './ui/RicercaRapida'
+import { useEffect, useRef, useState, useLayoutEffect } from 'react'
 import TimeframeSelector from './TimeframeSelector'
 import BmTimeframe from './ui/BmTimeframe'
 import AddClientModal from './AddClientModal'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
+import { tabNascostaAlNegozio } from '../../lib/team/tipoNegozio'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { preloadClienti } from '../../lib/clienti/preload'
 import HelpDrawer from './HelpDrawer'
 import { articleForTab } from '../../lib/help/content'
 import DownloadReportButton from './DownloadReportButton'
-import AlertsBell from './AlertsBell'
+import AlertsBell, { useAlerts } from './AlertsBell'
+import ProfiloPopup from './ProfiloPopup'
+import Avatar from './Avatar'
 import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
 import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
+import CapsulaViva from './CapsulaViva'
 import PreparingDataBanner from './PreparingDataBanner'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { impostaTema } from './AutoTheme'
-import Spiegazioni from './ui/Spiegazioni'
-import RicercaRapida from './ui/RicercaRapida'
-import Avvisi from './ui/Avvisi'
-import IntestazioniFerme from './ui/IntestazioniFerme'
+
+// Queste tab avevano un titolo loro dentro la pagina e lasciavano VUOTA la barra
+// in alto: due sistemi di titolo nello stesso prodotto. Ora il titolo lo mostra
+// sempre la cornice; qui stanno le chiavi (e il testo di riserva) di ciascuna.
+const TITOLI_TAB = {
+  inventory: ['inv.title', 'Inventario', 'inv.subtitle', 'Unità operativa = taglia/SKU. Un prodotto può avere stock alto e una sola taglia in esaurimento — guarda sempre la taglia critica. Quantità da Shopify; valore su COGS (cost per item).'],
+  productPerformance: ['pp.title', 'Performance prodotti', 'pp.subtitle', 'P&L per prodotto (B2C) · ricavo netto, COGS, ADS allocati in proporzione al ricavo, margine operativo e ROAS.'],
+  productCosts: ['pc.title', 'Costi prodotto (landed)', 'pc.subtitle', 'Override del costo unitario reale per variante (incl. spedizione/dazi). Lo storico registra ogni cambio con data di validità ed è usato come COGS in Inventario e Performance prodotti.'],
+  prezzi: ['prz.title', 'Prezzi', 'prz.subtitle', 'Lo stesso articolo da te e dai concorrenti: dove sei più caro, dove più conveniente. Si aggiorna da solo due volte al giorno.'],
+  googleProducts: ['gp.title', 'Prodotti Google', 'gp.subtitleShell', 'Clic, costo e acquisti di ogni articolo del catalogo su Google Shopping e Performance Max.'],
+  googleVerdicts: ['gpv.title', 'Performance prodotti Google', 'gpv.subtitle', 'Verdetti per prodotto, confrontati con le vendite reali di Shopify'],
+  corrispettivi: ['cor.title', 'Corrispettivi e-commerce', 'cor.subtitle', 'Registro delle vendite per giorno e paese, con IVA scorporata e regime fiscale, pronto per il commercialista.'],
+  clienti: ['cli.title', 'Clienti', 'cli.subtitle2', 'Clienti divisi per ciclo di vita (RFM). Scegli un segmento e lancia la campagna giusta in un click.'],
+}
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
 function getPageTitle(tab, t) {
+  if (TITOLI_TAB[tab]) return t(TITOLI_TAB[tab][0], null, TITOLI_TAB[tab][1])
   if (tab === 'scheduledReports') return t('title.scheduledReports')
   return t('tab.' + tab, null, t('tab.dashboard'))
 }
 
 function getPageSubtitle(tab, t) {
+  if (TITOLI_TAB[tab]) return TITOLI_TAB[tab][2] ? t(TITOLI_TAB[tab][2], null, TITOLI_TAB[tab][3]) : ''
   return t('subtitle.' + tab, null, t('subtitle.default'))
 }
 
@@ -63,6 +85,8 @@ export default function AppShell({
   // Lock abbonamento SCADUTO: se true, OGNI navigazione viene forzata sulla
   // tab Settings (pagina piani) finché il cliente non rinnova. Stato dal
   // server (/api/billing-lock: Stripe/Shopify + esenzioni storiche).
+  // Questo blocco vive solo nel SaaS multi-cliente: il fork a cliente unico
+  // non ha abbonamenti, quindi non lo ha — ma qui è ciò che fa incassare.
   const [subLocked, setSubLocked] = useState(false)
   useEffect(() => {
     let alive = true
@@ -76,9 +100,63 @@ export default function AppShell({
     if (subLocked && tab !== 'settings' && typeof setTab === 'function') setTab('settings')
   }, [subLocked, tab, setTab])
 
-const [helpOpen, setHelpOpen] = useState(false)
+  // Che tipo di negozio è questo cliente: decide quali voci di menu esistono
+  // per lui (vedi il filtro sui gruppi, più sotto). no-store perché è un dato
+  // del TENANT e non deve sopravvivere a un cambio di workspace dell'agenzia.
+  // Se la lettura fallisce resta null = non si nasconde niente.
+  const [negozio, setNegozio] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/integrations/status', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(s => { if (vivo) setNegozio(s?.tipoNegozio || null) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [])
+
+  // Chi arriva da un segnalibro su una tab che per il suo negozio non esiste
+  // (?tab=prezzi su un monomarca) non deve restarci: la voce non è nel menu,
+  // quindi non avrebbe modo di uscirne se non tornando alla home. I dati sono
+  // già protetti dalla route; questo serve a non lasciarlo in un vicolo cieco.
+  useEffect(() => {
+    if (negozio && tabNascostaAlNegozio(tab, negozio) && typeof setTab === 'function') setTab('dashboard')
+  }, [negozio, tab, setTab])
+
+  const [helpOpen, setHelpOpen] = useState(false)
   // Mobile: sidebar come drawer a scomparsa (hamburger). Desktop invariato.
   const [mobileNav, setMobileNav] = useState(false)
+  const navRef = useRef(null)
+  const burgerRef = useRef(null)
+
+  // A hidden drawer must not remain in the keyboard tab order.
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1024px)')
+    const update = () => { if (navRef.current) navRef.current.inert = media.matches && !mobileNav }
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [mobileNav])
+
+  useEffect(() => {
+    if (!mobileNav) return
+    const nav = navRef.current
+    const previous = document.activeElement
+    const focusable = () => Array.from(nav.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex="0"]')).filter(el => el.getClientRects().length)
+    focusable()[0]?.focus()
+    const onKey = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); setMobileNav(false) }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      const first = items[0], last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      if (previous?.isConnected) previous.focus()
+    }
+  }, [mobileNav])
   // Pre-riscaldamento snapshot (una volta per sessione): mentre l'utente guarda
   // la dashboard, scaldiamo in background le tab analitiche pesanti ai loro
   // default, così la PRIMA apertura di ognuna è istantanea. Le richieste portano
@@ -122,9 +200,8 @@ const [helpOpen, setHelpOpen] = useState(false)
   const navGroups = [
     {
       title: 'Commerce',
-      color: '#ff375f',
+      color: '#ef4444',
       items: [
-        { id: 'onboarding', label: 'Onboarding', icon: <Icon name="rocket" /> },
         { id: 'dashboard', label: 'Dashboard', icon: <Icon name="grid" /> },
         { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
         { id: 'productPerformance', label: 'Performance prodotti', icon: <Icon name="chart-bar" /> },
@@ -139,11 +216,13 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
     {
       title: 'Productivity AI',
-      color: '#7b5bff',
+      color: 'var(--accent)',
       items: [
         { id: 'tasks', label: 'Progetti & Task', icon: <Icon name="kanban" /> },
         { id: 'calendar', label: 'Calendario', icon: <Icon name="calendar" /> },
         { id: 'timeOff', label: 'Ferie e permessi', icon: <Icon name="clock" /> },
+        // Lyftimer, Squadra AI e Performance Agent sono roba da SaaS multi-cliente
+        // (postazioni, ruoli, ore fatturabili): il fork a cliente unico le aveva tolte.
         { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
         { id: 'creativeLibrary', label: 'Creatività', icon: <Icon name="image" /> },
@@ -153,7 +232,7 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
     {
       title: 'Intelligence Website',
-      color: '#ff9f0a',
+      color: '#f59e0b',
       items: [
         { id: 'cro', label: 'CRO', icon: <Icon name="funnel" /> },
         { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
@@ -180,13 +259,15 @@ const [helpOpen, setHelpOpen] = useState(false)
       items: [
         { id: 'googleDetail', label: 'Google Detail', icon: <Icon name="list" /> },
         { id: 'googleProducts', label: 'Prodotti', icon: <Icon name="bag" /> },
-        { id: 'googleVerdicts', label: 'Verdetti prodotti', icon: <Icon name="check" /> },
+        { id: 'googleVerdicts', label: 'Verdetti prodotti', icon: <Icon name="rocket" /> },
         { id: 'googleKpi', label: 'Google KPI', icon: <Icon name="gauge" /> },
         { id: 'googleLighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'googleBudgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
       ],
     },
     {
+      // Gruppo intero che il fork aveva cancellato: l'incrementalità (MMM-lite) e
+      // il geo-lift sono fra le cose che i clienti paganti comprano.
       title: 'Incrementality',
       color: '#14b8a6',
       items: [
@@ -198,10 +279,10 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
     {
       title: 'Reports',
-      color: '#30d158',
+      color: '#22c55e',
       items: [
         { id: 'pnl', label: 'Conto Economico', icon: <Icon name="euro" /> },
-        { id: 'corrispettivi', label: 'Corrispettivi', icon: <Icon name="file" /> },
+        { id: 'corrispettivi', label: 'Corrispettivi', icon: <Icon name="clipboard" /> },
         { id: 'scheduledReports', label: 'Scheduled', icon: <Icon name="send" /> },
         { id: 'weekly', label: 'Weekly', icon: <Icon name="calendar" /> },
         { id: 'monthly', label: 'Monthly', icon: <Icon name="chart-bar" /> },
@@ -212,8 +293,9 @@ const [helpOpen, setHelpOpen] = useState(false)
     },
     {
       title: 'System',
-      color: '#e9e9ee',
+      color: 'var(--text2)',
       items: [
+        { id: 'onboarding', label: 'Onboarding', icon: <Icon name="rocket" /> },
         { id: 'helpCenter', label: 'Centro Assistenza', icon: <Icon name="info" /> },
         { id: 'teamManage', label: 'Gestione team', icon: <Icon name="users" /> },
         { id: 'integrations', label: 'Integrazioni', icon: <Icon name="gear" /> },
@@ -229,21 +311,70 @@ const [helpOpen, setHelpOpen] = useState(false)
 
   // Gating per ruolo: se allowedTabs è un Set, filtra le voci (l'Admin/owner
   // riceve allowedTabs=undefined → vede tutto, comportamento invariato).
+  //
+  // Al filtro dei ruoli se ne somma un SECONDO, che risponde a una domanda
+  // diversa: non «chi può entrare» ma «cosa esiste per questo negozio». Vale
+  // anche per l'Admin — anzi soprattutto, perché il proprietario di un
+  // monomarca è il primo a non dover vedere «Prezzi»: nessun altro vende i suoi
+  // articoli, quindi non c'è niente da confrontare. Finché la risposta non
+  // arriva (negozio === null) non si nasconde niente: una voce che sparisce per
+  // un istante a ogni caricamento si nota, il contrario no.
   const groups = (allowedTabs
     ? navGroups
         .map(g => ({ ...g, items: g.items.filter(it => allowedTabs.has(it.id)) }))
     : navGroups.map(g => ({ ...g })))
+    .map(g => ({ ...g, items: g.items.filter(it => !tabNascostaAlNegozio(it.id, negozio)) }))
     .filter(g => g.items.length > 0)
+
+  // ── Preferiti e recenti ──────────────────────────────────
+  // Con una quarantina di tab in otto gruppi, le quattro che si usano ogni giorno stanno in
+  // fondo a un gruppo chiuso. La stella le porta in cima; "Recenti" ricorda le ultime aperte.
+  // E' una comodita' di QUESTO dispositivo (localStorage): se manca, il menu e' quello di sempre.
+  const [preferiti, setPreferiti] = useState([])
+  const [recenti, setRecenti] = useState([])
+  useEffect(() => {
+    try { setPreferiti(JSON.parse(localStorage.getItem('lyft-preferiti') || '[]')); setRecenti(JSON.parse(localStorage.getItem('lyft-recenti') || '[]')) } catch {}
+  }, [])
+  const cambiaPreferito = (id) => setPreferiti(prev => {
+    const dopo = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id].slice(-8)
+    try { localStorage.setItem('lyft-preferiti', JSON.stringify(dopo)) } catch {}
+    return dopo
+  })
 
   const goTo = (id) => {
     setMobileNav(false) // su mobile il tap su una voce chiude il drawer
     // Abbonamento scaduto: qualunque voce clicchi, si torna SEMPRE ai piani.
+    // Sta PRIMA di tutto il resto perche' una tab che l'utente non e' riuscito
+    // ad aprire non deve finire nei "recenti" ne' far partire la dissolvenza.
     if (subLocked && id !== 'settings') {
       if (typeof setTab === 'function') setTab('settings')
       return
     }
-    if (typeof setTab === 'function') setTab(id)
+    const calmo = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    // Toccare la voce GIA' attiva riporta in cima, come la barra delle app di iOS.
+    if (id === tab) {
+      const main = document.getElementById('app-content')
+      // sulla Dashboard a schermo pieno scorre la colonna dei KPI, non la pagina
+      const colonna = main?.querySelector('.dash-live-hero.lv .dash-live-left')
+      for (const el of [main, colonna]) el?.scrollTo({ top: 0, behavior: calmo ? 'auto' : 'smooth' })
+      return
+    }
+    // Il passaggio fra le tab sfuma (View Transitions) invece di scattare: dove il browser non le
+    // ha, o se l'utente ha chiesto meno movimento, si cambia e basta come prima.
+    const cambia = () => { if (typeof setTab === 'function') setTab(id) }
+    if (typeof document !== 'undefined' && document.startViewTransition && !calmo && id !== tab) document.startViewTransition(() => flushSync(cambia))
+    else cambia()
+    setRecenti(prev => {
+      const dopo = [id, ...prev.filter(x => x !== id)].slice(0, 6)
+      try { localStorage.setItem('lyft-recenti', JSON.stringify(dopo)) } catch {}
+      return dopo
+    })
   }
+
+  // Una tab nuova parte SEMPRE dall'alto: prima si conservava lo scorrimento della tab precedente e
+  // si atterrava a meta' pagina. Sincrono (useLayoutEffect) perche' dentro flushSync della View
+  // Transition il fotogramma nuovo dev'essere gia' in cima.
+  useLayoutEffect(() => { const m = document.getElementById('app-content'); if (m) m.scrollTop = 0 }, [tab])
 
   // ── Accordion gruppi sidebar ──────────────────────────────
   // Apre di default solo il gruppo che contiene la tab attiva.
@@ -261,9 +392,10 @@ const [helpOpen, setHelpOpen] = useState(false)
 
   return (
     <>
+    <a className="app-skip-link" href="#app-content">{t("shell.skipContent", null, "Vai al contenuto")}</a>
     <PreparingDataBanner />
-    <div style={{
-      height: '100vh',
+    <div className="app-shell" style={{
+      height: '100dvh',
       background: 'var(--bg)',
       color: 'var(--text)',
       display: 'flex',
@@ -292,63 +424,40 @@ const [helpOpen, setHelpOpen] = useState(false)
           100% { transform: translate(0, 0) scale(1); }
         }
       `}</style>
-      <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', top: '20%', left: '30%',
-          width: 700, height: 700, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(191,90,242,0.18), rgba(191,90,242,0.05) 40%, transparent 70%)',
-          filter: 'blur(60px)',
-          animation: 'appOrbit1 40s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', top: '50%', right: '20%',
-          width: 600, height: 600, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(41,151,255,0.15), rgba(41,151,255,0.04) 40%, transparent 70%)',
-          filter: 'blur(60px)',
-          animation: 'appOrbit2 45s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '10%', left: '50%',
-          width: 500, height: 500, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(34,197,94,0.10), transparent 70%)',
-          filter: 'blur(70px)',
-          animation: 'appOrbit3 55s ease-in-out infinite',
-        }} />
-      </div>
+      {/* Qui c'erano tre macchie di colore sfocate che orbitavano dietro le pagine
+          (viola, blu, verde). Tolte: lo sfondo e' piatto e neutro, come il resto. */}
 
       {/* Backdrop mobile: chiude il drawer al tap fuori */}
       {mobileNav && <div className="app-nav-backdrop" onClick={() => setMobileNav(false)} />}
 
       {/* Sidebar (desktop: colonna fissa · mobile: drawer via .app-sidebar) */}
-      <aside className={`app-sidebar${mobileNav ? ' open' : ''}`} style={{
+      <aside id="app-navigation" ref={navRef} className={`app-sidebar${mobileNav ? ' open' : ''}`} style={{
         width: 240,
         minWidth: 240,
-        height: '100vh',
+        height: '100dvh',
         position: 'relative',
         top: 0,
         borderRight: '1px solid var(--border)',
         background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(40px) saturate(1.8)',
-        WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 20,
       }}>
         {/* Logo */}
         <div style={{ padding: '28px 20px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+          <div className="app-brand-row" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
             <LogoMark size={32} />
             <span style={{
               fontSize: 22,
-              fontWeight: 800,
+              fontWeight: 640,
               letterSpacing: '-0.04em',
               color: 'var(--text)',
             }}>
               LyftAI
             </span>
+            <button type="button" className="app-nav-close" aria-label={t('shell.closeMenu', null, 'Chiudi menu')} onClick={() => setMobileNav(false)}><Icon name="close" size={20} /></button>
           </div>
 
           {/* Workspace pill — dinamica da user.company_name */}
@@ -356,14 +465,34 @@ const [helpOpen, setHelpOpen] = useState(false)
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0 16px' }}>
+        <nav aria-label={t("shell.navigation", null, "Navigazione principale")} style={{ flex: 1, overflowY: 'auto', padding: '4px 0 16px' }}>
+          {(() => {
+            const tutte = groups.flatMap(g => g.items)
+            const trova = (ids) => ids.map(id => tutte.find(i => i.id === id)).filter(Boolean)
+            const pref = trova(preferiti)
+            const rec = trova(recenti).filter(i => !preferiti.includes(i.id) && i.id !== tab).slice(0, 3)
+            const blocco = (titolo, voci) => voci.length > 0 && (
+              <div className="app-nav-rapide" key={titolo}>
+                <div className="app-nav-rapide-titolo">{titolo}</div>
+                {voci.map(item => (
+                  <button key={item.id} type="button" className={`app-nav-item app-nav-rapida${tab === item.id ? ' attiva' : ''}`} aria-current={tab === item.id ? 'page' : undefined} onClick={() => goTo(item.id)}>
+                    <span className="app-nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('tab.' + item.id, null, item.label)}</span>
+                  </button>
+                ))}
+              </div>
+            )
+            return <>{blocco(t('shell.favourites', null, 'Preferiti'), pref)}{blocco(t('shell.recent', null, 'Recenti'), rec)}</>
+          })()}
           {groups.map((group) => {
             const isOpen = !!openGroups[group.title]
             const hasActive = group.items.some(i => i.id === tab)
             return (
-            <div key={group.title} style={{ marginBottom: isOpen ? 30 : 16 }}>
+            <div className="app-nav-group" key={group.title} style={{ marginBottom: isOpen ? 30 : 16 }}>
               <button
                 type="button"
+                className="app-nav-group-toggle"
+                aria-expanded={isOpen}
                 onClick={() => toggleGroup(group.title)}
                 style={{
                   width: '100%',
@@ -374,9 +503,9 @@ const [helpOpen, setHelpOpen] = useState(false)
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: isOpen || hasActive ? 'var(--text)' : '#c7c7cf',
-                  fontSize: 14,
-                  fontWeight: 800,
+                  color: isOpen || hasActive ? 'var(--text)' : 'var(--text2)',
+                  fontSize: 15,
+                  fontWeight: 640,
                   textTransform: 'uppercase',
                   letterSpacing: '0.10em',
                   transition: 'color 0.15s ease',
@@ -386,20 +515,20 @@ const [helpOpen, setHelpOpen] = useState(false)
               >
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%',
-                  background: group.color, flexShrink: 0,
-                  boxShadow: `0 0 6px ${group.color}`,
-                  opacity: isOpen || hasActive ? 1 : 0.5,
+                  background: 'var(--text3)', flexShrink: 0,
+                  boxShadow: 'none',
+                  opacity: 0,
                 }} />
                 <span style={{ flex: 1, textAlign: 'left' }}>{t('group.' + group.title.toLowerCase(), null, group.title)}</span>
                 {!isOpen && hasActive && (
                   <span style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: group.color, flexShrink: 0,
-                    boxShadow: `0 0 6px ${group.color}`,
+                    background: 'var(--text2)', flexShrink: 0,
+                    boxShadow: 'none',
                   }} />
                 )}
                 <span style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   color: 'var(--text3)',
                   transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease',
@@ -414,6 +543,8 @@ const [helpOpen, setHelpOpen] = useState(false)
                   return (
                     <button
                       key={item.id}
+                      className="app-nav-item"
+                      aria-current={active ? "page" : undefined}
                       type="button"
                       onClick={() => goTo(item.id)}
                       style={{
@@ -426,7 +557,7 @@ const [helpOpen, setHelpOpen] = useState(false)
                         gap: 10,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        color: active ? 'var(--text)' : '#c7c7cf',
+                        color: active ? 'var(--text)' : 'var(--text2)',
                         background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
                         fontSize: 13,
                         fontWeight: active ? 600 : 500,
@@ -436,10 +567,10 @@ const [helpOpen, setHelpOpen] = useState(false)
                       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
                       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                     >
-                      <span style={{
+                      <span className="app-nav-icon" style={{
                         width: 20,
-                        color: active ? 'var(--text)' : group.color,
-                        fontSize: 14,
+                        color: active ? 'var(--text)' : 'var(--text3)',
+                        fontSize: 15,
                         display: 'inline-flex',
                         justifyContent: 'center',
                         opacity: active ? 1 : 0.85,
@@ -448,6 +579,14 @@ const [helpOpen, setHelpOpen] = useState(false)
                         {item.icon}
                       </span>
                       <span style={{ flex: 1 }}>{t('tab.' + item.id, null, item.label)}</span>
+                      {/* span e non button: un bottone dentro un bottone non e' HTML valido */}
+                      <span role="button" tabIndex={0} className={`app-nav-stella${preferiti.includes(item.id) ? ' accesa' : ''}`}
+                        aria-label={preferiti.includes(item.id) ? t('shell.favRemove', null, 'Togli dai preferiti') : t('shell.favAdd', null, 'Aggiungi ai preferiti')}
+                        title={preferiti.includes(item.id) ? t('shell.favRemove', null, 'Togli dai preferiti') : t('shell.favAdd', null, 'Aggiungi ai preferiti')}
+                        onClick={(e) => { e.stopPropagation(); cambiaPreferito(item.id) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cambiaPreferito(item.id) } }}>
+                        <Icon name="star" size={12} />
+                      </span>
                     </button>
                   )
                 })}
@@ -458,15 +597,16 @@ const [helpOpen, setHelpOpen] = useState(false)
           })}
         </nav>
 
+        {/* Theme control lives in navigation, away from floating chat actions. */}
         {/* User */}
         <UserSection />
       </aside>
 
       {/* Main */}
-      <main data-tab={tab} className="app-main" style={{
+      <main data-tab={tab} id="app-content" tabIndex={-1} className="app-main" style={{
         flex: 1,
         minWidth: 0,
-        height: '100vh',
+        height: '100dvh',
         overflowY: 'auto',
         padding: tab === 'pnl' ? '40px 24px 80px' : '40px 48px 80px',
         position: 'relative',
@@ -488,18 +628,21 @@ const [helpOpen, setHelpOpen] = useState(false)
                           // sbordare sui controlli → bloccava timeframe/bell/aggiorna)
           }}>
             {/* Hamburger (solo mobile): apre la sidebar-drawer */}
-            <button type="button" className="app-burger" aria-label="Menu" onClick={() => setMobileNav(true)}>
+            <button type="button" className="app-burger" ref={burgerRef} aria-label="Menu" aria-expanded={mobileNav} aria-controls="app-navigation" onClick={() => setMobileNav(true)}>
               <span /><span /><span />
             </button>
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'inventory' && tab !== 'productPerformance' && tab !== 'productCosts' && tab !== 'googleProducts' && tab !== 'clienti' && tab !== 'helpCenter' ? (
-              <div>
-                <h1 className="heading-lg" style={{ marginBottom: 6 }}>
+            {/* Queste quattro tab hanno un titolo loro dentro la pagina: qui la
+                cornice lo lascia vuoto per non stamparlo due volte. Lyftimer
+                (timeTracking) esiste solo nel SaaS, quindi non e' nell'elenco del fork. */}
+            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'helpCenter' ? (
+              <div className="app-header-title">
+                <h1 className="heading-lg">
                   {getPageTitle(tab, t)}
                 </h1>
                 <p style={{
                   margin: 0,
                   color: 'var(--text3)',
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: 400,
                 }}>
                   {getPageSubtitle(tab, t)}
@@ -507,67 +650,50 @@ const [helpOpen, setHelpOpen] = useState(false)
               </div>
             ) : <div />}
 
-            <div style={{
+            <div className="app-header-actions" style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
               flexShrink: 0,
             }}>
               {tab !== 'helpCenter' && articleForTab(tab, locale) && (
-                <button
-                  type="button"
-                  onClick={() => setHelpOpen(true)}
-                  title={t('help.guideFor', null, 'Guida di questa sezione')}
-                  className="btn-glass"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
-                >
-                  <Icon name="info" size={16} />
-                  <span style={{ fontSize: 13 }}>{t('help.guide', null, 'Guida')}</span>
-                </button>
+                <BottoneIcona icona="info" titolo={t('help.guideFor', null, 'Guida di questa sezione')} onClick={() => setHelpOpen(true)} />
               )}
+              <BottoneIcona icona="search" titolo={`${t('rr.title', null, 'Ricerca rapida')} · ⌘K`} onClick={() => window.dispatchEvent(new Event('lyft:ricerca-rapida'))} />
+              {/* Il SaaS parla cinque lingue e i clienti la cambiano dalla testata:
+                  nel fork (un cliente, una lingua) la voce era finita nel profilo. */}
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
+              {/* La campanella degli avvisi: nel fork gli avvisi stanno solo nel
+                  pop-up del profilo, qui resta anche in testata perche' e' il
+                  canale con cui avvisiamo i clienti paganti. */}
               <AlertsBell />
-              {/* I due punti d'arrivo della barra: le tab ci mandano dentro i loro bottoni e il loro
-                  selettore del periodo, cosi' stanno sempre nello stesso posto invece che ognuna al
-                  suo. Senza questi due contenitori le tab non darebbero errore: semplicemente non
-                  disegnerebbero niente (ui/AzioneBarra e ui/PeriodoInBarra fanno `if (!arrivo)
-                  return null`). E' il difetto silenzioso piu' probabile del travaso. */}
+              {/* Tab che hanno il loro Aggiorna interno → nascondiamo
+                  il bottone globale per non duplicarlo */}
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleVerdicts','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','corrispettivi','clienti','inventory','productPerformance','productCosts','googleProducts','metaLeadgen','ltvCohorts'].includes(tab) && (
+                <BottoneIcona icona="refresh" titolo={loading ? t('shell.refreshing') : t('shell.refresh')} onClick={onRefresh} disabled={loading} gira={loading} />
+              )}
+              {/* Nei report il PDF sta nella barra della tab, come in Weekly:
+                  stessa posizione ovunque. Qui resta solo per Attribuzione. */}
+              {['attribution'].includes(tab) && (
+                <DownloadReportButton tab={getPageTitle(tab, t)} preset={preset} />
+              )}
+              {/* IL SELETTORE DEL PERIODO E' SEMPRE L'ULTIMO A DESTRA, in ogni tab: stesso
+                  punto, che la barra abbia o no "Aggiorna" e il PDF. Qui arriva quello
+                  delle tab (ui/PeriodoInBarra); Dashboard e Attribuzione usano il periodo
+                  globale della pagina, disegnato nello stesso posto. */}
+              <CapsulaViva updated={updated} onVai={goTo} />
               <div id="barra-azioni" style={{ display: 'contents' }} />
               <div id="barra-periodo" style={{ display: 'contents' }} />
               {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
-                <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} />
-              )}
-              {/* Tab che hanno il loro Aggiorna interno → nascondiamo
-                  il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','clienti'].includes(tab) && (
-                <button
-                  type="button"
-                  onClick={onRefresh}
-                  disabled={loading}
-                  className="btn-glass"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.5 : 1,
-                  }}
-                >
-                  <span style={{
-                    display: 'inline-block',
-                    animation: loading ? 'spin 1s linear infinite' : 'none',
-                  }}>↻</span>
-                  {loading ? t('shell.refreshing') : t('shell.refresh')}
-                </button>
-              )}
-              {/* Nei report il PDF sta nella barra della tab, come in Weekly. */}
-              {['attribution'].includes(tab) && (
-                <DownloadReportButton tab={getPageTitle(tab, t)} preset={preset} />
+                <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} disabled={loading} />
               )}
             </div>
           </header>
 
+          {/* Abbonamento scaduto: la sola tab raggiungibile e' Settings, e qui si
+              dice perche'. Senza questo banner il cliente vedrebbe solo i piani
+              senza capire cosa gli e' successo. */}
           {subLocked && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 4px',
@@ -588,20 +714,37 @@ const [helpOpen, setHelpOpen] = useState(false)
           </TabContent>
         </div>
       </main>
-      {/* Una sola nuvoletta per TUTTA l'app: le tab non devono fare niente. Non disegna nulla
-          (restituisce null), ascolta il mouse sul documento e spiega il dato che sta sotto. */}
-      {/* La ricerca rapida (⌘K): salta a una tab, cambia il periodo, cambia il tema.
-          `gruppi` sono gli stessi del menu, quindi vede solo le tab che l'utente puo' aprire. */}
       <RicercaRapida gruppi={groups} onVai={goTo} t={t} azioni={[
+        ...(setPreset ? [['today', t('tf.today', null, 'Oggi')], ['yesterday', t('tf.yesterday', null, 'Ieri')], ['last_7d', t('tf.last7d', null, 'Ultimi 7 giorni')], ['last_30d', t('tf.last30d', null, 'Ultimi 30 giorni')], ['this_month', t('tf.thisMonth', null, 'Questo mese')], ['last_month', t('tf.lastMonth', null, 'Mese scorso')]]
+          .map(([id, nome]) => ({ id: 'periodo:' + id, nome: `${t('rr.period', null, 'Periodo della Dashboard')}: ${nome}`, parole: 'periodo timeframe date', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="calendar" />, esegui: () => { goTo('dashboard'); setPreset(id) } })) : []),
         ...[['light', t('profilo.giorno', null, 'Giorno')], ['dark', t('profilo.notte', null, 'Notte')], ['auto', t('profilo.automatico', null, 'Automatico')]]
           .map(([id, nome]) => ({ id: 'tema:' + id, nome: `${t('profilo.tema', null, 'Tema')}: ${nome}`, parole: 'tema theme chiaro scuro dark light', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="eye" />, esegui: () => impostaTema(id) })),
+        { id: 'film', nome: t('film.cta', null, 'Il film della settimana'), parole: 'film report settimana wrapped racconto weekly', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="play" />, esegui: () => window.dispatchEvent(new Event('lyft:film')) },
+        { id: 'profilo', nome: t('profilo.title', null, 'Il tuo profilo'), parole: 'profilo foto lingua notifiche avvisi esci logout', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="user" />, esegui: () => window.dispatchEvent(new Event('lyft:apri-profilo')) },
         ...(onRefresh ? [{ id: 'aggiorna', nome: t('shell.refresh', null, 'Aggiorna'), parole: 'aggiorna ricarica refresh dati', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="refresh" />, esegui: () => onRefresh() }] : []),
       ]} />
-      {/* Un avviso solo, uguale in tutto il prodotto: discreto, in basso, sparisce da se'. */}
       <Avvisi />
-      {/* Scorrendo una tabella lunga l'intestazione resta in vista invece di uscire dallo schermo. */}
       <IntestazioniFerme />
       <Spiegazioni />
+      {/* Barra in basso su telefono: la Dashboard, i preferiti (la stella del menu) e il menu.
+          Senza preferiti ci vanno le quattro tab piu' usate. Su computer non esiste. */}
+      {(() => {
+        const tutte = groups.flatMap(g => g.items)
+        const scelte = (preferiti.length ? ['dashboard', ...preferiti] : ['dashboard', 'kpiBrain', 'inventory', 'chat'])
+          .filter((id, k, a) => a.indexOf(id) === k).map(id => tutte.find(i => i.id === id)).filter(Boolean).slice(0, 4)
+        return (
+          <nav className="ly-barra-basso" aria-label={t('shell.quickNav', null, 'Navigazione rapida')}>
+            {scelte.map(item => (
+              <button key={item.id} type="button" className={`senza-tocco${tab === item.id ? ' attiva' : ''}`} aria-current={tab === item.id ? 'page' : undefined} onClick={() => goTo(item.id)}>
+                <span aria-hidden="true">{item.icon}</span><i>{t('tab.' + item.id, null, item.label)}</i>
+              </button>
+            ))}
+            <button type="button" className="senza-tocco" onClick={() => setMobileNav(true)} aria-haspopup="dialog">
+              <span aria-hidden="true"><Icon name="list" /></span><i>{t('shell.menu', null, 'Menu')}</i>
+            </button>
+          </nav>
+        )
+      })()}
       {helpOpen && <HelpDrawer article={articleForTab(tab, locale)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>
     </>
@@ -686,6 +829,7 @@ function TabContent({ children }) {
   return (
     <div
       ref={ref}
+      className="app-tab-content"
       style={{
         opacity: entered ? 1 : 0,
         transform: posato ? 'none' : entered ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.97)',
@@ -701,6 +845,9 @@ function TabContent({ children }) {
 // Mostra il company_name dell'utente loggato (dai metadata Supabase) invece
 // di un valore hardcoded. Fallback su "LyftAI" se l'utente non ha ancora un
 // nome azienda configurato.
+//
+// Qui NON esiste il ramo "workspace fisso" del fork: questo e' il SaaS, il
+// passaggio fra i clienti dell'agenzia e' la funzione, non un caso limite.
 function WorkspacePill() {
   const { t } = useI18n()
   const [companyName, setCompanyName] = useState('LyftAI')
@@ -778,8 +925,12 @@ function WorkspacePill() {
     background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12,
     padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, width: '100%',
   }
+  // Quadratino neutro accanto al nome. Il fork ci mette il logo del suo unico
+  // cliente, preso da un file fisso: qui i workspace sono tanti e ognuno avrebbe
+  // il suo, quindi finche' non c'e' un logo per workspace resta il segnaposto
+  // (neutro, non una sfumatura colorata: vale la regola "zero colori").
   const avatar = (
-    <span style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #2997ff, #bf5af2)', display: 'inline-block', flexShrink: 0 }} />
+    <span style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--text)', display: 'inline-block', flexShrink: 0 }} />
   )
 
   // Sempre interattivo: anche un utente singolo deve poter creare il PRIMO
@@ -789,23 +940,23 @@ function WorkspacePill() {
       <button type="button" onClick={() => setOpen(o => !o)} disabled={busy} style={{ ...card, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}>
         {avatar}
         <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
           <span style={{ display: 'block', fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{t('shell.switchCompany', null, 'Switch company')}</span>
         </span>
         <span style={{ fontSize: 10, color: 'var(--text3)' }}>▾</span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 12, padding: 6, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', maxHeight: 320, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200, background: 'var(--surface, #0e0e0e)', border: '1px solid var(--border)', borderRadius: 12, padding: 6, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', maxHeight: 320, overflowY: 'auto' }}>
           {ws.workspaces.map(w => {
             const on = w.id === ws.activeId
             return (
-              <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 2, borderRadius: 8, background: on ? 'rgba(41,151,255,0.14)' : 'transparent' }}>
+              <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 2, borderRadius: 8, background: on ? 'var(--neutro-bg)' : 'transparent' }}>
                 <button type="button" onClick={() => switchTo(w.id)} style={{ flex: 1, minWidth: 0, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: on ? '#2997ff' : 'var(--text2)', fontSize: 13, fontWeight: on ? 800 : 600 }}>
                   <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}{w.isSelf ? ' · ' + t('shell.you', null, 'you') : ''}</span>
                   {on && <span>✓</span>}
                 </button>
                 {!w.isSelf && (
-                  <button type="button" title={t('shell.deleteClient', null, 'Delete client')} onClick={(e) => { e.stopPropagation(); deleteClient(w.id, w.label) }} style={{ flexShrink: 0, border: 'none', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', padding: '6px 8px', borderRadius: 6, display: 'inline-flex' }}>
+                  <button type="button" title={t('shell.deleteClient', null, 'Delete client')} onClick={(e) => { e.stopPropagation(); deleteClient(w.id, w.label) }} style={{ flexShrink: 0, border: 'none', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', padding: '6px 8px', borderRadius: 8, display: 'inline-flex' }}>
                     <Icon name="trash" size={13} />
                   </button>
                 )}
@@ -813,7 +964,7 @@ function WorkspacePill() {
             )
           })}
           <div style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />
-          <button type="button" onClick={() => { setOpen(false); setAddError(null); setAddOpen(true) }} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 700 }}>{t('shell.addClient', null, '+ Add client')}</button>
+          <button type="button" onClick={() => { setOpen(false); setAddError(null); setAddOpen(true) }} style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: '#22c55e', fontSize: 13, fontWeight: 600 }}>{t('shell.addClient', null, '+ Add client')}</button>
         </div>
       )}
       <AddClientModal open={addOpen} busy={addBusy} error={addError} onClose={() => setAddOpen(false)} onSubmit={createClient} />
@@ -821,12 +972,18 @@ function WorkspacePill() {
   )
 }
 
-// ── UserSection: leggi user da Supabase, mostra nome+azienda, dropdown logout ──
+// ── UserSection: il proprio nome in fondo al menu. Un click apre il pop-up del
+// profilo (foto, soprannome, notifiche email, lingua, tema, avvisi, uscita). Il
+// pallino sull'avatar dice che nel centro avvisi c'e' qualcosa da leggere: e' il
+// secondo segnale, oltre alla campanella in testata.
+// Il pop-up si apre SEMPRE sulla scheda Profilo, anche con avvisi urgenti.
 function UserSection() {
+  const { t } = useI18n()
   const [user, setUser] = useState(null)
-  const [company, setCompany] = useState(null)
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef(null)
+  const [profilo, setProfilo] = useState(null)
+  const [personale, setPersonale] = useState(null)
+  const [aperto, setAperto] = useState(null)
+  const avvisi = useAlerts()
 
   useEffect(() => {
     const supabase = getBrowserSupabase()
@@ -840,98 +997,46 @@ function UserSection() {
   }, [])
 
   useEffect(() => {
-    if (!user) return
-    // Leggi metadata custom dal user
-    const meta = user.user_metadata || {}
-    setCompany({
-      name: meta.name || user.email?.split('@')[0] || 'Utente',
-      companyName: meta.company_name || meta.companyName || '',
-      email: user.email || '',
-    })
-  }, [user])
-
-  useEffect(() => {
-    const onClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    fetch('/api/profile', { cache: 'no-store' }).then(r => r.json())
+      .then(d => { setProfilo(d.profile || null); setPersonale(d.personale || null) }).catch(() => {})
+    // Salvato dal pop-up (anche da quello aperto in LyftTalk): si aggiorna senza ricaricare.
+    const aggiorna = (e) => {
+      if (e.detail?.profile) setProfilo(e.detail.profile)
+      if (e.detail?.personale) setPersonale(e.detail.personale)
     }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    // di norma sul Profilo; la sala di controllo puo' chiedere di aprirlo sugli Avvisi
+    const apri = (e) => setAperto(e?.detail?.scheda || 'profilo')
+    window.addEventListener('lyft:profilo', aggiorna)
+    window.addEventListener('lyft:apri-profilo', apri)
+    return () => { window.removeEventListener('lyft:profilo', aggiorna); window.removeEventListener('lyft:apri-profilo', apri) }
   }, [])
 
-  const handleLogout = async () => {
-    const supabase = getBrowserSupabase()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  }
-
-  const initials = company?.name
-    ? company.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
-    : '··'
+  const meta = user?.user_metadata || {}
+  const nome = personale?.nickname || profilo?.full_name || meta.name || user?.email?.split('@')[0] || '…'
+  const sotto = meta.company_name || meta.companyName || user?.email || ''
+  const daLeggere = avvisi.counts?.total || 0
+  const urgente = (avvisi.counts?.urgent || 0) > 0
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px', position: 'relative' }} ref={menuRef}>
+    <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px' }}>
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width: '100%', background: 'transparent', border: 'none',
-          cursor: 'pointer', padding: 0, textAlign: 'left',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}
+        className="app-user-btn senza-tocco"
+        onClick={() => setAperto('profilo')}
+        aria-haspopup="dialog"
+        title={daLeggere > 0 ? t('profilo.alertBadge', { n: daLeggere }, `${daLeggere} avvisi da leggere`) : t('profilo.open', null, 'Apri il tuo profilo')}
       >
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          display: 'grid', placeItems: 'center',
-          background: 'linear-gradient(135deg, #2997ff, #bf5af2)',
-          color: 'var(--text)', fontSize: 11, fontWeight: 700,
-          flexShrink: 0,
-        }}>{initials}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {company?.name || '…'}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {company?.companyName || (company?.email ? company.email : 'Admin')}
-          </div>
-        </div>
-        <span style={{ color: 'var(--text3)', fontSize: 14 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ position: 'relative', flexShrink: 0 }}>
+          <Avatar name={nome} url={profilo?.avatar_url || null} size={32} />
+          {daLeggere > 0 && <span className={`app-user-pallino${urgente ? ' urgente' : ''}`}>{daLeggere > 9 ? '9+' : daLeggere}</span>}
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span className="app-user-nome">{nome}</span>
+          <span className="app-user-sotto">{sotto}</span>
+        </span>
+        <Icon name="chevron" size={13} />
       </button>
-
-      {open && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 6px)', left: 14, right: 14,
-          background: 'rgba(10,10,22,0.96)',
-          backdropFilter: 'blur(40px)',
-          border: '1px solid var(--border2)',
-          borderRadius: 11,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
-          padding: 6,
-          zIndex: 100,
-        }}>
-          <div style={{
-            padding: '8px 12px',
-            fontSize: 11, color: 'var(--text3)',
-            borderBottom: '1px solid var(--border)',
-            marginBottom: 4,
-          }}>{company?.email || ''}</div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{
-              width: '100%', textAlign: 'left',
-              padding: '9px 12px', borderRadius: 7,
-              background: 'transparent', border: 'none',
-              color: '#fca5a5', fontSize: 12.5, fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            ↩ Logout
-          </button>
-        </div>
-      )}
+      {aperto && <ProfiloPopup apri={aperto} avvisi={avvisi} onClose={() => setAperto(null)} />}
     </div>
   )
 }

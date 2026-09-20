@@ -69,13 +69,13 @@ export default function GoogleLighthouseTab() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
           <PlatformBadges sources={['google']} size={26} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--positivo)', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe value={tf} onChange={setTf} accent="#fbbf24" disabled={loading} />
+          <BmTimeframe value={tf} onChange={setTf} accent="#8e8e98" disabled={loading} />
           <button type="button" onClick={() => load(true)} disabled={loading}
             style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
@@ -104,7 +104,7 @@ export default function GoogleLighthouseTab() {
       {data?.warning && <div className="glass-card-static" style={{ padding: 18, color: '#fbbf24', fontSize: 13 }}>{data.warning}</div>}
 
       {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>{t('lighthouse.scanning', null, 'Scanning anomalies…')}</div>
+        <div style={{ color: 'var(--text3)', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>{t('lighthouse.scanning', null, 'Scanning anomalies…')}</div>
       )}
 
       {filtered.length === 0 && data && !loading && (
@@ -128,7 +128,7 @@ function SummaryPill({ active, onClick, label, count, color }) {
       style={{ background: active ? `${color}22` : 'var(--glass)', border: `1px solid ${active ? color : 'var(--border)'}`, color: active ? color : 'var(--text2)', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} />
       {label}
-      <span style={{ background: active ? color : 'rgba(255,255,255,0.06)', color: active ? '#0a0a14' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>{count}</span>
+      <span style={{ background: active ? color : 'rgba(255,255,255,0.06)', color: active ? 'var(--bg)' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>{count}</span>
     </button>
   )
 }

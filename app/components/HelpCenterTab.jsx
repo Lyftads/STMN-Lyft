@@ -6,7 +6,7 @@ import Icon from './ui/Icon'
 import HelpDrawer from './HelpDrawer'
 import { articlesFor, HELP_CATEGORIES, findArticle } from '../../lib/help/content'
 
-const CAT_COLOR = { gettingStarted: '#22c55e', features: '#7b5bff', advanced: '#f59e0b' }
+const CAT_COLOR = { gettingStarted: 'var(--text3)', features: 'var(--text3)', advanced: 'var(--text3)' }
 
 export default function HelpCenterTab({ onNavigate }) {
   const { t, locale } = useI18n()
@@ -34,11 +34,11 @@ export default function HelpCenterTab({ onNavigate }) {
     <div style={{ width: '100%', padding: '8px 4px 60px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-        <span style={{ width: 46, height: 46, borderRadius: 12, display: 'grid', placeItems: 'center', color: '#a78bfa', background: 'var(--neutro-bg)', border: '1px solid rgba(123,91,255,0.28)' }}>
+        <span style={{ width: 46, height: 46, borderRadius: 12, display: 'grid', placeItems: 'center', color: 'var(--text2)', background: 'var(--neutro-bg)', border: '1px solid var(--border)' }}>
           <Icon name="info" size={22} />
         </span>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 680, margin: 0, background: 'linear-gradient(90deg,#fff,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t('help.title', null, 'Centro Assistenza')}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 680, margin: 0, color: 'var(--text)' }}>{t('help.title', null, 'Centro Assistenza')}</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--text2)', fontSize: 15 }}>{t('help.subtitle', null, 'Tutto quello che ti serve per usare LyftAI al massimo')}</p>
         </div>
       </div>
@@ -55,8 +55,8 @@ export default function HelpCenterTab({ onNavigate }) {
         {['all', ...HELP_CATEGORIES].map(c => (
           <button key={c} onClick={() => setCat(c)} style={{
             padding: '8px 16px', borderRadius: 12, border: '1px solid var(--border)', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-            background: cat === c ? (c === 'all' ? 'rgba(123,91,255,0.9)' : (CAT_COLOR[c] || '#7b5bff')) : 'rgba(255,255,255,0.03)',
-            color: cat === c ? '#fff' : 'var(--text2)',
+            background: cat === c ? 'var(--btn-primario)' : 'rgba(255,255,255,0.03)',
+            color: cat === c ? 'var(--btn-primario-testo)' : 'var(--text2)',
           }}>{catLabel(c)}</button>
         ))}
       </div>
@@ -64,7 +64,7 @@ export default function HelpCenterTab({ onNavigate }) {
       {/* Griglia card */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16, width: '100%' }}>
         {list.map(a => {
-          const c = CAT_COLOR[a.category] || '#7b5bff'
+          const c = CAT_COLOR[a.category] || 'var(--text3)'
           return (
             <div key={a.id} role="button" tabIndex={0}
               onClick={() => setOpenId(a.id)}
@@ -76,12 +76,12 @@ export default function HelpCenterTab({ onNavigate }) {
                 border: '1px solid var(--border)', background: 'var(--glass)', transition: 'all .15s',
               }}>
               <span style={{ position: 'absolute', top: 16, right: 14, color: 'var(--text2)' }}><Icon name="link" size={15} /></span>
-              <span style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center', color: c, background: c + '1f', border: `1px solid ${c}3a`, marginBottom: 14 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center', color: c, background: 'var(--glass2)', border: '1px solid var(--border)', marginBottom: 14 }}>
                 <Icon name={a.icon || 'info'} size={19} />
               </span>
               <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', marginBottom: 6 }}>{a.title}</div>
               <div style={{ fontSize: 13, color: '#c5c5c5', lineHeight: 1.55, marginBottom: 14, minHeight: 38 }}>{a.summary}</div>
-              <span style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 600, color: c, background: c + '1a', padding: '3px 9px', borderRadius: 8 }}>{catLabel(a.category)}</span>
+              <span style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 600, color: c, background: 'var(--glass2)', padding: '3px 9px', borderRadius: 8 }}>{catLabel(a.category)}</span>
             </div>
           )
         })}

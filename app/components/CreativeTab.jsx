@@ -287,7 +287,7 @@ function CreativeCard({ row, index, onClick, segments }) {
       onClick={onClick}
       style={{
         position: 'relative',
-        background: 'linear-gradient(155deg, rgba(20,16,40,0.85) 0%, rgba(8,8,18,0.95) 100%)',
+        background: 'var(--surface)',
         border: '1px solid var(--border)',
         borderRadius: 16,
         overflow: 'hidden',
@@ -297,7 +297,7 @@ function CreativeCard({ row, index, onClick, segments }) {
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = ''
-        e.currentTarget.style.borderColor = accent.alpha
+        e.currentTarget.style.borderColor = 'var(--border3)'
         e.currentTarget.style.boxShadow = 'none'
       }}
       onMouseLeave={e => {
@@ -326,7 +326,7 @@ function CreativeCard({ row, index, onClick, segments }) {
           <div style={{
             position: 'absolute', top: 10, left: 10, zIndex: 2,
             padding: '4px 9px', borderRadius: 999,
-            background: 'rgba(91,44,255,0.85)', color: 'var(--text)',
+            background: 'var(--glass2)', color: 'var(--text2)',
             fontSize: 10, fontWeight: 640, letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
@@ -397,15 +397,15 @@ function CreativeCard({ row, index, onClick, segments }) {
             width: '100%', height: '100%',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 14,
-            background: 'linear-gradient(135deg, rgba(91,44,255,0.18) 0%, rgba(0,0,0,0.4) 100%)',
+            background: 'var(--glass2)',
             padding: 20,
           }}>
             <div style={{
               width: 56, height: 56, borderRadius: 16,
-              background: 'rgba(91,44,255,0.25)',
-              border: '1px solid rgba(91,44,255,0.5)',
+              background: 'var(--glass2)',
+              border: '1px solid var(--border2)',
               display: 'grid', placeItems: 'center',
-              color: '#a78bfa',
+              color: 'var(--text2)',
             }}><Icon name="image" size={26} /></div>
             <div style={{
               padding: '4px 10px', borderRadius: 999,
@@ -437,11 +437,11 @@ function CreativeCard({ row, index, onClick, segments }) {
               width: 30,
               height: 30,
               borderRadius: 12,
-              background: `linear-gradient(135deg, ${accent.glow}, rgba(91,44,255,0.85))`,
+              background: 'var(--btn-primario)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--text)',
+              color: 'var(--btn-primario-testo)',
               fontSize: 13,
               fontWeight: 680,
               flex: '0 0 auto',
@@ -506,7 +506,7 @@ function CreativeCard({ row, index, onClick, segments }) {
         >
           <Mini label={t('cr.spend', null, 'Spesa')} value={money(spend)} curr={spend} prev={prev?.spend} />
           <Mini label={t('cr.revenue', null, 'Revenue')} value={money(purchaseValue)} curr={purchaseValue} prev={prev?.revenue} />
-          <Mini label="ROAS" value={ratio(roas)} curr={roas} prev={prev?.roas} tone={accent.glow} highlight />
+          <Mini label="ROAS" value={ratio(roas)} curr={roas} prev={prev?.roas} />
           <Mini label={t('cr.orders', null, 'Ordini')} value={num(purchases)} curr={purchases} prev={prev?.orders} />
           <Mini label="CTR" value={pct(ctr)} curr={ctr} prev={prev?.ctr_link} kind="pct" />
           <Mini label="CPC" value={money2(cpc)} curr={cpc} prev={prev?.cpc_link} isLowerBetter />
@@ -537,12 +537,8 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
     <div
       style={{
         position: 'relative',
-        background: highlight && tone
-          ? `linear-gradient(135deg, ${tone}22 0%, rgba(255,255,255,0.025) 100%)`
-          : 'rgba(255,255,255,0.025)',
-        border: highlight && tone
-          ? `1px solid ${tone}55`
-          : '1px solid var(--border)',
+        background: 'rgba(255,255,255,0.025)',
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '10px 12px',
         overflow: 'hidden',
@@ -1065,12 +1061,12 @@ export default function CreativeTab() {
         }}
       >
         <PlatformBadges sources={['meta']} size={18} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
-          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--positivo)', boxShadow: 'none' }} />
           LIVE
         </span>
         <div style={{ marginLeft: 'auto' }}>
-          <PeriodoInBarra value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
+          <PeriodoInBarra value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#8e8e98" disabled={loading} />
         </div>
       </div>
 
@@ -1083,17 +1079,17 @@ export default function CreativeTab() {
           marginBottom: 24,
         }}
       >
-        <Stat label={t('cr.spend', null, 'Spesa')} value={money(totals.spend)} tone="#3b82f6"
+        <Stat label={t('cr.spend', null, 'Spesa')} value={money(totals.spend)}
           curr={totals.spend} prev={prevSummary?.spend} daily={daily} dataKey="spend" />
-        <Stat label={t('cr.revenue', null, 'Revenue')} value={money(totals.revenue)} tone="#22c55e"
+        <Stat label={t('cr.revenue', null, 'Revenue')} value={money(totals.revenue)}
           curr={totals.revenue} prev={prevSummary?.revenue} daily={daily} dataKey="revenue" />
-        <Stat label="ROAS" value={ratio(totalRoas)} tone="#22c55e"
+        <Stat label="ROAS" value={ratio(totalRoas)}
           curr={totalRoas} prev={prevSummary?.roas} daily={daily} dataKey="roas" />
-        <Stat label={t('cr.orders', null, 'Ordini')} value={num(totals.orders)} tone="#f97316"
+        <Stat label={t('cr.orders', null, 'Ordini')} value={num(totals.orders)}
           curr={totals.orders} prev={prevSummary?.orders} daily={daily} dataKey="orders" />
-        <Stat label="CPC" value={money2(totalCpc)} tone="#ec4899"
+        <Stat label="CPC" value={money2(totalCpc)}
           curr={totalCpc} prev={prevSummary?.cpc_link} daily={daily} dataKey="cpc_link" isLowerBetter />
-        <Stat label={t('cr.ctrLink', null, 'CTR Link')} value={pct(totalCtr)} tone="#a78bfa"
+        <Stat label={t('cr.ctrLink', null, 'CTR Link')} value={pct(totalCtr)}
           curr={totalCtr} prev={prevSummary?.ctr_link} daily={daily} dataKey="ctr_link" />
       </div>
 
@@ -1242,8 +1238,8 @@ export default function CreativeTab() {
                   onClick={() => setAccountFilter(opt.id)}
                   disabled={loading}
                   style={{
-                    background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
-                    border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
+                    background: active ? 'var(--glass2)' : 'rgba(255,255,255,0.04)',
+                    border: active ? '1px solid var(--border3)' : '1px solid var(--border)',
                     color: active ? 'var(--text)' : 'var(--text2)',
                     borderRadius: 12,
                     padding: '8px 12px',

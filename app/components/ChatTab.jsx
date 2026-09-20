@@ -562,9 +562,9 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 16px', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="tipwrap" style={{ display: 'flex', gap: 8, position: 'relative' }}>
-            <button onClick={winClose} title={tr('ch.winClose', null, 'Close')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#ff5f57' }} />
-            <button onClick={winMin} title={tr('ch.winMin', null, 'Minimize (exit full screen)')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
-            <button onClick={winFull} title={tr('ch.winFull', null, 'Full screen')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
+            <button onClick={winClose} title={tr('ch.winClose', null, 'Close')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
+            <button onClick={winMin} title={tr('ch.winMin', null, 'Minimize (exit full screen)')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
+            <button onClick={winFull} title={tr('ch.winFull', null, 'Full screen')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />
           </div>
           <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
         </div>
@@ -1417,7 +1417,7 @@ function AudioMsg({ src }) {
       <audio ref={ref} src={src} preload="metadata" onTimeUpdate={e => setCur(e.target.currentTime)} onLoadedMetadata={e => setDur(e.target.duration || 0)} onEnded={() => { setPlaying(false); setCur(0) }} style={{ display: 'none' }} />
       <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
       <div onClick={e => { const a = ref.current; if (!a || !dur) return; const r = e.currentTarget.getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur }} style={{ flex: 1, height: 4, borderRadius: 6, background: 'rgba(255,255,255,0.16)', cursor: 'pointer', position: 'relative' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', borderRadius: 6 }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'var(--text3)', borderRadius: 6 }} />
       </div>
       <span style={{ fontSize: 11.5, color: '#bababa', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(cur)} / {fmt(dur)}</span>
     </div>

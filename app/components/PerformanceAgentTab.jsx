@@ -20,11 +20,11 @@ const palette = {
   bg: 'var(--surface)',
   panel: 'var(--glass)',
   border: 'var(--border)',
-  bubbleUser: 'linear-gradient(135deg, #6d28d9, #2a1746)',
+  bubbleUser: 'var(--btn-primario)',
   bubbleAgent: 'var(--glass)',
   text: 'var(--text)',
   muted: 'var(--text2)',
-  accent: '#8b5cf6',
+  accent: 'var(--border3)',
 }
 
 function formatMessage(text) {
@@ -291,7 +291,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
                     : m.isError
                     ? '1px solid #ef444455'
                     : `1px solid ${palette.border}`,
-                color: m.isError ? '#fecaca' : '#f1ecfb',
+                color: m.isError ? 'var(--negativo)' : (m.role === 'user' ? 'var(--btn-primario-testo)' : 'var(--text)'),
                 borderRadius: 14,
                 padding: '12px 16px',
                 fontSize: 14,
@@ -386,8 +386,8 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
             style={{
               background: loading || !input.trim()
                 ? 'var(--glass)'
-                : 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-              color: 'var(--text)',
+                : 'var(--btn-primario)',
+                color: loading || !input.trim() ? 'var(--text3)' : 'var(--btn-primario-testo)',
               border: 'none',
               borderRadius: 12,
               padding: '0 22px',
@@ -402,7 +402,7 @@ export default function PerformanceAgentTab({ cfg, preset: globalPreset }) {
         <div style={{ marginTop: 8, fontSize: 11, color: palette.muted, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <span>{t('agent.footer', null, 'Dati live da tutte le piattaforme collegate. Niente è inventato.')}</span>
           {dataSummary && (
-            <span style={{ color: '#a89db8' }}>
+            <span style={{ color: 'var(--text3)' }}>
               {(dataSummary.activeSources || []).map(s => `${s} ✓`).join(' · ') || t('agent.noSource', null, 'nessuna fonte')} — {dataSummary.activeCount || 0} {dataSummary.activeCount === 1 ? t('agent.integrationOne', null, 'integrazione') : t('agent.integrationMany', null, 'integrazioni')}
             </span>
           )}

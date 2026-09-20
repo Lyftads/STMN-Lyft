@@ -9,6 +9,7 @@ import { withTenantContext, getMeta, getTenantInfo } from '../../../lib/tenant/c
 // deve vedere il SUO nome su PDF e analisi AI).
 const tenantBrand = (fallback = 'LyftAI') => getTenantInfo().companyName || fallback
 import { callBrain } from '../../../lib/agent/gateway'
+import { NARRATIVE_QUALITY } from '../../../lib/agent/narrativeQuality'
 import { reportT, localeTag, normLocale } from '../../../lib/reportI18n'
 import { reportLogoBar } from '../../../lib/reports/logo'
 
@@ -266,7 +267,7 @@ async function aiNarrative(context, locale) {
 {"summary":"<4-6 frasi: il racconto del periodo con i numeri chiave, i confronti vs periodo precedente e la spiegazione più probabile di COSA ha mosso i risultati>",
 "insights":["<4-5 voci. Ogni insight = 2-3 frasi: il DATO osservato con le cifre esatte → il PERCHÉ più probabile leggendo gli altri numeri → cosa IMPLICA per il business>"],
 "todos":["<3-5 voci. Ogni to-do = 2-4 frasi: AZIONE precisa con nomi e numeri reali → COME farla con un esempio concreto (passi operativi) → IMPATTO ATTESO stimato in € o % con l'assunzione usata → cosa monitorare>"]}
-Vietato il generico ("ottimizza", "monitora le performance") e vietato inventare numeri: ogni cifra deve venire dal JSON. Se un impatto non è stimabile coi dati, dillo e indica quale dato servirebbe. Niente emoji, niente markdown.`,
+Vietato il generico ("ottimizza", "monitora le performance") e vietato inventare numeri: ogni cifra deve venire dal JSON. Se un impatto non è stimabile coi dati, dillo e indica quale dato servirebbe. Niente emoji, niente markdown.${NARRATIVE_QUALITY}`,
       },
       query: 'analisi report performance marketing e-commerce insight e azioni',
       messages: [{ role: 'user', content: `Dati del report (periodo corrente vs precedente):\n${JSON.stringify(context).slice(0, 14000)}` }],

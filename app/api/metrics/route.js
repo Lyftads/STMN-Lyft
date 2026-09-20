@@ -781,52 +781,16 @@ async function fetchShopifySalesRange(start, end) {
   }
 }
 
-// ── Shopify online store visitors per range arbitrario ────────
+// ── Sessioni Shopify per un periodo qualunque ─────────────────
+// Qui si chiedeva per primo `online_store_visitors`: sono i VISITATORI UNICI, non le SESSIONI. La
+// Dashboard li mostrava sotto «Sessioni» e restava circa il 7% sotto Shopify (misurato: 1.540
+// visitatori contro 1.652 sessioni), mentre le serie per settimana e per mese usavano gia'
+// `sessions`. Due metriche diverse chiamate con lo stesso nome, nella stessa pagina.
+// Ora una domanda sola, la stessa metrica ovunque — e tre interrogazioni in meno su un tetto di
+// ~30 al minuto per negozio.
 async function fetchShopifyVisitorsRange(start, end) {
-  const candidates = [
-    `
-      FROM sessions
-        SHOW online_store_visitors
-        SINCE ${start}
-        UNTIL ${end}
-    `,
-    `
-      FROM sessions
-        SHOW visitors
-        SINCE ${start}
-        UNTIL ${end}
-    `,
-    `
-      FROM sessions
-        SHOW unique_visitors
-        SINCE ${start}
-        UNTIL ${end}
-    `,
-    `
-      FROM sessions
-        SHOW sessions
-        SINCE ${start}
-        UNTIL ${end}
-    `,
-  ]
-
-  for (const query of candidates) {
-    const rows = await shopifyQL(query)
-
-    if (!rows?.length) continue
-
-    const row = rows[0] || {}
-
-    const value =
-      cleanCount(row.online_store_visitors) ||
-      cleanCount(row.visitors) ||
-      cleanCount(row.unique_visitors) ||
-      cleanCount(row.sessions)
-
-    if (value > 0) return value
-  }
-
-  return 0
+  const rows = await shopifyQL(`FROM sessions SHOW sessions SINCE ${start} UNTIL ${end}`)
+  return cleanCount(rows?.[0]?.sessions)
 }
 
 // Serie temporale Shopify (settimanale/mensile) via UNA sola query ShopifyQL

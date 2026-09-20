@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
+// L'agente AI della tab vive solo nel SaaS: il fork mono-cliente l'aveva
+// cancellato. Va rimesso, altrimenti sparisce in silenzio (il build passa
+// lo stesso e nessuno si accorge che la tab ha perso il suo agente).
 import ScannerAgent from './ScannerAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -13,15 +16,15 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
     <div
       style={{
         position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        borderRadius: 22,
+        background: 'var(--surface)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        borderRadius: 16,
         overflow: 'hidden',
         border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        boxShadow: 'none',
         animation: 'sim-pulse 6s ease-in-out infinite',
         animationDelay: `${delay}s`,
         transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
@@ -29,20 +32,20 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
       }}
       onMouseEnter={e => {
         e.currentTarget.style.animationPlayState = 'paused'
-        e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
-        e.currentTarget.style.boxShadow = `0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px ${glow}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.animationPlayState = 'running'
         e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
       }}
     >
       <div style={{
         position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
+        background: 'none',
         filter: 'blur(0.3px)',
         opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
@@ -52,7 +55,7 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
       <div style={{
         position: 'absolute', top: 0, bottom: 0, left: '-50%',
         width: '40%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        background: 'none',
         animation: 'sim-scan 9s ease-in-out infinite',
         animationDelay: `${delay + 1}s`,
         pointerEvents: 'none',
@@ -94,9 +97,9 @@ function ScoreGauge({ score = 0, label }) {
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--text)', fontFamily: 'Barlow', lineHeight: 1, letterSpacing: '-0.04em' }}>{v}</div>
-        <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginTop: 4 }}>{useI18n().t('ws.scoreCro', null, 'Score CRO')}</div>
-        {label && <div style={{ fontSize: 10, color, fontWeight: 800, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>}
+        <div style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', fontFamily: 'inherit', lineHeight: 1, letterSpacing: '-0.04em' }}>{v}</div>
+        <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginTop: 4 }}>{useI18n().t('ws.scoreCro', null, 'Score CRO')}</div>
+        {label && <div style={{ fontSize: 10, color, fontWeight: 640, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>}
       </div>
     </div>
   )
@@ -107,7 +110,7 @@ function PrioPill({ priority }) {
   const colors = {
     critical: { bg: 'rgba(239,68,68,0.18)', text: '#fca5a5', label: t('ws.prioCritical', null, 'Critico') },
     high:     { bg: 'rgba(245,158,11,0.18)', text: '#fcd34d', label: t('ws.prioHigh', null, 'Alta') },
-    medium:   { bg: 'rgba(41,151,255,0.18)', text: '#93c5fd', label: t('ws.prioMedium', null, 'Media') },
+    medium:   { bg: 'var(--neutro-bg)', text: '#93c5fd', label: t('ws.prioMedium', null, 'Media') },
     low:      { bg: 'rgba(255,255,255,0.06)', text: 'var(--text3)', label: t('ws.prioLow', null, 'Bassa') },
   }
   const c = colors[priority] || colors.medium
@@ -115,7 +118,7 @@ function PrioPill({ priority }) {
     <span style={{
       display: 'inline-block', padding: '2px 8px', borderRadius: 999,
       background: c.bg, color: c.text,
-      fontSize: 9.5, fontWeight: 900, letterSpacing: '0.08em',
+      fontSize: 10, fontWeight: 680, letterSpacing: '0.08em',
       textTransform: 'uppercase',
     }}>{c.label}</span>
   )
@@ -124,7 +127,7 @@ function PrioPill({ priority }) {
 function ImpactPill({ impact }) {
   const colors = {
     high: { bg: 'rgba(34,197,94,0.18)', text: '#86efac' },
-    medium: { bg: 'rgba(41,151,255,0.18)', text: '#93c5fd' },
+    medium: { bg: 'var(--neutro-bg)', text: '#93c5fd' },
     low: { bg: 'rgba(255,255,255,0.06)', text: 'var(--text3)' },
   }
   const c = colors[impact] || colors.medium
@@ -132,7 +135,7 @@ function ImpactPill({ impact }) {
     <span style={{
       display: 'inline-block', padding: '2px 8px', borderRadius: 999,
       background: c.bg, color: c.text,
-      fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em',
+      fontSize: 10, fontWeight: 640, letterSpacing: '0.06em',
       textTransform: 'uppercase',
     }}>impact {impact || 'medium'}</span>
   )
@@ -145,12 +148,12 @@ function Section({ title, subtitle, dotColor, children, delay = 0 }) {
         <div style={{
           width: 10, height: 10, borderRadius: 999,
           background: dotColor,
-          boxShadow: `0 0 12px ${dotColor}`,
+          boxShadow: 'none',
           marginTop: 7,
         }} />
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>{title}</h2>
-          {subtitle && <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>{subtitle}</p>}
+          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 15, fontWeight: 680, letterSpacing: '-0.01em' }}>{title}</h2>
+          {subtitle && <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 13 }}>{subtitle}</p>}
         </div>
       </div>
       {children}
@@ -297,16 +300,20 @@ export default function WebsiteScannerTab() {
       <div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 360px', minWidth: 280 }}>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 8 }}>
               {t('ws.urlLabel', null, 'URL della pagina da analizzare')}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
+              {/* Nel placeholder c'era il dominio di UN cliente: su un SaaS
+                  multi-cliente ogni altro cliente se lo sarebbe trovato scritto
+                  nel campo. example.com e' il dominio riservato agli esempi
+                  (RFC 2606), quindi non e' il negozio di nessuno. */}
               <input
                 type="text"
                 value={url}
                 onChange={e => setUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !scanning) runScan() }}
-                placeholder="https://stmnfitness.com/products/tape-adesivo-nero"
+                placeholder="https://www.example.com/products/nome-prodotto"
                 disabled={scanning}
                 style={{
                   flex: 1,
@@ -315,7 +322,7 @@ export default function WebsiteScannerTab() {
                   color: 'var(--text)',
                   borderRadius: 12,
                   padding: '13px 16px',
-                  fontSize: 14,
+                  fontSize: 15,
                   outline: 'none',
                   fontFamily: 'monospace',
                 }}
@@ -331,8 +338,8 @@ export default function WebsiteScannerTab() {
                   border: 'none',
                   borderRadius: 12,
                   padding: '0 24px',
-                  fontSize: 13.5,
-                  fontWeight: 800,
+                  fontSize: 13,
+                  fontWeight: 640,
                   cursor: scanning ? 'wait' : 'pointer',
                   letterSpacing: '0.04em',
                   boxShadow: scanning ? 'none' : `0 0 24px ${ACCENT_GLOW}44`,
@@ -357,7 +364,7 @@ export default function WebsiteScannerTab() {
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640 }}>
                 {t('ws.viewport', null, 'Viewport')}
               </div>
               <div style={{
@@ -385,7 +392,7 @@ export default function WebsiteScannerTab() {
                         borderRadius: 999,
                         padding: '6px 14px',
                         fontSize: 11.5,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: scanning ? 'not-allowed' : 'pointer',
                         letterSpacing: '0.04em',
                         boxShadow: active ? `0 0 16px ${ACCENT_GLOW}44` : 'none',
@@ -416,8 +423,8 @@ export default function WebsiteScannerTab() {
               background: 'rgba(34,197,94,0.12)',
               border: '1px solid rgba(34,197,94,0.4)',
               color: '#86efac',
-              borderRadius: 10, padding: '9px 16px',
-              fontSize: 12.5, fontWeight: 800,
+              borderRadius: 12, padding: '9px 16px',
+              fontSize: 13, fontWeight: 640,
               cursor: downloadingPdf ? 'wait' : 'pointer',
               letterSpacing: '0.03em',
             }}
@@ -433,8 +440,8 @@ export default function WebsiteScannerTab() {
             background: historyOpen ? 'rgba(99,102,241,0.16)' : 'var(--glass)',
             border: '1px solid var(--border)',
             color: 'var(--text2)',
-            borderRadius: 10, padding: '9px 16px',
-            fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
+            borderRadius: 12, padding: '9px 16px',
+            fontSize: 13, fontWeight: 640, cursor: 'pointer',
             letterSpacing: '0.03em',
           }}
         >
@@ -442,7 +449,7 @@ export default function WebsiteScannerTab() {
           {t('ws.history', null, 'Storico scansioni')}
           {history.length > 0 && (
             <span style={{
-              fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 999,
+              fontSize: 10, fontWeight: 640, padding: '1px 7px', borderRadius: 999,
               background: 'rgba(99,102,241,0.22)', color: '#a5b4fc',
             }}>{history.length}</span>
           )}
@@ -451,7 +458,7 @@ export default function WebsiteScannerTab() {
 
       {historyOpen && (
         <GlassCard padding={0} delay={0}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640 }}>
             {t('ws.history', null, 'Storico scansioni')}
           </div>
           {history.length === 0 ? (
@@ -465,7 +472,7 @@ export default function WebsiteScannerTab() {
                 try { host = new URL(h.url).hostname.replace(/^www\./, '') } catch {}
                 const path = (() => { try { return new URL(h.url).pathname } catch { return '' } })()
                 const sc = typeof h.score === 'number' ? h.score : null
-                const scCol = sc == null ? 'var(--text3)' : sc >= 85 ? 'var(--green)' : sc >= 70 ? '#60a5fa' : sc >= 50 ? '#fbbf24' : '#f87171'
+                const scCol = sc == null ? 'var(--text3)' : sc >= 85 ? 'var(--green)' : sc >= 70 ? '#60a5fa' : sc >= 50 ? '#f59e0b' : '#f87171'
                 return (
                   <div
                     key={h.id}
@@ -477,14 +484,14 @@ export default function WebsiteScannerTab() {
                     }}
                   >
                     <div style={{
-                      minWidth: 42, textAlign: 'center', fontSize: 17, fontWeight: 900,
-                      fontFamily: 'Barlow', color: scCol,
+                      minWidth: 42, textAlign: 'center', fontSize: 15, fontWeight: 680,
+                      fontFamily: 'inherit', color: scCol,
                     }}>{sc == null ? '—' : sc}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {host}<span style={{ color: 'var(--text3)', fontWeight: 500 }}>{path !== '/' ? path : ''}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
                         {new Date(h.created_at).toLocaleString()}
                         {h.viewport && <span> · {h.viewport === 'mobile' ? 'Mobile' : 'Desktop'}</span>}
                         {h.score_label && <span> · {h.score_label}</span>}
@@ -495,7 +502,7 @@ export default function WebsiteScannerTab() {
                       title={t('ws.deleteScan', null, 'Elimina')}
                       style={{
                         background: 'transparent', border: 'none', color: 'var(--text3)',
-                        cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 4,
+                        cursor: 'pointer', fontSize: 17, lineHeight: 1, padding: 4,
                       }}
                     >×</button>
                   </div>
@@ -520,7 +527,7 @@ export default function WebsiteScannerTab() {
           padding: 16,
           background: 'rgba(239,68,68,0.08)',
           border: '1px solid rgba(239,68,68,0.4)',
-          borderRadius: 14,
+          borderRadius: 16,
           color: '#fca5a5',
           fontSize: 13,
           fontWeight: 600,
@@ -538,12 +545,12 @@ export default function WebsiteScannerTab() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800 }}>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640 }}>
                   {t('ws.preview', null, 'Landing Page Preview')}
                 </div>
                 {data?.provider && (
                   <span style={{
-                    fontSize: 9, fontWeight: 800,
+                    fontSize: 10, fontWeight: 640,
                     padding: '2px 8px', borderRadius: 999,
                     background: data.provider === 'browserless-eu' ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)',
                     color: data.provider === 'browserless-eu' ? '#86efac' : '#fcd34d',
@@ -552,7 +559,7 @@ export default function WebsiteScannerTab() {
                 )}
                 {data?.viewport && (
                   <span style={{
-                    fontSize: 9, fontWeight: 800,
+                    fontSize: 10, fontWeight: 640,
                     padding: '2px 8px', borderRadius: 999,
                     background: 'rgba(99,102,241,0.18)',
                     color: '#a5b4fc',
@@ -565,7 +572,7 @@ export default function WebsiteScannerTab() {
                   href={data?.url || url}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: 11, color: ACCENT_GLOW, fontWeight: 700, textDecoration: 'none' }}
+                  style={{ fontSize: 11.5, color: ACCENT_GLOW, fontWeight: 600, textDecoration: 'none' }}
                 >
                   {t('ws.open', null, 'Apri ↗')}
                 </a>
@@ -576,7 +583,7 @@ export default function WebsiteScannerTab() {
                 padding: '8px 16px',
                 background: 'rgba(245,158,11,0.08)',
                 borderBottom: '1px solid rgba(245,158,11,0.25)',
-                fontSize: 10.5,
+                fontSize: 10,
                 color: '#fcd34d',
                 fontWeight: 600,
               }}>
@@ -609,7 +616,7 @@ export default function WebsiteScannerTab() {
                     borderRadius: 999,
                     animation: 'spin 1s linear infinite',
                   }} />
-                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                     {t('ws.capturing', null, 'Cattura screenshot…')}
                   </div>
                 </div>
@@ -648,8 +655,8 @@ export default function WebsiteScannerTab() {
                     animation: 'spin 1s linear infinite',
                   }} />
                   <div>
-                    <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 900 }}>{t('ws.aiWorking', null, 'AI Senior CRO al lavoro…')}</div>
-                    <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 2 }}>
+                    <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 680 }}>{t('ws.aiWorking', null, 'AI Senior CRO al lavoro…')}</div>
+                    <div style={{ color: 'var(--text3)', fontSize: 13, marginTop: 2 }}>
                       {t('ws.aiWorkingSub', null, 'Sto analizzando hero, CTA, trust signals, copy e visual hierarchy')}
                     </div>
                   </div>
@@ -666,7 +673,7 @@ export default function WebsiteScannerTab() {
                   ].map((step, i) => (
                     <div key={step} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      fontSize: 12, color: 'var(--text2)',
+                      fontSize: 13, color: 'var(--text2)',
                       animation: 'fadeUp 0.5s ease',
                       animationDelay: `${i * 0.15}s`,
                       animationFillMode: 'backwards',
@@ -691,17 +698,17 @@ export default function WebsiteScannerTab() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
                     <ScoreGauge score={analysis.overallScore} label={analysis.scoreLabel} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 18, fontWeight: 900, letterSpacing: '-0.01em', marginBottom: 6 }}>
+                      <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 15, fontWeight: 680, letterSpacing: '-0.01em', marginBottom: 6 }}>
                         {t('ws.analysisDone', null, 'Analisi completata')}
                       </h2>
-                      <p style={{ margin: 0, color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>
                         {analysis.summary}
                       </p>
                     </div>
                   </div>
                   {analysis.firstImpression && (
                     <InnerCard accent={ACCENT_GLOW}>
-                      <div style={{ fontSize: 9.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640, marginBottom: 6 }}>
                         {t('ws.firstImpression', null, 'Prima impressione (3 secondi)')}
                       </div>
                       <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>
@@ -723,10 +730,10 @@ export default function WebsiteScannerTab() {
                       {analysis.works.map((w, i) => (
                         <InnerCard key={i} accent="#22c55e">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-                            <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 800 }}><Icon name="check" size={13} /> {w.title}</div>
+                            <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 640 }}><Icon name="check" size={13} /> {w.title}</div>
                             <ImpactPill impact={w.impact} />
                           </div>
-                          <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55 }}>{w.details}</div>
+                          <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>{w.details}</div>
                         </InnerCard>
                       ))}
                     </div>
@@ -745,37 +752,37 @@ export default function WebsiteScannerTab() {
                       {analysis.improve.map((it, i) => (
                         <InnerCard key={i} accent="#f59e0b">
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-                            <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 900 }}>{i + 1}. {it.title}</div>
+                            <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 680 }}>{i + 1}. {it.title}</div>
                             <PrioPill priority={it.priority} />
                           </div>
                           {it.current && (
                             <div style={{ marginBottom: 8 }}>
-                              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>{t('ws.currentState', null, 'Stato attuale')}</div>
-                              <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.5 }}>{it.current}</div>
+                              <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640, marginBottom: 4 }}>{t('ws.currentState', null, 'Stato attuale')}</div>
+                              <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>{it.current}</div>
                             </div>
                           )}
                           <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4 }}>{t('ws.suggestedAction', null, 'Azione consigliata')}</div>
+                            <div style={{ fontSize: 10, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640, marginBottom: 4 }}>{t('ws.suggestedAction', null, 'Azione consigliata')}</div>
                             <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>{it.suggestion}</div>
                           </div>
                           {it.example && (
                             <div style={{
                               marginTop: 10,
                               padding: '10px 12px',
-                              background: 'rgba(41,151,255,0.08)',
+                              background: 'var(--neutro-bg)',
                               border: '1px solid rgba(41,151,255,0.25)',
                               borderRadius: 8,
                               fontFamily: 'monospace',
-                              fontSize: 12,
+                              fontSize: 13,
                               color: '#bfdbfe',
                               lineHeight: 1.55,
                             }}>
-                              <div style={{ fontSize: 9, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 4, fontFamily: 'Inter' }}>{t('ws.example', null, 'Esempio')}</div>
+                              <div style={{ fontSize: 10, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640, marginBottom: 4, fontFamily: 'Inter' }}>{t('ws.example', null, 'Esempio')}</div>
                               {it.example}
                             </div>
                           )}
                           {it.expectedImpact && (
-                            <div style={{ marginTop: 10, fontSize: 11.5, color: '#86efac', fontWeight: 700 }}>
+                            <div style={{ marginTop: 10, fontSize: 11.5, color: '#86efac', fontWeight: 600 }}>
                               ⌁ {t('ws.expectedImpact', null, 'Impatto atteso:')} {it.expectedImpact}
                             </div>
                           )}
@@ -796,10 +803,10 @@ export default function WebsiteScannerTab() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {analysis.remove.map((r, i) => (
                         <InnerCard key={i} accent="#ef4444">
-                          <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}><Icon name="close" size={13} /> {r.title}</div>
-                          <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55, marginBottom: r.alternative ? 8 : 0 }}>{r.reason}</div>
+                          <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 640, marginBottom: 6 }}><Icon name="close" size={13} /> {r.title}</div>
+                          <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.55, marginBottom: r.alternative ? 8 : 0 }}>{r.reason}</div>
                           {r.alternative && (
-                            <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginTop: 6 }}>
+                            <div style={{ fontSize: 13, color: '#86efac', fontWeight: 600, marginTop: 6 }}>
                               ↪ {t('ws.replaceWith', null, 'Sostituire con:')} <span style={{ color: 'var(--text)' }}>{r.alternative}</span>
                             </div>
                           )}
@@ -826,15 +833,15 @@ export default function WebsiteScannerTab() {
                           border: '1px solid var(--border)',
                           borderTopColor: 'rgba(255,255,255,0.10)',
                           borderBottomColor: 'rgba(0,0,0,0.55)',
-                          borderRadius: 10,
+                          borderRadius: 12,
                         }}>
                           <div style={{
-                            width: 22, height: 22, borderRadius: 6,
+                            width: 22, height: 22, borderRadius: 8,
                             background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
-                            color: 'var(--text)', fontSize: 11, fontWeight: 900,
+                            color: 'var(--text)', fontSize: 11.5, fontWeight: 680,
                             display: 'grid', placeItems: 'center',
                             flexShrink: 0,
-                            boxShadow: `0 0 10px ${ACCENT_GLOW}66`,
+                            boxShadow: 'none',
                           }}>{i + 1}</div>
                           <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>{q}</div>
                         </div>
@@ -847,37 +854,37 @@ export default function WebsiteScannerTab() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
                   {analysis.ctaAnalysis && (
                     <GlassCard padding={22} delay={1.1}>
-                      <div style={{ fontSize: 10, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: ACCENT_GLOW, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 12 }}>
                         {t('ws.ctaMain', null, 'CTA principale')}
                       </div>
-                      <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 900, marginBottom: 10, fontFamily: 'Barlow', letterSpacing: '-0.01em' }}>
+                      <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 680, marginBottom: 10, fontFamily: 'inherit', letterSpacing: '-0.01em' }}>
                         "{analysis.ctaAnalysis.primaryCta}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5, marginBottom: 10 }}>
                         <div><span style={{ color: 'var(--text3)' }}>{t('ws.position', null, 'Posizione:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.position}</span></div>
                         <div><span style={{ color: 'var(--text3)' }}>{t('ws.contrast', null, 'Contrasto:')}</span> <span style={{ color: 'var(--text)' }}>{analysis.ctaAnalysis.contrast}</span></div>
                       </div>
-                      <div style={{ color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.55 }}>{analysis.ctaAnalysis.verdict}</div>
+                      <div style={{ color: 'var(--text2)', fontSize: 13, lineHeight: 1.55 }}>{analysis.ctaAnalysis.verdict}</div>
                     </GlassCard>
                   )}
                   {analysis.trustSignals && (
                     <GlassCard padding={22} delay={1.3}>
-                      <div style={{ fontSize: 10, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 12 }}>
                         {t('ws.trustSignals', null, 'Trust signals')}
                       </div>
                       {Array.isArray(analysis.trustSignals.present) && analysis.trustSignals.present.length > 0 && (
                         <div style={{ marginBottom: 12 }}>
-                          <div style={{ fontSize: 11, color: '#86efac', fontWeight: 800, marginBottom: 6 }}>{t('ws.present', null, 'Presenti')}</div>
+                          <div style={{ fontSize: 11.5, color: '#86efac', fontWeight: 640, marginBottom: 6 }}>{t('ws.present', null, 'Presenti')}</div>
                           {analysis.trustSignals.present.map((t, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text)', padding: '3px 0' }}><Icon name="check" size={12} /> {t}</div>
+                            <div key={i} style={{ fontSize: 13, color: 'var(--text)', padding: '3px 0' }}><Icon name="check" size={12} /> {t}</div>
                           ))}
                         </div>
                       )}
                       {Array.isArray(analysis.trustSignals.missing) && analysis.trustSignals.missing.length > 0 && (
                         <div>
-                          <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 800, marginBottom: 6 }}>{t('ws.missing', null, 'Mancanti')}</div>
+                          <div style={{ fontSize: 11.5, color: '#fca5a5', fontWeight: 640, marginBottom: 6 }}>{t('ws.missing', null, 'Mancanti')}</div>
                           {analysis.trustSignals.missing.map((t, i) => (
-                            <div key={i} style={{ fontSize: 12, color: 'var(--text2)', padding: '3px 0' }}><Icon name="close" size={12} /> {t}</div>
+                            <div key={i} style={{ fontSize: 13, color: 'var(--text2)', padding: '3px 0' }}><Icon name="close" size={12} /> {t}</div>
                           ))}
                         </div>
                       )}
@@ -885,10 +892,10 @@ export default function WebsiteScannerTab() {
                   )}
                   {analysis.copyAnalysis && (
                     <GlassCard padding={22} delay={1.5}>
-                      <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 800, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 640, marginBottom: 12 }}>
                         {t('ws.copyVp', null, 'Copy & value proposition')}
                       </div>
-                      <div style={{ color: 'var(--text)', fontSize: 13.5, fontWeight: 900, fontFamily: 'Barlow', letterSpacing: '-0.01em', marginBottom: 10 }}>
+                      <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 680, fontFamily: 'inherit', letterSpacing: '-0.01em', marginBottom: 10 }}>
                         "{analysis.copyAnalysis.headline}"
                       </div>
                       <div style={{ display: 'grid', gap: 6, fontSize: 11.5 }}>
@@ -911,16 +918,19 @@ export default function WebsiteScannerTab() {
               fontSize: 64, marginBottom: 18,
               filter: `drop-shadow(0 0 24px ${ACCENT_GLOW}55)`,
             }}><Icon name="search" size={22} /></div>
-            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 10 }}>
+            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 680, letterSpacing: '-0.02em', marginBottom: 10 }}>
               {t('ws.emptyTitle', null, 'Analizza qualsiasi landing page')}
             </h2>
-            <p style={{ margin: 0, color: 'var(--text3)', fontSize: 13.5, lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: 'var(--text3)', fontSize: 13, lineHeight: 1.6 }}>
               {t('ws.emptyDesc', null, "Inserisci sopra l'URL della pagina che vuoi analizzare. Un Senior CRO Specialist con expertise in heuristic evaluation, persuasion principles e best practice e-commerce ti darà un report dettagliato con cosa funziona, cosa migliorare con esempi concreti, cosa rimuovere e quick wins da implementare subito.")}
             </p>
           </div>
         </GlassCard>
       )}
 
+      {/* Agente AI della tab: riceve la scansione corrente come contesto, cosi'
+          puo' rispondere sull'analisi appena fatta. Restituito al suo posto
+          dopo il travaso dal fork, che lo aveva rimosso. */}
       <ScannerAgent scan={data} />
     </div>
   )

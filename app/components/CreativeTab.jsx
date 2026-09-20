@@ -1,13 +1,22 @@
 'use client'
 
+import Pannello from './ui/Pannello'
+import { Kpi, coloreFamiglia, famigliaDi } from './ui/Mattoni'
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
+import { leggi } from '../../lib/clientCache'
+import { Fonte } from './ui/FasceTabella'
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
+// L'agente della tab: vive solo nel prodotto multi-cliente (il fork per un
+// cliente solo lo aveva cancellato). Sta in fondo al JSX e legge le righe gia'
+// filtrate, cosi' risponde su cio' che l'utente sta guardando.
 import CreativeAgent from './CreativeAgent'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery } from '../../lib/tfQuery'
+import { num, perc } from '../../lib/client/numeri'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'cr.presetToday' },
@@ -27,10 +36,10 @@ const chipStyle = {
   background: 'var(--glass)',
   border: '1px solid var(--border)',
   color: 'var(--text2)',
-  borderRadius: 11,
+  borderRadius: 12,
   padding: '10px 14px',
   fontSize: 13,
-  fontWeight: 700,
+  fontWeight: 600,
   cursor: 'pointer',
   outline: 'none',
 }
@@ -39,32 +48,31 @@ const selectStyle = {
   background: 'var(--glass)',
   border: '1px solid var(--border)',
   color: 'var(--text)',
-  borderRadius: 11,
+  borderRadius: 12,
   padding: '10px 14px',
   fontSize: 13,
-  fontWeight: 700,
+  fontWeight: 600,
   cursor: 'pointer',
   outline: 'none',
 }
 
 function money(v) {
-  return `€${Math.round(asNum(v)).toLocaleString('it-IT')}`
+  return soldi(asNum(v))
 }
 
 function money2(v) {
-  return `€${asNum(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return soldi(asNum(v), 2)
 }
 
-function num(v) {
-  return Math.round(asNum(v)).toLocaleString('it-IT')
-}
+// il `num` locale arrotondava e IGNORAVA il secondo argomento: `ratio()` chiedeva
+// due decimali e ne otteneva zero. Ora si usa quello di lib/client/numeri.
 
 function pct(v) {
-  return `${asNum(v).toFixed(2)}%`
+  return perc(asNum(v), 2)
 }
 
 function ratio(v) {
-  return asNum(v).toFixed(2)
+  return num(asNum(v), 2)
 }
 
 function getCreativeImage(row) {
@@ -113,50 +121,22 @@ function DeltaBadge({ curr, prev, isLowerBetter = false }) {
   const good = isLowerBetter ? !up : up
   return (
     <span style={{
-      fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6,
+      fontSize: 10, fontWeight: 640, padding: '2px 7px', borderRadius: 8,
       background: good ? '#22c55e20' : '#ef444420',
       color: good ? '#22c55e' : '#ef4444',
     }}>
-      {up ? '+' : ''}{pct.toFixed(2)}%
+      {up ? '+' : ''}{num(pct, 2)}%
     </span>
   )
 }
 
-function Stat({ label, value, tone = 'var(--text)', prev, daily, dataKey, isLowerBetter = false, curr }) {
+function Stat({ label, value, prev, daily, dataKey, isLowerBetter = false, curr }) {
+  const fam = famigliaDi(dataKey)
   return (
-    <div
-      className="glass-card"
-      style={{
-        background: 'var(--glass)',
-        border: '1px solid var(--border)',
-        borderRadius: 14,
-        padding: '14px 16px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{
-          fontSize: 10,
-          color: 'var(--text3)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.12em',
-          fontWeight: 800,
-        }}>
-          {label}
-        </div>
-        <PlatformBadges sources={['meta']} size={14} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)' }}>
-          {value}
-        </div>
-        {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={tone} />}
-      </div>
-      {prev != null && curr != null && (
-        <div style={{ marginTop: 8 }}>
-          <DeltaBadge curr={curr} prev={prev} isLowerBetter={isLowerBetter} />
-        </div>
-      )}
-    </div>
+    <Kpi etichetta={label} valore={value} famiglia={fam} fonti={['meta']}
+      grafico={daily && dataKey ? <Sparkline data={daily} dataKey={dataKey} color={coloreFamiglia(fam)} /> : null}>
+      {prev != null && curr != null && <DeltaBadge curr={curr} prev={prev} isLowerBetter={isLowerBetter} />}
+    </Kpi>
   )
 }
 
@@ -204,14 +184,14 @@ function BarraPubblici({ segments }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+        <span style={{ fontSize: 10, fontWeight: 640, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)' }}>
           {t('cr.audienceSplit', null, 'Spesa per pubblico')}
         </span>
-        <span style={{ fontSize: 10, fontWeight: 800, color: '#c4b5fd' }}>
+        <span style={{ fontSize: 10, fontWeight: 640, color: 'var(--text2)' }}>
           {t('cr.newShare', { pct: quotaNuovo }, `${quotaNuovo}% nuovo`)}
         </span>
       </div>
-      <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+      <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', background: 'var(--border)' }}>
         {presenti.map(k => (
           <div
             key={k}
@@ -232,19 +212,19 @@ function TabellaPubblici({ segments }) {
   const lab = segLabels(t)
   const presenti = SEG_ORDER.filter(k => asNum(segments[k]?.spend) > 0)
   if (presenti.length === 0) {
-    return <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('cr.audienceNone', null, 'Meta non ha attribuito la spesa a nessun pubblico in questo periodo.')}</div>
+    return <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('cr.audienceNone', null, 'Meta non ha attribuito la spesa a nessun pubblico in questo periodo.')}</div>
   }
-  const th = { padding: '6px 8px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'right', whiteSpace: 'nowrap' }
-  const td = { padding: '7px 8px', fontSize: 12.5, textAlign: 'right', color: 'var(--text)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }
+  const th = { padding: '6px 8px', fontSize: 10, fontWeight: 640, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'right', whiteSpace: 'nowrap' }
+  const td = { padding: '7px 8px', fontSize: 13, textAlign: 'right', color: 'var(--text)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }
   return (
     <div style={{ overflowX: 'auto' }}>
       {/* min-width azzerato: il foglio di stile globale ne impone uno pensato
           per le tabelle a piena pagina, e qui dentro farebbe uscire le colonne
           di destra dal bordo senza barra di scorrimento. */}
-      <table style={{ width: '100%', minWidth: 0, borderCollapse: 'collapse' }}>
+      <table className="tab-lyft" style={{ width: '100%', minWidth: 0, borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={{ ...th, textAlign: 'left' }}>{t('cr.audience', null, 'Pubblico')}</th>
+            <th style={{ ...th, textAlign: 'left' }}><Fonte loghi={['meta']} />{t('cr.audience', null, 'Pubblico')}</th>
             <th style={th}>{t('cr.spend', null, 'Spesa')}</th>
             <th style={th}>{t('cr.share', null, 'Quota')}</th>
             <th style={th}>{t('cr.orders', null, 'Ordini')}</th>
@@ -258,13 +238,13 @@ function TabellaPubblici({ segments }) {
             return (
               <tr key={k} style={{ borderTop: '1px solid var(--border)' }}>
                 <td style={{ ...td, textAlign: 'left' }}>
-                  <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: 3, background: SEG_FILL[k], marginRight: 7, verticalAlign: 'middle' }} />
+                  <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: 6, background: SEG_FILL[k], marginRight: 7, verticalAlign: 'middle' }} />
                   {lab[k]}
                 </td>
                 <td style={td}>{money(asNum(s.spend))}</td>
                 <td style={{ ...td, color: 'var(--text2)' }}>{asNum(s.share)}%</td>
                 <td style={td}>{num(asNum(s.purchases))}</td>
-                <td style={{ ...td, fontWeight: 800 }}>{s.roas ? ratio(asNum(s.roas)) : '—'}</td>
+                <td style={{ ...td, fontWeight: 640 }}>{s.roas ? ratio(asNum(s.roas)) : '—'}</td>
                 <td style={td}>{s.cpa != null ? money2(asNum(s.cpa)) : '—'}</td>
               </tr>
             )
@@ -309,27 +289,27 @@ function CreativeCard({ row, index, onClick, segments }) {
         position: 'relative',
         background: 'linear-gradient(155deg, rgba(20,16,40,0.85) 0%, rgba(8,8,18,0.95) 100%)',
         border: '1px solid var(--border)',
-        borderRadius: 22,
+        borderRadius: 16,
         overflow: 'hidden',
         cursor: 'pointer',
         transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1), border-color 0.32s, box-shadow 0.32s',
         boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-6px) scale(1.012)'
+        e.currentTarget.style.transform = ''
         e.currentTarget.style.borderColor = accent.alpha
-        e.currentTarget.style.boxShadow = `0 24px 60px ${accent.alpha}, 0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
+        e.currentTarget.style.boxShadow = 'none'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translateY(0) scale(1)'
         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)'
+        e.currentTarget.style.boxShadow = 'none'
       }}
     >
       {/* Barra superiore animata che fa da indicatore performance */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
+        background: 'none',
         animation: 'cr-shine 3.2s ease-in-out infinite',
         zIndex: 3,
       }} />
@@ -347,7 +327,7 @@ function CreativeCard({ row, index, onClick, segments }) {
             position: 'absolute', top: 10, left: 10, zIndex: 2,
             padding: '4px 9px', borderRadius: 999,
             background: 'rgba(91,44,255,0.85)', color: 'var(--text)',
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+            fontSize: 10, fontWeight: 640, letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
             {t('cr.catalog', null, 'Catalogo')} · {products.length}
@@ -360,12 +340,12 @@ function CreativeCard({ row, index, onClick, segments }) {
             {products.map(p => (
               <div key={p.id} style={{
                 flex: '0 0 70%', aspectRatio: '1 / 1',
-                background: '#0a0a14', borderRadius: 14,
+                background: 'var(--surface)', borderRadius: 16,
                 border: '1px solid var(--border)',
                 overflow: 'hidden', scrollSnapAlign: 'start',
                 display: 'flex', flexDirection: 'column',
               }}>
-                <div style={{ flex: 1, overflow: 'hidden', background: '#0a0a14' }}>
+                <div style={{ flex: 1, overflow: 'hidden', background: 'var(--surface)' }}>
                   <img
                     src={p.image_url}
                     alt={p.name}
@@ -378,7 +358,7 @@ function CreativeCard({ row, index, onClick, segments }) {
                   background: 'rgba(0,0,0,0.4)',
                 }}>
                   <div style={{
-                    color: 'var(--text)', fontSize: 11, fontWeight: 800,
+                    color: 'var(--text)', fontSize: 11.5, fontWeight: 640,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{p.name || t('cr.product', null, 'Prodotto')}</div>
                   {p.price && (
@@ -430,10 +410,10 @@ function CreativeCard({ row, index, onClick, segments }) {
             <div style={{
               padding: '4px 10px', borderRadius: 999,
               background: 'rgba(91,44,255,0.85)', color: 'var(--text)',
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
+              fontSize: 10, fontWeight: 640, letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}>Advantage+ Catalog</div>
-            <div style={{ color: 'var(--text3)', fontSize: 11, textAlign: 'center', lineHeight: 1.4 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 11.5, textAlign: 'center', lineHeight: 1.4 }}>
               {t('cr.dynamicCarousel', null, 'Carosello dinamico')}<br/>{t('cr.metaManaged', null, '(prodotti gestiti da Meta)')}
             </div>
           </div>
@@ -456,16 +436,16 @@ function CreativeCard({ row, index, onClick, segments }) {
             style={{
               width: 30,
               height: 30,
-              borderRadius: 10,
+              borderRadius: 12,
               background: `linear-gradient(135deg, ${accent.glow}, rgba(91,44,255,0.85))`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--text)',
-              fontSize: 12,
-              fontWeight: 900,
+              fontSize: 13,
+              fontWeight: 680,
               flex: '0 0 auto',
-              boxShadow: `0 0 14px ${accent.alpha}`,
+              boxShadow: 'none',
             }}
           >
             {index + 1}
@@ -475,8 +455,8 @@ function CreativeCard({ row, index, onClick, segments }) {
             <div
               style={{
                 color: 'var(--text)',
-                fontWeight: 900,
-                fontSize: 14,
+                fontWeight: 680,
+                fontSize: 15,
                 lineHeight: 1.35,
                 marginBottom: 5,
                 overflow: 'hidden',
@@ -491,7 +471,7 @@ function CreativeCard({ row, index, onClick, segments }) {
 
             <div style={{
               color: 'var(--text3)',
-              fontSize: 11,
+              fontSize: 11.5,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -504,11 +484,11 @@ function CreativeCard({ row, index, onClick, segments }) {
             <div style={{
               padding: '3px 8px',
               borderRadius: 999,
-              background: 'rgba(59,130,246,0.15)',
-              border: '1px solid rgba(59,130,246,0.35)',
-              color: '#7dd3fc',
-              fontSize: 9,
-              fontWeight: 800,
+              background: 'var(--gpv-resa-bg)',
+              border: '1px solid var(--gpv-resa)',
+              color: 'var(--gpv-resa)',
+              fontSize: 10,
+              fontWeight: 640,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
@@ -571,11 +551,11 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
       <div
         style={{
           color: 'var(--text3)',
-          fontSize: 9,
+          fontSize: 10,
           textTransform: 'uppercase',
           letterSpacing: '0.1em',
           marginBottom: 5,
-          fontWeight: 800,
+          fontWeight: 640,
         }}
       >
         {label}
@@ -589,7 +569,7 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
         <div style={{
           color: 'var(--text)',
           fontSize: 13,
-          fontWeight: 900,
+          fontWeight: 680,
           letterSpacing: '-0.01em',
         }}>
           {value}
@@ -597,11 +577,11 @@ function Mini({ label, value, curr, prev, isLowerBetter = false, tone, highlight
         {pctDelta != null && (
           <div style={{
             fontSize: 10,
-            fontWeight: 800,
+            fontWeight: 640,
             color: good ? '#22c55e' : '#ef4444',
             whiteSpace: 'nowrap',
           }}>
-            {pctDelta > 0 ? '▲' : '▼'} {Math.abs(pctDelta).toFixed(1)}%
+            {pctDelta > 0 ? '▲' : '▼'} {num(Math.abs(pctDelta), 1)}%
           </div>
         )}
       </div>
@@ -648,32 +628,12 @@ function CreativeDetailModal({ row, onClose, segments }) {
   const ctas = variants.ctas?.length ? variants.ctas : (row.cta ? [row.cta] : [])
   const links = variants.links?.length ? variants.links : (row.link ? [row.link] : [])
 
-  const modal = (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        className="m-stack"
-        style={{
-          background: 'rgba(8,8,15,0.95)',
-          backdropFilter: 'blur(40px) saturate(1.8)',
-          border: '1.5px solid var(--border)',
-          borderRadius: 22,
-          width: 'min(960px, 100%)',
-          maxHeight: '90vh',
-          overflow: 'hidden',
-          display: 'grid',
-          gridTemplateColumns: '420px 1fr',
-        }}
-      >
+  // Il pop-up e' quello di tutto il prodotto (ui/Pannello): stessa testata, Esc,
+  // stesso comportamento. Dentro restano le due colonne: anteprima e numeri.
+  return (
+    <Pannello titolo={name} larghezza={980} onClose={onClose}
+      sotto={[row.campaign_name || t('cr.noCampaign', null, 'Senza campagna'), row.adset_name].filter(Boolean).join(' · ')}>
+      <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '400px 1fr', margin: -22 }}>
         {/* Colonna immagine */}
         <div style={{
           background: 'var(--glass)',
@@ -692,7 +652,7 @@ function CreativeDetailModal({ row, onClose, segments }) {
             }}>
               {products.slice(0, 6).map(p => (
                 <div key={p.id} style={{
-                  background: '#0a0a14',
+                  background: 'var(--surface2, #0b0b0b)',
                   borderRadius: 12,
                   border: '1px solid var(--border)',
                   overflow: 'hidden',
@@ -703,51 +663,21 @@ function CreativeDetailModal({ row, onClose, segments }) {
                     }} />
                   </div>
                   <div style={{ padding: '8px 10px' }}>
-                    <div style={{ color: 'var(--text)', fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                    <div style={{ color: 'var(--text)', fontSize: 11.5, fontWeight: 640, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                     {p.price && <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 2 }}>{p.price}</div>}
                   </div>
                 </div>
               ))}
             </div>
           ) : img ? (
-            <img src={img} alt={name} style={{ width: '100%', borderRadius: 14, display: 'block' }} />
+            <img src={img} alt={name} style={{ width: '100%', borderRadius: 16, display: 'block' }} />
           ) : (
             <div style={{ color: 'var(--text3)', fontSize: 13, padding: 40 }}>{t('cr.noPreview', null, 'Nessuna anteprima')}</div>
           )}
         </div>
 
         {/* Colonna contenuto */}
-        <div style={{ overflowY: 'auto', maxHeight: '90vh' }}>
-          <div style={{
-            position: 'sticky', top: 0,
-            background: 'rgba(8,8,15,0.92)',
-            backdropFilter: 'blur(20px)',
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
-            zIndex: 2,
-          }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ color: 'var(--text)', fontSize: 17, fontWeight: 900, marginBottom: 4 }}>{name}</div>
-              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{row.campaign_name || t('cr.noCampaign', null, 'Senza campagna')}</div>
-              {row.adset_name && (
-                <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2 }}>{row.adset_name}</div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                color: 'var(--text2)',
-                borderRadius: 10,
-                width: 34, height: 34,
-                display: 'grid', placeItems: 'center',
-                cursor: 'pointer', fontSize: 18,
-              }}
-            >×</button>
-          </div>
+        <div>
 
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* Performance bar */}
@@ -757,7 +687,7 @@ function CreativeDetailModal({ row, onClose, segments }) {
               gap: 10,
               padding: 14,
               background: 'var(--glass)',
-              borderRadius: 14,
+              borderRadius: 16,
               border: '1px solid var(--border)',
             }}>
               <MiniStat label={t('cr.spend', null, 'Spesa')} value={money(row.spend)} />
@@ -769,7 +699,7 @@ function CreativeDetailModal({ row, onClose, segments }) {
             {segments && (
               <Section label={t('cr.audienceSplitTitle', null, 'Risultati per pubblico')}>
                 <TabellaPubblici segments={segments} />
-                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', lineHeight: 1.45 }}>
+                <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.45 }}>
                   {t('cr.audienceHint', null, 'Sul pubblico che ti conosce già il ROAS è alto per costruzione: quella gente sarebbe tornata comunque. Guarda la riga «Nuovo» per capire se questa creatività sta acquisendo o solo raccogliendo.')}
                 </div>
               </Section>
@@ -809,15 +739,15 @@ function CreativeDetailModal({ row, onClose, segments }) {
               <Section label={t('cr.ctaAndLink', null, 'CTA e Link')}>
                 {ctas.map((c, i) => (
                   <div key={`cta-${i}`} style={lineStyle}>
-                    <span style={{ ...badgeIdx, background: 'rgba(34,197,94,0.18)', color: '#86efac' }}>CTA</span>
+                    <span style={{ ...badgeIdx, background: 'var(--gpv-shopify-bg)', color: 'var(--gpv-shopify)' }}>CTA</span>
                     {formatCta(c)}
                   </div>
                 ))}
                 {links.map((l, i) => (
                   <div key={`link-${i}`} style={{ ...lineStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                    <span style={{ ...badgeIdx, background: 'rgba(59,130,246,0.18)', color: '#93c5fd' }}>{t('cr.linkBadge', null, 'Link')}</span>
+                    <span style={{ ...badgeIdx, background: 'var(--gpv-resa-bg)', color: 'var(--gpv-resa)' }}>{t('cr.linkBadge', null, 'Link')}</span>
                     <a href={l} target="_blank" rel="noreferrer" style={{
-                      color: '#7dd3fc', fontSize: 13, wordBreak: 'break-all', textDecoration: 'underline',
+                      color: 'var(--gpv-resa)', fontSize: 13, wordBreak: 'break-all', textDecoration: 'underline',
                     }}>{l}</a>
                   </div>
                 ))}
@@ -825,20 +755,18 @@ function CreativeDetailModal({ row, onClose, segments }) {
             )}
 
             <Section label={t('cr.identifiers', null, 'Identificativi')}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11, color: 'var(--text3)' }}>
-                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Ad ID</span><br/>{row.ad_id}</div>
-                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Creative ID</span><br/>{row.creative_id || '—'}</div>
-                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Campaign ID</span><br/>{row.campaign_id || '—'}</div>
-                <div><span style={{ color: 'var(--text2)', fontWeight: 800 }}>Adset ID</span><br/>{row.adset_id || '—'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11.5, color: 'var(--text3)' }}>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 640 }}>Ad ID</span><br/>{row.ad_id}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 640 }}>Creative ID</span><br/>{row.creative_id || '—'}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 640 }}>Campaign ID</span><br/>{row.campaign_id || '—'}</div>
+                <div><span style={{ color: 'var(--text2)', fontWeight: 640 }}>Adset ID</span><br/>{row.adset_id || '—'}</div>
               </div>
             </Section>
           </div>
         </div>
       </div>
-    </div>
+    </Pannello>
   )
-
-  return createPortal(modal, document.body)
 }
 
 const lineStyle = {
@@ -848,20 +776,20 @@ const lineStyle = {
   padding: '10px 14px',
   background: 'var(--glass)',
   border: '1px solid var(--border)',
-  borderRadius: 10,
+  borderRadius: 12,
   color: 'var(--text)',
-  fontSize: 13.5,
+  fontSize: 13,
   lineHeight: 1.5,
 }
 
 const badgeIdx = {
   display: 'inline-block',
   padding: '2px 8px',
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 10,
-  fontWeight: 800,
-  background: 'rgba(91,44,255,0.18)',
-  color: '#c4b5fd',
+  fontWeight: 640,
+  background: 'var(--gpv-economia-bg)',
+  color: 'var(--gpv-economia)',
   flexShrink: 0,
 }
 
@@ -871,7 +799,7 @@ function Section({ label, children }) {
       <div style={{
         fontSize: 10, color: 'var(--text3)',
         textTransform: 'uppercase', letterSpacing: '0.12em',
-        fontWeight: 800, marginBottom: 10,
+        fontWeight: 640, marginBottom: 10,
       }}>{label}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </div>
@@ -881,8 +809,8 @@ function Section({ label, children }) {
 function MiniStat({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text)' }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 640, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)' }}>{value}</div>
     </div>
   )
 }
@@ -893,9 +821,9 @@ function CopyBlock({ index, text }) {
       padding: '12px 14px',
       background: 'var(--glass)',
       border: '1px solid var(--border)',
-      borderRadius: 10,
+      borderRadius: 12,
       color: 'var(--text)',
-      fontSize: 13.5,
+      fontSize: 13,
       lineHeight: 1.6,
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
@@ -934,7 +862,7 @@ function setCreativeCached(key, payload) {
 
 export default function CreativeTab() {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'last_7d' })
+  const [tf, setTf] = useStatoTab('creative.tf', { preset: 'last_7d' })
   const preset = tf.preset
   const [accountFilter, setAccountFilter] = useState('')
   const [data, setData] = useState(null)
@@ -954,8 +882,7 @@ export default function CreativeTab() {
     setSegLoading(true); setSegError(null)
     const params = new URLSearchParams(tfQuery(tf))
     params.set('level', 'ad')
-    fetch(`/api/meta-segments?${params.toString()}`, { cache: 'no-store' })
-      .then(r => r.json())
+    leggi(`/api/meta-segments?${params.toString()}`)
       .then(j => {
         if (!vivo) return
         // Un errore di Meta non deve travestirsi da "nessuna spesa su nessun
@@ -1138,12 +1065,12 @@ export default function CreativeTab() {
         }}
       >
         <PlatformBadges sources={['meta']} size={18} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
           LIVE
         </span>
         <div style={{ marginLeft: 'auto' }}>
-          <BmTimeframe value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
+          <PeriodoInBarra value={tf} onChange={(v) => setTf({ preset: 'custom', since: v.since, until: v.until })} accent="#2997ff" disabled={loading} />
         </div>
       </div>
 
@@ -1175,7 +1102,7 @@ export default function CreativeTab() {
         style={{
           background: 'var(--glass)',
           border: '1px solid var(--border)',
-          borderRadius: 22,
+          borderRadius: 16,
           padding: 24,
         }}
       >
@@ -1193,7 +1120,7 @@ export default function CreativeTab() {
                 margin: 0,
                 color: 'var(--text)',
                 fontSize: 20,
-                fontWeight: 900,
+                fontWeight: 680,
               }}
             >
               {t('cr.topCreative', null, 'Top Creative')}
@@ -1229,7 +1156,7 @@ export default function CreativeTab() {
               borderRadius: 12,
               padding: '13px 16px',
               color: 'var(--text)',
-              fontSize: 14,
+              fontSize: 15,
               outline: 'none',
               marginBottom: 12,
             }}
@@ -1273,7 +1200,7 @@ export default function CreativeTab() {
               type="button"
               onClick={() => setSegOn(v => !v)}
               style={segOn
-                ? { ...chipStyle, borderColor: 'rgba(167,139,250,0.55)', color: '#c4b5fd', background: 'rgba(167,139,250,0.14)' }
+                ? { ...chipStyle, borderColor: 'rgba(167,139,250,0.55)', color: 'var(--text2)', background: 'rgba(167,139,250,0.14)' }
                 : chipStyle}
             >
               {segLoading
@@ -1295,7 +1222,7 @@ export default function CreativeTab() {
           {/* Un errore di Meta si dice: senza questa riga le barre sparite
               sembrerebbero "nessuna spesa", che e' un'altra cosa. */}
           {segOn && segError && (
-            <div style={{ marginTop: 12, fontSize: 12, color: '#fca5a5' }}>
+            <div style={{ marginTop: 12, fontSize: 13, color: '#fca5a5' }}>
               {t('cr.audienceError', { err: segError }, `Segmenti di pubblico non disponibili: ${segError}`)}
             </div>
           )}
@@ -1304,7 +1231,7 @@ export default function CreativeTab() {
           <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
-              letterSpacing: '0.12em', fontWeight: 800, marginRight: 4,
+              letterSpacing: '0.12em', fontWeight: 640, marginRight: 4,
             }}>{t('cr.account', null, 'Account')}</span>
             {[{ id: '', label: t('cr.allAccounts', null, 'Tutti') }, ...((data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: a })))].map(opt => {
               const active = accountFilter === opt.id
@@ -1318,10 +1245,10 @@ export default function CreativeTab() {
                     background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
                     border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
                     color: active ? 'var(--text)' : 'var(--text2)',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     padding: '8px 12px',
-                    fontSize: 12,
-                    fontWeight: 800,
+                    fontSize: 13,
+                    fontWeight: 640,
                     cursor: loading ? 'wait' : 'pointer',
                     boxShadow: active ? '0 0 14px rgba(8,102,255,0.25)' : 'none',
                     fontFamily: opt.id ? 'monospace' : 'inherit',
@@ -1332,7 +1259,7 @@ export default function CreativeTab() {
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640, marginBottom: 8 }}>
               {t('cr.quickFilters', null, 'Quick Filters')}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1351,7 +1278,7 @@ export default function CreativeTab() {
                     ...chipStyle,
                     borderColor: quickFilter === f.id ? '#5b2cff' : 'var(--border)',
                     background: quickFilter === f.id ? 'rgba(91,44,255,0.15)' : 'var(--glass)',
-                    color: quickFilter === f.id ? '#c4b5fd' : 'var(--text2)',
+                    color: quickFilter === f.id ? 'var(--text2)' : 'var(--text2)',
                   }}
                 >
                   {f.label}
@@ -1384,7 +1311,7 @@ export default function CreativeTab() {
           <div
             style={{
               border: '1px dashed var(--border)',
-              borderRadius: 18,
+              borderRadius: 16,
               padding: 40,
               textAlign: 'center',
               color: 'var(--text3)',
@@ -1405,6 +1332,10 @@ export default function CreativeTab() {
         />
       )}
 
+      {/* Agente verticalizzato sulle creativita'. Gli si passano le righe
+          gia' filtrate per spesa > 0 e i riepiloghi del periodo: senza questi
+          risponderebbe su un insieme diverso da quello a schermo. `preset`
+          serve all'agente per dire di che periodo sta parlando. */}
       <CreativeAgent
         rows={rows}
         summary={apiSummary}

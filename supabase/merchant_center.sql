@@ -1,0 +1,15 @@
+-- L'account Google Merchant Center del cliente.
+--
+-- Sul fork era una variabile d'ambiente GLOBALE (MERCHANT_CENTER_ID), perche' il negozio era uno
+-- solo. In un SaaS multi-cliente una variabile globale qui e' il difetto peggiore possibile: il
+-- PRIMO cliente che accende i Prezzi vedrebbe i prezzi, i concorrenti e i margini di un altro
+-- negozio. Non un errore: dati di qualcun altro, mostrati come suoi.
+--
+-- Stessa forma di google_ads_customer_id (supabase/companies_google_ads.sql): l'identificativo
+-- dell'account e' del cliente, la chiave di servizio resta condivisa (variabile d'ambiente), come
+-- il developer token di Google Ads. L'account di servizio va aggiunto come utente sul Merchant
+-- Center di ogni cliente che vuole la funzione.
+--
+-- NULL = non configurato: la tab Prezzi funziona lo stesso con la sola fonte Shopify e dichiara che
+-- il confronto di Google non c'e'.
+alter table public.companies add column if not exists merchant_center_id text;

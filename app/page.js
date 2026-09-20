@@ -47,6 +47,9 @@ import LeadGenTab from './components/LeadGenTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
 import GoogleProductsTab from './components/GoogleProductsTab'
+import GoogleVerdictsTab from './components/GoogleVerdictsTab'
+import PrezziTab from './components/PrezziTab'
+import CorrispettiviTab from './components/CorrispettiviTab'
 import GoogleLighthouseTab from './components/GoogleLighthouseTab'
 import GoogleBudgetAdvisorPanel from './components/GoogleBudgetAdvisorPanel'
 import LighthouseTab from './components/LighthouseTab'
@@ -4215,6 +4218,21 @@ export default function App() {
 
 {tab === 'googleProducts' && (
   <GoogleProductsTab />
+)}
+
+{tab === 'googleVerdicts' && (
+  <GoogleVerdictsTab />
+)}
+
+{/* Prezzi: esiste solo per chi vende marchi di altri. La route risponde "non attiva" a un
+    monomarca, e la voce sparisce dal menu; qui si monta comunque, cosi' chi ci arriva da un
+    collegamento diretto vede la spiegazione invece di una pagina bianca. */}
+{tab === 'prezzi' && (
+  <PrezziTab />
+)}
+
+{tab === 'corrispettivi' && (
+  <CorrispettiviTab />
 )}
 
 {tab === 'googleLighthouse' && (

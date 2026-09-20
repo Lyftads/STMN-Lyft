@@ -125,6 +125,7 @@ const [helpOpen, setHelpOpen] = useState(false)
         { id: 'inventory', label: 'Inventario', icon: <Icon name="box" /> },
         { id: 'productPerformance', label: 'Performance prodotti', icon: <Icon name="chart-bar" /> },
         { id: 'productCosts', label: 'Costi prodotto', icon: <Icon name="money" /> },
+        { id: 'prezzi', label: 'Prezzi', icon: <Icon name="tag" /> },
         { id: 'kpiBrain', label: 'KPI Brain', icon: <Icon name="chart-line" /> },
         { id: 'attribution', label: 'Attribuzione', icon: <Icon name="target" /> },
         { id: 'ltvCohorts', label: 'LTV & Coorti', icon: <Icon name="layers" /> },
@@ -175,6 +176,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       items: [
         { id: 'googleDetail', label: 'Google Detail', icon: <Icon name="list" /> },
         { id: 'googleProducts', label: 'Prodotti', icon: <Icon name="bag" /> },
+        { id: 'googleVerdicts', label: 'Verdetti prodotti', icon: <Icon name="check" /> },
         { id: 'googleKpi', label: 'Google KPI', icon: <Icon name="gauge" /> },
         { id: 'googleLighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'googleBudgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
@@ -195,6 +197,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       color: '#30d158',
       items: [
         { id: 'pnl', label: 'Conto Economico', icon: <Icon name="euro" /> },
+        { id: 'corrispettivi', label: 'Corrispettivi', icon: <Icon name="file" /> },
         { id: 'scheduledReports', label: 'Scheduled', icon: <Icon name="send" /> },
         { id: 'weekly', label: 'Weekly', icon: <Icon name="calendar" /> },
         { id: 'monthly', label: 'Monthly', icon: <Icon name="chart-bar" /> },

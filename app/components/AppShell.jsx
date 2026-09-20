@@ -17,6 +17,7 @@ import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
 import PreparingDataBanner from './PreparingDataBanner'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import Spiegazioni from './ui/Spiegazioni'
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
 function getPageTitle(tab, t) {
@@ -455,7 +456,7 @@ const [helpOpen, setHelpOpen] = useState(false)
       </aside>
 
       {/* Main */}
-      <main className="app-main" style={{
+      <main data-tab={tab} className="app-main" style={{
         flex: 1,
         minWidth: 0,
         height: '100vh',
@@ -573,6 +574,9 @@ const [helpOpen, setHelpOpen] = useState(false)
           </TabContent>
         </div>
       </main>
+      {/* Una sola nuvoletta per TUTTA l'app: le tab non devono fare niente. Non disegna nulla
+          (restituisce null), ascolta il mouse sul documento e spiega il dato che sta sotto. */}
+      <Spiegazioni />
       {helpOpen && <HelpDrawer article={articleForTab(tab, locale)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>
     </>

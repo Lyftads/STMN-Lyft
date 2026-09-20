@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
-import { tipoNegozio } from '../../../../lib/team/tipoNegozio'
-import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
+import { tipoNegozio } from '../../../lib/team/tipoNegozio'
+import { getAdminSupabase } from '../../../lib/supabase/server'
 import { withTenantContext, getTenantInfo, getShopify, getCurrentUserId } from '../../../lib/tenant/credentials'
 import { quadro, leggiConcorrenti, scriviConcorrenti, puliscDominio, verificaShopify, passata, nostriConCosti, CONCORRENTI_MAX } from '../../../lib/prezzi/motore'
 import { getSnapshotStale, setSnapshot } from '../../../lib/cache/snapshot'

@@ -450,38 +450,25 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
   const tiers = hideEnterprise ? ['starter', 'growth', 'scale'] : ['starter', 'growth', 'scale', 'enterprise']
   const prices = hideEnterprise ? [69, 149, 299] : [69, 149, 299, 599] // Starter / Growth / Scale / Enterprise (flat, no sconto annuale)
   return (
-    <div style={{
-      borderRadius: 16,
-      overflow: 'hidden',
-      border: '1px solid var(--border)',
-      borderTopColor: 'rgba(255,255,255,0.10)',
-      background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25))',
-    }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    // Stessa tabella di tutte le altre del prodotto (.tab-lyft): era rimasta al
+    // vetro nero di una volta — gradiente, zebrature bianche, intestazioni in
+    // maiuscolo spaziato e una colonna tinta di viola per indicare il piano
+    // consigliato. Il viola era l'unico del prodotto ed era decorazione: quale
+    // sia il piano consigliato lo dice gia' la scheda sopra.
+    <div className="m-scrollx" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', maxWidth: '100%', minWidth: 0 }}>
+      <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
         <thead>
-          <tr style={{ background: 'var(--glass)' }}>
-            <th style={{
-              textAlign: 'left', padding: '14px 16px',
-              fontSize: 10.5, fontWeight: 800, color: 'var(--text3)',
-              letterSpacing: '0.14em', textTransform: 'uppercase',
-              borderBottom: '1px solid var(--border)',
-            }}>{t('settings.feature', null, 'Feature')}</th>
-            {heads.map((p, i) => (
-              <th key={p} style={{
-                textAlign: 'center', padding: '14px 16px', minWidth: 96,
-                fontSize: 11, fontWeight: 900, color: 'var(--text)',
-                letterSpacing: '0.10em', textTransform: 'uppercase',
-                borderBottom: '1px solid var(--border)',
-                borderLeft: '1px solid var(--border)',
-                background: i === 1 ? 'rgba(191,90,242,0.06)' : 'transparent',
-              }}>{p}</th>
+          <tr style={{ color: 'var(--text2)' }}>
+            <th style={cmpTh('left')}>{t('settings.feature', null, 'Feature')}</th>
+            {heads.map(p => (
+              <th key={p} style={{ ...cmpTh('center'), minWidth: 96, color: 'var(--text)' }}>{p}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {/* Riga prezzo — riflette la cadenza selezionata */}
-          <tr style={{ background: 'rgba(255,255,255,0.025)' }}>
-            <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 800, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
+          <tr>
+            <td style={{ ...cmpTd('left'), fontWeight: 650, color: 'var(--text)' }}>
               {t('settings.priceRow', null, 'Prezzo')}{cadence?.bill ? <span style={{ color: 'var(--text3)', fontWeight: 600 }}> · {cadence.bill}</span> : ''}
             </td>
             {prices.map((m, j) => {
@@ -489,13 +476,15 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
               const f = isFlat ? 1 : (cadence?.factor ?? 1)
               const eff = m == null ? null : Math.round(m * f)
               return (
-                <td key={j} style={{ textAlign: 'center', padding: '12px 16px', fontSize: 12.5, fontWeight: 800, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent' }}>
+                <td key={j} style={{ ...cmpTd('center'), fontWeight: 650 }}>
                   {m == null ? (
                     <span style={{ color: 'var(--text2)' }}>{t('settings.customPrice', null, 'Su misura')}</span>
                   ) : (
                     <span style={{ color: 'var(--text)' }}>
                       {eur0(eff)}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>/m</span>
-                      {!isFlat && cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 900, color: '#22c55e' }}>{t('settings.twoMonthsFree', null, '2 mesi gratis')}</span>}
+                      {/* Un risparmio e' una variazione, non decorazione: qui il
+                          colore ci sta, ma dal token, non scritto a mano. */}
+                      {!isFlat && cadence?.off > 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 650, color: 'var(--positivo)' }}>{t('settings.twoMonthsFree', null, '2 mesi gratis')}</span>}
                     </span>
                   )}
                 </td>
@@ -503,28 +492,17 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
             })}
           </tr>
           {FEATURE_MATRIX.map((row, i) => (
-            <tr key={i} style={{
-              background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent',
-            }}>
-              <td style={{
-                padding: '12px 16px',
-                fontSize: 12.5, color: 'var(--text)',
-                borderBottom: '1px solid var(--border)',
-              }}>{t(row.featureKey, null, row.feature)}</td>
-              {tiers.map((tier, j) => {
+            <tr key={i}>
+              <td style={cmpTd('left')}>{t(row.featureKey, null, row.feature)}</td>
+              {tiers.map(tier => {
                 const v = row[tier]
                 return (
-                  <td key={tier} style={{
-                    textAlign: 'center',
-                    padding: '12px 16px',
-                    fontSize: 12.5, fontWeight: 700,
-                    borderBottom: '1px solid var(--border)',
-                    borderLeft: '1px solid var(--border)',
-                    background: j === 1 ? 'rgba(191,90,242,0.04)' : 'transparent',
-                  }}>
+                  <td key={tier} style={cmpTd('center')}>
+                    {/* C'e' / non c'e' non e' ne' un allarme ne' una variazione:
+                        la spunta e il trattino si distinguono da soli. */}
                     {typeof v === 'boolean'
-                      ? (v ? <span style={{ color: '#86efac', fontSize: 16, fontWeight: 900 }}><Icon name="check" size={14} /></span>
-                           : <span style={{ color: 'var(--text3)', opacity: 0.5 }}>—</span>)
+                      ? (v ? <Icon name="check" size={14} />
+                           : <span style={{ color: 'var(--text3)' }}>—</span>)
                       : <span style={{ color: 'var(--text)' }}>{t(FM_VALUE_KEYS[v], null, v)}</span>}
                   </td>
                 )
@@ -536,6 +514,13 @@ function ComparisonTable({ cadence = null, hideEnterprise = false }) {
     </div>
   )
 }
+
+// Stesse misure delle intestazioni di ogni altra tabella (vedi CorrispettiviTab).
+const cmpTh = (align = 'right') => ({
+  padding: '9px 12px', fontSize: 10, fontWeight: 640, textTransform: 'uppercase',
+  letterSpacing: '0.08em', textAlign: align, whiteSpace: 'nowrap',
+})
+const cmpTd = (align = 'right') => ({ padding: '10px 12px', fontSize: 13, textAlign: align, color: 'var(--text)' })
 
 function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
   const { t } = useI18n()
@@ -943,15 +928,21 @@ function InvoiceHistory({ invoices, loading }) {
     const sym = currency?.toLowerCase() === 'eur' ? '€' : currency?.toUpperCase() || ''
     return `${sym}${(amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
+  // Lo stato di una fattura e' esattamente il caso in cui il colore serve: pagata,
+  // da pagare, non incassata. Dai token pero', non scritto a mano — cosi' segue il
+  // tema chiaro e quello scuro invece di restare un verde pastello su entrambi.
+  // Le etichette passano dal dizionario: erano le uniche quattro parole inglesi
+  // fisse del pannello.
   const statusBadge = (s) => {
+    const neutro = { bg: 'var(--neutro-bg)', color: 'var(--text3)' }
     const m = {
-      paid:          { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.30)',  color: '#86efac', label: 'Paid' },
-      open:          { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.30)', color: '#fcd34d', label: 'Open' },
-      draft:         { bg: 'rgba(255,255,255,0.04)',border: 'rgba(255,255,255,0.10)',color: 'var(--text3)', label: 'Draft' },
-      void:          { bg: 'rgba(255,255,255,0.04)',border: 'rgba(255,255,255,0.10)',color: 'var(--text3)', label: 'Void' },
-      uncollectible: { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.30)',  color: '#fca5a5', label: 'Failed' },
+      paid:          { bg: 'var(--positivo-bg)',   color: 'var(--positivo)',   label: t('settings.invPaid', null, 'Pagata') },
+      open:          { bg: 'var(--attenzione-bg)', color: 'var(--attenzione)', label: t('settings.invOpen', null, 'Da pagare') },
+      draft:         { ...neutro, label: t('settings.invDraft', null, 'Bozza') },
+      void:          { ...neutro, label: t('settings.invVoid', null, 'Annullata') },
+      uncollectible: { bg: 'var(--negativo-bg)',   color: 'var(--negativo)',   label: t('settings.invFailed', null, 'Non incassata') },
     }
-    return m[s] || { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.10)', color: 'var(--text3)', label: s || '—' }
+    return m[s] || { ...neutro, label: s || '—' }
   }
   const list = invoices || []
   return (
@@ -981,21 +972,12 @@ function InvoiceHistory({ invoices, loading }) {
       )}
 
       {!loading && list.length > 0 && (
-        <div style={{
-          borderRadius: 12,
-          overflow: 'hidden',
-          border: '1px solid var(--border)',
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="m-scrollx" style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', maxWidth: '100%', minWidth: 0 }}>
+          <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 460 }}>
             <thead>
-              <tr style={{ background: 'var(--glass)' }}>
+              <tr style={{ color: 'var(--text2)' }}>
                 {[t('settings.colDate', null, 'Data'), t('settings.colAmount', null, 'Importo'), t('settings.colStatus', null, 'Status'), t('settings.colInvoice', null, 'Fattura')].map(h => (
-                  <th key={h} style={{
-                    textAlign: 'left', padding: '12px 16px',
-                    fontSize: 10, fontWeight: 800, color: 'var(--text3)',
-                    letterSpacing: '0.10em', textTransform: 'uppercase',
-                    borderBottom: '1px solid var(--border)',
-                  }}>{h}</th>
+                  <th key={h} style={cmpTh('left')}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1004,23 +986,25 @@ function InvoiceHistory({ invoices, loading }) {
                 const sb = statusBadge(inv.status)
                 return (
                   <tr key={inv.id}>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{fmtDate(inv.date)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>
+                    <td style={cmpTd('left')}>{fmtDate(inv.date)}</td>
+                    <td style={cmpTd('left')}>
                       {fmtMoney(inv.amount, inv.currency)} <span style={{ color: 'var(--text3)', fontSize: 11 }}>{inv.currency?.toUpperCase() || ''}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <td style={cmpTd('left')}>
+                      {/* Il pallino davanti all'etichetta era l'unica cosa che
+                          distingueva gli stati per chi non vede i colori: resta. */}
                       <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '3px 10px', borderRadius: 999,
-                        background: sb.bg, border: `1px solid ${sb.border}`,
-                        color: sb.color, fontSize: 10.5, fontWeight: 800,
-                        letterSpacing: '0.04em',
+                        background: sb.bg, color: sb.color,
+                        fontSize: 11.5, fontWeight: 620,
                       }}>● {sb.label}</span>
                     </td>
-                    <td style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <td style={cmpTd('left')}>
                       {inv.pdfUrl
-                        ? <a href={inv.pdfUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>PDF ↗</a>
+                        ? <a href={inv.pdfUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 620 }}>PDF ↗</a>
                         : inv.hostedUrl
-                          ? <a href={inv.hostedUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>{t('settings.openLink', null, 'Apri ↗')}</a>
+                          ? <a href={inv.hostedUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 620 }}>{t('settings.openLink', null, 'Apri ↗')}</a>
                           : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}
                     </td>
                   </tr>
@@ -1224,7 +1208,14 @@ export default function SettingsTab() {
             type="button"
             onClick={async () => {
               if (!window.confirm(t('gdpr.deleteConfirm', null, 'Eliminare definitivamente il tuo account e TUTTI i dati associati? L\'operazione è irreversibile.'))) return
-              const txt = window.prompt(t('gdpr.deletePrompt', null, 'Scrivi ELIMINA per confermare la cancellazione definitiva.'))
+              // La parola da digitare resta ELIMINA in TUTTE le lingue, e per questo
+              // viaggia come parametro invece di stare dentro la frase tradotta:
+              // il controllo qui sotto e' letterale, e lo e' anche quello del
+              // server (app/api/account/delete/route.js). Tradurre anche la parola
+              // avrebbe reso impossibile cancellare l'account a chi non ha l'app in
+              // italiano — scriveva la parola giusta nella sua lingua e non
+              // succedeva niente, senza un errore.
+              const txt = window.prompt(t('gdpr.deletePrompt', { w: 'ELIMINA' }, 'Scrivi ELIMINA per confermare la cancellazione definitiva.'))
               if (String(txt || '').toUpperCase() !== 'ELIMINA') return
               try {
                 const r = await fetch('/api/account/delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'ELIMINA' }) })

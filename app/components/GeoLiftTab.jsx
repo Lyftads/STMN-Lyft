@@ -8,11 +8,15 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 import RecosCard from './ui/RecosCard'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
+// Restano SOLO come colori delle due linee del grafico (test e controllo): li'
+// il colore distingue una serie dall'altra. Nell'interfaccia non si usano piu'.
 const TEAL = '#14b8a6'
 const CTRL = '#94a3b8'
 
 export default function GeoLiftTab() {
-  const { t, locale } = useI18n()
+  // intlLocale serve a scrivere gli importi nel formato della lingua scelta
+  // (il fatturato delle province rimaste fuori dal disegno, qui sotto).
+  const { t, locale, intlLocale } = useI18n()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -81,18 +85,31 @@ export default function GeoLiftTab() {
       <FxCard delay={1.4}>
         <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
           {t('geo.sub', null, 'Design a causal geo experiment to prove the real lift of a channel — splits your regions into balanced test vs control.')}
-          {data?.ok && <span> · {data.source === 'shopify_province'
-            ? t('geo.srcShopify', null, 'based on real Shopify sales by province')
-            : t('geo.srcGa4', { m: t('geo.metric_' + data.metric, null, data.metric) }, `based on GA4 ${data.metric}`)}</span>}
+          {/* La fonte va detta, e detta GIUSTA. Da quando il disegno parte dalle
+              vendite vere di Shopify per REGIONE, questo posto conosceva solo
+              «province» e «GA4»: con la fonte nuova cadeva nel ramo GA4 e
+              dichiarava «based on GA4 revenue» mentre i dati erano di Shopify.
+              Una riga che mente sulla provenienza dei dati e' peggio di una riga
+              assente: il test si progetta fidandosi di quella frase. */}
+          {data?.ok && <span> · {data.source === 'shopify_region'
+            ? t('geo.srcShopifyRegion', null, 'based on real Shopify sales by region')
+            : data.source === 'shopify_province'
+              ? t('geo.srcShopify', null, 'based on real Shopify sales by province')
+              : t('geo.srcGa4', { m: t('geo.metric_' + data.metric, null, data.metric) }, `based on GA4 ${data.metric}`)}</span>}
         </div>
 
         {loading && !data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '24px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('geo.designing', null, 'Designing the experiment…')}</div>}
 
         {!loading && error && (
           <div style={{ color: 'var(--text2)', fontSize: 13, padding: '16px 0' }}>
-            {error === 'ga4_not_connected' ? t('geo.errGa4', null, 'Connect Google Analytics 4 to design a geo-lift (regions come from GA4).')
+            {/* Questi messaggi erano rimasti a quando le regioni venivano solo da
+                GA4: uno citava una causa che la route non produce piu'
+                ('ga4_not_connected'), un altro dava la colpa a GA4 di un dato che
+                oggi arriva da Shopify, e 'no_source' — nessuna delle due fonti
+                collegata — finiva nel messaggio generico, che non dice cosa fare. */}
+            {error === 'no_source' ? t('geo.errNoSource', null, 'Connect Shopify to design a geo-lift: the regions and the revenue come from your real sales. Google Analytics 4 works as a fallback.')
               : error === 'not_enough_regions' ? t('geo.errRegions', null, 'Not enough regions with volume to build a reliable test.')
-                : error === 'no_geo_data' ? t('geo.errNoData', null, 'No regional data available from GA4 for this period.')
+                : error === 'no_geo_data' ? t('geo.errNoData', null, 'No regional data for this period.')
                   : t('geo.errGeneric', null, 'Could not design the experiment right now.')}
           </div>
         )}
@@ -105,19 +122,19 @@ export default function GeoLiftTab() {
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>{t('geo.channel', null, 'Channel to test')}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {['meta', 'google'].map(c => (
-                    <button key={c} onClick={() => setChannel(c)} className="btn-glass" style={{ padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: channel === c ? 1 : 0.55, borderColor: channel === c ? (c === 'meta' ? '#2997ff' : '#eab308') : undefined }}>{c === 'meta' ? 'Meta' : 'Google'}</button>
+                    <button key={c} onClick={() => setChannel(c)} className="btn-glass" style={{ padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: channel === c ? 1 : 0.55, borderColor: channel === c ? 'var(--border3)' : undefined }}>{c === 'meta' ? 'Meta' : 'Google'}</button>
                   ))}
                 </div>
               </div>
               <div style={{ minWidth: 200, flex: 1 }}>
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>{t('geo.liftToApply', { p: lift }, `Spend change in test regions: +${lift}%`)}</div>
-                <input type="range" min={0} max={200} step={10} value={lift} onChange={e => setLift(Number(e.target.value))} style={{ width: '100%', accentColor: TEAL, cursor: 'pointer' }} />
+                <input type="range" min={0} max={200} step={10} value={lift} onChange={e => setLift(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--text)', cursor: 'pointer' }} />
               </div>
               <div>
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>{t('geo.duration', null, 'Duration')}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {data.mde.map(m => (
-                    <button key={m.days} onClick={() => setDays(m.days)} className="btn-glass" style={{ padding: '7px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: days === m.days ? 1 : 0.55, borderColor: days === m.days ? TEAL : undefined }}>{m.weeks}{t('geo.wk', null, 'w')}</button>
+                    <button key={m.days} onClick={() => setDays(m.days)} className="btn-glass" style={{ padding: '7px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: days === m.days ? 1 : 0.55, borderColor: days === m.days ? 'var(--border3)' : undefined }}>{m.weeks}{t('geo.wk', null, 'w')}</button>
                   ))}
                 </div>
               </div>
@@ -146,7 +163,7 @@ export default function GeoLiftTab() {
 
             {/* Card risultato */}
             <div className="stagger-zoom" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 18 }}>
-              <Big label={t('geo.recDuration', null, 'Recommended duration')} value={t('geo.weeksVal', { n: data.recommendedWeeks }, `${data.recommendedWeeks} weeks`)} color={TEAL} />
+              <Big label={t('geo.recDuration', null, 'Recommended duration')} value={t('geo.weeksVal', { n: data.recommendedWeeks }, `${data.recommendedWeeks} weeks`)} />
               <Big label={t('geo.detectable', { d: data.mde.find(m => m.days === days)?.weeks ?? '' }, `Detectable lift · ${days}d`)} value={`≥ ${pct(selMde?.mde || 0)}`} sub={t('geo.detectableSub', null, 'smaller lifts may go unnoticed')} />
               <Big label={t('geo.matchQuality', null, 'Match quality')} value={`${matchPct}%`} color={matchColor} sub={matchPct >= 80 ? t('geo.matchGood', null, 'control tracks test well') : t('geo.matchWeak', null, 'control tracks test loosely')} />
               <Big label={data.unit === 'province' ? t('geo.provincesUsed', null, 'Provinces used') : t('geo.regionsUsed', null, 'Regions used')} value={`${data.test.regions.length + data.control.regions.length}`} sub={t('geo.split', null, 'split into test / control')} />
@@ -174,17 +191,17 @@ export default function GeoLiftTab() {
               {data.mde.map(m => (
                 <button key={m.days} onClick={() => setDays(m.days)} style={{
                   cursor: 'pointer', borderRadius: 8, padding: '5px 11px', fontWeight: 800, fontSize: 12,
-                  border: `1px solid ${days === m.days ? TEAL : 'var(--border)'}`,
-                  background: days === m.days ? TEAL + '1f' : 'transparent',
-                  color: days === m.days ? TEAL : 'var(--text2)',
+                  border: `1px solid ${days === m.days ? 'var(--border3)' : 'var(--border)'}`,
+                  background: days === m.days ? 'var(--glass2)' : 'transparent',
+                  color: days === m.days ? 'var(--text)' : 'var(--text2)',
                 }}>{m.weeks}{t('geo.wk', null, 'w')} → ≥ {pct(m.mde)}</button>
               ))}
             </div>
 
             {/* Test vs Control */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px,1fr))', gap: 14, marginBottom: 16 }}>
-              <RegionList title={t('geo.testRegions', null, 'TEST regions')} hint={t('geo.testHint', { p: lift, c: channelName }, `apply +${lift}% ${channelName} here`)} regions={data.test.regions} color={TEAL} />
-              <RegionList title={t('geo.controlRegions', null, 'CONTROL regions')} hint={t('geo.controlHint', null, 'keep spend unchanged here')} regions={data.control.regions} color={CTRL} />
+              <RegionList title={t('geo.testRegions', null, 'TEST regions')} hint={t('geo.testHint', { p: lift, c: channelName }, `apply +${lift}% ${channelName} here`)} regions={data.test.regions} />
+              <RegionList title={t('geo.controlRegions', null, 'CONTROL regions')} hint={t('geo.controlHint', null, 'keep spend unchanged here')} regions={data.control.regions} />
             </div>
 
             {/* Geo dominanti esclusi dal disegno (trimming) */}
@@ -219,7 +236,7 @@ export default function GeoLiftTab() {
 
             {/* Piano del test */}
             <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderLeft: `4px solid ${TEAL}` }}>
-              <div className="label" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{t('geo.planTitle', null, 'Your test plan')} <span style={{ color: channel === 'meta' ? '#2997ff' : '#eab308', fontWeight: 900 }}>· {channelName} +{lift}%</span></div>
+              <div className="label" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{t('geo.planTitle', null, 'Your test plan')} <span style={{ color: 'var(--text)', fontWeight: 900 }}>· {channelName} +{lift}%</span></div>
               <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, display: 'grid', gap: 4 }}>
                 <li>{t('geo.step1', { c: channelName, p: lift, n: data.test.regions.length }, `In ${channelName}, increase spend by ${lift}% only in the ${data.test.regions.length} TEST regions (geo-targeting).`)}</li>
                 <li>{t('geo.step2', { n: data.control.regions.length }, `Keep spend exactly as-is in the ${data.control.regions.length} CONTROL regions.`)}</li>
@@ -229,7 +246,7 @@ export default function GeoLiftTab() {
             </div>
 
             {/* Guida all'esecuzione sulle piattaforme */}
-            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderLeft: `4px solid ${channel === 'meta' ? '#2997ff' : '#eab308'}` }}>
+            <div className="glass-card-static" style={{ padding: 18, borderRadius: 16, marginBottom: 16, borderLeft: '4px solid var(--border3)' }}>
               <div className="label" style={{ marginBottom: 4 }}>{t('geo.execTitle', { c: channelName }, `How to set it up on ${channelName}`)}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 12 }}>{t('geo.execSub', null, 'The technical steps to apply the test cleanly. A mistake here invalidates the measurement.')}</div>
               <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, display: 'grid', gap: 6 }}>
@@ -269,7 +286,7 @@ export default function GeoLiftTab() {
                       <div style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 5 }}>{t('geo.startDate', null, 'Start date')}</div>
                       <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ padding: '8px 11px', fontSize: 13, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)' }} />
                     </label>
-                    <button onClick={createTest} disabled={creating} className="btn-glass" style={{ padding: '9px 18px', fontWeight: 800, fontSize: 13, cursor: creating ? 'wait' : 'pointer', borderColor: TEAL, color: TEAL }}>
+                    <button onClick={createTest} disabled={creating} className="btn-glass" style={{ padding: '9px 18px', fontWeight: 800, fontSize: 13, cursor: creating ? 'wait' : 'pointer', borderColor: 'var(--border3)', color: 'var(--text)' }}>
                       {creating ? t('geo.starting', null, 'Starting…') : t('geo.startTest', { c: channelName }, `Start ${channelName} test`)}
                     </button>
                   </div>
@@ -303,9 +320,22 @@ export default function GeoLiftTab() {
             </div>
 
             <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5 }}>
-              <Icon name="info" size={12} /> {data.source === 'shopify_province'
-                ? t('geo.noteShopify', null, 'Provinces and revenue come from your real Shopify sales. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')
-                : t('geo.note', null, 'Regions and the metric come from GA4. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')}
+              <Icon name="info" size={12} /> {data.source === 'shopify_region'
+                ? t('geo.noteShopifyRegion', null, 'Regions and revenue come from your real Shopify sales — the same figures as the rest of the app. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')
+                : data.source === 'shopify_province'
+                  ? t('geo.noteShopify', null, 'Provinces and revenue come from your real Shopify sales. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')
+                  : t('geo.note', null, 'Regions and the metric come from GA4. This is the design phase; after running the test, the readout (difference-in-differences) confirms the causal lift.')}
+              {/* Le province che non si sono sapute ricondurre a una regione
+                  restano fuori dal disegno: dirlo e' l'unico modo perche' chi
+                  legge i totali non li trovi piu' bassi senza spiegazione.
+                  `fuori` e' { province: [...], fatturato: n }, non un numero. */}
+              {data.fuori?.province?.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  {t('geo.fuori', { n: data.fuori.province.length, e: Math.round(data.fuori.fatturato || 0).toLocaleString(intlLocale) },
+                    `${data.fuori.province.length} provinces could not be matched to a region: €${Math.round(data.fuori.fatturato || 0).toLocaleString(intlLocale)} is left out of the design.`)}
+                  <span style={{ opacity: 0.8 }}> {data.fuori.province.join(', ')}</span>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -324,14 +354,14 @@ function Big({ label, value, color, sub }) {
   )
 }
 
-function RegionList({ title, hint, regions, color }) {
+function RegionList({ title, hint, regions }) {
   return (
-    <div className="glass-card" style={{ padding: 16, borderTop: `2px solid ${color}` }}>
-      <div style={{ fontSize: 12.5, fontWeight: 900, color, letterSpacing: '0.04em' }}>{title}</div>
+    <div className="glass-card" style={{ padding: 16, borderTop: '2px solid var(--border2)' }}>
+      <div style={{ fontSize: 12.5, fontWeight: 900, color: 'var(--text)', letterSpacing: '0.04em' }}>{title}</div>
       <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>{hint}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {regions.map(r => (
-          <span key={r} style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', background: color + '14', border: `1px solid ${color}33`, borderRadius: 8, padding: '4px 9px' }}>{r}</span>
+          <span key={r} style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', background: 'var(--glass2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 9px' }}>{r}</span>
         ))}
       </div>
     </div>
@@ -354,7 +384,7 @@ function TestRow({ test, busy, onStop, onCancel, t, pct }) {
           {test.status === 'running' && (
             <>
               <input type="number" value={spend} onChange={e => setSpend(e.target.value)} placeholder={t('geo.spendIncr', null, 'extra spend €')} title={t('geo.spendTip', null, 'Extra budget you actually spent on the TEST regions during the test — enables iROAS')} style={{ width: 120, padding: '5px 9px', fontSize: 11.5, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)' }} />
-              <button onClick={() => onStop(spend)} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: '#22c55e', borderColor: '#22c55e55' }}>{busy ? t('geo.measuring', null, 'Measuring…') : t('geo.stopMeasure', null, 'End & measure')}</button>
+              <button onClick={() => onStop(spend)} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: 'var(--text)', borderColor: 'var(--border3)' }}>{busy ? t('geo.measuring', null, 'Measuring…') : t('geo.stopMeasure', null, 'End & measure')}</button>
               <button onClick={onCancel} disabled={busy} className="btn-glass" style={{ padding: '5px 12px', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', color: 'var(--text3)' }}>{t('geo.cancelTest', null, 'Cancel')}</button>
             </>
           )}

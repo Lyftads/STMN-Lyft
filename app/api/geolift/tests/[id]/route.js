@@ -4,7 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { withTenantContext, getEffectiveTenantId, getShopify, getGoogle } from '../../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../../lib/supabase/server'
-import { provinceSeries, ga4Regions, alignGroups } from '../../../../../lib/incrementality/geodata'
+import { provinceSeries, regionSeries, ga4Regions, alignGroups } from '../../../../../lib/incrementality/geodata'
 import { computeReadout } from '../../../../../lib/incrementality/readout'
 
 // Dettaglio di un test.
@@ -61,10 +61,14 @@ async function computeTestReadout(test, spendIncremental) {
 
   // Ricava le serie giornaliere delle regioni coinvolte dalla stessa sorgente del disegno.
   let regions = []
-  if (test.source === 'shopify_province') {
+  if (test.source === 'shopify_province' || test.source === 'shopify_region') {
     const { storeUrl, adminToken } = getShopify()
     if (!storeUrl || !adminToken) return { ok: false, reason: 'shopify_missing' }
-    regions = await provinceSeries(storeUrl, adminToken, all, since, until)
+    // Si rilegge con la STESSA unita' con cui il test e' stato disegnato: mescolare regioni e
+    // province qui vorrebbe dire confrontare due pannelli diversi e chiamarlo risultato.
+    regions = test.source === 'shopify_region'
+      ? await regionSeries(storeUrl, adminToken, all, since, until)
+      : await provinceSeries(storeUrl, adminToken, all, since, until)
   } else {
     const g = getGoogle()
     if (!g.ga4PropertyId) return { ok: false, reason: 'ga4_missing' }

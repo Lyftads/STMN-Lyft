@@ -3,12 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from './ui/Icon'
 
-const ACCENT = '#bf5af2'
 
 const SEV_CFG = {
   urgent:  { color: '#f87171', bg: 'rgba(248,113,113,0.10)', border: 'rgba(248,113,113,0.40)', icon: <Icon name="warning" size={13} /> },
-  warning: { color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', icon: '▲' },
-  info:    { color: '#2997ff', bg: 'rgba(41,151,255,0.10)', border: 'rgba(41,151,255,0.25)', icon: 'ⓘ' },
+  warning: { color: '#f59e0b', bg: 'rgba(251,191,36,0.10)', border: 'rgba(251,191,36,0.30)', icon: '▲' },
+  info:    { color: '#2997ff', bg: 'var(--neutro-bg)', border: 'var(--neutro-bg)', icon: 'ⓘ' },
 }
 
 // Lo stesso lavoro della campanella, ma senza disegnare niente: serve ai pezzi nuovi che mostrano
@@ -49,6 +48,48 @@ export function useAlerts() {
   }
 
   return { alerts, counts, loading, dismiss }
+}
+
+// Il solo ELENCO degli avvisi, senza campanella e senza tendina: lo disegna la
+// scheda «Avvisi» del pop-up del profilo, che i dati li ha gia' presi con
+// useAlerts() e li passa qui.
+//
+// Sul fork questo e' l'export predefinito, perche' li' la campanella e' stata
+// tolta quando gli avvisi sono passati nel profilo. Qui la campanella in barra
+// c'e' ancora, quindi servono TUTTI E DUE: il predefinito resta la campanella,
+// e l'elenco si prende per nome. Senza questo export ProfiloPopup importava il
+// predefinito col nome ElencoAlert e gli passava delle props che la campanella
+// ignora: nella scheda «Avvisi» compariva una campanella invece dell'elenco —
+// nessun errore, solo la cosa sbagliata a schermo.
+export function ElencoAlert({ alerts, counts, loading, dismiss, t }) {
+  const tr = (k, v, d) => (t ? t(k, v, d) : d)
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 620, color: 'var(--text)' }}>
+          {counts.total === 0 ? tr('profilo.alertOk', null, 'Tutto sotto controllo') : tr('profilo.alertN', { n: counts.total }, `${counts.total} avvisi attivi`)}
+        </div>
+        {counts.total > 0 && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            {counts.urgent > 0 && <SeverityBadge sev="urgent" count={counts.urgent} />}
+            {counts.warning > 0 && <SeverityBadge sev="warning" count={counts.warning} />}
+            {counts.info > 0 && <SeverityBadge sev="info" count={counts.info} />}
+          </div>
+        )}
+      </div>
+      {loading ? (
+        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '30px 0', fontSize: 13 }}>…</div>
+      ) : alerts.length === 0 ? (
+        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '30px 0', fontSize: 13, lineHeight: 1.5 }}>
+          {tr('profilo.alertNone', null, 'Nessun avviso attivo. Il controllo notturno scrive qui ogni mattina.')}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {alerts.map(a => <AlertItem key={a.id} alert={a} onDismiss={() => dismiss(a.id)} />)}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function AlertsBell() {
@@ -96,7 +137,7 @@ export default function AlertsBell() {
 
   const totalBadge = counts.total
   const hasUrgent = counts.urgent > 0
-  const badgeColor = hasUrgent ? '#f87171' : counts.warning > 0 ? '#fbbf24' : '#2997ff'
+  const badgeColor = hasUrgent ? '#f87171' : counts.warning > 0 ? '#f59e0b' : '#2997ff'
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -107,8 +148,8 @@ export default function AlertsBell() {
         style={{
           position: 'relative',
           width: 38, height: 38, borderRadius: 11,
-          background: open ? `${ACCENT}1f` : 'rgba(255,255,255,0.04)',
-          border: open ? `1px solid ${ACCENT}66` : '1px solid var(--border)',
+          background: open ? 'var(--glass2)' : 'rgba(255,255,255,0.04)',
+          border: open ? '1px solid var(--border3)' : '1px solid var(--border)',
           color: 'var(--text)', fontSize: 16, cursor: 'pointer',
           display: 'grid', placeItems: 'center',
           transition: 'all .15s',
@@ -123,7 +164,7 @@ export default function AlertsBell() {
             background: badgeColor,
             color: 'var(--text)', fontSize: 10, fontWeight: 800,
             display: 'grid', placeItems: 'center',
-            border: '1.5px solid #000',
+            border: '1.5px solid var(--bg)',
           }}>
             {totalBadge > 99 ? '99+' : totalBadge}
           </span>
@@ -149,7 +190,7 @@ export default function AlertsBell() {
             borderBottom: '1px solid var(--border)',
           }}>
             <div>
-              <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 9.5, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
                 Alert center
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginTop: 4 }}>

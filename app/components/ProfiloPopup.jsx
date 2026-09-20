@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import Pannello from './ui/Pannello'
 import Avatar from './Avatar'
 import Icon from './ui/Icon'
-import ElencoAlert from './AlertsBell'
+// Per NOME, non il predefinito: qui il predefinito e' la campanella della barra
+// in alto (che sul fork non esiste piu'), e le props dell'elenco le ignora.
+import { ElencoAlert } from './AlertsBell'
 import { Linguette, Bottone } from './ui/Mattoni'
 import { impostaTema, sceltaTema } from './AutoTheme'
 import { avvisa } from '../../lib/client/avviso'

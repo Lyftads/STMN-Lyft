@@ -98,7 +98,7 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
         onClick={start}
         disabled={loading || done}
         style={{
-          padding: '8px 14px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
+          padding: '8px 14px', fontWeight: 640, fontSize: 13, borderRadius: 12,
           border: done ? '1px solid rgba(48,209,88,0.40)' : '1px solid var(--border)',
           background: done ? 'rgba(48,209,88,0.15)' : 'var(--glass)',
           color: done ? 'var(--green)' : 'var(--text)',
@@ -112,12 +112,12 @@ export default function NangoConnectButton({ integrationId, label = 'Collega', o
       {done && (
         <button
           onClick={disconnect}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11, textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 11.5, textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
         >
           {t('obp.disconnectReconnect', null, 'Scollega e ricollega')}
         </button>
       )}
-      {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--red)', fontSize: 11.5 }}>{err}</div>}
     </div>
   )
 }

@@ -30,9 +30,9 @@ const FORMATS = [
 const STATUSES = ['da_rivisionare', 'accettata', 'bocciata', 'utilizzata']
 const STATUS_COLOR = {
   da_rivisionare: '#ffd60a',   // ambra: aspetta una decisione
-  accettata:      '#30d158',   // verde: decisa
-  bocciata:       '#ff453a',   // rosso: decisa
-  utilizzata:     '#e9e9ee',   // neutro chiaro: non è un verdetto, è uno stato d'uso
+  accettata:      '#22c55e',   // verde: decisa
+  bocciata:       '#ef4444',   // rosso: decisa
+  utilizzata:     '#e9e9e9',   // neutro chiaro: non è un verdetto, è uno stato d'uso
 }
 const ACCENT = '#2997ff'
 const MAX_MB = 50
@@ -49,7 +49,7 @@ const EYEBROW = {
 }
 const GLASS = {
   position: 'relative', isolation: 'isolate', overflow: 'hidden',
-  background: 'rgba(255,255,255,.02)', backdropFilter: 'blur(40px) saturate(1.25)',
+  background: 'rgba(255,255,255,.02)', backdropFilter: 'none',
   border: '1px solid rgba(255,255,255,.06)', borderTopColor: 'rgba(255,255,255,.10)',
   boxShadow: '0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05)',
   borderRadius: 16,
@@ -323,7 +323,7 @@ export default function CreativeLibraryTab() {
         { sep: true },
         { label: tr('cl.download', 'Scarica'), icona: 'download',
           fai: chiudi(() => window.open(menu.asset.file_url, '_blank', 'noopener')) },
-        { label: tr('cl.deleteFormat', 'Elimina questo formato'), icona: 'trash', color: '#ff453a',
+        { label: tr('cl.deleteFormat', 'Elimina questo formato'), icona: 'trash', color: '#ef4444',
           fai: chiudi(() => removeFile(menu.item, menu.asset.format)) },
       ]
     }
@@ -357,7 +357,7 @@ export default function CreativeLibraryTab() {
         icona: 'download', off: !conFile, fai: chiudi(() => downloadMany(scelte)) },
       can && { sep: true },
       can && { label: n === 1 ? tr('cl.deleteItem', 'Elimina creatività') : tr('cl.deleteManyN', 'Elimina le {n} scelte', { n }),
-        icona: 'trash', color: '#ff453a',
+        icona: 'trash', color: '#ef4444',
         fai: chiudi(() => n === 1 && menu.item ? removeItem(menu.item) : removeMany(ids)) },
       ...generali,
     ]
@@ -400,7 +400,7 @@ export default function CreativeLibraryTab() {
             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
             background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)',
-            color: 'var(--text2)', fontSize: 12.5, fontWeight: 500,
+            color: 'var(--text2)', fontSize: 13, fontWeight: 500,
           }}>
             <Icon name="layers" size={13} /> {tr('cl.bulk', 'Carica in blocco')}
           </button>
@@ -409,8 +409,8 @@ export default function CreativeLibraryTab() {
           <button type="button" onClick={() => setCreating(true)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
-            background: 'rgba(41,151,255,.13)', border: '1px solid rgba(41,151,255,.42)',
-            color: ACCENT, fontSize: 12.5, fontWeight: 600,
+            background: 'var(--neutro-bg)', border: '1px solid rgba(41,151,255,.42)',
+            color: ACCENT, fontSize: 13, fontWeight: 600,
           }}>
             <Icon name="plus" size={13} /> {tr('cl.newItem', 'Nuova creatività')}
           </button>
@@ -454,8 +454,8 @@ export default function CreativeLibraryTab() {
                     </p>
                     <button type="button" onClick={() => { setFStatus('all'); setFScope('all'); setQ('') }} style={{
                       marginTop: 14, padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
-                      background: 'rgba(41,151,255,.13)', border: '1px solid rgba(41,151,255,.42)',
-                      color: ACCENT, fontSize: 12.5, fontWeight: 600,
+                      background: 'var(--neutro-bg)', border: '1px solid rgba(41,151,255,.42)',
+                      color: ACCENT, fontSize: 13, fontWeight: 600,
                     }}>
                       {tr('cl.showEverything', 'Mostra tutte le {n}', { n: data.items.length })}
                     </button>
@@ -471,8 +471,8 @@ export default function CreativeLibraryTab() {
                 {fScope === 'all' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     {g.type && <Icon name={g.type === 'promo' ? 'tag' : 'kanban'} size={12} />}
-                    <span style={{ ...EYEBROW, fontSize: 11, color: 'var(--text3)' }}>{g.label}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text4, #6b7280)', fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
+                    <span style={{ ...EYEBROW, fontSize: 11.5, color: 'var(--text3)' }}>{g.label}</span>
+                    <span style={{ fontSize: 11.5, color: 'var(--text4, #6b7280)', fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
                     <span style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,.10), transparent)' }} />
                   </div>
                 )}
@@ -520,7 +520,7 @@ export default function CreativeLibraryTab() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
           <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-            <div style={{ ...EYEBROW, fontSize: 11, color: 'var(--text3)' }}>{preview.name}</div>
+            <div style={{ ...EYEBROW, fontSize: 11.5, color: 'var(--text3)' }}>{preview.name}</div>
             {preview.kind === 'statica'
               ? <img src={preview.file_url} alt="" style={{ maxWidth: '88vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: 12 }} />
               : <video src={preview.file_url} controls autoPlay style={{ maxWidth: '88vw', maxHeight: '78vh', borderRadius: 12 }} />}
@@ -545,7 +545,7 @@ function ScopeSidebar({ stats, scopes, tr, active, onPick, status, onStatus, tot
     <aside style={{
       flex: '0 0 268px', maxWidth: '100%', alignSelf: 'stretch',
       background: 'rgba(255,255,255,.018)', backdropFilter: 'blur(30px)',
-      border: '1px solid rgba(255,255,255,.06)', borderRadius: 18, padding: 12,
+      border: '1px solid rgba(255,255,255,.06)', borderRadius: 16, padding: 12,
       display: 'flex', flexDirection: 'column', gap: 4,
       maxHeight: 'calc(100vh - 300px)', minHeight: 460, overflowY: 'auto',
     }}>
@@ -583,7 +583,7 @@ function ScopeSidebar({ stats, scopes, tr, active, onPick, status, onStatus, tot
       )}
 
       {!progetti.length && !promo.length && (
-        <p style={{ fontSize: 12, color: 'var(--text4, #6b7280)', padding: '10px 8px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: 'var(--text4, #6b7280)', padding: '10px 8px', lineHeight: 1.5 }}>
           {tr('cl.noScopesYet', 'Nessun progetto e nessuna promo. Si creano in Progetti & Task e nel Calendario.')}
         </p>
       )}
@@ -593,7 +593,7 @@ function ScopeSidebar({ stats, scopes, tr, active, onPick, status, onStatus, tot
 
 function Sezione({ children }) {
   return (
-    <div style={{ ...EYEBROW, fontSize: 9, color: 'var(--text4, #6b7280)', padding: '12px 8px 4px' }}>
+    <div style={{ ...EYEBROW, fontSize: 10, color: 'var(--text4, #6b7280)', padding: '12px 8px 4px' }}>
       {children}
     </div>
   )
@@ -633,16 +633,16 @@ function Voce({ on, label, sub, icona, thumb, dim, onClick }) {
   return (
     <button type="button" onClick={onClick} title={label} style={{
       display: 'flex', gap: 11, alignItems: 'center', textAlign: 'left', width: '100%',
-      background: on ? 'rgba(41,151,255,.10)' : 'transparent',
+      background: on ? 'var(--neutro-bg)' : 'transparent',
       border: `1px solid ${on ? 'rgba(41,151,255,.3)' : 'transparent'}`,
-      borderRadius: 13, padding: 9, cursor: 'pointer', font: 'inherit',
+      borderRadius: 12, padding: 9, cursor: 'pointer', font: 'inherit',
       opacity: dim && !on ? .55 : 1,
       transition: 'background .16s ease, border-color .16s ease, opacity .16s ease',
     }}
       onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(255,255,255,.03)' }}
       onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent' }}>
       <span style={{
-        width: 42, height: 42, flex: '0 0 auto', borderRadius: 10, overflow: 'hidden',
+        width: 42, height: 42, flex: '0 0 auto', borderRadius: 12, overflow: 'hidden',
         background: '#0b0b10', border: '1px solid rgba(255,255,255,.06)',
         display: 'grid', placeItems: 'center', color: 'var(--text4, #6b7280)',
       }}>
@@ -654,11 +654,11 @@ function Voce({ on, label, sub, icona, thumb, dim, onClick }) {
       </span>
       <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
         <b style={{
-          fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-.01em',
+          fontSize: 13, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-.01em',
           color: on ? 'var(--text)' : 'var(--text2)',
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{label}</b>
-        <i style={{ fontStyle: 'normal', fontSize: 11, color: 'var(--text4, #6b7280)' }}>{sub}</i>
+        <i style={{ fontStyle: 'normal', fontSize: 11.5, color: 'var(--text4, #6b7280)' }}>{sub}</i>
       </span>
     </button>
   )
@@ -670,7 +670,7 @@ function SubVoce({ on, onClick, label, n, dot }) {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%',
       font: 'inherit', fontSize: 11.5, textAlign: 'left', padding: '6px 10px', borderRadius: 8,
       cursor: 'pointer', border: `1px solid ${on ? 'rgba(41,151,255,.3)' : 'transparent'}`,
-      background: on ? 'rgba(41,151,255,.12)' : 'transparent',
+      background: on ? 'var(--neutro-bg)' : 'transparent',
       color: on ? ACCENT : 'var(--text4, #6b7280)',
       transition: 'background .14s ease, color .14s ease',
     }}
@@ -680,7 +680,7 @@ function SubVoce({ on, onClick, label, n, dot }) {
         {dot && <span style={{ width: 6, height: 6, borderRadius: 999, background: dot, flexShrink: 0 }} />}
         {label}
       </span>
-      <span style={{ fontSize: 11, opacity: on ? 1 : .6, flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+      <span style={{ fontSize: 11.5, opacity: on ? 1 : .6, flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
     </button>
   )
 }
@@ -705,18 +705,18 @@ function ItemCard({ item, can, tr, fmtLabel, scopes, scopeKey, uploads, selected
       {/* Barra d'accento dietro al contenuto: davanti scurirebbe le anteprime */}
       <span style={{
         content: '""', position: 'absolute', top: 0, left: '12%', right: '12%', height: 1.5, zIndex: -1,
-        background: `linear-gradient(90deg, transparent, ${color}73, transparent)`, filter: 'blur(.3px)',
+        background: 'none', filter: 'blur(.3px)',
       }} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ width: 7, height: 7, borderRadius: 999, background: color, flexShrink: 0 }} />
         <span onClick={onSelect} title={tr('cl.selectHint', 'Clic per selezionare · destro per il menu')}
-          style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: 'var(--text)', cursor: 'pointer' }}>
+          style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', color: 'var(--text)', cursor: 'pointer' }}>
           {item.name}
         </span>
         <span style={{ ...EYEBROW, fontSize: 10, color }}>{tr(`cl.st.${item.status}`, item.status)}</span>
         {missing > 0 && (
-          <span style={{ fontSize: 11, color: 'var(--text4, #6b7280)' }}>
+          <span style={{ fontSize: 11.5, color: 'var(--text4, #6b7280)' }}>
             {tr('cl.missingN', 'manca {n} di 3', { n: missing })}
           </span>
         )}
@@ -742,7 +742,7 @@ function ItemCard({ item, can, tr, fmtLabel, scopes, scopeKey, uploads, selected
 
       {can && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          <span style={{ ...EYEBROW, fontSize: 9.5, color: 'var(--text4, #6b7280)', alignSelf: 'center', marginRight: 3 }}>
+          <span style={{ ...EYEBROW, fontSize: 10, color: 'var(--text4, #6b7280)', alignSelf: 'center', marginRight: 3 }}>
             {tr('cl.verdict', 'Verdetto')}
           </span>
           {STATUSES.map(st => {
@@ -782,7 +782,7 @@ function ItemCard({ item, can, tr, fmtLabel, scopes, scopeKey, uploads, selected
                 borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,.015)',
               }}>
               <div style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 7, borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                <span style={{ ...EYEBROW, fontSize: 9.5, color: 'var(--text3)' }}>{fmtLabel(f)}</span>
+                <span style={{ ...EYEBROW, fontSize: 10, color: 'var(--text3)' }}>{fmtLabel(f)}</span>
                 <span style={{ fontSize: 10, color: 'var(--text4, #6b7280)', fontVariantNumeric: 'tabular-nums' }}>{f.w}×{f.h}</span>
                 {file && can && (
                   <>
@@ -812,7 +812,7 @@ function ItemCard({ item, can, tr, fmtLabel, scopes, scopeKey, uploads, selected
                 <div style={{ height: 148, display: 'grid', placeItems: 'center', padding: 10 }}>
                   {up ? (
                     up.error
-                      ? <span style={{ fontSize: 11, color: '#ff453a', textAlign: 'center' }}>{up.error}</span>
+                      ? <span style={{ fontSize: 11.5, color: '#ef4444', textAlign: 'center' }}>{up.error}</span>
                       : (
                         <div style={{ width: '78%' }}>
                           <div style={{ height: 4, borderRadius: 999, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}>
@@ -834,7 +834,7 @@ function ItemCard({ item, can, tr, fmtLabel, scopes, scopeKey, uploads, selected
                       </button>
                     </>
                   ) : (
-                    <span style={{ fontSize: 11, color: 'var(--text4, #6b7280)' }}>{tr('cl.missing', 'manca')}</span>
+                    <span style={{ fontSize: 11.5, color: 'var(--text4, #6b7280)' }}>{tr('cl.missing', 'manca')}</span>
                   )}
                 </div>
               )}
@@ -893,13 +893,13 @@ function ContextMenu({ x, y, voci }) {
       style={{
         position: 'fixed', left: pos.x, top: pos.y, zIndex: 600, minWidth: 232, maxWidth: 320,
         visibility: pos.misurato ? 'visible' : 'hidden',
-        padding: '6px 0', borderRadius: 12, background: 'rgba(10,10,16,.97)', backdropFilter: 'blur(20px)',
+        padding: '6px 0', borderRadius: 12, background: 'var(--surface)', backdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,.10)', boxShadow: '0 20px 50px rgba(0,0,0,.7)',
       }}>
       {voci.filter(Boolean).map((v, i) => {
         if (v.sep) return <div key={i} style={{ height: 1, background: 'rgba(255,255,255,.07)', margin: '6px 0' }} />
         if (v.titolo) return (
-          <div key={i} style={{ ...EYEBROW, fontSize: 9, color: 'var(--text4, #6b7280)', padding: '6px 12px 6px' }}>
+          <div key={i} style={{ ...EYEBROW, fontSize: 10, color: 'var(--text4, #6b7280)', padding: '6px 12px 6px' }}>
             {v.titolo}
           </div>
         )
@@ -910,7 +910,7 @@ function ContextMenu({ x, y, voci }) {
               display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
               padding: '7px 12px', border: 'none', background: 'transparent',
               cursor: v.off ? 'default' : 'pointer', opacity: v.off ? .35 : 1,
-              color: v.color || 'var(--text2)', fontSize: 12.5, fontWeight: 500,
+              color: v.color || 'var(--text2)', fontSize: 13, fontWeight: 500,
             }}
             onMouseEnter={e => { if (!v.off) e.currentTarget.style.background = 'rgba(255,255,255,.05)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
@@ -956,7 +956,7 @@ function NewItemModal({ scopes, tr, onClose, onCreated }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{ ...GLASS, width: '100%', maxWidth: 430, padding: 22, display: 'flex', flexDirection: 'column', gap: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.01em', color: 'var(--text)', flex: 1 }}>{tr('cl.newItem', 'Nuova creatività')}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', color: 'var(--text)', flex: 1 }}>{tr('cl.newItem', 'Nuova creatività')}</div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4, #6b7280)', display: 'flex' }}>
             <Icon name="close" size={15} />
           </button>
@@ -991,14 +991,14 @@ function NewItemModal({ scopes, tr, onClose, onCreated }) {
             style={{ ...pill, width: '100%', borderRadius: 12, resize: 'vertical', fontFamily: 'inherit', cursor: 'text' }} />
         </Field>
 
-        {error && <div style={{ fontSize: 11.5, color: '#ff453a' }}>{error}</div>}
+        {error && <div style={{ fontSize: 11.5, color: '#ef4444' }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 9, justifyContent: 'flex-end' }}>
           <button type="button" onClick={onClose} style={{ ...pill, cursor: 'pointer' }}>{tr('cl.cancel', 'Annulla')}</button>
           <button type="button" onClick={save} disabled={busy} style={{
             padding: '8px 18px', borderRadius: 999, cursor: busy ? 'wait' : 'pointer',
-            background: 'rgba(41,151,255,.13)', border: '1px solid rgba(41,151,255,.42)',
-            color: ACCENT, fontSize: 12.5, fontWeight: 600,
+            background: 'var(--neutro-bg)', border: '1px solid rgba(41,151,255,.42)',
+            color: ACCENT, fontSize: 13, fontWeight: 600,
           }}>{busy ? tr('cl.saving', 'Salvo…') : tr('cl.create', 'Crea')}</button>
         </div>
       </div>
@@ -1116,7 +1116,7 @@ function BulkUploadModal({ scopes, tr, fmtLabel, onClose, onDone }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{ ...GLASS, width: '100%', maxWidth: 720, maxHeight: '88vh', padding: 22, display: 'flex', flexDirection: 'column', gap: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.01em', color: 'var(--text)', flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', color: 'var(--text)', flex: 1 }}>
             {tr('cl.bulk', 'Carica in blocco')}
           </div>
           {!busy && (
@@ -1149,8 +1149,8 @@ function BulkUploadModal({ scopes, tr, fmtLabel, onClose, onDone }) {
         {rows.length > 0 && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 100 }}>
             {rows.map(r => (
-              <div key={r.key} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)' }}>
-                <span title={r.file.name} style={{ fontSize: 10.5, color: 'var(--text4, #6b7280)', width: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div key={r.key} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '7px 10px', borderRadius: 12, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)' }}>
+                <span title={r.file.name} style={{ fontSize: 10, color: 'var(--text4, #6b7280)', width: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.file.name}
                 </span>
                 <input value={r.name} disabled={busy} onChange={e => setRow(r.key, { name: e.target.value })}
@@ -1160,8 +1160,8 @@ function BulkUploadModal({ scopes, tr, fmtLabel, onClose, onDone }) {
                   <option value="" style={opt}>{tr('cl.pickFormat', 'Formato?')}</option>
                   {FORMATS.map(f => <option key={f.id} value={f.id} style={opt}>{fmtLabel(f)}</option>)}
                 </select>
-                {r.error ? <span style={{ fontSize: 10.5, color: '#ff453a', width: 90, textAlign: 'right' }}>{r.error}</span>
-                  : r.pct != null ? <span style={{ fontSize: 10.5, color: r.pct === 100 ? '#30d158' : 'var(--text4, #6b7280)', width: 90, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.pct === 100 ? '✓' : r.pct + '%'}</span>
+                {r.error ? <span style={{ fontSize: 10, color: '#ef4444', width: 90, textAlign: 'right' }}>{r.error}</span>
+                  : r.pct != null ? <span style={{ fontSize: 10, color: r.pct === 100 ? '#22c55e' : 'var(--text4, #6b7280)', width: 90, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.pct === 100 ? '✓' : r.pct + '%'}</span>
                   : !busy ? (
                     <button type="button" onClick={() => setRows(prev => prev.filter(x => x.key !== r.key))}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4, #6b7280)', display: 'flex' }}>
@@ -1173,7 +1173,7 @@ function BulkUploadModal({ scopes, tr, fmtLabel, onClose, onDone }) {
           </div>
         )}
 
-        {error && <div style={{ fontSize: 11.5, color: '#ff453a' }}>{error}</div>}
+        {error && <div style={{ fontSize: 11.5, color: '#ef4444' }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 9, justifyContent: 'flex-end', alignItems: 'center' }}>
           {busy && <span style={{ fontSize: 11.5, color: 'var(--text4, #6b7280)', marginRight: 'auto' }}>{tr('cl.bulkRunning', 'Caricamento… {n} di {t}', { n: done, t: rows.length })}</span>}
@@ -1181,8 +1181,8 @@ function BulkUploadModal({ scopes, tr, fmtLabel, onClose, onDone }) {
           <button type="button" onClick={run} disabled={busy || rows.length === 0} style={{
             padding: '8px 18px', borderRadius: 999, cursor: (busy || !rows.length) ? 'default' : 'pointer',
             opacity: (busy || !rows.length) ? .5 : 1,
-            background: 'rgba(41,151,255,.13)', border: '1px solid rgba(41,151,255,.42)',
-            color: ACCENT, fontSize: 12.5, fontWeight: 600,
+            background: 'var(--neutro-bg)', border: '1px solid rgba(41,151,255,.42)',
+            color: ACCENT, fontSize: 13, fontWeight: 600,
           }}>{busy ? tr('cl.saving', 'Salvo…') : tr('cl.bulkGo', 'Carica tutto')}</button>
         </div>
       </div>
@@ -1216,16 +1216,16 @@ function Kpi({ label, value, sub, dot }) {
     <div style={{ ...GLASS, padding: '15px 16px 16px' }}>
       <span style={{
         position: 'absolute', top: 0, left: '12%', right: '12%', height: 1.5, zIndex: -1,
-        background: `linear-gradient(90deg, transparent, ${dot || ACCENT}73, transparent)`, filter: 'blur(.3px)',
+        background: 'none', filter: 'blur(.3px)',
       }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {dot && <span style={{ width: 6, height: 6, borderRadius: 999, background: dot }} />}
         <span style={{ ...EYEBROW, fontSize: 10, color: 'var(--text4, #6b7280)' }}>{label}</span>
       </div>
-      <div style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-.035em', lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>
+      <div style={{ fontSize: 22, fontWeight: 640, letterSpacing: '-.035em', lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text4, #6b7280)', marginTop: 6 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11.5, color: 'var(--text4, #6b7280)', marginTop: 6 }}>{sub}</div>}
     </div>
   )
 }
@@ -1234,9 +1234,9 @@ function Chip({ children, on, onClick, dot }) {
   return (
     <button type="button" onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      fontSize: 12, fontWeight: 500, padding: '6px 13px', borderRadius: 999, cursor: 'pointer',
+      fontSize: 13, fontWeight: 500, padding: '6px 13px', borderRadius: 999, cursor: 'pointer',
       border: `1px solid ${on ? 'rgba(41,151,255,.42)' : 'rgba(255,255,255,.06)'}`,
-      background: on ? 'rgba(41,151,255,.13)' : 'rgba(255,255,255,.03)',
+      background: on ? 'var(--neutro-bg)' : 'rgba(255,255,255,.03)',
       color: on ? ACCENT : 'var(--text4, #6b7280)',
       transition: 'color .16s, border-color .16s, background .16s',
     }}>
@@ -1249,7 +1249,7 @@ function Chip({ children, on, onClick, dot }) {
 function Field({ label, children }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <span style={{ ...EYEBROW, fontSize: 9.5, color: 'var(--text4, #6b7280)' }}>{label}</span>
+      <span style={{ ...EYEBROW, fontSize: 10, color: 'var(--text4, #6b7280)' }}>{label}</span>
       {children}
     </label>
   )
@@ -1258,19 +1258,19 @@ function Field({ label, children }) {
 function Banner({ title, body }) {
   return (
     <div style={{ padding: '13px 16px', borderRadius: 12, background: 'rgba(255,214,10,.06)', border: '1px solid rgba(255,214,10,.32)', position: 'relative', zIndex: 2 }}>
-      <strong style={{ color: '#ffd60a', fontWeight: 700, fontSize: 12.5 }}>{title}</strong>
-      <div style={{ color: 'var(--text3)', marginTop: 3, fontSize: 12, lineHeight: 1.5 }}>{body}</div>
+      <strong style={{ color: '#ffd60a', fontWeight: 600, fontSize: 13 }}>{title}</strong>
+      <div style={{ color: 'var(--text3)', marginTop: 3, fontSize: 13, lineHeight: 1.5 }}>{body}</div>
     </div>
   )
 }
 
 function Empty({ text }) {
-  return <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--text4, #6b7280)', fontSize: 12.5 }}>{text}</div>
+  return <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--text4, #6b7280)', fontSize: 13 }}>{text}</div>
 }
 
 const pill = {
-  font: 'inherit', fontSize: 12, fontWeight: 500, padding: '7px 13px', borderRadius: 999,
+  font: 'inherit', fontSize: 13, fontWeight: 500, padding: '7px 13px', borderRadius: 999,
   border: '1px solid rgba(255,255,255,.06)', background: 'rgba(255,255,255,.03)',
   color: 'var(--text2)', outline: 'none',
 }
-const opt = { background: '#0d0d16' }
+const opt = { background: 'var(--surface)' }

@@ -24,9 +24,9 @@ export default function RecosCard({ recos }) {
         {sorted.map((r, i) => {
           const L = LEVEL[r.level] || LEVEL.info
           return (
-            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', borderLeft: `3px solid ${L.c}` }}>
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', borderLeft: `3px solid ${L.c}` }}>
               <span style={{ color: L.c, marginTop: 1, flexShrink: 0 }}><Icon name={L.i} size={14} /></span>
-              <span style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{r.text}</span>
+              <span style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>{r.text}</span>
             </div>
           )
         })}

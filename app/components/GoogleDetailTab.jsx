@@ -1,20 +1,24 @@
 'use client'
 
+import AzioneBarra from './ui/AzioneBarra'
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
+import FasceTabella from './ui/FasceTabella'
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const GOOGLE = '#eab308'
 
-const eur  = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—'
-const eur2 = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 2 })}` : '—'
-const int0 = v => v != null ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 }) : '—'
+const eur  = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
+const eur2 = v => soldi(v, 'auto')
+const int0 = v => v != null ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
 const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
@@ -66,7 +70,7 @@ const statusColor = (s) => {
 
 export default function GoogleDetailTab() {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'last_7d' })
+  const [tf, setTf] = useStatoTab('googleDetail.tf', { preset: 'last_7d' })
   const preset = tf.preset
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -168,18 +172,14 @@ export default function GoogleDetailTab() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
           <PlatformBadges sources={['google']} size={26} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe value={tf} onChange={setTf} accent={GOOGLE} disabled={loading} />
-          <button type="button" onClick={() => load(true)} disabled={loading}
-            style={{ border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
+        <div className="report-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
+          <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => load(true)} disabled={loading} gira={loading} />
           <DownloadReportButton tab="Google Detail" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
@@ -193,23 +193,23 @@ export default function GoogleDetailTab() {
         <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}><Icon name="warning" size={13} /> {error}</div>
       )}
       {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>{t('gdet.loading', null, 'Carico le campagne Google…')}</div>
+        <div style={{ color: 'var(--text3)', padding: 40, fontSize: 15, fontWeight: 600, textAlign: 'center' }}>{t('gdet.loading', null, 'Carico le campagne Google…')}</div>
       )}
 
       {data && !notConfigured && (
         <>
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12 }}>
             {SUMMARY.map(s => {
               const v = Number(summary[s.key] || 0), p = Number(prev[s.key] || 0)
               const delta = p !== 0 ? ((v - p) / Math.abs(p)) * 100 : null
               const pos = delta == null ? null : (s.lower ? delta < 0 : delta > 0)
               return (
                 <div key={s.key} className="glass-card" style={{ padding: '16px 18px' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                  <div style={{ fontSize: 23, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{s.fmt(summary[s.key])}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 640, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em' }}>{s.fmt(summary[s.key])}</div>
                   {delta != null && Math.abs(delta) >= 0.05 && (
-                    <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: pos ? '#22c55e' : '#f87171' }}>
+                    <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 600, color: pos ? '#22c55e' : '#f87171' }}>
                       {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
                     </div>
                   )}
@@ -227,8 +227,8 @@ export default function GoogleDetailTab() {
                   return (
                     <button key={m.key} type="button"
                       onClick={() => setChartSel(s => s.includes(m.key) ? (s.length > 1 ? s.filter(k => k !== m.key) : s) : [...s, m.key])}
-                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: `1px solid ${on ? m.color : 'var(--border)'}`, background: on ? `${m.color}1f` : 'var(--glass)', color: on ? m.color : 'var(--text3)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: on ? m.color : 'var(--text3)' }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, border: `1px solid ${on ? m.color : 'var(--border)'}`, background: on ? `${m.color}1f` : 'var(--glass)', color: on ? m.color : 'var(--text3)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 6, background: on ? m.color : 'var(--text3)' }} />
                       {m.label}
                     </button>
                   )
@@ -243,7 +243,7 @@ export default function GoogleDetailTab() {
                       <YAxis key={m.key} yAxisId={m.key} hide domain={['auto', 'auto']} />
                     ))}
                     <Tooltip
-                      contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}
                       labelFormatter={d => d}
                       formatter={(value, name) => {
                         const m = CHART_METRICS.find(x => x.key === name)
@@ -265,9 +265,9 @@ export default function GoogleDetailTab() {
               const active = statusFilter === f.id
               return (
                 <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
-                  style={{ background: active ? `${GOOGLE}22` : 'var(--glass)', border: `1px solid ${active ? GOOGLE : 'var(--border)'}`, color: active ? GOOGLE : 'var(--text2)', borderRadius: 999, padding: '7px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  className={`ly-filtro senza-tocco${statusFilter === f.id ? ' acceso' : ''}`}>
                   {f.label}
-                  <span style={{ background: active ? GOOGLE : 'rgba(255,255,255,0.06)', color: active ? '#0a0a14' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>{countFor(f.id)}</span>
+                  <span style={{ background: active ? GOOGLE : 'rgba(255,255,255,0.06)', color: active ? 'var(--surface)' : 'var(--text3)', padding: '1px 7px', borderRadius: 999, fontSize: 11.5, fontWeight: 640 }}>{countFor(f.id)}</span>
                 </button>
               )
             })}
@@ -275,8 +275,9 @@ export default function GoogleDetailTab() {
 
           {/* Tabella gerarchica */}
           <div className="glass-card-static" style={{ padding: 0, overflow: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100 }}>
+            <table className="tab-lyft st-3 st-5 st-9" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100 }}>
               <thead>
+                <FasceTabella gruppi={[{ vuote: 2 }, { fam: 'fam-pub', n: 2, label: t('tab.famSpend', null, 'Spesa'), loghi: ['google'] }, { fam: 'fam-traffico', n: 4, label: t('tab.famTraffic', null, 'Traffico'), loghi: ['google'] }, { fam: 'fam-resa', n: 5, label: t('tab.famResults', null, 'Risultati'), loghi: ['google'] }]} />
                 <tr>
                   <th style={thStyle('left')}>{t('gdet.name', null, 'Nome')}</th>
                   <th style={thStyle('left')}>{t('gdet.status', null, 'Stato')}</th>
@@ -322,27 +323,28 @@ export default function GoogleDetailTab() {
 function FragmentRows({ children }) { return <>{children}</> }
 
 function thStyle(align) {
-  return { padding: '12px 14px', textAlign: align, fontSize: 10, fontWeight: 800, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'rgba(10,10,22,0.92)' }
+  return { padding: '12px 14px', textAlign: align, fontSize: 10, fontWeight: 640, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', position: 'sticky', top: 0, background: 'var(--surface)' }
 }
 
 function Row({ row, depth, expandable, open, onToggle, loadingNode }) {
+  const { t } = useI18n()
   return (
     <tr style={{ borderBottom: '1px solid var(--border)' }}>
       <td style={{ padding: '11px 14px', minWidth: 280 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: depth * 22 }}>
           {expandable ? (
-            <button onClick={onToggle} style={{ width: 20, height: 20, display: 'grid', placeItems: 'center', background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 11 }}>
+            <button onClick={onToggle} className="cella-apri" style={{ width: 20, height: 20, display: 'grid', placeItems: 'center', background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 11.5 }}>
               {loadingNode ? '…' : (open ? '▾' : '▸')}
             </button>
           ) : <span style={{ width: 20, display: 'inline-block' }} />}
-          <span style={{ fontSize: depth === 0 ? 13 : 12.5, fontWeight: depth === 0 ? 800 : 600, color: depth === 0 ? 'var(--text)' : 'var(--text2)' }}>{row.name}</span>
+          <span style={{ fontSize: 13, fontWeight: depth === 0 ? 800 : 600, color: depth === 0 ? 'var(--text)' : 'var(--text2)' }}>{row.name}</span>
         </div>
       </td>
       <td style={{ padding: '11px 14px' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: statusColor(row.status) }}>{row.status || '—'}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: statusColor(row.status) }}>{row.status === 'ENABLED' ? t('gdet.stOn', null, 'Attiva') : row.status === 'PAUSED' ? t('gdet.stPaused', null, 'In pausa') : row.status === 'REMOVED' ? t('gdet.stRemoved', null, 'Rimossa') : (row.status || '—')}</span>
       </td>
       {COLS.map(c => (
-        <td key={c.key} style={{ padding: '11px 14px', textAlign: 'right', fontSize: 12.5, fontWeight: c.key === 'spend' || c.key === 'roas' ? 800 : 600, color: c.key === 'roas' ? (row.roas >= 3 ? '#22c55e' : row.roas >= 1 ? '#f59e0b' : '#ef4444') : 'var(--text)', whiteSpace: 'nowrap' }}>
+        <td key={c.key} style={{ padding: '11px 14px', textAlign: 'right', fontSize: 13, fontWeight: c.key === 'spend' || c.key === 'roas' ? 800 : 600, color: c.key === 'roas' ? (row.roas >= 3 ? '#22c55e' : row.roas >= 1 ? '#f59e0b' : '#ef4444') : 'var(--text)', whiteSpace: 'nowrap' }}>
           {c.fmt(row[c.key])}
         </td>
       ))}
@@ -353,7 +355,7 @@ function Row({ row, depth, expandable, open, onToggle, loadingNode }) {
 function EmptyRow({ depth, text }) {
   return (
     <tr>
-      <td colSpan={12} style={{ padding: '9px 14px', paddingLeft: 14 + depth * 22 + 28, fontSize: 12, color: 'var(--text3)', fontStyle: 'italic' }}>{text}</td>
+      <td colSpan={12} style={{ padding: '9px 14px', paddingLeft: 14 + depth * 22 + 28, fontSize: 13, color: 'var(--text3)', fontStyle: 'italic' }}>{text}</td>
     </tr>
   )
 }

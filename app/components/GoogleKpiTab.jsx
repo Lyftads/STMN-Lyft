@@ -1,5 +1,9 @@
 'use client'
 
+import AzioneBarra from './ui/AzioneBarra'
+import { Kpi, Scheletro, coloreFamiglia, famigliaDi } from './ui/Mattoni'
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import {
@@ -9,7 +13,7 @@ import {
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import GoogleSegmentsPanel from './GoogleSegmentsPanel'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -23,7 +27,7 @@ function Sparkline({ data, dataKey, color = GOOGLE, width = 92, height = 30 }) {
   const max = Math.max(...vals), min = Math.min(...vals)
   const range = max - min || 1
   const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * width},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ')
-  const gid = `gk-sl-${dataKey}-${color.replace('#', '')}`
+  const gid = `gk-sl-${dataKey}-${String(color).replace(/[^a-zA-Z0-9]/g, '')}`
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ flexShrink: 0, overflow: 'visible' }}>
       <defs>
@@ -55,9 +59,9 @@ const PRESETS = [
   { value: 'ytd',          label: 'YTD' },
 ]
 
-const eur  = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—'
-const eur2 = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 2 })}` : '—'
-const num  = v => v != null ? Number(v).toLocaleString('it-IT') : '—'
+const eur  = v => soldi(v)
+const eur2 = v => soldi(v, 'auto')
+const num  = v => v != null ? Number(v).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
 const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
@@ -86,7 +90,7 @@ const CHARTS = [
 
 export default function GoogleKpiTab() {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'last_7d' })
+  const [tf, setTf] = useStatoTab('googleKpi.tf', { preset: 'last_7d' })
   const preset = tf.preset
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -131,27 +135,14 @@ export default function GoogleKpiTab() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
           <PlatformBadges sources={['google']} size={26} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe value={tf} onChange={setTf} accent={GOOGLE} disabled={loading} />
-          <button
-            type="button"
-            onClick={() => load(true)}
-            disabled={loading}
-            style={{
-              border: '1px solid var(--border)', background: 'var(--glass)',
-              color: 'var(--text)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
-              cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
+        <div className="report-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
+          <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => load(true)} disabled={loading} gira={loading} />
           <DownloadReportButton tab="Google KPI" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
@@ -166,16 +157,12 @@ export default function GoogleKpiTab() {
         <div className="glass-card-static" style={{ padding: 18, color: '#fca5a5', fontSize: 13 }}><Icon name="warning" size={13} /> {error}</div>
       )}
 
-      {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
-          {t('gkpi.loadingKpi', null, 'Carico i KPI Google…')}
-        </div>
-      )}
+      {loading && !data && <Scheletro kpi={6} righe={0} />}
 
       {data && !notConfigured && (
         <>
           {/* CARD KPI */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
             {KPIS.map(k => (
               <KpiCard key={k.key} kpi={k} value={totals[k.key]} prev={prevTotals[k.key]} daily={daily} />
             ))}
@@ -185,7 +172,7 @@ export default function GoogleKpiTab() {
           <GoogleSegmentsPanel since={data?.range?.since} until={data?.range?.until} />
 
           {/* GRAFICI SEPARATI */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 16 }}>
             {CHARTS.map(c => (
               <SeparateChart key={c.key} chart={c} daily={daily} />
             ))}
@@ -211,42 +198,22 @@ function KpiCard({ kpi, value, prev, daily }) {
     const sign = d > 0 ? '+' : d < 0 ? '−' : ''
     const x = Math.abs(d)
     switch (kpi.kind) {
-      case 'money':   return `${sign}€${x.toLocaleString('it-IT', { maximumFractionDigits: x < 100 ? 2 : 0 })}`
+      case 'money':   return `${sign}${soldi(x, x < 100 ? 2 : 0)}`
       case 'ratio':   return `${sign}${x.toFixed(2)}`
       case 'percent': return `${sign}${x.toFixed(2)} pp`
-      case 'count':   return `${sign}${x.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+      case 'count':   return `${sign}${x.toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}`
       default:        return `${sign}${x.toFixed(2)}`
     }
   }
 
+  const fam = famigliaDi(kpi.key)
   return (
-    <div className="glass-card" style={{ padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-          {t(kpi.labelKey, null, kpi.label)}
-        </div>
-        <PlatformBadges sources={['google']} size={14} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-          {kpi.fmt(value)}
-        </div>
-        <Sparkline data={daily} dataKey={kpi.key} color={GOOGLE} />
-      </div>
-      {hasPrev && Math.abs(absDelta) > 0.0001 && (
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: isPositive ? '#22c55e' : '#f87171' }}>
-          <span>{absDelta > 0 ? '▲' : '▼'}</span>
-          {pctDelta != null && <span>{Math.abs(pctDelta).toFixed(1)}%</span>}
-          <span style={{ color: 'var(--text3)', fontWeight: 600 }}>·</span>
-          <span style={{ color: 'var(--text2)', fontWeight: 600 }}>{fmtAbs(absDelta)}</span>
-        </div>
-      )}
-      {hasPrev && Math.abs(absDelta) <= 0.0001 && (
-        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
-          {t('mkpi.samePrev', null, '= periodo precedente')}
-        </div>
-      )}
-    </div>
+    <Kpi etichetta={t(kpi.labelKey, null, kpi.label)} valore={kpi.fmt(value)} famiglia={fam} fonti={['google']}
+      delta={hasPrev && Math.abs(absDelta) > 0.0001 ? pctDelta : null} inverso={!!kpi.lower}
+      grafico={<Sparkline data={daily} dataKey={kpi.key} color={coloreFamiglia(fam)} />}>
+      {hasPrev && Math.abs(absDelta) > 0.0001 && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text3)' }}>{fmtAbs(absDelta)}</span>}
+      {hasPrev && Math.abs(absDelta) <= 0.0001 && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text3)' }}>{t('mkpi.samePrev', null, '= periodo precedente')}</span>}
+    </Kpi>
   )
 }
 
@@ -259,10 +226,10 @@ function SeparateChart({ chart, daily }) {
     <div className="glass-card-static" style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 640, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             {t('mkpi.trend', null, 'Andamento')}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', marginTop: 3 }}>{t(chart.labelKey, null, chart.label)}</div>
         </div>
         <PlatformBadges sources={['google']} size={16} />
       </div>
@@ -279,7 +246,7 @@ function SeparateChart({ chart, daily }) {
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={50} />
             <Tooltip
-              contentStyle={{ background: 'rgba(10,10,22,0.95)', border: '1px solid var(--border2)', borderRadius: 8, fontSize: 11 }}
+              contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}
               formatter={v => [chart.fmt(v), t(chart.labelKey, null, chart.label)]}
             />
             <Area type="monotone" dataKey="v" stroke={GOOGLE} fill={`url(#ggrad-${chart.key})`} strokeWidth={1.5} />

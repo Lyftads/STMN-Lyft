@@ -79,9 +79,9 @@ export default function MetaConnectButton() {
           <button onClick={() => setModal(true)} style={{ ...btn, background: 'transparent' }}>
             {t('metaConnect.adAccount', null, 'Ad account')}
           </button>
-          {connected && <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.40)' }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
+          {connected && <span style={{ fontSize: 13, fontWeight: 640, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 12, background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.40)' }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
         </div>
-        {err && <div style={{ color: 'var(--red)', fontSize: 11 }}>{err}</div>}
+        {err && <div style={{ color: 'var(--red)', fontSize: 11.5 }}>{err}</div>}
       </div>
       {mounted && modal && createPortal(<AdAccountModal onClose={() => setModal(false)} />, document.body)}
     </>
@@ -89,7 +89,7 @@ export default function MetaConnectButton() {
 }
 
 const btn = {
-  padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
+  padding: '8px 16px', fontWeight: 640, fontSize: 13, borderRadius: 12,
   border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', cursor: 'pointer',
 }
 
@@ -144,15 +144,15 @@ function AdAccountModal({ onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: 'min(560px, 92vw)', maxHeight: '82vh', overflow: 'hidden',
-        background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18,
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,
         boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('metaConnect.selectTitle', null, 'Select Meta ad account')}</div>
+            <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{t('metaConnect.selectTitle', null, 'Select Meta ad account')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('metaConnect.selectSub', null, 'Choose the accounts used by this workspace')}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
 
         <div style={{ padding: 16, overflowY: 'auto' }}>
@@ -165,11 +165,11 @@ function AdAccountModal({ onClose }) {
               {accounts.map(a => {
                 const on = sel.has(a.id)
                 return (
-                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
+                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: on ? 'var(--neutro-bg)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
                     <input type="checkbox" checked={on} onChange={() => toggle(a.id)} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{a.name}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{a.business || '—'} · {a.accountId}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{a.business || '—'} · {a.accountId}</div>
                     </div>
                   </label>
                 )
@@ -182,8 +182,8 @@ function AdAccountModal({ onClose }) {
           <button onClick={save} disabled={saving || !accounts.length} style={{ ...btn, opacity: saving || !accounts.length ? 0.5 : 1 }}>
             {saving ? t('metaConnect.saving', null, 'Saving…') : `${t('metaConnect.save', null, 'Save')} (${sel.size})`}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
-          {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
+          {saved && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
+          {err && <span style={{ fontSize: 13, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
     </div>

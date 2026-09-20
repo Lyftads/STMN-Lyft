@@ -34,16 +34,16 @@ export default function CookieConsent() {
   if (!show) return null
 
   return (
-    <div style={{
+    <div className="cookie-consent" style={{
       position: 'fixed', left: 16, right: 16, bottom: 16, zIndex: 9999,
       maxWidth: 720, margin: '0 auto',
-      background: 'rgba(12,12,20,0.97)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      background: 'var(--surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
       border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16,
       boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
       padding: '16px 18px',
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
     }}>
-      <div style={{ flex: 1, minWidth: 240, fontSize: 12.5, color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
+      <div style={{ flex: 1, minWidth: 240, fontSize: 13, color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
         {t('cc.text', null, 'Usiamo cookie tecnici necessari al funzionamento e, con il tuo consenso, cookie di preferenza/analitici per migliorare il servizio.')}{' '}
         <Link href="/privacy" style={{ color: '#2997ff', textDecoration: 'underline' }}>{t('cc.privacy', null, 'Privacy Policy')}</Link>
       </div>
@@ -56,10 +56,10 @@ export default function CookieConsent() {
 }
 
 const btnGhost = {
-  padding: '9px 16px', borderRadius: 10, fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
+  padding: '9px 16px', borderRadius: 12, fontSize: 13, fontWeight: 640, cursor: 'pointer',
   background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff',
 }
 const btnPrimary = {
-  padding: '9px 18px', borderRadius: 10, fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
-  background: 'linear-gradient(135deg, #7b5bff, #2997ff)', border: 'none', color: '#fff',
+  padding: '9px 18px', borderRadius: 12, fontSize: 13, fontWeight: 640, cursor: 'pointer',
+  background: 'var(--btn-primario)', border: 'none', color: 'var(--btn-primario-testo)',
 }

@@ -64,7 +64,7 @@ export default function ResetPasswordConfirmPage() {
           {t('rpc.linkExpired', null, 'The reset link is expired or invalid. Request a new link.')}
         </div>
         <div style={{ textAlign: 'center', marginTop: 22 }}>
-          <Link href="/reset-password" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/reset-password" style={{ color: '#bf5af2', fontWeight: 600, textDecoration: 'none' }}>
             {t('rpc.requestNew', null, 'Request new link →')}
           </Link>
         </div>

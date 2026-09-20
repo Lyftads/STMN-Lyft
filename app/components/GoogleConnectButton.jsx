@@ -43,7 +43,7 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
             {t('google.adsAccount', null, 'Ads account')}
           </button>
         )}
-        {connected && <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.40)' }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
+        {connected && <span style={{ fontSize: 13, fontWeight: 640, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 12, background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.40)' }}><Icon name="check" size={12} /> {t('metaConnect.connected', null, 'Connected')}</span>}
       </div>
       {mounted && modal === 'ga4' && createPortal(<Ga4PropertyModal onClose={() => setModal(null)} />, document.body)}
       {mounted && modal === 'gsc' && createPortal(<GscSiteModal onClose={() => setModal(null)} />, document.body)}
@@ -53,7 +53,7 @@ export default function GoogleConnectButton({ service = 'ga4' }) {
 }
 
 const btn = {
-  padding: '8px 16px', fontWeight: 800, fontSize: 12.5, borderRadius: 10,
+  padding: '8px 16px', fontWeight: 640, fontSize: 13, borderRadius: 12,
   border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', cursor: 'pointer',
 }
 
@@ -97,13 +97,13 @@ function Ga4PropertyModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 100, display: 'grid', placeItems: 'center', animation: 'fadeUp .2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectGA4', null, 'Select GA4 property')}</div>
+            <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{t('google.selectGA4', null, 'Select GA4 property')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectGA4Sub', null, 'The Analytics property used by this workspace')}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
           {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingProps', null, 'Loading properties…')}</div>}
@@ -115,11 +115,11 @@ function Ga4PropertyModal({ onClose }) {
               {properties.map(p => {
                 const on = String(sel) === String(p.id)
                 return (
-                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
+                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: on ? 'var(--neutro-bg)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
                     <input type="radio" name="ga4prop" checked={on} onChange={() => { setSel(String(p.id)); setSaved(false) }} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{p.displayName}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{p.accountName} · {p.id}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{p.displayName}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{p.accountName} · {p.id}</div>
                     </div>
                   </label>
                 )
@@ -131,8 +131,8 @@ function Ga4PropertyModal({ onClose }) {
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
             {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
-          {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
+          {saved && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
+          {err && <span style={{ fontSize: 13, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
     </div>
@@ -181,13 +181,13 @@ function GscSiteModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 100, display: 'grid', placeItems: 'center', animation: 'fadeUp .2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectGSC', null, 'Select Search Console site')}</div>
+            <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{t('google.selectGSC', null, 'Select Search Console site')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectGSCSub', null, 'The GSC property used by this workspace')}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
           {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingSites', null, 'Loading sites…')}</div>}
@@ -200,11 +200,11 @@ function GscSiteModal({ onClose }) {
               {sites.map(s => {
                 const on = sel === s.siteUrl
                 return (
-                  <label key={s.siteUrl} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
+                  <label key={s.siteUrl} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: on ? 'var(--neutro-bg)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
                     <input type="radio" name="gscsite" checked={on} onChange={() => { setSel(s.siteUrl); setSaved(false) }} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.siteUrl}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{s.permission}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.siteUrl}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{s.permission}</div>
                     </div>
                   </label>
                 )
@@ -216,8 +216,8 @@ function GscSiteModal({ onClose }) {
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
             {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
-          {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
+          {saved && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
+          {err && <span style={{ fontSize: 13, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
     </div>
@@ -267,13 +267,13 @@ function AdsAccountModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 100, display: 'grid', placeItems: 'center', animation: 'fadeUp .2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'rgba(12,12,20,0.98)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(520px, 92vw)', maxHeight: '82vh', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 40px 100px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{t('google.selectAds', null, 'Select Google Ads account')}</div>
+            <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{t('google.selectAds', null, 'Select Google Ads account')}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('google.selectAdsSub', null, 'The advertising account used by this workspace')}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15 }}>×</button>
         </div>
         <div style={{ padding: 16, overflowY: 'auto' }}>
           {!data && <div style={{ color: 'var(--text3)', fontSize: 13, padding: 12 }}>{t('google.loadingAccounts', null, 'Loading accounts…')}</div>}
@@ -288,11 +288,11 @@ function AdsAccountModal({ onClose }) {
               {accounts.map(a => {
                 const on = String(sel) === String(a.id)
                 return (
-                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(41,151,255,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
+                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, cursor: 'pointer', background: on ? 'var(--neutro-bg)' : 'rgba(255,255,255,0.03)', border: `1px solid ${on ? 'rgba(41,151,255,0.4)' : 'var(--border)'}` }}>
                     <input type="radio" name="adsacc" checked={on} onChange={() => { setSel(String(a.id)); setSaved(false) }} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{a.name}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{fmt(a.id)}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{fmt(a.id)}</div>
                     </div>
                   </label>
                 )
@@ -304,8 +304,8 @@ function AdsAccountModal({ onClose }) {
           <button onClick={save} disabled={saving || !sel} style={{ ...btn, opacity: saving || !sel ? 0.5 : 1 }}>
             {saving ? t('metaConnect.saving', null, 'Saving…') : t('common.save', null, 'Save')}
           </button>
-          {saved && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
-          {err && <span style={{ fontSize: 12, color: 'var(--red)' }}>{err}</span>}
+          {saved && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}><Icon name="check" size={11} /> {t('metaConnect.savedShort', null, 'saved')}</span>}
+          {err && <span style={{ fontSize: 13, color: 'var(--red)' }}>{err}</span>}
         </div>
       </div>
     </div>

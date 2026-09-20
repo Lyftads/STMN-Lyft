@@ -1,5 +1,9 @@
 'use client'
 
+import AzioneBarra from './ui/AzioneBarra'
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
+import { Fonte } from './ui/FasceTabella'
 import { useEffect, useRef, useState } from 'react'
 import Icon from './ui/Icon'
 import {
@@ -8,7 +12,7 @@ import {
 import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { PlatformBadges } from './PlatformIcon'
 import DownloadReportButton from './DownloadReportButton'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
@@ -21,16 +25,16 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const VIOLET = '#a78bfa'
 const BLUE = '#2997ff'
-const AMBER = '#ff9f0a'
+const AMBER = '#f59e0b'
 
-const eur  = v => v != null && Number.isFinite(Number(v)) ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '—'
-const eur2 = v => v != null && Number.isFinite(Number(v)) ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 2 })}` : '—'
-const num  = v => v != null && Number.isFinite(Number(v)) ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 }) : '—'
+const eur  = v => v != null && Number.isFinite(Number(v)) ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
+const eur2 = v => soldi(v, 'auto')
+const num  = v => v != null && Number.isFinite(Number(v)) ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
 const pct0 = v => v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(0)}%` : '—'
 
 export default function LeadGenTab() {
   const { t } = useI18n()
-  const [tf, setTf] = useState({ preset: 'last_28d' })
+  const [tf, setTf] = useStatoTab('leadGen.tf', { preset: 'last_28d' })
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -164,10 +168,10 @@ export default function LeadGenTab() {
   ]
 
   const inputStyle = {
-    width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-    borderRadius: 10, padding: '9px 12px', color: 'var(--text)', fontSize: 14, fontWeight: 700,
+    width: '100%', background: 'var(--glass)', border: '1px solid var(--border)',
+    borderRadius: 12, padding: '9px 12px', color: 'var(--text)', fontSize: 15, fontWeight: 600,
   }
-  const miniInput = { ...inputStyle, width: 78, padding: '5px 8px', fontSize: 12.5 }
+  const miniInput = { ...inputStyle, width: 78, padding: '5px 8px', fontSize: 13 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -175,22 +179,11 @@ export default function LeadGenTab() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
           <PlatformBadges sources={['meta']} size={26} />
-          <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('tab.metaLeadgen', null, 'Lead Gen')}</span>
+          <span style={{ fontSize: 15, fontWeight: 680, letterSpacing: '-0.01em' }}>{t('tab.metaLeadgen', null, 'Lead Gen')}</span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <BmTimeframe value={tf} onChange={setTf} accent={VIOLET} disabled={loading} />
-          <button
-            type="button" onClick={() => load(true)} disabled={loading}
-            style={{
-              border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)',
-              borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
-              cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
+        <div className="report-toolbar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
+          <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => load(true)} disabled={loading} gira={loading} />
           <DownloadReportButton tab="Lead Gen" preset={tf.preset === 'custom' ? undefined : tf.preset} custom={tf.preset === 'custom' ? { since: tf.since, until: tf.until } : undefined} />
         </div>
       </div>
@@ -204,12 +197,12 @@ export default function LeadGenTab() {
       {/* Parametri economici */}
       <div className="glass-card-static" style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: VIOLET }}>
+          <div style={{ fontSize: 13, fontWeight: 680, letterSpacing: '0.08em', textTransform: 'uppercase', color: VIOLET }}>
             {t('lg.economics', null, 'Parametri economici')}
           </div>
           {breakEvenCpl != null && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(167,139,250,0.12)', border: `1px solid ${VIOLET}44`, fontSize: 12.5, fontWeight: 800 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 999, background: VIOLET, boxShadow: `0 0 8px ${VIOLET}` }} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(167,139,250,0.12)', border: `1px solid ${VIOLET}44`, fontSize: 13, fontWeight: 640 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: VIOLET, boxShadow: 'none' }} />
               {t('lg.breakEven', null, 'CPL di pareggio')}: {eur2(breakEvenCpl)}
             </div>
           )}
@@ -219,23 +212,23 @@ export default function LeadGenTab() {
             {t('lg.setupHint', null, 'Imposta il valore medio di un cliente chiuso e il tasso di chiusura: la tab calcola CAC, ricavo, profitto e ROI reali delle campagne lead — non solo il CPL.')}
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, alignItems: 'end' }}>
-          <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, alignItems: 'end' }}>
+          <label style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>
             {t('lg.avgValue', null, 'Valore medio cliente (€)')}
             <input type="number" min="0" value={eco.avgValue} onChange={e => setEco(s => ({ ...s, avgValue: e.target.value }))} style={{ ...inputStyle, marginTop: 6 }} placeholder="es. 800" />
           </label>
-          <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 700 }}>
+          <label style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>
             {t('lg.closeRate', null, 'Chiusura lead → cliente (%)')}
             <input type="number" min="0" max="100" value={eco.closeRate} onChange={e => setEco(s => ({ ...s, closeRate: e.target.value }))} style={{ ...inputStyle, marginTop: 6 }} placeholder="es. 10" />
           </label>
-          <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 700 }}>
+          <label style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>
             {t('lg.margin', null, 'Margine (%)')}
             <input type="number" min="0" max="100" value={eco.marginPct} onChange={e => setEco(s => ({ ...s, marginPct: e.target.value }))} style={{ ...inputStyle, marginTop: 6 }} placeholder="100" />
           </label>
           <button
             type="button" onClick={saveEco} disabled={saving}
             style={{
-              border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13.5, fontWeight: 800,
+              border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 640,
               background: `linear-gradient(135deg, ${VIOLET}, ${BLUE})`, color: '#fff',
               cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1,
             }}
@@ -251,7 +244,7 @@ export default function LeadGenTab() {
       </div>
 
       {loading && !data && (
-        <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700, textAlign: 'center' }}>
+        <div style={{ color: 'var(--text3)', padding: 40, fontSize: 15, fontWeight: 600, textAlign: 'center' }}>
           {t('lg.loading', null, 'Carico le campagne lead…')}
         </div>
       )}
@@ -259,13 +252,13 @@ export default function LeadGenTab() {
       {data && (
         <>
           {/* KPI */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 12 }}>
             {kpis.map(k => (
               <div key={k.label} className="glass-card-static" style={{ padding: 16 }}>
-                <div style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 900, marginTop: 6, letterSpacing: '-0.02em', color: k.tone || 'var(--text)' }}>{k.value}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 640, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 680, marginTop: 6, letterSpacing: '-0.02em', color: k.tone || 'var(--text)' }}>{k.value}</div>
                 {k.delta && (
-                  <div style={{ fontSize: 12, fontWeight: 800, marginTop: 4, color: k.delta.good ? VIOLET : AMBER }}>
+                  <div style={{ fontSize: 13, fontWeight: 640, marginTop: 4, color: k.delta.good ? VIOLET : AMBER }}>
                     {k.delta.d > 0 ? '+' : ''}{k.delta.d.toFixed(1)}% <span style={{ color: 'var(--text3)', fontWeight: 600 }}>{t('lg.vsPrev', null, 'vs prec.')}</span>
                   </div>
                 )}
@@ -275,7 +268,7 @@ export default function LeadGenTab() {
 
           {/* Andamento */}
           {daily.length > 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 16 }}>
               <TrendChart title={t('lg.dailyLeads', null, 'Lead per giorno')} data={daily} dataKey="leads" color={VIOLET} fmt={num} />
               <TrendChart title={t('lg.dailyCpl', null, 'CPL per giorno')} data={daily} dataKey="cpl" color={BLUE} fmt={eur2} refLine={breakEvenCpl} refLabel={t('lg.breakEven', null, 'CPL di pareggio')} />
             </div>
@@ -283,17 +276,17 @@ export default function LeadGenTab() {
 
           {/* Tabella campagne */}
           <div className="glass-card-static" style={{ padding: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: VIOLET, marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 680, letterSpacing: '0.08em', textTransform: 'uppercase', color: VIOLET, marginBottom: 14 }}>
               {t('lg.campaigns', null, 'Campagne lead')}
             </div>
             {campaigns.length === 0 ? (
-              <div style={{ fontSize: 13.5, color: 'var(--text3)' }}>{t('lg.noCampaigns', null, 'Nessuna campagna lead nel periodo selezionato.')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>{t('lg.noCampaigns', null, 'Nessuna campagna lead nel periodo selezionato.')}</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 920 }}>
+                <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 920 }}>
                   <thead>
                     <tr style={{ textAlign: 'right', color: 'var(--text3)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      <th style={{ textAlign: 'left', padding: '8px 10px' }}>{t('lg.campaign', null, 'Campagna')}</th>
+                      <th style={{ textAlign: 'left', padding: '8px 10px' }}><Fonte loghi={['meta']} />{t('lg.campaign', null, 'Campagna')}</th>
                       <th style={{ padding: '8px 10px' }}>{t('meta.spend', null, 'Spesa')}</th>
                       <th style={{ padding: '8px 10px' }}>{t('lg.leads', null, 'Lead')}</th>
                       <th style={{ padding: '8px 10px' }}>{t('lg.cpl', null, 'CPL')}</th>
@@ -311,14 +304,14 @@ export default function LeadGenTab() {
                       const beState = e.be != null && c.leads > 0 ? (c.cpl <= e.be ? 'ok' : 'ko') : null
                       return (
                         <tr key={c.id} style={{ borderTop: '1px solid var(--border)', textAlign: 'right' }}>
-                          <td style={{ textAlign: 'left', padding: '10px', fontWeight: 700, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
+                          <td style={{ textAlign: 'left', padding: '10px', fontWeight: 600, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
                           <td style={{ padding: '10px' }}>{eur(c.spend)}</td>
-                          <td style={{ padding: '10px', fontWeight: 800 }}>{num(c.leads)}</td>
+                          <td style={{ padding: '10px', fontWeight: 640 }}>{num(c.leads)}</td>
                           <td style={{ padding: '10px' }}>
                             {eur2(c.leads > 0 ? c.cpl : null)}
                             {beState && (
                               <span style={{
-                                marginLeft: 6, fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999,
+                                marginLeft: 6, fontSize: 10, fontWeight: 640, padding: '2px 7px', borderRadius: 999,
                                 background: beState === 'ok' ? 'rgba(167,139,250,0.15)' : 'rgba(255,159,10,0.15)',
                                 color: beState === 'ok' ? VIOLET : AMBER,
                               }}>
@@ -327,7 +320,7 @@ export default function LeadGenTab() {
                             )}
                           </td>
                           <td style={{ padding: '10px' }}>{eur2(e.cac)}</td>
-                          <td style={{ padding: '10px', fontWeight: 800, color: e.profit == null ? 'var(--text)' : e.profit >= 0 ? VIOLET : AMBER }}>{e.profit != null ? eur(e.profit) : '—'}</td>
+                          <td style={{ padding: '10px', fontWeight: 640, color: e.profit == null ? 'var(--text)' : e.profit >= 0 ? VIOLET : AMBER }}>{e.profit != null ? eur(e.profit) : '—'}</td>
                           <td style={{ padding: '10px' }}>{pct0(e.roi)}</td>
                           <td style={{ padding: '10px' }}>
                             <input type="number" min="0" value={o.avgValue ?? ''} placeholder={String(avgValue || '')} style={miniInput}
@@ -361,7 +354,7 @@ function TrendChart({ title, data, dataKey, color, fmt, refLine, refLabel }) {
   const gid = `lg-${dataKey}`
   return (
     <div className="glass-card-static" style={{ padding: 20 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 900, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 10 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 680, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 10 }}>{title}</div>
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
           <defs>
@@ -370,23 +363,23 @@ function TrendChart({ title, data, dataKey, color, fmt, refLine, refLabel }) {
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="date" tick={{ fontSize: 10.5, fill: 'var(--text3)' }} axisLine={false} tickLine={false}
+          <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false}
             tickFormatter={d => String(d).slice(5).split('-').reverse().join('/')} minTickGap={28} />
           <YAxis hide domain={['auto', 'auto']} />
           <Tooltip
-            contentStyle={{ background: 'rgba(12,10,20,0.95)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, fontSize: 12.5 }}
+            contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}
             labelFormatter={d => String(d).split('-').reverse().join('/')}
             formatter={v => [fmt(v), '']}
           />
           {refLine != null && refLine > 0 && (
-            <ReferenceLine y={refLine} stroke="#ff9f0a" strokeDasharray="5 4" strokeOpacity={0.7} />
+            <ReferenceLine y={refLine} stroke="#aeaeb2" strokeDasharray="5 4" strokeOpacity={0.7} />
           )}
           <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.2} fill={`url(#${gid})`} dot={false} activeDot={{ r: 3.5 }} />
         </AreaChart>
       </ResponsiveContainer>
       {refLine != null && refLine > 0 && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-          <span style={{ width: 14, borderTop: '2px dashed #ff9f0a', display: 'inline-block' }} /> {refLabel}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)', marginTop: 6 }}>
+          <span style={{ width: 14, borderTop: '2px dashed #f59e0b', display: 'inline-block' }} /> {refLabel}
         </div>
       )}
     </div>

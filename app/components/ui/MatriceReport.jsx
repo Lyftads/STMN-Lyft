@@ -1,5 +1,6 @@
 'use client'
 
+import { Fonte } from './FasceTabella'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 // ============================================================================
@@ -25,23 +26,24 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 //  dell'anno prima. Due confronti diversi affiancati non si capirebbero.
 // ============================================================================
 
-const INC_BLU = '#7b9cff'
+// L'incidenza non e' un allarme ne' una categoria: si legge come un dato secondario, in grigio.
+const INC_BLU = 'var(--text3)'
 
-const th = { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 11, opacity: 0.6, textAlign: 'right', whiteSpace: 'nowrap' }
+const th = { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 11.5, opacity: 0.6, textAlign: 'right', whiteSpace: 'nowrap' }
 const td = { padding: '9px 12px', textAlign: 'right', whiteSpace: 'nowrap' }
 
 // Stacco all'inizio di ogni gruppo: senza, a colonne aperte i numeri diventano
 // una distesa in cui non si capisce quale appartiene a quale periodo.
-const STACCO = { borderLeft: '1px solid rgba(255,255,255,0.16)', paddingLeft: 18 }
+const STACCO = { borderLeft: '1px solid var(--border2)', paddingLeft: 18 }
 
 const thYoy = { ...th, fontSize: 10, opacity: 0.45, color: 'var(--text3)', fontWeight: 600, minWidth: 92, cursor: 'pointer', ...STACCO }
-const tdYoy = { ...td, color: 'var(--text3)', fontWeight: 500, fontSize: 12, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', ...STACCO }
-const thYoyChiusa = { minWidth: 34, width: 34, padding: '10px 5px 10px 14px', fontSize: 9.5, textAlign: 'center', opacity: 0.4 }
+const tdYoy = { ...td, color: 'var(--text3)', fontWeight: 500, fontSize: 13, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', ...STACCO }
+const thYoyChiusa = { minWidth: 34, width: 34, padding: '10px 5px 10px 14px', fontSize: 10, textAlign: 'center', opacity: 0.4 }
 const tdYoyChiusa = { minWidth: 34, width: 34, padding: '9px 5px 9px 14px' }
 
-const thInc = { ...th, fontSize: 9.5, opacity: 0.55, color: INC_BLU, fontStyle: 'italic', fontWeight: 600, minWidth: 54, padding: '10px 10px 10px 4px', cursor: 'pointer' }
-const tdInc = { ...td, color: INC_BLU, fontStyle: 'italic', fontWeight: 500, fontSize: 11, fontVariantNumeric: 'tabular-nums', padding: '9px 10px 9px 4px', cursor: 'pointer' }
-const thIncChiusa = { minWidth: 20, width: 20, padding: '10px 6px', fontSize: 11, opacity: 0.5, textAlign: 'center' }
+const thInc = { ...th, fontSize: 10, opacity: 0.55, color: INC_BLU, fontStyle: 'italic', fontWeight: 600, minWidth: 54, padding: '10px 10px 10px 4px', cursor: 'pointer' }
+const tdInc = { ...td, color: INC_BLU, fontStyle: 'italic', fontWeight: 500, fontSize: 11.5, fontVariantNumeric: 'tabular-nums', padding: '9px 10px 9px 4px', cursor: 'pointer' }
+const thIncChiusa = { minWidth: 20, width: 20, padding: '10px 6px', fontSize: 11.5, opacity: 0.5, textAlign: 'center' }
 const tdIncChiusa = { minWidth: 20, width: 20, padding: '9px 6px' }
 
 export default function MatriceReport({
@@ -157,32 +159,32 @@ export default function MatriceReport({
 
       <div ref={tabRef} className="rep-matrix"
         onScroll={() => { if (topRef.current && tabRef.current) topRef.current.scrollLeft = tabRef.current.scrollLeft }}
-        style={{ position: 'relative', zIndex: 2, width: '100%', overflowX: 'auto', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: '#0c0c16' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
+        style={{ position: 'relative', zIndex: 2, width: '100%', overflowX: 'auto', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <table className="tab-lyft" style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
           <thead>
             <tr>
-              <th className="rep-label" style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: '#0c0c16', minWidth: 200 }}>{etichettaColonna}</th>
+              <th className="rep-label" style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: 'var(--surface)', minWidth: 200 }}>{etichettaColonna}</th>
               {periodi.map(p => intestazioneGruppo(p, p.key))}
               {totale && intestazioneGruppo({ ...totale, forte: true }, '__tot')}
             </tr>
           </thead>
           <tbody>
             {righe.map(riga => {
-              const baseTd = { ...td, borderBottom: '1px solid var(--border)', ...(riga.strong ? { fontWeight: 700 } : {}) }
+              const baseTd = { ...td, borderBottom: '1px solid var(--border)', ...(riga.strong ? { fontWeight: 600 } : {}) }
               const rigaJsx = (
                 <tr key={riga.key} style={riga.forte ? { background: 'rgba(48,209,88,0.05)' } : riga.strong ? { background: 'var(--glass)' } : undefined}>
                   <td className={riga.sub ? 'rep-label rep-sub' : 'rep-label'} style={{
-                    ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: '#0c0c16',
+                    ...baseTd, textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, background: 'var(--surface)',
                     paddingLeft: riga.sub ? 28 : undefined, color: riga.sub ? 'var(--text2)' : undefined,
                     fontWeight: riga.strong || riga.forte ? 700 : 500,
                   }}>
-                    {riga.label}
+                    {riga.label}<Fonte loghi={riga.fonte} dopo />
                     {riga.badge && (
-                      <span style={{ marginLeft: 8, fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 999, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>{riga.badge}</span>
+                      <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 640, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 999, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>{riga.badge}</span>
                     )}
                   </td>
                   {periodi.map(p => celleGruppo(riga, p, p.key, baseTd, null))}
-                  {totale && celleGruppo(riga, totale, '__tot', baseTd, { background: 'rgba(41,151,255,0.05)' })}
+                  {totale && celleGruppo(riga, totale, '__tot', baseTd, { background: 'var(--neutro-bg)' })}
                 </tr>
               )
               // Uno stacco dove finisce un ragionamento e ne comincia un altro:
@@ -200,10 +202,10 @@ export default function MatriceReport({
           in alto deve restare a vista, altrimenti non la cerca nessuno. */}
       <style>{`
         .rep-scroll-sopra::-webkit-scrollbar { height: 10px }
-        .rep-scroll-sopra::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 999px }
-        .rep-scroll-sopra::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px }
-        .rep-scroll-sopra::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30) }
-        .rep-scroll-sopra { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) rgba(255,255,255,0.03) }
+        .rep-scroll-sopra::-webkit-scrollbar-track { background: var(--glass2); border-radius: 999px }
+        .rep-scroll-sopra::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 999px }
+        .rep-scroll-sopra::-webkit-scrollbar-thumb:hover { background: var(--text3) }
+        .rep-scroll-sopra { scrollbar-width: thin; scrollbar-color: var(--border3) var(--glass2) }
       `}</style>
     </>
   )
@@ -218,9 +220,9 @@ function Delta({ cur, prev, inverse = false, titolo }) {
   if (Math.abs(pct) < 0.05) return null
   const su = d > 0
   const bene = inverse ? !su : su
-  const col = bene ? '#30d158' : '#ff375f'
+  const col = bene ? '#22c55e' : '#ef4444'
   return (
-    <div title={titolo} style={{ fontSize: 9.5, fontWeight: 600, color: col, marginTop: 2, whiteSpace: 'nowrap', cursor: 'help' }}>
+    <div title={titolo} style={{ fontSize: 10, fontWeight: 600, color: col, marginTop: 2, whiteSpace: 'nowrap', cursor: 'help' }}>
       {su ? '▲' : '▼'} {Math.abs(pct).toFixed(0)}%
     </div>
   )

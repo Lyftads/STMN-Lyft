@@ -1,5 +1,6 @@
 'use client'
 
+import { avvisa } from '../../lib/client/avviso'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -45,15 +46,15 @@ export default function NotificationsBell({ onNavigate }) {
   async function enablePush() {
     try {
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { alert('Permesso notifiche negato dal browser.'); return }
+      if (perm !== 'granted') { avvisa('Permesso notifiche negato dal browser.', 'errore'); return }
       const { publicKey } = await fetch('/api/push/subscribe', { cache: 'no-store' }).then(r => r.json())
-      if (!publicKey) { alert('Push non ancora configurato (manca la chiave VAPID su Vercel).'); return }
+      if (!publicKey) { avvisa('Push non ancora configurato (manca la chiave VAPID su Vercel).'); return }
       const reg = await navigator.serviceWorker.ready
       let sub = await reg.pushManager.getSubscription()
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(publicKey) })
       await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) })
       setPushOn(true)
-    } catch (e) { alert('Attivazione push fallita: ' + (e?.message || '')) }
+    } catch (e) { avvisa('Attivazione push fallita: ' + (e?.message || ''), 'errore') }
   }
 
   // chiudi al click fuori
@@ -84,39 +85,37 @@ export default function NotificationsBell({ onNavigate }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        title="Notifiche team"
-        className="btn-glass"
-        style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, padding: 0, cursor: 'pointer' }}
+        aria-label={t('notif.title', null, 'Notifications')}
+        data-suggerimento={open ? undefined : t('notif.title', null, 'Notifications')}
+        className="ly-icona-btn senza-tocco"
       >
-        <Icon name="bell" size={18} />
-        {unread > 0 && (
-          <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#ff375f', color: 'var(--text)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread > 99 ? '99+' : unread}</span>
-        )}
+        <Icon name="bell" size={16} />
+        {unread > 0 && <span className="ly-icona-conto">{unread > 99 ? '99+' : unread}</span>}
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 46, width: 340, maxHeight: 460, overflowY: 'auto', background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 1000, fontFamily: 'Barlow' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #3d3d4c' }}>
-            <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 16, color: 'var(--text)' }}>{t('notif.title', null, 'Notifications')}</span>
-            {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('notif.markAllRead', null, 'Mark all read')}</button>}
+        <div className="app-notifications-popover" role="region" aria-label="Notifiche team" style={{ position: 'absolute', right: 0, top: 46, width: 340, maxHeight: 460, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.5)', zIndex: 1000, fontFamily: 'inherit' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontWeight: 600, fontFamily: 'inherit', fontSize: 15, color: 'var(--text)' }}>{t('notif.title', null, 'Notifications')}</span>
+            {items.some(n => !n.read) && <button onClick={markAll} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('notif.markAllRead', null, 'Mark all read')}</button>}
           </div>
           {pushSupported && (
-            <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+            <div style={{ padding: '9px 14px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
               {pushOn
-                ? <span style={{ color: '#30d158', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> {t('notif.pushActive', null, 'Push notifications active on this device')}</span>
-                : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#7b5bff', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> {t('notif.enablePush', null, 'Enable push notifications on this device')}</button>}
+                ? <span style={{ color: '#22c55e', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="check" size={13} /> {t('notif.pushActive', null, 'Push notifications active on this device')}</span>
+                : <button onClick={enablePush} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: 0, textAlign: 'left' }}><Icon name="bell" size={13} /> {t('notif.enablePush', null, 'Enable push notifications on this device')}</button>}
             </div>
           )}
           {items.length === 0 ? (
-            <div style={{ padding: 20, color: '#b0b0bd', fontSize: 13 }}>{t('notif.none', null, 'No notifications.')}</div>
+            <div style={{ padding: 20, color: 'var(--text2)', fontSize: 13 }}>{t('notif.none', null, 'No notifications.')}</div>
           ) : items.map(n => (
-            <div key={n.id} onClick={() => openItem(n)} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.read ? 'transparent' : 'rgba(123,91,255,0.10)' }}>
+            <div key={n.id} onClick={() => openItem(n)} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.read ? 'transparent' : 'var(--neutro-bg)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                {!n.read && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff', marginTop: 5, flexShrink: 0 }} />}
+                {!n.read && <span style={{ width: 8, height: 8, borderRadius: 6, background: 'var(--accent)', marginTop: 5, flexShrink: 0 }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
-                  {n.body && <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 2 }}>{n.body}</div>}
-                  <div style={{ fontSize: 11, color: '#6b6b78', marginTop: 3 }}>{new Date(n.created_at).toLocaleString(intlLocale || 'it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                  <div style={{ fontSize: 15, color: 'var(--text)', fontWeight: n.read ? 500 : 700 }}>{n.title}</div>
+                  {n.body && <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>{n.body}</div>}
+                  <div style={{ fontSize: 11.5, color: '#6c6c6c', marginTop: 3 }}>{new Date(n.created_at).toLocaleString(intlLocale || 'it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
               </div>
             </div>

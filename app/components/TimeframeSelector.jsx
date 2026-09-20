@@ -130,12 +130,12 @@ export default function TimeframeSelector({ value, onChange, disabled, hideDateR
             width: 260,
             maxHeight: 520,
             overflowY: 'auto',
-            background: 'rgba(8,8,15,0.95)',
-            backdropFilter: 'blur(30px) saturate(1.8)',
-            WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+            background: 'var(--surface)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             border: '1.5px solid var(--border2)',
             borderTopColor: 'rgba(255,255,255,0.16)',
-            borderRadius: 14,
+            borderRadius: 16,
             boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 6px 16px rgba(0,0,0,0.5)',
             zIndex: 100,
             padding: '14px 0 16px',
@@ -183,8 +183,8 @@ function SectionLabel({ children }) {
   return (
     <div style={{
       padding: '6px 22px 10px',
-      fontSize: 11,
-      fontWeight: 700,
+      fontSize: 11.5,
+      fontWeight: 600,
       textTransform: 'uppercase',
       letterSpacing: '0.14em',
       color: 'var(--text3)',
@@ -204,7 +204,7 @@ function Option({ label, selected, onClick }) {
         background: 'transparent',
         border: 0,
         color: 'var(--text)',
-        fontSize: 14.5,
+        fontSize: 15,
         fontWeight: 500,
         cursor: 'pointer',
         display: 'flex',
@@ -220,7 +220,7 @@ function Option({ label, selected, onClick }) {
         <span style={{
           width: 7, height: 7, borderRadius: '50%',
           background: 'var(--accent)',
-          boxShadow: '0 0 8px rgba(41,151,255,0.6)',
+          boxShadow: 'none',
         }} />
       )}
     </button>

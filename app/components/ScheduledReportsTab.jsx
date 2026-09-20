@@ -160,18 +160,18 @@ export default function ScheduledReportsTab() {
 
   const inputStyle = {
     width: '100%', background: 'var(--glass)', border: '1px solid var(--border)',
-    color: 'var(--text)', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontWeight: 600, outline: 'none',
+    color: 'var(--text)', borderRadius: 12, padding: '11px 13px', fontSize: 15, fontWeight: 600, outline: 'none',
   }
-  const labelStyle = { fontSize: 11, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }
+  const labelStyle = { fontSize: 11.5, color: 'var(--text3)', fontWeight: 640, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <span style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(34,197,94,0.14)', color: '#22c55e', display: 'grid', placeItems: 'center' }}><Icon name="mail" size={16} /></span>
+        <span style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(34,197,94,0.14)', color: '#22c55e', display: 'grid', placeItems: 'center' }}><Icon name="mail" size={16} /></span>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 9.5, color: '#22c55e', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Scheduled Reports</div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 640, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Scheduled Reports</div>
+          <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', marginTop: 4, letterSpacing: '-0.02em' }}>
             {t('sched.title2', null, 'Report PDF automatici di ogni tab + report personalizzati')}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
@@ -184,7 +184,7 @@ export default function ScheduledReportsTab() {
       <div className="glass-card-static" style={{ padding: 22 }}>
         <div style={labelStyle}>{t('sched.recipientEmail', null, 'Email destinatario (default)')}</div>
         <input type="email" value={email} onChange={e => saveEmail(e.target.value)} placeholder={t('sched.emailPh', null, 'es. tuonome@brand.com')} style={inputStyle} />
-        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>
           {t('sched.localNote', null, 'Salvata localmente e usata come destinatario di default per i nuovi report.')}
         </div>
       </div>
@@ -201,8 +201,8 @@ export default function ScheduledReportsTab() {
 
       {/* BUILDER */}
       <div className="glass-card-static" style={{ padding: 22 }}>
-        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text)', marginBottom: 4 }}>{t('sched.builderTitle', null, 'Crea un report personalizzato')}</div>
-        <div style={{ fontSize: 12.5, color: 'var(--text2)', marginBottom: 18 }}>{t('sched.builderDesc', null, 'Seleziona i report (uno o più), il periodo e la cadenza. Ogni report viene allegato in PDF.')}</div>
+        <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', marginBottom: 4 }}>{t('sched.builderTitle', null, 'Crea un report personalizzato')}</div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 18 }}>{t('sched.builderDesc', null, 'Seleziona i report (uno o più), il periodo e la cadenza. Ogni report viene allegato in PDF.')}</div>
 
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t('sched.name', null, 'Nome report')}</div>
@@ -217,12 +217,12 @@ export default function ScheduledReportsTab() {
               return (
                 <button key={s.id} onClick={() => toggleSection(s.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 9, textAlign: 'left',
-                  padding: '11px 13px', borderRadius: 10, cursor: 'pointer',
+                  padding: '11px 13px', borderRadius: 12, cursor: 'pointer',
                   background: on ? 'rgba(34,197,94,0.12)' : 'var(--glass)',
                   border: `1px solid ${on ? 'rgba(34,197,94,0.45)' : 'var(--border)'}`,
-                  color: on ? '#86efac' : 'var(--text2)', fontWeight: 700, fontSize: 13,
+                  color: on ? '#86efac' : 'var(--text2)', fontWeight: 600, fontSize: 13,
                 }}>
-                  <span style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, display: 'grid', placeItems: 'center', border: `1px solid ${on ? '#22c55e' : 'var(--border3)'}`, background: on ? '#22c55e' : 'transparent', color: '#04240f', fontSize: 11, fontWeight: 900 }}>{on ? '✓' : ''}</span>
+                  <span style={{ width: 16, height: 16, borderRadius: 6, flexShrink: 0, display: 'grid', placeItems: 'center', border: `1px solid ${on ? '#22c55e' : 'var(--border3)'}`, background: on ? '#22c55e' : 'transparent', color: '#04240f', fontSize: 11.5, fontWeight: 680 }}>{on ? '✓' : ''}</span>
                   {t(`sched.sec_${s.id}`, null, s.label)}
                 </button>
               )
@@ -265,7 +265,7 @@ export default function ScheduledReportsTab() {
           <div style={{ marginBottom: 18 }}>
             <div style={labelStyle}>{t('sched.targetUrl', null, 'URL da analizzare (SEO Audit / Website Scanner)')}</div>
             <input value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://stmnfitness.com/products/..." style={{ ...inputStyle, fontFamily: 'monospace' }} />
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>{t('sched.urlHint', null, 'La pagina viene analizzata di nuovo a ogni invio, così il report è sempre aggiornato.')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>{t('sched.urlHint', null, 'La pagina viene analizzata di nuovo a ogni invio, così il report è sempre aggiornato.')}</div>
           </div>
         )}
 
@@ -283,25 +283,25 @@ export default function ScheduledReportsTab() {
           </button>
         </div>
         {bMsg && (
-          <div style={{ marginTop: 12, padding: '9px 13px', borderRadius: 8, background: bMsg.ok ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)', color: bMsg.ok ? '#86efac' : '#fca5a5', fontSize: 12.5, fontWeight: 600 }}>{bMsg.msg}</div>
+          <div style={{ marginTop: 12, padding: '9px 13px', borderRadius: 8, background: bMsg.ok ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)', color: bMsg.ok ? '#86efac' : '#fca5a5', fontSize: 13, fontWeight: 600 }}>{bMsg.msg}</div>
         )}
       </div>
 
       {/* SCHEDULES LIST */}
       {schedules.length > 0 && (
         <div className="glass-card-static" style={{ padding: 22 }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text)', marginBottom: 14 }}>{t('sched.savedSchedules', null, 'Schedulazioni attive')} ({schedules.length})</div>
+          <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', marginBottom: 14 }}>{t('sched.savedSchedules', null, 'Schedulazioni attive')} ({schedules.length})</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {schedules.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)', flexWrap: 'wrap', opacity: s.enabled ? 1 : 0.55 }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{s.name}</div>
+                  <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{s.name}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <span>{cadenceLabel(s)}</span><span>·</span>
                     <span>{t(`sched.tf_${s.timeframe}`, null, s.timeframe)}</span><span>·</span>
                     <span>{(s.sections || []).map(id => (REPORT_SECTIONS.find(x => x.id === id)?.label) || id).join(', ')}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{(s.recipients || []).join(', ')}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{(s.recipients || []).join(', ')}</div>
                 </div>
                 <button onClick={() => sendScheduleNow(s.id)} disabled={!!rowBusy[s.id] && rowBusy[s.id] !== 'ok' && rowBusy[s.id] !== 'err'} title={t('sched.sendNowTitle', null, 'Invia adesso')} style={iconBtn}>
                   {rowBusy[s.id] === 'ok' ? '✓' : rowBusy[s.id] === 'err' ? '⚠' : rowBusy[s.id] ? '…' : <Icon name="mail" size={15} />}
@@ -319,29 +319,29 @@ export default function ScheduledReportsTab() {
   )
 }
 
-const primaryBtn = (busy) => ({ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid rgba(34,197,94,0.4)', background: busy ? 'rgba(255,255,255,0.04)' : 'rgba(34,197,94,0.14)', color: busy ? 'var(--text3)' : '#86efac', borderRadius: 10, padding: '11px 18px', fontSize: 13, fontWeight: 800, cursor: busy ? 'wait' : 'pointer' })
-const ghostBtn = (busy) => ({ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text2)', borderRadius: 10, padding: '11px 18px', fontSize: 13, fontWeight: 800, cursor: busy ? 'wait' : 'pointer' })
-const iconBtn = { display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text2)', cursor: 'pointer', fontSize: 16 }
+const primaryBtn = (busy) => ({ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid rgba(34,197,94,0.4)', background: busy ? 'rgba(255,255,255,0.04)' : 'rgba(34,197,94,0.14)', color: busy ? 'var(--text3)' : '#86efac', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 640, cursor: busy ? 'wait' : 'pointer' })
+const ghostBtn = (busy) => ({ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text2)', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 640, cursor: busy ? 'wait' : 'pointer' })
+const iconBtn = { display: 'grid', placeItems: 'center', width: 38, height: 38, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text2)', cursor: 'pointer', fontSize: 17 }
 
 function ReportCard({ title, subtitle, description, nextRun, onSend, sending, feedback }) {
   const { t } = useI18n()
   return (
     <div className="glass-card-static" style={{ padding: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{title}</div>
+        <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{title}</div>
         <PlatformBadges sources={['shopify', 'meta']} size={14} />
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 12 }}>{subtitle}</div>
-      <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 14 }}>{description}</div>
-      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-        <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('sched.nextAuto', null, 'Prossimo invio automatico')}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{nextRun}</div>
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 600, marginBottom: 12 }}>{subtitle}</div>
+      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 14 }}>{description}</div>
+      <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 640, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>{t('sched.nextAuto', null, 'Prossimo invio automatico')}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{nextRun}</div>
       </div>
-      <button type="button" onClick={onSend} disabled={sending} style={{ width: '100%', border: '1px solid var(--border)', background: sending ? 'rgba(255,255,255,0.04)' : 'rgba(34,197,94,0.12)', color: sending ? 'var(--text3)' : '#22c55e', borderRadius: 10, padding: '11px 14px', fontSize: 13, fontWeight: 800, cursor: sending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <button type="button" onClick={onSend} disabled={sending} style={{ width: '100%', border: '1px solid var(--border)', background: sending ? 'rgba(255,255,255,0.04)' : 'rgba(34,197,94,0.12)', color: sending ? 'var(--text3)' : '#22c55e', borderRadius: 12, padding: '11px 14px', fontSize: 13, fontWeight: 640, cursor: sending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         {sending ? t('sched.sending', null, 'Invio…') : t('sched.sendNow', null, 'Invia digest ora (test)')}
       </button>
       {feedback && (
-        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: feedback.ok ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)', color: feedback.ok ? '#86efac' : '#fca5a5', fontSize: 12, fontWeight: 600 }}>{feedback.msg}</div>
+        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: feedback.ok ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)', color: feedback.ok ? '#86efac' : '#fca5a5', fontSize: 13, fontWeight: 600 }}>{feedback.msg}</div>
       )}
     </div>
   )

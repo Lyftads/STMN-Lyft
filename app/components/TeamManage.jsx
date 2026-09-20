@@ -1,5 +1,6 @@
 'use client'
 
+import { avvisa } from '../../lib/client/avviso'
 import { useState } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -12,14 +13,14 @@ import { MEMBER_TABS, TAB_LABELS } from '../../lib/team/roleTabs'
 // ============================================================================
 
 const STATUS_BADGE = {
-  invited: { key: 'tk.statusInvited', en: 'Invited', label: 'Invitato', color: '#ff9f0a' },
-  active: { key: 'tk.statusActive', en: 'Active', label: 'Attivo', color: '#30d158' },
-  disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: '#b0b0bd' },
+  invited: { key: 'tk.statusInvited', en: 'Invited', label: 'Invitato', color: '#f59e0b' },
+  active: { key: 'tk.statusActive', en: 'Active', label: 'Attivo', color: '#22c55e' },
+  disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: 'var(--text2)' },
 }
 
-const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, padding: 18 }
-const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', width: '100%', fontSize: 13, outline: 'none' }
+const PANEL = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }
+const input = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', width: '100%', fontSize: 13, outline: 'none' }
 
 function Wrapper({ embedded, onClose, children }) {
   return embedded ? (
@@ -31,8 +32,8 @@ function Wrapper({ embedded, onClose, children }) {
   )
 }
 
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }
-const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 12.5, cursor: 'pointer' }
+const btn = { background: 'var(--btn-primario)', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'var(--btn-primario-testo)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }
+const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }
 
 export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleLabels, ownerUserId, seats, hiddenTabs = [], customRoles = [], onSaveHiddenTabs, onAddRole, onRemoveRole, onClose, onInvite, onUpdateRoles, onRemove }) {
   const { t } = useI18n()
@@ -67,7 +68,7 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
   }
 
   async function submit() {
-    if (!email.trim() || !email.includes('@')) { alert(t('tk.invalidEmail', null, 'Enter a valid email')); return }
+    if (!email.trim() || !email.includes('@')) { avvisa(t('tk.invalidEmail', null, 'Enter a valid email'), 'errore'); return }
     setSending(true)
     setCreated(null)
     try {
@@ -84,37 +85,37 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
   // Da tab le sezioni sono card affiancate al resto dell'app, a tutta
   // larghezza; da modale restano dentro la scatola sovrapposta.
   const sec = embedded
-    ? { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }
+    ? { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 16, padding: 18 }
     : null
   return (
     <Wrapper embedded={embedded} onClose={onClose}>
         {/* Come tab il titolo lo mette già il guscio: ripeterlo è rumore. */}
         <div style={{ display: embedded ? 'none' : 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 700 }}>{t('tk.teamMgmt', null, 'Gestione team')}</h3>
-          {!embedded && <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>}
+          <h3 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>{t('tk.teamMgmt', null, 'Gestione team')}</h3>
+          {!embedded && <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>}
         </div>
 
         {/* Contatore posti del piano */}
         {seats && (
           <div style={{ ...(sec || {}), marginTop: embedded ? 0 : 14, padding: embedded ? 18 : '10px 14px', borderRadius: embedded ? 14 : 10, border: `1px solid ${atLimit ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`, background: atLimit ? 'rgba(255,55,95,0.08)' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-            <span style={{ fontWeight: 700 }}>{t('tk.teamUsersLabel', null, 'Team users:')} {seats.used}{seats.limit != null ? ` / ${seats.limit}` : ''}</span>
-            <span style={{ color: '#b0b0bd' }}>{seats.limit == null ? t('tk.unlimitedPlan', null, 'unlimited on your plan') : atLimit ? t('tk.limitReached', null, '· limit reached, upgrade to add more') : t('tk.planLabel', { plan: seats.plan || '' }, '· {plan} plan')}</span>
+            <span style={{ fontWeight: 600 }}>{t('tk.teamUsersLabel', null, 'Team users:')} {seats.used}{seats.limit != null ? ` / ${seats.limit}` : ''}</span>
+            <span style={{ color: 'var(--text2)' }}>{seats.limit == null ? t('tk.unlimitedPlan', null, 'unlimited on your plan') : atLimit ? t('tk.limitReached', null, '· limit reached, upgrade to add more') : t('tk.planLabel', { plan: seats.plan || '' }, '· {plan} plan')}</span>
           </div>
         )}
 
         {/* Invita */}
-        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 10 }), marginTop: embedded ? 0 : 16, opacity: atLimit ? 0.55 : 1 }}>
-          <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{t('tk.inviteCollaborator', null, 'Invite a collaborator')}</div>
+        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 12 }), marginTop: embedded ? 0 : 16, opacity: atLimit ? 0.55 : 1 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{t('tk.inviteCollaborator', null, 'Invite a collaborator')}</div>
           <input style={input} placeholder={t('tk.emailPlaceholder', null, 'email@example.com')} value={email} onChange={e => setEmail(e.target.value)} disabled={atLimit} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
             {rolesCatalog.map(r => (
-              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? '#5b8bff' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
+              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', border: `1px solid ${roles.includes(r) ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={roles.includes(r)} onChange={() => setRoles(prev => toggle(prev, r))} />
                 {roleLabels[r] || r}
                 {customIds.has(r) && onRemoveRole && (
                   <span role="button" title={t('tk.removeRole', null, 'Elimina ruolo')}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (confirm(t('tk.removeRoleConfirm', null, 'Eliminare il ruolo?'))) onRemoveRole(r) }}
-                    style={{ marginLeft: 2, color: '#b0b0bd', fontSize: 15, lineHeight: 1, cursor: 'pointer' }}>x</span>
+                    style={{ marginLeft: 2, color: 'var(--text2)', fontSize: 15, lineHeight: 1, cursor: 'pointer' }}>x</span>
                 )}
               </label>
             ))}
@@ -133,7 +134,7 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
               disabled={roleBusy || !newRole.trim()} onClick={addRole}>
               + {t('tk.addRole', null, 'Crea ruolo')}
             </button>
-            {roleErr && <span style={{ fontSize: 12, color: '#fca5a5' }}>{roleErr}</span>}
+            {roleErr && <span style={{ fontSize: 13, color: '#fca5a5' }}>{roleErr}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
             <button style={{ ...btn, opacity: (sending || atLimit) ? 0.6 : 1 }} disabled={sending || atLimit} onClick={submit}>
@@ -142,12 +143,12 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
           </div>
 
           {created && (
-            <div style={{ marginTop: 12, padding: 14, border: '1px solid #30d158', borderRadius: 10, background: 'rgba(48,209,88,0.08)' }}>
-              <div style={{ fontWeight: 700, color: '#30d158', marginBottom: 6 }}><Icon name="check" size={13} /> {t('tk.accessReadyFor', { email: created.email }, 'Access ready for {email}')}</div>
+            <div style={{ marginTop: 12, padding: 14, border: '1px solid #22c55e', borderRadius: 12, background: 'rgba(48,209,88,0.08)' }}>
+              <div style={{ fontWeight: 600, color: '#22c55e', marginBottom: 6 }}><Icon name="check" size={13} /> {t('tk.accessReadyFor', { email: created.email }, 'Access ready for {email}')}</div>
               {created.password
-                ? <div style={{ fontSize: 14 }}>{t('tk.tempPassword', null, 'Temporary password:')} <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 5 }}>{created.password}</b></div>
-                : <div style={{ fontSize: 14 }}>{t('tk.existingAccount', null, 'Questa email ha già un account LyftAI: accede con la sua password abituale.')}</div>}
-              <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}>
+                ? <div style={{ fontSize: 15 }}>{t('tk.tempPassword', null, 'Temporary password:')} <b style={{ fontFamily: 'monospace', userSelect: 'all', background: 'var(--surface)', padding: '2px 6px', borderRadius: 6 }}>{created.password}</b></div>
+                : <div style={{ fontSize: 15 }}>{t('tk.existingAccount', null, 'Questa email ha già un account LyftAI: accede con la sua password abituale.')}</div>}
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 8 }}>
                 {created.emailSent ? t('tk.emailSentToo', null, 'Also sent via email. ') : t('tk.emailNotSent', null, 'Email not sent: share these credentials yourself. ')}
                 {t('tk.loginInstructions', null, 'The collaborator logs in at /login and can change the password from the reset page.')}
               </div>
@@ -156,15 +157,15 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
         </div>
 
         {/* Visibilità tab per i membri (Admin) */}
-        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 10 }), marginTop: embedded ? 0 : 16 }}>
-          <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{t('tk.tabVisibility', null, 'Tab visibility for members')}</div>
-          <div style={{ fontSize: 12, color: '#8a8a98', marginBottom: 10 }}>{t('tk.tabVisibilityHint', null, 'Members see everything by default. Click a tab to hide it from them (you, the Admin, always see all).')}</div>
+        <div style={{ ...(sec || { padding: 14, border: '1px solid var(--border)', borderRadius: 12 }), marginTop: embedded ? 0 : 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{t('tk.tabVisibility', null, 'Tab visibility for members')}</div>
+          <div style={{ fontSize: 13, color: '#8b8b8b', marginBottom: 10 }}>{t('tk.tabVisibilityHint', null, 'Members see everything by default. Click a tab to hide it from them (you, the Admin, always see all).')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {MEMBER_TABS.map(id => {
               const isHidden = hidden.has(id)
               return (
                 <button key={id} type="button" onClick={() => toggleTab(id)} title={isHidden ? t('tk.tabHiddenTip', null, 'Hidden from members — click to show') : t('tk.tabVisibleTip', null, 'Visible to members — click to hide')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
                     border: `1px solid ${isHidden ? 'rgba(255,55,95,0.4)' : 'var(--border)'}`,
                     background: isHidden ? 'rgba(255,55,95,0.10)' : 'rgba(255,255,255,0.02)',
                     color: isHidden ? '#ff6482' : 'var(--text)', textDecoration: isHidden ? 'line-through' : 'none' }}>
@@ -181,7 +182,7 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
             fondo alla pagina sembra un errore di caricamento. */}
         <div style={{ ...((embedded && members.length === 0) ? { display: 'none' } : (sec || {})), marginTop: embedded ? 0 : 18, display: (embedded && members.length === 0) ? 'none' : 'flex', flexDirection: 'column', gap: 8 }}>
           {embedded && members.length > 0 && (
-            <div style={{ fontSize: 12, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 2 }}>
               {t('tk.teamMembers', null, 'Membri del team')}
             </div>
           )}
@@ -189,10 +190,10 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
             const isOwner = m.user_id && m.user_id === ownerUserId || (m.roles || []).includes('admin')
             const badge = STATUS_BADGE[m.status] || STATUS_BADGE.invited
             return (
-              <div key={m.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div key={m.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{m.full_name || m.email}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, border: `1px solid ${badge.color}55`, borderRadius: 6, padding: '2px 6px', textTransform: 'uppercase' }}>{isOwner ? t('tk.admin', null, 'Admin') : t(badge.key, null, badge.en)}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{m.full_name || m.email}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: badge.color, border: `1px solid ${badge.color}55`, borderRadius: 8, padding: '2px 6px', textTransform: 'uppercase' }}>{isOwner ? t('tk.admin', null, 'Admin') : t(badge.key, null, badge.en)}</span>
                   {!isOwner && (
                     <button
                       onClick={async () => {
@@ -200,18 +201,18 @@ export function TeamManagePanel({ embedded = false, members, rolesCatalog, roleL
                         if (r && r.ok) setCreated({ email: m.email, password: r.tempPassword, emailSent: r.emailSent })
                       }}
                       title={t('tk.resendAccessTip', null, 'Regenerate and resend the password')}
-                      style={{ ...btnGhost, padding: '4px 10px', fontSize: 11 }}
+                      style={{ ...btnGhost, padding: '4px 10px', fontSize: 11.5 }}
                     ><Icon name="key" size={12} /> {t('tk.resendAccess', null, 'Resend access')}</button>
                   )}
-                  {!isOwner && <button onClick={() => onRemove(m.id)} title={t('tk.removeTip', null, 'Remove')} style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>}
+                  {!isOwner && <button onClick={() => onRemove(m.id)} title={t('tk.removeTip', null, 'Remove')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 17 }}>×</button>}
                 </div>
-                {m.full_name && <div style={{ fontSize: 12, color: '#b0b0bd' }}>{m.email}</div>}
+                {m.full_name && <div style={{ fontSize: 13, color: 'var(--text2)' }}>{m.email}</div>}
                 {!isOwner && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                     {rolesCatalog.map(r => {
                       const on = (m.roles || []).includes(r)
                       return (
-                        <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 8px', border: `1px solid ${on ? '#5b8bff' : 'var(--border)'}`, borderRadius: 7, cursor: 'pointer' }}>
+                        <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, padding: '4px 8px', border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
                           <input type="checkbox" checked={on} onChange={() => onUpdateRoles(m.id, toggle(m.roles || [], r))} />
                           {roleLabels[r] || r}
                         </label>

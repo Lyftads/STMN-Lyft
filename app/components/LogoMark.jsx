@@ -13,6 +13,7 @@ const GREEN = '#22c55e'
 export default function LogoMark({ size = 32, withGlow = true }) {
   return (
     <div
+      className="logo-mark"
       style={{
         width: size, height: size, position: 'relative', flexShrink: 0,
         animation: withGlow ? 'logoMarkGlow 4s ease-in-out infinite' : 'none',

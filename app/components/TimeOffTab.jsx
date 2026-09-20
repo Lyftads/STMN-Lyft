@@ -15,9 +15,9 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // ============================================================================
 
 const TYPES = ['ferie', 'permesso', 'malattia']
-const TYPE_COLOR = { ferie: '#2997ff', permesso: '#bf5af2', malattia: '#ff9f0a' }
+const TYPE_COLOR = { ferie: '#2997ff', permesso: '#bf5af2', malattia: '#f59e0b' }
 const TYPE_FALLBACK = { ferie: 'Ferie', permesso: 'Permesso', malattia: 'Malattia' }
-const STATUS_COLOR = { pending: '#ff9f0a', approved: '#30d158', rejected: '#ff453a' }
+const STATUS_COLOR = { pending: '#f59e0b', approved: '#22c55e', rejected: '#ef4444' }
 
 const pad = n => String(n).padStart(2, '0')
 const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -139,25 +139,25 @@ export default function TimeOffTab() {
       {/* Totali dell'anno */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, position: 'relative', zIndex: 2 }}>
         {TYPES.map(k => (
-          <div key={k} className="glass-panel" style={{ borderRadius: 14, padding: 16 }}>
+          <div key={k} className="glass-panel" style={{ borderRadius: 16, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: 999, background: TYPE_COLOR[k] }} />
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+              <span style={{ fontSize: 10, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>
                 {typeLabel(k)}
               </span>
             </div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{totals[k] || 0}</div>
+            <div style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em' }}>{totals[k] || 0}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{tr('toff.workDays', 'giorni lavorativi · approvati')}</div>
           </div>
         ))}
-        <div className="glass-panel" style={{ borderRadius: 14, padding: 16 }}>
+        <div className="glass-panel" style={{ borderRadius: 16, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: 999, background: STATUS_COLOR.pending }} />
-            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+            <span style={{ fontSize: 10, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>
               {tr('toff.pending', 'In attesa')}
             </span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{totals.pending}</div>
+          <div style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em' }}>{totals.pending}</div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
             {isAdmin ? tr('toff.pendingAdmin', 'richieste da approvare') : tr('toff.pendingMine', 'tue richieste in attesa')}
           </div>
@@ -165,34 +165,34 @@ export default function TimeOffTab() {
       </div>
 
       {/* Filtri */}
-      <div className="glass-panel" style={{ borderRadius: 14, padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+      <div className="glass-panel" style={{ borderRadius: 16, padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', position: 'relative', zIndex: 2 }}>
         <select value={year} onChange={e => setYear(Number(e.target.value))} style={filterStyle}>
-          {years.map(y => <option key={y} value={y} style={{ background: '#0d0d16' }}>{y}</option>)}
+          {years.map(y => <option key={y} value={y} style={{ background: 'var(--surface)' }}>{y}</option>)}
         </select>
         <select value={status} onChange={e => setStatus(e.target.value)} style={filterStyle}>
-          <option value="all" style={{ background: '#0d0d16' }}>{tr('toff.allStatus', 'Tutti gli stati')}</option>
-          <option value="pending" style={{ background: '#0d0d16' }}>{tr('toff.st.pending', 'In attesa')}</option>
-          <option value="approved" style={{ background: '#0d0d16' }}>{tr('toff.st.approved', 'Approvate')}</option>
-          <option value="rejected" style={{ background: '#0d0d16' }}>{tr('toff.st.rejected', 'Rifiutate')}</option>
+          <option value="all" style={{ background: 'var(--surface)' }}>{tr('toff.allStatus', 'Tutti gli stati')}</option>
+          <option value="pending" style={{ background: 'var(--surface)' }}>{tr('toff.st.pending', 'In attesa')}</option>
+          <option value="approved" style={{ background: 'var(--surface)' }}>{tr('toff.st.approved', 'Approvate')}</option>
+          <option value="rejected" style={{ background: 'var(--surface)' }}>{tr('toff.st.rejected', 'Rifiutate')}</option>
         </select>
         {isAdmin && members.length > 0 && (
           <select value={person} onChange={e => setPerson(e.target.value)} style={filterStyle}>
-            <option value="all" style={{ background: '#0d0d16' }}>{tr('toff.allPeople', 'Tutte le persone')}</option>
-            {members.map(m => <option key={m.id} value={m.id} style={{ background: '#0d0d16' }}>{m.name}</option>)}
+            <option value="all" style={{ background: 'var(--surface)' }}>{tr('toff.allPeople', 'Tutte le persone')}</option>
+            {members.map(m => <option key={m.id} value={m.id} style={{ background: 'var(--surface)' }}>{m.name}</option>)}
           </select>
         )}
         <button type="button" onClick={() => setModal({ type: 'ferie', start: isoOf(new Date()), end: isoOf(new Date()), note: '', member_id: '' })}
           style={{
             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '10px 16px', borderRadius: 10, cursor: 'pointer', border: 'none',
-            background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', fontSize: 13, fontWeight: 800,
+            padding: '10px 16px', borderRadius: 12, cursor: 'pointer', border: 'none',
+            background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640,
           }}>
           <Icon name="plus" size={14} /> {tr('toff.new', 'Nuova richiesta')}
         </button>
       </div>
 
       {/* Elenco */}
-      <div className="glass-panel" style={{ borderRadius: 14, padding: 6, position: 'relative', zIndex: 2 }}>
+      <div className="glass-panel" style={{ borderRadius: 16, padding: 6, position: 'relative', zIndex: 2 }}>
         {loading ? (
           <Empty text={tr('toff.loading', 'Carico…')} />
         ) : visible.length === 0 ? (
@@ -208,16 +208,16 @@ export default function TimeOffTab() {
                   padding: '12px 14px',
                   borderTop: i === 0 ? 'none' : '1px solid var(--border)',
                 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: TYPE_COLOR[r.type] || '#8e8e93', flexShrink: 0 }} />
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: TYPE_COLOR[r.type] || '#8e8e8e', flexShrink: 0 }} />
                   <div style={{ minWidth: 150, flex: '1 1 200px' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
                       {r.member_name || tr('toff.unknown', 'Senza nome')}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>
                       {typeLabel(r.type)} · {fmtDate(r.start_date)}{r.end_date !== r.start_date ? ` → ${fmtDate(r.end_date)}` : ''}
                     </div>
                   </div>
-                  <span style={{ fontSize: 12.5, color: 'var(--text2)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'nowrap' }}>
                     {tr('toff.days', '{n} gg', { n: days })}
                   </span>
                   {r.note && (
@@ -227,20 +227,20 @@ export default function TimeOffTab() {
                     }}>{r.note}</span>
                   )}
                   <span style={{
-                    fontSize: 10.5, fontWeight: 800, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
-                    background: `${STATUS_COLOR[r.status] || '#8e8e93'}22`,
-                    color: STATUS_COLOR[r.status] || '#8e8e93',
+                    fontSize: 10, fontWeight: 640, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                    background: `${STATUS_COLOR[r.status] || '#8e8e8e'}22`,
+                    color: STATUS_COLOR[r.status] || '#8e8e8e',
                   }}>
                     {tr(`toff.st.${r.status}`, r.status)}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {isAdmin && r.status !== 'approved' && (
-                      <button type="button" disabled={busyId === r.id} onClick={() => act(r, 'approved')} style={btn('#30d158')}>
+                      <button type="button" disabled={busyId === r.id} onClick={() => act(r, 'approved')} style={btn('#22c55e')}>
                         {tr('toff.approve', 'Approva')}
                       </button>
                     )}
                     {isAdmin && r.status !== 'rejected' && (
-                      <button type="button" disabled={busyId === r.id} onClick={() => act(r, 'rejected')} style={btn('#ff9f0a')}>
+                      <button type="button" disabled={busyId === r.id} onClick={() => act(r, 'rejected')} style={btn('#f59e0b')}>
                         {tr('toff.reject', 'Rifiuta')}
                       </button>
                     )}
@@ -291,7 +291,7 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
   }
 
   return (
-    <div onClick={onClose} style={{
+    <div className="mobile-modal-overlay" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
@@ -302,7 +302,7 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 10, height: 10, borderRadius: 999, background: TYPE_COLOR[f.type] }} />
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', flex: 1 }}>{tr('toff.new', 'Nuova richiesta')}</div>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', flex: 1 }}>{tr('toff.new', 'Nuova richiesta')}</div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}>
             <Icon name="close" size={16} />
           </button>
@@ -310,15 +310,15 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
 
         <Field label={tr('toff.type', 'Tipo')}>
           <select value={f.type} onChange={e => set('type', e.target.value)} style={selStyle}>
-            {TYPES.map(k => <option key={k} value={k} style={{ background: '#0d0d16' }}>{typeLabel(k)}</option>)}
+            {TYPES.map(k => <option key={k} value={k} style={{ background: 'var(--surface)' }}>{typeLabel(k)}</option>)}
           </select>
         </Field>
 
         {isAdmin && members.length > 0 && (
           <Field label={tr('toff.person', 'Persona')}>
             <select value={f.member_id} onChange={e => set('member_id', e.target.value)} style={selStyle}>
-              <option value="" style={{ background: '#0d0d16' }}>{tr('toff.meLabel', 'Io')}</option>
-              {members.map(m => <option key={m.id} value={m.id} style={{ background: '#0d0d16' }}>{m.name}</option>)}
+              <option value="" style={{ background: 'var(--surface)' }}>{tr('toff.meLabel', 'Io')}</option>
+              {members.map(m => <option key={m.id} value={m.id} style={{ background: 'var(--surface)' }}>{m.name}</option>)}
             </select>
           </Field>
         )}
@@ -332,7 +332,7 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
           </Field>
         </div>
 
-        <div style={{ fontSize: 12, color: 'var(--text3)' }}>{tr('toff.willUse', 'Consuma {n} giorni lavorativi', { n: days })}</div>
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>{tr('toff.willUse', 'Consuma {n} giorni lavorativi', { n: days })}</div>
 
         <Field label={tr('toff.note', 'Nota')}>
           <textarea value={f.note} onChange={e => set('note', e.target.value)} rows={2} style={{ ...selStyle, resize: 'vertical', fontFamily: 'inherit' }} />
@@ -345,19 +345,19 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
         )}
 
         {error && (
-          <div style={{ fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.3)', padding: '8px 12px', borderRadius: 8 }}>
+          <div style={{ fontSize: 13, color: '#fca5a5', background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.3)', padding: '8px 12px', borderRadius: 8 }}>
             {error}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button type="button" onClick={onClose} style={{
-            padding: '10px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+            padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
             background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text2)',
           }}>{tr('toff.cancel', 'Annulla')}</button>
           <button type="button" onClick={save} disabled={busy} style={{
-            padding: '10px 18px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', border: 'none',
-            background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', fontSize: 13, fontWeight: 800,
+            padding: '10px 18px', borderRadius: 12, cursor: busy ? 'wait' : 'pointer', border: 'none',
+            background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640,
           }}>{busy ? tr('toff.saving', 'Salvo…') : tr('toff.save', 'Salva')}</button>
         </div>
       </div>
@@ -368,7 +368,7 @@ function RequestModal({ draft, members, isAdmin, tr, typeLabel, onClose, onSaved
 function Field({ label, children, grow }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: grow ? 1 : undefined }}>
-      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>{label}</span>
       {children}
     </label>
   )
@@ -381,13 +381,13 @@ function Empty({ text }) {
 // I filtri stanno in fila: prendono la larghezza del contenuto. I campi del
 // modulo invece riempiono la colonna (filterStyle vs selStyle).
 const filterStyle = {
-  padding: '9px 12px', borderRadius: 10, minWidth: 140,
+  padding: '9px 12px', borderRadius: 12, minWidth: 140,
   background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)',
   color: 'var(--text)', fontSize: 13, outline: 'none', cursor: 'pointer',
 }
 
 const selStyle = {
-  padding: '9px 12px', borderRadius: 10, width: '100%',
+  padding: '9px 12px', borderRadius: 12, width: '100%',
   background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)',
   color: 'var(--text)', fontSize: 13, outline: 'none',
 }
@@ -395,7 +395,7 @@ const selStyle = {
 function btn(color) {
   return {
     display: 'inline-flex', alignItems: 'center', gap: 5,
-    padding: '6px 11px', borderRadius: 8, cursor: 'pointer', fontSize: 11.5, fontWeight: 800,
+    padding: '6px 11px', borderRadius: 8, cursor: 'pointer', fontSize: 11.5, fontWeight: 640,
     background: `${color}1c`, border: `1px solid ${color}59`, color,
   }
 }

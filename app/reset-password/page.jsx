@@ -40,7 +40,7 @@ export default function ResetPasswordRequestPage() {
           <Icon name="check" size={14} /> {t('rp.sentPre', null, 'If the email ')}<b>{email}</b>{t('rp.sentPost', null, ' is registered, you will receive a password reset link within a few minutes.')}
         </div>
         <div style={{ textAlign: 'center', marginTop: 22, fontSize: 12.5, color: 'var(--text3)' }}>
-          <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
+          <Link href="/login" style={{ color: '#bf5af2', fontWeight: 600, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
         </div>
       </AuthShell>
     )
@@ -62,7 +62,7 @@ export default function ResetPasswordRequestPage() {
         <AuthButton loading={loading}>{t('rp.sendLink', null, 'Send reset link')}</AuthButton>
       </form>
       <div style={{ textAlign: 'center', marginTop: 22, fontSize: 13, color: 'var(--text3)' }}>
-        <Link href="/login" style={{ color: '#bf5af2', fontWeight: 700, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
+        <Link href="/login" style={{ color: '#bf5af2', fontWeight: 600, textDecoration: 'none' }}>{t('auth.backToLogin', null, '← Back to login')}</Link>
       </div>
     </AuthShell>
   )

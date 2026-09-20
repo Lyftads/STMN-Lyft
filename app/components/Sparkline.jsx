@@ -20,7 +20,12 @@ export default function Sparkline({ data = [], color = '#22c55e', width = 80, he
 
   const last = values[values.length - 1]
   const prev = values[values.length - 2]
-  const lineColor = last >= prev ? color : '#ef4444'
+  // Uno sparkline e' un andamento, non un giudizio: prima diventava ROSSO ogni
+  // volta che l'ultimo punto scendeva, e una pagina di KPI sembrava un allarme.
+  // Il giudizio sta nella variazione sotto il numero. Qui un grigio solo, per
+  // tutti (scelta di Marino: zero colori sulle schede). `color` resta nella
+  // firma per chi chiama, ma non si usa.
+  const lineColor = '#8e8e98'
 
   const linePoints = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
 

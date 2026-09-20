@@ -66,15 +66,15 @@ export default function ProjectMembers({ projectId, onCountChange }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {data.needsSetup && (
-        <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', fontSize: 12.5, lineHeight: 1.5 }}>
-          <strong style={{ color: '#ffb340', fontWeight: 800 }}>{tr('pm.setupTitle', 'Membri di progetto non attivi')}</strong>
+        <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', fontSize: 13, lineHeight: 1.5 }}>
+          <strong style={{ color: '#ffb340', fontWeight: 640 }}>{tr('pm.setupTitle', 'Membri di progetto non attivi')}</strong>
           <div style={{ color: 'var(--text3)', marginTop: 3 }}>{tr('pm.setupBody', 'Esegui supabase/project_workspace.sql per attivare membri, lead e chat di progetto.')}</div>
         </div>
       )}
 
       {/* Lead */}
       <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)' }}>{tr('pm.lead', 'Lead del progetto')}</div>
+        <div style={{ fontSize: 13, fontWeight: 640, color: 'var(--text)' }}>{tr('pm.lead', 'Lead del progetto')}</div>
         <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2, marginBottom: 10 }}>
           {tr('pm.leadHint', 'Una sola persona alla volta. Chi era lead resta nel progetto come membro.')}
         </div>
@@ -87,7 +87,7 @@ export default function ProjectMembers({ projectId, onCountChange }) {
       {/* Aggiungi membro */}
       {can && (
         <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
             {tr('pm.addMember', 'Aggiungi membro')}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -96,9 +96,9 @@ export default function ProjectMembers({ projectId, onCountChange }) {
               {addable.map(m => <option key={m.id} value={m.id} style={opt}>{m.name}{m.leave ? ` · ${LEAVE_LABEL[m.leave.type] || ''}` : ''}</option>)}
             </select>
             <button type="button" onClick={() => add(pick)} disabled={!pick || busy} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 10, border: 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 12, border: 'none',
               cursor: (!pick || busy) ? 'default' : 'pointer', opacity: (!pick || busy) ? 0.5 : 1,
-              background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', fontSize: 13, fontWeight: 800,
+              background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640,
             }}>
               <Icon name="plus" size={13} /> {tr('pm.add', 'Aggiungi')}
             </button>
@@ -118,13 +118,13 @@ export default function ProjectMembers({ projectId, onCountChange }) {
             }}>
               <span style={{
                 width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center',
-                background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: '#fff', fontSize: 11, fontWeight: 800,
+                background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 11.5, fontWeight: 640,
               }}>{initials(m.name)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>{m.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{m.name}</span>
                   {m.isLead && <Tag color="#7b5bff">{tr('pm.leadTag', 'Lead')}</Tag>}
-                  {m.leave && <Tag color="#ff9f0a">{tr(`pm.leave.${m.leave.type}`, LEAVE_LABEL[m.leave.type] || 'Assente')}</Tag>}
+                  {m.leave && <Tag color="#f59e0b">{tr(`pm.leave.${m.leave.type}`, LEAVE_LABEL[m.leave.type] || 'Assente')}</Tag>}
                 </div>
                 {m.roles?.length > 0 && (
                   <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{m.roles.join(' · ')}</div>
@@ -146,7 +146,7 @@ export default function ProjectMembers({ projectId, onCountChange }) {
 
 function Tag({ children, color }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: `${color}22`, color }}>
+    <span style={{ fontSize: 10, fontWeight: 640, padding: '2px 8px', borderRadius: 999, background: `${color}22`, color }}>
       {children}
     </span>
   )
@@ -161,8 +161,8 @@ function initials(name) {
 }
 
 const sel = {
-  padding: '9px 12px', borderRadius: 10, width: '100%',
+  padding: '9px 12px', borderRadius: 12, width: '100%',
   background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)',
   color: 'var(--text)', fontSize: 13, outline: 'none',
 }
-const opt = { background: '#0d0d16' }
+const opt = { background: 'var(--surface)' }

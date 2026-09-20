@@ -1,5 +1,6 @@
 'use client'
 
+import { avvisa } from '../../lib/client/avviso'
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { TeamManagePanel } from './TeamManage'
@@ -72,7 +73,7 @@ export default function TeamManageTab() {
       body: JSON.stringify({ email, roles }),
     }).then(x => x.json()).catch(() => ({ ok: false }))
     if (r?.ok && r.member) setMembers(prev => [...prev, r.member])
-    else if (r?.error) alert(r.error)
+    else if (r?.error) avvisa(r.error, 'errore')
     return r
   }
 
@@ -91,14 +92,14 @@ export default function TeamManageTab() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, color: '#b0b0bd', fontSize: 13 }}>{t('tk.loadingTeam', null, 'Carico il team…')}</div>
+    return <div style={{ padding: 40, color: 'var(--text2)', fontSize: 13 }}>{t('tk.loadingTeam', null, 'Carico il team…')}</div>
   }
 
   // Solo chi amministra il workspace può invitare o cambiare permessi: mostrarlo
   // agli altri creerebbe pulsanti che il server rifiuta comunque.
   if (me && !me.isAdmin) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#b0b0bd', fontSize: 13 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text2)', fontSize: 13 }}>
         {t('tk.teamAdminOnly', null, 'Solo un amministratore può gestire il team.')}
       </div>
     )

@@ -20,14 +20,14 @@ const LOGO_MAP = {
   'shopify.com':          { slug: 'shopify',          color: '95BF47' },
   'meta.com':             { slug: 'meta',             color: '0081FB' },
   'klaviyo.com':          { slug: 'klaviyo',          color: '20A762' },
-  'omnisend.com':         { slug: 'omnisend',         color: '262626', dark: true },
-  'mailchimp.com':        { slug: 'mailchimp',        color: 'FFE01B', dark: true },
+  'omnisend.com':         { slug: 'omnisend',         color: '262626' },
+  'mailchimp.com':        { slug: 'mailchimp',        color: 'FFE01B', light: true },
   'ads.google.com':       { slug: 'googleads',        color: '4285F4' },
   'analytics.google.com': { slug: 'googleanalytics',  color: 'E37400' },
-  'tiktok.com':           { slug: 'tiktok',           color: '000000', dark: true },
+  'tiktok.com':           { slug: 'tiktok',           color: '000000' },
   'pinterest.com':        { slug: 'pinterest',        color: 'E60023' },
-  'snapchat.com':         { slug: 'snapchat',         color: 'FFFC00', dark: true },
-  'openai.com':           { slug: 'openai',           color: '412991', dark: true },
+  'snapchat.com':         { slug: 'snapchat',         color: 'FFFC00', light: true },
+  'openai.com':           { slug: 'openai',           color: '412991' },
   'gmail.com':            { slug: 'gmail',            color: 'EA4335' },
   'calendar.google.com':  { slug: 'googlecalendar',   color: '4285F4' },
   'drive.google.com':     { slug: 'googledrive',      color: '4285F4' },
@@ -47,7 +47,11 @@ function BrandLogo({ domain, size = 40 }) {
     return (
       <div style={{
         width: size, height: size, borderRadius: 12,
-        background: entry.dark ? 'var(--glass)' : 'var(--text)',
+        // Il riquadro NON segue il tema: prima era var(--text), bianco di
+        // notte ma #1d1d1d di giorno -> logo su fondo nero nella versione
+        // bianca. I logo di marca vivono su bianco; solo i due gialli
+        // (Mailchimp, Snapchat) sparirebbero, e stanno su riquadro scuro.
+        background: entry.light ? '#1d1d1d' : '#ffffff',
         display: 'grid', placeItems: 'center', flexShrink: 0,
         padding: Math.round(size * 0.18),
       }}>
@@ -80,7 +84,7 @@ function BrandLogo({ domain, size = 40 }) {
     <div style={{
       width: size, height: size, borderRadius: 12,
       background: 'var(--glass)', display: 'grid', placeItems: 'center',
-      fontSize: size * 0.4, color: '#776a86', fontWeight: 900, flexShrink: 0,
+      fontSize: size * 0.4, color: 'var(--text3)', fontWeight: 680, flexShrink: 0,
     }}>
       {(domain || '?').charAt(0).toUpperCase()}
     </div>
@@ -91,8 +95,8 @@ function ScopeBadge({ scope }) {
   const { t } = useI18n()
   return (
     <span style={{
-      fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
-      background: '#8b5cf615', color: '#c4b5fd',
+      fontSize: 10, fontWeight: 640, padding: '3px 8px', borderRadius: 8,
+      background: '#8b5cf615', color: 'var(--text2)',
       textTransform: 'uppercase', letterSpacing: '.04em',
     }}>
       {scope === 'workspace' ? t('integrations.scopeWorkspace', null, 'Workspace-level') : t('integrations.scopeUser', null, 'User-level')}
@@ -108,10 +112,10 @@ function CategoryBadge({ category }) {
     Analytics: '#f59e0b',
     AI: '#ec4899',
   }
-  const color = colors[category] || '#9b90aa'
+  const color = colors[category] || '#949494'
   return (
     <span style={{
-      fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+      fontSize: 10, fontWeight: 640, padding: '3px 8px', borderRadius: 8,
       background: `${color}18`, color,
       textTransform: 'uppercase', letterSpacing: '.04em',
     }}>
@@ -132,8 +136,8 @@ function OAuthCard({ domain, name, desc, children }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0 }}>
         <BrandLogo domain={domain} size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>{name}</div>
-          <div style={{ fontSize: 11, color: '#776a86', marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
         </div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -159,8 +163,8 @@ function ConnectedCard({ integration }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <BrandLogo domain={domain} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#f7f2ff' }}>{name}</div>
-          <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{description}</div>
         </div>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
@@ -175,7 +179,7 @@ function ConnectedCard({ integration }) {
         <ScopeBadge scope={scope} />
         <CategoryBadge category={category} />
         <span style={{
-          fontSize: 10, fontWeight: 800, color: '#22c55e',
+          fontSize: 10, fontWeight: 640, color: '#22c55e',
           display: 'inline-flex', alignItems: 'center', gap: 4,
           marginLeft: 'auto',
         }}>
@@ -202,14 +206,14 @@ function AvailableCard({ integration, onConnect }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <BrandLogo domain={domain} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#f7f2ff' }}>{name}</div>
-          <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{description}</div>
         </div>
         <button
           onClick={() => onConnect(integration)}
           style={{
             background: 'none', border: 'none',
-            color: '#9b90aa', fontSize: 18, cursor: 'pointer',
+            color: 'var(--text3)', fontSize: 17, cursor: 'pointer',
             padding: '4px 8px',
           }}
         >
@@ -243,7 +247,7 @@ function ConnectModal({ integration, onClose }) {
         style={{
           background: 'var(--glass)',
           border: '1px solid var(--border)',
-          borderRadius: 20,
+          borderRadius: 16,
           padding: '28px 32px',
           maxWidth: 480,
           width: '90%',
@@ -253,14 +257,14 @@ function ConnectModal({ integration, onClose }) {
           <BrandLogo domain={domain} size={48} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 20, fontWeight: 950, color: 'var(--text)' }}>{name}</div>
-            <div style={{ fontSize: 12, color: '#9b90aa', marginTop: 2 }}>{description}</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>{description}</div>
           </div>
           <button
             onClick={onClose}
             style={{
-              width: 32, height: 32, borderRadius: 10,
+              width: 32, height: 32, borderRadius: 12,
               background: 'var(--glass)', border: '1px solid var(--border)',
-              color: '#776a86', fontSize: 16, cursor: 'pointer',
+              color: 'var(--text3)', fontSize: 17, cursor: 'pointer',
               display: 'grid', placeItems: 'center',
             }}
           >
@@ -274,14 +278,14 @@ function ConnectModal({ integration, onClose }) {
           rel="noopener noreferrer"
           style={{
             display: 'flex', alignItems: 'center', gap: 14,
-            padding: '16px 20px', borderRadius: 14,
-            background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)',
+            padding: '16px 20px', borderRadius: 16,
+            background: 'var(--btn-primario)',
             textDecoration: 'none', cursor: 'pointer',
             marginBottom: 16,
           }}
         >
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
+            width: 36, height: 36, borderRadius: 12,
             background: 'rgba(255,255,255,.15)',
             display: 'grid', placeItems: 'center',
           }}>
@@ -291,27 +295,27 @@ function ConnectModal({ integration, onClose }) {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{t('integrations.connectWithOauth', null, 'Connect with OAuth')}</div>
-            <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
+            <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{t('integrations.connectWithOauth', null, 'Connect with OAuth')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 2 }}>
               {t('integrations.oauthSub', null, 'Secure, one-click authentication')}
             </div>
           </div>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 4 }}>
             <path d="M5 2h7v7M12 2L2 12" stroke="var(--text)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
+          <span style={{ color: 'var(--text3)', fontSize: 17 }}>›</span>
         </a>
 
         {envVars?.length > 0 && (
           <div style={{
             background: 'var(--glass)', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#776a86', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
+            <div style={{ fontSize: 10, fontWeight: 640, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.08em' }}>
               {t('integrations.envVars', null, 'Environment variables (Vercel)')}
             </div>
             {envVars.map(v => (
               <div key={v} style={{
-                fontSize: 12, fontWeight: 700, color: '#c4b5fd',
+                fontSize: 13, fontWeight: 600, color: 'var(--text2)',
                 fontFamily: 'monospace', padding: '3px 0',
               }}>
                 {v}
@@ -320,10 +324,10 @@ function ConnectModal({ integration, onClose }) {
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: '#776a86', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--text3)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <circle cx="6" cy="6" r="5" stroke="#776a86" strokeWidth="1"/>
-            <path d="M6 4v2.5M6 8h.005" stroke="#776a86" strokeWidth="1" strokeLinecap="round"/>
+            <circle cx="6" cy="6" r="5" stroke="#6f6f6f" strokeWidth="1"/>
+            <path d="M6 4v2.5M6 8h.005" stroke="#6f6f6f" strokeWidth="1" strokeLinecap="round"/>
           </svg>
           {t('integrations.popupHint', null, 'Ensure popups are enabled in your browser for authentication')}
         </div>
@@ -347,7 +351,7 @@ export default function IntegrationsTab() {
   }, [])
 
   if (loading) {
-    return <div style={{ color: '#9b90aa', padding: 40, fontSize: 15, fontWeight: 700 }}>{t('integrations.loading', null, 'Loading integrations...')}</div>
+    return <div style={{ color: 'var(--text3)', padding: 40, fontSize: 15, fontWeight: 600 }}>{t('integrations.loading', null, 'Loading integrations...')}</div>
   }
 
   if (!data) {
@@ -362,11 +366,11 @@ export default function IntegrationsTab() {
       margin: '0 0 16px',
     }}>
       <div style={{
-        width: 3, height: 18, borderRadius: 2,
+        width: 3, height: 18, borderRadius: 6,
         background: color,
       }} />
       <span style={{
-        fontSize: 12, fontWeight: 950, color,
+        fontSize: 13, fontWeight: 950, color,
         textTransform: 'uppercase', letterSpacing: '.14em',
       }}>
         {label} ({count})
@@ -457,14 +461,14 @@ function OmnisendKeyCard({ t }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <BrandLogo domain="omnisend.com" size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#f7f2ff' }}>Omnisend</div>
-          <div style={{ fontSize: 11, color: '#776a86', marginTop: 2 }}>{t('integrations.omnisendKeyDesc', null, 'Incolla la tua API key (Store settings → Integrations & API).')}</div>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>Omnisend</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{t('integrations.omnisendKeyDesc', null, 'Incolla la tua API key (Store settings → Integrations & API).')}</div>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder={t('integrations.omnisendKeyPh', null, 'API key Omnisend')}
-          style={{ flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 12px', fontSize: 13, outline: 'none' }} />
-        <button onClick={save} disabled={saving || !key.trim()} style={{ border: saved ? '1px solid rgba(48,209,88,0.40)' : '1px solid var(--border)', background: saved ? 'rgba(48,209,88,0.15)' : 'var(--glass)', color: saved ? 'var(--green)' : 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>
+          style={{ flex: 1, background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 12, padding: '9px 12px', fontSize: 13, outline: 'none' }} />
+        <button onClick={save} disabled={saving || !key.trim()} style={{ border: saved ? '1px solid rgba(48,209,88,0.40)' : '1px solid var(--border)', background: saved ? 'rgba(48,209,88,0.15)' : 'var(--glass)', color: saved ? 'var(--green)' : 'var(--text)', borderRadius: 12, padding: '9px 16px', fontSize: 13, fontWeight: 640, cursor: saving ? 'wait' : 'pointer' }}>
           {saving ? '…' : saved ? '✓' : t('integrations.connectBtn', null, 'Collega')}
         </button>
       </div>

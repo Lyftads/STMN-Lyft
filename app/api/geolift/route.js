@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle, getShopify } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { designGeoLift } from '../../../lib/incrementality/geolift'
-import { discoverProvinces, ga4Regions } from '../../../lib/incrementality/geodata'
+import { discoverProvinces, discoverRegions, ga4Regions } from '../../../lib/incrementality/geodata'
 
 export async function GET(req) {
   return withTenantContext(req, async () => {
@@ -20,12 +20,27 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const days = Math.min(180, Math.max(30, parseInt(searchParams.get('days') || '120', 10)))
     const locale = (searchParams.get('locale') || 'it').slice(0, 2)
+    // L'unita' del disegno. Di partenza le REGIONI: sono l'unica cosa che Meta sa rileggere
+    // (non scende sotto la regione), quindi un test disegnato piu' in basso non si puo' misurare li'.
+    // Chi fa un test di solo Google puo' chiedere le province, che Google legge.
+    const unita = searchParams.get('unit') === 'province' ? 'province' : 'region'
 
-    return swrSnapshot(req, { tab: `geolift_${days}_${locale}`, ttlMs: 6 * 3600 * 1000, compute: async () => {
-      // 1) SORGENTE PRIMARIA: vendite reali Shopify per provincia (più unità, geo reale).
+    return swrSnapshot(req, { tab: `geolift_${days}_${locale}_${unita}`, ttlMs: 6 * 3600 * 1000, compute: async () => {
+      // 1) SORGENTE PRIMARIA: vendite vere di Shopify, per regione (o per provincia se richiesto).
       if (hasShopify) {
         const until = new Date().toISOString().slice(0, 10)
         const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+        if (unita === 'region') {
+          const { regions, fuori } = await discoverRegions(storeUrl, adminToken, since, until)
+          if (regions.length >= 4) {
+            const design = designGeoLift(regions, { metricNote: 'revenue' })
+            if (design.ok) {
+              // `fuori` = le province che non si sono sapute ricondurre a una regione. Si dichiara
+              // quanto fatturato e' rimasto fuori dal pannello invece di farlo sparire in silenzio.
+              return { ...design, metric: 'revenue', source: 'shopify_region', unit: 'region', fuori, range: { days }, updatedAt: new Date().toISOString() }
+            }
+          }
+        }
         const regions = await discoverProvinces(storeUrl, adminToken, since, until)
         if (regions.length >= 4) {
           const design = designGeoLift(regions, { metricNote: 'revenue' })

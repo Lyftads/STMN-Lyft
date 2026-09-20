@@ -35,7 +35,7 @@ const ROLE_TAGS = {
   preference: { labelKey: 'ami.rolePreference', en: 'Preference', icon: <Icon name="gear" size={11} />, color: '#2997ff' },
   fact:       { labelKey: 'ami.roleFact', en: 'Fact', icon: <Icon name="pin" size={11} />,  color: '#22c55e' },
   insight:    { labelKey: 'ami.roleInsight', en: 'Insight', icon: <Icon name="bulb" size={11} />, color: '#f59e0b' },
-  observation:{ labelKey: 'ami.roleObservation', en: 'Observation', icon: '·',  color: '#e9e9ee' },
+  observation:{ labelKey: 'ami.roleObservation', en: 'Observation', icon: '·',  color: 'var(--text2)' },
 }
 
 export default function AgentMemoryInspector() {
@@ -90,17 +90,17 @@ export default function AgentMemoryInspector() {
         <span style={{
           width: 42, height: 42, borderRadius: 12,
           background: `${ACCENT}20`, color: ACCENT,
-          display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
+          display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 640,
           flexShrink: 0,
         }}>◓</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10, color: ACCENT, fontWeight: 640, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
             {t('ami.title', null, 'Agent Memories')}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
             {t('ami.learnedCount', { n: memories.total }, '{n} learned memories')}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
             {t('ami.description', null, 'What your agents learned from conversations and live data. You can change priority or delete wrong ones — they will not be used on the next recall.')}
           </div>
         </div>
@@ -109,10 +109,10 @@ export default function AgentMemoryInspector() {
           type="button"
           onClick={load}
           style={{
-            padding: '8px 14px', borderRadius: 10,
+            padding: '8px 14px', borderRadius: 12,
             background: 'var(--glass)',
             border: '1px solid var(--border2)',
-            color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+            color: 'var(--text3)', fontSize: 11.5, fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -126,10 +126,10 @@ export default function AgentMemoryInspector() {
           value={agentFilter}
           onChange={e => setAgentFilter(e.target.value)}
           style={{
-            padding: '10px 12px', borderRadius: 10,
+            padding: '10px 12px', borderRadius: 12,
             background: 'var(--glass)',
             border: '1px solid var(--border)',
-            color: 'var(--text)', fontSize: 12.5, fontWeight: 600,
+            color: 'var(--text)', fontSize: 13, fontWeight: 600,
             outline: 'none', cursor: 'pointer', minWidth: 180,
           }}
         >
@@ -147,10 +147,10 @@ export default function AgentMemoryInspector() {
           placeholder={t('ami.searchPlaceholder', null, 'Search in text...')}
           style={{
             flex: 1, minWidth: 200,
-            padding: '10px 12px', borderRadius: 10,
+            padding: '10px 12px', borderRadius: 12,
             background: 'var(--glass)',
             border: '1px solid var(--border)',
-            color: 'var(--text)', fontSize: 12.5,
+            color: 'var(--text)', fontSize: 13,
             outline: 'none',
           }}
         />
@@ -203,23 +203,23 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 8px', borderRadius: 6,
+          padding: '3px 8px', borderRadius: 8,
           background: `${tag.color}1f`, border: `1px solid ${tag.color}66`,
-          fontSize: 10, color: tag.color, fontWeight: 700, textTransform: 'uppercase',
+          fontSize: 10, color: tag.color, fontWeight: 600, textTransform: 'uppercase',
         }}>
           {tag.icon} {t(tag.labelKey, null, tag.en)}
         </span>
         <span style={{
           fontSize: 10, color: 'var(--text4, #666)', fontWeight: 600,
-          padding: '3px 8px', borderRadius: 6,
+          padding: '3px 8px', borderRadius: 8,
           background: 'var(--glass)',
         }}>
           {agentLabel}
         </span>
         {isAutoScan && (
           <span style={{
-            fontSize: 9.5, color: '#22c55e', fontWeight: 700,
-            padding: '3px 8px', borderRadius: 6,
+            fontSize: 10, color: '#22c55e', fontWeight: 600,
+            padding: '3px 8px', borderRadius: 8,
             background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)',
           }}>
             ◐ {t('ami.autoScan', null, 'Auto-scan')}
@@ -227,8 +227,8 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
         )}
         {isConsolidated && (
           <span style={{
-            fontSize: 9.5, color: '#f59e0b', fontWeight: 700,
-            padding: '3px 8px', borderRadius: 6,
+            fontSize: 10, color: '#f59e0b', fontWeight: 600,
+            padding: '3px 8px', borderRadius: 8,
             background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)',
           }}>
             ⊛ {t('ami.synthesis', null, 'Synthesis')}
@@ -245,7 +245,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
-        <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700 }}>{t('ami.priority', null, 'Priority:')}</span>
+        <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 600 }}>{t('ami.priority', null, 'Priority:')}</span>
         <input
           type="range"
           min={1} max={10} step={1}
@@ -254,7 +254,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
           style={{ flex: 1, maxWidth: 160, accentColor: ACCENT }}
         />
         <span style={{
-          fontSize: 11, color: 'var(--text)', fontWeight: 700,
+          fontSize: 11.5, color: 'var(--text)', fontWeight: 600,
           minWidth: 24, textAlign: 'center',
         }}>
           {memory.importance}
@@ -266,7 +266,7 @@ function MemoryRow({ memory, onDelete, onImportanceChange }) {
             padding: '5px 10px', borderRadius: 8,
             background: 'transparent',
             border: '1px solid rgba(248,113,113,0.30)',
-            color: '#f87171', fontSize: 10, fontWeight: 700,
+            color: '#f87171', fontSize: 10, fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -319,10 +319,10 @@ function ExportImportButtons({ onImported }) {
         onClick={handleExport}
         title={t('ami.exportTitle', null, 'Download all memories as a JSON file')}
         style={{
-          padding: '8px 12px', borderRadius: 10,
+          padding: '8px 12px', borderRadius: 12,
           background: 'var(--glass)',
           border: '1px solid var(--border2)',
-          color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+          color: 'var(--text3)', fontSize: 11.5, fontWeight: 600,
           cursor: 'pointer',
         }}
       >
@@ -334,10 +334,10 @@ function ExportImportButtons({ onImported }) {
         disabled={importing}
         title={t('ami.importTitle', null, 'Upload a previously exported memories JSON file')}
         style={{
-          padding: '8px 12px', borderRadius: 10,
+          padding: '8px 12px', borderRadius: 12,
           background: 'var(--glass)',
           border: '1px solid var(--border2)',
-          color: 'var(--text3)', fontSize: 11, fontWeight: 700,
+          color: 'var(--text3)', fontSize: 11.5, fontWeight: 600,
           cursor: importing ? 'wait' : 'pointer',
         }}
       >
@@ -356,7 +356,7 @@ function ExportImportButtons({ onImported }) {
       />
       {msg && (
         <span style={{
-          fontSize: 10.5, color: msg.startsWith('✓') ? '#86efac' : '#fca5a5',
+          fontSize: 10, color: msg.startsWith('✓') ? '#86efac' : '#fca5a5',
           padding: '6px 10px', borderRadius: 8,
           background: msg.startsWith('✓') ? 'rgba(34,197,94,0.10)' : 'rgba(248,113,113,0.10)',
         }}>{msg}</span>

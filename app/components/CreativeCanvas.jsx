@@ -172,8 +172,8 @@ export default function CreativeCanvas({ children, count, onBandSelect, onBackgr
       {band && (
         <div style={{
           position: 'absolute', left: band.l, top: band.t, width: band.w, height: band.h,
-          border: '1px solid rgba(41,151,255,.7)', background: 'rgba(41,151,255,.10)',
-          borderRadius: 4, pointerEvents: 'none', zIndex: 50,
+          border: '1px solid rgba(41,151,255,.7)', background: 'var(--neutro-bg)',
+          borderRadius: 6, pointerEvents: 'none', zIndex: 50,
         }} />
       )}
 
@@ -181,11 +181,11 @@ export default function CreativeCanvas({ children, count, onBandSelect, onBackgr
           un modo per tornare indietro è un pannello in cui ci si perde. */}
       <div style={{
         position: 'absolute', right: 12, bottom: 12, display: 'flex', alignItems: 'center', gap: 4,
-        padding: 4, borderRadius: 999, background: 'rgba(10,10,16,.86)', backdropFilter: 'blur(20px)',
+        padding: 4, borderRadius: 999, background: 'var(--surface)', backdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,.08)', zIndex: 20,
       }}>
         <CtlBtn onClick={() => zoomTo(z / 1.2)}>−</CtlBtn>
-        <span style={{ fontSize: 11, color: 'var(--text3)', minWidth: 42, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 11.5, color: 'var(--text3)', minWidth: 42, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
           {Math.round(z * 100)}%
         </span>
         <CtlBtn onClick={() => zoomTo(z * 1.2)}>+</CtlBtn>
@@ -193,8 +193,8 @@ export default function CreativeCanvas({ children, count, onBandSelect, onBackgr
       </div>
 
       <div style={{
-        position: 'absolute', left: 12, bottom: 12, fontSize: 11, color: 'var(--text4, #6b7280)',
-        padding: '6px 12px', borderRadius: 999, background: 'rgba(10,10,16,.86)',
+        position: 'absolute', left: 12, bottom: 12, fontSize: 11.5, color: 'var(--text4, #6b7280)',
+        padding: '6px 12px', borderRadius: 999, background: 'var(--surface)',
         border: '1px solid rgba(255,255,255,.08)', zIndex: 20,
       }}>
         {count ? `${count} · ` : ''}{label?.hint || 'spazio o Alt per spostarti, rotella per lo zoom'}

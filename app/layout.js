@@ -1,4 +1,13 @@
 import './globals.css'
+// Il sistema di design portato da lyft-av: sei fogli, nell'ordine in cui si scavalcano.
+import './tema-chiaro.css'
+import './white-system.css'
+import './theme-controls.css'
+import './component-system.css'
+import './lyft-system.css'
+import './mobile-system.css'
+// Resta per ULTIMO: tiene le poche regole per telefono che qui servono ancora e che in lyft-av
+// non esistono piu' (.kb-metric-row, che il KPI Brain di questo repo usa tuttora).
 import './mobile-report.css'
 import PWARegister from './components/PWARegister'
 import CookieConsent from './components/CookieConsent'

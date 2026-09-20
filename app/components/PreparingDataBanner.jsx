@@ -68,12 +68,12 @@ export default function PreparingDataBanner() {
       position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 9998,
       maxWidth: 'min(680px, calc(100vw - 24px))',
       display: 'flex', alignItems: 'center', gap: 12,
-      background: 'rgba(12,12,22,0.97)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(123,91,255,0.45)', borderRadius: 14,
+      background: 'var(--surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(123,91,255,0.45)', borderRadius: 16,
       boxShadow: '0 20px 50px rgba(0,0,0,0.6)', padding: '12px 18px',
     }}>
-      <span style={{ width: 16, height: 16, flexShrink: 0, borderRadius: '50%', border: '2px solid rgba(123,91,255,0.45)', borderTopColor: '#7b5bff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.45 }}>
+      <span style={{ width: 16, height: 16, flexShrink: 0, borderRadius: '50%', border: '2px solid rgba(123,91,255,0.45)', borderTopColor: 'var(--accent)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.45 }}>
         <strong style={{ color: '#fff' }}>{t('pd.title', null, 'Stiamo preparando i tuoi dati')}</strong>
         {' — '}
         {t('pd.body', null, 'importiamo lo storico Shopify e i clienti. Le dashboard si popolano automaticamente.')}

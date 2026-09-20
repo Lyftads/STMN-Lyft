@@ -1,0 +1,500 @@
+/* Shared mobile foundations: White AND Black. No fixed desktop widths on overlays. */
+.app-nav-close { display: none; }
+.app-shell, .app-sidebar, .app-main { height: 100dvh; }
+.app-header-actions { min-width: 0; }
+.bm-tf-month-nav { flex-shrink: 0; }
+.bm-tf-footer { flex-wrap: wrap; }
+.bm-tf-footer > div:last-child { margin-left: auto; }
+:root[data-theme='light'] .bm-tf-pop .bm-tf-apply,
+:root[data-theme='light'] .bm-tf-pop .bm-tf-day[aria-pressed='true'] {
+  background: var(--accent) !important; color: #fff !important;
+}
+:root[data-theme='light'] .bm-tf-presets button[aria-pressed='true'] { color: var(--accent) !important; background: #f0f0f0 !important; }
+:root[data-theme='light'] .calendar-view-button[aria-pressed='true'] { background: #262626 !important; color: #fff !important; }
+:root[data-theme='light'] .brain-launcher { background: #262626 !important; box-shadow: 0 4px 16px rgba(29, 29, 29,.16) !important; }
+:root[data-theme='light'] .brain-launcher svg { stroke: #fff !important; }
+:root[data-theme='light'] .m-thread { background: var(--surface) !important; }
+/* A dialog overlay must stay translucent even inside legacy .app-main panels. */
+:root[data-theme='light'] body .app-main .mobile-modal-overlay {
+  background: rgba(29, 29, 29,.28) !important;
+  box-shadow: none !important;
+}
+body:has(.app-sidebar.open) .brain-launcher,
+body:has(.mobile-modal-overlay) .brain-launcher,
+body:has(.help-drawer-overlay) .brain-launcher,
+body:has(.cookie-consent) .brain-launcher { visibility: hidden; }
+
+@media (max-width: 1024px) {
+  .app-shell, .app-sidebar, .app-main { height: var(--app-viewport-height, 100dvh) !important; }
+  .app-sidebar { max-width: calc(100vw - 48px); overscroll-behavior: contain; }
+  .app-main { overscroll-behavior-y: contain; scroll-padding-top: 16px; }
+  .app-header-actions { flex-wrap: wrap; max-width: 100%; }
+  .app-nav-close {
+    display: grid; place-items: center; margin-left: auto;
+    width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border2);
+    background: var(--glass); color: var(--text); cursor: pointer; flex-shrink: 0;
+  }
+  .app-brand-row { gap: 6px !important; }
+  .app-sidebar .app-nav-item { min-height: 44px; }
+  .app-sidebar .app-nav-group-toggle { min-height: 44px; }
+  .app-sidebar nav { min-height: 0; overscroll-behavior: contain; }
+}
+
+@media (max-width: 768px) {
+  .app-main { padding: 18px 16px calc(88px + env(safe-area-inset-bottom)) !important; }
+  .app-main[data-tab] > div { min-width: 0; }
+  .app-tab-content { transform: none !important; transition: opacity .18s ease !important; }
+  .app-header { column-gap: 12px !important; }
+  .app-header-actions { flex-basis: 100%; gap: 6px !important; }
+  .app-header-actions > button, .app-header-actions > div > button { min-height: 44px; }
+  .app-burger { width: 44px !important; height: 44px !important; }
+  .app-main :is(input:not([type='checkbox']):not([type='radio']):not([type='range']),select,textarea),
+  .auth-shell :is(input,select,textarea),
+  .mobile-modal-overlay :is(input,select,textarea),
+  .brain-panel textarea {
+    font-size: 16px !important; max-width: 100%; min-width: 0; scroll-margin: 24px;
+  }
+  .auth-shell { padding: 24px 16px calc(80px + env(safe-area-inset-bottom)) !important; min-height: 100dvh !important; }
+  .auth-card { width: 100%; }
+  .auth-card :is(input,button[type='submit']) { min-height: 48px; }
+  .auth-card > div:last-child { padding: 28px 22px !important; }
+  .cookie-consent { bottom: max(12px, env(safe-area-inset-bottom)) !important; left: 12px !important; right: 12px !important; max-height: calc(var(--app-viewport-height, 100dvh) - 24px); overflow-y: auto; }
+  .cookie-consent > div:first-child { min-width: 0 !important; flex-basis: 100% !important; }
+  .cookie-consent button { min-height: 44px; }
+
+  /* Live data first; the globe gets its own area instead of sitting behind text. */
+  .dash-live-hero, :root[data-theme='light'] .dash-live-hero {
+    display: flex; flex-direction: column; min-height: 0; overflow: visible; gap: 20px; margin-bottom: 24px;
+  }
+  .dash-live-left { order: 0; width: 100%; max-width: none; }
+  .dash-live-globe, :root[data-theme='light'] .dash-live-globe {
+    order: 1; position: relative; inset: auto; width: 100%; height: 260px; max-width: none;
+    opacity: 1; overflow: hidden; border-radius: 16px; contain: layout paint;
+  }
+  .dash-live-globe::before { display: none; }
+  .dash-live-left .m-stack { margin-bottom: 16px !important; }
+  .m-grid2 { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 12px !important; }
+  .m-grid2 > * { min-width: 0; }
+  .m-grid2 .metric-value { font-size: var(--t-titolo2, 22px); overflow-wrap: anywhere; }
+  .m-grid2 .label { letter-spacing: .025em; font-size: 11.5px; }
+  .m-stack { grid-template-columns: minmax(0,1fr) !important; }
+  .app-main .recharts-responsive-container { min-width: 0 !important; }
+  .m-scrollx { max-width: 100%; overscroll-behavior-x: contain; }
+  .app-main table { overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+
+  /* Overlay coordinates are relative to the viewport, not a toolbar button. */
+  .app-notifications-popover, .app-alerts-popover {
+    position: fixed !important; inset: auto 12px 12px !important;
+    width: auto !important; max-width: none !important;
+    max-height: calc(var(--app-viewport-height, 100dvh) - 100px) !important;
+    overscroll-behavior: contain; z-index: 1300 !important;
+  }
+  .bm-tf-pop {
+    top: calc(var(--app-viewport-top, 0px) + 8px) !important; bottom: auto !important;
+    left: 8px !important; right: 8px !important;
+    max-height: calc(var(--app-viewport-height, 100dvh) - 16px) !important;
+    overscroll-behavior: contain; border-radius: 16px !important;
+  }
+  /* I periodi pronti erano una colonna alta 140px dentro un pannello che ne
+     chiedeva di piu': l'ultima voce restava tagliata a meta' parola e
+     sembrava un errore, non un elenco da scorrere. Su telefono diventano una
+     fila di pastiglie che scorre di lato: si leggono tutte intere. */
+  .bm-tf-presets {
+    max-height: none !important; flex-shrink: 0;
+    display: flex !important; gap: 6px !important;
+    overflow-x: auto !important; overflow-y: hidden !important;
+    padding: 10px !important; scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* L'etichetta "PERIODO" occupava una riga intera in verticale: qui il
+     titolo del pannello lo dice gia'. */
+  .bm-tf-presets > div:first-child { display: none !important; }
+  .bm-tf-presets button {
+    min-height: 44px; width: auto !important; flex: 0 0 auto;
+    white-space: nowrap; scroll-snap-align: start;
+    border: 1px solid var(--border) !important; padding: 8px 12px !important;
+  }
+  .bm-tf-cal { flex-shrink: 0; }
+  .bm-tf-month { width: auto !important; flex: 1; min-width: 0; }
+  .bm-tf-month-nav { min-width: 30px; min-height: 44px; }
+  /* I giorni del calendario erano 38px: sotto la soglia, e su una griglia di
+     sette colonne sbagliare casella vuol dire cambiare periodo senza
+     accorgersene. Il pannello si allunga di una trentina di pixel e ci sta. */
+  .bm-tf-day { min-height: 44px; }
+  .bm-tf-footer { row-gap: 10px !important; }
+  .bm-tf-footer > div:first-child { flex-basis: 100%; }
+  .bm-tf-footer > div:last-child { width: 100%; }
+  .bm-tf-footer button { flex: 1; min-height: 44px; }
+  .mobile-modal-overlay {
+    top: var(--app-viewport-top, 0px) !important; height: var(--app-viewport-height, 100dvh) !important;
+    bottom: auto !important; padding: 12px !important; overflow-y: auto; overscroll-behavior: contain;
+  }
+  .mobile-modal-overlay > div {
+    min-width: 0 !important; max-width: 100% !important;
+    max-height: calc(var(--app-viewport-height, 100dvh) - 24px) !important;
+    overflow-y: auto !important; overscroll-behavior: contain;
+  }
+  .mobile-modal-overlay label { min-width: 0; }
+  .mobile-modal-overlay :is(button,input:not([type='checkbox']):not([type='radio']),select) { min-height: 44px; }
+  /* Righe che si aprono al tocco (segmenti, liste, giorni del registro):
+     su un telefono servono 44px di altezza, o si sbaglia bersaglio. */
+  .riga-tocco { min-height: 44px !important; }
+
+  /* Stessa soglia per OGNI comando della pagina, cosi' vale anche per le tab
+     che scriveremo domani invece di inseguirle una per una. Esclusi quelli
+     dentro le tabelle: li' alzare l'altezza gonfierebbe le righe e si
+     leggerebbero meno numeri per schermata. */
+  .app-main button:not(table button):not(.senza-tocco),
+  .app-main [role="button"]:not(table [role="button"]),
+  .app-main a[href]:not(table a[href]):not(.senza-tocco) {
+    min-height: 44px !important;
+  }
+  /* Chiusure e icone quadrate restano tali, ma larghe abbastanza da centrarle. */
+  .app-main button[aria-label] { min-width: 44px; }
+
+  /* I COLLEGAMENTI dentro le tabelle sono l'eccezione all'eccezione. Nel
+     dettaglio di un giorno il numero d'ordine era alto 15px: e' l'unico modo
+     per aprire quell'ordine, e a quell'altezza non si centra. I pulsanti delle
+     tabelle (intestazioni, ordinamenti) restano compatti: quelli si possono
+     sbagliare e ripremere, un ordine aperto per errore no. */
+  .app-main table a[href] {
+    display: inline-flex !important; align-items: center;
+    min-height: 44px !important;
+  }
+  /* Stesso ragionamento per i pulsanti di tabella che APRONO qualcosa: la
+     freccia che scende di un livello in Meta Dettaglio era 30x30, ed e' la
+     navigazione principale della tab. Si marca con questa classe, cosi' resta
+     distinta dagli ordinamenti che restano compatti. */
+  .app-main table .cella-apri {
+    min-width: 44px !important; min-height: 44px !important;
+  }
+  /* Un collegamento in mezzo a una frase non puo' essere alto 44px senza
+     aprire un buco nel testo: il link della riunione dentro un messaggio di
+     chat era alto 17px. Si allarga l'area sensibile con l'imbottitura, che
+     cresce oltre la riga senza spostarla. */
+  .ch-corpo a[href] {
+    display: inline-block; padding-block: 8px;
+  }
+
+  /* Tabelle larghe: la colonna FISSA del prodotto era 320px, quasi tutta la
+     larghezza di un telefono, e non restava spazio per i numeri che si
+     vogliono leggere scorrendo. */
+  /* Larghezza IMPOSTA, non solo consigliata: con max-width la tabella a
+     larghezza automatica se la prendeva comunque tutta (240px su 390) e
+     restava spazio per una colonna di numeri sola. */
+  .gpv-prodotto { width: 150px !important; max-width: 150px !important; }
+
+  .help-drawer-overlay { top: var(--app-viewport-top,0px) !important; height: var(--app-viewport-height,100dvh) !important; bottom: auto !important; }
+  .help-drawer-panel { width: 100% !important; max-width: 100%; }
+  .help-drawer-panel > div:first-child, .help-drawer-panel > div:last-child { flex-shrink: 0; }
+  .help-drawer-panel > div:nth-child(2) { min-height: 0; }
+  .help-drawer-panel button { min-height: 44px; }
+  .help-drawer-panel > div:first-child button { min-width: 44px; }
+
+  /* Keep the composer visible above the software keyboard in both themes. */
+  .brain-panel {
+    top: calc(var(--app-viewport-top,0px) + 8px) !important;
+    right: 8px !important; left: 8px !important; bottom: auto !important;
+    width: auto !important; height: calc(var(--app-viewport-height,100dvh) - 16px) !important;
+    max-height: none !important;
+  }
+  .brain-panel > div { min-height: 0; }
+  .brain-panel > div:first-child, .brain-panel > div:last-child { flex-shrink: 0; }
+  .brain-panel button { min-width: 40px; min-height: 40px; }
+  .brain-launcher { right: 16px !important; bottom: max(16px,env(safe-area-inset-bottom)) !important; width: 48px !important; height: 48px !important; }
+  .chat-workspace { min-width: 0; }
+  .chat-workspace .m-chat { height: auto !important; min-height: 0 !important; gap: 10px !important; }
+  .chat-conversation { min-height: 360px; height: max(360px,calc(var(--app-viewport-height,100dvh) - 190px)); flex: auto !important; }
+  .chat-workspace .m-chanlist { max-height: 160px; min-height: 0; overflow-y: auto; }
+  .chat-workspace .m-thread { top: var(--app-viewport-top,0px) !important; height: var(--app-viewport-height,100dvh) !important; bottom: auto !important; }
+  .chat-workspace :is(.tipwrap,.chat-actions button) { min-width: 40px; min-height: 40px; }
+  .chat-workspace textarea { font-size: 16px !important; }
+  .chat-workspace .chat-row { overflow-wrap: anywhere; }
+  .chat-workspace .chat-actions { max-width: calc(100% - 12px); flex-wrap: wrap; }
+  .calendar-period-nav { display: flex !important; flex-wrap: wrap; gap: 6px !important; margin-left: 0 !important; width: 100%; }
+  .calendar-period-nav > span { flex: 1; min-width: 0 !important; font-size: 13px !important; }
+  .calendar-period-nav button { min-width: 36px; min-height: 44px; }
+  .calendar-view-button { min-height: 44px; }
+}
+@media (max-width: 360px) {
+  .app-main { padding-inline: 12px !important; }
+  .m-grid2 { grid-template-columns: minmax(0,1fr) !important; }
+  .app-header h1 { font-size: 20px !important; }
+  .bm-tf-month-nav { min-width: 24px; }
+  .bm-tf-months { gap: 2px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-ambient, .dash-live-globe::before { display: none !important; }
+  .app-sidebar, .app-tab-content { transition: none !important; }
+}
+
+/* ── Report e KPI Brain su telefono ─────────────────────────────────────────
+   Una sola regola per tutte le tab dei report (Weekly, Monthly, Quarter, Year,
+   Conto Economico): la barra ha sempre la stessa forma — periodo a tutta
+   larghezza, poi i due pulsanti a meta' ciascuno, poi la didascalia a sinistra.
+   Prima ogni tab allineava a modo suo (Refresh al centro, didascalia a destra,
+   PDF ora nella barra ora nell'intestazione). */
+@media (max-width: 768px) {
+  .rep-toolbar { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; align-items: stretch !important; }
+  .rep-toolbar > * { min-width: 0; margin-left: 0 !important; }
+  .rep-toolbar .rep-desc, .rep-toolbar .rep-period, .rep-toolbar .rep-chips,
+  .rep-toolbar .rep-custom, .rep-toolbar .rep-cmp { grid-column: 1 / -1; }
+  .rep-toolbar .rep-desc { order: -2; flex: none !important; font-size: 13px !important; line-height: 1.45; }
+  .rep-toolbar .rep-period, .rep-toolbar .rep-chips { order: -1; }
+  .rep-toolbar .rep-period > button { width: 100%; min-width: 0 !important; min-height: 44px; }
+  .rep-toolbar .rep-chips { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .rep-toolbar .rep-chips > button { min-height: 44px; padding: 6px 6px !important; font-size: 11.5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rep-toolbar .rep-custom { display: grid !important; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+  .rep-toolbar .rep-custom > span[style*="#555"] { display: none; }
+  .rep-toolbar .rep-custom select { width: 100%; min-height: 44px; }
+  .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn { display: flex !important; align-items: center; justify-content: center !important; min-height: 44px; font-size: 13px !important; padding: 8px 10px !important; }
+  .rep-toolbar .rep-pdf { display: flex !important; }
+  .rep-toolbar .rep-pdf > div { display: flex !important; width: 100%; }
+  .rep-toolbar .rep-pdf button { flex: 1; justify-content: center; min-height: 44px; padding: 8px 10px !important; font-size: 13px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rep-toolbar .rep-cmp { order: 9; font-size: 11.5px !important; text-align: left; }
+
+  /* Tendina del periodo: un pannello dal basso dentro lo schermo, non un menu
+     ancorato al pulsante che usciva a sinistra. */
+  .tfs-pop { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: calc(12px + env(safe-area-inset-bottom)) !important; width: auto !important; min-width: 0 !important; max-height: min(70dvh, 520px) !important; overflow-y: auto !important; overscroll-behavior: contain; z-index: 1400 !important; }
+
+  /* Card KPI dei report: due colonne compatte, sparkline sotto al numero. */
+  .rep-kpis { gap: 10px !important; margin-bottom: 16px !important; }
+  .rep-kpis > .glass-card { padding: 14px 14px 12px !important; border-radius: 16px; }
+  .rep-kpis .label { font-size: 11.5px !important; }
+  .rep-kpis .rep-kpi-row { flex-direction: column; align-items: flex-start !important; gap: 6px !important; }
+  .rep-kpis .rep-kpi-row .metric-value { font-size: var(--t-titolo2, 22px) !important; }
+  .rep-kpis .rep-kpi-row svg { width: 100% !important; height: 26px !important; }
+
+  /* Tabelle dei report e del conto economico: colonna delle voci stretta e a
+     capo, cosi' il primo periodo si legge intero senza scorrere. */
+  .rep-matrix table { font-size: 11.5px !important; }
+  .rep-matrix .rep-label { min-width: 122px !important; width: 122px; max-width: 140px; white-space: normal !important; line-height: 1.25; padding: 8px 8px 8px 10px !important; }
+  .rep-matrix .rep-label.rep-sub { padding-left: 18px !important; }
+  .rep-matrix .rep-label span { margin-left: 4px !important; font-size: 10px !important; padding: 1px 5px !important; }
+  .rep-matrix .rep-val { min-width: 88px !important; padding: 8px 8px !important; }
+  .rep-matrix .rep-side { padding-left: 8px !important; padding-right: 4px !important; }
+
+  /* KPI Brain: righe dei paesi su due righe, card con il grafico sotto. */
+  .kb-country-top { grid-template-columns: auto minmax(0, 1fr) auto !important; gap: 10px 12px !important; }
+  .kb-country-top > :nth-child(4) { grid-column: 1 / span 2; min-width: 0 !important; text-align: left !important; }
+  .kb-country-top > :nth-child(4) > div { justify-content: flex-start !important; }
+  .kb-country-top > :nth-child(5) { grid-column: 3; }
+  .kb-country-top > :nth-child(6) { display: none !important; }
+  .kb-brand-rev { white-space: normal !important; text-align: right; font-size: 11.5px !important; line-height: 1.3; }
+}
+/* Telefoni stretti (≤360px): i pulsanti delle barre restano su una riga.
+   In inline-flex il testo non si tronca con i puntini: qui diventano blocchi
+   centrati, cosi' un'etichetta lunga finisce con "…" invece di uscire dal bordo. */
+@media (max-width: 360px) {
+  .rep-toolbar { gap: 6px !important; }
+  .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn,
+  .rep-toolbar .rep-pdf button {
+    display: block !important; text-align: center; white-space: nowrap !important;
+    overflow: hidden; text-overflow: ellipsis; font-size: 11.5px !important; padding: 8px 6px !important;
+  }
+  .rep-toolbar .rep-refresh > span, .rep-toolbar .rep-btn > svg,
+  .rep-toolbar .rep-pdf button > span { display: none !important; }
+  .rep-toolbar .rep-chips > button { font-size: 11.5px !important; padding: 6px 4px !important; }
+}
+/* KPI Brain: righe dei brand e chiusura dei pop-up di dettaglio. */
+@media (max-width: 768px) {
+  .kb-brand-line { flex-wrap: wrap; row-gap: 2px !important; }
+  .kb-brand-line > div:nth-child(2) { flex: 1 1 0 !important; }
+  .kb-brand-line .kb-brand-rev { order: 5; flex-basis: 100%; padding-left: 32px; text-align: left !important; font-size: 11.5px !important; color: var(--text3) !important; }
+  .kb-brand-bar { margin-right: 0; }
+  .country-detail-modal .kb-modal-close { position: absolute !important; top: 14px; right: 14px; z-index: 5; }
+  .country-detail-modal > div:last-child > div:first-child > div:first-child { padding-right: 48px; }
+}
+@media (max-width: 768px) {
+  /* La quota accanto al nome ruba spazio al nome del brand: sul telefono resta nel pop-up. */
+  .kb-brand-line > div:nth-child(2) > span { display: none; }
+}
+/* Tabelle dei report sotto i 360px: su un telefono da 320 le cifre mensili
+   (es. €55.298 con la variazione sotto) non entravano accanto a una colonna
+   voci da 122px. */
+@media (max-width: 360px) {
+  .rep-matrix table { font-size: 11.5px !important; }
+  .rep-matrix .rep-label { min-width: 100px !important; width: 100px; max-width: 112px; padding: 7px 6px 7px 8px !important; }
+  .rep-matrix .rep-label.rep-sub { padding-left: 14px !important; }
+  .rep-matrix .rep-val { min-width: 0 !important; padding: 7px 6px !important; }
+  .rep-matrix .rep-side { padding-left: 5px !important; padding-right: 2px !important; min-width: 18px !important; width: 18px !important; }
+}
+
+/* PDF: una riga sola in ogni prodotto. La regola non dipende piu' dalla classe
+   del componente (in un prodotto il contenitore non ce l'ha): prende il pulsante
+   dentro .rep-pdf, qualunque sia il suo contenitore. */
+@media (max-width: 768px) {
+  .rep-toolbar .rep-pdf > div { display: flex !important; width: 100%; }
+  .rep-toolbar .rep-pdf button { flex: 1; width: 100%; justify-content: center; min-height: 44px; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 480px) {
+  .rep-toolbar .rep-pdf button, .rep-toolbar .rep-refresh, .rep-toolbar .rep-btn { display: block !important; text-align: center; font-size: 13px !important; padding: 8px 6px !important; }
+}
+
+/* Board delle task su telefono: le colonne non si comprimono (diventerebbero
+   illeggibili) ma scorrono di lato DENTRO il loro riquadro, una per schermata,
+   con l'aggancio allo scorrimento. Con il minimo di 980px la board usciva dalla
+   pagina e trascinava di lato tutto il resto. */
+@media (max-width: 768px) {
+  .tk-board-scroll { overflow-x: auto !important; max-width: 100% !important; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .tk-board-grid { min-width: 0 !important; grid-auto-flow: column; grid-auto-columns: 78vw; grid-template-columns: none !important; gap: 10px !important; }
+  .tk-board-col { scroll-snap-align: start; min-width: 0; }
+  .tk-board-col select { min-height: 40px; font-size: 16px !important; }
+}
+@media (max-width: 360px) {
+  .tk-board-grid { grid-auto-columns: 84vw; }
+}
+
+/* Perche' la board sbordava: .m-cols su telefono diventa una colonna, ma ha
+   align-items:flex-start inline, quindi i figli si dimensionano sul contenuto
+   e non sulla larghezza dello schermo. Il riquadro della board si allargava
+   a 1561px e il max-width:100% si calcolava su QUELLO. Qui obblighiamo i figli
+   a stare nella larghezza del contenitore: e' la condizione perche' lo
+   scorrimento interno della board funzioni davvero. */
+@media (max-width: 768px) {
+  .m-cols > * { align-self: stretch !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BARRE DI COMANDO — su telefono erano la cosa piu' sciatta dell'app.
+
+   Le barre in testa alle tab spingono i comandi a destra con margin-left:auto
+   e poi vanno a capo: sul desktop e' una riga ordinata, su un telefono diventa
+   un pulsante appoggiato a destra, uno a sinistra della riga sotto e un vuoto
+   in mezzo. Qui diventano una griglia a piena larghezza: due celle uguali per
+   riga, comandi tutti della stessa altezza, nessuno spazio morto.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .barra-strumenti {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100%;
+    align-items: stretch !important;
+    justify-items: start !important;
+    margin-left: 0 !important;
+  }
+  /* Un raggruppamento che sul desktop serve ad allineare a destra qui sparisce
+     dal calcolo: i suoi figli entrano nella griglia della barra, invece di
+     stringersi dentro una cella sola. */
+  .barra-strumenti .gruppo-trasparente { display: contents !important; }
+
+  /* Le spinte a destra scritte nel componente non servono piu': e' la griglia
+     a decidere le posizioni. */
+  .barra-strumenti > *,
+  .barra-strumenti > .gruppo-trasparente > * {
+    margin-left: 0 !important; margin-right: 0 !important; min-width: 0 !important;
+  }
+  /* Si allarga solo quello che si PREME. Un'etichetta o un pallino di stato
+     restano della loro misura: stirare un badge verde per mezzo schermo era
+     il difetto opposto a quello che stavamo togliendo. */
+  .barra-strumenti > button,
+  .barra-strumenti > a[href],
+  .barra-strumenti > *:has(button),
+  .barra-strumenti > *:has(a[href]),
+  .barra-strumenti > *:has(input),
+  .barra-strumenti > .gruppo-trasparente > button,
+  .barra-strumenti > .gruppo-trasparente > *:has(button) {
+    justify-self: stretch; width: 100% !important;
+  }
+  .barra-strumenti button,
+  .barra-strumenti input,
+  .barra-strumenti > a[href] {
+    width: 100% !important; min-height: 44px !important;
+  }
+  .barra-strumenti button, .barra-strumenti > a[href] { justify-content: center !important; }
+  /* Etichette e badge prendono la riga intera invece di spezzare la griglia. */
+  .barra-strumenti > .a-tutta-riga,
+  .barra-strumenti > .gruppo-trasparente > .a-tutta-riga { grid-column: 1 / -1; }
+  /* Un comando che resterebbe solo a fine griglia prende la riga intera,
+     invece di lasciare mezza riga vuota alla sua destra. */
+  .barra-strumenti > *:only-child,
+  .barra-strumenti > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* Testata della pagina: gli stessi comandi (Guida, lingua, avvisi, periodo)
+     lasciavano un buco a fine riga. Ora si allargano per riempirla, cosi' il
+     bordo destro e' dritto come quello sinistro. */
+  .app-header-actions { align-items: stretch !important; }
+  /* Solo il comando con l'etichetta si allarga a chiudere la riga: le icone
+     quadrate restano quadrate, altrimenti diventano riquadri mezzi vuoti. */
+  .app-header-actions > * { flex: 0 0 auto; min-width: 0; }
+  .app-header-actions > .btn-glass { flex: 1 1 auto; }
+}
+
+/* L'imbuto della CRO: cinque passi affiancati non stanno in 360px, e i flex
+   non scendono sotto la larghezza minima del testo, quindi l'ultimo passo
+   finiva fuori schermo senza modo di raggiungerlo. Le tre fasce (etichette,
+   barre, abbandoni) devono restare incolonnate fra loro: scorrono INSIEME,
+   dentro un contenitore solo. */
+@media (max-width: 768px) {
+  .imbuto-scorrevole {
+    overflow-x: auto; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    margin: 0 -4px; padding: 0 4px;
+  }
+  .imbuto-scorrevole > div { min-width: 560px; }
+}
+
+/* Le due tabelle prodotto, su telefono. */
+@media (max-width: 768px) {
+  /* Performance prodotti: sotto ogni nome c'e' la spiegazione del verdetto,
+     che su 168px di colonna diventava quattro righe e faceva alte 140px le
+     righe della tabella. Due righe bastano a capire, il resto si legge
+     aprendo il prodotto. */
+  /* Nella colonna ferma ci stanno 150px: vanno al NOME, che e' l'identita'
+     della riga. La spiegazione del verdetto sotto si ripete identica su tutte
+     le righe del gruppo — il gruppo lo hai appena scelto tu col filtro — e
+     rubava al nome le due righe che gli servono per leggersi. */
+  .gpv-motivo { display: none !important; }
+  .gpv-tab .reg-posto { display: none; }
+  .gpv-tab td.reg-primo { min-width: 0; }
+  .gpv-tab .reg-nome { white-space: normal; max-width: none; }
+  .gpv-euro { width: 120px; }
+  .gpv-tab { min-width: 700px !important; }
+  .gpv-esito-mobile { display: block; margin-top: 5px; }
+  .gpv-esito-mobile .reg-pillola { font-size: 11.5px; padding: 2px 8px; white-space: nowrap; }
+  .gpv-esito-mobile .reg-pillola.media { padding-left: 0; color: var(--text2); }
+  .gpv-voce-prima { display: none; }
+  .gpv-titolo {
+    white-space: normal !important; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  /* Prodotti Google: la colonna del nome scorreva via col resto, e scorrendo
+     verso i numeri restava una striscia di cifre senza sapere di quale
+     prodotto fossero. Ora resta ferma a sinistra, come in Performance. */
+  .app-main table .gp-prodotto {
+    position: sticky; left: 0; z-index: 2;
+    width: 150px !important; max-width: 150px !important;
+    background: var(--surface, #0c0c0c);
+    box-shadow: 1px 0 0 var(--border);
+  }
+}
+
+/* La fascia che scorre deve dichiararlo: la barra resta visibile invece di
+   comparire solo mentre si trascina. */
+@media (max-width: 768px) {
+  .imbuto-scorrevole { padding-bottom: 6px; }
+  .imbuto-scorrevole::-webkit-scrollbar { height: 6px; }
+  .imbuto-scorrevole::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 6px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PERCHE' LA COLONNA DEL PRODOTTO NON RESTAVA FERMA.
+
+   Una regola della prima passata mobile rende OGNI tabella un blocco che
+   scorre per conto suo (display:block + overflow-x:auto). Dove la tabella e'
+   nuda serve, ma dove sta gia' dentro un contenitore che scorre produce un
+   effetto che non si vede finche' non si prova: la tabella diventa essa
+   stessa il riferimento dello scorrimento, e una cella "sticky" al suo
+   interno non ha piu' nulla a cui aggrapparsi. Risultato: la colonna del
+   prodotto scorreva via con i numeri, e scorrendo restava una striscia di
+   cifre senza sapere di quale prodotto fossero.
+
+   Marcata cosi', la tabella torna una tabella e a scorrere e' il contenitore
+   che la avvolge — che e' la condizione perche' la colonna resti ferma.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .app-main table.tabella-ferma {
+    display: table !important; overflow: visible !important;
+  }
+}

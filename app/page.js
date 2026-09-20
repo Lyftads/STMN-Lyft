@@ -1,15 +1,24 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 
 // anti-race fetchLive: la risposta di un preset vecchio non sovrascrive l'attivo
 let __liveKey = null
 import Icon from './components/ui/Icon'
-import { swrFetch, prefetch, getCached, invalidate } from '../lib/clientCache'
+import { swrFetch, prefetch, getCached, invalidate, leggi, inMemoria, precarica } from '../lib/clientCache'
 import { allowedTabsFor, ALL_TABS } from '../lib/team/roleTabs'
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import AppShell from './components/AppShell'
 import dynamicImport from 'next/dynamic'
 import LiveStatsCards from './components/LiveStatsCards'
+// La Dashboard nuova: in cima tre numeri e una frase, il globo con chi sta comprando adesso, e
+// sotto il comportamento dei clienti. Il resto e' passato in KPI Brain.
+import { rangeLabel } from './components/ui/BmTimeframe'
+import { globalPresetToTf } from '../lib/tfQuery'
+import SintesiDashboard from './components/SintesiDashboard'
+import BriefingMattino from './components/BriefingMattino'
+import { ComportamentoClienti, VenditePerProdotto } from './components/DashboardLive'
+import { TelemetriaGlobo, MossePilota } from './components/MissionControl'
+import DriveToStoreCard from './components/DriveToStoreCard'
 const DashboardGlobe = dynamicImport(() => import('./components/DashboardGlobe'), { ssr: false })
 import KPIBrainTab from './components/KPIBrainTab'
 import ClientiTab from './components/ClientiTab'
@@ -47,6 +56,9 @@ import LeadGenTab from './components/LeadGenTab'
 import GoogleKpiTab from './components/GoogleKpiTab'
 import GoogleDetailTab from './components/GoogleDetailTab'
 import GoogleProductsTab from './components/GoogleProductsTab'
+import GoogleVerdictsTab from './components/GoogleVerdictsTab'
+import PrezziTab from './components/PrezziTab'
+import CorrispettiviTab from './components/CorrispettiviTab'
 import GoogleLighthouseTab from './components/GoogleLighthouseTab'
 import GoogleBudgetAdvisorPanel from './components/GoogleBudgetAdvisorPanel'
 import LighthouseTab from './components/LighthouseTab'
@@ -2188,6 +2200,23 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────
+function QuandoFermo({ children, attesaMs = 1400 }) {
+  const [pronto, setPronto] = useState(false)
+  const rif = useRef(null)
+  useEffect(() => {
+    let vivo = true, oss = null, t = null
+    const vai = () => { if (vivo) setPronto(true) }
+    const quandoInVista = () => {
+      if (!rif.current || !('IntersectionObserver' in window)) return vai()
+      oss = new IntersectionObserver((e) => { if (e.some(x => x.isIntersecting)) { oss.disconnect(); (window.requestIdleCallback || ((f) => setTimeout(f, 1)))(vai, { timeout: 2000 }) } }, { rootMargin: '200px' })
+      oss.observe(rif.current)
+    }
+    t = setTimeout(quandoInVista, attesaMs)
+    return () => { vivo = false; clearTimeout(t); oss?.disconnect() }
+  }, [attesaMs])
+  return pronto ? children : <div ref={rif} style={{ width: '100%', height: '100%' }} aria-hidden="true" />
+}
+
 export default function App() {
   const { t, intlLocale } = useI18n()
   const [tab, setTab] = useState('dashboard')
@@ -2221,6 +2250,26 @@ export default function App() {
   const [weeks, setWeeks] = useState({})
   const [updated, setUpdated] = useState(null)
   const [preset, setPreset] = useState('today')
+  // Su «Oggi» il confronto giusto e' con IERI ALLA STESSA ORA: contro la giornata intera di ieri,
+  // alle quattro del pomeriggio il fatturato risulta sempre in calo.
+  const [stessaOra, setStessaOra] = useState(null)
+  useEffect(() => {
+    if (preset !== 'today') { setStessaOra(null); return }
+    let vivo = true
+    const carica = (forza) => leggi('/api/oggi-vs-ieri', { forza }).then(j => { if (vivo && j?.ok) setStessaOra(j) }).catch(() => {})
+    carica(false)
+    const giro = setInterval(() => { if (!document.hidden) carica(true) }, 10 * 60_000)
+    return () => { vivo = false; clearInterval(giro) }
+  }, [preset])
+  const heroLv = useRef(null)
+  useEffect(() => {
+    if (tab !== 'dashboard') return
+    const misura = () => { const e = heroLv.current, main = document.querySelector('.app-main'); if (!e || !main) return; const alto = Math.round(e.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop); e.style.setProperty('--lv-alto', `${alto}px`) }
+    misura(); const t1 = setTimeout(misura, 400), t2 = setTimeout(misura, 1500)
+    window.addEventListener('resize', misura)
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('resize', misura) }
+  }, [tab, loading])
+
   const [monthlyTF, setMonthlyTF] = useState('this_month')
   const [monthlyCustom, setMonthlyCustom] = useState({ since: '', until: '' })
   const [weeklyTF, setWeeklyTF] = useState('this_week')
@@ -2878,15 +2927,38 @@ export default function App() {
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14, position:'relative', zIndex:5 }}>
             <DownloadReportButton tab="Completo" preset={preset} />
           </div>
-          <div className="dash-live-hero">
-            <div className="dash-live-globe"><DashboardGlobe /></div>
-            <div className="dash-live-left">
-              <LiveStatsCards />
+          {/* In cima, una frase: com'e' andato il periodo. */}
+          <BriefingMattino />
+          {/* Il blocco in cima, in stile Live View: a destra il globo con chi sta comprando adesso e
+              la traiettoria del mese; a sinistra i tre numeri che contano (fatturato, spesa, MER),
+              le mosse che il pilota propone, chi e' sul sito, il comportamento dei clienti e i
+              prodotti piu' venduti. Le griglie di numeri restano sotto, dov'erano.
+              Su «Oggi» il confronto e' con IERI ALLA STESSA ORA: contro la giornata intera di ieri,
+              alle quattro del pomeriggio il fatturato risulterebbe sempre in calo. */}
+          <div className="dash-live-hero lv" ref={heroLv}>
+            <div className="dash-live-globe">
+              <div className="lv-globo-tela"><QuandoFermo><DashboardGlobe /></QuandoFermo></div>
+              <TelemetriaGlobo />
+            </div>
+            <div className="dash-live-left lv-colonna">
+              <SintesiDashboard t={t}
+                stessaOra={preset === 'today' ? stessaOra : null}
+                periodo={rangeLabel(globalPresetToTf(preset), t, intlLocale)}
+                fatturato={totFat} spesa={totSpend} mer={avgMER} ordini={totOrd}
+                prima={{ fatturato: prevTotals.revenue, spesa: (prevTotals.metaSpend || 0) + (prevTotals.googleSpend || 0) }} />
+              <MossePilota />
+              <LiveStatsCards solo="visitatori" />
+              <ComportamentoClienti since={kpiRange?.since} until={kpiRange?.until} t={t} />
+              <LiveStatsCards solo="sedi" since={kpiRange?.since} until={kpiRange?.until} />
+              <VenditePerProdotto righe={live?.shopifyTopProducts} t={t} />
               <div className="reveal-zoom" style={{marginBottom:24}}>
                 <RatioWidget ratio={avgRatio} mer={avgMER} />
               </div>
             </div>
           </div>
+          {/* Le campagne che portano gente in negozio: fuori da ROAS e MER, mostrate a parte.
+              Si spegne da sola per chi non ha negozi fisici (la route risponde "non attivo"). */}
+          <DriveToStoreCard preset={preset} />
 
           <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0, 1fr))',gap:14,marginBottom:20}}>
             <Stat label={t('dash.revenue', null, 'Fatturato')} value={totFat>0?f0(totFat):'—'} sources={['shopify']}
@@ -4215,6 +4287,21 @@ export default function App() {
 
 {tab === 'googleProducts' && (
   <GoogleProductsTab />
+)}
+
+{tab === 'googleVerdicts' && (
+  <GoogleVerdictsTab />
+)}
+
+{/* Prezzi: esiste solo per chi vende marchi di altri. La route risponde "non attiva" a un
+    monomarca, e la voce sparisce dal menu; qui si monta comunque, cosi' chi ci arriva da un
+    collegamento diretto vede la spiegazione invece di una pagina bianca. */}
+{tab === 'prezzi' && (
+  <PrezziTab />
+)}
+
+{tab === 'corrispettivi' && (
+  <CorrispettiviTab />
 )}
 
 {tab === 'googleLighthouse' && (

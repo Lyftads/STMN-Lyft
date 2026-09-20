@@ -11,6 +11,46 @@ const SEV_CFG = {
   info:    { color: '#2997ff', bg: 'rgba(41,151,255,0.10)', border: 'rgba(41,151,255,0.25)', icon: 'ⓘ' },
 }
 
+// Lo stesso lavoro della campanella, ma senza disegnare niente: serve ai pezzi nuovi che mostrano
+// gli avvisi altrove (la capsula nella testata, il profilo). Il fork aveva SOSTITUITO la campanella
+// con questo; qui la campanella serve ancora, quindi l'hook si AGGIUNGE e il componente resta.
+export function useAlerts() {
+  const [alerts, setAlerts] = useState([])
+  const [counts, setCounts] = useState({ urgent: 0, warning: 0, info: 0, total: 0 })
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(() => {
+    fetch('/api/alerts')
+      .then(r => r.json())
+      .then(j => {
+        if (!j?.error) {
+          setAlerts(Array.isArray(j.alerts) ? j.alerts : [])
+          setCounts(j.counts || { urgent: 0, warning: 0, info: 0, total: 0 })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, 5 * 60_000) // refresh ogni 5 min
+    return () => clearInterval(interval)
+  }, [load])
+
+  const dismiss = async (id) => {
+    await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'dismiss' }),
+    })
+    setAlerts(prev => prev.filter(a => a.id !== id))
+    setCounts(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }))
+  }
+
+  return { alerts, counts, loading, dismiss }
+}
+
 export default function AlertsBell() {
   const [open, setOpen] = useState(false)
   const [alerts, setAlerts] = useState([])

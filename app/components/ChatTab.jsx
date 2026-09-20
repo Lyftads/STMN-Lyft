@@ -1,29 +1,33 @@
 'use client'
 
+import { avvisa } from '../../lib/client/avviso'
 import { Fragment, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Avatar from './Avatar'
-import ProfileModal from './ProfileModal'
+import ProfiloPopup from './ProfiloPopup'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
+// La call 1:1 con un agente della Squadra AI: qui il prodotto e' multi-cliente
+// e gli agenti fanno parte della chat, quindi il componente resta montato.
 import AgentCall from './AgentCall'
+import Avvisi from './ui/Avvisi'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const SQUAD_AGENTS = [
-  { id: 'ceo', name: 'Chiara', role: 'CEO', color: '#7c5cff', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#30d158', emoji: '📊', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { id: 'ceo', name: 'Chiara', role: 'CEO', color: 'var(--accent)', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#22c55e', emoji: '📊', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
   { id: 'cmo', name: 'Luigi', role: 'CMO', color: '#2997ff', emoji: '🎯', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
-  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ff453a', emoji: '🚀', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ef4444', emoji: '🚀', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
   { id: 'seo', name: 'Davide', role: 'SEO Specialist', color: '#ffd60a', emoji: '🔍', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
-  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: '#bf5af2', emoji: '🧪', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
-  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: '#64d2ff', emoji: '📈', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
-  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#ff9f0a', emoji: '🎨', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: 'var(--accent)', emoji: '🧪', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
+  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: 'var(--text)', emoji: '📈', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
+  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#f59e0b', emoji: '🎨', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
 ]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
-const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 10, padding: '10px 12px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%', outline: 'none', resize: 'none' }
-const BTN = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: 'var(--text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
-const MUTED = '#8b8b9a'
+const FIELD = { background: 'var(--surface, rgba(10,10,18,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.10))', borderRadius: 12, padding: '10px 12px', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', width: '100%', outline: 'none', resize: 'none' }
+const BTN = { background: 'var(--btn-primario)', border: 'none', borderRadius: 12, padding: '0 16px', height: 38, color: 'var(--btn-primario-testo)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
+const MUTED = '#8c8c8c'
 const EMOJIS = [
   '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
   '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️',
@@ -45,7 +49,7 @@ const REAZIONI_AL_VOLO = ['✅', '👀', '🙌']
 
 function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 function highlightComposer(text) {
-  return escHtml(text).replace(/(^|\s)(@[\p{L}\w.\-]+)/gu, '$1<span style="color:#7b9cff;font-weight:700">$2</span>').replace(/\n/g, '<br>')
+  return escHtml(text).replace(/(^|\s)(@[\p{L}\w.\-]+)/gu, '$1<span style="color:#7b9cff;font-weight:600">$2</span>').replace(/\n/g, '<br>')
 }
 
 // `initialChannelId` apre direttamente un canale (la tab Chat di un progetto
@@ -117,6 +121,8 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const linkSelRef = useRef({ s: 0, e: 0 })
 
   // Roster agenti AI → mappa tag→foto, per mostrare le foto profilo in chat.
+  // Senza questa chiamata gli agenti non compaiono da nessuna parte: niente foto
+  // sui loro messaggi, niente voce nel menu @, niente elenco "Squadra AI".
   useEffect(() => {
     fetch('/api/team-agent', { cache: 'no-store' }).then(r => r.json()).then(d => {
       const map = {}
@@ -278,14 +284,14 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   async function deleteChannel(c) {
     if (!confirm(tr('ch.deleteConfirm', { name: c.name }, `Eliminare il canale "${c.name}"? I messaggi non si recuperano.`))) return
     const r = await fetch(`/api/channels?id=${c.id}`, { method: 'DELETE' }).then(x => x.json()).catch(() => ({ ok: false }))
-    if (!r?.ok) { alert(r?.error || tr('ch.deleteFailed', null, 'Eliminazione non riuscita.')); return }
+    if (!r?.ok) { avvisa(r?.error || tr('ch.deleteFailed', null, 'Eliminazione non riuscita.'), 'errore'); return }
     setChannels(prev => prev.filter(x => x.id !== c.id))
     if (active === c.id) setActive(null)
   }
 
   async function createChannel({ name, is_private, member_ids, externals }) {
     const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, is_private, member_ids }) }).then(x => x.json())
-    if (!r.ok || !r.channel) { alert(r.error || tr('ch.errCreateChannel', null, 'Channel creation error')); return }
+    if (!r.ok || !r.channel) { avvisa(r.error || tr('ch.errCreateChannel', null, 'Channel creation error'), 'errore'); return }
     setChannels(prev => prev.some(c => c.id === r.channel.id) ? prev : [...prev, r.channel])
     setActive(r.channel.id); setShowNewChannel(false)
     if (externals && externals.length) {
@@ -315,7 +321,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       if (inv.member) setManageMemberIds(prev => [...new Set([...prev, inv.member.id])])
       reloadMembers()
       alert(inv.emailSent ? tr('ch.inviteSentTo', { email }, 'Invite sent to {email}') : tr('ch.accountCreatedFor', { email, password: inv.tempPassword || '—' }, 'Account created for {email}. Temporary password: {password}'))
-    } else alert(inv.error || tr('ch.errInvite', null, 'Invite error'))
+    } else avvisa(inv.error || tr('ch.errInvite', null, 'Invite error'), 'errore')
   }
 
   async function openDM(member) {
@@ -373,11 +379,11 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
         const fd = new FormData(); fd.append('file', blob, 'audio.webm')
         const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
         if (up.ok && up.url) await pushMessage({ channel_id: active, body: '🎤 ' + tr('ch.voiceMessage', null, 'Voice message'), audio_url: up.url })
-        else alert(tr('ch.audioUploadFailed', null, 'Audio upload failed'))
+        else avvisa(tr('ch.audioUploadFailed', null, 'Audio upload failed'), 'errore')
       }
       recRef.current = mr; mr.start(); setRecording(true); setRecSeconds(0)
       recTimerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000)
-    } catch { alert(tr('ch.micUnavailable', null, 'Microphone unavailable or permission denied')) }
+    } catch { avvisa(tr('ch.micUnavailable', null, 'Microphone unavailable or permission denied'), 'errore') }
   }
   function stopRec() { recCancelRef.current = false; try { recRef.current && recRef.current.stop() } catch {}; setRecording(false) }
   function cancelRec() { recCancelRef.current = true; try { recRef.current && recRef.current.stop() } catch {}; clearInterval(recTimerRef.current); setRecording(false) }
@@ -420,7 +426,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
     const fd = new FormData(); fd.append('file', f)
     const up = await fetch('/api/chat-upload', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({}))
     if (up.ok && up.url) await pushMessage({ channel_id: active, body: '', file_url: up.url, file_name: up.name, file_type: up.type || f.type })
-    else alert(up.error || 'Upload fallito')
+    else avvisa(up.error || 'Upload fallito', 'errore')
   }
 
   function openThread(m) {
@@ -465,7 +471,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   async function forwardTo(member, msg) {
     setForwardMsg(null)
     const r = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dm: true, target_id: member.id }) }).then(x => x.json()).catch(() => ({}))
-    if (!r.ok || !r.channel) { alert(tr('ch.error', null, 'Error')); return }
+    if (!r.ok || !r.channel) { avvisa(tr('ch.error', null, 'Error'), 'errore'); return }
     setChannels(prev => prev.some(c => c.id === r.channel.id) ? prev : [...prev, r.channel])
     const body = `↪︎ ${tr('ch.forwardedPrefix', null, 'Forwarded')}:\n${msg.body || (msg.audio_url ? '🎤 ' + tr('ch.voiceMessage', null, 'Voice message') : '')}`
     await fetch('/api/channel-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel_id: r.channel.id, body, audio_url: msg.audio_url || null }) })
@@ -495,7 +501,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   }
   function saveLink() {
     let url = linkUrl.trim()
-    if (!url) { alert(tr('ch.enterLink', null, 'Enter the link')); return }
+    if (!url) { avvisa(tr('ch.enterLink', null, 'Enter the link'), 'errore'); return }
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
     const label = linkText.trim() || url
     const { s, e } = linkSelRef.current
@@ -536,8 +542,8 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
         <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url || agentAvatars[m.author_name]} size={30} online={mem ? isOnline(mem) : undefined} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 12.5, color: MUTED }}><b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
-          {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
+          <div style={{ fontSize: 13, color: MUTED }}><b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          {m.body && <div className="ch-corpo" style={{ fontSize: 15, color: '#e8e8e8', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
           {m.audio_url && <AudioMsg src={m.audio_url} />}
           {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
             ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt="" style={{ marginTop: 6, maxWidth: 240, borderRadius: 8, display: 'block' }} /></a>
@@ -547,12 +553,12 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
     )
   }
 
-  if (loading) return <div style={{ padding: 40, color: MUTED, fontFamily: 'Barlow' }}>{tr('ch.loadingChat', null, 'Loading chat…')}</div>
+  if (loading) return <div style={{ padding: 40, color: MUTED, fontFamily: 'inherit' }}>{tr('ch.loadingChat', null, 'Loading chat…')}</div>
 
-  const itemStyle = (on) => ({ padding: '7px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: on ? 700 : 500, color: on ? 'var(--text)' : '#c9c9d6', background: on ? 'rgba(123,91,255,0.16)' : 'transparent', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 })
+  const itemStyle = (on) => ({ padding: '7px 10px', borderRadius: 12, cursor: 'pointer', fontSize: 15, fontWeight: on ? 700 : 500, color: on ? 'var(--text)' : '#cacaca', background: on ? 'var(--neutro-bg)' : 'transparent', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 })
 
   return (
-    <div style={{ fontFamily: 'Barlow', color: 'var(--text)' }}>
+    <div className="chat-workspace" style={{ fontFamily: 'inherit', color: 'var(--text)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 16px', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="tipwrap" style={{ display: 'flex', gap: 8, position: 'relative' }}>
@@ -560,7 +566,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
             <button onClick={winMin} title={tr('ch.winMin', null, 'Minimize (exit full screen)')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#febc2e' }} />
             <button onClick={winFull} title={tr('ch.winFull', null, 'Full screen')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: '#28c840' }} />
           </div>
-          <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 700, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
+          <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600, letterSpacing: '.01em', display: 'flex', alignItems: 'center', gap: 9 }}><img src="/chat-192.png" alt="LyftTalk" style={{ width: 28, height: 28, borderRadius: 8 }} /> LyftTalk</h2>
         </div>
         {!standalone && <a href="/chat" target="_blank" rel="noopener" style={{ ...BTN, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: 13 }}>↗ {tr('ch.openAsApp', null, 'Open as app')}</a>}
       </div>
@@ -577,13 +583,13 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
         <aside className="m-chanlist" style={{ ...PANEL, display: hideSidebar ? 'none' : 'flex', width: 248, flexShrink: 0, padding: 10, flexDirection: 'column' }}>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {rail === 'home' && (<>
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.channels', null, 'Channels')}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.channels', null, 'Channels')}</div>
               {groupChannels.map(c => (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)} className="ch-row"
                   onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMsgMenu(null); setChanMenu({ x: e.clientX, y: e.clientY, c, label: c.name }) }}>
                   <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : (active === c.id ? 700 : 500), color: channelUnread(c) ? 'var(--text)' : undefined }}>{c.name}</span>
-                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 6, background: 'var(--accent)' }} />}
                   {!c.project_id && (
                     <span className="ch-del" role="button" title={tr('ch.delete', null, 'Elimina canale')}
                       onClick={(e) => { e.stopPropagation(); deleteChannel(c) }}
@@ -593,73 +599,74 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                   )}
                 </div>
               ))}
-              <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, padding: '7px', color: 'var(--text)', cursor: 'pointer', fontSize: 12, fontFamily: 'Barlow', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ {tr('ch.newChannel', null, 'New channel')}</button>
-              {dmChannels.length > 0 && <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.directMessages', null, 'Direct messages')}</div>}
+              <button style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 12, padding: '7px', color: 'var(--text)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', width: '100%', marginTop: 6 }} onClick={() => setShowNewChannel(true)}>+ {tr('ch.newChannel', null, 'New channel')}</button>
+              {dmChannels.length > 0 && <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.directMessages', null, 'Direct messages')}</div>}
               {dmChannels.map(c => { const o = dmOther(c); return (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}
                   onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMsgMenu(null); setChanMenu({ x: e.clientX, y: e.clientY, c, label: o?.full_name || o?.email || tr('ch.direct', null, 'Direct') }) }}>
                   <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: channelUnread(c) ? 800 : undefined }}>{o?.full_name || o?.email || tr('ch.direct', null, 'Direct')}</span>
-                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 6, background: 'var(--accent)' }} />}
                 </div>
               ) })}
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.peopleOnline', { count: members.filter(isOnline).length }, 'People · {count} online')}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.peopleOnline', { count: members.filter(isOnline).length }, 'People · {count} online')}</div>
               {members.filter(m => m.id !== me?.memberId).map(mem => (
-                <div key={mem.id} onClick={() => openDM(mem)} title={tr('ch.directMessage', null, 'Direct message')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10, cursor: 'pointer' }}>
+                <div key={mem.id} onClick={() => openDM(mem)} title={mem.bio ? `${mem.full_name || mem.email} — ${mem.bio}` : tr('ch.directMessage', null, 'Direct message')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 12, cursor: 'pointer' }}>
                   <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={26} online={isOnline(mem)} />
-                  <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ` · ${tr('ch.guest', null, 'guest')}` : ''}</span>
+                  {/* Il soprannome scelto nel profilo vale anche per i colleghi; "chi sei" esce passandoci sopra. */}
+                  <span style={{ fontSize: 13, color: '#cacaca', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.nickname || mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ` · ${tr('ch.guest', null, 'guest')}` : ''}</span>
                 </div>
               ))}
               {agentMembers.length > 0 && (<>
-                <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.teamAI', { count: agentMembers.length }, 'AI Team · {count}')}</div>
+                <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.teamAI', { count: agentMembers.length }, 'AI Team · {count}')}</div>
                 {agentMembers.map(a => (
-                  <div key={a.id} title={tr('ch.mentionWith', { name: a.full_name }, 'Mention with @{name}')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10 }}>
+                  <div key={a.id} title={tr('ch.mentionWith', { name: a.full_name }, 'Mention with @{name}')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 12 }}>
                     <Avatar name={a.full_name} url={a.avatar_url} size={26} online={true} />
-                    <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.full_name} <span style={{ color: MUTED, fontSize: 11 }}>· {a.role}</span> <span style={{ color: '#a78bfa', fontSize: 10 }}>AI</span></span>
+                    <span style={{ fontSize: 13, color: '#cacaca', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.full_name} <span style={{ color: MUTED, fontSize: 11.5 }}>· {a.role}</span> <span style={{ color: '#a78bfa', fontSize: 10 }}>AI</span></span>
                   </div>
                 ))}
               </>)}
             </>)}
 
             {rail === 'dms' && (<>
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.directMessages', null, 'Direct messages')}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.directMessages', null, 'Direct messages')}</div>
               {dmChannels.map(c => { const o = dmOther(c); return (
                 <div key={c.id} onClick={() => setActive(c.id)} style={itemStyle(active === c.id)}>
                   <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o?.full_name || o?.email || tr('ch.direct', null, 'Direct')}</span>
-                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />}
+                  {channelUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 6, background: 'var(--accent)' }} />}
                 </div>
               ) })}
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.startConversation', null, 'Start a conversation')}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.startConversation', null, 'Start a conversation')}</div>
               {members.filter(m => m.id !== me?.memberId).map(mem => (
-                <div key={mem.id} onClick={() => openDM(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 10, cursor: 'pointer' }}>
+                <div key={mem.id} onClick={() => openDM(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 12, cursor: 'pointer' }}>
                   <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={26} online={isOnline(mem)} />
-                  <span style={{ fontSize: 13, color: '#c9c9d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}</span>
+                  <span style={{ fontSize: 13, color: '#cacaca', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.full_name || mem.email}</span>
                 </div>
               ))}
             </>)}
 
             {rail === 'unread' && (<>
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.unread', null, 'Unread')} · {unreadList.length}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.unread', null, 'Unread')} · {unreadList.length}</div>
               {unreadList.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>{tr('ch.allRead', null, 'All read 🎉')}</div> : unreadList.map(c => { const o = c.is_dm ? dmOther(c) : null; return (
                 <div key={c.id} onClick={() => { setActive(c.id); setRail('home') }} style={itemStyle(false)}>
                   {c.is_dm ? <Avatar name={o?.full_name || o?.email} url={o?.avatar_url} size={22} online={o ? isOnline(o) : undefined} /> : <span style={{ opacity: 0.6, display: 'inline-flex' }}>{c.is_private ? <Icon name="lock" size={12} /> : '#'}</span>}
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800, color: 'var(--text)' }}>{c.is_dm ? (o?.full_name || o?.email || tr('ch.direct', null, 'Direct')) : c.name}</span>
-                  <span style={{ width: 8, height: 8, borderRadius: 4, background: '#7b5bff' }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 640, color: 'var(--text)' }}>{c.is_dm ? (o?.full_name || o?.email || tr('ch.direct', null, 'Direct')) : c.name}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: 6, background: 'var(--accent)' }} />
                 </div>
               ) })}
             </>)}
 
             {rail === 'files' && (<>
-              <div style={{ fontSize: 10.5, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.sharedFiles', null, 'Shared files')}</div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '6px 8px' }}>{tr('ch.sharedFiles', null, 'Shared files')}</div>
               {allFiles.length === 0 ? <div style={{ color: MUTED, fontSize: 13, padding: 12 }}>{tr('ch.noFiles', null, 'No files.')}</div> : allFiles.map(f => {
                 const isImg = (/^image\//.test(f.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''))
                 return (
-                  <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, textDecoration: 'none', color: 'var(--text)' }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 7, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 15 }}>{f.audio_url ? <Icon name="mic" size={16} /> : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}</div>
+                  <a key={f.id} href={f.file_url || f.audio_url} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 12, textDecoration: 'none', color: 'var(--text)' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 15 }}>{f.audio_url ? <Icon name="mic" size={16} /> : (isImg ? <img src={f.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.audio_url ? tr('ch.voice', null, 'Voice') : (f.file_name || tr('ch.attachment', null, 'Attachment'))}</div>
-                      <div style={{ fontSize: 11, color: MUTED }}>#{f.channel_name} · {f.author_name || ''}</div>
+                      <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.audio_url ? tr('ch.voice', null, 'Voice') : (f.file_name || tr('ch.attachment', null, 'Attachment'))}</div>
+                      <div style={{ fontSize: 11.5, color: MUTED }}>#{f.channel_name} · {f.author_name || ''}</div>
                     </div>
                   </a>
                 )
@@ -670,17 +677,17 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
           <div onClick={() => setShowProfile(true)} title={tr('ch.editProfile', null, 'Edit profile')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px', borderTop: '1px solid var(--border, rgba(255,255,255,0.08))', marginTop: 8, cursor: 'pointer' }}>
             <Avatar name={profile?.full_name || profile?.email} url={profile?.avatar_url} size={32} online />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name || tr('ch.myProfile', null, 'My profile')}</div>
-              <div style={{ fontSize: 11, color: '#7b5bff' }}>{tr('ch.editProfile', null, 'Edit profile')}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name || tr('ch.myProfile', null, 'My profile')}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--accent)' }}>{tr('ch.editProfile', null, 'Edit profile')}</div>
             </div>
           </div>
         </aside>
 
         {/* Conversazione */}
-        <div style={{ ...PANEL, flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="chat-conversation" style={{ ...PANEL, flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 600, fontFamily: 'inherit', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {activeChannel?.is_dm
                   ? <><Avatar name={channelLabel(activeChannel)} url={dmOther(activeChannel)?.avatar_url} size={24} online={isOnline(dmOther(activeChannel))} /> {channelLabel(activeChannel)}</>
                   : (active ? <>{activeChannel?.is_private ? <Icon name="lock" size={13} /> : '#'} {activeName(activeChannel)}</> : tr('ch.selectConversation', null, 'Select a conversation'))}
@@ -688,7 +695,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
               {active && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[['messages', tr('ch.messages', null, 'Messages')], ['files', tr('ch.files', null, 'Files')]].map(([v, l]) => (
-                    <button key={v} onClick={() => setChannelView(v)} style={{ background: channelView === v ? 'rgba(123,91,255,0.16)' : 'transparent', border: 'none', borderRadius: 8, padding: '5px 10px', color: channelView === v ? 'var(--text)' : MUTED, cursor: 'pointer', fontSize: 13, fontWeight: channelView === v ? 700 : 500, fontFamily: 'Barlow' }}>{l}</button>
+                    <button key={v} onClick={() => setChannelView(v)} style={{ background: channelView === v ? 'var(--neutro-bg)' : 'transparent', border: 'none', borderRadius: 8, padding: '5px 10px', color: channelView === v ? 'var(--text)' : MUTED, cursor: 'pointer', fontSize: 13, fontWeight: channelView === v ? 700 : 500, fontFamily: 'inherit' }}>{l}</button>
                   ))}
                 </div>
               )}
@@ -709,24 +716,27 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                 {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title={tr('ch.membersAdd', null, 'Members · add people')}><Icon name="users" size={16} /></HBtn>}
                 <div style={{ position: 'relative' }}>
                   <button type="button" onClick={() => setSquadPicker(o => !o)} title={tr('ch.callSquadTitle', null, 'Call an AI Squad agent')}
-                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(124,92,255,0.16)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name="phone" size={14} />{tr('ch.squadAI', null, 'AI Squad')}</button>
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--neutro-bg)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}><Icon name="phone" size={14} />{tr('ch.squadAI', null, 'AI Squad')}</button>
                   {squadPicker && (
                     <>
                       <div onClick={() => setSquadPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                       <div style={{ position: 'absolute', top: 40, right: 0, ...PANEL, background: 'rgba(16,16,24,0.98)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)', padding: 8, width: 290, maxHeight: 380, overflowY: 'auto', zIndex: 41 }}>
                         <div style={{ padding: '6px 8px 8px' }}>
-                          <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13 }}>{tr('ch.callSquad', null, 'Call the AI Squad')}</div>
+                          <div style={{ color: 'var(--text)', fontWeight: 640, fontSize: 13 }}>{tr('ch.callSquad', null, 'Call the AI Squad')}</div>
                           <div style={{ color: MUTED, fontSize: 11.5, marginTop: 2 }}>{tr('ch.chooseAgent', null, 'Choose an agent. The call is 1:1, one agent at a time.')}</div>
                         </div>
                         {SQUAD_AGENTS.map(a => (
                           <button key={a.id} type="button"
                             onClick={() => { setCallAgent(a); setSquadPicker(false) }}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px', background: 'transparent', border: 'none', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px', background: 'transparent', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <img src={a.avatar} alt={a.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${a.color}55` }} />
+                            {/* Bordo neutro: le tinte degli agenti ora sono var()
+                                e "var(--accent)55" non e' un colore valido — il
+                                cerchio spariva senza dire niente. */}
+                            <img src={a.avatar} alt={a.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border, rgba(255,255,255,0.14))' }} />
                             <span style={{ minWidth: 0 }}>
-                              <span style={{ display: 'block', color: 'var(--text)', fontWeight: 700, fontSize: 13 }}>{a.name}</span>
+                              <span style={{ display: 'block', color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{a.name}</span>
                               <span style={{ display: 'block', color: MUTED, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</span>
                             </span>
                             <Icon name="phone" size={15} style={{ marginLeft: 'auto', color: a.color }} />
@@ -757,8 +767,8 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
               const dayLabel = new Date(m.created_at).toLocaleDateString(intlLocale, { weekday: 'long', day: 'numeric', month: 'long' })
               return (
                 <Fragment key={m.id}>
-                {showDay && <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 8px' }}><span style={{ fontSize: 12, color: '#c9c9d6', background: 'rgba(20,20,30,0.7)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, padding: '3px 14px', fontWeight: 700 }}>{dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}</span></div>}
-                {firstUnreadId === m.id && unreadCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 8px' }}><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /><span style={{ fontSize: 11.5, color: '#ff5a7a', fontWeight: 700, whiteSpace: 'nowrap' }}>{tr('ch.newMessages', { count: unreadCount }, '{count} new messages')}</span><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /></div>}
+                {showDay && <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 8px' }}><span className="ch-giorno" style={{ fontSize: 13, color: 'var(--text2)', background: 'var(--surface2, var(--glass))', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, padding: '3px 14px', fontWeight: 600 }}>{dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}</span></div>}
+                {firstUnreadId === m.id && unreadCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 8px' }}><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /><span style={{ fontSize: 11.5, color: '#ef4444', fontWeight: 600, whiteSpace: 'nowrap' }}>{tr('ch.newMessages', { count: unreadCount }, '{count} new messages')}</span><div style={{ flex: 1, height: 1, background: 'rgba(255,90,122,0.4)' }} /></div>}
                 <div className="chat-row"
                   onClick={() => setActionsFor(actionsFor === m.id ? null : m.id)}
                   onContextMenu={e => {
@@ -769,44 +779,44 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     setMenuFor(null); setChanMenu(null)
                     setMsgMenu({ x: e.clientX, y: e.clientY, m, mine })
                   }}
-                  style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 10 }}>
+                  style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 12 }}>
                   <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url || agentAvatars[m.author_name]} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      {m.pinned && <span style={{ marginLeft: 6, color: '#7b5bff', fontWeight: 600 }}><Icon name="pin" size={11} /> {tr('ch.pinned', null, 'pinned')}</span>}
+                      {m.pinned && <span style={{ marginLeft: 6, color: 'var(--accent)', fontWeight: 600 }}><Icon name="pin" size={11} /> {tr('ch.pinned', null, 'pinned')}</span>}
                     </div>
                     {m.reply_excerpt && (
-                      <div style={{ borderLeft: '2px solid #7b5bff', padding: '2px 8px', margin: '3px 0', color: MUTED, fontSize: 12.5, background: 'rgba(123,91,255,0.07)', borderRadius: '0 6px 6px 0' }}>
-                        ↩︎ <b style={{ color: '#b9b9c8' }}>{m.reply_author || ''}</b>: {m.reply_excerpt}
+                      <div style={{ borderLeft: '2px solid #7b5bff', padding: '2px 8px', margin: '3px 0', color: MUTED, fontSize: 13, background: 'var(--neutro-bg)', borderRadius: '0 6px 6px 0' }}>
+                        ↩︎ <b style={{ color: '#bababa' }}>{m.reply_author || ''}</b>: {m.reply_excerpt}
                       </div>
                     )}
-                    {m.body && <div style={{ fontSize: 14, color: '#e7e7ef', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
+                    {m.body && <div className="ch-corpo" style={{ fontSize: 15, color: '#e8e8e8', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
                     {m.audio_url && <AudioMsg src={m.audio_url} />}
                     {m.file_url && ((/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
-                      ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 10, display: 'block' }} /></a>
-                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 10, color: 'var(--text)', textDecoration: 'none', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || tr('ch.attachment', null, 'Attachment')}</a>
+                      ? <a href={m.file_url} target="_blank" rel="noopener"><img src={m.file_url} alt={m.file_name || ''} style={{ marginTop: 6, maxWidth: 280, maxHeight: 220, borderRadius: 12, display: 'block' }} /></a>
+                      : <a href={m.file_url} target="_blank" rel="noopener" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 12, color: 'var(--text)', textDecoration: 'none', fontSize: 13 }}><Icon name="paperclip" size={14} /> {m.file_name || tr('ch.attachment', null, 'Attachment')}</a>
                     )}
                     {Object.keys(reactions).length > 0 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                         {Object.entries(reactions).map(([em, ids]) => (
-                          <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'var(--glass2)', borderRadius: 12, padding: '1px 8px', fontSize: 12.5, color: 'var(--text)', cursor: 'pointer', border: (ids || []).includes(me?.memberId) ? '1px solid #7b5bff' : '1px solid var(--border, rgba(255,255,255,0.12))' }}>{em} {(ids || []).length}</button>
+                          <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'var(--glass2)', borderRadius: 12, padding: '1px 8px', fontSize: 13, color: 'var(--text)', cursor: 'pointer', border: (ids || []).includes(me?.memberId) ? '1px solid #7b5bff' : '1px solid var(--border, rgba(255,255,255,0.12))' }}>{em} {(ids || []).length}</button>
                         ))}
                       </div>
                     )}
                     {m.reply_count > 0 && (
-                      <div onClick={() => openThread(m)} style={{ marginTop: 5, color: '#7b9cff', fontSize: 12.5, cursor: 'pointer', fontWeight: 600 }}><Icon name="chat" size={12} /> {m.reply_count} {m.reply_count === 1 ? tr('ch.replyOne', null, 'reply') : tr('ch.replyMany', null, 'replies')}</div>
+                      <div onClick={() => openThread(m)} style={{ marginTop: 5, color: '#7b9cff', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}><Icon name="chat" size={12} /> {m.reply_count} {m.reply_count === 1 ? tr('ch.replyOne', null, 'reply') : tr('ch.replyMany', null, 'replies')}</div>
                     )}
                     {reactFor === m.id && (
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, ...PANEL, padding: 4, width: 'fit-content' }}>
-                        {QUICK_REACTIONS.map(em => <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 }}>{em}</button>)}
+                        {QUICK_REACTIONS.map(em => <button key={em} onClick={() => toggleReaction(m.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, padding: 2 }}>{em}</button>)}
                       </div>
                     )}
                   </div>
-                  <div className={`chat-actions${actionsFor === m.id ? ' show' : ''}`} onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: -10, right: 10, display: 'flex', gap: 1, background: 'rgba(24,24,36,0.98)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: 3, backdropFilter: 'blur(8px)', zIndex: 6 }}>
+                  <div className={`chat-actions${actionsFor === m.id ? ' show' : ''}`} onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: -10, right: 10, display: 'flex', gap: 1, background: 'rgba(24,24,36,0.98)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 12, padding: 3, backdropFilter: 'blur(8px)', zIndex: 6 }}>
                     {REAZIONI_AL_VOLO.map(em => (
                       <button key={em} type="button" title={em} onClick={() => toggleReaction(m.id, em)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, lineHeight: 1, width: 28, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, lineHeight: 1, width: 28, height: 28, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{em}</button>
                     ))}
@@ -814,7 +824,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     <ActBtn title={tr('ch.addReaction', null, 'Add reaction')} onClick={() => setReactFor(reactFor === m.id ? null : m.id)}><Icon name="smile" /></ActBtn>
                     <ActBtn title={tr('ch.replyInThread', null, 'Reply in thread')} onClick={() => openThread(m)}><Icon name="reply" /></ActBtn>
                     <ActBtn title={tr('ch.forwardMessage', null, 'Forward message')} onClick={() => setForwardMsg(m)}><Icon name="forward" /></ActBtn>
-                    <ActBtn title={savedIds.includes(m.id) ? tr('ch.unsave', null, 'Remove from saved') : tr('ch.save', null, 'Save message')} onClick={() => toggleSave(m)}><span style={{ color: savedIds.includes(m.id) ? '#7b5bff' : 'inherit' }}><Icon name="bookmark" /></span></ActBtn>
+                    <ActBtn title={savedIds.includes(m.id) ? tr('ch.unsave', null, 'Remove from saved') : tr('ch.save', null, 'Save message')} onClick={() => toggleSave(m)}><span style={{ color: savedIds.includes(m.id) ? 'var(--accent)' : 'inherit' }}><Icon name="bookmark" /></span></ActBtn>
                     <div style={{ position: 'relative' }}>
                       <ActBtn title={tr('ch.moreActions', null, 'More actions')} onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}><Icon name="more" /></ActBtn>
                       {menuFor === m.id && (
@@ -841,12 +851,12 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     const mem = memberMap[m.author_id]
                     const isImg = (/^image\//.test(m.file_type || '') || /\.(png|jpe?g|webp|gif)$/i.test(m.file_name || ''))
                     return (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 10 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 18 }}>
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 12 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--glass)', fontSize: 17 }}>
                           {m.audio_url ? <Icon name="mic" size={18} /> : (isImg ? <img src={m.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="paperclip" size={16} />)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? tr('ch.voiceMessage', null, 'Voice message') : (m.file_name || tr('ch.attachment', null, 'Attachment'))}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.audio_url ? tr('ch.voiceMessage', null, 'Voice message') : (m.file_name || tr('ch.attachment', null, 'Attachment'))}</div>
                           <div style={{ fontSize: 11.5, color: MUTED }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')} · {new Date(m.created_at).toLocaleDateString(intlLocale)}</div>
                         </div>
                         <a href={m.file_url || m.audio_url} target="_blank" rel="noopener" style={{ color: '#7b9cff', fontSize: 13, textDecoration: 'none' }}>{tr('ch.open', null, 'Open')}</a>
@@ -861,19 +871,19 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
           {/* Composer a colonne */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))' }}>
             {replyTo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--neutro-bg)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 13 }}>
                 <span style={{ color: MUTED }}>↩︎ {tr('ch.replyToLabel', null, 'Reply to')} <b style={{ color: 'var(--text)' }}>{replyTo.author}</b>: {replyTo.excerpt.slice(0, 60)}</span>
-                <button onClick={() => setReplyTo(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 14 }}>×</button>
+                <button onClick={() => setReplyTo(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 15 }}>×</button>
               </div>
             )}
             {recording && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(123,91,255,0.12)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 12, padding: '8px 12px', marginBottom: 8 }}>
-                <span style={{ color: '#ff5a7a', fontSize: 13, animation: 'pulse 1s infinite' }}>●</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--neutro-bg)', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 12, padding: '8px 12px', marginBottom: 8 }}>
+                <span style={{ color: '#ef4444', fontSize: 13, animation: 'pulse 1s infinite' }}>●</span>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, flex: 1, height: 24, overflow: 'hidden' }}>
-                  {Array.from({ length: 32 }).map((_, i) => <span key={i} style={{ width: 3, borderRadius: 2, background: '#7b9cff', height: 5 + ((i * 7 + recSeconds * 5) % 19) }} />)}
+                  {Array.from({ length: 32 }).map((_, i) => <span key={i} style={{ width: 3, borderRadius: 6, background: '#7b9cff', height: 5 + ((i * 7 + recSeconds * 5) % 19) }} />)}
                 </div>
-                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: 13 }}>{Math.floor(recSeconds / 60)}:{String(recSeconds % 60).padStart(2, '0')}</span>
-                <button onClick={cancelRec} title={tr('ch.cancelRec', null, 'Cancel recording')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 18 }}>×</button>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: 13 }}>{Math.floor(recSeconds / 60)}:{String(recSeconds % 60).padStart(2, '0')}</span>
+                <button onClick={cancelRec} title={tr('ch.cancelRec', null, 'Cancel recording')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 17 }}>×</button>
                 <button onClick={stopRec} title={tr('ch.sendVoice', null, 'Send voice message')} style={{ ...BTN, width: 40, padding: 0 }}>✓</button>
               </div>
             )}
@@ -881,9 +891,11 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
               {showFmt && <FormatBar tr={tr} value={text} caret={caret} fmt={fmt} />}
               {/* Input con evidenziazione menzioni */}
               <div style={{ position: 'relative' }}>
-                <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: '#e7e7ef', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
+                <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', lineHeight: 1.45, color: '#e8e8e8', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
+                {/* Una riga sola per due cose che l'utente deve vedere subito:
+                    l'agente che sta pensando e l'invio fallito. */}
                 {(agentTyping || sendError) && (
-                  <div style={{ padding: '6px 14px', fontSize: 12, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ padding: '6px 14px', fontSize: 13, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     {sendError || tr('chat.agentTyping', null, 'L\'agente sta scrivendo…')}
                   </div>
                 )}
@@ -907,17 +919,17 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     }
                   }}
                   placeholder={activeChannel ? (activeChannel.is_dm ? tr('ch.msgTo', { name: channelLabel(activeChannel) }, 'Message {name}') : tr('ch.msgIn', { channel: `${activeChannel.is_private ? '🔒' : '#'}${activeChannel.name}` }, 'Message in {channel}')) + '…' : tr('ch.msgPlaceholder', null, 'Message…')}
-                  style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 14, fontFamily: 'Barlow', lineHeight: 1.45, color: 'transparent', caretColor: 'var(--text)' }}
+                  style={{ ...FIELD, position: 'relative', border: 'none', background: 'transparent', borderRadius: 0, minHeight: 44, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', lineHeight: 1.45, color: 'transparent', caretColor: 'var(--text)' }}
                 />
               </div>
               {/* Bottom row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', position: 'relative' }}>
-                <label className="tipwrap" style={{ position: 'relative', cursor: 'pointer', color: '#b9b9c8', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <label className="tipwrap" style={{ position: 'relative', cursor: 'pointer', color: '#bababa', width: 30, height: 28, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="plus" size={16} />
                   <Tip>{tr('ch.attachFile', null, 'Attach file')}</Tip>
                   <input type="file" hidden onChange={attachFile} accept="image/*,.pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt" />
                 </label>
-                <TB on={showFmt} onClick={() => setShowFmt(v => !v)} title={showFmt ? tr('ch.hideFormatting', null, 'Nascondi la formattazione') : tr('ch.showFormatting', null, 'Mostra la formattazione')}><span style={{ fontFamily: 'Barlow', fontWeight: 700, fontSize: 14 }}>Aa</span></TB>
+                <TB on={showFmt} onClick={() => setShowFmt(v => !v)} title={showFmt ? tr('ch.hideFormatting', null, 'Nascondi la formattazione') : tr('ch.showFormatting', null, 'Mostra la formattazione')}><span style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 15 }}>Aa</span></TB>
                 <TB onClick={recording ? stopRec : startRec} title={recording ? tr('ch.stopSendVoice', null, 'Stop and send voice') : tr('ch.voiceMessage', null, 'Voice message')}><Icon name={recording ? 'stop' : 'mic'} size={16} /></TB>
                 <TB onClick={() => { setEmojiOpen(o => !o); setMentionOpen(false) }} title={tr('ch.emoji', null, 'Emoji')}><Icon name="smile" size={16} /></TB>
                 <TB onClick={() => { setMentionOpen(o => !o); setEmojiOpen(false) }} title={tr('ch.mention', null, 'Mention')}><Icon name="at" size={16} /></TB>
@@ -926,18 +938,18 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                 {emojiOpen && (
                   <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid var(--border2)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 8, width: 320, zIndex: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, color: MUTED }}>{tr('ch.emoji', null, 'Emoji')}</span>
-                      <button onClick={() => setEmojiOpen(false)} title={tr('ch.close', null, 'Close')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                      <span style={{ fontSize: 13, color: MUTED }}>{tr('ch.emoji', null, 'Emoji')}</span>
+                      <button onClick={() => setEmojiOpen(false)} title={tr('ch.close', null, 'Close')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 17, lineHeight: 1 }}>×</button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2, maxHeight: 200, overflowY: 'auto' }}>
-                      {EMOJIS.map(em => <button key={em} onClick={() => { insertAtCursor(em); setEmojiOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>{em}</button>)}
+                      {EMOJIS.map(em => <button key={em} onClick={() => { insertAtCursor(em); setEmojiOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, padding: 4 }}>{em}</button>)}
                     </div>
                   </div>
                 )}
                 {mentionOpen && mentionList.length > 0 && (
                   <div style={{ position: 'absolute', bottom: 44, left: 8, ...PANEL, background: '#16161f', border: '1px solid var(--border2)', backdropFilter: 'none', boxShadow: '0 12px 40px rgba(0,0,0,0.55)', padding: 6, width: 240, maxHeight: 240, overflowY: 'auto', zIndex: 30 }}>
                     {mentionList.map(mem => (
-                      <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#c9c9d6' }}>
+                      <div key={mem.id} onClick={() => pickMention(mem)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#cacaca' }}>
                         <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={22} online={mem.isAgent ? true : isOnline(mem)} />
                         <span>{mem.full_name || mem.email}{mem.role ? <span style={{ color: MUTED, fontSize: 11.5 }}> · {mem.role}</span> : null}{mem.isAgent ? <span style={{ color: '#a78bfa', fontSize: 10, marginLeft: 4 }}>AI</span> : null}</span>
                       </div>
@@ -952,12 +964,12 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
         {threadRoot && (
           <div className="m-thread" style={{ ...PANEL, width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 700, fontFamily: 'Barlow Condensed', fontSize: 17 }}>{tr('ch.conversation', null, 'Thread')}</span>
-              <button onClick={() => setThreadRoot(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 20 }}>×</button>
+              <span style={{ fontWeight: 600, fontFamily: 'inherit', fontSize: 15 }}>{tr('ch.conversation', null, 'Thread')}</span>
+              <button onClick={() => setThreadRoot(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
               {miniMsg(threadRoot)}
-              <div style={{ fontSize: 12, color: MUTED, margin: '6px 0 8px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', paddingBottom: 8 }}>{threadMsgs.length} {threadMsgs.length === 1 ? tr('ch.replyOne', null, 'reply') : tr('ch.replyMany', null, 'replies')}</div>
+              <div style={{ fontSize: 13, color: MUTED, margin: '6px 0 8px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.08))', paddingBottom: 8 }}>{threadMsgs.length} {threadMsgs.length === 1 ? tr('ch.replyOne', null, 'reply') : tr('ch.replyMany', null, 'replies')}</div>
               {threadMsgs.map(miniMsg)}
             </div>
             {/* Anche qui si scrive, quindi anche qui si formatta: nel pannello
@@ -976,10 +988,10 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     if (fmtTh.scorciatoia(e)) return
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendThread() }
                   }}
-                  style={{ ...FIELD, border: 'none', background: 'transparent', borderRadius: 0, minHeight: 40, padding: '9px 11px', fontSize: 13.5, fontFamily: 'Barlow', lineHeight: 1.45, resize: 'none' }}
+                  style={{ ...FIELD, border: 'none', background: 'transparent', borderRadius: 0, minHeight: 40, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', lineHeight: 1.45, resize: 'none' }}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px' }}>
-                  <TB on={showFmt} onClick={() => setShowFmt(v => !v)} title={showFmt ? tr('ch.hideFormatting', null, 'Nascondi la formattazione') : tr('ch.showFormatting', null, 'Mostra la formattazione')}><span style={{ fontFamily: 'Barlow', fontWeight: 700, fontSize: 14 }}>Aa</span></TB>
+                  <TB on={showFmt} onClick={() => setShowFmt(v => !v)} title={showFmt ? tr('ch.hideFormatting', null, 'Nascondi la formattazione') : tr('ch.showFormatting', null, 'Mostra la formattazione')}><span style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 15 }}>Aa</span></TB>
                   <button onClick={sendThread} style={{ ...BTN, marginLeft: 'auto', width: 38, padding: 0 }} title={tr('ch.send', null, 'Invia')}><Icon name="send" size={16} /></button>
                 </div>
               </div>
@@ -1026,21 +1038,21 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       )}
 
       {showProfile && (
-        <ProfileModal profile={profile || { email: '' }} onClose={() => setShowProfile(false)} onSaved={(p) => { setProfile(p); setMembers(prev => prev.map(m => m.id === p.id ? { ...m, full_name: p.full_name, avatar_url: p.avatar_url } : m)) }} />
+        <ProfiloPopup onClose={() => setShowProfile(false)} onSaved={(p) => { setProfile(p); setMembers(prev => prev.map(m => m.id === p.id ? { ...m, full_name: p.full_name, avatar_url: p.avatar_url } : m)) }} />
       )}
       {showNewChannel && <NewChannelDialog members={members.filter(m => m.id !== me?.memberId)} onClose={() => setShowNewChannel(false)} onCreate={createChannel} />}
       {manageId && <ChannelMembersDialog channel={manageChannel} members={members} memberIds={manageMemberIds} onClose={() => setManageId(null)} onToggle={toggleChannelMember} onInvite={inviteExternalToChannel} />}
 
       {forwardMsg && (
-        <div onClick={() => setForwardMsg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'Barlow' }}>
+        <div onClick={() => setForwardMsg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'inherit' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(380px,100%)', padding: 16, maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 20, fontWeight: 700 }}>{tr('ch.forwardTo', null, 'Forward to…')}</h3>
+              <h3 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>{tr('ch.forwardTo', null, 'Forward to…')}</h3>
               <button onClick={() => setForwardMsg(null)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
             </div>
-            <div style={{ fontSize: 12.5, color: MUTED, borderLeft: '2px solid #7b5bff', paddingLeft: 8, marginBottom: 12 }}>{(forwardMsg.body || ('🎤 ' + tr('ch.voice', null, 'voice'))).slice(0, 100)}</div>
+            <div style={{ fontSize: 13, color: MUTED, borderLeft: '2px solid #7b5bff', paddingLeft: 8, marginBottom: 12 }}>{(forwardMsg.body || ('🎤 ' + tr('ch.voice', null, 'voice'))).slice(0, 100)}</div>
             {members.filter(m => m.id !== me?.memberId).map(mem => (
-              <div key={mem.id} onClick={() => forwardTo(mem, forwardMsg)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13.5 }}>
+              <div key={mem.id} onClick={() => forwardTo(mem, forwardMsg)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
                 <Avatar name={mem.full_name || mem.email} url={mem.avatar_url} size={28} online={isOnline(mem)} />
                 {mem.full_name || mem.email}
               </div>
@@ -1050,25 +1062,30 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       )}
 
       {linkOpen && (
-        <div onClick={() => setLinkOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'Barlow' }}>
+        <div onClick={() => setLinkOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px', fontFamily: 'inherit' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...PANEL, width: 'min(440px,100%)', padding: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 21, fontWeight: 700 }}>{tr('ch.addLink', null, 'Add link')}</h3>
+              <h3 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>{tr('ch.addLink', null, 'Add link')}</h3>
               <button onClick={() => setLinkOpen(false)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 22 }}>×</button>
             </div>
-            <label style={{ fontSize: 12, color: MUTED }}>{tr('ch.text', null, 'Text')}</label>
+            <label style={{ fontSize: 13, color: MUTED }}>{tr('ch.text', null, 'Text')}</label>
             <input autoFocus style={{ ...FIELD, marginTop: 4, marginBottom: 12 }} value={linkText} onChange={e => setLinkText(e.target.value)} placeholder={tr('ch.linkTextPlaceholder', null, 'Link text')} />
-            <label style={{ fontSize: 12, color: MUTED }}>{tr('ch.link', null, 'Link')}</label>
+            <label style={{ fontSize: 13, color: MUTED }}>{tr('ch.link', null, 'Link')}</label>
             <input style={{ ...FIELD, marginTop: 4 }} value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === 'Enter') saveLink() }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
-              <button onClick={() => setLinkOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 10, padding: '9px 14px', color: 'var(--text)', cursor: 'pointer', fontFamily: 'Barlow' }}>{tr('ch.cancel', null, 'Cancel')}</button>
+              <button onClick={() => setLinkOpen(false)} style={{ background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.14))', borderRadius: 12, padding: '9px 14px', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>{tr('ch.cancel', null, 'Cancel')}</button>
               <button onClick={saveLink} style={{ ...BTN }}>{tr('ch.saveBtn', null, 'Save')}</button>
             </div>
           </div>
         </div>
       )}
 
-      <style>{`.ch-row:hover .ch-del{opacity:1 !important} .chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;pointer-events:none;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1;pointer-events:auto} .chat-actions.show{opacity:1;pointer-events:auto} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#14141d;border:1px solid var(--border,rgba(255,255,255,0.16));color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
+      <style>{`.ch-row:hover .ch-del{opacity:1 !important} .chat-row{cursor:pointer} .chat-row:hover{background:rgba(255,255,255,0.04)} .chat-actions{opacity:0;pointer-events:none;transition:opacity .12s} .chat-row:hover .chat-actions{opacity:1;pointer-events:auto} .chat-actions.show{opacity:1;pointer-events:auto} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}} .tipwrap .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border,rgba(255,255,255,0.16));color:var(--text);font-size:11.5px;font-weight:600;padding:4px 8px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.4)} .tipwrap:hover .tip{opacity:1} .tipwrap .tip.tip-right{bottom:auto;top:50%;left:calc(100% + 10px);transform:translateY(-50%)}`}</style>
+      {/* Gli avvisi discreti li disegna la cornice (AppShell monta <Avvisi />),
+          ma /chat e' una pagina a se' e fuori dalla cornice: li' nessuno
+          ascolta l'evento e ogni errore sparirebbe in silenzio. Quindi solo
+          quando la chat sta per conto suo se li monta da sola: mai due volte. */}
+      {standalone && <Avvisi />}
       {/* Call 1:1 con l'agente scelto dal picker (un solo agente alla volta) */}
       {callAgent && (
         <AgentCall key={callAgent.id} agent={callAgent} autoStart hideButton onClose={() => setCallAgent(null)} />
@@ -1082,11 +1099,11 @@ function Tip({ children, right }) {
 }
 
 function ActBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'none', border: 'none', color: '#c2c2d0', cursor: 'pointer', width: 30, height: 28, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = 'var(--text)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c2c2d0' }}>{children}<Tip>{title}</Tip></button>
 }
 
 function HBtn({ onClick, title, children }) {
-  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 9, width: 34, height: 32, color: '#dcdce6', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dcdce6'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
+  return <button type="button" onClick={onClick} className="tipwrap" style={{ position: 'relative', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 8, width: 34, height: 32, color: '#dddddd', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(123,91,255,0.5)' }} onMouseLeave={e => { e.currentTarget.style.color = '#dddddd'; e.currentTarget.style.borderColor = 'var(--border, rgba(255,255,255,0.12))' }}>{children}<Tip>{title}</Tip></button>
 }
 
 // ── Formattazione: ogni segno e' un interruttore ───────────────────────────
@@ -1268,12 +1285,12 @@ function FormatBar({ tr, value, caret, fmt }) {
 function TB({ onClick, title, children, on }) {
   // Acceso = lo stile e' attivo nel punto in cui si scrive. Il pulsante deve
   // dirlo, altrimenti non si sa mai se si sta scrivendo in grassetto o no.
-  const base = on ? 'rgba(123,91,255,0.20)' : 'none'
-  const tinta = on ? '#c3b4ff' : '#b9b9c8'
+  const base = on ? 'var(--neutro-bg)' : 'none'
+  const tinta = on ? '#c3b4ff' : '#bababa'
   return <button type="button" onClick={onClick} className="tipwrap" aria-pressed={!!on}
-    style={{ position: 'relative', background: base, border: on ? '1px solid rgba(123,91,255,0.45)' : '1px solid transparent', color: tinta, cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background .12s, color .12s, border-color .12s' }}
+    style={{ position: 'relative', background: base, border: on ? '1px solid rgba(123,91,255,0.45)' : '1px solid transparent', color: tinta, cursor: 'pointer', fontSize: 13, fontFamily: 'ui-monospace,monospace', width: 30, height: 28, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background .12s, color .12s, border-color .12s' }}
     onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--text)' } }}
-    onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#b9b9c8' } }}>{children}<Tip>{title}</Tip></button>
+    onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#bababa' } }}>{children}<Tip>{title}</Tip></button>
 }
 
 // ── Menu che compare dove hai premuto ──────────────────────────────────────
@@ -1310,13 +1327,13 @@ function FloatMenu({ x, y, voci, onClose }) {
         border: '1px solid var(--border2, rgba(255,255,255,0.14))', boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
       }}>
       {voci.filter(Boolean).map((v, i) => {
-        if (v.sep) return <div key={i} style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '5px 0' }} />
+        if (v.sep) return <div key={i} style={{ height: 1, background: 'var(--border)', margin: '5px 0' }} />
         if (v.titolo) return (
-          <div key={i} style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.1em', color: '#8a8a98', padding: '6px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.titolo}</div>
+          <div key={i} style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em', color: '#8b8b8b', padding: '6px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.titolo}</div>
         )
         return (
           <button key={i} type="button" onMouseDown={e => { e.stopPropagation(); v.fai(); onClose() }}
-            style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: v.danger ? '#ff5a7a' : '#e7e7ef', fontSize: 13.5, fontFamily: 'Barlow', padding: '7px 12px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: v.danger ? '#ef4444' : '#e8e8e8', fontSize: 13, fontFamily: 'inherit', padding: '7px 12px' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
             {v.icona && <Icon name={v.icona} size={14} />}
@@ -1329,15 +1346,15 @@ function FloatMenu({ x, y, voci, onClose }) {
 }
 
 function MenuItem({ onClick, danger, children }) {
-  return <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: danger ? '#ff5a7a' : '#e7e7ef', cursor: 'pointer', fontSize: 13.5, fontFamily: 'Barlow', padding: '8px 10px', borderRadius: 8 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
+  return <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: danger ? '#ef4444' : '#e8e8e8', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '8px 10px', borderRadius: 8 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>{children}</button>
 }
 
 function RailBtn({ active, onClick, title, badge, children }) {
   return (
-    <button type="button" onClick={onClick} aria-label={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'rgba(255,255,255,0.05)', color: active ? 'var(--text)' : '#b9b9c8' }}
+    <button type="button" onClick={onClick} aria-label={title} style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--btn-primario)' : 'rgba(255,255,255,0.05)', color: active ? 'var(--btn-primario-testo)' : '#bababa' }}
       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}>
       {children}
-      {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ff375f', color: 'var(--text)', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
+      {badge > 0 && <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: 'var(--text)', fontSize: 10, fontWeight: 640, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge > 9 ? '9+' : badge}</span>}
     </button>
   )
 }
@@ -1354,6 +1371,9 @@ function Icon({ name, size = 17, style }) {
     case 'bell': return <svg {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
     case 'bellOff': return <svg {...p}><path d="M13.7 21a2 2 0 0 1-3.4 0" /><path d="M18 8a6 6 0 0 0-9.3-5" /><path d="M6 8c0 7-3 9-3 9h13" /><line x1="3" y1="3" x2="21" y2="21" /></svg>
     case 'headset': return <svg {...p}><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><rect x="2" y="14" width="4" height="6" rx="1.5" /><rect x="18" y="14" width="4" height="6" rx="1.5" /></svg>
+    // Il pulsante "Squadra AI" e ogni riga del picker chiedono questa icona:
+    // senza il caso, Icon tornava null e il telefono non si vedeva.
+    case 'phone': return <svg {...p}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" /></svg>
     case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
     case 'mic': return <svg {...p}><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
     case 'stop': return <svg {...p}><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
@@ -1393,13 +1413,13 @@ function AudioMsg({ src }) {
   const pct = dur ? (cur / dur) * 100 : 0
   function toggle() { const a = ref.current; if (!a) return; if (a.paused) { a.play(); setPlaying(true) } else { a.pause(); setPlaying(false) } }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, padding: '7px 12px 7px 7px', background: 'rgba(123,91,255,0.10)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, maxWidth: 300 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, padding: '7px 12px 7px 7px', background: 'var(--neutro-bg)', border: '1px solid var(--border, rgba(255,255,255,0.12))', borderRadius: 999, maxWidth: 300 }}>
       <audio ref={ref} src={src} preload="metadata" onTimeUpdate={e => setCur(e.target.currentTime)} onLoadedMetadata={e => setDur(e.target.duration || 0)} onEnded={() => { setPlaying(false); setCur(0) }} style={{ display: 'none' }} />
-      <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
-      <div onClick={e => { const a = ref.current; if (!a || !dur) return; const r = e.currentTarget.getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur }} style={{ flex: 1, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.16)', cursor: 'pointer', position: 'relative' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', borderRadius: 2 }} />
+      <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={playing ? 'pause' : 'play'} size={15} /></button>
+      <div onClick={e => { const a = ref.current; if (!a || !dur) return; const r = e.currentTarget.getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur }} style={{ flex: 1, height: 4, borderRadius: 6, background: 'rgba(255,255,255,0.16)', cursor: 'pointer', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', borderRadius: 6 }} />
       </div>
-      <span style={{ fontSize: 11.5, color: '#b9b9c8', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(cur)} / {fmt(dur)}</span>
+      <span style={{ fontSize: 11.5, color: '#bababa', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(cur)} / {fmt(dur)}</span>
     </div>
   )
 }

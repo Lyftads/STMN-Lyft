@@ -1,14 +1,23 @@
 'use client'
 
+import AzioneBarra from './ui/AzioneBarra'
+import { Kpi, coloreFamiglia, famigliaDi } from './ui/Mattoni'
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
+import FasceTabella from './ui/FasceTabella'
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { swrFetch, getCached } from '../../lib/clientCache'
+import { getCached, leggi, swrFetch } from '../../lib/clientCache'
+// L'agente Meta vive dentro questa tab: nel fork (un solo cliente) era stato
+// tolto. Qui e' una funzione del prodotto, quindi torna al suo posto in fondo.
 import MetaAdsAgent from './MetaAdsAgent'
 import DownloadReportButton from './DownloadReportButton'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
+import DriveToStoreCard from './DriveToStoreCard'
+import { num } from '../../lib/client/numeri'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'meta.today' },
@@ -28,15 +37,12 @@ function n(v) {
 
 function fmtInt(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'
-  return Math.round(Number(v)).toLocaleString('it-IT')
+  return Math.round(Number(v)).toLocaleString('it-IT', { useGrouping: 'always' })
 }
 
 function fmtMoney(v, decimals = 0) {
   if (!v) return '—'
-  return `€${Number(v).toLocaleString('it-IT', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })}`
+  return soldi(v, decimals)
 }
 
 function fmtPct(v, decimals = 2) {
@@ -59,7 +65,7 @@ function delta(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'
   const x = Number(v)
   const sign = x > 0 ? '+' : ''
-  return `${sign}${x.toFixed(1)}%`
+  return `${sign}${num(x, 1)}%`
 }
 
 function deltaGood(v, inverse = false) {
@@ -76,7 +82,7 @@ function indent(level) {
 function levelBadge(level) {
   if (level === 'campaign') return { label: 'Campagna', labelKey: 'meta.levelCampaign', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' }
   if (level === 'adset') return { label: 'Ad set', labelKey: 'meta.levelAdset', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' }
-  return { label: 'Ad', color: '#bf5af2', bg: 'rgba(191,90,242,0.15)' }
+  return { label: 'Ad', color: 'var(--accent)', bg: 'var(--neutro-bg)' }
 }
 
 // Bucket dello stato campagna Meta → attive / non attive (in pausa) / bozze.
@@ -99,7 +105,7 @@ function PerfDot({ roas }) {
     <span style={{
       width: 8, height: 8, borderRadius: 999,
       background: color,
-      boxShadow: `0 0 10px ${color}`,
+      boxShadow: 'none',
       display: 'inline-block', flexShrink: 0,
     }} />
   )
@@ -117,7 +123,10 @@ function Sparkline({ data, dataKey, color = 'var(--text)', width = 110, height =
   }).join(' ')
   // Area fill path
   const areaPoints = `0,${height} ${points} ${width},${height}`
-  const gid = `sl-${dataKey}-${color.replace('#', '')}`
+  // L'id del gradiente deve essere un nome valido: con "var(--text)" dentro,
+  // url(#…) non si risolveva e l'area si riempiva di nero (sul tema scuro non
+  // si vedeva, su quello chiaro si').
+  const gid = `sl-${dataKey}-${String(color).replace(/[^a-zA-Z0-9]/g, '')}`
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
       <defs>
@@ -142,92 +151,14 @@ function Sparkline({ data, dataKey, color = 'var(--text)', width = 110, height =
 // Stessa palette/effetti del Simulatore
 const ACCENT_GLOW = '#2997ff'
 
-function KpiCard({ label, value, prevDelta, inverse = false, accent = 'var(--text)', daily, dataKey, delay = 0 }) {
-  const good = deltaGood(prevDelta, inverse)
+// La scheda KPI e' quella di tutto il prodotto (ui/Mattoni): il filo colorato
+// in alto dice la famiglia del numero, lo sparkline ne prende il colore.
+function KpiCard({ label, value, prevDelta, inverse = false, daily, dataKey }) {
+  const fam = famigliaDi(dataKey)
   return (
-    <div
-      style={{
-        position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        borderRadius: 22,
-        overflow: 'hidden',
-        border: '1.5px solid var(--border)',
-        borderTopColor: 'rgba(255,255,255,0.12)',
-        borderBottomColor: 'rgba(0,0,0,0.65)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
-        padding: '20px 22px',
-        animation: 'sim-pulse 6s ease-in-out infinite',
-        animationDelay: `${delay}s`,
-        transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.animationPlayState = 'paused'
-        e.currentTarget.style.transform = 'translateY(-8px) scale(1.012)'
-        e.currentTarget.style.boxShadow = `0 60px 120px rgba(0,0,0,0.85), 0 30px 60px rgba(0,0,0,0.6), 0 0 80px ${ACCENT_GLOW}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
-        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.animationPlayState = 'running'
-        e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
-        e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
-      }}
-    >
-      <div style={{
-        position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${ACCENT_GLOW}88, transparent)`,
-        filter: 'blur(0.3px)',
-        opacity: 0.85,
-        animation: 'cr-shine 4s ease-in-out infinite',
-        zIndex: 3,
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', top: 0, bottom: 0, left: '-50%',
-        width: '40%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
-        animation: 'sim-scan 9s ease-in-out infinite',
-        animationDelay: `${delay + 1}s`,
-        pointerEvents: 'none',
-        zIndex: 1,
-      }} />
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
-          <div style={{
-            fontSize: 10,
-            fontWeight: 800,
-            color: 'var(--text3)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.14em',
-          }}>{label}</div>
-          <PlatformBadges sources={['meta']} size={14} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: prevDelta != null ? 8 : 0 }}>
-          <div style={{
-            fontSize: 26,
-            fontWeight: 900,
-            color: 'var(--text)',
-            letterSpacing: '-0.02em',
-          }}>{value}</div>
-          {daily && dataKey && <Sparkline data={daily} dataKey={dataKey} color={accent} />}
-        </div>
-        {prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 && (
-          <div style={{
-            display: 'inline-flex',
-            padding: '3px 9px',
-            borderRadius: 6,
-            background: good ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)',
-            color: good ? '#22c55e' : '#ef4444',
-            fontSize: 11,
-            fontWeight: 800,
-          }}>
-            {prevDelta > 0 ? '▲' : '▼'} {Math.abs(prevDelta).toFixed(2)}%
-          </div>
-        )}
-      </div>
-    </div>
+    <Kpi etichetta={label} valore={value} inverso={inverse} famiglia={fam} fonti={['meta']}
+      delta={prevDelta != null && Number.isFinite(prevDelta) && Math.abs(prevDelta) >= 0.05 ? prevDelta : null}
+      grafico={daily && dataKey ? <Sparkline data={daily} dataKey={dataKey} color={coloreFamiglia(fam)} /> : null} />
   )
 }
 
@@ -236,35 +167,35 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
     <div
       style={{
         position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        borderRadius: 22,
+        background: 'var(--surface)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        borderRadius: 16,
         overflow: 'hidden',
         border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)',
+        boxShadow: 'none',
         animation: 'sim-pulse 6s ease-in-out infinite',
         animationDelay: `${delay}s`,
         transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.animationPlayState = 'paused'
-        e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
-        e.currentTarget.style.boxShadow = `0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px ${glow}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.animationPlayState = 'running'
         e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.85), 0 12px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.45), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.3)'
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
       }}
     >
       <div style={{
         position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
+        background: 'none',
         filter: 'blur(0.3px)',
         opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
@@ -274,7 +205,7 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
       <div style={{
         position: 'absolute', top: 0, bottom: 0, left: '-50%',
         width: '40%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        background: 'none',
         animation: 'sim-scan 9s ease-in-out infinite',
         animationDelay: `${delay + 1}s`,
         pointerEvents: 'none',
@@ -286,15 +217,15 @@ function FxCard({ title, glow = ACCENT_GLOW, subtitle, children, padding = 24, d
             <h2 style={{
               margin: 0,
               color: 'var(--text)',
-              fontSize: 17,
-              fontWeight: 900,
+              fontSize: 15,
+              fontWeight: 680,
               letterSpacing: '-0.01em',
             }}>{title}</h2>
             {subtitle && (
               <p style={{
                 margin: '4px 0 18px',
                 color: 'var(--text3)',
-                fontSize: 12.5,
+                fontSize: 13,
               }}>{subtitle}</p>
             )}
           </div>
@@ -324,13 +255,13 @@ function Thumb({ url, products, isDpa }) {
             alt={p.name || ''}
             style={{
               width: 50, height: 50,
-              objectFit: 'cover', borderRadius: 10,
+              objectFit: 'cover', borderRadius: 12,
               border: '1.5px solid rgba(8,8,18,0.95)',
               boxShadow: '0 4px 10px rgba(0,0,0,0.45)',
               position: 'absolute',
               left: i * 16,
               zIndex: visible.length - i,
-              background: '#0a0a14',
+              background: 'var(--surface)',
             }}
           />
         ))}
@@ -339,8 +270,8 @@ function Thumb({ url, products, isDpa }) {
             position: 'absolute',
             left: 3 * 16 + 6,
             top: 28,
-            fontSize: 9.5, fontWeight: 800,
-            color: '#c4b5fd',
+            fontSize: 10, fontWeight: 640,
+            color: 'var(--text2)',
             background: 'rgba(91,44,255,0.22)',
             border: '1px solid rgba(91,44,255,0.45)',
             borderRadius: 999,
@@ -358,7 +289,7 @@ function Thumb({ url, products, isDpa }) {
     return (
       <div title={t('meta.advantageCatalog', null, 'Advantage+ Catalog · Meta dynamic products')} style={{
         width: 50, height: 50,
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid rgba(91,44,255,0.4)',
         background: 'linear-gradient(135deg, rgba(91,44,255,0.22), rgba(0,0,0,0.4))',
         display: 'grid', placeItems: 'center',
@@ -371,7 +302,7 @@ function Thumb({ url, products, isDpa }) {
     return (
       <div style={{
         width: 50, height: 50,
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid var(--border)',
         background: 'var(--glass)',
         display: 'grid', placeItems: 'center',
@@ -382,7 +313,7 @@ function Thumb({ url, products, isDpa }) {
   return (
     <img src={url} alt="" style={{
       width: 50, height: 50,
-      objectFit: 'cover', borderRadius: 10,
+      objectFit: 'cover', borderRadius: 12,
       border: '1px solid var(--border)',
       display: 'block',
     }} />
@@ -422,18 +353,18 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{
-                padding: '2px 8px', borderRadius: 6,
+                padding: '2px 8px', borderRadius: 8,
                 background: badge.bg, color: badge.color,
-                fontSize: 9, fontWeight: 900, letterSpacing: '0.08em',
+                fontSize: 10, fontWeight: 680, letterSpacing: '0.08em',
                 textTransform: 'uppercase',
               }}>{t(badge.labelKey, null, badge.label)}</span>
               <PerfDot roas={row.roas} />
             </div>
             <div style={{
-              color: 'var(--text)', fontWeight: 800, fontSize: 13.5,
+              color: 'var(--text)', fontWeight: 640, fontSize: 13,
               lineHeight: 1.35, marginBottom: 3,
             }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
-            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
+            <div style={{ color: 'var(--text3)', fontSize: 10, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
             </div>
           </div>
@@ -448,15 +379,15 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
 
       <td style={cell}>{fmtInt(row.impressions)}</td>
       <td style={cell}>{fmtInt(row.reach)}</td>
-      <td style={cell}>{n(row.frequency).toFixed(2)}</td>
+      <td style={cell}>{num(n(row.frequency), 2)}</td>
       <td style={cell}>{fmtMoney(row.cpm, 2)}</td>
       <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
-      <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 680 }}>{fmtMoney(row.spend, 0)}</td>
       <td style={cell}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
-      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>
+      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 680 }}>
         {fmtRatio(row.roas)}
       </td>
       <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
@@ -470,7 +401,7 @@ function HierarchyRow({ row, isOpen, isLoading, onToggle }) {
 const cell = {
   padding: '14px 16px',
   color: 'var(--text)',
-  fontSize: 13.5,
+  fontSize: 13,
   fontWeight: 600,
   whiteSpace: 'nowrap',
 }
@@ -478,16 +409,17 @@ const cellMuted = { color: 'var(--text3)' }
 
 // Riga "flat" in stile Business Manager: toggle esplicito per il drill-down
 // (campagna → gruppi → inserzioni), click inserzione = anteprima creatività.
-function BMRow({ row, level, onOpen, checked, onCheck }) {
+function BMRow({ row, level, onOpen, checked, onCheck, navigabile = true }) {
   const { t } = useI18n()
-  const drillable = level !== 'ad'
+  // Senza navigazione la riga e' solo una riga: niente casella, niente freccia.
+  const drillable = navigabile && level !== 'ad'
   const go = (e) => { e.stopPropagation(); onOpen(row) }
   return (
     <tr
-      onClick={() => onOpen(row)}
-      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.12s', background: checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
+      onClick={() => navigabile && onOpen && onOpen(row)}
+      style={{ borderBottom: '1px solid var(--border)', cursor: navigabile ? 'pointer' : 'default', transition: 'background 0.12s', background: checked ? 'var(--neutro-bg)' : 'transparent' }}
       onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(123,91,255,0.08)' : 'transparent' }}
+      onMouseLeave={e => { e.currentTarget.style.background = checked ? 'var(--neutro-bg)' : 'transparent' }}
     >
       <td style={{ padding: '14px 16px', minWidth: 340 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -498,24 +430,27 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
               checked={!!checked}
               onClick={e => e.stopPropagation()}
               onChange={() => onCheck && onCheck(row.id)}
-              style={{ width: 16, height: 16, accentColor: '#7b5bff', cursor: 'pointer', flexShrink: 0 }}
+              style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
             />
           )}
+          {navigabile && (<>
           {/* Toggle: drill (›) per campagne/gruppi, anteprima (occhio) per inserzioni */}
           <button
             onClick={go}
+            className="cella-apri"
             title={drillable ? t('meta.bmDrill', null, 'Apri il livello sotto') : t('meta.bmPreview', null, 'Anteprima creatività')}
             style={{
-              flexShrink: 0, width: 30, height: 30, borderRadius: 9,
-              border: '1px solid var(--accent)', background: 'rgba(123,91,255,0.12)',
+              flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+              border: '1px solid var(--accent)', background: 'var(--neutro-bg)',
               color: 'var(--accent)', cursor: 'pointer', display: 'grid', placeItems: 'center',
-              fontSize: drillable ? 16 : 13, fontWeight: 900, lineHeight: 1,
+              fontSize: drillable ? 15 : 13, fontWeight: 680, lineHeight: 1,
             }}
           >{drillable ? '›' : <Icon name="eye" size={14} />}</button>
+          </>)}
           <PerfDot roas={row.roas} />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 13.5, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
-            <div style={{ color: 'var(--text3)', fontSize: 10.5, fontWeight: 500 }}>
+            <div style={{ color: 'var(--text)', fontWeight: 640, fontSize: 13, lineHeight: 1.35, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name || t('meta.noName', null, 'Senza nome')}</div>
+            <div style={{ color: 'var(--text3)', fontSize: 10, fontWeight: 500 }}>
               {row.status ? `${row.status} · ` : ''}{row.id}
             </div>
           </div>
@@ -528,15 +463,15 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
       </td>
       <td style={cell}>{fmtInt(row.impressions)}</td>
       <td style={cell}>{fmtInt(row.reach)}</td>
-      <td style={cell}>{n(row.frequency).toFixed(2)}</td>
+      <td style={cell}>{num(n(row.frequency), 2)}</td>
       <td style={cell}>{fmtMoney(row.cpm, 2)}</td>
       <td style={cell}>{fmtPct(row.ctr_link, 2)}</td>
       <td style={cell}>{fmtMoney(row.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(row.link_clicks)}</td>
-      <td style={{ ...cell, color: 'var(--text)', fontWeight: 900 }}>{fmtMoney(row.spend, 0)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 680 }}>{fmtMoney(row.spend, 0)}</td>
       <td style={cell}>{row.budget ? `${fmtMoney(row.budget, 0)}/g` : (row.lifetime_budget ? fmtMoney(row.lifetime_budget, 0) : '—')}</td>
       <td style={cell}>{fmtMoney(row.cost_per_result, 2)}</td>
-      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(row.roas)}</td>
+      <td style={{ ...cell, color: row.roas >= 2.5 ? '#22c55e' : row.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 680 }}>{fmtRatio(row.roas)}</td>
       <td style={cell}>{row.purchases ? fmtInt(row.purchases) : '—'}</td>
       <td style={cell}>{fmtPct(row.conversione_acquisti, 2)}</td>
       <td style={cell}>{fmtPct(row.cro_campagna, 2)}</td>
@@ -548,10 +483,10 @@ function BMRow({ row, level, onOpen, checked, onCheck }) {
 // Sotto-riga per segmento di pubblico (toggle on-demand): KPI allineati alle
 // colonne della tabella campagne. Dato reale Meta (breakdown user_segment_key).
 const SEG_SUB = [
-  { key: 'new', label: 'Nuovo pubblico', color: '#30d158' },
+  { key: 'new', label: 'Nuovo pubblico', color: '#22c55e' },
   { key: 'returning', label: 'Clienti esistenti', color: '#2997ff' },
-  { key: 'engaged', label: 'Interagito', color: '#ff9f0a' },
-  { key: 'unknown', label: 'Sconosciuto', color: '#8b8b9a' },
+  { key: 'engaged', label: 'Interagito', color: '#f59e0b' },
+  { key: 'unknown', label: 'Sconosciuto', color: '#8c8c8c' },
 ]
 function SegmentSubRow({ seg, label, color }) {
   if (!seg) return null
@@ -562,21 +497,21 @@ function SegmentSubRow({ seg, label, color }) {
       <td style={{ padding: '9px 16px 9px 56px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-          <span style={{ color: 'var(--text2)', fontWeight: 700, fontSize: 12 }}>{label}</span>
+          <span style={{ color: 'var(--text2)', fontWeight: 600, fontSize: 13 }}>{label}</span>
         </div>
       </td>
       <td style={cellMuted}>—</td>
       <td style={cell}>{fmtInt(seg.impressions)}</td>
       <td style={cell}>{fmtInt(seg.reach)}</td>
-      <td style={cell}>{seg.frequency != null ? n(seg.frequency).toFixed(2) : '—'}</td>
+      <td style={cell}>{seg.frequency != null ? num(n(seg.frequency), 2) : '—'}</td>
       <td style={cell}>{fmtMoney(seg.cpm, 2)}</td>
       <td style={cell}>{fmtPct(seg.ctr_link, 2)}</td>
       <td style={cell}>{fmtMoney(seg.cpc_link, 2)}</td>
       <td style={cell}>{fmtInt(seg.link_clicks)}</td>
-      <td style={{ ...cell, color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(seg.spend, 0)}</td>
+      <td style={{ ...cell, color: 'var(--text)', fontWeight: 640 }}>{fmtMoney(seg.spend, 0)}</td>
       <td style={cellMuted}>—</td>
       <td style={cell}>{fmtMoney(seg.cpo, 2)}</td>
-      <td style={{ ...cell, color: seg.roas >= 2.5 ? '#22c55e' : seg.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 800 }}>{fmtRatio(seg.roas)}</td>
+      <td style={{ ...cell, color: seg.roas >= 2.5 ? '#22c55e' : seg.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 640 }}>{fmtRatio(seg.roas)}</td>
       <td style={cell}>{seg.purchases ? fmtInt(seg.purchases) : '—'}</td>
       <td style={cell}>{fmtPct(convAcq, 2)}</td>
       <td style={cellMuted}>—</td>
@@ -585,7 +520,7 @@ function SegmentSubRow({ seg, label, color }) {
   )
 }
 
-const lab = { fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 5 }
+const lab = { fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 640, marginBottom: 5 }
 
 // Anteprima inserzione: creatività (immagine/prodotti) + copy, descrizione, CTA.
 function AdPreviewModal({ ad, onClose }) {
@@ -593,40 +528,40 @@ function AdPreviewModal({ ad, onClose }) {
   if (typeof document === 'undefined') return null
   const media = ad.image_url || (ad.products && ad.products[0] && ad.products[0].image_url) || ad.thumbnail_url || null
   const stat = (label, value) => (
-    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 11px' }}>
-      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}>{label}</div>
-      <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700, marginTop: 2 }}>{value}</div>
+    <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 11px' }}>
+      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 640 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginTop: 2 }}>{value}</div>
     </div>
   )
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.74)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, width: 820, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 0 }} className="m-stack">
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, width: 820, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 0 }} className="m-stack">
         <div style={{ background: '#000', display: 'grid', placeItems: 'center', minHeight: 340, padding: 8 }}>
           {media
-            ? <img src={media} alt="" style={{ width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10 }} />
+            ? <img src={media} alt="" style={{ width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: 12 }} />
             : <div style={{ color: 'var(--text3)', fontSize: 13, padding: 24, textAlign: 'center' }}>{t('meta.noPreview', null, 'Anteprima non disponibile (catalogo/DPA)')}</div>}
         </div>
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('meta.levelAd', null, 'Inserzione')}</span>
+            <span style={{ padding: '2px 8px', borderRadius: 8, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 10, fontWeight: 680, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('meta.levelAd', null, 'Inserzione')}</span>
             <div style={{ flex: 1 }} />
-            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16 }}>×</button>
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 17 }}>×</button>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 950, color: 'var(--text)', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
+          <div style={{ fontSize: 15, fontWeight: 950, color: 'var(--text)', lineHeight: 1.3 }}>{ad.name || t('meta.noName', null, 'Senza nome')}</div>
           <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {stat(t('meta.spent', null, 'Speso'), fmtMoney(ad.spend, 0))}
             {stat('ROAS', fmtRatio(ad.roas))}
             {stat(t('meta.ctrLink', null, 'CTR link'), fmtPct(ad.ctr_link, 2))}
             {stat(t('meta.purchases', null, 'Acquisti'), ad.purchases ? fmtInt(ad.purchases) : '—')}
           </div>
-          {ad.headline && (<div><div style={lab}>{t('meta.adHeadline', null, 'Titolo')}</div><div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{ad.headline}</div></div>)}
+          {ad.headline && (<div><div style={lab}>{t('meta.adHeadline', null, 'Titolo')}</div><div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)' }}>{ad.headline}</div></div>)}
           {ad.body && (<div><div style={lab}>{t('meta.adCopy', null, 'Copy')}</div><div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' }}>{ad.body}</div></div>)}
-          {ad.description && (<div><div style={lab}>{t('meta.adDescription', null, 'Descrizione')}</div><div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5 }}>{ad.description}</div></div>)}
+          {ad.description && (<div><div style={lab}>{t('meta.adDescription', null, 'Descrizione')}</div><div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>{ad.description}</div></div>)}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {ad.cta && <span style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 8, background: '#0866FF', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, textTransform: 'capitalize' }}>{(ad.cta || '').toLowerCase()}</span>}
-            {ad.link_url && <a href={ad.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.link_url}</a>}
+            {ad.cta && <span style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 8, background: '#0866FF', color: 'var(--text)', fontSize: 13, fontWeight: 640, textTransform: 'capitalize' }}>{(ad.cta || '').toLowerCase()}</span>}
+            {ad.link_url && <a href={ad.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'underline', wordBreak: 'break-all' }}>{ad.link_url}</a>}
           </div>
-          {(!ad.body && !ad.headline && !ad.description) && (<div style={{ fontSize: 12.5, color: 'var(--text3)' }}>{t('meta.noCopy', null, 'Nessun testo disponibile (probabile catalogo dinamico).')}</div>)}
+          {(!ad.body && !ad.headline && !ad.description) && (<div style={{ fontSize: 13, color: 'var(--text3)' }}>{t('meta.noCopy', null, 'Nessun testo disponibile (probabile catalogo dinamico).')}</div>)}
         </div>
       </div>
     </div>,
@@ -636,7 +571,7 @@ function AdPreviewModal({ ad, onClose }) {
 
 export default function MetaDetailTab() {
   const { t, locale } = useI18n()
-  const [preset, setPreset] = useState('last_7d')
+  const [preset, setPreset] = useStatoTab('metaDetail.preset', 'last_7d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
   const [data, setData] = useState(null)
@@ -682,8 +617,7 @@ export default function MetaDetailTab() {
     if (!showSegments) return
     let cancelled = false
     setSegLoading(true); setSegByCampaign(null)
-    fetch(`/api/meta-segments?${qs({ level: 'campaign' })}`, { cache: 'no-store' })
-      .then(r => r.json())
+    leggi(`/api/meta-segments?${qs({ level: 'campaign' })}`)
       .then(j => { if (!cancelled) { setSegByCampaign(j?.ok ? (j.campaigns || {}) : {}); setSegLoading(false) } })
       .catch(() => { if (!cancelled) { setSegByCampaign({}); setSegLoading(false) } })
     return () => { cancelled = true }
@@ -936,25 +870,25 @@ export default function MetaDetailTab() {
     <div>
       {/* Preset bar */}
       <div style={{
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        background: 'var(--surface)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
         border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
-        borderRadius: 22,
+        borderRadius: 16,
         padding: 16,
         marginBottom: 18,
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        boxShadow: 'none',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <PlatformBadges sources={['meta']} size={20} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(48,209,88,0.12)', border: '1px solid rgba(48,209,88,0.3)', color: '#86efac', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#30d158', boxShadow: '0 0 10px #30d158', animation: 'card-pulse 2s ease-in-out infinite' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(48,209,88,0.12)', border: '1px solid rgba(48,209,88,0.3)', color: '#86efac', fontSize: 11.5, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#22c55e', boxShadow: 'none', animation: 'card-pulse 2s ease-in-out infinite' }} />
             {loading ? 'Sync…' : data?.sources?.meta ? 'Live' : 'Offline'}
           </div>
           <div style={{ marginLeft: 'auto' }}>
-            <BmTimeframe
+            <PeriodoInBarra
               value={{ preset, since: customSince, until: customUntil }}
               onChange={(v) => { setPreset('custom'); setCustomSince(v.since || ''); setCustomUntil(v.until || '') }}
               accent="#5b2cff"
@@ -962,19 +896,7 @@ export default function MetaDetailTab() {
             />
           </div>
 
-          <button
-            onClick={() => fetchMain(true)}
-            disabled={loading}
-            className="btn-glass"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            <span style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {loading ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
+          <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => fetchMain(true)} disabled={loading} gira={loading} />
 
           <DownloadReportButton
             tab="Meta Detail"
@@ -986,12 +908,19 @@ export default function MetaDetailTab() {
 
       </div>
 
+      {/* La spesa Drive to Store, che e' tolta da ROAS/CAC/CPO/MER, mostrata a
+          parte. Qui e' multi-cliente senza bisogno di interruttori in pagina:
+          /api/drive-to-store guarda companies.negozi_fisici e, a chi non ha
+          negozi (il caso di serie), risponde { attivo: false } senza chiamare
+          Meta — e la scheda non si monta. */}
+      <DriveToStoreCard preset={preset === 'custom' ? undefined : preset} since={preset === 'custom' ? customSince : undefined} until={preset === 'custom' ? customUntil : undefined} />
+
       {error && (
         <div style={{
           padding: 16,
           background: 'rgba(239,68,68,0.08)',
           border: '1px solid rgba(239,68,68,0.4)',
-          borderRadius: 14,
+          borderRadius: 16,
           color: '#fca5a5',
           fontSize: 13,
           fontWeight: 600,
@@ -1010,10 +939,10 @@ export default function MetaDetailTab() {
       }}>
         <KpiCard label={t('meta.amountSpent', null, 'Importo speso')} value={fmtMoney(summary.spend, 0)} prevDelta={cmp.spend} accent="#3b82f6" daily={daily} dataKey="spend" delay={0} />
         <KpiCard label="ROAS" value={fmtRatio(summary.roas)} prevDelta={cmp.roas} accent="#22c55e" daily={daily} dataKey="roas" delay={0.3} />
-        <KpiCard label={t('meta.costPerResult', null, 'Costo risultato')} value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="var(--text)" daily={daily} dataKey="cost_per_result" delay={0.6} />
+        <KpiCard label={t('meta.costPerResult', null, 'Costo risultato')} value={fmtMoney(summary.cost_per_result, 2)} prevDelta={cmp.cpa} inverse accent="#ec4899" daily={daily} dataKey="cost_per_result" delay={0.6} />
         <KpiCard label={t('meta.purchases', null, 'Acquisti')} value={summary.purchases ? fmtInt(summary.purchases) : '—'} accent="#f97316" daily={daily} dataKey="orders" delay={0.9} />
         <KpiCard label={t('meta.ctrLink', null, 'CTR link')} value={fmtPct(summary.ctr_link, 2)} prevDelta={cmp.ctr} accent="#a78bfa" daily={daily} dataKey="ctr_link" delay={1.2} />
-        <KpiCard label={t('meta.frequency', null, 'Frequenza')} value={n(summary.frequency).toFixed(2)} accent="var(--text)" daily={daily} dataKey="frequency" delay={1.5} />
+        <KpiCard label={t('meta.frequency', null, 'Frequenza')} value={num(n(summary.frequency), 2)} accent="#14b8a6" daily={daily} dataKey="frequency" delay={1.5} />
       </div>
 
       {/* Comparazione + Insight */}
@@ -1052,13 +981,13 @@ export default function MetaDetailTab() {
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.2)',
                 }}>
                   <div style={{
-                    fontSize: 9, color: 'var(--text3)',
+                    fontSize: 10, color: 'var(--text3)',
                     textTransform: 'uppercase', letterSpacing: '0.12em',
-                    fontWeight: 800, marginBottom: 8,
+                    fontWeight: 640, marginBottom: 8,
                   }}>{it.label}</div>
                   <div style={{
-                    fontSize: 18,
-                    fontWeight: 900,
+                    fontSize: 15,
+                    fontWeight: 680,
                     color: good == null ? 'var(--text3)' : good ? '#22c55e' : '#ef4444',
                   }}>{delta(it.value)}</div>
                 </div>
@@ -1070,7 +999,7 @@ export default function MetaDetailTab() {
         <FxCard title={t('meta.autoInsight', null, 'Insight automatico')} glow={ACCENT_GLOW} delay={0.4}>
           <p style={{
             color: 'var(--text)',
-            fontSize: 14,
+            fontSize: 15,
             lineHeight: 1.6,
             margin: 0,
             whiteSpace: 'pre-wrap',
@@ -1080,20 +1009,20 @@ export default function MetaDetailTab() {
 
       {/* Filtri + ricerca tabella */}
       <div style={{
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
+        background: 'var(--surface)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
         border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
-        borderRadius: 22,
+        borderRadius: 16,
         padding: 16,
         marginBottom: 14,
         display: 'flex',
         gap: 12,
         flexWrap: 'wrap',
         alignItems: 'center',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        boxShadow: 'none',
       }}>
         <input
           type="text"
@@ -1105,9 +1034,9 @@ export default function MetaDetailTab() {
             background: 'var(--glass)',
             border: '1px solid var(--border)',
             color: 'var(--text)',
-            borderRadius: 11,
+            borderRadius: 12,
             padding: '11px 14px',
-            fontSize: 13.5,
+            fontSize: 13,
             outline: 'none',
           }}
         />
@@ -1115,7 +1044,7 @@ export default function MetaDetailTab() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase',
-            letterSpacing: '0.12em', fontWeight: 800,
+            letterSpacing: '0.12em', fontWeight: 640,
           }}>{t('meta.account', null, 'Account')}</span>
           {[{ id: '', label: t('meta.all', null, 'Tutti') }, ...(data?.allAccounts || data?.accounts || []).map(a => ({ id: a, label: (data?.accountNames && data.accountNames[a]) || a }))].map(opt => {
             const active = accountFilter === opt.id
@@ -1129,10 +1058,10 @@ export default function MetaDetailTab() {
                   background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
                   border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
                   color: active ? 'var(--text)' : 'var(--text2)',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   padding: '8px 12px',
-                  fontSize: 12,
-                  fontWeight: 800,
+                  fontSize: 13,
+                  fontWeight: 640,
                   cursor: loading ? 'wait' : 'pointer',
                   boxShadow: active ? '0 0 14px rgba(8,102,255,0.25)' : 'none',
                   fontFamily: opt.id ? 'monospace' : 'inherit',
@@ -1151,10 +1080,10 @@ export default function MetaDetailTab() {
               background: 'rgba(239,68,68,0.1)',
               border: '1px solid rgba(239,68,68,0.35)',
               color: '#fca5a5',
-              borderRadius: 10,
+              borderRadius: 12,
               padding: '8px 14px',
-              fontSize: 12,
-              fontWeight: 800,
+              fontSize: 13,
+              fontWeight: 640,
               cursor: 'pointer',
             }}
           >{t('meta.resetFilters', null, 'Reset filtri')}</button>
@@ -1171,25 +1100,25 @@ export default function MetaDetailTab() {
         const tabBtn = (tab) => ({
           padding: '12px 18px', border: 'none', background: 'transparent', cursor: tab.enabled ? 'pointer' : 'not-allowed',
           color: bmLevel === tab.id ? 'var(--text)' : tab.enabled ? 'var(--text2)' : 'var(--text3)',
-          fontSize: 13.5, fontWeight: bmLevel === tab.id ? 900 : 700, position: 'relative',
+          fontSize: 13, fontWeight: bmLevel === tab.id ? 900 : 700, position: 'relative',
           borderBottom: bmLevel === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
           opacity: tab.enabled ? 1 : 0.5,
         })
         const crumb = (label, onClick, active) => (
-          <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? 'var(--text)' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 12.5, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
+          <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: active ? 'var(--text)' : 'var(--accent)', fontWeight: active ? 800 : 700, fontSize: 13, padding: 0, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</button>
         )
         return (
           <FxCard glow={ACCENT_GLOW} padding={0} delay={1.6}>
             {/* Header (con padding proprio: niente titolo tagliato dal bordo) */}
             <div style={{ padding: '22px 24px 14px' }}>
-              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 20, fontWeight: 900, letterSpacing: '-0.01em' }}>{t('meta.hierarchyTitle', null, 'Campagne Meta Ads')}</h2>
-              <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5, fontWeight: 500 }}>{t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')}</p>
+              <h2 className="titolo-sezione">{t('meta.hierarchyTitle', null, 'Campagne Meta Ads')}</h2>
+              <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 13, fontWeight: 500 }}>{t('meta.bmHierarchySub', null, 'Naviga come nel Business Manager: campagne → gruppi di inserzioni → inserzioni')}</p>
 
               {/* Filtri stato + ordinamento (solo livello Campagne) */}
               {bmLevel === 'campaign' && (
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>{t('meta.status', null, 'Stato')}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640 }}>{t('meta.status', null, 'Stato')}</span>
                     {[
                       { id: 'active', label: t('meta.statusActive', null, 'Attive') },
                       { id: 'paused', label: t('meta.statusPaused', null, 'Non attive') },
@@ -1198,12 +1127,7 @@ export default function MetaDetailTab() {
                     ].map(opt => {
                       const active = statusFilter === opt.id
                       return (
-                        <button key={opt.id} type="button" onClick={() => setStatusFilter(opt.id)} style={{
-                          background: active ? 'linear-gradient(135deg, rgba(8,102,255,0.28), rgba(66,103,178,0.22))' : 'rgba(255,255,255,0.04)',
-                          border: active ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
-                          color: active ? 'var(--text)' : 'var(--text2)',
-                          borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer',
-                        }}>{opt.label}</button>
+                        <button key={opt.id} type="button" onClick={() => setStatusFilter(opt.id)} className={`ly-filtro senza-tocco${statusFilter === opt.id ? ' acceso' : ''}`}>{opt.label}</button>
                       )
                     })}
                   </div>
@@ -1211,20 +1135,20 @@ export default function MetaDetailTab() {
                   {/* Toggle segmenti di pubblico: chiama l'API SOLO se attivo */}
                   <button type="button" onClick={() => setShowSegments(v => !v)} title={t('meta.segmentsToggle', null, 'Show KPIs by audience segment under each campaign (real Meta data)')}
                     style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 12px', borderRadius: 12, fontSize: 13, fontWeight: 640, cursor: 'pointer',
                       background: showSegments ? 'rgba(8,102,255,0.22)' : 'rgba(255,255,255,0.04)',
                       border: showSegments ? '1px solid rgba(8,102,255,0.55)' : '1px solid var(--border)',
                       color: showSegments ? 'var(--text)' : 'var(--text2)', whiteSpace: 'nowrap',
                     }}>
-                    <span style={{ width: 14, height: 14, borderRadius: 4, border: `1.5px solid ${showSegments ? '#2997ff' : 'var(--text3)'}`, background: showSegments ? '#2997ff' : 'transparent', display: 'grid', placeItems: 'center', fontSize: 10, color: '#fff', lineHeight: 1 }}>{showSegments ? '✓' : ''}</span>
+                    <span style={{ width: 14, height: 14, borderRadius: 6, border: `1.5px solid ${showSegments ? '#2997ff' : 'var(--text3)'}`, background: showSegments ? '#2997ff' : 'transparent', display: 'grid', placeItems: 'center', fontSize: 10, color: '#fff', lineHeight: 1 }}>{showSegments ? '✓' : ''}</span>
                     {t('meta.segToggle', null, 'Segmenti di pubblico')}{segLoading && showSegments ? ' · carico…' : ''}
                   </button>
 
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800 }}>{t('meta.sortBy', null, 'Ordina per')}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 640 }}>{t('meta.sortBy', null, 'Ordina per')}</span>
                     <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{
                       background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
-                      borderRadius: 10, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', outline: 'none',
+                      borderRadius: 12, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', outline: 'none',
                     }}>
                       <option value="" style={{ background: 'var(--surface)' }}>{t('meta.sortDefault', null, 'Spesa (default)')}</option>
                       <option value="roas" style={{ background: 'var(--surface)' }}>{t('meta.sortRoas', null, 'ROAS (alto → basso)')}</option>
@@ -1239,45 +1163,46 @@ export default function MetaDetailTab() {
                 </div>
               )}
             </div>
-            {/* Tab bar */}
+            {/* Schede di livello: Campagne / Gruppi / Inserzioni */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 24px', borderBottom: '1px solid var(--border)' }}>
               {TABS.map(tab => (
                 <button key={tab.id} onClick={() => tab.enabled && setBmLevel(tab.id)} disabled={!tab.enabled} style={tabBtn(tab)}>
-                  {tab.label}{tab.count != null && <span style={{ marginLeft: 7, fontSize: 11, color: 'var(--text3)', fontWeight: 700, fontFamily: 'Barlow' }}>{tab.count}</span>}
+                  {tab.label}{tab.count != null && <span style={{ marginLeft: 7, fontSize: 11, color: 'var(--text3)', fontWeight: 640 }}>{tab.count}</span>}
                 </button>
               ))}
             </div>
 
-            {/* Breadcrumb drill-down (gestisce singolo e multi-selezione) */}
+            {/* Briciole di pane della discesa (valgono per il singolo e per la multi-selezione) */}
             {(viewCampaignIds.length > 0 || viewAdsetIds.length > 0) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontSize: 12.5, color: 'var(--text3)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontSize: 13, color: 'var(--text3)', flexWrap: 'wrap' }}>
                 {crumb(t('meta.tabCampaigns', null, 'Campagne'), () => setBmLevel('campaign'), bmLevel === 'campaign')}
                 {viewCampaignIds.length > 0 && <><span>›</span>{crumb(selCampaign ? (selCampaign.name || selCampaign.id) : t('meta.bmNcampaigns', { n: viewCampaignIds.length }, `${viewCampaignIds.length} campagne`), () => setBmLevel('adset'), bmLevel === 'adset')}</>}
                 {viewAdsetIds.length > 0 && <><span>›</span>{crumb(selAdset ? (selAdset.name || selAdset.id) : t('meta.bmNadsets', { n: viewAdsetIds.length }, `${viewAdsetIds.length} gruppi`), () => setBmLevel('ad'), bmLevel === 'ad')}</>}
               </div>
             )}
 
-            {/* Barra azione multi-selezione */}
+            {/* Barra delle righe spuntate: da qui si scende di un livello su piu' righe insieme */}
             {((bmLevel === 'campaign' && checkCampaigns.size > 0) || (bmLevel === 'adset' && checkAdsets.size > 0)) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', background: 'rgba(123,91,255,0.08)', borderBottom: '1px solid rgba(123,91,255,0.2)' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: '#c4b5fd' }}>{t('meta.bmSelectedN', { n: bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size }, `${bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size} selezionate`)}</span>
-                <button onClick={() => bmLevel === 'campaign' ? setCheckCampaigns(new Set()) : setCheckAdsets(new Set())} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 11px', color: 'var(--text2)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{t('meta.bmClear', null, 'Deseleziona')}</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', background: 'var(--neutro-bg)', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13, fontWeight: 640, color: 'var(--text)' }}>{t('meta.bmSelectedN', { n: bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size }, `${bmLevel === 'campaign' ? checkCampaigns.size : checkAdsets.size} selezionate`)}</span>
+                <button onClick={() => bmLevel === 'campaign' ? setCheckCampaigns(new Set()) : setCheckAdsets(new Set())} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 11px', color: 'var(--text2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('meta.bmClear', null, 'Deseleziona')}</button>
                 <div style={{ flex: 1 }} />
-                <button onClick={bmLevel === 'campaign' ? openMultiAdsets : openMultiAds} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 16px', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>
+                <button onClick={bmLevel === 'campaign' ? openMultiAdsets : openMultiAds} style={{ background: 'var(--btn-primario)', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640, cursor: 'pointer' }}>
                   {bmLevel === 'campaign' ? t('meta.bmViewAdsets', null, 'Vedi gruppi di inserzioni') : t('meta.bmViewAds', null, 'Vedi inserzioni')} →
                 </button>
               </div>
             )}
 
             <div style={{ overflowX: 'auto', maxHeight: '72vh', padding: '0 24px 24px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
+              <table className="tab-lyft st-3 st-7 st-10 st-13" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1700 }}>
                 <thead>
+                  <FasceTabella gruppi={[{ vuote: 2 }, { fam: 'fam-vendite', n: 4, label: t('tab.famReach', null, 'Copertura'), loghi: ['meta'] }, { fam: 'fam-traffico', n: 3, label: t('tab.famTraffic', null, 'Traffico'), loghi: ['meta'] }, { fam: 'fam-pub', n: 3, label: t('tab.famSpend', null, 'Spesa'), loghi: ['meta'] }, { fam: 'fam-resa', n: 5, label: t('tab.famResults', null, 'Risultati'), loghi: ['meta'] }]} />
                   <tr>
                     {[bmLevel === 'campaign' ? t('meta.tabCampaigns', null, 'Campagna') : bmLevel === 'adset' ? t('meta.levelAdset', null, 'Ad set') : t('meta.levelAd', null, 'Inserzione'), t('meta.preview', null, 'Anteprima'), t('meta.impressions', null, 'Impression'), t('meta.reach', null, 'Copertura'), t('meta.freqShort', null, 'Freq.'), 'CPM', t('meta.ctrLink', null, 'CTR link'), t('meta.cpcLink', null, 'CPC link'), t('meta.clickLink', null, 'Click link'), t('meta.spent', null, 'Speso'), t('meta.budget', null, 'Budget'), t('meta.costPerResult', null, 'Costo risultato'), 'ROAS', t('meta.purchases', null, 'Acquisti'), t('meta.convPurch', null, 'Conv. acq.'), 'CRO', 'AOV'].map(h => (
                       <th key={h} style={{
                         position: 'sticky', top: 0, zIndex: 20,
                         padding: '14px 16px',
-                        fontSize: 10.5, fontWeight: 800,
+                        fontSize: 10, fontWeight: 640,
                         textTransform: 'uppercase', letterSpacing: '0.12em',
                         textAlign: 'left', whiteSpace: 'nowrap',
                         color: 'var(--text2)',
@@ -1307,13 +1232,13 @@ export default function MetaDetailTab() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="17" style={{ padding: 40, color: 'var(--text3)', fontSize: 14, textAlign: 'center' }}>
+                      <td colSpan="17" style={{ padding: 40, color: 'var(--text3)', fontSize: 15, textAlign: 'center' }}>
                         {bmLoading ? t('meta.loadingCampaigns', null, 'Sto caricando…')
                           : bmError ? (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                              <div style={{ color: '#fca5a5', fontWeight: 700, maxWidth: 560 }}>{t('meta.bmLoadError', null, 'Meta non ha risposto (probabile limite di richieste). Riprova tra qualche secondo.')}</div>
-                              <div style={{ color: 'var(--text3)', fontSize: 12 }}>{bmError}</div>
-                              <button onClick={retryBm} style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', borderRadius: 9, padding: '8px 18px', color: 'var(--text)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>{t('meta.bmRetry', null, 'Riprova')}</button>
+                              <div style={{ color: '#fca5a5', fontWeight: 600, maxWidth: 560 }}>{t('meta.bmLoadError', null, 'Meta non ha risposto (probabile limite di richieste). Riprova tra qualche secondo.')}</div>
+                              <div style={{ color: 'var(--text3)', fontSize: 13 }}>{bmError}</div>
+                              <button onClick={retryBm} style={{ background: 'var(--btn-primario)', border: 'none', borderRadius: 8, padding: '8px 18px', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640, cursor: 'pointer' }}>{t('meta.bmRetry', null, 'Riprova')}</button>
                             </div>
                           )
                           : bmLevel === 'adset' && !viewCampaignIds.length ? t('meta.bmPickCampaign', null, 'Seleziona una o più campagne (checkbox) e premi “Vedi gruppi di inserzioni”.')
@@ -1327,28 +1252,28 @@ export default function MetaDetailTab() {
                   const lvl = bmLevel === 'campaign' ? t('meta.bmResultsCampaigns', { n: bmTotals.count }, `${bmTotals.count} campagne`)
                     : bmLevel === 'adset' ? t('meta.bmResultsAdsets', { n: bmTotals.count }, `${bmTotals.count} gruppi di inserzioni`)
                     : t('meta.bmResultsAds', { n: bmTotals.count }, `${bmTotals.count} inserzioni`)
-                  const footCell = { padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text)', fontWeight: 800, fontSize: 13 }
+                  const footCell = { padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text)', fontWeight: 640, fontSize: 13 }
                   return (
                     <tfoot>
                       <tr style={{ position: 'sticky', bottom: 0, zIndex: 15, background: 'var(--surface)', backdropFilter: 'blur(20px)', borderTop: '1.5px solid rgba(123,91,255,0.35)' }}>
                         <td style={{ ...footCell, minWidth: 340 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>{t('meta.bmResultsLabel', null, 'Risultati di')}</span>
-                            <span style={{ color: 'var(--text)', fontWeight: 900 }}>{lvl}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 640 }}>{t('meta.bmResultsLabel', null, 'Risultati di')}</span>
+                            <span style={{ color: 'var(--text)', fontWeight: 680 }}>{lvl}</span>
                           </div>
                         </td>
                         <td style={footCell}><span style={cellMuted}>—</span></td>
                         <td style={footCell}>{fmtInt(bmTotals.impressions)}</td>
                         <td style={footCell}>{fmtInt(bmTotals.reach)}</td>
-                        <td style={footCell}>{n(bmTotals.frequency).toFixed(2)}</td>
+                        <td style={footCell}>{num(n(bmTotals.frequency), 2)}</td>
                         <td style={footCell}>{fmtMoney(bmTotals.cpm, 2)}</td>
                         <td style={footCell}>{fmtPct(bmTotals.ctr_link, 2)}</td>
                         <td style={footCell}>{fmtMoney(bmTotals.cpc_link, 2)}</td>
                         <td style={footCell}>{fmtInt(bmTotals.link_clicks)}</td>
-                        <td style={{ ...footCell, fontWeight: 900 }}>{fmtMoney(bmTotals.spend, 0)}</td>
+                        <td style={{ ...footCell, fontWeight: 680 }}>{fmtMoney(bmTotals.spend, 0)}</td>
                         <td style={footCell}>—</td>
                         <td style={footCell}>{fmtMoney(bmTotals.cost_per_result, 2)}</td>
-                        <td style={{ ...footCell, color: bmTotals.roas >= 2.5 ? '#22c55e' : bmTotals.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 900 }}>{fmtRatio(bmTotals.roas)}</td>
+                        <td style={{ ...footCell, color: bmTotals.roas >= 2.5 ? '#22c55e' : bmTotals.roas >= 1.5 ? '#f59e0b' : '#ef4444', fontWeight: 680 }}>{fmtRatio(bmTotals.roas)}</td>
                         <td style={footCell}>{bmTotals.purchases ? fmtInt(bmTotals.purchases) : '—'}</td>
                         <td style={footCell}>{fmtPct(bmTotals.conversione_acquisti, 2)}</td>
                         <td style={footCell}>{fmtPct(bmTotals.conversione_acquisti, 2)}</td>
@@ -1383,11 +1308,11 @@ export default function MetaDetailTab() {
                   background: 'linear-gradient(135deg, #f59e0b, #f97316)',
                   color: 'var(--text)',
                   display: 'grid', placeItems: 'center',
-                  fontSize: 12, fontWeight: 900,
+                  fontSize: 13, fontWeight: 680,
                   flexShrink: 0,
-                  boxShadow: '0 0 14px rgba(245,158,11,0.35)',
+                  boxShadow: 'none',
                 }}>{i + 1}</div>
-                <div style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.55 }}>{todo}</div>
+                <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>{todo}</div>
               </div>
             ))}
             {(!data?.todos || data.todos.length === 0) && (

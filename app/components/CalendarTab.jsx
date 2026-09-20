@@ -18,11 +18,11 @@ const ABSENCE_KINDS = ['ferie', 'permesso', 'malattia']
 const KIND_COLOR = {
   ferie:        '#2997ff',
   permesso:     '#bf5af2',
-  malattia:     '#ff9f0a',
-  promo_b2c:    '#ff375f',
-  promo_negozi: '#30d158',
+  malattia:     '#f59e0b',
+  promo_b2c:    '#ef4444',
+  promo_negozi: '#22c55e',
   evento:       '#5b8bff',
-  meeting:      '#8e8e93',
+  meeting:      '#8e8e8e',
 }
 
 const KIND_FALLBACK = {
@@ -54,6 +54,7 @@ export default function CalendarTab() {
   const kindLabel = k => tr(`cal.kind.${k}`, KIND_FALLBACK[k] || k)
 
   const [view, setView] = useState('month')          // month | week | agenda
+  useEffect(() => { if (window.matchMedia('(max-width: 600px)').matches) setView('agenda') }, [])
   const [cursor, setCursor] = useState(() => monthStart(todayISO()))
   const [data, setData] = useState({ entries: [], members: [], me: null, needsSetup: false })
   const [loading, setLoading] = useState(true)
@@ -163,9 +164,9 @@ export default function CalendarTab() {
           background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)',
           position: 'relative', zIndex: 2,
         }}>
-          <span style={{ color: '#ff9f0a', flexShrink: 0, marginTop: 1 }}><Icon name="warning" size={16} /></span>
-          <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-            <strong style={{ color: '#ffb340', fontWeight: 800 }}>{tr('cal.setupTitle', 'Tabella del calendario mancante')}</strong>
+          <span style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }}><Icon name="warning" size={16} /></span>
+          <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+            <strong style={{ color: '#ffb340', fontWeight: 640 }}>{tr('cal.setupTitle', 'Tabella del calendario mancante')}</strong>
             <div style={{ color: 'var(--text3)', marginTop: 3 }}>
               {tr('cal.setupBody', 'Ferie e permessi funzionano già. Per salvare promo ed eventi esegui supabase/calendar_events.sql sul database.')}
             </div>
@@ -174,7 +175,7 @@ export default function CalendarTab() {
       )}
 
       {/* ── Filtri ─────────────────────────────────────────────────────── */}
-      <div className="glass-panel" style={{ borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', zIndex: 2 }}>
+      <div className="glass-panel" style={{ borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 200 }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex' }}>
@@ -184,7 +185,7 @@ export default function CalendarTab() {
               value={q} onChange={e => setQ(e.target.value)}
               placeholder={tr('cal.search', 'Cerca persona, evento, promo…')}
               style={{
-                width: '100%', padding: '10px 12px 10px 34px', borderRadius: 10,
+                width: '100%', padding: '10px 12px 10px 34px', borderRadius: 12,
                 background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)',
                 color: 'var(--text)', fontSize: 13, outline: 'none',
               }}
@@ -202,8 +203,8 @@ export default function CalendarTab() {
           {canWrite && (
             <button type="button" onClick={() => openNew()} style={{
               marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '10px 16px', borderRadius: 10, cursor: 'pointer', border: 'none',
-              background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', fontSize: 13, fontWeight: 800,
+              padding: '10px 16px', borderRadius: 12, cursor: 'pointer', border: 'none',
+              background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640,
             }}>
               <Icon name="plus" size={14} /> {tr('cal.new', 'Nuova voce')}
             </button>
@@ -216,7 +217,7 @@ export default function CalendarTab() {
             return (
               <button key={k} type="button" onClick={() => toggleKind(k)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 background: active ? `${KIND_COLOR[k]}1f` : 'transparent',
                 border: `1px solid ${active ? KIND_COLOR[k] + '66' : 'var(--border)'}`,
                 color: active ? 'var(--text)' : 'var(--text3)',
@@ -232,25 +233,25 @@ export default function CalendarTab() {
       </div>
 
       {/* ── Vista ──────────────────────────────────────────────────────── */}
-      <div className="glass-panel" style={{ borderRadius: 14, padding: 16, position: 'relative', zIndex: 2 }}>
+      <div className="glass-panel" style={{ borderRadius: 16, padding: 16, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-          <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 10, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)' }}>
             {[['month', tr('cal.month', 'Mese')], ['week', tr('cal.week', 'Settimana')], ['agenda', tr('cal.agenda', 'Agenda')]].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setView(id)} style={{
-                padding: '6px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 800,
+              <button key={id} className="calendar-view-button" aria-pressed={view === id} type="button" onClick={() => setView(id)} style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 640,
                 background: view === id ? 'var(--text)' : 'transparent',
-                color: view === id ? '#0a0a14' : 'var(--text2)',
+                color: view === id ? 'var(--surface)' : 'var(--text2)',
               }}>{label}</button>
             ))}
           </div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 12 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 13 }}>
             <Icon name="calendar" size={13} /> {tr('cal.entries', '{n} voci', { n: visible.length })}
           </span>
-          {loading && <span style={{ color: 'var(--text3)', fontSize: 12 }}>{tr('cal.loading', 'Carico…')}</span>}
-          <div style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {loading && <span style={{ color: 'var(--text3)', fontSize: 13 }}>{tr('cal.loading', 'Carico…')}</span>}
+          <div className="calendar-period-nav" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <button type="button" onClick={goToday} style={{ ...pillStyle(false), padding: '6px 12px' }}>{tr('cal.today', 'Oggi')}</button>
             <button type="button" onClick={() => step(-1)} aria-label="←" style={navBtn}><Chevron dir="left" /></button>
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', minWidth: 150, textAlign: 'center', textTransform: 'capitalize' }}>
+            <span style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', minWidth: 150, textAlign: 'center', textTransform: 'capitalize' }}>
               {view === 'week' ? weekLabel : monthLabel}
             </span>
             <button type="button" onClick={() => step(1)} aria-label="→" style={navBtn}><Chevron dir="right" /></button>
@@ -323,7 +324,7 @@ function Grid({ weeks, start, month, entries, dayNames, tr, onOpen, onNewOn }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0 }}>
           {dayNames.map((d, i) => (
             <div key={i} style={{
-              padding: '8px 10px', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em',
+              padding: '8px 10px', fontSize: 10, fontWeight: 640, letterSpacing: '0.08em',
               textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left',
             }}>{d}</div>
           ))}
@@ -352,7 +353,7 @@ function Grid({ weeks, start, month, entries, dayNames, tr, onOpen, onNewOn }) {
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         minWidth: 20, height: 20, borderRadius: 999, fontSize: 11.5, fontWeight: isToday ? 900 : 600,
                         background: isToday ? 'var(--text)' : 'transparent',
-                        color: isToday ? '#0a0a14' : (outside ? 'var(--text4, #6b7280)' : 'var(--text2)'),
+                        color: isToday ? 'var(--surface)' : (outside ? 'var(--text4, #6b7280)' : 'var(--text2)'),
                       }}>{parse(d).d}</span>
                     </div>
                   )
@@ -374,10 +375,10 @@ function Grid({ weeks, start, month, entries, dayNames, tr, onOpen, onNewOn }) {
                     borderBottomLeftRadius: b.continuesLeft ? 3 : 999,
                     borderTopRightRadius: b.continuesRight ? 3 : 999,
                     borderBottomRightRadius: b.continuesRight ? 3 : 999,
-                    background: KIND_COLOR[b.e.kind] || '#8e8e93',
+                    background: KIND_COLOR[b.e.kind] || '#8e8e8e',
                     border: b.e.status === 'draft' ? '1px dashed rgba(255,255,255,0.75)' : 'none',
                     opacity: b.e.status === 'draft' ? 0.75 : 1,
-                    color: '#fff', fontSize: 11.5, fontWeight: 700,
+                    color: '#fff', fontSize: 11.5, fontWeight: 600,
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -407,25 +408,25 @@ function AgendaView({ entries, L, tr, kindLabel, onOpen }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {days.map(d => (
         <div key={d}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 8 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 8 }}>
             {fmt(d)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {byDay[d].map(e => (
               <button key={`${e.source}-${e.id}`} type="button" onClick={() => onOpen(toEditable(e))} style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
                 background: 'var(--glass)', border: '1px solid var(--border)',
               }}>
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: KIND_COLOR[e.kind], flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {e.title}{e.person && !ABSENCE_KINDS.includes(e.kind) ? ` · ${e.person}` : ''}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11.5, color: 'var(--text3)', whiteSpace: 'nowrap' }}>
                   {kindLabel(e.kind)}{e.end !== e.start ? ` · ${tr('cal.until', 'fino al')} ${e.end}` : ''}
                 </span>
                 {e.status === 'draft' && (
-                  <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(255,159,10,0.16)', color: '#ffb340' }}>
+                  <span style={{ fontSize: 10, fontWeight: 640, padding: '2px 8px', borderRadius: 999, background: 'rgba(255,159,10,0.16)', color: '#ffb340' }}>
                     {tr('cal.draft', 'Da valutare')}
                   </span>
                 )}
@@ -477,7 +478,7 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
   }
 
   return (
-    <div onClick={onClose} style={{
+    <div className="mobile-modal-overlay" onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
@@ -488,7 +489,7 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 10, height: 10, borderRadius: 999, background: KIND_COLOR[f.kind] }} />
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', flex: 1 }}>
             {entry.isNew ? tr('cal.new', 'Nuova voce') : tr('cal.edit', 'Modifica voce')}
           </div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex' }}>
@@ -498,15 +499,15 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
 
         <Field label={tr('cal.type', 'Tipo')}>
           <select value={f.kind} onChange={e => set('kind', e.target.value)} disabled={!canEdit || !entry.isNew} style={inputStyle}>
-            {KINDS.map(k => <option key={k} value={k} style={{ background: '#0d0d16' }}>{kindLabel(k)}</option>)}
+            {KINDS.map(k => <option key={k} value={k} style={{ background: 'var(--surface)' }}>{kindLabel(k)}</option>)}
           </select>
         </Field>
 
         {isAbsence ? (
           <Field label={tr('cal.member', 'Persona')}>
             <select value={f.memberId || ''} onChange={e => set('memberId', e.target.value || null)} disabled={!me?.isAdmin} style={inputStyle}>
-              <option value="" style={{ background: '#0d0d16' }}>{me?.name || tr('cal.meLabel', 'Io')}</option>
-              {(members || []).map(m => <option key={m.id} value={m.id} style={{ background: '#0d0d16' }}>{m.name}</option>)}
+              <option value="" style={{ background: 'var(--surface)' }}>{me?.name || tr('cal.meLabel', 'Io')}</option>
+              {(members || []).map(m => <option key={m.id} value={m.id} style={{ background: 'var(--surface)' }}>{m.name}</option>)}
             </select>
           </Field>
         ) : (
@@ -527,12 +528,12 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
 
         {!isAbsence && (
           <Field label={tr('cal.status', 'Stato')}>
-            <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 10, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)' }}>
               {[['confirmed', tr('cal.confirmed', 'Confermata')], ['draft', tr('cal.draft', 'Da valutare')]].map(([id, label]) => (
                 <button key={id} type="button" onClick={() => canEdit && set('status', id)} style={{
-                  padding: '6px 14px', borderRadius: 7, border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 12.5, fontWeight: 800,
+                  padding: '6px 14px', borderRadius: 8, border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, fontWeight: 640,
                   background: f.status === id ? 'var(--text)' : 'transparent',
-                  color: f.status === id ? '#0a0a14' : 'var(--text2)',
+                  color: f.status === id ? 'var(--surface)' : 'var(--text2)',
                 }}>{label}</button>
               ))}
             </div>
@@ -545,7 +546,7 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
         </Field>
 
         {error && (
-          <div style={{ fontSize: 12, color: '#fca5a5', background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.3)', padding: '8px 12px', borderRadius: 8 }}>
+          <div style={{ fontSize: 13, color: '#fca5a5', background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.3)', padding: '8px 12px', borderRadius: 8 }}>
             {error}
           </div>
         )}
@@ -553,7 +554,7 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
           {!entry.isNew && entry.canEdit && (
             <button type="button" onClick={remove} disabled={busy} style={{
-              padding: '10px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 800,
+              padding: '10px 14px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 640,
               background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', color: '#f87171',
             }}>{tr('cal.delete', 'Elimina')}</button>
           )}
@@ -561,8 +562,8 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
           <button type="button" onClick={onClose} style={{ ...pillStyle(false), padding: '10px 16px' }}>{tr('cal.cancel', 'Annulla')}</button>
           {canEdit && (
             <button type="button" onClick={save} disabled={busy} style={{
-              padding: '10px 18px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', border: 'none',
-              background: 'linear-gradient(135deg, #7b5bff, #5b8bff)', color: '#fff', fontSize: 13, fontWeight: 800,
+              padding: '10px 18px', borderRadius: 12, cursor: busy ? 'wait' : 'pointer', border: 'none',
+              background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 640,
             }}>{busy ? tr('cal.saving', 'Salvo…') : tr('cal.save', 'Salva')}</button>
           )}
         </div>
@@ -575,7 +576,7 @@ function EntryModal({ entry, members, me, tr, kindLabel, onClose, onSaved }) {
 function Field({ label, children, grow }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: grow ? 1 : undefined }}>
-      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 640, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)' }}>{label}</span>
       {children}
     </label>
   )
@@ -596,23 +597,23 @@ function Chevron({ dir }) {
 }
 
 const inputStyle = {
-  width: '100%', padding: '10px 12px', borderRadius: 10,
+  width: '100%', padding: '10px 12px', borderRadius: 12,
   background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)',
   color: 'var(--text)', fontSize: 13, outline: 'none',
 }
 
 const navBtn = {
-  width: 30, height: 30, borderRadius: 9, cursor: 'pointer',
+  width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
   background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text2)',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 }
 
 function pillStyle(active) {
   return {
-    padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
+    padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600,
     background: active ? 'var(--text)' : 'var(--glass)',
     border: `1px solid ${active ? 'var(--text)' : 'var(--border)'}`,
-    color: active ? '#0a0a14' : 'var(--text2)',
+    color: active ? 'var(--surface)' : 'var(--text2)',
     whiteSpace: 'nowrap',
   }
 }

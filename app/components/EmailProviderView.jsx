@@ -1,5 +1,8 @@
 'use client'
 
+import PeriodoInBarra from './ui/PeriodoInBarra'
+import { Kpi as KpiMattone } from './ui/Mattoni'
+import { soldi } from '../../lib/client/soldi'
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -18,9 +21,12 @@ const DAYS = [
   { v: 90, k: 'em.d90', label: '90 giorni' },
 ]
 
+const giorniDelPeriodo = (v) => v?.since ? Math.max(1, Math.round((Date.now() - new Date(`${v.since}T00:00:00`).getTime()) / 86400000)) : 28
+
 export default function EmailProviderView({ provider }) {
   const { t } = useI18n()
   const meta = PROVIDER_META[provider] || { name: provider, color: '#22c55e' }
+  const [tfEmail, setTfEmail] = useState({ preset: 'last_30d' })
   const [days, setDays] = useState(30)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -38,33 +44,23 @@ export default function EmailProviderView({ provider }) {
 
   const k = data?.kpis || {}
   const campaigns = data?.campaigns || []
-  const eur = (v) => v == null ? '—' : '€' + Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })
-  const int = (v) => v == null ? '—' : Number(v).toLocaleString('it-IT')
+  const eur = (v) => soldi(v)
+  const int = (v) => v == null ? '—' : Number(v).toLocaleString('it-IT', { useGrouping: 'always' })
   const pct = (v) => v == null ? '—' : `${Number(v).toFixed(1)}%`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <span style={{ width: 42, height: 42, borderRadius: 11, background: meta.color + '22', color: meta.color, display: 'grid', placeItems: 'center' }}><Icon name="mail" size={16} /></span>
+        <span style={{ width: 42, height: 42, borderRadius: 12, background: meta.color + '22', color: meta.color, display: 'grid', placeItems: 'center' }}><Icon name="mail" size={16} /></span>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('em.title', null, 'Email Marketing')}</div>
-            <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 999, background: meta.color + '22', color: meta.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{meta.name}</span>
+            <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('em.title', null, 'Email Marketing')}</div>
+            <span style={{ fontSize: 10, fontWeight: 640, padding: '3px 9px', borderRadius: 999, background: meta.color + '22', color: meta.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{meta.name}</span>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>{t('em.subtitle', null, 'Performance email: invii, aperture, click, revenue per campagna.')}</div>
         </div>
-        <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.35)', border: '1px solid var(--border)', borderRadius: 999, padding: 3, gap: 2 }}>
-          {DAYS.map(d => {
-            const on = days === d.v
-            return (
-              <button key={d.v} onClick={() => setDays(d.v)} style={{
-                background: on ? meta.color : 'transparent', color: on ? '#fff' : 'var(--text3)',
-                border: 'none', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              }}>{t(d.k, null, d.label)}</button>
-            )
-          })}
-        </div>
+        <PeriodoInBarra value={tfEmail} onChange={(v) => { setTfEmail(v); setDays(giorniDelPeriodo(v)) }} disabled={loading} />
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>{t('em.loading', null, 'Carico i dati…')}</div>}
@@ -90,16 +86,16 @@ export default function EmailProviderView({ provider }) {
 
           {/* Campaigns table */}
           <div className="glass-card-static" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 900, color: 'var(--text)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 680, color: 'var(--text)' }}>
               {t('em.campaigns', null, 'Campagne')} <span style={{ color: 'var(--text3)', fontWeight: 600 }}>({campaigns.length})</span>
             </div>
             {campaigns.length === 0 ? (
               <div style={{ padding: 22, color: 'var(--text3)', fontSize: 13 }}>{t('em.noCampaigns', null, 'Nessuna campagna nel periodo selezionato.')}</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ color: 'var(--text3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <tr style={{ color: 'var(--text3)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       <th style={th}>{t('em.campaign', null, 'Campagna')}</th>
                       <th style={thR}>{t('em.recipients', null, 'Destinatari')}</th>
                       <th style={thR}>{t('em.openRate', null, 'Open rate')}</th>
@@ -110,11 +106,11 @@ export default function EmailProviderView({ provider }) {
                   <tbody>
                     {campaigns.slice(0, 50).map(c => (
                       <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ ...td, fontWeight: 700, color: 'var(--text)' }}>{c.name}</td>
+                        <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{c.name}</td>
                         <td style={tdR}>{int(c.recipients)}</td>
                         <td style={tdR}>{pct(c.openRate)}</td>
                         <td style={tdR}>{pct(c.clickRate)}</td>
-                        <td style={{ ...tdR, fontWeight: 800, color: c.revenue ? 'var(--green)' : 'var(--text3)' }}>{eur(c.revenue)}</td>
+                        <td style={{ ...tdR, fontWeight: 640, color: c.revenue ? 'var(--green)' : 'var(--text3)' }}>{eur(c.revenue)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -134,16 +130,11 @@ export default function EmailProviderView({ provider }) {
   )
 }
 
-function Kpi({ label, value, color }) {
-  return (
-    <div className="glass-card-static" style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 6, fontFamily: 'Barlow', letterSpacing: '-0.01em' }}>{value}</div>
-    </div>
-  )
+function Kpi({ label, value }) {
+  return <KpiMattone etichetta={label} valore={value} />
 }
 
-const th = { textAlign: 'left', padding: '10px 20px', fontWeight: 700 }
+const th = { textAlign: 'left', padding: '10px 20px', fontWeight: 600 }
 const thR = { ...th, textAlign: 'right' }
 const td = { padding: '11px 20px', color: 'var(--text2)' }
 const tdR = { ...td, textAlign: 'right' }

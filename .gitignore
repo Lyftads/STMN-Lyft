@@ -33,3 +33,7 @@ next-env.d.ts
 
 livekit-worker/node_modules
 .env*
+
+# Collaudi locali: aprono una sessione vera, non vanno in produzione
+.audit-*.mjs
+.audit-*.py

@@ -88,13 +88,13 @@ function presetRange(id) {
 const fmtShort = (loc, s) => { const d = parse(s); return `${d.getDate()} ${monthShort(loc, d.getMonth())}` }
 const fmtFull = (loc, s) => `${fmtShort(loc, s)} ${parse(s).getFullYear()}`
 
-function rangeLabel(value, t, loc) {
+export function rangeLabel(value, t, loc) {
   if (value?.preset && value.preset !== 'custom' && PRESET_KEY[value.preset]) return t(PRESET_KEY[value.preset], null, PRESET_FALLBACK[value.preset])
   if (!value?.since || !value?.until) return t('tf.selectPeriod', null, 'Select period')
   return value.since === value.until ? fmtFull(loc, value.since) : `${fmtShort(loc, value.since)} - ${fmtFull(loc, value.until)}`
 }
 
-export default function BmTimeframe({ value, onChange, accent = '#2997ff', disabled = false }) {
+export default function BmTimeframe({ value, onChange, accent = '#0a84ff', disabled = false }) {
   const { t, intlLocale } = useI18n()
   const loc = intlLocale || 'en-US'
   const val = (() => {
@@ -140,9 +140,22 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
     if (disabled) return
     setDraft(val)
     setAnchor(null)
-    setViewM(leftMonthOf(val.until || todayIso()))
+    const end = val.until || todayIso()
+    const d = parse(end)
+    setViewM(window.matchMedia('(max-width: 768px)').matches
+      ? { y: d.getFullYear(), m: d.getMonth() }
+      : leftMonthOf(end))
     const r = triggerRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
+    // Il pannello si allinea al bordo destro del bottone e si apre verso
+    // sinistra: con il selettore a SINISTRA della pagina finiva fuori dallo
+    // schermo (non si poteva cliccare nulla). Se a sinistra non c'e' spazio
+    // per i suoi ~780px, si sposta quanto basta per restare tutto visibile.
+    if (r) {
+      const LARGO = Math.min(790, window.innerWidth - 16)
+      const destraIdeale = Math.max(8, window.innerWidth - r.right)
+      const destraMassima = Math.max(8, window.innerWidth - LARGO - 8)
+      setPos({ top: r.bottom + 8, right: Math.min(destraIdeale, destraMassima) })
+    }
     setOpen(true)
   }
 
@@ -150,7 +163,10 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
     const r = presetRange(id)
     setDraft({ preset: id, ...r })
     setAnchor(null)
-    setViewM(leftMonthOf(r.until))
+    const d = parse(r.until)
+    setViewM(window.matchMedia('(max-width: 768px)').matches
+      ? { y: d.getFullYear(), m: d.getMonth() }
+      : leftMonthOf(r.until))
   }
 
   const pickDay = (dayIso) => {
@@ -173,9 +189,9 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button ref={triggerRef} type="button" onClick={openPanel} disabled={disabled} style={{
+      <button ref={triggerRef} aria-haspopup="dialog" aria-expanded={open} type="button" onClick={openPanel} disabled={disabled} style={{
         background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)',
-        borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+        borderRadius: 12, padding: '8px 14px', fontSize: 13, fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
         display: 'flex', alignItems: 'center', gap: 8, minWidth: 160,
       }}>
@@ -185,19 +201,19 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
       </button>
 
       {open && typeof document !== 'undefined' && createPortal((
-        <div ref={popoverRef} className="bm-tf-pop" style={{
+        <div ref={popoverRef} role="dialog" aria-label={t("tf.period", null, "Periodo")} className="bm-tf-pop" style={{
           position: 'fixed', top: pos.top, right: pos.right, zIndex: 2147483000,
-          background: 'var(--surface, #0d0d16)', border: '1px solid var(--border)', borderRadius: 14,
+          background: 'var(--surface, #0e0e0e)', border: '1px solid var(--border)', borderRadius: 16,
           boxShadow: '0 20px 60px rgba(0,0,0,0.55)', display: 'flex', overflow: 'hidden',
           maxWidth: '94vw', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto',
         }}>
           {/* Sidebar preset */}
           <div className="bm-tf-presets" style={{ width: 210, borderRight: '1px solid var(--border)', padding: '14px 10px', maxHeight: 420, overflowY: 'auto' }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 8px' }}>{t('tf.period', null, 'Period')}</div>
+            <div style={{ fontSize: 10, fontWeight: 640, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 8px' }}>{t('tf.period', null, 'Period')}</div>
             {PRESET_IDS.map(id => {
               const on = draft.preset === id
               return (
-                <button key={id} type="button" onClick={() => pickPreset(id)} style={{
+                <button key={id} aria-pressed={on} type="button" onClick={() => pickPreset(id)} style={{
                   width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 9,
                   padding: '8px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
                   background: on ? `${accent}1f` : 'transparent', color: on ? accent : 'var(--text2)',
@@ -226,16 +242,16 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 13, color: 'var(--text2)', cursor: 'pointer' }}>
               <input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} />
               {t('tf.compare', null, 'Compare')}
-              {prevCmp && <span style={{ color: 'var(--text3)', fontSize: 12 }}>· {fmtShort(loc, prevCmp.since)} - {fmtFull(loc, prevCmp.until)}</span>}
+              {prevCmp && <span style={{ color: 'var(--text3)', fontSize: 13 }}>· {fmtShort(loc, prevCmp.since)} - {fmtFull(loc, prevCmp.until)}</span>}
             </label>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, gap: 12 }}>
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 700 }}>
+            <div className="bm-tf-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, gap: 12 }}>
+              <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600 }}>
                 {draft.since === draft.until ? fmtFull(loc, draft.since) : `${fmtShort(loc, draft.since)} → ${fmtFull(loc, draft.until)}`}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={() => setOpen(false)} style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t('tf.cancel', null, 'Cancel')}</button>
-                <button type="button" onClick={apply} style={{ background: accent, border: 'none', color: '#0a0a14', borderRadius: 9, padding: '8px 22px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>{t('tf.update', null, 'Update')}</button>
+                <button type="button" onClick={() => setOpen(false)} style={{ background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('tf.cancel', null, 'Cancel')}</button>
+                <button className="bm-tf-apply" type="button" onClick={apply} style={{ background: accent, border: 'none', color: 'var(--surface)', borderRadius: 8, padding: '8px 22px', fontSize: 13, fontWeight: 640, cursor: 'pointer' }}>{t('tf.update', null, 'Update')}</button>
               </div>
             </div>
           </div>
@@ -246,8 +262,9 @@ export default function BmTimeframe({ value, onChange, accent = '#2997ff', disab
 }
 
 function CalNav({ onPrev, onNext, side }) {
+  const { t } = useI18n()
   return (
-    <button type="button" onClick={side === 'left' ? onPrev : onNext} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 18, padding: '4px 2px', marginTop: 2 }}>
+    <button className="bm-tf-month-nav" aria-label={side === 'left' ? t('tf.previousMonth', null, 'Mese precedente') : t('tf.nextMonth', null, 'Mese successivo')} type="button" onClick={side === 'left' ? onPrev : onNext} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 17, padding: '4px 2px', marginTop: 2 }}>
       {side === 'left' ? '‹' : '›'}
     </button>
   )
@@ -267,10 +284,10 @@ function Month({ y, m, draft, onPick, accent, loc }) {
   const isEdge = (dIso) => dIso === draft.since || dIso === draft.until
 
   return (
-    <div style={{ width: 232 }}>
-      <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>{monthLong(loc, m)} {y}</div>
+    <div className="bm-tf-month" style={{ width: 232 }}>
+      <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 640, color: 'var(--text)', marginBottom: 10 }}>{monthLong(loc, m)} {y}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-        {dow.map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text3)', padding: '2px 0' }}>{d}</div>)}
+        {dow.map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text3)', padding: '2px 0' }}>{d}</div>)}
         {cells.map((d, i) => {
           if (d == null) return <div key={i} />
           const dIso = `${y}-${pad(m + 1)}-${pad(d)}`
@@ -278,11 +295,11 @@ function Month({ y, m, draft, onPick, accent, loc }) {
           const edge = isEdge(dIso)
           const within = inRange(dIso)
           return (
-            <button key={i} type="button" disabled={future} onClick={() => onPick(dIso)} style={{
-              padding: '7px 0', fontSize: 12.5, borderRadius: 7, border: 'none', cursor: future ? 'not-allowed' : 'pointer',
+            <button className="bm-tf-day" key={i} aria-label={fmtFull(loc, dIso)} aria-pressed={!!edge} data-in-range={within ? "true" : undefined} type="button" disabled={future} onClick={() => onPick(dIso)} style={{
+              padding: '7px 0', fontSize: 13, borderRadius: 8, border: 'none', cursor: future ? 'not-allowed' : 'pointer',
               fontWeight: edge ? 800 : 600,
               background: edge ? accent : within ? `${accent}22` : 'transparent',
-              color: future ? 'var(--text3)' : edge ? '#0a0a14' : within ? accent : 'var(--text)',
+              color: future ? 'var(--text3)' : edge ? 'var(--surface)' : within ? accent : 'var(--text)',
               opacity: future ? 0.35 : 1,
             }}>{d}</button>
           )

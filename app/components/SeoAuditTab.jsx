@@ -1,18 +1,28 @@
 'use client'
 
+import PeriodoInBarra from './ui/PeriodoInBarra'
+import { useStatoTab } from '../../lib/client/statoTab'
+import { Fonte } from './ui/FasceTabella'
 import { useState, useEffect, useCallback } from 'react'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 import Icon from './ui/Icon'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
+// L'esperto SEO che legge i dati della tab. Nel fork per un solo cliente era
+// stato tolto perche' li' l'agente non c'era: qui e' un pezzo del prodotto e
+// va rimontato in tutti e sei i punti dove sta (audit + i cinque pannelli).
+// Toglierlo non da' errore: la pagina si apre uguale e il bottone sparisce.
 import SeoAgent from './SeoAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { num, perc } from '../../lib/client/numeri'
 
-const STATUS = { pass: { color: '#30d158', icon: '✓' }, warn: { color: '#ff9f0a', icon: '!' }, fail: { color: '#ff375f', icon: '×' } }
+const STATUS = { pass: { color: '#22c55e', icon: '✓' }, warn: { color: '#f59e0b', icon: '!' }, fail: { color: '#ef4444', icon: '×' } }
 const GROUPS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
 const GROUP_KEYS = { 'Essenziali': 'seo.groupEssentials', 'Social/Sharing': 'seo.groupSocial', 'Strutturati': 'seo.groupStructured', 'Contenuto': 'seo.groupContent', 'Tecnici': 'seo.groupTechnical' }
-const PRIO = { alta: '#ff375f', media: '#ff9f0a', bassa: '#64d2ff' }
-const scoreCol = s => s >= 85 ? '#30d158' : s >= 70 ? '#64d2ff' : s >= 50 ? '#ff9f0a' : '#ff375f'
+const PRIO = { alta: '#ef4444', media: '#f59e0b', bassa: '#64d2ff' }
+const scoreCol = s => s >= 85 ? '#22c55e' : s >= 70 ? '#64d2ff' : s >= 50 ? '#f59e0b' : '#ef4444'
 const fmtDate = d => new Date(d).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+const giorniDelPeriodo = (v) => v?.since ? Math.max(1, Math.round((Date.now() - new Date(`${v.since}T00:00:00`).getTime()) / 86400000)) : 28
 
 export default function SeoAuditTab() {
   const { t } = useI18n()
@@ -82,7 +92,7 @@ export default function SeoAuditTab() {
   }
 
   return (
-    <div style={{ maxWidth: 1100 }}>
+    <div>
       {/* Sub-nav */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
         <Pill active={view === 'gsc'} onClick={() => setView('gsc')}>Search Console</Pill>
@@ -123,7 +133,7 @@ export default function SeoAuditTab() {
           <input value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()}
             placeholder={t('seo.phKeywordTarget', null, 'Keyword target (opzionale) — es. accessori crossfit')} style={{ ...inputStyle, marginBottom: 24 }} />
 
-          {error && <div className="glass-card" style={{ padding: 18, color: '#ff375f', marginBottom: 20 }}><Icon name="warning" size={13} /> {error}</div>}
+          {error && <div className="glass-card" style={{ padding: 18, color: '#ef4444', marginBottom: 20 }}><Icon name="warning" size={13} /> {error}</div>}
 
           {compare && <CompareView compare={compare} />}
           {!compare && res && (
@@ -137,14 +147,16 @@ export default function SeoAuditTab() {
         </>
       )}
 
-      {/* Floating SEO Agent — visibile sempre, conosce l'audit corrente se presente */}
+      {/* Esperto SEO flottante — sta fuori dal blocco `view === 'audit'` perche'
+          deve restare raggiungibile da qualsiasi vista; se c'e' un audit in
+          corso lo conosce, altrimenti risponde su SEO in generale. */}
       <SeoAgent audit={res} />
 
       {view === 'history' && (
         <div className="glass-card" style={{ padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontWeight: 700 }}>{t('seo.savedAudits', null, 'Audit salvati')}</div>
-            <div style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.6 }}>
+            <div style={{ fontWeight: 600 }}>{t('seo.savedAudits', null, 'Audit salvati')}</div>
+            <div style={{ marginLeft: 'auto', fontSize: 13, opacity: 0.6 }}>
               {picks.length === 2 ? <button onClick={runCompare} style={{ ...btnStyle(false), padding: '8px 16px' }}>{t('seo.compareBeforeAfter', null, 'Confronta prima/dopo')}</button>
                 : t('seo.selectTwo', { n: picks.length }, `Seleziona 2 audit della stessa URL per confrontarli (${picks.length}/2)`)}
             </div>
@@ -153,15 +165,15 @@ export default function SeoAuditTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {history.map(h => (
               <div key={h.id} onClick={() => loadAudit(h.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                background: picks.includes(h.id) ? 'rgba(41,151,255,0.12)' : 'var(--glass)', border: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
+                background: picks.includes(h.id) ? 'var(--neutro-bg)' : 'var(--glass)', border: '1px solid var(--border)',
               }}>
                 <input type="checkbox" checked={picks.includes(h.id)} onChange={() => {}} onClick={e => { e.stopPropagation(); togglePick(h.id) }} />
-                <span style={{ width: 40, height: 28, borderRadius: 6, background: scoreCol(h.score) + '22', color: scoreCol(h.score), fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{h.score}</span>
+                <span style={{ width: 40, height: 28, borderRadius: 8, background: scoreCol(h.score) + '22', color: scoreCol(h.score), fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{h.score}</span>
                 <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: 0.5, width: 36 }}>{h.mode === 'site' ? t('seo.siteShort', null, 'sito') : t('seo.pageShort', null, 'pag.')}</span>
                 <span style={{ flex: 1, fontSize: 13, wordBreak: 'break-all', opacity: 0.85 }}>{h.url}</span>
-                <span style={{ fontSize: 12, opacity: 0.5 }}>{fmtDate(h.created_at)}</span>
-                <span onClick={e => delAudit(h.id, e)} style={{ cursor: 'pointer', opacity: 0.4, fontSize: 16 }}>×</span>
+                <span style={{ fontSize: 13, opacity: 0.5 }}>{fmtDate(h.created_at)}</span>
+                <span onClick={e => delAudit(h.id, e)} style={{ cursor: 'pointer', opacity: 0.4, fontSize: 17 }}>×</span>
               </div>
             ))}
           </div>
@@ -184,7 +196,7 @@ function PageResult({ res }) {
         if (!items.length) return null
         return (
           <div key={group} className="glass-card" style={{ padding: 24, marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14, opacity: 0.85 }}>{t(GROUP_KEYS[group], null, group)}</div>
+            <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15, opacity: 0.85 }}>{t(GROUP_KEYS[group], null, group)}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {items.map(c => <CheckRow key={c.id} c={c} />)}
             </div>
@@ -201,22 +213,22 @@ function SiteResult({ res }) {
     <>
       <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
         <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
-          <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreCol(res.avgScore) }}>{res.avgScore}</div>
+          <div style={{ fontSize: 22, fontWeight: 640, lineHeight: 1, color: scoreCol(res.avgScore) }}>{res.avgScore}</div>
           <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{t('seo.avg', null, 'media')} · {res.scoreLabel}</div>
         </div>
         <div className="glass-card" style={{ padding: 24, display: 'flex', alignItems: 'center' }}>
-          <div><div style={{ fontSize: 28, fontWeight: 700 }}>{res.pagesAnalyzed}</div><div style={{ fontSize: 12, opacity: 0.6 }}>{t('seo.pagesAnalyzed', null, 'pagine analizzate')}</div></div>
-          <div style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.5, wordBreak: 'break-all' }}>{res.url}</div>
+          <div><div style={{ fontSize: 22, fontWeight: 600 }}>{res.pagesAnalyzed}</div><div style={{ fontSize: 13, opacity: 0.6 }}>{t('seo.pagesAnalyzed', null, 'pagine analizzate')}</div></div>
+          <div style={{ marginLeft: 'auto', fontSize: 13, opacity: 0.5, wordBreak: 'break-all' }}>{res.url}</div>
         </div>
       </div>
       <Recommendations recs={res.recommendations} />
       {/* problemi ricorrenti */}
       <div className="glass-card" style={{ padding: 24, marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>{t('seo.commonIssues', null, 'Problemi ricorrenti')}</div>
+        <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>{t('seo.commonIssues', null, 'Problemi ricorrenti')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {res.commonIssues.map(i => (
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: i.fail ? '#ff375f' : '#ff9f0a' }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: i.fail ? '#ef4444' : '#f59e0b' }} />
               <span style={{ flex: 1 }}>{i.label}</span>
               <span style={{ opacity: 0.6 }}>{i.affected}/{res.pagesAnalyzed} {t('seo.pagesWord', null, 'pagine')}</span>
             </div>
@@ -225,14 +237,14 @@ function SiteResult({ res }) {
       </div>
       {/* per pagina */}
       <div className="glass-card" style={{ padding: 24 }}>
-        <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>{t('seo.pagesWorst', null, 'Pagine (peggiori in alto)')}</div>
+        <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>{t('seo.pagesWorst', null, 'Pagine (peggiori in alto)')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {res.pages.map((p, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ width: 36, height: 24, borderRadius: 6, background: scoreCol(p.score) + '22', color: scoreCol(p.score), fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{p.score}</span>
+              <span style={{ width: 36, height: 24, borderRadius: 8, background: scoreCol(p.score) + '22', color: scoreCol(p.score), fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{p.score}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ wordBreak: 'break-all', opacity: 0.85 }}>{p.url}</div>
-                {p.issues.length > 0 && <div style={{ fontSize: 11, opacity: 0.5, marginTop: 2 }}>{p.issues.slice(0, 5).join(' · ')}{p.issues.length > 5 ? ` +${p.issues.length - 5}` : ''}</div>}
+                {p.issues.length > 0 && <div style={{ fontSize: 11.5, opacity: 0.5, marginTop: 2 }}>{p.issues.slice(0, 5).join(' · ')}{p.issues.length > 5 ? ` +${p.issues.length - 5}` : ''}</div>}
               </div>
             </div>
           ))}
@@ -262,27 +274,27 @@ function CompareView({ compare }) {
     <>
       <div className="glass-card" style={{ padding: 24, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 24 }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 36, fontWeight: 800, color: scoreCol(bScore) }}>{bScore}</div>
-          <div style={{ fontSize: 11, opacity: 0.5 }}>{t('seo.before', null, 'Prima')} · {fmtDate(before.created_at)}</div>
+          <div style={{ fontSize: 22, fontWeight: 640, color: scoreCol(bScore) }}>{bScore}</div>
+          <div style={{ fontSize: 11.5, opacity: 0.5 }}>{t('seo.before', null, 'Prima')} · {fmtDate(before.created_at)}</div>
         </div>
-        <div style={{ fontSize: 28, opacity: 0.5 }}>→</div>
+        <div style={{ fontSize: 22, opacity: 0.5 }}>→</div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 36, fontWeight: 800, color: scoreCol(aScore) }}>{aScore}</div>
-          <div style={{ fontSize: 11, opacity: 0.5 }}>{t('seo.after', null, 'Dopo')} · {fmtDate(after.created_at)}</div>
+          <div style={{ fontSize: 22, fontWeight: 640, color: scoreCol(aScore) }}>{aScore}</div>
+          <div style={{ fontSize: 11.5, opacity: 0.5 }}>{t('seo.after', null, 'Dopo')} · {fmtDate(after.created_at)}</div>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          <div style={{ fontSize: 32, fontWeight: 800, color: delta >= 0 ? '#30d158' : '#ff375f' }}>{delta >= 0 ? '+' : ''}{delta}</div>
-          <div style={{ fontSize: 12, opacity: 0.6, wordBreak: 'break-all', maxWidth: 360 }}>{after.url}</div>
+          <div style={{ fontSize: 22, fontWeight: 640, color: delta >= 0 ? '#22c55e' : '#ef4444' }}>{delta >= 0 ? '+' : ''}{delta}</div>
+          <div style={{ fontSize: 13, opacity: 0.6, wordBreak: 'break-all', maxWidth: 360 }}>{after.url}</div>
         </div>
       </div>
       <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="glass-card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, color: '#30d158' }}>↑ {t('seo.improved', { n: improved.length }, `Migliorati (${improved.length})`)}</div>
+          <div style={{ fontWeight: 600, marginBottom: 12, color: '#22c55e' }}>↑ {t('seo.improved', { n: improved.length }, `Migliorati (${improved.length})`)}</div>
           {improved.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>{t('seo.none', null, 'Nessuno')}</div>}
           {improved.map((c, i) => <div key={i} style={{ fontSize: 13, padding: '4px 0' }}>{c.label} <span style={{ opacity: 0.5 }}>({c.from}→{c.to})</span></div>)}
         </div>
         <div className="glass-card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, color: '#ff375f' }}>↓ {t('seo.regressed', { n: regressed.length }, `Peggiorati (${regressed.length})`)}</div>
+          <div style={{ fontWeight: 600, marginBottom: 12, color: '#ef4444' }}>↓ {t('seo.regressed', { n: regressed.length }, `Peggiorati (${regressed.length})`)}</div>
           {regressed.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>{t('seo.none', null, 'Nessuno')}</div>}
           {regressed.map((c, i) => <div key={i} style={{ fontSize: 13, padding: '4px 0' }}>{c.label} <span style={{ opacity: 0.5 }}>({c.from}→{c.to})</span></div>)}
         </div>
@@ -307,7 +319,7 @@ async function seoDownloadPdf(type, data, setBusy) {
 function PdfButton({ type, data }) {
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
-  return <button onClick={() => seoDownloadPdf(type, data, setBusy)} disabled={busy} style={{ padding: '9px 16px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)' }}>⤓ {busy ? t('seo.generatingPdf', null, 'Genero PDF…') : t('seo.downloadPdf', null, 'Scarica PDF')}</button>
+  return <button onClick={() => seoDownloadPdf(type, data, setBusy)} disabled={busy} style={{ padding: '9px 16px', borderRadius: 12, cursor: busy ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, background: 'var(--glass)', color: 'var(--text)', border: '1px solid var(--border)' }}>⤓ {busy ? t('seo.generatingPdf', null, 'Genero PDF…') : t('seo.downloadPdf', null, 'Scarica PDF')}</button>
 }
 
 
@@ -333,11 +345,13 @@ function KeywordAIPanel() {
             <Mini label="AI Overview" value={d.aiOverview?.likely ? t('seo.likely', null, 'Probabile') : t('seo.unlikely', null, 'Improbabile')} note={d.aiOverview?.note} />
           </div>
           {d.volumeHint && <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 16 }}>{t('seo.estVolume', null, 'Volume stimato:')} <strong>{d.volumeHint}</strong></div>}
-          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 14 }}>{d.summary}</div>}
+          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 15 }}>{d.summary}</div>}
           <Block title={t('seo.relatedKw', null, 'Keyword correlate')}><Chips list={(d.related || []).map(r => `${r.term}${r.intent ? ` · ${r.intent}` : ''}`)} /></Block>
-          <Block title={t('seo.questions', null, 'Domande (People Also Ask)')}>{(d.questions || []).map((q, i) => <div key={i} style={{ fontSize: 13.5, padding: '4px 0' }}>• {q}</div>)}</Block>
-          <Block title={t('seo.contentIdeas', null, 'Idee di contenuto')}>{(d.contentIdeas || []).map((c, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13.5 }}><strong>{c.title}</strong>{c.angle ? <span style={{ opacity: 0.65 }}> — {c.angle}</span> : null}</div>)}</Block>
+          <Block title={t('seo.questions', null, 'Domande (People Also Ask)')}>{(d.questions || []).map((q, i) => <div key={i} style={{ fontSize: 13, padding: '4px 0' }}>• {q}</div>)}</Block>
+          <Block title={t('seo.contentIdeas', null, 'Idee di contenuto')}>{(d.contentIdeas || []).map((c, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13 }}><strong>{c.title}</strong>{c.angle ? <span style={{ opacity: 0.65 }}> — {c.angle}</span> : null}</div>)}</Block>
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="keyword" data={d} /></div>
+          {/* Ogni pannello passa all'agente il PROPRIO risultato: cosi' le
+              domande suggerite parlano di quello che si ha davanti. */}
           <SeoAgent context={{ type: 'keyword', data: d }} hint={t('seo.hintKeyword', null, 'Esperto SEO — conosce questa analisi keyword.')} suggestions={[t('seo.sugKw1', null, 'Crea un cluster di contenuti da queste keyword'), t('seo.sugKw2', null, 'Scrivi 3 title ottimizzati per la keyword principale'), t('seo.sugKw3', null, 'Quale intent prioritizzo e perché?')]} />
         </>
       )}
@@ -367,12 +381,12 @@ function EditorPanel() {
             <Mini label={t('seo.searchIntent', null, 'Search intent')} value={d.searchIntent} />
             <Mini label={t('seo.recLength', null, 'Lunghezza consigliata')} value={`${d.recommendedWords || '—'} ${t('seo.wordsWord', null, 'parole')}`} />
           </div>
-          {d.title && <div className="glass-card" style={{ padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, opacity: 0.55 }}>TITLE ({d.title.length})</div><div style={{ fontSize: 14, fontWeight: 600 }}>{d.title}</div><div style={{ fontSize: 11, opacity: 0.55, marginTop: 8 }}>META ({(d.metaDescription || '').length})</div><div style={{ fontSize: 13 }}>{d.metaDescription}</div></div>}
-          <Block title={t('seo.headingStructure', null, 'Struttura heading consigliata')}>{(d.headings || []).map((h, i) => <div key={i} style={{ fontSize: 13.5, padding: '3px 0', paddingLeft: h.tag === 'H3' ? 20 : 0 }}><span style={{ opacity: 0.45, fontSize: 11 }}>{h.tag}</span> {h.text}</div>)}</Block>
+          {d.title && <div className="glass-card" style={{ padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11.5, opacity: 0.55 }}>TITLE ({d.title.length})</div><div style={{ fontSize: 15, fontWeight: 600 }}>{d.title}</div><div style={{ fontSize: 11.5, opacity: 0.55, marginTop: 8 }}>META ({(d.metaDescription || '').length})</div><div style={{ fontSize: 13 }}>{d.metaDescription}</div></div>}
+          <Block title={t('seo.headingStructure', null, 'Struttura heading consigliata')}>{(d.headings || []).map((h, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', paddingLeft: h.tag === 'H3' ? 20 : 0 }}><span style={{ opacity: 0.45, fontSize: 11.5 }}>{h.tag}</span> {h.text}</div>)}</Block>
           <Block title={t('seo.entities', null, 'Entità / argomenti da coprire')}><Chips list={d.entities || []} /></Block>
-          {(d.faq || []).length > 0 && <Block title={t('seo.faqSuggested', null, 'FAQ suggerite')}>{d.faq.map((f, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13.5 }}><strong>{f.q}</strong><div style={{ opacity: 0.7 }}>{f.a}</div></div>)}</Block>}
+          {(d.faq || []).length > 0 && <Block title={t('seo.faqSuggested', null, 'FAQ suggerite')}>{d.faq.map((f, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13 }}><strong>{f.q}</strong><div style={{ opacity: 0.7 }}>{f.a}</div></div>)}</Block>}
           {d.schema && <Block title="Schema (JSON-LD)"><div style={{ fontSize: 13, opacity: 0.8 }}>{d.schema}</div></Block>}
-          {(d.gaps || []).length > 0 && <Block title={t('seo.gaps', null, 'Gap / opportunità vs competitor')}>{d.gaps.map((g, i) => <div key={i} style={{ fontSize: 13.5, padding: '3px 0' }}>• {g}</div>)}</Block>}
+          {(d.gaps || []).length > 0 && <Block title={t('seo.gaps', null, 'Gap / opportunità vs competitor')}>{d.gaps.map((g, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0' }}>• {g}</div>)}</Block>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="editor" data={d} /></div>
           <SeoAgent context={{ type: 'editor', data: d }} hint={t('seo.hintEditor', null, 'Esperto SEO — conosce questo brief editoriale.')} suggestions={[t('seo.sugEd1', null, 'Espandi questo brief in una bozza di articolo'), t('seo.sugEd2', null, 'Genera lo JSON-LD completo'), t('seo.sugEd3', null, 'Migliora title e meta description')]} />
         </div>
@@ -392,13 +406,13 @@ function CompetitorPanel() {
     try { const r = await fetch('/api/seo-competitor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls: list }) }); const j = await r.json(); j.error ? setError(j.error) : setRows(j.rows) }
     catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
   }
-  const ok = (b) => <span style={{ color: b ? '#30d158' : '#ff375f' }}>{b ? '✓' : '×'}</span>
+  const ok = (b) => <span style={{ color: b ? '#22c55e' : '#ef4444' }}>{b ? '✓' : '×'}</span>
   const host = u => { try { return new URL(u).hostname.replace(/^www\./, '') + new URL(u).pathname.replace(/\/$/, '') } catch { return u } }
   const metrics = rows ? [
-    ['Score', r => <span style={{ color: scoreCol(r.score), fontWeight: 700 }}>{r.score}</span>],
+    ['Score', r => <span style={{ color: scoreCol(r.score), fontWeight: 600 }}>{r.score}</span>],
     [t('seo.metricTitleLen', null, 'Title (lung.)'), r => r.titleLen], [t('seo.metricDescLen', null, 'Meta desc (lung.)'), r => r.descLen], [t('seo.metricWords', null, 'Parole'), r => r.words],
     ['JSON-LD', r => ok(r.jsonld)], ['Hreflang', r => ok(r.hreflang)], ['OG image', r => ok(r.og)],
-    ['Alt %', r => r.altCoverage == null ? '—' : `${r.altCoverage}%`], [t('seo.metricSpeed', null, 'Velocità'), r => r.speedMs == null ? '—' : `${(r.speedMs / 1000).toFixed(1)}s`], ['HTTPS', r => ok(r.https)],
+    ['Alt %', r => r.altCoverage == null ? '—' : `${r.altCoverage}%`], [t('seo.metricSpeed', null, 'Velocità'), r => r.speedMs == null ? '—' : `${num(r.speedMs / 1000, 1)}s`], ['HTTPS', r => ok(r.https)],
   ] : []
   return (
     <div>
@@ -414,15 +428,15 @@ function CompetitorPanel() {
                   <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 10 }} />
                   <YAxis domain={[0, 100]} tick={{ fill: 'var(--text3)', fontSize: 10 }} width={34} />
-                  <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }} />
                   <Bar dataKey="score" radius={[4, 4, 0, 0]}>{rows.filter(r => !r.error).map((r, i) => <Cell key={i} fill={scoreCol(r.score)} />)}</Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </Block>
           <div className="glass-card" style={{ padding: 20, marginTop: 20, overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ff375f' }}>{host(r.url)} {t('seo.errorParen', null, '(errore)')}</span> : host(r.url)}</th>)}</tr></thead>
+            <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ef4444' }}>{host(r.url)} {t('seo.errorParen', null, '(errore)')}</span> : host(r.url)}</th>)}</tr></thead>
               <tbody>{metrics.map(([label, fn], mi) => (
                 <tr key={mi}><td style={{ ...tdStyle, opacity: 0.6 }}>{label}</td>{rows.map((r, i) => <td key={i} style={tdStyle}>{r.error ? '—' : fn(r)}</td>)}</tr>
               ))}</tbody>
@@ -457,19 +471,19 @@ function AeoPanel() {
       {d && (
         <div style={{ marginTop: 20 }}>
           <div className="glass-card" style={{ padding: 24, textAlign: 'center', marginBottom: 16, maxWidth: 220 }}>
-            <div style={{ fontSize: 48, fontWeight: 800, color: scoreCol(d.visibilityScore) }}>{d.visibilityScore}</div>
-            <div style={{ fontSize: 12, opacity: 0.6 }}>AI Visibility Score</div>
+            <div style={{ fontSize: 22, fontWeight: 640, color: scoreCol(d.visibilityScore) }}>{d.visibilityScore}</div>
+            <div style={{ fontSize: 13, opacity: 0.6 }}>AI Visibility Score</div>
           </div>
-          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 14 }}>{d.summary}</div>}
+          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 15 }}>{d.summary}</div>}
           {(d.results || []).map((r, i) => (
             <div key={i} className="glass-card" style={{ padding: 16, marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ color: r.mentioned ? '#30d158' : '#ff375f', fontWeight: 700 }}>{r.mentioned ? `${t('seo.cited', null, 'Citato')}${r.rank && r.rank !== 'n/d' ? ` (#${r.rank})` : ''}` : `× ${t('seo.notCited', null, 'Non citato')}`}</span>
-                <span style={{ fontSize: 14, opacity: 0.9 }}>{r.prompt}</span>
+                <span style={{ color: r.mentioned ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{r.mentioned ? `${t('seo.cited', null, 'Citato')}${r.rank && r.rank !== 'n/d' ? ` (#${r.rank})` : ''}` : `× ${t('seo.notCited', null, 'Non citato')}`}</span>
+                <span style={{ fontSize: 15, opacity: 0.9 }}>{r.prompt}</span>
               </div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>{r.why}</div>
-              {r.competitorsMentioned?.length > 0 && <div style={{ fontSize: 12, opacity: 0.55, marginTop: 4 }}>{t('seo.citedInstead', null, 'Citati invece:')} {r.competitorsMentioned.join(', ')}</div>}
-              {r.howToImprove && <div style={{ fontSize: 12.5, marginTop: 6, color: '#64d2ff' }}>→ {r.howToImprove}</div>}
+              {r.competitorsMentioned?.length > 0 && <div style={{ fontSize: 13, opacity: 0.55, marginTop: 4 }}>{t('seo.citedInstead', null, 'Citati invece:')} {r.competitorsMentioned.join(', ')}</div>}
+              {r.howToImprove && <div style={{ fontSize: 13, marginTop: 6, color: 'var(--text)' }}>→ {r.howToImprove}</div>}
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="aeo" data={d} /></div>
@@ -481,21 +495,23 @@ function AeoPanel() {
 }
 
 /* ---------- Google Search Console (dati reali) ---------- */
-const nf = (n) => Number(n || 0).toLocaleString('it-IT')
-const pct = (c) => `${(Number(c || 0) * 100).toFixed(1)}%`
+const nf = (n) => num(n || 0, 0)
+// toFixed scrive all'inglese ("1.8%"): in questa tab erano 136 numeri col punto
+// e nemmeno uno con la virgola.
+const pct = (c) => perc(Number(c || 0) * 100, 1)
 
 function SetupGSC() {
   const { t } = useI18n()
   return (
     <div className="glass-card" style={{ padding: 28, textAlign: 'center' }}>
-      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>{t('seo.gscSetupTitle', null, 'Collega Google Search Console')}</div>
-      <div style={{ fontSize: 13.5, opacity: 0.8, lineHeight: 1.6, maxWidth: 540, margin: '0 auto 18px' }}>
+      <div style={{ fontWeight: 640, fontSize: 15, marginBottom: 8 }}>{t('seo.gscSetupTitle', null, 'Collega Google Search Console')}</div>
+      <div style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.6, maxWidth: 540, margin: '0 auto 18px' }}>
         {t('seo.gscConnectIntro', null, 'Un solo collegamento Google abilita Search Console, GA4 e Google Ads. Clicca qui sotto e autorizza l’accesso in sola lettura.')}
       </div>
-      <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={{ padding: '11px 24px', fontWeight: 800, fontSize: 14, borderRadius: 12, border: 'none', background: '#2997ff', color: '#fff', cursor: 'pointer' }}>
+      <button onClick={() => { window.location.href = '/api/google/auth/start' }} style={{ padding: '11px 24px', fontWeight: 640, fontSize: 15, borderRadius: 12, border: 'none', background: '#2997ff', color: '#fff', cursor: 'pointer' }}>
         {t('seo.gscConnectBtn', null, 'Collega Google')}
       </button>
-      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 14, lineHeight: 1.5, maxWidth: 540, marginInline: 'auto' }}>
+      <div style={{ fontSize: 13, opacity: 0.6, marginTop: 14, lineHeight: 1.5, maxWidth: 540, marginInline: 'auto' }}>
         {t('seo.gscReconnectNote', null, 'Hai già collegato Google in passato? Clicca comunque: serve riautorizzare una volta per attivare Search Console.')}
       </div>
     </div>
@@ -505,17 +521,17 @@ function SetupGSC() {
 function Delta({ v, suffix = '%', invert = false }) {
   if (v == null) return null
   const good = invert ? v < 0 : v > 0
-  const col = v === 0 ? 'var(--text3)' : good ? '#30d158' : '#ff375f'
-  return <span style={{ fontSize: 11, fontWeight: 700, color: col, marginLeft: 6 }}>{v > 0 ? '▲' : v < 0 ? '▼' : '•'} {Math.abs(v)}{suffix}</span>
+  const col = v === 0 ? 'var(--text3)' : good ? '#22c55e' : '#ef4444'
+  return <span style={{ fontSize: 11.5, fontWeight: 600, color: col, marginLeft: 6 }}>{v > 0 ? '▲' : v < 0 ? '▼' : '•'} {num(Math.abs(v), 1)}{suffix}</span>
 }
 function DimTable({ rows, label, fmtKey }) {
   const { t } = useI18n()
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead><tr><th style={thStyle}>{label}</th><th style={thStyle}>{t('seo.thClicks', null, 'Click')}</th><th style={thStyle}>{t('seo.thImpr', null, 'Impr.')}</th><th style={thStyle}>CTR</th><th style={thStyle}>{t('seo.thPos', null, 'Pos.')}</th></tr></thead>
+      <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead><tr><th style={thStyle}><Fonte loghi={['google']} />{label}</th><th style={thStyle}>{t('seo.thClicks', null, 'Click')}</th><th style={thStyle}>{t('seo.thImpr', null, 'Impr.')}</th><th style={thStyle}>CTR</th><th style={thStyle}>{t('seo.thPos', null, 'Pos.')}</th></tr></thead>
         <tbody>{rows.map((q, i) => (
-          <tr key={i}><td style={{ ...tdStyle, maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtKey ? fmtKey(q.key) : q.key}</td><td style={tdStyle}>{nf(q.clicks)}</td><td style={tdStyle}>{nf(q.impressions)}</td><td style={tdStyle}>{pct(q.ctr)}</td><td style={tdStyle}>{q.position.toFixed(1)}</td></tr>
+          <tr key={i}><td style={{ ...tdStyle, maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtKey ? fmtKey(q.key) : q.key}</td><td style={tdStyle}>{nf(q.clicks)}</td><td style={tdStyle}>{nf(q.impressions)}</td><td style={tdStyle}>{pct(q.ctr)}</td><td style={tdStyle}>{num(q.position, 1)}</td></tr>
         ))}</tbody>
       </table>
     </div>
@@ -526,7 +542,10 @@ function GSCPanel() {
   const { t } = useI18n()
   const [state, setState] = useState({ loading: true })
   const [site, setSite] = useState('')
-  const [days, setDays] = useState(28)
+  // Stesso selettore del periodo di tutte le tab, nella barra in alto. Search
+  // Console ragiona a giorni all'indietro da oggi: il periodo scelto diventa quel numero.
+  const [tfSeo, setTfSeo] = useStatoTab('seo.tf', { preset: 'last_28d' })
+  const [days, setDays] = useState(() => (tfSeo?.since ? giorniDelPeriodo(tfSeo) : 28))
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -571,12 +590,10 @@ function GSCPanel() {
         <select value={site} onChange={e => { const s = e.target.value; setSite(s); fetch('/api/integrations/gsc-site', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: s }) }).catch(() => {}) }} style={{ ...inputStyle, flex: 1 }}>
           {state.sites.map(s => <option key={s.siteUrl} value={s.siteUrl} style={{ background: 'var(--surface)' }}>{s.siteUrl}</option>)}
         </select>
-        <select value={days} onChange={e => setDays(+e.target.value)} style={{ ...inputStyle, flex: 'none', width: 150 }}>
-          <option value={7}>{t('seo.daysN', { n: 7 }, '7 giorni')}</option><option value={28}>{t('seo.daysN', { n: 28 }, '28 giorni')}</option><option value={90}>{t('seo.daysN', { n: 90 }, '90 giorni')}</option><option value={180}>{t('seo.daysN', { n: 180 }, '180 giorni')}</option>
-        </select>
+        <PeriodoInBarra value={tfSeo} onChange={(v) => { setTfSeo(v); setDays(giorniDelPeriodo(v)) }} disabled={loading} />
       </Row>
 
-      {loading && <div style={{ opacity: 0.5, fontSize: 13, marginTop: 16 }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('seo.loadingGsc', null, 'Carico i dati da Search Console…')}</div>}
+      {loading && <div style={{ opacity: 0.5, fontSize: 13, marginTop: 16 }}><span style={{ display: "inline-flex", animation: "spin 1s linear infinite" }}><Icon name="refresh" size={13} /></span> {t('seo.loadingGsc', null, 'Carico i dati da Search Console…')}</div>}
       {error && <Err>{error}</Err>}
 
       {data && (
@@ -586,10 +603,10 @@ function GSCPanel() {
           </div>
           {/* KPI con delta vs periodo precedente */}
           <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 16 }}>
-            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiClicks', null, 'Click')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.clicks)}<Delta v={data.deltas.clicks} /></div></div>
-            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiImpressions', null, 'Impression')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{nf(data.totals.impressions)}<Delta v={data.deltas.impressions} /></div></div>
-            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiCtr', null, 'CTR medio')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{pct(data.totals.ctr)}<Delta v={data.deltas.ctr} suffix="pp" /></div></div>
-            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiPosition', null, 'Posizione media')}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{data.totals.position.toFixed(1)}<Delta v={data.deltas.position} suffix="" invert /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiClicks', null, 'Click')}</div><div style={{ fontSize: 22, fontWeight: 600 }}>{nf(data.totals.clicks)}<Delta v={data.deltas.clicks} /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiImpressions', null, 'Impression')}</div><div style={{ fontSize: 22, fontWeight: 600 }}>{nf(data.totals.impressions)}<Delta v={data.deltas.impressions} /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiCtr', null, 'CTR medio')}</div><div style={{ fontSize: 22, fontWeight: 600 }}>{pct(data.totals.ctr)}<Delta v={data.deltas.ctr} suffix="pp" /></div></div>
+            <div className="glass-card" style={{ padding: 16 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{t('seo.kpiPosition', null, 'Posizione media')}</div><div style={{ fontSize: 22, fontWeight: 600 }}>{num(data.totals.position, 1)}<Delta v={data.deltas.position} suffix="" invert /></div></div>
           </div>
 
           {/* Grafico temporale */}
@@ -601,7 +618,7 @@ function GSCPanel() {
                   <XAxis dataKey="date" tickFormatter={fmtDay} tick={{ fill: 'var(--text3)', fontSize: 10 }} minTickGap={28} />
                   <YAxis yAxisId="l" tick={{ fill: 'var(--text3)', fontSize: 10 }} width={42} />
                   <YAxis yAxisId="r" orientation="right" tick={{ fill: 'var(--text3)', fontSize: 10 }} width={42} />
-                  <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelFormatter={fmtDay} />
+                  <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }} labelFormatter={fmtDay} />
                   <Line yAxisId="l" type="monotone" dataKey="clicks" name={t('seo.thClicks', null, 'Click')} stroke="#2997ff" strokeWidth={2} dot={false} />
                   <Line yAxisId="r" type="monotone" dataKey="impressions" name={t('seo.thImpr', null, 'Impr.')} stroke="#bf5af2" strokeWidth={2} dot={false} />
                 </LineChart>
@@ -613,18 +630,18 @@ function GSCPanel() {
           <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
             <Block title={t('seo.brandedTraffic', null, 'Traffico correlato al brand')}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
-                <span style={{ flex: 1 }}>{t('seo.withBrand', null, 'Con brand')}</span><span style={{ fontWeight: 700 }}>{data.branded.brandedPct}%</span>
+                <span style={{ flex: 1 }}>{t('seo.withBrand', null, 'Con brand')}</span><span style={{ fontWeight: 600 }}>{data.branded.brandedPct}%</span>
               </div>
-              <div style={{ height: 8, borderRadius: 4, background: 'var(--glass2)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 4, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
-              <div style={{ fontSize: 11, opacity: 0.5 }}>{nf(data.branded.brandedClicks)} {t('seo.clickBrand', null, 'click brand')} · {nf(data.branded.nonBrandedClicks)} {t('seo.nonBrand', null, 'non-brand')} · token: {data.branded.tokens.join(', ')}</div>
+              <div style={{ height: 8, borderRadius: 6, background: 'var(--glass2)', marginBottom: 12 }}><div style={{ height: '100%', borderRadius: 6, width: `${data.branded.brandedPct}%`, background: 'linear-gradient(90deg,#2997ff,#64d2ff)' }} /></div>
+              <div style={{ fontSize: 11.5, opacity: 0.5 }}>{nf(data.branded.brandedClicks)} {t('seo.clickBrand', null, 'click brand')} · {nf(data.branded.nonBrandedClicks)} {t('seo.nonBrand', null, 'non-brand')} · token: {data.branded.tokens.join(', ')}</div>
             </Block>
             <Block title={t('seo.topCountries', null, 'Paesi principali (click)')}>
               <div style={{ width: '100%', height: 130 }}>
                 <ResponsiveContainer>
                   <BarChart data={data.countries.slice(0, 6).map(c => ({ name: (c.key || '').toUpperCase(), clicks: c.clicks }))} layout="vertical" margin={{ left: 6, right: 8, top: 0, bottom: 0 }}>
-                    <XAxis type="number" hide /><YAxis type="category" dataKey="name" width={42} tick={{ fill: 'var(--text3)', fontSize: 11 }} />
-                    <Tooltip contentStyle={{ background: 'rgba(8,8,15,0.95)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} />
-                    <Bar dataKey="clicks" radius={[0, 4, 4, 0]} fill="#30d158" />
+                    <XAxis type="number" hide /><YAxis type="category" dataKey="name" width={42} tick={{ fill: 'var(--text3)', fontSize: 11.5 }} />
+                    <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }} />
+                    <Bar dataKey="clicks" radius={[0, 4, 4, 0]} fill="#22c55e" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -636,11 +653,11 @@ function GSCPanel() {
             <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
               <Block title={t('seo.pagesUp', null, '↑ Pagine in crescita (click vs periodo prec.)')}>
                 {data.pageMovers.up.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>—</div>}
-                {data.pageMovers.up.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 12.5, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#30d158', fontWeight: 700 }}>+{nf(p.delta)}</span></div>)}
+                {data.pageMovers.up.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 13, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#22c55e', fontWeight: 600 }}>+{nf(p.delta)}</span></div>)}
               </Block>
               <Block title={t('seo.pagesDown', null, '↓ Pagine in calo')}>
                 {data.pageMovers.down.length === 0 && <div style={{ fontSize: 13, opacity: 0.4 }}>—</div>}
-                {data.pageMovers.down.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 12.5, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#ff375f', fontWeight: 700 }}>{nf(p.delta)}</span></div>)}
+                {data.pageMovers.down.map((p, i) => <div key={i} style={{ display: 'flex', fontSize: 13, padding: '3px 0', gap: 8 }}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.key}</span><span style={{ color: '#ef4444', fontWeight: 600 }}>{nf(p.delta)}</span></div>)}
               </Block>
             </div>
           )}
@@ -649,7 +666,7 @@ function GSCPanel() {
           {data.opportunities.nearFirstPage.length > 0 && (
             <Block title={t('seo.oppNearFirst', null, 'Opportunità — quasi in prima pagina (pos. 11–20)')}>
               {data.opportunities.nearFirstPage.map((q, i) => (
-                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>pos {q.position.toFixed(1)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
+                <div key={i} style={{ display: 'flex', fontSize: 13, padding: '4px 0', gap: 10 }}><span style={{ flex: 1 }}>{q.key}</span><span style={{ opacity: 0.6 }}>pos {num(q.position, 1)}</span><span style={{ opacity: 0.6, width: 90, textAlign: 'right' }}>{nf(q.impressions)} impr.</span></div>
               ))}
             </Block>
           )}
@@ -680,11 +697,11 @@ function GSCPanel() {
 
 /* ---------- micro-helper condivisi dai pannelli ---------- */
 function Row({ children }) { return <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{children}</div> }
-function Err({ children }) { return <div className="glass-card" style={{ padding: 16, color: '#ff375f', marginTop: 16 }}><Icon name="warning" size={13} /> {children}</div> }
-function Block({ title, children }) { return <div className="glass-card" style={{ padding: 20, marginBottom: 14 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, opacity: 0.85 }}>{title}</div>{children}</div> }
-function Mini({ label, value, note }) { return <div className="glass-card" style={{ padding: 16, flex: 1, minWidth: 160 }}><div style={{ fontSize: 11, opacity: 0.5, textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 17, fontWeight: 700, textTransform: 'capitalize' }}>{value || '—'}</div>{note && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{note}</div>}</div> }
-function Chips({ list }) { return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(list || []).map((t, i) => <span key={i} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>{t}</span>)}</div> }
-const thStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', fontSize: 11, opacity: 0.6, textAlign: 'left', whiteSpace: 'nowrap' }
+function Err({ children }) { return <div className="glass-card" style={{ padding: 16, color: '#ef4444', marginTop: 16 }}><Icon name="warning" size={13} /> {children}</div> }
+function Block({ title, children }) { return <div className="glass-card" style={{ padding: 20, marginBottom: 14 }}><div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, opacity: 0.85 }}>{title}</div>{children}</div> }
+function Mini({ label, value, note }) { return <div className="glass-card" style={{ padding: 16, flex: 1, minWidth: 160 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 15, fontWeight: 600, textTransform: 'capitalize' }}>{value || '—'}</div>{note && <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{note}</div>}</div> }
+function Chips({ list }) { return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(list || []).map((t, i) => <span key={i} style={{ fontSize: 13, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>{t}</span>)}</div> }
+const thStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', fontSize: 11.5, opacity: 0.6, textAlign: 'left', whiteSpace: 'nowrap' }
 const tdStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }
 
 /* ---------- pezzi riusabili ---------- */
@@ -693,16 +710,16 @@ function ScoreHeader({ score, label, summary, url, meta }) {
   return (
     <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, marginBottom: 24 }}>
       <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: scoreCol(score) }}>{score}</div>
+        <div style={{ fontSize: 22, fontWeight: 640, lineHeight: 1, color: scoreCol(score) }}>{score}</div>
         <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>/ 100 · {label}</div>
       </div>
       <div className="glass-card" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 28 }}>
-        <Sum n={summary.pass} label={t('seo.sumOk', null, 'Ok')} color="#30d158" />
-        <Sum n={summary.warn} label={t('seo.sumWarn', null, 'Da migliorare')} color="#ff9f0a" />
-        <Sum n={summary.fail} label={t('seo.sumFail', null, 'Critici')} color="#ff375f" />
-        <div style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.5, textAlign: 'right' }}>
+        <Sum n={summary.pass} label={t('seo.sumOk', null, 'Ok')} color="#22c55e" />
+        <Sum n={summary.warn} label={t('seo.sumWarn', null, 'Da migliorare')} color="#f59e0b" />
+        <Sum n={summary.fail} label={t('seo.sumFail', null, 'Critici')} color="#ef4444" />
+        <div style={{ marginLeft: 'auto', fontSize: 13, opacity: 0.5, textAlign: 'right' }}>
           <div style={{ wordBreak: 'break-all' }}>{url}</div>
-          {meta && <div>{meta.words} {t('seo.wordsWord', null, 'parole')} · {(meta.loadMs / 1000).toFixed(1)}s</div>}
+          {meta && <div>{meta.words} {t('seo.wordsWord', null, 'parole')} · {num(meta.loadMs / 1000, 1)}s</div>}
         </div>
       </div>
     </div>
@@ -713,7 +730,7 @@ function KeywordPanel({ kw }) {
   const Chips = ({ list }) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {list.map((k, i) => (
-        <span key={i} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>
+        <span key={i} style={{ fontSize: 13, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>
           {k.term} <span style={{ opacity: 0.5 }}>{k.count}× · {k.density}%</span>
         </span>
       ))}
@@ -721,18 +738,18 @@ function KeywordPanel({ kw }) {
   )
   return (
     <div className="glass-card" style={{ padding: 24, marginBottom: 16 }}>
-      <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>{t('seo.kwAnalysis', null, 'Analisi keyword')}</div>
+      <div style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>{t('seo.kwAnalysis', null, 'Analisi keyword')}</div>
       {kw.target && (
-        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'rgba(41,151,255,0.1)', fontSize: 13 }}>
+        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12, background: 'rgba(41,151,255,0.1)', fontSize: 13 }}>
           {t('seo.target', null, 'Target')} <strong>"{kw.target.keyword}"</strong>: {kw.target.count} {t('seo.occurrences', null, 'occorrenze')} · {t('seo.density', null, 'densità')} <strong>{kw.target.density}%</strong>
           <span style={{ opacity: 0.6 }}> {t('seo.idealDensity', null, '(ideale 0,5–3,5%)')}</span>
         </div>
       )}
-      <div style={{ fontSize: 12, opacity: 0.55, marginBottom: 6 }}>{t('seo.topWords', null, 'Parole più frequenti')}</div>
+      <div style={{ fontSize: 13, opacity: 0.55, marginBottom: 6 }}>{t('seo.topWords', null, 'Parole più frequenti')}</div>
       <Chips list={kw.unigrams} />
-      <div style={{ fontSize: 12, opacity: 0.55, margin: '14px 0 6px' }}>{t('seo.phrases2', null, 'Frasi (2 parole)')}</div>
+      <div style={{ fontSize: 13, opacity: 0.55, margin: '14px 0 6px' }}>{t('seo.phrases2', null, 'Frasi (2 parole)')}</div>
       <Chips list={kw.bigrams} />
-      {kw.trigrams?.length > 0 && <><div style={{ fontSize: 12, opacity: 0.55, margin: '14px 0 6px' }}>{t('seo.phrases3', null, 'Frasi (3 parole)')}</div><Chips list={kw.trigrams} /></>}
+      {kw.trigrams?.length > 0 && <><div style={{ fontSize: 13, opacity: 0.55, margin: '14px 0 6px' }}>{t('seo.phrases3', null, 'Frasi (3 parole)')}</div><Chips list={kw.trigrams} /></>}
     </div>
   )
 }
@@ -741,12 +758,12 @@ function Recommendations({ recs }) {
   if (!recs?.length) return null
   return (
     <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
-      <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 15 }}>{t('seo.recActions', null, 'Azioni consigliate (AI)')}</div>
+      <div style={{ fontWeight: 600, marginBottom: 16, fontSize: 15 }}>{t('seo.recActions', null, 'Azioni consigliate (AI)')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {recs.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, padding: '3px 8px', borderRadius: 6, color: PRIO[r.priority] || '#64d2ff', border: `1px solid ${PRIO[r.priority] || '#64d2ff'}`, flexShrink: 0, marginTop: 2 }}>{r.priority}</span>
-            <div><div style={{ fontWeight: 600, fontSize: 14 }}>{r.title}</div><div style={{ fontSize: 13, opacity: 0.7 }}>{r.action}</div></div>
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, padding: '3px 8px', borderRadius: 8, color: PRIO[r.priority] || '#64d2ff', border: `1px solid ${PRIO[r.priority] || '#64d2ff'}`, flexShrink: 0, marginTop: 2 }}>{r.priority}</span>
+            <div><div style={{ fontWeight: 600, fontSize: 15 }}>{r.title}</div><div style={{ fontSize: 13, opacity: 0.7 }}>{r.action}</div></div>
           </div>
         ))}
       </div>
@@ -757,21 +774,21 @@ function CheckRow({ c }) {
   const s = STATUS[c.status]
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: s.color + '22', color: s.color, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{s.icon}</span>
+      <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: s.color + '22', color: s.color, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{s.icon}</span>
       <div style={{ flex: 1 }}>
-        <span style={{ fontSize: 14, fontWeight: 500 }}>{c.label}</span>
+        <span style={{ fontSize: 15, fontWeight: 500 }}>{c.label}</span>
         <span style={{ fontSize: 13, opacity: 0.6, marginLeft: 8 }}>{c.detail}</span>
       </div>
     </div>
   )
 }
 function Sum({ n, label, color }) {
-  return <div style={{ textAlign: 'center' }}><div style={{ fontSize: 28, fontWeight: 700, color }}>{n}</div><div style={{ fontSize: 12, opacity: 0.6 }}>{label}</div></div>
+  return <div style={{ textAlign: 'center' }}><div style={{ fontSize: 22, fontWeight: 600, color }}>{n}</div><div style={{ fontSize: 13, opacity: 0.6 }}>{label}</div></div>
 }
 function Pill({ active, onClick, children, small }) {
   return (
     <button onClick={onClick} style={{
-      padding: small ? '7px 14px' : '9px 18px', borderRadius: 10, cursor: 'pointer', fontSize: small ? 13 : 14, fontWeight: 600,
+      padding: small ? '7px 14px' : '9px 18px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
       background: active ? 'var(--accent)' : 'var(--glass)', color: active ? 'var(--text)' : 'var(--text)',
       border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
     }}>{children}</button>

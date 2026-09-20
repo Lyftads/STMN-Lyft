@@ -1,5 +1,6 @@
 'use client'
 
+import { avvisa } from '../../lib/client/avviso'
 import { Fragment, useEffect, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
 import ProjectMembers from './ProjectMembers'
@@ -8,7 +9,7 @@ import Avatar from './Avatar'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { MEMBER_TABS, TAB_LABELS } from '../../lib/team/roleTabs'
 
-const PALETTE = ['#7b5bff', '#5b8bff', '#30d158', '#ff9f0a', '#ff375f', '#64d2ff', '#bf5af2', '#ffd60a', '#5ac8fa', '#ff6482']
+const PALETTE = ['#7b5bff', '#5b8bff', '#22c55e', '#f59e0b', '#ef4444', '#64d2ff', '#bf5af2', '#ffd60a', '#5ac8fa', '#ff6482']
 
 // Modulo Team → Progetti & Task (Fase 1). Board Kanban + creazione task/progetti,
 // assegnazione, priorità, scadenze, approvazione (aperta a tutti).
@@ -16,31 +17,31 @@ const PALETTE = ['#7b5bff', '#5b8bff', '#30d158', '#ff9f0a', '#ff375f', '#64d2ff
 // /api/projects, /api/team-members.
 
 const COLUMNS = [
-  { id: 'todo', key: 'tk.colTodo', en: 'To do', label: 'Da fare', color: '#b0b0bd' },
+  { id: 'todo', key: 'tk.colTodo', en: 'To do', label: 'Da fare', color: 'var(--text2)' },
   { id: 'in_progress', key: 'tk.colInProgress', en: 'In progress', label: 'In corso', color: '#0a84ff' },
-  { id: 'in_review', key: 'tk.colInReview', en: 'In review', label: 'In revisione', color: '#ff9f0a' },
-  { id: 'approved', key: 'tk.colApproved', en: 'Approved', label: 'Approvato', color: '#30d158' },
-  { id: 'done', key: 'tk.colDone', en: 'Done', label: 'Fatto', color: '#64d2ff' },
+  { id: 'in_review', key: 'tk.colInReview', en: 'In review', label: 'In revisione', color: '#f59e0b' },
+  { id: 'approved', key: 'tk.colApproved', en: 'Approved', label: 'Approvato', color: '#22c55e' },
+  { id: 'done', key: 'tk.colDone', en: 'Done', label: 'Fatto', color: 'var(--text)' },
 ]
 const PRIORITIES = [
-  { id: 'low', key: 'tk.prioLow', en: 'Low', label: 'Bassa', color: '#30d158' },
+  { id: 'low', key: 'tk.prioLow', en: 'Low', label: 'Bassa', color: '#22c55e' },
   { id: 'medium', key: 'tk.prioMedium', en: 'Medium', label: 'Media', color: '#ffd60a' },
-  { id: 'high', key: 'tk.prioHigh', en: 'High', label: 'Alta', color: '#ff9f0a' },
-  { id: 'urgent', key: 'tk.prioUrgent', en: 'Urgent', label: 'Urgente', color: '#ff375f' },
+  { id: 'high', key: 'tk.prioHigh', en: 'High', label: 'Alta', color: '#f59e0b' },
+  { id: 'urgent', key: 'tk.prioUrgent', en: 'Urgent', label: 'Urgente', color: '#ef4444' },
 ]
 // Righe per il raggruppamento "Priorità" (dalla più alta alla più bassa).
 const PRIORITY_ROWS = [
-  { id: 'urgent', key: 'tk.prioUrgent', en: 'Urgent', label: 'Urgente', color: '#ff375f' },
-  { id: 'high', key: 'tk.prioHigh', en: 'High', label: 'Alta', color: '#ff9f0a' },
+  { id: 'urgent', key: 'tk.prioUrgent', en: 'Urgent', label: 'Urgente', color: '#ef4444' },
+  { id: 'high', key: 'tk.prioHigh', en: 'High', label: 'Alta', color: '#f59e0b' },
   { id: 'medium', key: 'tk.prioMedium', en: 'Medium', label: 'Media', color: '#ffd60a' },
-  { id: 'low', key: 'tk.prioLow', en: 'Low', label: 'Bassa', color: '#30d158' },
+  { id: 'low', key: 'tk.prioLow', en: 'Low', label: 'Bassa', color: '#22c55e' },
 ]
 
-const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }
-const input = { background: '#14141d', border: '1px solid #3d3d4c', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 14, fontFamily: 'Barlow', width: '100%' }
-const PANEL = { background: '#15151f', border: '1px solid #3d3d4c', borderRadius: 12, padding: 18 }
-const btn = { background: 'linear-gradient(135deg,#7b5bff,#5b8bff)', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Barlow' }
-const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'Barlow' }
+const card = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }
+const input = { background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', color: 'var(--text)', fontSize: 15, fontFamily: 'inherit', width: '100%' }
+const PANEL = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const btn = { background: 'var(--btn-primario)', border: 'none', borderRadius: 8, padding: '8px 14px', color: 'var(--btn-primario-testo)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+const btnGhost = { background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', color: 'var(--text)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }
 
 export default function TasksTab() {
   const { t, intlLocale } = useI18n()
@@ -186,7 +187,7 @@ export default function TasksTab() {
     const r = await fetch('/api/tasks/attachments', { method: 'POST', body: fd })
       .then(x => x.json()).catch(() => ({ ok: false, error: t('tk.netError', null, 'Network error') }))
     if (r.ok && r.task) setTasks(prev => prev.map(t => t.id === taskId ? r.task : t))
-    else alert(r.error || t('tk.uploadFailed', null, 'Upload failed'))
+    else avvisa(r.error || t('tk.uploadFailed', null, 'Upload failed'), 'errore')
     return r
   }
 
@@ -194,7 +195,7 @@ export default function TasksTab() {
     const r = await fetch(`/api/tasks/attachments?path=${encodeURIComponent(path)}`)
       .then(x => x.json()).catch(() => ({}))
     if (r.ok && r.url) window.open(r.url, '_blank')
-    else alert(r.error || t('tk.downloadUnavailable', null, 'Download unavailable'))
+    else avvisa(r.error || t('tk.downloadUnavailable', null, 'Download unavailable'), 'errore')
   }
 
   async function deleteAttachment(taskId, path) {
@@ -213,7 +214,7 @@ export default function TasksTab() {
         if (i >= 0) { const c = [...prev]; c[i] = r.member; return c }
         return [...prev, r.member]
       })
-    } else alert(r.error || t('tk.inviteError', null, 'Invite error'))
+    } else avvisa(r.error || t('tk.inviteError', null, 'Invite error'), 'errore')
     return r
   }
 
@@ -246,22 +247,22 @@ export default function TasksTab() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, color: '#b0b0bd', fontFamily: 'Barlow' }}>{t('tk.loadingBoard', null, 'Loading board…')}</div>
+    return <div style={{ padding: 40, color: 'var(--text2)', fontFamily: 'inherit' }}>{t('tk.loadingBoard', null, 'Loading board…')}</div>
   }
 
   return (
-    <div style={{ fontFamily: 'Barlow', color: 'var(--text)' }}>
+    <div style={{ fontFamily: 'inherit', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 700 }}>{t('tk.title', null, 'Projects & Tasks')}</h2>
-          <div style={{ color: '#b0b0bd', fontSize: 13 }}>{t('tk.subtitle', null, 'Team assignment, deadlines, review and approval')}</div>
+          <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>{t('tk.title', null, 'Projects & Tasks')}</h2>
+          <div style={{ color: 'var(--text2)', fontSize: 13 }}>{t('tk.subtitle', null, 'Team assignment, deadlines, review and approval')}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, background: '#14141d', borderRadius: 10, padding: 4 }}>
-            <button onClick={() => { setView('projects'); setActiveProject('all') }} style={{ ...btnGhost, border: 'none', background: view === 'projects' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', color: 'var(--text)' }}>{t('tk.projects', null, 'Progetti')}</button>
-            <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: (view === 'board' || view === 'mine') ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: (view === 'board' || view === 'mine') ? 700 : 400 }}>{t('tk.board', null, 'Board')}</button>
-            <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent', fontWeight: view === 'overview' ? 700 : 400 }}><Icon name="chart-bar" size={14} /> {t('tk.charts', null, 'Charts')}</button>
+          <div style={{ display: 'flex', gap: 6, background: 'var(--glass)', borderRadius: 12, padding: 4 }}>
+            <button onClick={() => { setView('projects'); setActiveProject('all') }} style={{ ...btnGhost, border: 'none', background: view === 'projects' ? 'var(--btn-primario)' : 'transparent', color: view === 'projects' ? 'var(--btn-primario-testo)' : 'var(--text)' }}>{t('tk.projects', null, 'Progetti')}</button>
+            <button onClick={() => setView(view === 'mine' ? 'mine' : 'board')} style={{ ...btnGhost, border: 'none', background: (view === 'board' || view === 'mine') ? 'var(--btn-primario)' : 'transparent', color: (view === 'board' || view === 'mine') ? 'var(--btn-primario-testo)' : 'var(--text)', fontWeight: (view === 'board' || view === 'mine') ? 700 : 400 }}>{t('tk.board', null, 'Board')}</button>
+            <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'var(--btn-primario)' : 'transparent', color: view === 'overview' ? 'var(--btn-primario-testo)' : 'var(--text)', fontWeight: view === 'overview' ? 700 : 400 }}><Icon name="chart-bar" size={14} /> {t('tk.charts', null, 'Charts')}</button>
           </div>
         </div>
       </div>
@@ -271,34 +272,34 @@ export default function TasksTab() {
 
           {/* Le mie task: due scorciatoie prima dei progetti */}
           <div style={{ ...PANEL }}>
-            <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
               {t('tk.myTasksBlock', null, 'Le mie task')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
               <button type="button" onClick={() => setView('mine')} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}>
                 <Icon name="clipboard" size={16} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{t('tk.assignedToMe', null, 'Assegnate a me')}</div>
-                  <div style={{ fontSize: 11.5, color: '#b0b0bd' }}>{t('tk.assignedToMeSub', null, 'Devo eseguirle io')}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{t('tk.assignedToMe', null, 'Assegnate a me')}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>{t('tk.assignedToMeSub', null, 'Devo eseguirle io')}</div>
                 </div>
-                <span style={{ fontSize: 18, fontWeight: 800 }}>{myTasks.length}</span>
+                <span style={{ fontSize: 15, fontWeight: 640 }}>{myTasks.length}</span>
               </button>
               <button type="button" onClick={() => { setActiveProject('all'); setView('board') }} style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}>
                 <Icon name="edit" size={16} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{t('tk.allTasks', null, 'Tutte le task')}</div>
-                  <div style={{ fontSize: 11.5, color: '#b0b0bd' }}>{t('tk.createdByMe', null, 'Create da me')}: {createdByMe.length}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{t('tk.allTasks', null, 'Tutte le task')}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>{t('tk.createdByMe', null, 'Create da me')}: {createdByMe.length}</div>
                 </div>
-                <span style={{ fontSize: 18, fontWeight: 800 }}>{tasks.length}</span>
+                <span style={{ fontSize: 15, fontWeight: 640 }}>{tasks.length}</span>
               </button>
             </div>
           </div>
 
           {/* Elenco progetti */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20 }}>
+            <div style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 20 }}>
               {t('tk.projectsTitle', null, 'Progetti')}
-              <span style={{ fontSize: 12.5, color: '#b0b0bd', fontWeight: 400, fontFamily: 'Barlow', marginLeft: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 400, fontFamily: 'inherit', marginLeft: 10 }}>
                 {t('tk.projectsSub', null, 'Spazi condivisi con attività e responsabili')}
               </span>
             </div>
@@ -306,13 +307,13 @@ export default function TasksTab() {
           </div>
 
           {projects.length === 0 && !tasks.some(x => !x.project_id) ? (
-            <div style={{ ...PANEL, textAlign: 'center', color: '#b0b0bd', padding: 40, fontSize: 13 }}>
+            <div style={{ ...PANEL, textAlign: 'center', color: 'var(--text2)', padding: 40, fontSize: 13 }}>
               {t('tk.noProjectsYet', null, 'Nessun progetto ancora. Creane uno per raggruppare le attività.')}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
               {[...projects.map(p => ({ id: p.id, name: p.name, description: p.description, color: p.color || '#7b5bff', owner: p.created_by })),
-                ...(tasks.some(x => !x.project_id) ? [{ id: 'none', name: t('tk.noProject', null, 'Senza progetto'), color: '#8e8e93', owner: null }] : [])
+                ...(tasks.some(x => !x.project_id) ? [{ id: 'none', name: t('tk.noProject', null, 'Senza progetto'), color: '#8e8e8e', owner: null }] : [])
               ].map(p => {
                 const st = projectStats(p.id)
                 return (
@@ -320,22 +321,22 @@ export default function TasksTab() {
                     style={{ ...PANEL, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       <span style={{ width: 9, height: 9, borderRadius: 999, background: p.color, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      <span style={{ fontWeight: 640, fontSize: 15, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                     </div>
                     {p.description && (
-                      <div style={{ fontSize: 12, color: '#b0b0bd', lineHeight: 1.45, whiteSpace: 'pre-line' }}>{p.description}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.45, whiteSpace: 'pre-line' }}>{p.description}</div>
                     )}
-                    <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-                      <div style={{ width: `${st.pct}%`, height: '100%', background: st.pct === 100 ? '#30d158' : p.color, transition: 'width .3s' }} />
+                    <div style={{ height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ width: `${st.pct}%`, height: '100%', background: st.pct === 100 ? '#22c55e' : p.color, transition: 'width .3s' }} />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, color: '#b0b0bd', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, color: 'var(--text2)', flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                         <Icon name="users" size={12} /> {t('tk.peopleN', { n: st.people }, `${st.people} persone`)}
                       </span>
                       <span style={{ marginLeft: 'auto' }}>{st.done}/{st.total} task</span>
                     </div>
                     {p.owner && (
-                      <div style={{ fontSize: 11.5, color: '#b0b0bd', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Icon name="user" size={12} /> {memberName(p.owner)}
                       </div>
                     )}
@@ -356,30 +357,30 @@ export default function TasksTab() {
         {view !== 'mine' && (openProject || activeProject === 'none') && (
           <div style={{ marginBottom: 16 }}>
             <button type="button" onClick={() => { setView('projects'); setActiveProject('all') }}
-              style={{ ...btnGhost, border: 'none', padding: '4px 0', color: '#b0b0bd', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              style={{ ...btnGhost, border: 'none', padding: '4px 0', color: 'var(--text2)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               ← {t('tk.backToProjects', null, 'Progetti')}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-              <span style={{ width: 10, height: 10, borderRadius: 999, background: openProject?.color || '#8e8e93' }} />
-              <h3 style={{ margin: 0, fontFamily: 'Barlow Condensed', fontSize: 24, fontWeight: 700 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: openProject?.color || '#8e8e8e' }} />
+              <h3 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>
                 {openProject ? openProject.name : t('tk.noProject', null, 'Senza progetto')}
               </h3>
-              <span style={{ fontSize: 12, color: '#b0b0bd' }}>
+              <span style={{ fontSize: 13, color: 'var(--text2)' }}>
                 {(() => { const st = projectStats(activeProject); return `${st.done}/${st.total} task` })()}
               </span>
             </div>
             {openProject?.description && (
-              <div style={{ fontSize: 12.5, color: '#b0b0bd', marginTop: 4, whiteSpace: 'pre-line' }}>{openProject.description}</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, whiteSpace: 'pre-line' }}>{openProject.description}</div>
             )}
             {(openProject?.start_date || openProject?.end_date) && (
-              <div style={{ fontSize: 12.5, color: '#b0b0bd', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
                 {[openProject.start_date, openProject.end_date].filter(Boolean).join(' → ')}
               </div>
             )}
 
             {/* Attività · Chat · Membri: il progetto è uno spazio, non solo una board */}
             {openProject && (
-              <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 10, background: '#14141d', border: '1px solid var(--border)', marginTop: 12 }}>
+              <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--border)', marginTop: 12 }}>
                 {[
                   ['tasks', t('tk.projTasks', null, 'Attività'), 'kanban'],
                   ['chat', t('tk.projChat', null, 'Chat'), 'chat'],
@@ -387,10 +388,10 @@ export default function TasksTab() {
                 ].map(([id, label, icon]) => (
                   <button key={id} type="button" onClick={() => setProjView(id)} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5,
+                    padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13,
                     fontWeight: projView === id ? 800 : 600,
-                    background: projView === id ? 'linear-gradient(135deg,#7b5bff,#5b8bff)' : 'transparent',
-                    color: 'var(--text)',
+                    background: projView === id ? 'var(--btn-primario)' : 'transparent',
+                    color: projView === id ? 'var(--btn-primario-testo)' : 'var(--text)',
                   }}>
                     <Icon name={icon} size={13} /> {label}
                   </button>
@@ -406,20 +407,20 @@ export default function TasksTab() {
         )}
         {openProject && projView === 'chat' && (
           projChannel === 'needsSetup' ? (
-            <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', fontSize: 12.5, lineHeight: 1.5 }}>
-              <strong style={{ color: '#ffb340', fontWeight: 800 }}>{t('tk.chatSetupTitle', null, 'Chat di progetto non attiva')}</strong>
+            <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(255,159,10,0.10)', border: '1px solid rgba(255,159,10,0.35)', fontSize: 13, lineHeight: 1.5 }}>
+              <strong style={{ color: '#ffb340', fontWeight: 640 }}>{t('tk.chatSetupTitle', null, 'Chat di progetto non attiva')}</strong>
               <div style={{ color: 'var(--text3)', marginTop: 3 }}>{t('tk.chatSetupBody', null, 'Esegui supabase/project_workspace.sql: il gruppo su LyftTalk nasce insieme al progetto.')}</div>
             </div>
           ) : projChannel ? (
             <ChatTab initialChannelId={projChannel} hideSidebar />
           ) : (
-            <div style={{ padding: 30, color: '#b0b0bd', fontSize: 13 }}>{t('tk.chatLoading', null, 'Apro la chat del progetto…')}</div>
+            <div style={{ padding: 30, color: 'var(--text2)', fontSize: 13 }}>{t('tk.chatLoading', null, 'Apro la chat del progetto…')}</div>
           )
         )}
         <div className="m-cols" style={{ display: (openProject && projView !== 'tasks') ? 'none' : 'flex', gap: 16, alignItems: 'flex-start' }}>
           {/* Sidebar progetti */}
           <aside className="m-sidenav" style={{ ...PANEL, width: 220, flexShrink: 0, padding: 10 }}>
-            <div style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>{t('tk.projects', null, 'Projects')}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>{t('tk.projects', null, 'Projects')}</div>
             <SideItem label={t('tk.allProjects', null, 'All projects')} count={tasks.length} active={view === 'board' && activeProject === 'all'} onClick={() => { setActiveProject('all'); setView('board') }} />
             {projects.map(p => (
               <SideItem key={p.id} label={p.name} color={p.color || '#7b5bff'} count={tasks.filter(t => t.project_id === p.id).length}
@@ -437,7 +438,7 @@ export default function TasksTab() {
           <div style={{ flex: 1, minWidth: 0 }}>
             {view === 'mine' && (
               <>
-                <div style={{ fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 20, marginBottom: 14 }}>{t('tk.myTasks', null, 'My tasks')} · {myTasks.length}</div>
+                <div style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 20, marginBottom: 14 }}>{t('tk.myTasks', null, 'My tasks')} · {myTasks.length}</div>
                 <TaskBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
               </>
             )}
@@ -447,7 +448,7 @@ export default function TasksTab() {
                 aveva posto per la descrizione. */}
             <button type="button" onClick={() => setNewTaskOpen(true)} style={{
               ...btn, display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '10px 18px', fontSize: 13.5, marginBottom: 18,
+              padding: '10px 18px', fontSize: 13, marginBottom: 18,
             }}>
               <Icon name="plus" size={13} /> {t('tk.newTask', null, 'Nuova task')}
             </button>
@@ -473,8 +474,8 @@ export default function TasksTab() {
         const onTime = doneTasks.length - lateTasks.length
         const openTasks = totalTasks - doneTasks.length
         const punct = [
-          { label: t('tk.onTime', null, 'On time'), color: '#30d158', value: onTime },
-          { label: t('tk.late', null, 'Late'), color: '#ff375f', value: lateTasks.length },
+          { label: t('tk.onTime', null, 'On time'), color: '#22c55e', value: onTime },
+          { label: t('tk.late', null, 'Late'), color: '#ef4444', value: lateTasks.length },
           { label: t('tk.stillOpen', null, 'Still open'), color: '#5b6b7b', value: openTasks },
         ]
         // progetti
@@ -497,36 +498,36 @@ export default function TasksTab() {
             {/* Stat cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
               <MiniStat label={t('tk.totalProjects', null, 'Total projects')} value={projRows.length} />
-              <MiniStat label={t('tk.completedProjects', null, 'Completed projects')} value={projDone.length} sub={t('tk.pctOfTotal', { pct: pctOf(projDone.length, projRows.length) }, '{pct}% of total')} color="#30d158" />
-              <MiniStat label={t('tk.completedLate', null, 'Completed late')} value={projLate.length} sub={t('tk.pctOfCompleted', { pct: pctOf(projLate.length, projDone.length) }, '{pct}% of completed')} color="#ff375f" />
+              <MiniStat label={t('tk.completedProjects', null, 'Completed projects')} value={projDone.length} sub={t('tk.pctOfTotal', { pct: pctOf(projDone.length, projRows.length) }, '{pct}% of total')} color="#22c55e" />
+              <MiniStat label={t('tk.completedLate', null, 'Completed late')} value={projLate.length} sub={t('tk.pctOfCompleted', { pct: pctOf(projLate.length, projDone.length) }, '{pct}% of completed')} color="#ef4444" />
               <MiniStat label={t('tk.completedTasks', null, 'Completed tasks')} value={doneTasks.length} sub={t('tk.pctOfN', { pct: pctOf(doneTasks.length, totalTasks), total: totalTasks }, '{pct}% of {total}')} color="#5b8bff" />
             </div>
 
             {/* Donut: stato task + puntualità */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
               <div style={{ ...card }}>
-                <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 12 }}>{t('tk.tasksByStatus', null, 'Tasks by status')}</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, marginBottom: 12 }}>{t('tk.tasksByStatus', null, 'Tasks by status')}</div>
                 <DonutLegend data={byStatus} total={totalTasks} />
               </div>
               <div style={{ ...card }}>
-                <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 12 }}>{t('tk.completionPunctuality', null, 'Completion punctuality')}</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, marginBottom: 12 }}>{t('tk.completionPunctuality', null, 'Completion punctuality')}</div>
                 <DonutLegend data={punct} total={totalTasks} />
               </div>
             </div>
 
             {/* Avanzamento progetti */}
             <div style={{ ...card }}>
-              <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 14 }}>{t('tk.projectProgress', null, 'Project progress')}</div>
-              {projRows.length === 0 ? <div style={{ color: '#b0b0bd', fontSize: 13 }}>{t('tk.noTask', null, 'No tasks.')}</div> : (
+              <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, marginBottom: 14 }}>{t('tk.projectProgress', null, 'Project progress')}</div>
+              {projRows.length === 0 ? <div style={{ color: 'var(--text2)', fontSize: 13 }}>{t('tk.noTask', null, 'No tasks.')}</div> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {projRows.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                       <span style={{ width: 150, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}{p.completed && <span title={p.late ? t('tk.completedLateTip', null, 'Completed late') : t('tk.completedTip', null, 'Completed')} style={{ marginLeft: 5 }}>{p.late ? <Icon name="warning" size={12} /> : <Icon name="check-circle" size={12} />}</span>}</span>
-                      <div style={{ flex: 1, height: 14, background: '#14141d', borderRadius: 7, overflow: 'hidden', position: 'relative' }}>
-                        <div style={{ width: `${p.pct}%`, height: '100%', background: p.late && p.completed ? 'linear-gradient(90deg,#ff9f0a,#ff375f)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
+                      <div style={{ flex: 1, height: 14, background: 'var(--glass)', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ width: `${p.pct}%`, height: '100%', background: p.late && p.completed ? 'linear-gradient(90deg,#f59e0b,#ef4444)' : 'linear-gradient(90deg,#7b5bff,#5b8bff)' }} />
                       </div>
-                      <span style={{ width: 96, textAlign: 'right', fontSize: 12.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{p.pct}% · {p.done}/{p.total}</span>
+                      <span style={{ width: 96, textAlign: 'right', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{p.pct}% · {p.done}/{p.total}</span>
                     </div>
                   ))}
                 </div>
@@ -546,17 +547,17 @@ export default function TasksTab() {
               return (
                 <div style={{ ...card }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, flex: 1 }}>{t('tk.perPersonAnalysis', null, 'Per-person analysis')}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, flex: 1 }}>{t('tk.perPersonAnalysis', null, 'Per-person analysis')}</div>
                     <select style={{ ...input, width: 'auto' }} value={personProject} onChange={e => setPersonProject(e.target.value)}>
                       <option value="all">{t('tk.allProjects', null, 'All projects')}</option>
                       {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       <option value="none">{t('tk.noProject', null, 'No project')}</option>
                     </select>
                   </div>
-                  {peopleRows.length === 0 ? <div style={{ color: '#b0b0bd', fontSize: 13 }}>{t('tk.noTasksAssigned', null, 'No tasks assigned.')}</div> : (
+                  {peopleRows.length === 0 ? <div style={{ color: 'var(--text2)', fontSize: 13 }}>{t('tk.noTasksAssigned', null, 'No tasks assigned.')}</div> : (
                     <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                       <div style={{ flexShrink: 0 }}>
-                        <div style={{ fontSize: 11.5, color: '#b0b0bd', marginBottom: 8 }}>{t('tk.taskDistributionPerPerson', null, 'Task distribution per person')}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text2)', marginBottom: 8 }}>{t('tk.taskDistributionPerPerson', null, 'Task distribution per person')}</div>
                         <DonutLegend data={ppDonut} total={ppTasks.length} />
                       </div>
                       <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -566,9 +567,9 @@ export default function TasksTab() {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{m.name}</span>
-                                <span style={{ color: '#b0b0bd', fontVariantNumeric: 'tabular-nums' }}>{m.done}/{m.total} · {m.pct}%{m.late > 0 ? ` · {m.late}` : ''}</span>
+                                <span style={{ color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>{m.done}/{m.total} · {m.pct}%{m.late > 0 ? ` · {m.late}` : ''}</span>
                               </div>
-                              <div style={{ height: 9, background: '#14141d', borderRadius: 5, overflow: 'hidden' }}>
+                              <div style={{ height: 9, background: 'var(--glass)', borderRadius: 6, overflow: 'hidden' }}>
                                 <div style={{ width: `${m.pct}%`, height: '100%', background: PALETTE[i % PALETTE.length] }} />
                               </div>
                             </div>
@@ -583,7 +584,7 @@ export default function TasksTab() {
 
             {/* Linea: completamenti cumulativi */}
             <div style={{ ...card }}>
-              <div style={{ fontSize: 13, color: '#b0b0bd', fontWeight: 700, marginBottom: 6 }}>{t('tk.tasksCompletedOverTime', null, 'Tasks completed over time')} <span style={{ fontWeight: 400 }}>· {t('tk.last14Cumulative', null, 'last 14 days (cumulative)')}</span></div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, marginBottom: 6 }}>{t('tk.tasksCompletedOverTime', null, 'Tasks completed over time')} <span style={{ fontWeight: 400 }}>· {t('tk.last14Cumulative', null, 'last 14 days (cumulative)')}</span></div>
               <LineChart days={days} />
             </div>
           </div>
@@ -630,8 +631,8 @@ export default function TasksTab() {
 function Campo({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: hint ? 2 : 6 }}>{label}</label>
-      {hint && <div style={{ fontSize: 11, color: '#8a8a98', marginBottom: 6 }}>{hint}</div>}
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: hint ? 2 : 6 }}>{label}</label>
+      {hint && <div style={{ fontSize: 11.5, color: '#8b8b8b', marginBottom: 6 }}>{hint}</div>}
       {children}
     </div>
   )
@@ -648,25 +649,25 @@ function NewTaskModal({ form, setForm, creating, members, onLeave, projects, ope
   }, [onClose])
 
   return (
-    <div onClick={onClose} style={{
+    <div className="mobile-modal-overlay" onClick={onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
       zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        ...PANEL, padding: 0, width: 'min(520px, 100%)', maxHeight: '92vh',
+        ...PANEL, padding: 0, width: 'min(520px, 100%)', maxHeight: '92dvh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ padding: '18px 20px 12px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, fontFamily: 'Barlow Condensed', letterSpacing: '-.01em' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, fontFamily: 'inherit', letterSpacing: '-.01em' }}>
               {t('tk.newTask', null, 'Nuova task')}
             </h3>
-            <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 3 }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>
               {t('tk.newTaskSub', null, 'Crea una task personale o all’interno di un progetto.')}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label={t('tk.cancel', null, 'Annulla')}
-            style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
+            style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 0 }}>×</button>
         </div>
 
         <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
@@ -706,13 +707,13 @@ function NewTaskModal({ form, setForm, creating, members, onLeave, projects, ope
 
           <Campo label={t('tk.assignees', null, 'Assegna a')}
             hint={t('tk.assigneesHint', null, 'Puoi selezionare più persone contemporaneamente.')}>
-            <div style={{ maxHeight: 132, overflowY: 'auto', border: '1px solid #3d3d4c', borderRadius: 8, background: '#14141d', padding: 6 }}>
-              {members.length === 0 && <div style={{ fontSize: 12, color: '#8a8a98', padding: 6 }}>{t('tk.noMembers', null, 'Nessun membro')}</div>}
+            <div style={{ maxHeight: 132, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--glass)', padding: 6 }}>
+              {members.length === 0 && <div style={{ fontSize: 13, color: '#8b8b8b', padding: 6 }}>{t('tk.noMembers', null, 'Nessun membro')}</div>}
               {members.map(m => {
                 const on = form.assignees.includes(m.id)
                 const leave = onLeave[m.id]
                 return (
-                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 5px', fontSize: 13, cursor: 'pointer', borderRadius: 6 }}
+                  <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 5px', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.04)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                     <input type="checkbox" checked={on}
@@ -721,7 +722,7 @@ function NewTaskModal({ form, setForm, creating, members, onLeave, projects, ope
                     {/* Chi e' via si vede PRIMA di assegnare, non dopo: e' il
                         momento in cui la cosa cambia una decisione. */}
                     {leave && (
-                      <span style={{ fontSize: 9.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: 'rgba(255,159,10,0.18)', color: '#ffb340', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 10, fontWeight: 640, padding: '2px 7px', borderRadius: 999, background: 'rgba(255,159,10,0.18)', color: '#ffb340', whiteSpace: 'nowrap' }}>
                         {t(`tk.leave.${leave.type}`, null, leave.type === 'ferie' ? 'In ferie' : leave.type === 'permesso' ? 'In permesso' : 'In malattia')}
                       </span>
                     )}
@@ -753,27 +754,27 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
       {/* La priorita' e' un'etichetta in cima, non piu' una fascia colorata sul
           bordo: dice la stessa cosa senza tingere tutta la card. */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: prio.color, background: `${prio.color}1f`, border: `1px solid ${prio.color}40`, borderRadius: 999, padding: '3px 9px', lineHeight: 1.2 }}>{tr(prio.key, null, prio.en)}</span>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id) }} title={tr('tk.delete', null, 'Delete')} style={{ background: 'none', border: 'none', color: '#48484a', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
+        <span style={{ fontSize: 10, fontWeight: 600, color: prio.color, background: `${prio.color}1f`, border: `1px solid ${prio.color}40`, borderRadius: 999, padding: '3px 9px', lineHeight: 1.2 }}>{tr(prio.key, null, prio.en)}</span>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id) }} title={tr('tk.delete', null, 'Delete')} style={{ background: 'none', border: 'none', color: '#48484a', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>×</button>
       </div>
-      <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
+      <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.25 }}>{t.title}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' }}>
-        {t.due_date && <span style={{ fontSize: 11, color: overdue ? '#ff375f' : '#b0b0bd' }}><Icon name="calendar" size={12} /> {t.due_date}</span>}
-        {t.description && <span title={tr('tk.containsNotes', null, 'Contains notes')} style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="file" size={12} /></span>}
-        {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title={tr('tk.attachments', null, 'Attachments')} style={{ fontSize: 11, color: '#b0b0bd' }}><Icon name="paperclip" size={12} /> {t.attachments.length}</span>}
+        {t.due_date && <span style={{ fontSize: 11.5, color: overdue ? '#ef4444' : 'var(--text2)' }}><Icon name="calendar" size={12} /> {t.due_date}</span>}
+        {t.description && <span title={tr('tk.containsNotes', null, 'Contains notes')} style={{ fontSize: 11.5, color: 'var(--text2)' }}><Icon name="file" size={12} /></span>}
+        {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title={tr('tk.attachments', null, 'Attachments')} style={{ fontSize: 11.5, color: 'var(--text2)' }}><Icon name="paperclip" size={12} /> {t.attachments.length}</span>}
       </div>
-      <div style={{ fontSize: 12, color: '#b0b0bd', marginTop: 8 }}><Icon name="user" size={12} /> {memberName(t.assignee_id)}</div>
+      <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 8 }}><Icon name="user" size={12} /> {memberName(t.assignee_id)}</div>
       <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
         <select value={t.status || 'todo'} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); onPatch(t.id, { status: e.target.value }) }}
-          style={{ ...input, width: 'auto', flex: 1, padding: '5px 8px', fontSize: 12 }}>
+          style={{ ...input, width: 'auto', flex: 1, padding: '5px 8px', fontSize: 13 }}>
           {COLUMNS.map(c => <option key={c.id} value={c.id}>{tr(c.key, null, c.en)}</option>)}
         </select>
         {t.status === 'in_review' && (
           <button onClick={(e) => { e.stopPropagation(); onPatch(t.id, { status: 'approved' }) }}
-            style={{ background: '#30d158', border: 'none', borderRadius: 7, padding: '6px 10px', color: '#04210f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}><Icon name="check" size={13} /> {tr('tk.approve', null, 'Approve')}</button>
+            style={{ background: '#22c55e', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#04210f', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Icon name="check" size={13} /> {tr('tk.approve', null, 'Approve')}</button>
         )}
       </div>
-      <div style={{ marginTop: 8, fontSize: 11, color: '#7b5bff', fontWeight: 600 }}><Icon name="file" size={12} /> {tr('tk.openForNotesShort', null, 'Open for notes & attachments')}</div>
+      <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--accent)', fontWeight: 600 }}><Icon name="file" size={12} /> {tr('tk.openForNotesShort', null, 'Open for notes & attachments')}</div>
     </div>
   )
 }
@@ -823,36 +824,36 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px' }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, padding: 0, width: 'min(640px, 100%)', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="mobile-modal-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4vh 16px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...PANEL, padding: 0, width: 'min(640px, 100%)', maxWidth: 640, maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ overflowY: 'auto', padding: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <input
             defaultValue={task.title}
             onBlur={e => { const v = e.target.value.trim(); if (v && v !== task.title) onPatch(task.id, { title: v }) }}
-            style={{ ...input, fontSize: 18, fontWeight: 700, fontFamily: 'Barlow Condensed', border: 'none', padding: '4px 0', background: 'transparent' }}
+            style={{ ...input, fontSize: 20, fontWeight: 600, fontFamily: 'inherit', border: 'none', padding: '4px 0', background: 'transparent' }}
           />
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#b0b0bd', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
         </div>
-        <div style={{ fontSize: 12, color: '#b0b0bd', marginBottom: 12 }}>{t('tk.assignedTo', { name: memberName(task.assignee_id) }, 'Assigned to {name}')}</div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12 }}>{t('tk.assignedTo', { name: memberName(task.assignee_id) }, 'Assigned to {name}')}</div>
 
         <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#b0b0bd' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
             {t('tk.priority', null, 'Priority')}
-            <select value={task.priority || 'medium'} onChange={e => onPatch(task.id, { priority: e.target.value })} style={{ ...input, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
+            <select value={task.priority || 'medium'} onChange={e => onPatch(task.id, { priority: e.target.value })} style={{ ...input, width: 'auto', padding: '5px 8px', fontSize: 13 }}>
               {PRIORITIES.map(p => <option key={p.id} value={p.id}>{t(p.key, null, p.en)}</option>)}
             </select>
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#b0b0bd' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
             {t('tk.status', null, 'Status')}
-            <select value={task.status || 'todo'} onChange={e => onPatch(task.id, { status: e.target.value })} style={{ ...input, width: 'auto', padding: '5px 8px', fontSize: 12 }}>
+            <select value={task.status || 'todo'} onChange={e => onPatch(task.id, { status: e.target.value })} style={{ ...input, width: 'auto', padding: '5px 8px', fontSize: 13 }}>
               {COLUMNS.map(c => <option key={c.id} value={c.id}>{t(c.key, null, c.en)}</option>)}
             </select>
           </label>
         </div>
 
         {/* Note / dettagli */}
-        <label style={{ fontSize: 12, color: '#d0d0d8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.notesDetails', null, 'Notes / details · what to do')}</label>
+        <label style={{ fontSize: 13, color: '#d1d1d1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.notesDetails', null, 'Notes / details · what to do')}</label>
         <textarea
           value={desc}
           onChange={e => setDesc(e.target.value)}
@@ -865,7 +866,7 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
 
         {/* Allegati */}
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ fontSize: 11, color: '#b0b0bd', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.attachments', null, 'Attachments')}</label>
+          <label style={{ fontSize: 11.5, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.attachments', null, 'Attachments')}</label>
           <label style={{ ...btnGhost, cursor: uploading ? 'wait' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
             {uploading ? t('tk.loading', null, 'Loading…') : `+ ${t('tk.attachFile', null, 'Attach file')}`}
             <input type="file" hidden disabled={uploading} onChange={onPick}
@@ -873,28 +874,28 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
           </label>
         </div>
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {attachments.length === 0 && <div style={{ color: '#48484a', fontSize: 12 }}>{t('tk.noAttachments', null, 'No attachments. PDF, CSV, images, Excel, Word (max ~4MB).')}</div>}
+          {attachments.length === 0 && <div style={{ color: '#48484a', fontSize: 13 }}>{t('tk.noAttachments', null, 'No attachments. PDF, CSV, images, Excel, Word (max ~4MB).')}</div>}
           {attachments.map(a => (
             <div key={a.path} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
               <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Icon name="file" size={13} /> {a.name}</span>
-              <span style={{ fontSize: 11, color: '#b0b0bd' }}>{fmtSize(a.size)}</span>
+              <span style={{ fontSize: 11.5, color: 'var(--text2)' }}>{fmtSize(a.size)}</span>
               <button onClick={() => onDownload(a.path)} style={{ ...btnGhost, padding: '4px 10px' }}>{t('tk.download', null, 'Download')}</button>
-              <button onClick={() => onDeleteAttachment(task.id, a.path)} title={t('tk.delete', null, 'Delete')} style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16 }}>×</button>
+              <button onClick={() => onDeleteAttachment(task.id, a.path)} title={t('tk.delete', null, 'Delete')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 17 }}>×</button>
             </div>
           ))}
         </div>
 
         {/* Commenti */}
         <div style={{ marginTop: 18 }}>
-          <label style={{ fontSize: 12, color: '#d0d0d8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.comments', null, 'Comments')}</label>
+          <label style={{ fontSize: 13, color: '#d1d1d1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>{t('tk.comments', null, 'Comments')}</label>
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {comments.length === 0 && <div style={{ color: '#48484a', fontSize: 12 }}>{t('tk.noComments', null, 'No comments.')}</div>}
+            {comments.length === 0 && <div style={{ color: '#48484a', fontSize: 13 }}>{t('tk.noComments', null, 'No comments.')}</div>}
             {comments.map(c => (
               <div key={c.id} style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: '#b0b0bd', marginBottom: 2 }}>
+                <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
                   <b style={{ color: 'var(--text)' }}>{c.author_name || t('tk.user', null, 'User')}</b> · {new Date(c.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </div>
-                <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{c.body}</div>
+                <div style={{ fontSize: 15, whiteSpace: 'pre-wrap' }}>{c.body}</div>
               </div>
             ))}
           </div>
@@ -907,7 +908,7 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
         </div>
 
         </div>{/* fine corpo scrollabile */}
-        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 18px', borderTop: '1px solid var(--border)', background: '#15151f' }}>
+        <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
           <button onClick={onClose} style={btnGhost}>{t('tk.close', null, 'Close')}</button>
           <button onClick={saveAndClose} style={btn}><Icon name="check" size={13} /> {t('tk.saveAndClose', null, 'Save and close')}</button>
         </div>
@@ -917,9 +918,9 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
 }
 
 const STATUS_BADGE = {
-  invited: { key: 'tk.statusInvited', en: 'Invited', label: 'Invitato', color: '#ff9f0a' },
-  active: { key: 'tk.statusActive', en: 'Active', label: 'Attivo', color: '#30d158' },
-  disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: '#b0b0bd' },
+  invited: { key: 'tk.statusInvited', en: 'Invited', label: 'Invitato', color: '#f59e0b' },
+  active: { key: 'tk.statusActive', en: 'Active', label: 'Attivo', color: '#22c55e' },
+  disabled: { key: 'tk.statusDisabled', en: 'Disabled', label: 'Disattivato', color: 'var(--text2)' },
 }
 
 function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
@@ -938,25 +939,25 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
         return (
           <div key={p.id} onClick={() => onOpen(p.id)} style={{ ...card, cursor: 'pointer', borderTop: `3px solid ${p.color || '#7b5bff'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 700 }}>{p.name}</div>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(p.id) }} title={t('tk.deleteProject', null, 'Delete project')} style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+              <div style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: 600 }}>{p.name}</div>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(p.id) }} title={t('tk.deleteProject', null, 'Delete project')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 17, lineHeight: 1 }}>×</button>
             </div>
-            {p.description && <div style={{ fontSize: 13, color: '#b0b0bd', marginTop: 4 }}>{p.description}</div>}
-            <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12, color: '#b0b0bd', flexWrap: 'wrap' }}>
+            {p.description && <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>{p.description}</div>}
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 13, color: 'var(--text2)', flexWrap: 'wrap' }}>
               <span><b style={{ color: 'var(--text)' }}>{s.total}</b> {t('tk.task', null, 'tasks')}</span>
-              {s.review > 0 && <span style={{ color: '#ff9f0a' }}>{t('tk.inReviewCount', { count: s.review }, '{count} in review')}</span>}
-              <span style={{ color: '#30d158' }}>{t('tk.completedCount', { count: s.done }, '{count} completed')}</span>
+              {s.review > 0 && <span style={{ color: '#f59e0b' }}>{t('tk.inReviewCount', { count: s.review }, '{count} in review')}</span>}
+              <span style={{ color: '#22c55e' }}>{t('tk.completedCount', { count: s.done }, '{count} completed')}</span>
             </div>
           </div>
         )
       })}
       {noProject > 0 && (
         <div onClick={() => onOpen('all')} style={{ ...card, cursor: 'pointer', borderTop: '3px solid #48484a' }}>
-          <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 700 }}>{t('tk.noProject', null, 'No project')}</div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12, color: '#b0b0bd' }}><span><b style={{ color: 'var(--text)' }}>{noProject}</b> {t('tk.task', null, 'tasks')}</span></div>
+          <div style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: 600 }}>{t('tk.noProject', null, 'No project')}</div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 13, color: 'var(--text2)' }}><span><b style={{ color: 'var(--text)' }}>{noProject}</b> {t('tk.task', null, 'tasks')}</span></div>
         </div>
       )}
-      <div onClick={onAdd} style={{ ...card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0bd', border: '1px dashed var(--border)', minHeight: 90 }}>+ {t('tk.newProject', null, 'New project')}</div>
+      <div onClick={onAdd} style={{ ...card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', border: '1px dashed var(--border)', minHeight: 90 }}>+ {t('tk.newProject', null, 'New project')}</div>
     </div>
   )
 }
@@ -965,9 +966,9 @@ function ProjectsView({ projects, tasks, onOpen, onAdd, onDelete }) {
 function MiniStat({ label, value, sub, color = 'var(--text)' }) {
   return (
     <div style={{ ...card }}>
-      <div style={{ fontSize: 11.5, color: '#b0b0bd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
-      <div style={{ fontSize: 30, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#b0b0bd' }}>{sub}</div>}
+      <div style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 640, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 13, color: 'var(--text2)' }}>{sub}</div>}
     </div>
   )
 }
@@ -981,7 +982,7 @@ function DonutLegend({ data = [], total = 0, size = 150 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
       <svg width={size} height={size} style={{ flexShrink: 0 }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#14141d" strokeWidth="14" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth="14" />
         {sum > 0 && data.map((d, i) => {
           if (!d.value) return null
           const frac = d.value / sum, len = frac * C, off = acc * C
@@ -989,15 +990,15 @@ function DonutLegend({ data = [], total = 0, size = 150 }) {
           return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth="14" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} transform={`rotate(-90 ${cx} ${cy})`} />
         })}
         <text x={cx} y={cy - 2} textAnchor="middle" fontSize="22" fontWeight="800" fill="var(--text)">{sum}</text>
-        <text x={cx} y={cy + 15} textAnchor="middle" fontSize="10" fill="#b0b0bd">{t('tk.totalLower', null, 'total')}</text>
+        <text x={cx} y={cy + 15} textAnchor="middle" fontSize="10" fill="#b1b1b1">{t('tk.totalLower', null, 'total')}</text>
       </svg>
       <div style={{ flex: 1, minWidth: 150, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {data.map((d, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, color: '#d0d0d8' }}>{d.label}</span>
-            <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.value}</span>
-            <span style={{ color: '#b0b0bd', width: 42, textAlign: 'right' }}>{sum ? Math.round(d.value / sum * 100) : 0}%</span>
+            <span style={{ width: 10, height: 10, borderRadius: 6, background: d.color, flexShrink: 0 }} />
+            <span style={{ flex: 1, color: '#d1d1d1' }}>{d.label}</span>
+            <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{d.value}</span>
+            <span style={{ color: 'var(--text2)', width: 42, textAlign: 'right' }}>{sum ? Math.round(d.value / sum * 100) : 0}%</span>
           </div>
         ))}
       </div>
@@ -1008,7 +1009,7 @@ function DonutLegend({ data = [], total = 0, size = 150 }) {
 // Grafico lineare (area + linea) su una serie di {label, value}.
 function LineChart({ days = [], h = 150 }) {
   const { t } = useI18n()
-  if (!days || days.length < 2) return <div style={{ color: '#b0b0bd', fontSize: 13 }}>{t('tk.insufficientData', null, 'Insufficient data.')}</div>
+  if (!days || days.length < 2) return <div style={{ color: 'var(--text2)', fontSize: 13 }}>{t('tk.insufficientData', null, 'Insufficient data.')}</div>
   const w = 680, padL = 28, padB = 20, padT = 8
   const max = Math.max(1, ...days.map(d => d.value))
   const innerW = w - padL, innerH = h - padB - padT
@@ -1041,11 +1042,11 @@ function LineChart({ days = [], h = 150 }) {
 function SideItem({ label, count, color, active, onClick, onDelete }) {
   const { t } = useI18n()
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: active ? 'rgba(123,91,255,0.18)' : 'transparent', border: active ? '1px solid rgba(123,91,255,0.5)' : '1px solid transparent', marginBottom: 2 }}>
-      {color && <span style={{ width: 8, height: 8, borderRadius: 3, background: color, flexShrink: 0 }} />}
-      <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--text)' : '#d0d0d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      <span style={{ fontSize: 11, color: '#b0b0bd' }}>{count}</span>
-      {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete() }} title={t('tk.deleteProject', null, 'Delete project')} style={{ background: 'none', border: 'none', color: '#ff375f', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>}
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: active ? 'var(--neutro-bg)' : 'transparent', border: active ? '1px solid rgba(123,91,255,0.5)' : '1px solid transparent', marginBottom: 2 }}>
+      {color && <span style={{ width: 8, height: 8, borderRadius: 6, background: color, flexShrink: 0 }} />}
+      <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--text)' : '#d1d1d1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ fontSize: 11.5, color: 'var(--text2)' }}>{count}</span>
+      {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete() }} title={t('tk.deleteProject', null, 'Delete project')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0 }}>×</button>}
     </div>
   )
 }
@@ -1069,9 +1070,9 @@ function TaskBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
           return (
             <div key={col.id} className="tk-board-col" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 10, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, minHeight: 80 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 2px 6px' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 4, background: col.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontFamily: 'Barlow Condensed', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: '.05em' }}>{tr(col.key, null, col.en)}</span>
-                <span style={{ fontSize: 12, color: '#b0b0bd', fontWeight: 600 }}>{items.length}</span>
+                <span style={{ width: 8, height: 8, borderRadius: 6, background: col.color, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontFamily: 'inherit', fontWeight: 600, fontSize: 15, textTransform: 'uppercase', letterSpacing: '.05em' }}>{tr(col.key, null, col.en)}</span>
+                <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600 }}>{items.length}</span>
               </div>
               {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
             </div>

@@ -1,10 +1,11 @@
 'use client'
 
+import { soldi } from '../../lib/client/soldi'
+import { useStatoTab } from '../../lib/client/statoTab'
 import { useEffect, useState } from 'react'
 import { swrFetch, getCached } from '../../lib/clientCache'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
-import BmTimeframe from './ui/BmTimeframe'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
@@ -14,7 +15,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
   const up = d.pct > 0, good = lowerBetter ? !up : up
-  return <span style={{ fontSize: 10, fontWeight: 800, marginLeft: 6, color: good ? 'var(--green)' : 'var(--red)' }}>{up ? '▲' : '▼'} {Math.abs(d.pct).toFixed(1)}%</span>
+  return <span style={{ fontSize: 10, fontWeight: 640, marginLeft: 6, color: good ? 'var(--green)' : 'var(--red)' }}>{up ? '▲' : '▼'} {Math.abs(d.pct).toFixed(1)}%</span>
 }
 
 const SEV = {
@@ -23,8 +24,8 @@ const SEV = {
   low: { color: 'var(--green)', bg: 'rgba(48,209,88,0.14)', label: 'OK' },
 }
 
-const money = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`)
-const nf = (n) => Number(n || 0).toLocaleString('it-IT')
+const money = (n) => soldi(n, 'auto')
+const nf = (n) => Number(n || 0).toLocaleString('it-IT', { useGrouping: 'always' })
 
 export default function CreativeFatiguePanel() {
   const { t } = useI18n()
@@ -33,7 +34,7 @@ export default function CreativeFatiguePanel() {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
   const [account, setAccount] = useState('')
-  const [tf, setTf] = useState({ preset: 'last_14d' })
+  const [tf, setTf] = useStatoTab('creativeFatigue.tf', { preset: 'last_14d' })
   const preset = tf.preset
 
 
@@ -64,7 +65,6 @@ export default function CreativeFatiguePanel() {
   }, [account, tf])
 
   const delta = data?.delta || {}
-  const chartData = (data?.ads || []).slice(0, 10).map(a => ({ name: (a.name || '').slice(0, 12), score: a.score, sev: a.severity }))
 
   const accounts = data?.accounts || []
 
@@ -81,7 +81,7 @@ export default function CreativeFatiguePanel() {
   const Stat = ({ label, value, tone, d, lowerBetter }) => (
     <div className="glass-card" style={{ padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div className="label" style={{ fontSize: 9 }}>{label}</div>
+        <div className="label" style={{ fontSize: 10 }}>{label}</div>
         <PlatformBadges sources={['meta']} size={14} />
       </div>
       <div className="metric-value-sm" style={{ color: tone || 'var(--text)' }}>{value}<DeltaBadge d={d} lowerBetter={lowerBetter} /></div>
@@ -91,15 +91,15 @@ export default function CreativeFatiguePanel() {
   return (
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.8}>
-        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 12.5 }}>{t('cf.subtitle')}</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 13 }}>{t('cf.subtitle')}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
             LIVE
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <BmTimeframe value={tf} onChange={setTf} accent="#2997ff" disabled={loading} />
+            <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
             {accounts.length > 1 && (
               <select value={account} onChange={(e) => setAccount(e.target.value)} className="btn-glass" style={{ padding: '9px 12px', fontWeight: 600, cursor: 'pointer', maxWidth: 280 }}>
                 <option value="" style={{ background: 'var(--surface)' }}>{t('flt.allAccounts')}</option>
@@ -108,7 +108,7 @@ export default function CreativeFatiguePanel() {
             )}
           </div>
         </div>
-        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span> {t('cf.loading')}</div>}
+        {loading && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '18px 0' }}><span style={{ display: "inline-flex", animation: "spin 1s linear infinite" }}><Icon name="refresh" size={13} /></span> {t('cf.loading')}</div>}
         {!loading && error && <div style={{ color: 'var(--text3)', fontSize: 13, padding: '12px 0' }}>{error}</div>}
         {!loading && !error && ads.length === 0 && <div style={{ color: 'var(--text2)', fontSize: 13, padding: '12px 0' }}>{t('cf.empty')}</div>}
 
@@ -125,19 +125,19 @@ export default function CreativeFatiguePanel() {
               {shown.map((a) => {
                 const s = SEV[a.severity] || SEV.low
                 return (
-                  <div key={a.adId} className="glass-card-static" style={{ padding: 12, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div key={a.adId} className="glass-card-static" style={{ padding: 12, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
                     {/* Thumbnail della creativa */}
-                    <div style={{ width: 56, height: 56, flexShrink: 0, borderRadius: 10, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center' }}>
+                    <div style={{ width: 56, height: 56, flexShrink: 0, borderRadius: 12, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center' }}>
                       {a.thumbnail
                         ? <img src={a.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none' }} />
-                        : <span style={{ fontSize: 16, color: 'var(--text3)' }}>▧</span>}
+                        : <span style={{ fontSize: 17, color: 'var(--text3)' }}>▧</span>}
                     </div>
 
                     {/* Nome + barra fatigue */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 4, background: s.bg, color: s.color, letterSpacing: '.05em', flexShrink: 0 }}>{t('cf.sev.' + (SEV[a.severity] ? a.severity : 'low'))}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 680, padding: '2px 7px', borderRadius: 6, background: s.bg, color: s.color, letterSpacing: '.05em', flexShrink: 0 }}>{t('cf.sev.' + (SEV[a.severity] ? a.severity : 'low'))}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 7 }}>
                         {[a.campaign, a.adset].filter(Boolean).join(' · ') || '—'}
@@ -167,24 +167,6 @@ export default function CreativeFatiguePanel() {
               </div>
             )}
 
-            {chartData.length > 0 && (
-              <div className="glass-card-static reveal-zoom" style={{ marginTop: 22, padding: 18, borderRadius: 16 }}>
-                <div className="label" style={{ marginBottom: 12 }}>{t('cf.chartTitle')}</div>
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={chartData} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-                    <defs>
-                      <filter id="fgGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-                    </defs>
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={48} />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'rgba(0,0,0,0.9)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} labelStyle={{ color: 'var(--text2)' }} />
-                    <Bar dataKey="score" radius={[5, 5, 0, 0]} animationDuration={1400} animationEasing="ease-out" style={{ filter: 'url(#fgGlow)' }}>
-                      {chartData.map((d, i) => <Cell key={i} fill={d.sev === 'high' ? '#ff453a' : d.sev === 'medium' ? '#ff9f0a' : '#30d158'} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
           </>
         )}
       </FxCard>
@@ -195,8 +177,8 @@ export default function CreativeFatiguePanel() {
 function Metric({ label, value, tone = 'var(--text)' }) {
   return (
     <div style={{ minWidth: 44 }}>
-      <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 800, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 900, color: tone, fontFamily: 'Barlow' }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 640, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 680, color: tone, fontFamily: 'inherit' }}>{value}</div>
     </div>
   )
 }

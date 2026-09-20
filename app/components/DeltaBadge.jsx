@@ -1,7 +1,9 @@
 'use client'
 
 export default function DeltaBadge({ current, previous, inverse = false }) {
-  if (current == null || previous == null || previous === 0) return null
+  // Una percentuale su una base nulla o NEGATIVA non vuol dire niente: il giorno di un reso il
+  // fatturato di confronto puo' essere -28 €, e ne usciva "+2637%". Senza base, niente cifra.
+  if (current == null || previous == null || !(Number(previous) > 0)) return null
 
   const c = Number(current)
   const p = Number(previous)
@@ -26,7 +28,7 @@ export default function DeltaBadge({ current, previous, inverse = false }) {
         alignItems: 'center',
         gap: 3,
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 600,
         fontVariantNumeric: 'tabular-nums',
       }}
     >

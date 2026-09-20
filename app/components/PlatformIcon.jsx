@@ -44,8 +44,8 @@ const ICONS = {
   ga4: ({ s }) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
       <rect x="14" y="3" width="6" height="18" rx="3" fill="#F9AB00"/>
-      <rect x="7" y="9" width="6" height="12" rx="3" fill="#E37400"/>
-      <circle cx="6" cy="18" r="3" fill="#E37400"/>
+      <rect x="7" y="9" width="6" height="12" rx="3" fill="#aeaeb2"/>
+      <circle cx="6" cy="18" r="3" fill="#aeaeb2"/>
     </svg>
   ),
   tiktok: ({ s }) => (
@@ -80,20 +80,14 @@ export default function PlatformIcon({ platform, size = 20 }) {
   const Icon = ICONS[platform]
   if (!cdn && !Icon) return null
   const dark = BG_DARK.has(platform)
+  // La piastrella del logo ha una CLASSE, non un fondo scritto in linea: i fogli del tema chiaro
+  // ridipingono gli sfondi scritti in linea, e al passaggio del mouse quella correzione saltava —
+  // il riquadro passava da bianco a nero sotto il puntatore (Marino, 20 set). Ora il colore lo
+  // decide il tema, una volta, e non cambia mai.
   return (
     <span
-      title={platform}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size + 8,
-        height: size + 8,
-        borderRadius: 7,
-        background: dark ? '#000' : 'var(--text)',
-        flexShrink: 0,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-      }}
+      className={`ly-piastrella${dark ? ' scura' : ''}`}
+      style={{ width: size + 8, height: size + 8 }}
     >
       {cdn ? <CdnLogo slug={cdn.slug} color={cdn.color} domain={cdn.domain} size={size} /> : <Icon s={size} />}
     </span>

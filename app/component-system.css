@@ -1,0 +1,495 @@
+/* One geometry and interaction language for both themes. Semantic colors remain intact. */
+:root {
+  --control-radius: 10px;
+  --control-height: 40px;
+  --panel-radius: 16px;
+  --chart-grid: rgba(148,163,184,.16);
+  --chart-label: #aeaeae;
+}
+:root[data-theme='light'] {
+  --chart-grid: #e7e7e7;
+  --chart-label: #626262;
+}
+.app-shell { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.app-shell button, .auth-shell button, .brain-panel button, .help-drawer-panel button {
+  font-family: inherit !important;
+  font-weight: 600;
+  letter-spacing: 0 !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.app-main button:not(.bm-tf-day):not([role='switch']),
+.mobile-modal-overlay button, .help-drawer-panel button {
+  border-radius: var(--control-radius) !important;
+}
+.app-main :is(.btn-glass,.report-toolbar button,.app-header-actions button),
+.auth-submit {
+  min-height: var(--control-height);
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.35;
+  padding: 9px 14px;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.app-main .btn-glass {
+  border: 1px solid var(--border2) !important;
+  background: var(--glass2) !important;
+  color: var(--text) !important;
+  backdrop-filter: none;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.app-shell button:disabled, .auth-shell button:disabled {
+  opacity: .5 !important; cursor: not-allowed !important; transform: none !important;
+}
+.app-shell :is(button,input,select,textarea,a):focus-visible,
+.brain-panel :is(button,textarea):focus-visible {
+  outline: 2px solid var(--accent) !important; outline-offset: 3px !important;
+}
+.app-main :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),select,textarea) {
+  border-radius: var(--control-radius) !important;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.app-main :is(.glass-card,.glass-card-static,.fx-card-shared) {
+  border-radius: var(--panel-radius) !important;
+}
+.app-main .fx-card-shared {
+  animation: none !important; transform: none !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08) !important;
+}
+.fx-card-shared :is(.fx-card-scan,.fx-card-accent) { display: none; }
+.app-main :is(.metric-value,td,.recharts-text) { font-variant-numeric: tabular-nums; }
+.app-main .recharts-cartesian-grid line { stroke: var(--chart-grid) !important; stroke-dasharray: 3 4; }
+.app-main .recharts-cartesian-axis-tick text { fill: var(--chart-label) !important; font-size: 11.5px; font-family: inherit; }
+.app-main .recharts-cartesian-axis-line,
+.app-main .recharts-cartesian-axis-tick-line { stroke: var(--chart-grid) !important; }
+.app-main :is(.recharts-line-curve,.recharts-area-curve) { stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.app-main .recharts-default-tooltip {
+  background: var(--surface) !important; border: 1px solid var(--border2) !important;
+  border-radius: 12px !important; padding: 12px !important;
+  color: var(--text) !important; font-size: 11.5px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+.app-main .recharts-tooltip-label { color: var(--text) !important; font-weight: 600; margin-bottom: 6px !important; }
+.report-toolbar, .report-download { flex-wrap: wrap; max-width: 100%; min-width: 0; }
+@media (hover:hover) {
+  .app-main .btn-glass:hover:not(:disabled) { background: var(--glass) !important; border-color: var(--text3) !important; }
+}
+@media (max-width:768px) {
+  :root { --control-height: 44px; }
+  .report-toolbar { width: 100%; }
+  .report-toolbar > *, .report-download > * { max-width: 100%; min-width: 0; }
+  .report-toolbar button { white-space: normal; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Tema scuro: i grigi di sistema di Apple. Prima qui c'erano superfici blu-notte
+   (#161616) con bordi azzurrati e un gradiente su ogni scheda. */
+:root[data-theme='dark'] {
+  --bg: #000000; --bg2: #0a0a0a;
+  --surface: #1c1c1c; --surface2: #2c2c2c;
+  --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.15);
+  --text: #f5f5f5; --text2: #d1d1d1; --text3: #989898;
+}
+.app-header-title { min-width: 0; flex: 1; }
+.app-shell .heading-lg { font-family: inherit !important; font-weight: 600 !important; letter-spacing: -.035em; }
+.app-main .glass-card, .app-main .glass-card-static {
+  transform: none !important;
+  transition: border-color .2s ease, box-shadow .2s ease !important;
+}
+:root[data-theme='dark'] .app-main :is(.glass-card,.glass-card-static,.glass-panel,.fx-card-shared) {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .app-sidebar {
+  background: #0a0a0a !important; border-right: 1px solid var(--border) !important;
+}
+:root[data-theme='dark'] .app-nav-item {
+  background: transparent !important; color: var(--text2) !important; border-radius: 8px !important;
+}
+:root[data-theme='dark'] .app-nav-item[aria-current='page'] {
+  background: #f5f5f5 !important; color: #1c1c1c !important; box-shadow: none !important;
+}
+:root[data-theme='dark'] .app-nav-icon { color: inherit !important; }
+:root[data-theme='dark'] .app-header { padding-bottom: 24px; margin-bottom: 28px !important; border-bottom: 1px solid var(--border); align-items: center !important; }
+@media (max-width:1024px) {
+  .app-header-title { flex-basis: calc(100% - 60px); }
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  :root[data-theme='dark'] .app-main .glass-card:hover { border-color: var(--border2) !important; }
+  :root[data-theme='light'] .app-main .glass-card:hover { border-color: var(--border2) !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Dettaglio di una provincia — le schede prendono i colori dal tema.
+
+   Prima erano gradienti scuri scritti a mano dentro il componente: nati per
+   il fondo nero, su fondo bianco diventavano macchie grigie con un bordo
+   chiaro che non c'entrava niente. Qui il colore lo decidono i token, cosi'
+   la stessa struttura sta bene di giorno e di notte.
+   ════════════════════════════════════════════════════════════════════════ */
+.prov-scheda {
+  padding: 18px; border-radius: 16px;
+  background: var(--surface2, var(--glass));
+  border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.prov-kpi {
+  padding: 14px 16px; border-radius: 16px;
+  background: var(--surface2, var(--glass));
+  border: 1px solid var(--border);
+}
+.prov-kpi-et { font-size: 10px; font-weight: 640; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+.prov-kpi-val { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 680; color: var(--text); margin-top: 6px; letter-spacing: -.02em; }
+.prov-kpi-nota { font-size: 11.5px; color: var(--text3); margin-top: 4px; }
+
+.prov-riga { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.prov-riga:last-child { border-bottom: none; }
+.prov-foto { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--glass2, var(--glass)); }
+.prov-foto-vuota { border: 1px solid var(--border); }
+.prov-prod-titolo { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prov-prod-nota { font-size: 11.5px; color: var(--text3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.prov-barra { height: 6px; border-radius: 999px; background: var(--glass2, rgba(127,127,127,.18)); overflow: hidden; }
+.prov-barra-piena { height: 100%; border-radius: 999px; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Tabella "Dove comprano" — regioni e province.
+
+   Quattro famiglie di colonne, ognuna col colore della sua fonte: si capisce
+   a colpo d'occhio cosa viene dalle vendite, cosa dal traffico, cosa dalla
+   pubblicita' e cosa e' il rapporto fra le due. Le barre dentro le celle
+   servono a confrontare le righe senza leggere i numeri uno per uno.
+   ════════════════════════════════════════════════════════════════════════ */
+.reg-tab { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.reg-tab .fam-vendite  { --fam: var(--gpv-shopify);  --fam-bg: var(--gpv-shopify-bg); }
+.reg-tab .fam-traffico { --fam: var(--gpv-economia); --fam-bg: var(--gpv-economia-bg); }
+.reg-tab .fam-pub      { --fam: var(--gpv-google);   --fam-bg: var(--gpv-google-bg); }
+.reg-tab .fam-resa     { --fam: var(--gpv-resa);     --fam-bg: var(--gpv-resa-bg); }
+
+.reg-tab thead tr.reg-fasce th { padding: 0; border: none; }
+.reg-tab thead tr.reg-fasce th.fam {
+  padding: 7px 12px; font-size: 10px; font-weight: 640; letter-spacing: .14em; text-transform: uppercase;
+  text-align: center; color: var(--fam); background: var(--fam-bg); border-radius: 12px 10px 0 0;
+  border-left: 6px solid var(--surface);
+}
+.reg-tab thead tr.reg-colonne th {
+  padding: 10px 9px; font-size: 10px; font-weight: 640; letter-spacing: .05em; text-transform: uppercase;
+  text-align: right; color: var(--text3); cursor: pointer; white-space: nowrap; user-select: none;
+  border-bottom: 1px solid var(--gpv-linea); background: var(--surface);
+}
+.reg-tab thead tr.reg-colonne th:first-child { text-align: left; }
+.reg-tab thead tr.reg-colonne th.attiva { color: var(--fam, var(--accent)); }
+.reg-tab thead tr.reg-colonne th .reg-logo { display: inline-flex; vertical-align: middle; margin-right: 6px; transform: scale(.8); transform-origin: right center; }
+
+.reg-tab tbody td {
+  padding: 11px 9px; font-size: 13px; color: var(--text); text-align: right; white-space: nowrap;
+  border-bottom: 1px solid var(--gpv-linea); background: var(--surface); transition: background-color .12s ease;
+}
+.reg-tab tbody tr:nth-child(even) > td { background: var(--gpv-riga); }
+.reg-tab tbody tr { cursor: pointer; }
+.reg-tab tbody tr:hover > td { background: var(--fam-hover, rgba(127,127,127,.10)); }
+/* Lo stacco fra una famiglia e l'altra: si legge dove finisce un gruppo. */
+.reg-tab .stacco { border-left: 4px solid transparent; background-clip: padding-box; }
+.reg-tab td.stacco { box-shadow: inset 1px 0 0 var(--gpv-linea); }
+
+.reg-tab td.reg-primo { text-align: left; position: sticky; left: 0; z-index: 1; min-width: 176px; }
+.reg-tab th.reg-primo { position: sticky; left: 0; z-index: 2; }
+.reg-riga-nome { display: flex; align-items: center; gap: 10px; }
+.reg-posto {
+  width: 22px; height: 22px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0;
+  font-size: 11.5px; font-weight: 640; color: var(--text3); background: var(--glass2, rgba(127,127,127,.12));
+}
+.reg-nome { font-size: 13px; font-weight: 640; color: var(--text); }
+.reg-sotto { font-size: 11.5px; color: var(--text3); font-weight: 600; margin-top: 1px; }
+
+/* Due barre sovrapposte: quanta spesa prende la regione, quante vendite porta.
+   Quando la gialla supera la verde, la regione costa piu' di quel che rende. */
+.reg-doppia { margin-top: 6px; display: grid; gap: 3px; width: 132px; }
+.reg-doppia-riga { display: flex; align-items: center; gap: 6px; }
+.reg-doppia-binario { flex: 1; height: 5px; border-radius: 999px; background: var(--glass2, rgba(127,127,127,.14)); overflow: hidden; }
+.reg-doppia-piena { height: 100%; border-radius: 999px; }
+.reg-doppia-num { font-size: 10px; font-weight: 600; color: var(--text3); width: 38px; text-align: right; }
+
+.reg-valore { font-weight: 640; }
+.reg-barra { height: 4px; border-radius: 999px; background: var(--glass2, rgba(127,127,127,.14)); overflow: hidden; margin-top: 5px; min-width: 56px; }
+.reg-barra-piena { height: 100%; border-radius: 999px; background: var(--fam); opacity: .85; }
+
+.reg-pillola { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 640; }
+.reg-pillola.sotto { color: #ef4444; background: rgba(239,68,68,.12); }
+.reg-pillola.sopra { color: var(--gpv-resa); background: var(--gpv-resa-bg); }
+.reg-pillola.media { color: var(--text); background: transparent; padding-left: 0; padding-right: 0; }
+
+.reg-tab tfoot td {
+  padding: 12px 9px; font-size: 13px; font-weight: 640; color: var(--text); text-align: right; white-space: nowrap;
+  border-top: 2px solid var(--gpv-linea); background: var(--gpv-riga);
+}
+.reg-tab tfoot td:first-child { text-align: left; position: sticky; left: 0; z-index: 1; }
+.reg-legenda { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 11.5px; color: var(--text3); margin-bottom: 10px; }
+.reg-legenda i { display: inline-block; width: 18px; height: 5px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Tutte le tabelle del prodotto — stesso vestito di "Dove comprano".
+
+   Le tabelle nate nelle varie tab avevano ognuna i suoi stili scritti dentro
+   le celle: intestazioni di cinque grandezze diverse, righe con o senza
+   linea, nessuna alternanza. Qui il vestito e' uno, e vince sugli stili in
+   linea (per questo gli !important). Restano alle celle le cose che portano
+   SIGNIFICATO: l'allineamento, il colore di un numero, e qualunque sfondo
+   scritto a mano — una mappa di calore o una riga evidenziata non si toccano.
+   ════════════════════════════════════════════════════════════════════════ */
+.tab-lyft { border-collapse: separate !important; border-spacing: 0 !important; font-variant-numeric: tabular-nums; }
+.tab-lyft thead th {
+  padding: 10px 12px !important; font-size: 10px !important; font-weight: 640 !important;
+  letter-spacing: .06em !important; text-transform: uppercase !important; white-space: nowrap;
+  border: none !important; border-bottom: 1px solid var(--gpv-linea) !important;
+}
+.tab-lyft thead th:not([style*="accent"]):not(.th-libero) { color: var(--text3) !important; }
+.tab-lyft thead th:not([style*="background"]) { background: var(--surface); }
+.tab-lyft tbody td, .tab-lyft tbody th {
+  padding: 11px 12px !important; border: none !important; border-bottom: 1px solid var(--gpv-linea) !important;
+  transition: background-color .12s ease;
+}
+.tab-lyft tbody tr:not([style*="background"]) > td:not([style*="background"]) { background: var(--surface); }
+.tab-lyft:not(.senza-zebra) tbody tr:nth-child(even):not([style*="background"]) > td:not([style*="background"]) { background: var(--gpv-riga); }
+.tab-lyft tbody tr:hover > td:not([style*="background"]) { background: var(--tab-hover, rgba(127,127,127,.10)); }
+.tab-lyft tfoot td, .tab-lyft tfoot th {
+  padding: 12px !important; font-weight: 640 !important; border: none !important;
+  border-top: 2px solid var(--gpv-linea) !important;
+}
+.tab-lyft tfoot td:not([style*="background"]), .tab-lyft tfoot th:not([style*="background"]) { background: var(--gpv-riga); }
+
+/* I loghini della fonte accanto a un'intestazione o a una voce. */
+.tab-fonte { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; vertical-align: -2px; flex-shrink: 0; }
+.tab-fonte.dopo { margin-right: 0; margin-left: 7px; opacity: .85; }
+.tab-fascia { display: inline-flex; align-items: center; justify-content: center; }
+/* Fasce di famiglia e stacchi, anche sulle tabelle col vestito comune. */
+.tab-lyft .fam-vendite  { --fam: var(--gpv-shopify);  --fam-bg: var(--gpv-shopify-bg); }
+.tab-lyft .fam-traffico { --fam: var(--gpv-economia); --fam-bg: var(--gpv-economia-bg); }
+.tab-lyft .fam-pub      { --fam: var(--gpv-google);   --fam-bg: var(--gpv-google-bg); }
+.tab-lyft .fam-resa     { --fam: var(--gpv-resa);     --fam-bg: var(--gpv-resa-bg); }
+.tab-lyft thead tr.reg-fasce th { padding: 0 !important; border: none !important; background: transparent !important; position: static !important; }
+.tab-lyft thead tr.reg-fasce th.fam {
+  padding: 7px 12px !important; letter-spacing: .14em !important; text-align: center !important;
+  color: var(--fam) !important; background: var(--fam-bg) !important; border-radius: 12px 10px 0 0;
+  border-left: 6px solid var(--surface) !important;
+}
+.tab-lyft.st-2 tr:not(.reg-fasce) > :nth-child(2),
+.tab-lyft.st-3 tr:not(.reg-fasce) > :nth-child(3),
+.tab-lyft.st-4 tr:not(.reg-fasce) > :nth-child(4),
+.tab-lyft.st-5 tr:not(.reg-fasce) > :nth-child(5),
+.tab-lyft.st-6 tr:not(.reg-fasce) > :nth-child(6),
+.tab-lyft.st-7 tr:not(.reg-fasce) > :nth-child(7),
+.tab-lyft.st-8 tr:not(.reg-fasce) > :nth-child(8),
+.tab-lyft.st-9 tr:not(.reg-fasce) > :nth-child(9),
+.tab-lyft.st-10 tr:not(.reg-fasce) > :nth-child(10),
+.tab-lyft.st-11 tr:not(.reg-fasce) > :nth-child(11),
+.tab-lyft.st-12 tr:not(.reg-fasce) > :nth-child(12),
+.tab-lyft.st-13 tr:not(.reg-fasce) > :nth-child(13),
+.tab-lyft.st-14 tr:not(.reg-fasce) > :nth-child(14),
+.tab-lyft.st-15 tr:not(.reg-fasce) > :nth-child(15),
+.tab-lyft.st-16 tr:not(.reg-fasce) > :nth-child(16),
+.tab-lyft.st-17 tr:not(.reg-fasce) > :nth-child(17),
+.tab-lyft.st-18 tr:not(.reg-fasce) > :nth-child(18) { box-shadow: inset 1px 0 0 var(--gpv-linea); padding-left: 18px !important; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Performance prodotti Google — la riga e' una sottrazione.
+   Stessa tabella di "Dove comprano" (reg-tab); qui si aggiungono il segno
+   davanti alle voci, il punto colorato che lega intestazione e barra, e la
+   barra "dove va ogni euro".
+   ════════════════════════════════════════════════════════════════════════ */
+.gpv-tab tbody td { vertical-align: middle; }
+.gpv-tab td.reg-primo { min-width: 260px; max-width: 320px; }
+.gpv-tab .reg-nome { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+.gpv-foto { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; display: block; }
+.gpv-foto-vuota { background: var(--glass2, rgba(127,127,127,.14)); border: 1px solid var(--border); }
+.gpv-segno { display: inline-block; min-width: 12px; margin-right: 5px; font-weight: 680; color: var(--text3); text-align: center; }
+.gpv-punto { display: inline-block; width: 8px; height: 8px; border-radius: 6px; margin-right: 6px; vertical-align: baseline; flex-shrink: 0; }
+.gpv-esito-mobile { display: none; }
+.gpv-stato { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 640; letter-spacing: .04em; text-transform: uppercase; color: var(--text3); background: var(--glass2, rgba(127,127,127,.14)); }
+.gpv-stato:first-child { margin-left: 0; }
+.gpv-meno { font-weight: 600; color: var(--text2); }
+.gpv-esito { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 999px; margin-right: 6px; font-size: 10px; font-weight: 680; vertical-align: 1px; }
+.gpv-esito.si { color: var(--gpv-shopify); background: var(--gpv-shopify-bg); }
+.gpv-esito.no { color: #f59e0b; background: rgba(245,158,11,.15); }
+.reg-pillola.gpv-su { color: var(--gpv-shopify); background: var(--gpv-shopify-bg); }
+.reg-pillola.gpv-manca { color: #f59e0b; background: rgba(245,158,11,.13); font-size: 11.5px; }
+.gpv-euro { position: relative; display: flex; width: 170px; height: 11px; border-radius: 999px; overflow: hidden; margin-left: auto; background: var(--glass2, rgba(127,127,127,.14)); }
+.gpv-euro > span { height: 100%; flex-shrink: 0; box-shadow: inset -1px 0 0 var(--surface); }
+.gpv-euro-ignoto { background: repeating-linear-gradient(135deg, rgba(127,127,127,.35) 0 3px, transparent 3px 6px); }
+.gpv-euro-sforo { position: absolute; top: 0; bottom: 0; right: 0; border-left: 2px solid #ef4444; background: repeating-linear-gradient(135deg, rgba(239,68,68,.95) 0 3px, rgba(239,68,68,.25) 3px 6px); }
+
+.gpv-regole summary { cursor: pointer; font-size: 11.5px; font-weight: 640; color: var(--text2); display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; list-style: none; }
+.gpv-regole summary::-webkit-details-marker { display: none; }
+.gpv-regole summary::before { content: '＋'; margin-right: 8px; color: var(--text3); }
+.gpv-regole[open] summary::before { content: '－'; }
+.gpv-regole summary span { font-size: 11.5px; font-weight: 600; color: var(--text3); margin-left: auto; }
+.gpv-regole ul { margin: 10px 0 2px; padding-left: 18px; display: grid; gap: 5px; font-size: 11.5px; line-height: 1.5; color: var(--text3); }
+
+.gpv-voce { display: flex; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.gpv-voce .gpv-segno { font-size: 15px; min-width: 18px; }
+.gpv-voce-nome { font-size: 13px; font-weight: 600; color: var(--text); }
+.gpv-voce-ora { width: 116px; text-align: right; font-size: 15px; font-weight: 640; color: var(--text); flex-shrink: 0; }
+.gpv-voce-prima { width: 104px; text-align: right; font-size: 11.5px; font-weight: 600; color: var(--text3); flex-shrink: 0; }
+.gpv-voce.forte { border-bottom: none; border-top: 2px solid var(--text3); margin-top: -1px; padding-top: 13px; }
+.gpv-voce.forte .gpv-voce-nome { font-size: 15px; font-weight: 680; }
+.gpv-voce.forte .gpv-voce-ora { font-size: 15px; font-weight: 680; }
+.gpv-voce-testa { padding: 0 0 6px; }
+.gpv-voce-testa .gpv-voce-ora, .gpv-voce-testa .gpv-voce-prima { font-size: 10px; font-weight: 640; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Lavagna di un flusso — sola lettura, si trascina e si ingrandisce.
+   Tutti i colori vengono dal tema: la stessa lavagna funziona di giorno e di
+   notte, e non resta un rettangolo nero quando il tema e' chiaro (e' portata
+   su body, dove le pulizie del tema chiaro non arrivano).
+   ════════════════════════════════════════════════════════════════════════ */
+/* Sul desktop la barra laterale resta al suo posto (240px): la lavagna le sta
+   accanto, non sotto. Sotto i 1024px la barra e' un cassetto e la lavagna
+   prende tutto lo schermo. */
+.fl-velo { position: fixed; inset: 0 0 0 240px; z-index: 900; display: flex; flex-direction: column; background: var(--bg, #070707); color: var(--text); }
+.fl-testata { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.fl-titolo { font-size: 15px; font-weight: 680; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-sotto { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text3); margin-top: 4px; }
+.fl-chiudi { background: var(--glass); border: 1px solid var(--border); border-radius: 12px; color: var(--text2); cursor: pointer; padding: 6px 13px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+.fl-tela {
+  position: relative; flex: 1; overflow: hidden; touch-action: none; user-select: none;
+  background-color: var(--bg, #070707);
+  background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+.fl-piano { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.fl-linee { position: absolute; overflow: visible; pointer-events: none; }
+.fl-linee path { fill: none; stroke: var(--border2, var(--border)); stroke-width: 1.6; }
+.fl-messaggio { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: var(--text3); }
+
+.fl-scheda {
+  position: absolute; box-sizing: border-box; text-align: left; font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.16);
+}
+.fl-scheda.attesa { padding: 12px 14px; }
+.fl-scheda.email { cursor: default; display: block; }
+.fl-scheda.email.apribile { cursor: pointer; transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease; }
+.fl-scheda.email.apribile:hover { border-color: var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,.22); transform: translateY(-1px); }
+.fl-riga { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+.fl-riga b { font-weight: 640; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fl-icona { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; background: var(--glass2, rgba(127,127,127,.14)); color: var(--text2); }
+.fl-icona.scura { background: var(--text); color: var(--surface); border-radius: 999px; }
+.fl-icona.blu { background: var(--gpv-resa-bg); color: var(--gpv-resa); }
+.fl-testo { font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fl-nota { font-size: 11.5px; color: var(--text3); margin: 5px 0 0 33px; }
+.fl-etichette { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
+.fl-etichette em { font-style: normal; font-size: 10px; font-weight: 600; color: var(--text2); background: var(--glass2, rgba(127,127,127,.14)); border-radius: 999px; padding: 2px 8px; }
+.fl-piede { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.fl-stato { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--text2); border: 1px solid var(--border); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
+.fl-stato i { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+.fl-numeri { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border); }
+.fl-numeri span { display: flex; flex-direction: column; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+.fl-numeri b { font-size: 11.5px; color: var(--text); font-weight: 640; letter-spacing: 0; }
+.fl-giorno { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text2); margin-top: 6px; font-weight: 600; }
+
+.fl-ramo { position: absolute; transform: translate(-50%, -50%); font-size: 11.5px; font-weight: 640; color: #fff; border-radius: 999px; padding: 2px 10px; z-index: 1; }
+.fl-ramo.si { background: #2563eb; }
+.fl-ramo.no { background: #535353; }
+.fl-fine { position: absolute; width: 9px; height: 9px; border-radius: 999px; transform: translate(-50%, 0); background: var(--border2, var(--border)); }
+
+.fl-comandi {
+  position: absolute; right: 18px; bottom: 18px; display: flex; flex-direction: column; align-items: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,.22);
+}
+.fl-comandi button { width: 42px; height: 40px; min-height: 40px !important; background: transparent; border: none; color: var(--text); font-size: 18px; font-weight: 600; cursor: pointer; }
+.fl-comandi button:hover { background: var(--glass2, rgba(127,127,127,.12)); }
+.fl-comandi span { font-size: 11.5px; font-weight: 640; color: var(--text3); padding: 3px 0; font-variant-numeric: tabular-nums; }
+.fl-aiuto { position: absolute; left: 18px; bottom: 18px; font-size: 11.5px; color: var(--text3); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; }
+@media (max-width: 1024px) { .fl-velo { inset: 0; } }
+@media (max-width: 768px) { .fl-aiuto { display: none; } .fl-testata { padding: 12px 14px; } }
+
+.fl-numeri.vuoti { display: block; font-size: 11.5px; color: var(--text3); }
+
+/* Scheda Drive to Store: spesa scorporata, mostrata a parte. Colori dal tema. */
+.dts-scheda { background: var(--surface); border: 1px dashed var(--border2, var(--border)); border-radius: 16px; padding: 0 16px; margin: 14px 0; }
+.dts-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 0; background: none; border: none; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.dts-titolo { display: flex; align-items: center; gap: 9px; min-width: 0; flex-wrap: wrap; }
+.dts-titolo b { font-size: 13px; font-weight: 640; color: var(--text); }
+.dts-fuori { font-size: 11.5px; font-weight: 600; color: var(--text3); padding: 2px 8px; border-radius: 999px; background: var(--glass2, rgba(127,127,127,.12)); }
+.dts-destra { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.dts-cifra { font-size: 15px; font-weight: 680; color: var(--text); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.dts-freccia { font-style: normal; font-size: 11.5px; color: var(--text3); }
+.dts-nota { margin: 0 0 10px; font-size: 11.5px; line-height: 1.55; color: var(--text2); max-width: 980px; }
+.dts-elenco { margin: 0 0 8px; border-top: 1px solid var(--border); }
+.dts-riga { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 11.5px; }
+.dts-riga:last-child { border-bottom: none; }
+.dts-nome { flex: 1; min-width: 0; color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dts-det { color: var(--text3); font-size: 11.5px; white-space: nowrap; }
+.dts-riga b { color: var(--text); font-weight: 640; white-space: nowrap; }
+@media (max-width: 768px) { .dts-det { display: none; } }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Elenchi di prodotti: ricerca, marchi, pagine (app/components/ui/Elenco.jsx)
+   ════════════════════════════════════════════════════════════════════════ */
+.el-filtri { display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; }
+.el-cerca { display: flex; align-items: center; gap: 9px; max-width: 460px; padding: 0 12px; height: 42px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text3); }
+.el-cerca:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+/* La regola generale mette un contorno a ogni campo in focus: qui il campo sta
+   DENTRO una casella che ha gia' il suo bordo, e i due contorni si
+   sovrapponevano sfalsati. Il focus si vede sulla casella, una volta sola. */
+/* La classe e' ripetuta apposta: nel tema chiaro due regole di accessibilita'
+   impongono il contorno a ogni campo in focus e selezionano piu' stretto di
+   una regola normale. Il focus NON sparisce: lo mostra la casella qui sopra. */
+html body .app-shell .el-cerca.el-cerca.el-cerca input:focus,
+html body .app-shell .el-cerca.el-cerca.el-cerca input:focus-visible { outline: none !important; box-shadow: none !important; border: none !important; }
+.el-cerca input { flex: 1; min-width: 0; border: none !important; outline: none; background: transparent !important; color: var(--text); font-size: 13px; height: 100%; padding: 0; box-shadow: none !important; }
+.el-cerca button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 11.5px; padding: 4px; }
+.el-marchi { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.el-etichetta { font-size: 10px; font-weight: 640; letter-spacing: .12em; text-transform: uppercase; color: var(--text3); margin-right: 4px; }
+.el-marchio { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 600; cursor: pointer; background: var(--surface); border: 1px solid var(--border); color: var(--text2); transition: border-color .12s ease, background-color .12s ease; }
+.el-marchio:hover { border-color: var(--accent); }
+.el-marchio i { font-style: normal; font-size: 11.5px; font-weight: 640; color: var(--text3); }
+.el-marchio.acceso { background: var(--accent); border-color: var(--accent); color: #fff; }
+.el-marchio.acceso i { color: rgba(255,255,255,.8); }
+.el-altro { background: none; border: none; color: var(--accent); font-size: 11.5px; font-weight: 640; cursor: pointer; padding: 5px 6px; }
+
+.el-piede { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--text2); }
+.el-conto em { font-style: normal; color: var(--text3); }
+.el-pagine { display: flex; align-items: center; gap: 4px; }
+.el-pagine button { min-width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.el-pagine button:hover:not(:disabled) { border-color: var(--accent); }
+.el-pagine button.aperta { background: var(--accent); border-color: var(--accent); color: #fff; }
+.el-pagine button:disabled { opacity: .4; cursor: default; }
+.el-pagine span { color: var(--text3); padding: 0 2px; }
+.el-csv { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 11.5px; font-weight: 640; cursor: pointer; }
+.el-csv:hover { color: var(--text); border-color: var(--text3); }
+.el-taglia { display: inline-flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text3); font-weight: 600; }
+.el-taglia select { height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; padding: 0 8px; }
+@media (max-width: 768px) {
+  .el-cerca { max-width: none; height: 44px; }
+  .el-marchio { min-height: 36px; }
+  .el-pagine button { min-width: 40px; height: 40px; }
+  .el-piede { justify-content: center; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Ricerca rapida (⌘K) — portata su body: i colori vengono tutti dal tema.
+   ════════════════════════════════════════════════════════════════════════ */
+.rr-velo { position: fixed; inset: 0; z-index: 1200; background: rgba(0,0,0,.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.rr-scheda { width: min(640px, 100%); max-height: 70vh; display: flex; flex-direction: column; background: var(--surface, #0e0e0e); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,.45); overflow: hidden; }
+.rr-campo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--text3); }
+html body .rr-scheda .rr-campo.rr-campo.rr-campo input, html body .rr-scheda .rr-campo.rr-campo.rr-campo input:focus, html body .rr-scheda .rr-campo.rr-campo.rr-campo input:focus-visible { flex: 1; min-width: 0; background: transparent !important; border: none !important; outline: none !important; box-shadow: none !important; color: var(--text); font-size: 15px; font-weight: 600; padding: 0; }
+.rr-lista { overflow-y: auto; padding: 6px; }
+.rr-voce { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 12px; cursor: pointer; text-align: left; color: var(--text2); font: inherit; }
+.rr-voce.scelta { background: var(--glass2, rgba(127,127,127,.14)); color: var(--text); }
+.rr-icona { display: grid; place-items: center; width: 22px; color: var(--text3); flex-shrink: 0; }
+.rr-nome { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-nome b { font-weight: 640; color: var(--text); }
+.rr-gruppo { font-size: 10px; font-weight: 640; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); flex-shrink: 0; }
+.rr-vuoto { padding: 22px 12px; font-size: 13px; color: var(--text3); text-align: center; }
+.rr-piede { display: flex; gap: 16px; padding: 9px 16px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text3); }
+.rr-scheda kbd, .rr-apri-tasto { font: inherit; font-size: 11.5px; font-weight: 640; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--glass2, rgba(127,127,127,.12)); color: var(--text3); margin-right: 3px; }
+@media (max-width: 768px) { .rr-apri-tasto, .rr-apri-testo { display: none; } .rr-velo { padding-top: 8vh; } .rr-piede { display: none; } }

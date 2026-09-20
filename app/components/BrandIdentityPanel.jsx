@@ -296,13 +296,13 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
       <div style={{
         position: 'sticky', bottom: 16, zIndex: 5,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
-        background: 'rgba(10,10,22,0.92)',
+        background: 'var(--surface)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         border: '1.5px solid var(--border)', borderTopColor: 'rgba(255,255,255,0.14)',
         borderRadius: 16, padding: '14px 18px',
         boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
       }}>
-        <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>
           {error
             ? <span style={{ color: '#f87171' }}><Icon name="warning" size={12} /> {error}</span>
             : savedAt
@@ -316,7 +316,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           style={{
             padding: '10px 20px', borderRadius: 12, border: 'none', cursor: saving ? 'wait' : 'pointer',
             background: `linear-gradient(135deg, ${ACCENT}, #2997ff)`,
-            color: 'var(--text)', fontWeight: 800, fontSize: 13, letterSpacing: '-0.01em',
+            color: 'var(--text)', fontWeight: 640, fontSize: 13, letterSpacing: '-0.01em',
             opacity: saving ? 0.6 : 1,
           }}
         >
@@ -341,7 +341,7 @@ export default BrandIdentityPanel
 // glass-section semplice = sempre visibile.
 function GlassCard({ children, padding = 22 }) {
   return (
-    <div className="glass-section" style={{ padding, borderRadius: 22 }}>
+    <div className="glass-section" style={{ padding, borderRadius: 16 }}>
       {children}
     </div>
   )
@@ -353,20 +353,20 @@ function SectionHeader({ icon, eyebrow, title, subtitle }) {
       <span style={{
         width: 42, height: 42, borderRadius: 12,
         background: `linear-gradient(135deg, ${ACCENT}33, ${ACCENT}14)`, color: ACCENT,
-        display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800,
+        display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 640,
         flexShrink: 0,
         border: `1px solid ${ACCENT}44`,
-        boxShadow: `0 0 18px ${ACCENT}33, inset 0 1px 0 rgba(255,255,255,0.12)`,
+        boxShadow: 'none',
         animation: 'float 4s ease-in-out infinite',
       }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 10, color: ACCENT, fontWeight: 640, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
           {eyebrow}
         </div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 680, color: 'var(--text)', letterSpacing: '-0.02em', marginTop: 4 }}>
           {title}
         </div>
-        {subtitle && <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>{subtitle}</div>}
       </div>
     </div>
   )
@@ -376,8 +376,8 @@ function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
   return (
     <div
       className="glass-section"
-      style={{ overflow: 'hidden', borderRadius: 22, transition: 'transform .4s cubic-bezier(0.16,1,0.3,1)' }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)' }}
+      style={{ overflow: 'hidden', borderRadius: 16, transition: 'transform .4s cubic-bezier(0.16,1,0.3,1)' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = '' }}
       onMouseLeave={e => { e.currentTarget.style.transform = '' }}
     >
       <button
@@ -390,18 +390,18 @@ function SectionBlock({ icon, title, subtitle, open, onToggle, children }) {
         }}
       >
         <span style={{
-          width: 38, height: 38, borderRadius: 11,
+          width: 38, height: 38, borderRadius: 12,
           background: `linear-gradient(135deg, ${ACCENT}30, ${ACCENT}10)`, color: ACCENT,
-          display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 800,
+          display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 640,
           flexShrink: 0,
           border: `1px solid ${ACCENT}3a`,
-          boxShadow: `0 0 14px ${ACCENT}2e, inset 0 1px 0 rgba(255,255,255,0.10)`,
+          boxShadow: 'none',
         }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</div>
+          <div style={{ fontSize: 15, fontWeight: 640, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</div>
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3 }}>{subtitle}</div>
         </div>
-        <span style={{ color: 'var(--text3)', fontSize: 18, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>›</span>
+        <span style={{ color: 'var(--text3)', fontSize: 17, transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>›</span>
       </button>
       {open && (
         <div style={{
@@ -428,7 +428,7 @@ function FieldRow({ children }) {
 function Field({ label, hint, children }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.02em' }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 600, marginBottom: 6, letterSpacing: '0.02em' }}>
         {label}
         {hint && <span style={{ color: 'var(--text4, #555)', fontWeight: 500, marginLeft: 8 }}>· {hint}</span>}
       </div>
@@ -438,7 +438,7 @@ function Field({ label, hint, children }) {
 }
 
 const inputBase = {
-  width: '100%', padding: '10px 12px', borderRadius: 10,
+  width: '100%', padding: '10px 12px', borderRadius: 12,
   background: 'var(--glass)',
   border: '1px solid var(--border)',
   color: 'var(--text)', fontSize: 13, fontFamily: 'inherit',
@@ -513,7 +513,7 @@ function TagInput({ tags = [], onChange, placeholder }) {
           {t}
           <button type="button" onClick={() => removeTag(t)} style={{
             background: 'transparent', border: 'none', color: ACCENT, cursor: 'pointer',
-            fontSize: 12, padding: 0, lineHeight: 1,
+            fontSize: 13, padding: 0, lineHeight: 1,
           }}>×</button>
         </span>
       ))}
@@ -549,7 +549,7 @@ function ToneChips({ selected, onToggle }) {
               background: isSelected ? `${ACCENT}33` : 'rgba(255,255,255,0.04)',
               border: `1px solid ${isSelected ? ACCENT : 'rgba(255,255,255,0.10)'}`,
               color: isSelected ? 'var(--text)' : 'var(--text3)',
-              fontSize: 12, fontWeight: 600, transition: 'all .15s',
+              fontSize: 13, fontWeight: 600, transition: 'all .15s',
             }}
           >{t(TONE_KEYS[tag], null, tag)}</button>
         )
@@ -575,14 +575,14 @@ function ColorPicker({ colors = [], onChange }) {
         <div key={c} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           background: 'var(--glass)',
-          border: '1px solid var(--border2)', borderRadius: 10,
+          border: '1px solid var(--border2)', borderRadius: 12,
           padding: '6px 10px',
         }}>
-          <span style={{ width: 22, height: 22, borderRadius: 6, background: c, border: '1px solid var(--border2)' }} />
-          <span style={{ fontSize: 12, color: 'var(--text)', fontFamily: 'monospace' }}>{c}</span>
+          <span style={{ width: 22, height: 22, borderRadius: 8, background: c, border: '1px solid var(--border2)' }} />
+          <span style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'monospace' }}>{c}</span>
           <button type="button" onClick={() => removeColor(c)} style={{
             background: 'transparent', border: 'none', color: ACCENT, cursor: 'pointer',
-            fontSize: 14, padding: 0,
+            fontSize: 15, padding: 0,
           }}>×</button>
         </div>
       ))}
@@ -593,9 +593,9 @@ function ColorPicker({ colors = [], onChange }) {
             style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border2)', background: 'transparent', cursor: 'pointer' }}
           />
           <button type="button" onClick={addColor} style={{
-            padding: '8px 12px', borderRadius: 10, background: `${ACCENT}33`,
+            padding: '8px 12px', borderRadius: 12, background: `${ACCENT}33`,
             border: `1px solid ${ACCENT}`, color: 'var(--text)', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700,
+            fontSize: 13, fontWeight: 600,
           }}>{t('bi.colorAdd', null, '+ Aggiungi')}</button>
         </div>
       )}
@@ -658,11 +658,11 @@ function AssetsManager({ assets, onChange }) {
 
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, marginBottom: 10, letterSpacing: '0.02em' }}>
+      <div style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 600, marginBottom: 10, letterSpacing: '0.02em' }}>
         {t('bi.assetUpload', null, 'Asset upload')} <span style={{ color: 'var(--text4, #555)', fontWeight: 500, marginLeft: 8 }}>{t('bi.assetMax', null, '· Max 10MB/file')}</span>
       </div>
 
-      {error && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 10 }}><Icon name="warning" size={12} /> {error}</div>}
+      {error && <div style={{ fontSize: 13, color: '#f87171', marginBottom: 10 }}><Icon name="warning" size={12} /> {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {ASSET_TYPES.map(at => {
@@ -672,18 +672,18 @@ function AssetsManager({ assets, onChange }) {
             <div
               key={at.id}
               className="glass-panel"
-              style={{ borderRadius: 14, padding: 14, transition: 'transform .35s cubic-bezier(0.16,1,0.3,1), box-shadow .35s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 24px 50px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22` }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+              style={{ borderRadius: 16, padding: 14, transition: 'transform .35s cubic-bezier(0.16,1,0.3,1), box-shadow .35s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'none' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{t(ASSET_LABEL_KEYS[at.id], null, at.label)}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{t(ASSET_LABEL_KEYS[at.id], null, at.label)}</span>
                 <button
                   type="button"
                   onClick={() => inputRefs.current[at.id]?.click()}
                   disabled={isUploading}
                   style={{
-                    padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                    padding: '6px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 600,
                     background: `${ACCENT}33`, border: `1px solid ${ACCENT}66`,
                     color: 'var(--text)', cursor: isUploading ? 'wait' : 'pointer',
                   }}
@@ -703,7 +703,7 @@ function AssetsManager({ assets, onChange }) {
               </div>
 
               {list.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--text4, #555)', textAlign: 'center', padding: '12px 0' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text4, #555)', textAlign: 'center', padding: '12px 0' }}>
                   {t('bi.noFile', null, 'Nessun file')}
                 </div>
               ) : (
@@ -713,14 +713,14 @@ function AssetsManager({ assets, onChange }) {
                       display: 'flex', alignItems: 'center', gap: 10,
                       background: 'var(--glass)',
                       border: '1px solid var(--border)',
-                      borderRadius: 10, padding: 8,
+                      borderRadius: 12, padding: 8,
                     }}>
-                      <img src={a.url} alt={a.name} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, background: '#000' }} onError={e => { e.currentTarget.style.display = 'none' }} />
+                      <img src={a.url} alt={a.name} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 8, background: '#000' }} onError={e => { e.currentTarget.style.display = 'none' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
                         <div style={{ fontSize: 10, color: 'var(--text4, #555)' }}>{(a.size / 1024).toFixed(1)} KB</div>
                       </div>
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: ACCENT, textDecoration: 'none' }}>↗</a>
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11.5, color: ACCENT, textDecoration: 'none' }}>↗</a>
                       <button type="button" onClick={() => deleteAsset(a.path)} style={{
                         background: 'transparent', border: 'none', color: '#f87171',
                         cursor: 'pointer', fontSize: 13, padding: 0,
@@ -756,12 +756,12 @@ function CompetitorList({ competitors, onChange }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: -4 }}>
+      <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: -4 }}>
         {t('bi.compIntro', null, 'Aggiungi competitor con nome brand, sito ufficiale e link ai loro profili Instagram/Facebook. Verranno usati automaticamente dalla tab Competitor Intel per scrape ads e prodotti.')}
       </div>
 
       {competitors.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--text4, #555)', textAlign: 'center', padding: '20px 0' }}>
+        <div style={{ fontSize: 13, color: 'var(--text4, #555)', textAlign: 'center', padding: '20px 0' }}>
           {t('bi.noComp', null, 'Nessun competitor configurato')}
         </div>
       )}
@@ -771,24 +771,24 @@ function CompetitorList({ competitors, onChange }) {
           key={idx}
           className="glass-panel"
           style={{
-            borderRadius: 14, padding: 14,
+            borderRadius: 16, padding: 14,
             display: 'flex', flexDirection: 'column', gap: 10,
             transition: 'transform .35s cubic-bezier(0.16,1,0.3,1), box-shadow .35s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 24px 50px rgba(0,0,0,0.6), 0 0 40px ${ACCENT}22` }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700 }}>#{idx + 1}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--text3)', fontWeight: 600 }}>#{idx + 1}</span>
             <input
               type="text" value={c.name || ''}
               onChange={e => updateAt(idx, { name: e.target.value })}
               placeholder={t('bi.compNamePh', null, 'Nome del brand competitor')}
-              style={{ ...inputBase, flex: 1, fontWeight: 700 }}
+              style={{ ...inputBase, flex: 1, fontWeight: 600 }}
             />
             <button type="button" onClick={() => removeAt(idx)} style={{
               background: 'transparent', border: '1px solid rgba(248,113,113,0.4)',
-              color: '#f87171', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+              color: '#f87171', cursor: 'pointer', fontSize: 11.5, fontWeight: 600,
               borderRadius: 8, padding: '6px 10px',
             }}>{t('bi.compRemove', null, 'Rimuovi')}</button>
           </div>
@@ -813,14 +813,14 @@ function CompetitorList({ competitors, onChange }) {
             />
           </div>
           <div>
-            <div style={{ fontSize: 10.5, color: 'var(--text4, #666)', marginBottom: 4 }}>
+            <div style={{ fontSize: 10, color: 'var(--text4, #666)', marginBottom: 4 }}>
               {t('bi.compPageIdLabel', null, 'ID pagina Facebook (per fetch automatico ads — opzionale)')}
             </div>
             <input
               type="text" value={c.pageId || ''}
               onChange={e => updateAt(idx, { pageId: e.target.value })}
               placeholder={t('bi.compPageIdPh', null, 'Es: 1234567890 (lascia vuoto se non lo conosci)')}
-              style={{ ...inputBase, fontFamily: 'monospace', fontSize: 12 }}
+              style={{ ...inputBase, fontFamily: 'monospace', fontSize: 13 }}
             />
           </div>
         </div>
@@ -832,7 +832,7 @@ function CompetitorList({ competitors, onChange }) {
         style={{
           padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
           background: `${ACCENT}22`, border: `1px dashed ${ACCENT}66`,
-          color: 'var(--text)', fontSize: 13, fontWeight: 700,
+          color: 'var(--text)', fontSize: 13, fontWeight: 600,
         }}
       >
         {t('bi.compAdd', null, '+ Aggiungi competitor')}

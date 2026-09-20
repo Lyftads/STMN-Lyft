@@ -1,9 +1,24 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+// ============================================================================
+//  Tab CRO — base grafica presa dal fork (sistema di design: Kpi da Mattoni,
+//  periodo e azioni portati nella barra della cornice, niente vetro/ombre,
+//  numeri all'italiana), PIU' l'agente AI che esiste solo qui nel SaaS.
+//
+//  ATTENZIONE a chi tocchera' questo file: <CROAgent/> si disegna in un portale
+//  su document.body, quindi se sparisce dal JSX la pagina continua a comporsi e
+//  il build passa lo stesso — semplicemente il pulsante dell'agente non c'e'
+//  piu' e nessuno se ne accorge. Va tenuto in fondo al return, con le sue prop.
+// ============================================================================
+
 import CROAgent from './CROAgent'
-import BmTimeframe from './ui/BmTimeframe'
+import AzioneBarra from './ui/AzioneBarra'
+import { Kpi } from './ui/Mattoni'
+import { useStatoTab } from '../../lib/client/statoTab'
+import { useState, useMemo, useEffect } from 'react'
+import PeriodoInBarra from './ui/PeriodoInBarra'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { num, perc } from '../../lib/client/numeri'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -12,9 +27,11 @@ const ACCENT_GLOW = '#2997ff'
 // Chiave = 'since:until'. Il refresh manuale rifetcha con ?refresh=1.
 let __croCache = {}
 
-const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT') : '—'
-const fmtP = n => n != null ? `${n.toFixed(1)}%` : '—'
-const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT')}` : '—'
+// I numeri si scrivono all'italiana in tutto il prodotto (lib/client/numeri):
+// `toFixed()` metteva il punto decimale, e in italiano 1.5% si legge sbagliato.
+const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
+const fmtP = n => perc(n, 1)
+const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })}` : '—'
 
 // Wrapper black glass 3D condiviso (stesso pattern di Simulator/Meta Detail)
 function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, style = {} }) {
@@ -22,15 +39,15 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
     <div
       style={{
         position: 'relative',
-        background: 'linear-gradient(180deg, rgba(8,8,18,0.85) 0%, rgba(0,0,0,0.95) 100%)',
-        backdropFilter: 'blur(40px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.2)',
-        borderRadius: 22,
+        background: 'var(--surface)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+        borderRadius: 16,
         overflow: 'hidden',
         border: '1.5px solid var(--border)',
         borderTopColor: 'rgba(255,255,255,0.12)',
         borderBottomColor: 'rgba(0,0,0,0.65)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)',
+        boxShadow: 'none',
         animation: 'sim-pulse 6s ease-in-out infinite',
         animationDelay: `${delay}s`,
         transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease',
@@ -38,20 +55,20 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
       }}
       onMouseEnter={e => {
         e.currentTarget.style.animationPlayState = 'paused'
-        e.currentTarget.style.transform = 'translateY(-6px) scale(1.008)'
-        e.currentTarget.style.boxShadow = `0 50px 100px rgba(0,0,0,0.85), 0 20px 40px rgba(0,0,0,0.6), 0 0 80px ${glow}22, inset 0 1.5px 0 rgba(255,255,255,0.08), inset 0 -1.5px 0 rgba(0,0,0,0.3)`
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.18)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.animationPlayState = 'running'
         e.currentTarget.style.transform = ''
-        e.currentTarget.style.boxShadow = '0 30px 80px rgba(0,0,0,0.80), 0 12px 24px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.4), inset 0 1.5px 0 rgba(255,255,255,0.06), inset 0 -1.5px 0 rgba(0,0,0,0.25)'
+        e.currentTarget.style.boxShadow = 'none'
         e.currentTarget.style.borderTopColor = 'rgba(255,255,255,0.12)'
       }}
     >
       <div style={{
         position: 'absolute', top: 0, left: '8%', right: '8%', height: 1.5,
-        background: `linear-gradient(90deg, transparent, ${glow}aa, transparent)`,
+        background: 'none',
         filter: 'blur(0.3px)',
         opacity: 0.85,
         animation: 'cr-shine 4s ease-in-out infinite',
@@ -61,7 +78,7 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
       <div style={{
         position: 'absolute', top: 0, bottom: 0, left: '-50%',
         width: '40%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent)',
+        background: 'none',
         animation: 'sim-scan 9s ease-in-out infinite',
         animationDelay: `${delay + 1}s`,
         pointerEvents: 'none',
@@ -72,7 +89,11 @@ function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, styl
   )
 }
 
-function KpiCard({ label, value, accent = 'var(--text)', curr, prev, delay = 0, isLowerBetter = false }) {
+// La scheda KPI e' quella del sistema di design (ui/Mattoni): stessa altezza,
+// stessa variazione, stesso filo dei loghi in tutte le tab. Qui resta solo il
+// calcolo della variazione rispetto al periodo precedente.
+function KpiCard({ label, value, curr, prev, isLowerBetter = false, accent }) {
+  const famiglia = accent === '#a78bfa' ? 'traffico' : accent === '#22c55e' || accent === '#f97316' ? 'vendite' : 'resa'
   let pct = null
   let good = null
   if (typeof prev === 'number' && prev > 0 && typeof curr === 'number') {
@@ -83,38 +104,7 @@ function KpiCard({ label, value, accent = 'var(--text)', curr, prev, delay = 0, 
     }
   }
 
-  return (
-    <GlassCard delay={delay} padding="20px 22px" style={{ borderRadius: 22 }}>
-      <div style={{
-        fontSize: 10,
-        fontWeight: 800,
-        color: 'var(--text3)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.14em',
-        marginBottom: 12,
-      }}>{label}</div>
-      <div style={{
-        fontSize: 26,
-        fontWeight: 900,
-        color: 'var(--text)',
-        letterSpacing: '-0.02em',
-        marginBottom: pct != null ? 8 : 0,
-      }}>{value}</div>
-      {pct != null && (
-        <div style={{
-          display: 'inline-flex',
-          padding: '3px 9px',
-          borderRadius: 6,
-          background: good ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)',
-          color: good ? '#22c55e' : '#ef4444',
-          fontSize: 11,
-          fontWeight: 800,
-        }}>
-          {pct > 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(2)}%
-        </div>
-      )}
-    </GlassCard>
-  )
+  return <Kpi etichetta={label} valore={value} delta={pct} inverso={isLowerBetter} famiglia={famiglia} fonti={['shopify']} />
 }
 
 function FunnelChart({ funnel, delay = 0 }) {
@@ -140,10 +130,10 @@ function FunnelChart({ funnel, delay = 0 }) {
     <GlassCard padding={28} delay={delay}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+          <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 15, fontWeight: 680, letterSpacing: '-0.01em' }}>
             Purchase Journey
           </h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
+          <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 13 }}>
             {t('cro.funnelSubtitle', null, "Funnel di conversione · dai visitatori all'acquisto")}
           </p>
         </div>
@@ -153,13 +143,13 @@ function FunnelChart({ funnel, delay = 0 }) {
           background: 'rgba(48,209,88,0.12)',
           border: '1px solid rgba(48,209,88,0.3)',
           color: '#86efac',
-          fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em',
+          fontSize: 10, fontWeight: 640, letterSpacing: '0.08em',
           textTransform: 'uppercase',
         }}>
           <span style={{
             width: 6, height: 6, borderRadius: 999,
-            background: '#30d158',
-            boxShadow: '0 0 8px #30d158',
+            background: '#22c55e',
+            boxShadow: 'none',
             animation: 'card-pulse 2s ease-in-out infinite',
           }} />
           {funnel.source}
@@ -169,16 +159,20 @@ function FunnelChart({ funnel, delay = 0 }) {
       {/* Collo di bottiglia — cambia in base al time frame */}
       {bottleneck && bottleneck.dropPct > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', marginBottom: 20, borderRadius: 12, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)' }}>
-          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#f59e0b', boxShadow: '0 0 8px #f59e0b', flexShrink: 0 }} />
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#f59e0b', boxShadow: 'none', flexShrink: 0 }} />
           <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, lineHeight: 1.45 }}>
-            <strong style={{ color: '#f59e0b', fontWeight: 900 }}>{t('cro.bottleneck', null, 'Collo di bottiglia')}:</strong>{' '}
+            <strong style={{ color: '#f59e0b', fontWeight: 680 }}>{t('cro.bottleneck', null, 'Collo di bottiglia')}:</strong>{' '}
             {steps[bottleneck.from].name} → {steps[bottleneck.to].name} ·{' '}
-            <strong style={{ fontWeight: 900 }}>−{fmtP(bottleneck.dropPct)}</strong>{' '}
+            <strong style={{ fontWeight: 680 }}>−{fmtP(bottleneck.dropPct)}</strong>{' '}
             <span style={{ color: 'var(--text3)' }}>({fmtN(bottleneck.drop)} {t('cro.lost', null, 'persi')})</span>
           </div>
         </div>
       )}
 
+      {/* Le tre fasce (etichette, barre, abbandoni) sono allineate a
+          colonna: se scorressero separate si disallineerebbero. Stanno
+          dentro un'unica fascia che scorre, come nelle tabelle del report. */}
+      <div className="imbuto-scorrevole">
       {/* Step labels e percentuali */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
         {steps.map((s, i) => {
@@ -189,9 +183,9 @@ function FunnelChart({ funnel, delay = 0 }) {
               padding: '0 10px',
               borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
             }}>
-              <div style={{ fontSize: 9.5, color: 'var(--text3)', fontWeight: 800, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step {i + 1}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', fontWeight: 700, lineHeight: 1.3 }}>{s.name}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 640, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step {i + 1}</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600, lineHeight: 1.3 }}>{s.name}</div>
+              <div style={{ fontSize: 22, fontWeight: 680, color: 'var(--text)', marginTop: 6, letterSpacing: '-0.02em' }}>
                 {i === 0 ? '100%' : fmtP(pct)}
               </div>
             </div>
@@ -206,8 +200,8 @@ function FunnelChart({ funnel, delay = 0 }) {
           const isBottleneck = bottleneck && bottleneck.to === i
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ fontSize: 11.5, color: 'var(--text)', fontWeight: 900, marginBottom: 6, fontFamily: 'Barlow' }}>{fmtN(s.value)}</div>
-              <div style={{
+              <div style={{ fontSize: 11.5, color: 'var(--text)', fontWeight: 680, marginBottom: 6, fontFamily: 'inherit' }}>{fmtN(s.value)}</div>
+              <div className={isBottleneck ? 'imbuto-barra imbuto-barra-collo' : 'imbuto-barra'} style={{
                 width: '78%',
                 background: isBottleneck ? 'linear-gradient(180deg, #f59e0b 0%, #b45309 100%)' : `linear-gradient(180deg, ${ACCENT_GLOW} 0%, #1e3a8a 100%)`,
                 borderRadius: '8px 8px 0 0',
@@ -229,18 +223,19 @@ function FunnelChart({ funnel, delay = 0 }) {
           const isBottleneck = bottleneck && bottleneck.to === i
           return (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: isBottleneck ? '#f59e0b' : 'var(--text3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{isBottleneck ? t('cro.bottleneck', null, 'Collo di bottiglia') : t('cro.dropoff', null, 'Abbandono')}</div>
+              <div style={{ fontSize: 10, color: isBottleneck ? '#f59e0b' : 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{isBottleneck ? t('cro.bottleneck', null, 'Collo di bottiglia') : t('cro.dropoff', null, 'Abbandono')}</div>
               <div style={{
-                fontSize: 12.5,
-                fontWeight: 900,
+                fontSize: 13,
+                fontWeight: 680,
                 color: isBottleneck ? '#f59e0b' : drop > 0 ? '#ef4444' : '#22c55e',
-                fontFamily: 'Barlow',
+                fontFamily: 'inherit',
               }}>
                 {fmtN(Math.abs(drop))} · {fmtP(dropPct)}
               </div>
             </div>
           )
         })}
+      </div>
       </div>
     </GlassCard>
   )
@@ -249,7 +244,9 @@ function FunnelChart({ funnel, delay = 0 }) {
 export default function CROTab({ data = [], live, onRefresh, loading }) {
   const { t } = useI18n()
   const isoDay = d => d.toISOString().slice(0, 10)
-  const [tf, setTf] = useState(() => ({ preset: 'last_30d', since: isoDay(new Date(Date.now() - 30 * 86400000)), until: isoDay(new Date()) }))
+  // useStatoTab (non useState): tornando sulla tab si ritrova il periodo scelto,
+  // senza rifare il giro di caricamento. Si dimentica a mezzanotte.
+  const [tf, setTf] = useStatoTab('cRO.tf', () => ({ preset: 'last_30d', since: isoDay(new Date(Date.now() - 30 * 86400000)), until: isoDay(new Date()) }))
 
   // Range giorno-preciso dal selettore (custom o preset). Fallback a 30gg.
   const since = tf.since || isoDay(new Date(Date.now() - 30 * 86400000))
@@ -259,6 +256,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
   // Dati CRO giorno-precisi da /api/cro (sessioni e funnel reali da GA4 + ordini
   // Shopify per i giorni esatti) — così qualsiasi periodo, anche custom, cambia
   // davvero i dati. Cache di modulo + persistenza al cambio tab.
+  // La route risolve da sola il tenant e applica le esclusioni del cliente
+  // (marketplace / negozi fisici): qui non si cabla nessun filtro.
   const [resp, setResp] = useState(() => __croCache[cacheKey] || null)
   const [busy, setBusy] = useState(() => !__croCache[cacheKey])
 
@@ -318,8 +317,8 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
     else if (c.cro != null && c.cro >= 2) ins.push(t('cro.insHighCvr', { cro: fmtP(c.cro) }, `Conversion rate al ${fmtP(c.cro)} — sopra la media e-commerce. Ottimo risultato.`))
     if (c.cro != null && prevCro != null) {
       const d = c.cro - prevCro
-      if (d > 0.3) ins.push(t('cro.insCroUp', { d: d.toFixed(2) }, `CRO in miglioramento di +${d.toFixed(2)}pp rispetto al periodo precedente.`))
-      if (d < -0.3) ins.push(t('cro.insCroDown', { d: Math.abs(d).toFixed(2) }, `CRO in calo di ${Math.abs(d).toFixed(2)}pp. Verificare UX, velocità sito e offerta.`))
+      if (d > 0.3) ins.push(t('cro.insCroUp', { d: num(d, 2) }, `CRO in miglioramento di +${num(d, 2)}pp rispetto al periodo precedente.`))
+      if (d < -0.3) ins.push(t('cro.insCroDown', { d: num(Math.abs(d), 2) }, `CRO in calo di ${num(Math.abs(d), 2)}pp. Verificare UX, velocità sito e offerta.`))
     }
     if (c.aov && c.aov < 50) ins.push(t('cro.insLowAov', { aov: fmtE(c.aov) }, `AOV a ${fmtE(c.aov)}: sotto i €50. Considerare upsell, bundle o soglia spedizione gratuita.`))
     if (c.ses > 0 && c.ses < 500) ins.push(t('cro.insLowTraffic', { ses: fmtN(c.ses) }, `Traffico basso (${fmtN(c.ses)} sessioni). Il CRO è limitato dal volume — priorità: aumentare traffico qualificato.`))
@@ -334,7 +333,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
   return (
     <div>
       {/* Timeframe bar — senza riquadro */}
-      <div style={{
+      <div className="barra-strumenti" style={{
         marginBottom: 18,
         display: 'flex',
         alignItems: 'center',
@@ -342,35 +341,25 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
         flexWrap: 'wrap',
       }}>
         {/* Sinistra: badge Live (dove prima c'era il timeframe) */}
-        <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 12, fontWeight: 800, letterSpacing: '0.06em' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+        <div className="gruppo-trasparente" style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22c55e', boxShadow: 'none' }} />
             LIVE
           </span>
         </div>
-        {/* Destra: confronto + Aggiorna + timeframe */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: 11, color: 'var(--text3)' }}>{tfLabel}</span>
-          <button
-            onClick={refresh}
-            disabled={busy}
-            className="btn-glass"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              cursor: busy ? 'wait' : 'pointer',
-              opacity: busy ? 0.5 : 1,
-            }}
-          >
-            <span style={{ animation: busy ? 'spin 1s linear infinite' : 'none' }}>↻</span>
-            {busy ? t('shell.updating', null, 'Aggiorno…') : t('shell.refresh', null, 'Aggiorna')}
-          </button>
-          <BmTimeframe value={tf} onChange={setTf} accent={ACCENT_GLOW} disabled={busy} />
+        {/* Destra: confronto + Aggiorna + timeframe.
+            Aggiorna e periodo si disegnano nella barra della cornice
+            (#barra-azioni / #barra-periodo): stessa posizione in ogni tab. */}
+        <div className="gruppo-trasparente" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <span className="a-tutta-riga" style={{ fontSize: 11.5, color: 'var(--text3)' }}>{tfLabel}</span>
+          <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={refresh} disabled={busy} gira={busy} />
+          <PeriodoInBarra value={tf} onChange={setTf} disabled={busy} />
         </div>
       </div>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 14, marginBottom: 18 }}>
-        <KpiCard label={t('cro.sessions', null, 'Sessioni')} value={fmtN(c.ses)} accent="#a78bfa" curr={c.ses} prev={p.ses} delay={0} />
+        <KpiCard label={t('cro.sessions', null, 'Sessioni')} value={fmtN(c.ses)} accent="var(--text3)" curr={c.ses} prev={p.ses} delay={0} />
         <KpiCard label={t('kpi.orders', null, 'Ordini')} value={fmtN(c.ord)} accent="#22c55e" curr={c.ord} prev={p.ord} delay={0.3} />
         <KpiCard
           label="CRO"
@@ -395,7 +384,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       {busy && c.ses === 0 && (
         <div style={{ marginBottom: 18 }}>
           <GlassCard padding={40} delay={1.8}>
-            <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 15, fontWeight: 600 }}>
               {t('shell.updating', null, 'Aggiorno…')}
             </div>
           </GlassCard>
@@ -405,7 +394,7 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       {!busy && c.ses === 0 && (
         <div style={{ marginBottom: 18 }}>
           <GlassCard padding={40} delay={1.8}>
-            <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 15, fontWeight: 600 }}>
               {t('cro.emptyState', null, 'Nessun dato sessioni per il periodo selezionato. Prova un periodo diverso o clicca Aggiorna.')}
             </div>
           </GlassCard>
@@ -416,10 +405,10 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
       {insights.length > 0 && (
         <GlassCard padding={26} delay={2.1}>
           <div style={{ marginBottom: 18 }}>
-            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 17, fontWeight: 900, letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, color: 'var(--text)', fontSize: 15, fontWeight: 680, letterSpacing: '-0.01em' }}>
               CRO Insights
             </h2>
-            <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 12.5 }}>
+            <p style={{ margin: '4px 0 0', color: 'var(--text3)', fontSize: 13 }}>
               {t('cro.insightsSubtitle', null, 'Letture automatiche su conversion rate, AOV, retention e funnel')}
             </p>
           </div>
@@ -440,17 +429,22 @@ export default function CROTab({ data = [], live, onRefresh, loading }) {
                   background: `linear-gradient(135deg, ${ACCENT_GLOW}, #1e3a8a)`,
                   color: 'var(--text)',
                   display: 'grid', placeItems: 'center',
-                  fontSize: 12, fontWeight: 900,
+                  fontSize: 13, fontWeight: 680,
                   flexShrink: 0,
-                  boxShadow: `0 0 14px ${ACCENT_GLOW}55`,
+                  boxShadow: 'none',
                 }}>{i + 1}</div>
-                <div style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.55 }}>{ins}</div>
+                <div style={{ color: 'var(--text)', fontSize: 13, lineHeight: 1.55 }}>{ins}</div>
               </div>
             ))}
           </div>
         </GlassCard>
       )}
 
+      {/* L'agente CRO: esiste solo nel SaaS, il fork lo aveva tolto. Si disegna
+          in un portale su document.body, quindi non occupa spazio qui ma DEVE
+          restare montato — senza, il pulsante dell'agente sparisce in silenzio.
+          Riceve i numeri gia' calcolati (periodo corrente, precedente, funnel,
+          letture automatiche) per non rifare le stesse chiamate. */}
       <CROAgent
         current={c}
         previous={p}

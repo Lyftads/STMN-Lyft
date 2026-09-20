@@ -10,10 +10,13 @@
 //  ovunque. La conversazione persiste in localStorage tra le tab e i reload.
 // ============================================================================
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { leggi } from '../../lib/clientCache'
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
+import Icon from './ui/Icon'
+import { ascolta, puoAscoltare, linguaVoce } from '../../lib/client/voce'
 
 // Chiave PER UTENTE+WORKSPACE: con la chiave globale, dopo un logout l'utente
 // successivo sullo stesso browser vedeva la conversazione del precedente (e la
@@ -23,6 +26,8 @@ import { getClientLocale } from '../../lib/i18n/clientLocale'
 // solo silenzio (3-10s). Ora vede cosa sta facendo l'AI.
 const TOOL_LABELS = {
   get_kpis: 'kpi', list_creatives: 'meta', list_adsets: 'meta', get_google_campaigns: 'google',
+  // get_incrementality esiste qui e non sul fork (lib/agent/tools.js): senza etichetta
+  // l'utente vedrebbe il nome grezzo dello strumento mentre l'AI lavora.
   get_search_console: 'gsc', get_incrementality: 'incr', get_inventory: 'inventory',
   get_ltv: 'ltv', list_tasks: 'tasks',
   get_time_tracking: 'time', list_products: 'products', get_email_marketing: 'email',
@@ -35,8 +40,12 @@ let __brainKey = null
 async function ensureStoreKey() {
   if (__brainKey) return __brainKey
   try {
-    const j = await fetch('/api/account', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
-    const uid = j?.userId || j?.user?.id || j?.id || null
+    // /api/account non e' mai esistita: rispondeva 404 a ogni cambio tab, e la
+    // chiave per utente restava sempre vuota (la cronologia del Cervello non si
+    // salvava). L'id sta in /api/team-members, che la pagina legge gia': stessa
+    // lettura, una volta sola per sessione.
+    const j = await leggi('/api/team-members')
+    const uid = j?.me?.memberId || j?.me?.userId || null
     const ws = (document.cookie.match(/(?:^|;\s*)active_workspace=([^;]+)/) || [])[1] || 'own'
     __brainKey = uid ? `${STORE_BASE}_${uid}_${ws}` : null
   } catch { __brainKey = null }
@@ -45,14 +54,36 @@ async function ensureStoreKey() {
 function storeKey() { return __brainKey }
 const STORE_KEY = STORE_BASE // compat: le vecchie chiavi vengono ripulite sotto
 
-// Render leggero del markdown: **grassetto** → bold (niente più ** a schermo).
+// Render leggero del markdown: **grassetto** → bold (niente più ** a schermo)
+// e ![nome](https://…) → miniatura, cosi' quando il Cervello elenca i prodotti
+// si vede di che prodotto parla. Solo https: un URL di altro tipo resta testo.
 // Mantiene i newline (il bubble ha whiteSpace pre-wrap).
-function renderRich(text) {
+function renderBold(text, base) {
   return String(text).split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
     p.startsWith('**') && p.endsWith('**')
-      ? <strong key={i} style={{ fontWeight: 700 }}>{p.slice(2, -2)}</strong>
-      : <span key={i}>{p}</span>
+      ? <strong key={`${base}-${i}`} style={{ fontWeight: 600 }}>{p.slice(2, -2)}</strong>
+      : <span key={`${base}-${i}`}>{p}</span>
   )
+}
+function renderRich(text) {
+  const parts = String(text).split(/(!\[[^\]]*\]\(https:\/\/[^)\s]+\))/g)
+  return parts.map((p, i) => {
+    const m = p.match(/^!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)$/)
+    if (m) {
+      return (
+        <img
+          key={`img-${i}`}
+          src={m[2]}
+          alt={m[1]}
+          title={m[1]}
+          loading="lazy"
+          onError={e => { e.currentTarget.style.display = 'none' }}
+          style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)', verticalAlign: 'middle', margin: '4px 8px 4px 0', background: 'var(--surface)' }}
+        />
+      )
+    }
+    return renderBold(p, i)
+  })
 }
 
 // ── Rilevamento del periodo dalla domanda (IT) ──────────────────────────────
@@ -160,15 +191,52 @@ function loadMsgs() {
   } catch { return [] }
 }
 
+// ── La conversazione vive FUORI da React ──
+// AppShell rimonta il contenuto a ogni cambio di tab (<TabContent key={tab}>), e con lui questo
+// componente: con lo stato dentro useState la chat ripartiva vuota, il pannello si richiudeva, la
+// risposta in arrivo andava persa e — peggio — la chat vuota appena nata SOVRASCRIVEVA quella
+// salvata. Qui sotto c'e' un solo stato per tutta la sessione: messaggi, bozza, pannello aperto e
+// risposta in corso. Chi si rimonta lo ritrova com'era; la risposta continua ad arrivare anche a
+// pannello chiuso o mentre si gira tra le tab.
+const cervello = { msgs: [], input: '', open: false, loading: false, toolStatus: '', caricata: false }
+let istantanea = { ...cervello }
+const ascoltatori = new Set()
+function cambia(parziale) {
+  const prima = cervello.msgs, eraInCorso = cervello.loading
+  Object.assign(cervello, typeof parziale === 'function' ? parziale(cervello) : parziale)
+  istantanea = { ...cervello }
+  // si salva solo DOPO aver letto la cronologia: mai una chat vuota sopra quella vera
+  if (cervello.caricata && cervello.msgs !== prima) {
+    try { const k = storeKey(); if (k) localStorage.setItem(k, JSON.stringify(cervello.msgs.slice(-40))) } catch {}
+  }
+  // la capsula in testata dice quando il Cervello sta lavorando, anche a pannello chiuso
+  if (typeof window !== 'undefined' && istantanea.loading !== eraInCorso) window.dispatchEvent(new CustomEvent('lyft:cervello', { detail: { loading: istantanea.loading } }))
+  ascoltatori.forEach(f => f())
+}
+const abbona = (f) => { ascoltatori.add(f); return () => ascoltatori.delete(f) }
+const leggiStato = () => istantanea
+const mette = (campo) => (v) => cambia(s => ({ [campo]: typeof v === 'function' ? v(s[campo]) : v }))
+const setMsgs = mette('msgs'), setInput = mette('input'), setOpen = mette('open'), setLoading = mette('loading'), setToolStatus = mette('toolStatus')
+function caricaCronologia() {
+  if (cervello.caricata) return
+  ensureStoreKey().then(() => {
+    if (cervello.caricata) return
+    // se nel frattempo si e' gia' scritto qualcosa, quello che c'e' in memoria vince
+    cambia(s => ({ caricata: true, msgs: s.msgs.length ? s.msgs : loadMsgs() }))
+  })
+}
+
 export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const { t } = useI18n()
   useEffect(() => { try { localStorage.removeItem(STORE_BASE) } catch {} }, [])
   const [mounted, setMounted] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [msgs, setMsgs] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [toolStatus, setToolStatus] = useState('')
+  const { open, msgs, input, loading, toolStatus } = useSyncExternalStore(abbona, leggiStato, leggiStato)
+  // Dalla ricerca rapida (⌘K): "Chiedi all'assistente: …" apre il pannello con la domanda pronta.
+  useEffect(() => {
+    const chiedi = (e) => { setOpen(true); if (e.detail?.testo) setInput(String(e.detail.testo)) }
+    window.addEventListener('lyft:chiedi', chiedi)
+    return () => window.removeEventListener('lyft:chiedi', chiedi)
+  }, [])
 
   // Warm-up: all'apertura scaldiamo i dati più richiesti così il primo round
   // tool trova la cache calda (da 3-10s a <300ms).
@@ -217,11 +285,26 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   // Portal su document.body: così la position:fixed è relativa al VIEWPORT e
   // non a un antenato con transform/filter (che la farebbe scrollare).
   useEffect(() => { setMounted(true) }, [])
-  // Prima si risolve la chiave per-utente dal server, poi si carica la storia.
-  useEffect(() => { let alive = true; ensureStoreKey().then(() => { if (alive) setMsgs(loadMsgs()) }); return () => { alive = false } }, [])
+
+  // Il pulsante tondo stava sopra l'ultima colonna di ogni tabella. Ora si ritrae mentre si scorre e
+  // torna quando ci si ferma: durante la lettura la colonna resta libera. Niente stato React: si
+  // tocca una classe, cosi' non si ridisegna nulla.
   useEffect(() => {
-    try { const k = storeKey(); if (k) localStorage.setItem(k, JSON.stringify(msgs.slice(-40))) } catch {}
-  }, [msgs])
+    const main = document.getElementById('app-content')
+    if (!main) return
+    let fermo = 0
+    const scorre = () => {
+      const b = document.querySelector('.brain-launcher')
+      if (!b) return
+      b.classList.add('via')
+      clearTimeout(fermo)
+      fermo = setTimeout(() => b.classList.remove('via'), 550)
+    }
+    main.addEventListener('scroll', scorre, { passive: true })
+    return () => { main.removeEventListener('scroll', scorre); clearTimeout(fermo) }
+  }, [])
+  // Prima si risolve la chiave per-utente dal server, poi si carica la storia.
+  useEffect(() => { caricaCronologia() }, [])
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [msgs, loading, open])
@@ -232,9 +315,10 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
   const tabLabel = t(`tab.${currentTab}`, {}, currentTab)
 
   const send = useCallback(async () => {
-    const text = input.trim()
-    if (!text || loading) return
-    const next = [...msgs, { role: 'user', content: text }]
+    // si legge lo stato VIVO, non quello della chiusura: il componente puo' essersi rimontato
+    const text = cervello.input.trim()
+    if (!text || cervello.loading) return
+    const next = [...cervello.msgs, { role: 'user', content: text }]
     setMsgs(next)
     setInput('')
     setLoading(true)
@@ -265,7 +349,7 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
         const reader = r.body.getReader()
         const dec = new TextDecoder()
         let acc = '', buf = ''
-        const paint = (text) => setMsgs(m => { const c = [...m]; c[c.length - 1] = { role: 'assistant', content: text }; return c })
+        const paint = (text) => setMsgs(m => { const c = [...m]; if (c.length && c[c.length - 1].role === 'assistant') c[c.length - 1] = { role: 'assistant', content: text }; else c.push({ role: 'assistant', content: text }); return c })
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -298,11 +382,23 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
     }
   }, [input, loading, msgs, tabLabel])
 
+  // Dettatura: il testo compare mentre si parla; a frase finita resta nella casella, pronto da inviare.
+  const [inAscolto, setInAscolto] = useState(false)
+  const riconoscitore = useRef(null)
+  const detta = () => {
+    if (inAscolto) { try { riconoscitore.current?.stop() } catch {} ; return }
+    const base = cervello.input ? cervello.input.replace(/\s+$/, '') + ' ' : ''
+    const r = ascolta({ lingua: linguaVoce(getClientLocale()), onTesto: (testo) => setInput(base + testo), onFine: () => { setInAscolto(false); inputRef.current?.focus() }, onErrore: () => setInAscolto(false) })
+    if (r) { riconoscitore.current = r; setInAscolto(true) }
+  }
+  useEffect(() => () => { try { riconoscitore.current?.abort() } catch {} }, [])
+
   const onKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  const clear = () => { if (loading) return; setMsgs([]); try { const k = storeKey(); if (k) localStorage.removeItem(k) } catch {} }
+  const clear = () => { if (cervello.loading) return; setMsgs([]); try { const k = storeKey(); if (k) localStorage.removeItem(k) } catch {} }
+
 
 
   if (!mounted) return null
@@ -313,16 +409,16 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
+          className="brain-launcher"
           aria-label={t('brain.title', {}, 'Cervello')}
           style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-            width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: 'linear-gradient(135deg, #7c5cff 0%, #5b3df0 100%)',
-            boxShadow: '0 8px 28px rgba(124,92,255,0.45)',
+            position: 'fixed', bottom: 24, right: 24,
+            width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            background: 'var(--text)', color: 'var(--bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" />
             <path d="M12 7v12M9 10h6M9 14h6" />
           </svg>
@@ -331,20 +427,20 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
 
       {/* Panel */}
       {open && (
-        <div style={{
+        <div className="brain-panel" role="dialog" aria-label={t("brain.title", {}, "Cervello")} style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           width: 'min(420px, calc(100vw - 32px))', height: 'min(640px, calc(100vh - 48px))',
-          background: '#0f0f16', border: '1px solid var(--border2)', borderRadius: 18,
+          background: '#101010', border: '1px solid var(--border2)', borderRadius: 16,
           boxShadow: '0 24px 60px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #7c5cff, #5b3df0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" /></svg>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--btn-primario)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--btn-primario-testo)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a4 4 0 0 0-4 4 3.5 3.5 0 0 0-1 6.5V17a3 3 0 0 0 5 2 3 3 0 0 0 5-2v-3.5A3.5 3.5 0 0 0 16 7a4 4 0 0 0-4-4Z" /></svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 14, lineHeight: 1.1 }}>{t('brain.title', {}, 'Cervello')}</div>
-              <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: 'var(--text)', fontWeight: 600, fontSize: 15, lineHeight: 1.1 }}>{t('brain.title', {}, 'Cervello')}</div>
+              <div style={{ color: 'var(--text3)', fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t('brain.context', {}, 'Tutti i dati')} · {tabLabel}
               </div>
             </div>
@@ -366,9 +462,9 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
             {msgs.map((m, i) => (
               <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
                 <div style={{
-                  padding: '10px 13px', borderRadius: 13, fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                  background: m.role === 'user' ? 'linear-gradient(135deg, #7c5cff, #5b3df0)' : 'rgba(255,255,255,0.06)',
-                  color: m.role === 'user' ? 'var(--text)' : 'var(--text)',
+                  padding: '10px 13px', borderRadius: 12, fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  background: m.role === 'user' ? 'var(--btn-primario)' : 'rgba(255,255,255,0.06)',
+                  color: m.role === 'user' ? 'var(--btn-primario-testo)' : 'var(--text)',
                   border: m.role === 'user' ? 'none' : '1px solid var(--border)',
                 }}>{m.role === 'assistant' ? renderRich(m.content) : m.content}</div>
               </div>
@@ -384,16 +480,16 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           {/* Skills: prompt salvati del workspace */}
           {skillsOpen && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ color: 'var(--text2)', fontSize: 11, marginBottom: 2 }}>{t('brain.skillsHint', {}, 'Prompt salvati del workspace: riusali in un click.')}</div>
-              {skills === null && <div style={{ color: 'var(--text3)', fontSize: 12 }}>…</div>}
+              <div style={{ color: 'var(--text2)', fontSize: 11.5, marginBottom: 2 }}>{t('brain.skillsHint', {}, 'Prompt salvati del workspace: riusali in un click.')}</div>
+              {skills === null && <div style={{ color: 'var(--text3)', fontSize: 13 }}>…</div>}
               {Array.isArray(skills) && skills.length === 0 && (
-                <div style={{ color: 'var(--text3)', fontSize: 12 }}>{t('brain.skillsEmpty', {}, 'Nessuna skill salvata. Scrivi il prompt nella casella e premi «Salva prompt attuale».')}</div>
+                <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('brain.skillsEmpty', {}, 'Nessuna skill salvata. Scrivi il prompt nella casella e premi «Salva prompt attuale».')}</div>
               )}
               {(skills || []).map(s => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 10px' }}>
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 12, padding: '7px 10px' }}>
                   <button onClick={() => useSkill(s)} style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    <div style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>⚡ {s.title}</div>
-                    <div style={{ color: 'var(--text3)', fontSize: 10.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.prompt}</div>
+                    <div style={{ color: 'var(--text)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>⚡ {s.title}</div>
+                    <div style={{ color: 'var(--text3)', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.prompt}</div>
                   </button>
                   <button onClick={() => deleteSkill(s.id)} aria-label="delete" style={{ ...iconBtn, width: 24, height: 24 }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -405,13 +501,13 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
                   value={skillTitle}
                   onChange={e => setSkillTitle(e.target.value)}
                   placeholder={t('brain.skillsSavePh', {}, 'Titolo della skill…')}
-                  style={{ flex: 1, padding: '7px 10px', borderRadius: 9, background: 'var(--glass)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 12, outline: 'none' }}
+                  style={{ flex: 1, padding: '7px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 13, outline: 'none' }}
                 />
                 <button onClick={saveSkill} disabled={!input.trim() || !skillTitle.trim() || skillBusy} style={{
-                  flex: '0 0 auto', fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 9, border: 'none',
+                  flex: '0 0 auto', fontSize: 11.5, fontWeight: 600, padding: '7px 11px', borderRadius: 8, border: 'none',
                   cursor: (!input.trim() || !skillTitle.trim() || skillBusy) ? 'default' : 'pointer',
                   opacity: (!input.trim() || !skillTitle.trim() || skillBusy) ? 0.45 : 1,
-                  background: 'linear-gradient(135deg, #7c5cff, #5b3df0)', color: 'var(--text)',
+                  background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)',
                 }}>{t('brain.skillsSave', {}, 'Salva prompt attuale')}</button>
               </div>
             </div>
@@ -420,8 +516,8 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
           {/* Input */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <button onClick={toggleSkills} aria-label={t('brain.skills', {}, 'Skills')} title={t('brain.skills', {}, 'Skills')} style={{
-              ...iconBtn, width: 40, height: 40, borderRadius: 11,
-              border: '1px solid var(--border2)', background: skillsOpen ? 'rgba(124,92,255,0.18)' : 'var(--glass)',
+              ...iconBtn, width: 40, height: 40, borderRadius: 12,
+              border: '1px solid var(--border2)', background: skillsOpen ? 'var(--neutro-bg)' : 'var(--glass)',
               color: skillsOpen ? '#a78bfa' : 'var(--text3)',
             }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" /></svg>
@@ -434,19 +530,28 @@ export default function FloatingBrain({ currentTab = 'dashboard' }) {
               rows={1}
               placeholder={t('brain.placeholder', {}, 'Chiedi qualsiasi cosa…')}
               style={{
-                flex: 1, resize: 'none', maxHeight: 120, padding: '10px 12px', borderRadius: 11,
+                flex: 1, resize: 'none', maxHeight: 120, padding: '10px 12px', borderRadius: 12,
                 background: 'var(--glass)', border: '1px solid var(--border2)',
-                color: 'var(--text)', fontSize: 13.5, lineHeight: 1.4, outline: 'none', fontFamily: 'inherit',
+                color: 'var(--text)', fontSize: 13, lineHeight: 1.4, outline: 'none', fontFamily: 'inherit',
               }}
             />
+            {puoAscoltare() && (
+              <button type="button" onClick={detta} title={t('brain.mic', {}, 'Detta la domanda')} aria-label={t('brain.mic', {}, 'Detta la domanda')} aria-pressed={inAscolto} style={{
+                flex: '0 0 auto', width: 40, height: 40, borderRadius: 12, cursor: 'pointer',
+                border: '1px solid var(--border2)', background: inAscolto ? 'var(--text)' : 'transparent', color: inAscolto ? 'var(--bg)' : 'var(--text3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s ease, color .2s ease',
+              }}>
+                <Icon name="mic" size={17} />
+              </button>
+            )}
             <button onClick={send} disabled={loading || !input.trim()} style={{
-              flex: '0 0 auto', width: 40, height: 40, borderRadius: 11, border: 'none',
+              flex: '0 0 auto', width: 40, height: 40, borderRadius: 12, border: 'none',
               cursor: loading || !input.trim() ? 'default' : 'pointer',
               opacity: loading || !input.trim() ? 0.4 : 1,
-              background: 'linear-gradient(135deg, #7c5cff, #5b3df0)',
+              background: 'var(--btn-primario)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--btn-primario-testo)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
             </button>
           </div>
         </div>

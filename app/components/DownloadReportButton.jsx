@@ -1,5 +1,7 @@
 'use client'
 
+import AzioneBarra from './ui/AzioneBarra'
+import { avvisa } from '../../lib/client/avviso'
 import { useState } from 'react'
 import { presetToRange } from '../lib/reportRange'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
@@ -26,6 +28,16 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
       qs.set('locale', getClientLocale())
       const res = await fetch(`/api/report?${qs.toString()}`)
       const ct = res.headers.get('content-type') || ''
+      // Una risposta d'errore NON e' un report. Prima si apriva in una scheda qualunque cosa non
+      // fosse un PDF: con un 504 l'utente si trovava davanti il testo "FUNCTION_INVOCATION_TIMEOUT"
+      // e nessuna spiegazione (Marino, 20 set: "si e' aperta una pagina web e non mi ha scaricato
+      // il PDF"). Ora si dice che cosa e' successo, e non si apre niente.
+      if (!res.ok) {
+        avvisa(res.status === 504 || res.status === 408
+          ? t('report.tooSlow', null, 'The report was not generated: the server took too long. Try again in a moment.')
+          : t('report.failedStatus', { s: res.status }, `The report was not generated (error ${res.status}). Try again in a moment.`), 'errore', { durataMs: 9000 })
+        return
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       if (ct.includes('pdf')) {
@@ -34,18 +46,38 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
         a.download = `LyftAI_${String(tab).replace(/\s+/g, '_')}_${since}_${until}.pdf`
         document.body.appendChild(a); a.click(); a.remove()
       } else {
-        window.open(url, '_blank') // fallback HTML (Browserless non configurato)
+        // Il server non e' riuscito a stampare il PDF e ha mandato il report come pagina: si apre,
+        // ma lo si DICE, con la via per salvarlo lo stesso.
+        // window.open parte DOPO un'attesa lunga: per il browser non e' piu' "un clic dell'utente" e puo'
+        // bloccarlo in silenzio. Si guarda se la scheda si e' aperta davvero; se no il report si salva
+        // come file, e l'avviso dice quello che e' successo — non quello che si sperava.
+        const scheda = window.open(url, '_blank')
+        if (scheda) {
+          avvisa(t('report.openedWeb', null, 'I could not create the PDF, so I opened the report in a new tab: from there you can save it with Print → Save as PDF.'), 'neutro', { durataMs: 9000 })
+        } else {
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `LyftAI_${String(tab).replace(/\s+/g, '_')}_${since}_${until}.html`
+          document.body.appendChild(a); a.click(); a.remove()
+          avvisa(t('report.savedWeb', null, 'I could not create the PDF, so I saved the report as a web page in your downloads: open it and use Print → Save as PDF.'), 'neutro', { durataMs: 9000 })
+        }
       }
       setTimeout(() => URL.revokeObjectURL(url), 15000)
     } catch (e) {
-      alert(t('report.error', null, 'Error generating the report: ') + (e?.message || t('report.unknown', null, 'unknown')))
+      avvisa(t('report.error', null, 'Error generating the report: ') + (e?.message || t('report.unknown', null, 'unknown')), 'errore')
     } finally {
       setLoading(false)
     }
   }
 
+  // Senza il menu delle campagne non c'e' niente da disegnare qui: solo il bottone, che va nella barra.
+  if (!campaigns) return (
+    <AzioneBarra icona="download" gira={loading} disabled={loading} onClick={download}
+        titolo={loading ? t('report.generating', null, 'Generating PDF…') : t('report.download', null, 'Download PDF report')} />
+  )
+
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, ...style }}>
+    <div className="report-download" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, ...style }}>
       {campaigns && (
         <select
           value={campaignId}
@@ -60,16 +92,9 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
           ))}
         </select>
       )}
-      <button
-        onClick={download}
-        disabled={loading}
-        className="btn-glass"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1 }}
-        title={t('report.downloadTitle', null, 'Generate and download the PDF report for the selected period')}
-      >
-        <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>{loading ? '◌' : '⬇'}</span>
-        {loading ? t('report.generating', null, 'Generating PDF…') : t('report.download', null, 'Download PDF report')}
-      </button>
+      {/* Sola icona, nella barra in alto accanto al periodo: stesso punto in ogni tab. */}
+      <AzioneBarra icona="download" gira={loading} disabled={loading} onClick={download}
+        titolo={loading ? t('report.generating', null, 'Generating PDF…') : t('report.download', null, 'Download PDF report')} />
     </div>
   )
 }

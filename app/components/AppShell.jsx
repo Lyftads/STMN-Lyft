@@ -17,7 +17,11 @@ import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
 import PreparingDataBanner from './PreparingDataBanner'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { impostaTema } from './AutoTheme'
 import Spiegazioni from './ui/Spiegazioni'
+import RicercaRapida from './ui/RicercaRapida'
+import Avvisi from './ui/Avvisi'
+import IntestazioniFerme from './ui/IntestazioniFerme'
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
 function getPageTitle(tab, t) {
@@ -524,6 +528,13 @@ const [helpOpen, setHelpOpen] = useState(false)
               <LanguageSwitcher compact />
               <NotificationsBell onNavigate={goTo} />
               <AlertsBell />
+              {/* I due punti d'arrivo della barra: le tab ci mandano dentro i loro bottoni e il loro
+                  selettore del periodo, cosi' stanno sempre nello stesso posto invece che ognuna al
+                  suo. Senza questi due contenitori le tab non darebbero errore: semplicemente non
+                  disegnerebbero niente (ui/AzioneBarra e ui/PeriodoInBarra fanno `if (!arrivo)
+                  return null`). E' il difetto silenzioso piu' probabile del travaso. */}
+              <div id="barra-azioni" style={{ display: 'contents' }} />
+              <div id="barra-periodo" style={{ display: 'contents' }} />
               {setPreset && (tab === 'dashboard' || tab === 'attribution') && (
                 <BmTimeframe value={globalPresetToTf(preset)} onChange={(v) => setPreset(tfToGlobalPreset(v))} accent="#2997ff" disabled={loading} />
               )}
@@ -579,6 +590,17 @@ const [helpOpen, setHelpOpen] = useState(false)
       </main>
       {/* Una sola nuvoletta per TUTTA l'app: le tab non devono fare niente. Non disegna nulla
           (restituisce null), ascolta il mouse sul documento e spiega il dato che sta sotto. */}
+      {/* La ricerca rapida (⌘K): salta a una tab, cambia il periodo, cambia il tema.
+          `gruppi` sono gli stessi del menu, quindi vede solo le tab che l'utente puo' aprire. */}
+      <RicercaRapida gruppi={groups} onVai={goTo} t={t} azioni={[
+        ...[['light', t('profilo.giorno', null, 'Giorno')], ['dark', t('profilo.notte', null, 'Notte')], ['auto', t('profilo.automatico', null, 'Automatico')]]
+          .map(([id, nome]) => ({ id: 'tema:' + id, nome: `${t('profilo.tema', null, 'Tema')}: ${nome}`, parole: 'tema theme chiaro scuro dark light', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="eye" />, esegui: () => impostaTema(id) })),
+        ...(onRefresh ? [{ id: 'aggiorna', nome: t('shell.refresh', null, 'Aggiorna'), parole: 'aggiorna ricarica refresh dati', gruppo: t('rr.commands', null, 'Comandi'), icona: <Icon name="refresh" />, esegui: () => onRefresh() }] : []),
+      ]} />
+      {/* Un avviso solo, uguale in tutto il prodotto: discreto, in basso, sparisce da se'. */}
+      <Avvisi />
+      {/* Scorrendo una tabella lunga l'intestazione resta in vista invece di uscire dallo schermo. */}
+      <IntestazioniFerme />
       <Spiegazioni />
       {helpOpen && <HelpDrawer article={articleForTab(tab, locale)} onClose={() => setHelpOpen(false)} onNavigate={goTo} />}
     </div>

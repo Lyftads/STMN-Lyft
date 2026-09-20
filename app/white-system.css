@@ -1,0 +1,402 @@
+/* Lyft White: Apple-like restraint, Shopify-like operational clarity.
+   Semantic rules for shared UI. Legacy light adapters remain for older modules. */
+:root[data-theme='light'] {
+  /* Le tinte del tema notte su fondo bianco svaniscono e i testi gialli o
+     viola chiari perdono contrasto: qui servono le versioni scure. La linea
+     di --border (#e3e3e3) e' troppo tenue per una tabella a 14 colonne, dove
+     le righe finirebbero per fondersi. */
+  --gpv-google:      #a16207;
+  --gpv-google-bg:   rgba(234,179,8,.16);
+  --gpv-economia:    #6d28d9;
+  --gpv-economia-bg: rgba(139,92,246,.14);
+  --gpv-shopify:     #15803d;
+  --gpv-shopify-bg:  rgba(34,197,94,.14);
+  --gpv-resa:        #1d4ed8;
+  --gpv-resa-bg:     rgba(37,99,235,.12);
+  --gpv-linea:       #d3d3d3;
+  --gpv-riga:        #f7f7f7;
+  --bg: #f5f5f5;
+  --bg2: #ededed;
+  --surface: #fff;
+  --surface2: #f5f5f5;
+  --glass: #fff;
+  --glass2: #ededed;
+  --card: #fff;
+  --text: #1d1d1d;
+  --text2: #454545;
+  --text3: #626262;
+  --text4: #6a6a6a;
+  --border: #e3e3e3;
+  --border2: #c8c8c8;
+  --border3: #9a9a9a;
+  --accent: #0066cc;
+  --accent2: #0054aa;
+  --blue: #0066cc;
+  --green: #137a4c;
+  --red: #b42318;
+  --yellow: #886100;
+  --orange: #a54e00;
+  /* Versioni scure e leggibili su bianco: l'ambra e il verde accesi del tema
+     notte, su fondo chiaro, scendono sotto 2:1 e il numero sparisce. */
+  --stat-nd-rgb: 98,98,104;
+  --stat-bad-rgb: 180,35,24;
+  --stat-warn-rgb: 165,78,0;
+  --stat-ok-rgb: 19,122,76;
+  --purple: #7442b2;
+  --cyan: #007780;
+  --white-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  --white-shadow: 0 2px 8px rgba(29, 29, 29,.035), 0 0 0 1px rgba(29, 29, 29,.025);
+  --white-popover-shadow: 0 16px 48px rgba(29, 29, 29,.12), 0 2px 6px rgba(29, 29, 29,.04);
+  --shopify-canvas: var(--bg);
+  --shopify-surface: var(--surface);
+  --shopify-surface-subdued: var(--surface2);
+  --shopify-surface-hover: var(--bg2);
+  --shopify-border: var(--border);
+  --shopify-border-strong: var(--border2);
+  --shopify-text: var(--text);
+  --shopify-text-secondary: var(--text3);
+  --shopify-action: var(--accent);
+  --shopify-shadow: var(--white-shadow);
+  --light-heading: var(--text);
+  --light-value: var(--text);
+  --light-body: var(--text2);
+  --light-muted: var(--text3);
+  --light-line: var(--border);
+  --light-panel: var(--surface);
+  --light-panel-subtle: var(--surface2);
+}
+:root[data-theme='light'] body,
+:root[data-theme='light'] .app-shell,
+:root[data-theme='light'] .auth-shell {
+  font-family: var(--white-font) !important;
+  color: var(--text);
+  letter-spacing: -.012em;
+}
+:root[data-theme='light'] :is(button,input,select,textarea) { font-family: inherit; }
+:root[data-theme='light'] ::selection { background: #cce4ff; color: #1d1d1d; }
+:root[data-theme='light'] .app-ambient { display: none; }
+:root[data-theme='light'] .app-main { background: var(--bg) !important; }
+:root[data-theme='light'] .app-header {
+  padding-bottom: 24px;
+  margin-bottom: 28px !important;
+  border-bottom: 1px solid var(--border);
+  align-items: center !important;
+}
+:root[data-theme='light'] body .app-main :is(h1,h2,h3,h4) {
+  font-family: var(--white-font) !important;
+  color: var(--text) !important;
+  letter-spacing: -.025em !important;
+  font-weight: 600 !important;
+  text-wrap: balance;
+}
+:root[data-theme='light'] .app-header .heading-lg { font-size: clamp(26px, 2.2vw, 34px); line-height: 1.15; }
+:root[data-theme='light'] body .app-main :is(.metric-value,.metric-value-sm) {
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  letter-spacing: -.035em !important;  /* era -.045em: stessa crenatura dello scuro */
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme='light'] body .app-main p { color: var(--text2); }
+
+/* Quiet navigation: only the current destination receives a solid fill. */
+:root[data-theme='light'] .app-sidebar {
+  --text: #1d1d1d;
+  --text2: #454545;
+  --text3: #626262;
+  --surface: #fff;
+  --surface2: #f5f5f5;
+  --glass: #fff;
+  --glass2: #ededed;
+  --border: #e3e3e3;
+  --border2: #c8c8c8;
+  background: #fafafa !important;
+  color: var(--text) !important;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+:root[data-theme='light'] .app-sidebar button { color: var(--text2) !important; }
+:root[data-theme='light'] .app-sidebar button:hover { color: var(--text) !important; }
+:root[data-theme='light'] .app-sidebar .app-nav-group { margin-bottom: 14px !important; }
+:root[data-theme='light'] .app-sidebar .app-nav-group-toggle {
+  /* corpo e peso tolti da qui: li imponeva SOLO al tema chiaro (11px/600 contro
+     i 10px/560 dello scuro), cioe' due tipografie per la stessa etichetta. Ora
+     li decide lyft-system.css per tutti e due. Qui resta il colore, che del
+     tema e' l'unica cosa che deve sapere. */
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  color: var(--text3) !important;
+  padding: 9px 20px !important;
+}
+:root[data-theme='light'] .app-nav-group-toggle > span:first-child { display: none; }
+:root[data-theme='light'] .app-sidebar .app-nav-item {
+  min-height: 38px;
+  background: transparent !important;
+  color: var(--text2) !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: background-color .16s ease, color .16s ease !important;
+}
+:root[data-theme='light'] .app-sidebar .app-nav-item:hover { background: #ededed !important; }
+:root[data-theme='light'] .app-sidebar .app-nav-item[aria-current='page'] {
+  background: #262626 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+:root[data-theme='light'] .app-sidebar .app-nav-item .app-nav-icon { color: inherit !important; opacity: 1 !important; }
+:root[data-theme='light'] .app-sidebar .app-user-menu {
+  background: var(--surface) !important;
+  box-shadow: var(--white-popover-shadow) !important;
+}
+:root[data-theme='light'] .app-sidebar .app-user-avatar {
+  background: #e7e7e7 !important;
+  color: var(--text) !important;
+  border-radius: 12px !important;
+}
+:root[data-theme='light'] .logo-mark { animation: none !important; filter: none !important; }
+/* Il marchio tiene i SUOI colori anche sul tema chiaro (Marino: "la scritta va bene nera, ma il logo
+   deve essere del colore originale"): qui si spegne solo l'alone, e la L resta bianca sul rombo. */
+:root[data-theme='light'] .logo-mark svg > g:nth-of-type(3) { fill: #fff; }
+
+/* Cards feel like sheets on a desk, not hovering buttons. */
+:root[data-theme='light'] body .app-main :is(.glass-card,.glass-card-static,.glass-panel,.glass-section,.fx-card-shared,.fx-chart-card) {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--white-shadow) !important;
+  transform: none !important;
+}
+:root[data-theme='light'] body .app-main :is(.glass-card,.glass-card-static,.glass-panel,.glass-section,.fx-card-shared,.fx-chart-card):hover {
+  transform: none !important;
+  box-shadow: var(--white-shadow) !important;
+}
+:root[data-theme='light'] .app-tab-content { transform: none !important; transition: opacity .18s ease !important; }
+:root[data-theme='light'] .gradient-text {
+  background: none !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+:root[data-theme='light'] body .app-main .btn-glass {
+  background: #fff !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(29, 29, 29,.04) !important;
+  font-weight: 500;
+  min-height: 36px;
+}
+:root[data-theme='light'] body .app-main .btn-glass:hover:not(:disabled) { background: var(--surface2) !important; }
+:root[data-theme='light'] body :is(input:not([type='range']):not([type='checkbox']):not([type='radio']),select,textarea) {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border2) !important;
+  caret-color: var(--accent);
+}
+:root[data-theme='light'] body :is(input,textarea)::placeholder { color: var(--text3) !important; }
+:root[data-theme='light'] :is(input[type='checkbox'],input[type='radio'],input[type='range']) { accent-color: var(--accent); }
+/* Outline survives legacy input/button rules that suppress box shadows. */
+:root[data-theme='light'] body :is(button,a,input,select,textarea,[tabindex]):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+}
+:root[data-theme='light'] body :is(button,input,select,textarea):disabled { cursor: not-allowed; }
+:root[data-theme='light'] .app-main table { font-variant-numeric: tabular-nums; }
+:root[data-theme='light'] body .app-main table thead th { background: #f5f5f5 !important; color: var(--text3) !important; }
+:root[data-theme='light'] body .app-main table tbody tr:hover > :is(th,td) { background-color: #f4f4f4 !important; }
+
+/* Login/reset are part of the product, including the first light-mode visit. */
+:root[data-theme='light'] .auth-shell { background: var(--bg) !important; }
+:root[data-theme='light'] .auth-shell > div:not(.auth-card),
+:root[data-theme='light'] .auth-card > div:first-child { display: none; }
+:root[data-theme='light'] .auth-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 60px rgba(29, 29, 29,.06) !important;
+  animation: none !important;
+  backdrop-filter: none !important;
+}
+:root[data-theme='light'] .auth-card label { text-transform: none !important; font-size: 13px !important; letter-spacing: 0 !important; font-weight: 500 !important; color: var(--text2) !important; }
+:root[data-theme='light'] .auth-card .auth-submit {
+  background: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+:root[data-theme='light'] .auth-card .auth-submit:hover:not(:disabled) { background: var(--accent2) !important; }
+:root[data-theme='light'] .auth-card .auth-error { color: var(--red) !important; }
+:root[data-theme='light'] .auth-card a:hover { color: var(--accent) !important; text-decoration: underline !important; }
+:root[data-theme='light'] .cookie-consent { background: var(--surface) !important; border-color: var(--border) !important; box-shadow: var(--white-popover-shadow) !important; }
+:root[data-theme='light'] .cookie-consent button:first-child { color: var(--text) !important; }
+:root[data-theme='light'] .cookie-consent button:last-child { background: #262626 !important; color: #fff !important; }
+
+@media (min-width: 1025px) {
+  :root[data-theme='light'] .app-main { padding: 32px 40px 88px !important; }
+}
+@media (max-width: 1024px) {
+  :root[data-theme='light'] .app-sidebar { box-shadow: 12px 0 40px rgba(29, 29, 29,.1) !important; }
+  :root[data-theme='light'] .app-header { gap: 12px; padding-bottom: 20px; }
+  .app-header-actions { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+  .app-sidebar.open { padding-bottom: env(safe-area-inset-bottom); }
+}
+@media (max-width: 600px) {
+  :root[data-theme='light'] .app-header-actions { flex-basis: 100%; gap: 6px !important; }
+  :root[data-theme='light'] .app-header { justify-content: flex-start !important; }
+  :root[data-theme='light'] body .app-main .btn-glass { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-tab-content { opacity: 1 !important; transform: none !important; transition: none !important; }
+  :root[data-theme='light'] *, :root[data-theme='light'] *::before, :root[data-theme='light'] *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* White text on dark-era primary buttons must stay white on the new action. */
+:root[data-theme='light'] body .app-main button[style*='background: var(--accent)'],
+:root[data-theme='light'] body .app-main button[style*='background: linear-gradient(135deg, rgb(123, 91, 255)'],
+:root[data-theme='light'] body .app-main button[style*='background: linear-gradient(135deg, rgb(139, 92, 246)'] {
+  background: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+:root[data-theme='light'] body .app-main table :is(td,th)[style*='color: var(--green)'] { color: var(--green) !important; }
+:root[data-theme='light'] body .app-main table :is(td,th)[style*='color: var(--red)'] { color: var(--red) !important; }
+:root[data-theme='light'] .dash-live-hero { min-height: 450px; }
+:root[data-theme='light'] .dash-live-globe { top: -16px; bottom: -20px; max-width: 640px; }
+
+/* Country detail is portaled to body, outside .app-main. */
+:root[data-theme='light'] .country-detail-backdrop {
+  background: rgba(29, 29, 29,.28) !important;
+}
+:root[data-theme='light'] .country-detail-modal {
+  --country-new: #007780;
+  --country-returning: #7442b2;
+  --country-accent: #0066cc;
+  background: var(--surface) !important;
+  color: var(--text);
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--white-popover-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+:root[data-theme='light'] .country-detail-chart,
+:root[data-theme='light'] .country-detail-modal .country-segment-value {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+:root[data-theme='light'] .country-detail-modal .recharts-default-tooltip {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: var(--white-shadow);
+}
+:root[data-theme='light'] .country-detail-modal .recharts-tooltip-item {
+  color: var(--text2) !important;
+}
+:root[data-theme='light'] .country-detail-modal .recharts-cartesian-axis-line {
+  stroke: var(--border2) !important;
+}
+
+/* ── Imbuto della CRO nel tema chiaro ──────────────────────────────────────
+   Le barre sono div VUOTI con un gradiente scritto in linea, e le regole
+   generali del tema chiaro ripuliscono i riquadri scuri rimasti dall'epoca
+   notturna: una di quelle le ridipingeva di bianco su bianco. Restavano i
+   numeri sospesi a mezz'aria, senza piu' niente sotto.
+   Qui il colore lo dichiariamo noi, esplicitamente, perche' non e' una
+   superficie da ripulire: e' il dato. */
+:root[data-theme='light'] body .app-main .imbuto-barra.imbuto-barra.imbuto-barra {
+  background: linear-gradient(180deg, #4d9bf0 0%, #1e5fae 100%) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='light'] body .app-main .imbuto-barra-collo.imbuto-barra-collo.imbuto-barra-collo {
+  background: linear-gradient(180deg, #f0a838 0%, #b4650b 100%) !important;
+}
+
+/* ── Niente neon di giorno sulle schede con grafico ────────────────────────
+   .fx-chart-card nasce per il tema notturno: una riga luminosa colorata sul
+   bordo alto (::before), un alone radiale dietro il contenuto (::after) e un
+   bagliore al passaggio del mouse, tutti tinti del colore della scheda —
+   verde per le tabelle dei report, celeste, arancione e viola per i grafici.
+   Su fondo bianco quella luce non illumina niente: sporca e basta.
+   Il colore resta dove SIGNIFICA qualcosa (il pallino accanto al titolo, le
+   linee del grafico); qui sparisce solo la luce. */
+:root[data-theme='light'] body .app-main .fx-chart-card::before,
+:root[data-theme='light'] body .app-main .fx-chart-card::after,
+:root[data-theme='light'] body .app-main .fx-chart-card:hover::after {
+  display: none !important;
+  content: none !important;
+}
+:root[data-theme='light'] body .app-main .fx-chart-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 10px rgba(29, 29, 29,.08) !important;
+  border-color: var(--border2) !important;
+}
+/* Il pallino resta colorato, ma smette di pulsare e di irradiare. */
+:root[data-theme='light'] body .app-main .fx-chart-dot {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* Ultimo alone rimasto di giorno: il cerchio turchese sfocato dietro il globo
+   della Dashboard. A differenza degli altri non era un residuo — qualcuno lo
+   aveva ritoccato apposta per il tema chiaro — ma resta una luce colorata, e
+   di giorno non ne vogliamo. Sul telefono era gia' spento: ora e' spento
+   ovunque. Per rimetterlo basta togliere questa regola. */
+:root[data-theme='light'] .dash-live-globe::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Di giorno le schede del dettaglio provincia sono fogli bianchi con un bordo
+   sottile, come il resto dell'interfaccia chiara: niente vetro, niente ombre
+   profonde pensate per il nero. */
+:root[data-theme='light'] body .app-main .prov-scheda,
+:root[data-theme='light'] body .prov-scheda,
+:root[data-theme='light'] body .prov-kpi {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(29, 29, 29,.05) !important;
+}
+:root[data-theme='light'] body .prov-barra { background: #eeeeee !important; }
+:root[data-theme='light'] body .prov-foto-vuota { background: #f6f6f6 !important; }
+
+/* ── Tabella delle regioni e delle province, di giorno ─────────────────────
+   Le regole generali del tema chiaro ridipingono ogni intestazione di grigio e
+   ogni cella di bianco, con !important: giuste per una tabella qualunque,
+   qui cancellerebbero le fasce che dicono DA DOVE arriva ogni numero. Queste
+   regole selezionano piu' stretto e le rimettono. */
+/* Tutte le tabelle: intestazione bianca come "Dove comprano", non grigia. */
+:root[data-theme='light'] body table.tab-lyft thead th:not([style*="background"]) { background: #ffffff !important; }
+:root[data-theme='light'] body table.tab-lyft thead th:not([style*="accent"]):not(.th-libero) { color: var(--text3) !important; }
+:root[data-theme='light'] body table.tab-lyft tbody tr:not([style*="background"]) > td:not([style*="background"]) { background-color: #ffffff !important; }
+:root[data-theme='light'] body table.tab-lyft:not(.senza-zebra) tbody tr:nth-child(even):not([style*="background"]) > td:not([style*="background"]) { background-color: var(--gpv-riga) !important; }
+:root[data-theme='light'] body table.tab-lyft tbody tr:hover > td:not([style*="background"]) { background-color: #f3f3f3 !important; }
+:root[data-theme='light'] body table.tab-lyft tfoot :is(td,th):not([style*="background"]) { background: #f5f5f5 !important; }
+/* Alcune pulizie del tema chiaro incorniciano le celle che hanno uno sfondo
+   scuro scritto a mano: nelle tabelle la cornice non ci va, resta la sola
+   linea sotto. Classe ripetuta per vincere sulla loro specificita'. */
+:root[data-theme='light'] body table.tab-lyft.tab-lyft.tab-lyft thead th { border: none !important; border-bottom: 1px solid var(--gpv-linea) !important; background: #ffffff !important; }
+:root[data-theme='light'] body table.tab-lyft.tab-lyft.tab-lyft tbody :is(td,th) { border: none !important; border-bottom: 1px solid var(--gpv-linea) !important; }
+:root[data-theme='light'] body table.tab-lyft.tab-lyft.tab-lyft thead tr.reg-fasce th { border: none !important; background: transparent !important; }
+:root[data-theme='light'] body table.tab-lyft.tab-lyft.tab-lyft thead tr.reg-fasce th.fam { background: var(--fam-bg) !important; color: var(--fam) !important; border-left: 6px solid #ffffff !important; }
+:root[data-theme='light'] body table.tab-lyft thead tr.reg-fasce th.fam { background: var(--fam-bg) !important; color: var(--fam) !important; border-left-color: #ffffff !important; }
+:root[data-theme='light'] body table.tab-lyft thead tr.reg-fasce th.reg-vuota { background: transparent !important; }
+:root[data-theme='light'] body .app-main table.reg-tab thead th { background: #ffffff !important; color: var(--text3) !important; }
+:root[data-theme='light'] body .app-main table.reg-tab thead tr.reg-fasce th.fam { background: var(--fam-bg) !important; color: var(--fam) !important; }
+:root[data-theme='light'] body .app-main table.reg-tab thead tr.reg-fasce th.reg-vuota { background: transparent !important; }
+:root[data-theme='light'] body .app-main table.reg-tab thead tr.reg-colonne th.attiva { color: var(--fam, var(--accent)) !important; }
+:root[data-theme='light'] body .app-main table.reg-tab tbody td { background-color: #ffffff !important; font-weight: inherit; }
+:root[data-theme='light'] body .app-main table.reg-tab tbody tr:nth-child(even) > td { background-color: var(--gpv-riga) !important; }
+:root[data-theme='light'] body .app-main table.reg-tab tbody tr:hover > td { background-color: #f3f3f3 !important; }
+:root[data-theme='light'] body .app-main table.reg-tab tfoot td { background: #f5f5f5 !important; }
+:root[data-theme='light'] body .app-main table.reg-tab .reg-nome { color: var(--text) !important; }
+
+/* LyftTalk: la pastiglia della data fra i messaggi. Era un fondo scuro fisso:
+   di giorno il tema scuriva il testo e restava nero su nero. */
+:root[data-theme='light'] body .ch-giorno {
+  background: #f0f0f0 !important; color: #515151 !important; border-color: #e2e2e2 !important;
+}

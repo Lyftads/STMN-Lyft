@@ -1,0 +1,1195 @@
+/* ════════════════════════════════════════════════════════════════════════
+   LYFT — il sistema. Una scala sola, e i mattoni con cui si costruiscono le tab.
+
+   Prima di questo file ogni tab si era inventata da sola testo, raggi, colori,
+   schede e filtri: 35 dimensioni del testo, 22 raggi, 128 colori, 8 gradienti
+   per lo stesso bottone, 5 schede KPI, 4 stili di filtro, il badge LIVE
+   ridisegnato 10 volte. E i colori erano pensati per il tema scuro: quello
+   chiaro era uno strato di correzioni sopra, quindi ogni pezzo nuovo nasceva
+   rotto di giorno. Qui i due temi nascono insieme, dagli stessi nomi.
+
+   REGOLA: una tab nuova non scrive fontSize, borderRadius o un colore a mano.
+   Usa questi nomi, o i componenti di app/components/ui/Mattoni.jsx.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease: cubic-bezier(.2, .8, .2, 1);   /* la curva del prodotto: una sola, ripetuta ovunque */
+  /* testo: SEI misure in tutto il prodotto (Marino, 20 set: ne avevo contate 25 a schermo, sette
+     delle quali fra 10 e 13 px a mezzo pixel l'una dall'altra): 10 · 11,5 · 13 · 15 · 20 titoli · 22 numeri */
+  --t-micro: 10px;   /* etichette maiuscole, intestazioni di tabella */
+  --t-nota:  11.5px; /* note, sottotitoli di riga */
+  --t-base:  13px;   /* il testo di lavoro */
+  --t-forte: 15px;   /* voci e valori in evidenza */
+  --t-titolo3: 15px; /* titolo di scheda: la stessa misura delle voci in evidenza, distinto dal peso */
+  /* LA cifra: una misura sola per tutti i numeri del prodotto. Il 20 set l'avevo portata a 31, con
+     sopra un gradino "eroe" da 45 e uno "pannello" da 38: Marino — "tutte queste grandezze differenti
+     dei font non mi fanno impazzire" — ha scelto di tornare a 22 e di avere UNA misura per i numeri. */
+  --t-titolo2: 22px;
+  --t-titolo1: 20px; /* titolo della tab, di un pop-up, di un pannello */
+
+  /* raggi: quattro */
+  --r-s: 8px; --r-m: 12px; --r-l: 16px; --r-pill: 999px;
+
+  /* spazi: griglia da 4 */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px;
+
+  /* significato, non codice colore */
+  --positivo: #22c55e;   --positivo-bg: rgba(34,197,94,.13);
+  --negativo: #ef4444;   --negativo-bg: rgba(239,68,68,.13);
+  --attenzione: #f59e0b; --attenzione-bg: rgba(245,158,11,.14);
+  --neutro-bg: rgba(127,127,127,.13);
+
+  /* il colore dice DA DOVE arriva il numero (le stesse famiglie delle tabelle) */
+  --fam-vendite: var(--gpv-shopify);   --fam-vendite-bg: var(--gpv-shopify-bg);
+  --fam-pub: var(--gpv-google);        --fam-pub-bg: var(--gpv-google-bg);
+  --fam-traffico: var(--gpv-economia); --fam-traffico-bg: var(--gpv-economia-bg);
+  --fam-resa: var(--gpv-resa);         --fam-resa-bg: var(--gpv-resa-bg);
+
+  /* Il bottone principale: uno solo, e NEUTRO. Era un gradiente viola-blu di notte e un blu di
+     giorno: con tutto il resto in bianco e nero restava l'unica tinta decorativa dell'interfaccia.
+     Ora e' invertito rispetto al fondo, come "Approva" e "Fatta" del pilota. */
+  --btn-primario: #f5f5f5;
+  --btn-primario-testo: #1d1d1d;
+  --ombra-scheda: none;
+}
+:root[data-theme='light'] {
+  --positivo: #15803d;   --positivo-bg: rgba(34,197,94,.15);
+  --negativo: #b42318;   --negativo-bg: rgba(239,68,68,.12);
+  --attenzione: #a54e00; --attenzione-bg: rgba(245,158,11,.18);
+  --neutro-bg: #ededed;
+  --btn-primario: #1d1d1d;
+  --btn-primario-testo: #ffffff;
+  --ombra-scheda: 0 2px 8px rgba(29, 29, 29,.035), 0 0 0 1px rgba(29, 29, 29,.025);
+}
+
+/* ── Titolo della tab ─────────────────────────────────────────────────── */
+.ly-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-4); }
+.ly-testa-sx { min-width: 0; max-width: 820px; }
+.ly-titolo-riga { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+html body .ly-titolo { margin: 0; font-size: var(--t-titolo1); font-weight: 680; letter-spacing: -.02em; line-height: 1.15; color: var(--text); }
+.ly-sotto { margin: 6px 0 0; font-size: var(--t-base); line-height: 1.5; color: var(--text2); }
+.ly-azioni { display: flex; align-items: flex-end; gap: var(--s-2); flex-wrap: wrap; }
+
+.ly-live { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--r-pill); background: var(--positivo-bg); color: var(--positivo); font-size: var(--t-micro); font-weight: 640; letter-spacing: .08em; }
+.ly-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+:root:not([data-theme='light']) .ly-live::before { box-shadow: 0 0 8px currentColor; }
+
+/* ── Scheda e scheda KPI ──────────────────────────────────────────────── */
+.ly-scheda { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-l); padding: var(--s-4) 18px; box-shadow: var(--ombra-scheda); }
+:root:not([data-theme='light']) .ly-scheda { background: var(--glass); }
+
+.ly-kpi-griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-3); }
+.ly-kpi { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-l); padding: 16px 18px 15px; box-shadow: var(--ombra-scheda); min-width: 0; }
+:root:not([data-theme='light']) .ly-kpi { background: var(--glass); }
+/* Niente colore sulle schede: nessun filo, nessuna tinta per famiglia. La scheda
+   e' bianca (o vetro), il numero e' il protagonista. Il colore resta SOLO dove
+   porta un significato: la variazione che sale o scende. Scelta di Marino,
+   18 set 2026: "preferisco zero colori, piu' minimale possibile". */
+.ly-kpi-testa { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.ly-kpi-et { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); }
+.ly-kpi-corpo { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-3); margin-top: 8px; }
+.ly-kpi-val { font-size: var(--t-titolo2); font-weight: 600; letter-spacing: -.035em; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ly-kpi-nota { margin-top: 6px; font-size: var(--t-nota); color: var(--text3); line-height: 1.4; }
+/* Il grafico accanto alla cifra si RESTRINGE, non esce. Aveva flex-shrink: 0 e gli SVG una larghezza
+   fissa (80-110 px): nelle schede da ~200 px, con una cifra lunga, sbordava di 8-28 px e la scheda lo
+   tagliava (misurato: 17 schede su 64 in Meta KPI, Google KPI e Meta dettaglio). Hanno tutti un
+   viewBox, quindi scalano puliti. La cifra non si tocca: e' lei la protagonista. */
+.ly-kpi-grafico { flex: 0 1 auto; min-width: 0; display: flex; justify-content: flex-end; }
+.ly-kpi-grafico svg { max-width: 100%; height: auto; flex-shrink: 1 !important; }
+.ly-kpi-val { flex-shrink: 0; }
+.ly-kpi-piede { display: flex; align-items: center; gap: var(--s-2); margin-top: 8px; flex-wrap: wrap; }
+
+/* ── Pastiglia (un valore con un giudizio) ────────────────────────────── */
+.ly-pastiglia { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: var(--r-pill); font-size: var(--t-nota); font-weight: 640; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text2); background: var(--neutro-bg); }
+.ly-pastiglia.positivo { color: var(--positivo); background: var(--positivo-bg); }
+.ly-pastiglia.negativo { color: var(--negativo); background: var(--negativo-bg); }
+.ly-pastiglia.attenzione { color: var(--attenzione); background: var(--attenzione-bg); }
+
+/* ── Filtri a pastiglia (si sceglie fra gruppi) ───────────────────────── */
+.ly-filtri { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
+html body .ly-filtro { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--surface); color: var(--text2); font: inherit; font-size: var(--t-base); font-weight: 650; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+:root:not([data-theme='light']) html body .ly-filtro, :root:not([data-theme='light']) .ly-filtro { background: var(--glass); }
+html body .ly-filtro:hover { color: var(--text); border-color: var(--border3, var(--border2)); }
+/* acceso = piu' scuro e piu' marcato, NON colorato */
+html body .ly-filtro.acceso { color: var(--text); font-weight: 640; border-color: var(--text2); background: var(--neutro-bg); }
+.ly-filtro-punto { width: 9px; height: 9px; border-radius: 6px; background: var(--ly-col, var(--text3)); flex-shrink: 0; }
+.ly-filtro-n { font-size: var(--t-nota); font-weight: 640; color: var(--text3); background: var(--neutro-bg); border-radius: var(--r-pill); padding: 0 7px; }
+.ly-filtro.acceso .ly-filtro-n { color: var(--text); }
+
+/* ── Linguette (si cambia vista dentro la stessa tab) ─────────────────── */
+.ly-linguette { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.ly-linguette::-webkit-scrollbar { display: none; }
+html body .ly-linguetta { padding: 10px 14px; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--text3); font: inherit; font-size: var(--t-base); font-weight: 600; cursor: pointer; white-space: nowrap; }
+html body .ly-linguetta:hover { color: var(--text); }
+html body .ly-linguetta.aperta { color: var(--text); font-weight: 640; border-bottom-color: var(--text); }
+.ly-linguetta i { font-style: normal; font-weight: 600; color: var(--text3); margin-left: 5px; }
+
+/* ── Bottoni: tre, non otto ───────────────────────────────────────────── */
+html body .ly-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 16px; border-radius: var(--r-m); border: 1px solid var(--border2, var(--border)); background: var(--surface); color: var(--text); font: inherit; font-size: var(--t-base); font-weight: 620; cursor: pointer; white-space: nowrap; transition: filter .15s, border-color .15s, background-color .15s; }
+:root:not([data-theme='light']) html body .ly-btn { background: var(--glass2); }
+html body .ly-btn:hover { border-color: var(--border3, var(--text3)); }
+html body .ly-btn:disabled { opacity: .55; cursor: wait; }
+html body .ly-btn.primario { background: var(--btn-primario); border-color: transparent; color: var(--btn-primario-testo); font-weight: 640; }
+html body .ly-btn.primario:hover { filter: brightness(1.08); }
+html body .ly-btn.discreto { background: none; border-color: transparent; color: var(--accent); padding-left: 6px; padding-right: 6px; }
+
+/* ── Vuoto e attesa ───────────────────────────────────────────────────── */
+.ly-vuoto { display: grid; justify-items: center; gap: 6px; padding: 38px 20px; text-align: center; color: var(--text3); }
+.ly-vuoto b { font-size: var(--t-forte); font-weight: 640; color: var(--text); }
+.ly-vuoto span { font-size: var(--t-base); max-width: 460px; line-height: 1.5; }
+.ly-vuoto-icona { width: 42px; height: 42px; border-radius: var(--r-m); display: grid; place-items: center; background: var(--neutro-bg); color: var(--text3); margin-bottom: 4px; }
+
+@keyframes ly-onda { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.ly-osso { display: block; border-radius: var(--r-s); background: linear-gradient(90deg, var(--neutro-bg) 25%, color-mix(in srgb, var(--neutro-bg) 45%, transparent) 50%, var(--neutro-bg) 75%); background-size: 200% 100%; animation: ly-onda 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ly-osso { animation: none; } }
+.ly-scheletro { display: grid; gap: var(--s-3); }
+.ly-scheletro-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-3); }
+.ly-scheletro-riga { display: flex; align-items: center; gap: var(--s-3); padding: 11px 0; border-bottom: 1px solid var(--border); }
+
+@media (max-width: 768px) {
+  html body .ly-titolo { font-size: 20px; }
+  .ly-kpi-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ly-kpi-val { font-size: var(--t-titolo2); }
+  /* Su telefono le schede sono a due colonne (~140 px utili): cifra e grafico affiancati non ci
+     stanno e il grafico usciva tagliato dalla scheda (misurato a 390 px: 18 schede). L'adattamento
+     c'era — cifra sopra, grafico sotto a tutta larghezza — ma era rimasto su .kb-metric-row, una
+     classe che nessun componente usa piu'. Qui e' riagganciato alla scheda vera. */
+  .ly-kpi-corpo { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .ly-kpi-grafico { width: 100%; }
+  .ly-kpi-grafico svg { width: 100% !important; height: auto; max-height: 30px; }
+  .ly-azioni { width: 100%; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   LO STILE — riferimento Apple. (Marino, 18 set 2026: "Apple non utilizza
+   colori, prendi spunto da Apple sullo stile".)
+
+   Superfici piatte e neutre, linee sottili, nessun bagliore, nessun gradiente,
+   nessun vetro animato. UN solo accento, il blu, e solo per cio' che si puo'
+   cliccare. Il colore resta dove porta un significato (su/giu', allarmi,
+   stati) e nelle fasce delle tabelle. Carattere di sistema.
+   ════════════════════════════════════════════════════════════════════════ */
+html body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* il tema scuro con i grigi di sistema di Apple, non i blu-viola di prima */
+:root:not([data-theme='light']) {
+  --bg: #000000;   --bg2: #0a0a0a;
+  --surface: #1c1c1c; --surface2: #2c2c2c;
+  --glass: #1c1c1c;   --glass2: #2c2c2c; --card: #1c1c1c;
+  --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.15); --border3: rgba(255,255,255,.24);
+  --text: #f5f5f5; --text2: #d1d1d1; --text3: #989898;
+  --accent: #0a84ff; --accent2: #0a84ff; --blue: #0a84ff;
+  --gpv-linea: rgba(255,255,255,.09); --gpv-riga: #232323;
+  --positivo: #30d158; --positivo-bg: rgba(48,209,88,.14);
+  --negativo: #ff453a; --negativo-bg: rgba(255,69,58,.14);
+  --attenzione: #ff9f0a; --attenzione-bg: rgba(255,159,10,.15);
+  --neutro-bg: rgba(255,255,255,.08);
+}
+:root[data-theme='light'] {
+  --positivo: #248a3d; --negativo: #d70015; --attenzione: #b25000;
+}
+
+/* superfici: piatte. Via vetro sfocato, ombre profonde, fili luminosi. */
+:root:not([data-theme='light']) :is(.glass-card, .glass-card-static, .glass-panel, .glass-section, .ly-scheda, .ly-kpi, .fx-chart-card) {
+  background: var(--surface) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  box-shadow: none !important; border: 1px solid var(--border) !important;
+}
+:is(.glass-card, .glass-card-static, .glass-panel, .glass-section, .fx-chart-card)::before,
+:is(.glass-card, .glass-card-static, .glass-panel, .glass-section, .fx-chart-card)::after { display: none !important; }
+:is(.glass-card, .glass-card-static, .glass-panel, .glass-section, .fx-chart-card) { transform: none !important; }
+/* le schede-grafico dei report erano al neon di notte (filo colorato, alone, salto in hover): ora
+   sono schede come tutte le altre, e anche il pallino e le barrette del titolo tornano neutri */
+:root:not([data-theme='light']) .fx-chart-card { border-radius: var(--r-l) !important; }
+:root:not([data-theme='light']) .fx-chart-card :is(.fx-chart-dot, .fx-chart-spark span) { background: var(--text3) !important; }
+.dash-live-globe::before { display: none !important; }
+.ly-live::before { box-shadow: none !important; }
+
+/* il bottone principale: pieno, blu, senza gradiente */
+html body .ly-btn.primario { border-radius: var(--r-pill); padding: 8px 18px; }
+
+/* i marchi delle tabelle e i bottoni di vetro seguono la stessa regola: acceso = marcato, non colorato */
+html body .el-marchio.acceso { background: var(--neutro-bg) !important; border-color: var(--text2) !important; color: var(--text) !important; }
+html body .el-marchio.acceso i { color: var(--text) !important; }
+html body .btn-glass { border-radius: var(--r-m); font-size: var(--t-base); font-weight: 600; padding: 8px 14px; box-shadow: none !important; }
+html body .el-pagine button.aperta { background: var(--text) !important; color: var(--bg) !important; border-color: var(--text) !important; }
+
+/* Il globo della Dashboard e' lo stesso nei due temi: stessa posizione, stessa
+   grandezza, nessun filtro sopra (il tema scuro lo teneva piu' grande e piu' in
+   alto, con un alone dietro). */
+@media (min-width: 1101px) {
+  html body .dash-live-hero { min-height: 450px; margin-bottom: 0; }
+  html body .dash-live-globe { top: -16px; bottom: -20px; right: 2%; width: 52vw; max-width: 640px; opacity: 1; }
+}
+html body .dashboard-globe canvas { filter: none !important; }
+
+/* I comandi della barra in alto stanno ancorati IN ALTO, non centrati: con un
+   sottotitolo su due righe la barra si alza e il selettore del periodo scendeva
+   di una decina di pixel. Deve stare nello stesso punto in ogni tab. */
+html body .app-header { align-items: flex-start !important; }
+html body .app-header-actions { align-self: flex-start; }
+
+/* ── Il pop-up di dettaglio (ui/Pannello) ─────────────────────────────────
+   Centrato, come le finestre di KPI Brain: a Marino il pannello laterale non
+   piaceva ("si puo' fare come un pop up che hai fatto in KPI Brain?"). Resta
+   UNO per tutto il prodotto: stessa testata, Esc, frecce per la riga prima e dopo. */
+@keyframes ly-velo-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ly-pannello-entra { from { transform: translateY(10px) scale(.985); opacity: 0; } to { transform: none; opacity: 1; } }
+.ly-pannello-velo { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: ly-velo-entra .16s ease-out; }
+.ly-pannello { max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.35); overflow: hidden; animation: ly-pannello-entra .2s cubic-bezier(.2,.8,.2,1); }
+.ly-pannello-testa { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.ly-pannello-foto { width: 48px; height: 48px; border-radius: var(--r-m); object-fit: cover; flex-shrink: 0; background: var(--neutro-bg); }
+.ly-pannello-titoli { min-width: 0; flex: 1; }
+.ly-pannello-titolo { font-size: 20px; font-weight: 640; letter-spacing: -.01em; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ly-pannello-sotto { margin-top: 3px; font-size: var(--t-nota); color: var(--text3); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ly-pannello-comandi { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ly-pannello-posizione { font-size: var(--t-nota); color: var(--text3); font-variant-numeric: tabular-nums; margin-right: 4px; white-space: nowrap; }
+html body .ly-pannello-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-s); border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 17px; line-height: 1; cursor: pointer; }
+html body .ly-pannello-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border2, var(--text3)); }
+html body .ly-pannello-btn:disabled { opacity: .35; cursor: default; }
+.ly-pannello-corpo { flex: 1; overflow-y: auto; padding: 22px; overscroll-behavior: contain; min-height: 180px; }
+.ly-pannello-piede { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 22px; border-top: 1px solid var(--border); flex-shrink: 0; }
+/* la riga aperta nel pannello resta segnata nella tabella */
+.tab-lyft tbody tr.riga-aperta > td, .reg-tab tbody tr.riga-aperta > td { background: var(--neutro-bg) !important; }
+@media (max-width: 768px) { .ly-pannello-velo { padding: 0; align-items: flex-end; } .ly-pannello { width: 100% !important; max-height: 92vh; border-radius: 16px 20px 0 0; } .ly-pannello-posizione { display: none; } .ly-pannello-corpo { padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { .ly-pannello, .ly-pannello-velo { animation: none; } }
+
+/* ── Avvisi (ui/Avvisi) ───────────────────────────────────────────────── */
+@keyframes ly-avviso-entra { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ly-avvisi { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 3000; display: grid; gap: 8px; justify-items: center; pointer-events: none; width: min(560px, calc(100vw - 32px)); }
+.ly-avviso { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; max-width: 100%; padding: 10px 16px; border-radius: var(--r-pill); background: var(--text); color: var(--bg); font-size: var(--t-base); font-weight: 650; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.22); animation: ly-avviso-entra .18s cubic-bezier(.2,.8,.2,1); }
+.ly-avviso-segno { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11.5px; font-weight: 680; flex-shrink: 0; background: var(--positivo); color: #fff; }
+.ly-avviso.errore .ly-avviso-segno { background: var(--negativo); }
+@media (prefers-reduced-motion: reduce) { .ly-avviso { animation: none; } }
+
+/* col pannello aperto il bottone dell'assistente non gli sta sopra */
+body:has(.ly-pannello-velo) .brain-launcher { display: none !important; }
+
+/* ── Movimento: poco, breve, con uno scopo ────────────────────────────── */
+@keyframes ly-compare { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.ly-kpi, .ly-scheda, .ly-vuoto { animation: ly-compare .22s ease-out both; }
+.ly-kpi-griglia > :nth-child(2) { animation-delay: .02s; } .ly-kpi-griglia > :nth-child(3) { animation-delay: .04s; }
+.ly-kpi-griglia > :nth-child(4) { animation-delay: .06s; } .ly-kpi-griglia > :nth-child(n+5) { animation-delay: .08s; }
+.tab-lyft tbody tr, .reg-tab tbody tr { transition: background-color .12s ease; }
+html body .ly-btn, html body .ly-filtro, html body .btn-glass { transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .08s ease; }
+html body .ly-btn:active, html body .ly-filtro:active, html body .btn-glass:active { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) { .ly-kpi, .ly-scheda, .ly-vuoto { animation: none; } html body .ly-btn:active, html body .ly-filtro:active, html body .btn-glass:active { transform: none; } }
+
+/* ── La sintesi in cima alla Dashboard ────────────────────────────────── */
+/* (la sintesi della Dashboard e' stata ridisegnata: vedi in fondo al file) */
+@media (max-width: 768px) {
+}
+
+/* ── Bottoni con la sola icona (barra in alto) ────────────────────────── */
+html body .ly-icona-btn { position: relative; width: 36px; height: 36px; display: inline-grid; place-items: center; flex-shrink: 0; padding: 0; border-radius: var(--r-m); border: 1px solid var(--border); background: var(--surface); color: var(--text2); cursor: pointer; transition: color .15s ease, border-color .15s ease, background-color .15s ease, transform .08s ease; }
+/* component-system da' a OGNI bottone della barra un margine interno di 9px 14px e 40px di altezza
+   (pensati per i bottoni col testo): in un quadrato di 36px l'icona finiva 5px a destra del centro.
+   Misurato con .audit-giro-cime (CENTRO dx/dy): deve dare 0/0. */
+html body .app-main .ly-icona-btn.ly-icona-btn { padding: 0; min-height: 36px; height: 36px; line-height: 0; }
+html body .app-main .ly-icona-btn.ly-icona-btn > svg { display: block; }
+.ly-icona-btn .ly-icona-conto { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 8px; background: var(--rosso, #ff453a); color: #fff; font-size: 11.5px; font-weight: 640; line-height: 17px; text-align: center; }
+html body .ly-icona-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border2, var(--text3)); }
+html body .ly-icona-btn:active:not(:disabled) { transform: scale(.96); }
+html body .ly-icona-btn:disabled { opacity: .5; cursor: wait; }
+/* il suggerimento: compare sotto il bottone, dopo un attimo */
+.ly-icona-btn[data-suggerimento]::after { content: attr(data-suggerimento); position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; padding: 5px 9px; border-radius: 8px; background: var(--text); color: var(--bg); font-size: 11.5px; font-weight: 650; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(-3px); transition: opacity .12s ease .25s, transform .12s ease .25s; }
+.ly-icona-btn[data-suggerimento]:hover::after, .ly-icona-btn[data-suggerimento]:focus-visible::after { opacity: 1; transform: none; }
+@media (hover: none) { .ly-icona-btn[data-suggerimento]::after { display: none; } }
+/* nella barra i comandi stanno stretti: sono icone, non servono grandi distanze */
+html body .app-header-actions { gap: 6px !important; }
+
+/* ── Titolo della tab: piccolo e pulito (Marino: "il titolo di ogni tab e' troppo grande"). Prima
+   26–34px: rubava la scena ai numeri. Ora una riga da 20px e, sotto, la descrizione in piccolo. ── */
+html body .app-shell .app-header .heading-lg.heading-lg { font-size: 20px !important; line-height: 1.2 !important; font-weight: 650 !important; letter-spacing: -.02em !important; margin: 0 0 2px !important; }
+html body .app-shell .app-header .app-header-title > p { font-size: 13px !important; line-height: 1.35; color: var(--text3); }
+
+/* ── Pop-up del profilo (ProfiloPopup) e nome in fondo al menu ── */
+html body .app-user-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px; margin: -6px; border: none; border-radius: var(--r-m); background: none; color: var(--text3); text-align: left; cursor: pointer; transition: background-color .15s ease; }
+html body .app-user-btn:hover { background: var(--neutro-bg); }
+.app-user-nome, .app-user-sotto { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-user-nome { font-size: 13px; font-weight: 650; color: var(--text); }
+.app-user-sotto { font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+.app-user-pallino { position: absolute; top: -4px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--text2); color: var(--bg); font-size: 10px; font-weight: 640; line-height: 16px; text-align: center; box-shadow: 0 0 0 2px var(--surface); }
+.app-user-pallino.urgente { background: var(--rosso, #ff453a); color: #fff; }
+.pf-blocco { display: flex; flex-direction: column; gap: 16px; }
+.pf-foto { display: flex; align-items: center; gap: 16px; }
+.pf-nota { font-size: var(--t-nota); color: var(--text3); line-height: 1.45; margin-top: 6px; }
+.pf-titolo { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 620; color: var(--text); }
+.pf-campo { display: flex; flex-direction: column; gap: 6px; }
+.pf-campo > span { font-size: 11.5px; font-weight: 650; color: var(--text2); }
+.pf-campo > em { font-style: normal; font-size: 11.5px; color: var(--text3); }
+html body .pf-campo :is(input, textarea) { width: 100%; padding: 10px 12px; border-radius: var(--r-m); border: 1px solid var(--border2, var(--border)); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; outline: none; resize: vertical; transition: border-color .15s ease; }
+html body .pf-campo :is(input, textarea):focus { border-color: var(--text3); }
+.pf-elenco { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--r-m); overflow: hidden; }
+.pf-riga { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; cursor: pointer; }
+.pf-elenco .pf-riga + .pf-riga { border-top: 1px solid var(--border); }
+.pf-riga.forte { border: 1px solid var(--border); border-radius: var(--r-m); background: var(--neutro-bg); }
+.pf-riga:hover { background: var(--neutro-bg); }
+.pf-riga input { position: absolute; opacity: 0; pointer-events: none; }
+.pf-segno { width: 18px; height: 18px; margin-top: 1px; flex-shrink: 0; display: grid; place-items: center; border-radius: 6px; border: 1.5px solid var(--border3, var(--text3)); color: var(--bg); transition: background-color .12s ease, border-color .12s ease; }
+.pf-riga input:checked + .pf-segno { background: var(--text); border-color: var(--text); }
+.pf-riga input:focus-visible + .pf-segno { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-riga-testo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pf-riga-testo b { font-size: 13px; font-weight: 650; color: var(--text); }
+.pf-riga-testo i { font-style: normal; font-size: 11.5px; color: var(--text3); line-height: 1.4; }
+.pf-scelte { display: flex; flex-wrap: wrap; gap: 8px; }
+html body .pf-scelta { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: var(--r-pill, 999px); border: 1px solid var(--border2, var(--border)); background: var(--surface); color: var(--text2); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+html body .pf-scelta:hover { color: var(--text); border-color: var(--text3); }
+html body .pf-scelta.scelta { background: var(--text); border-color: var(--text); color: var(--bg); }
+
+/* ── Raccomandazioni proattive (RecommendationsFeed) ── */
+.rec-scheda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "etichetta corpo chiudi"; align-items: start; column-gap: 14px; }
+.rec-etichetta { grid-area: etichetta; }
+.rec-corpo { grid-area: corpo; min-width: 0; }
+.rec-chiudi { grid-area: chiudi; }
+.rec-titolo-riga { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rec-titolo { flex: 1; min-width: 0; }
+
+/* ── TELEFONO: meno spazio sprecato (Marino: "occupa un sacco di spazio") ── */
+@media (max-width: 768px) {
+  /* Raccomandazioni: etichetta e × in una riga, il testo sotto a tutta larghezza. */
+  .rec-scheda { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "etichetta chiudi" "corpo corpo"; row-gap: 8px; }
+  .rec-etichetta { justify-self: start; }
+  .rec-titolo-riga { flex-wrap: wrap; row-gap: 4px; }
+  .rec-titolo { flex: 1 1 100%; }
+  html body .rec-riquadro { padding: 16px !important; }
+  .rec-testa { gap: 10px !important; }
+  .rec-testa-icona { display: none !important; }
+
+  /* Testata: titolo su una riga sola, poi icone e periodo INSIEME su una riga (prima erano due:
+     le icone da 44px non lasciavano posto al periodo, che andava a capo). */
+  /* (classe ripetuta: un tema impone 28px di margine con piu' peso di una regola normale) */
+  html body .app-shell .app-main header.app-header.app-header.app-header { row-gap: 10px !important; padding-bottom: 12px !important; margin-bottom: 14px !important; }
+  html body .app-shell .app-header .app-header-title > p { display: none; }
+  html body .app-shell .app-header-actions { flex-wrap: nowrap !important; align-items: center !important; }
+  html body .app-main .ly-icona-btn.ly-icona-btn { width: 40px; height: 40px; min-height: 40px; }
+  html body .app-shell .app-header-actions > div:has(> button[aria-haspopup='dialog']) { flex: 1 1 0 !important; min-width: 0; }
+  html body .app-shell .app-header-actions button[aria-haspopup='dialog'] { width: 100%; min-width: 0 !important; min-height: 40px !important; height: 40px; padding: 0 12px !important; }
+  html body .app-shell .app-header-actions button[aria-haspopup='dialog'] > span:nth-of-type(1) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+  /* Calendario del periodo: era appeso in alto e finiva sotto la barra di stato del telefono.
+     Su telefono sale dal basso: in alto non puo' essere tagliato, e sta sotto il pollice. */
+  html body .bm-tf-pop {
+    top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+    max-height: calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - 24px) !important;
+    overflow-y: auto !important; flex-direction: column;
+  }
+}
+
+/* ── Misure di un'email (pop-up Klaviyo): dieci misure = due righe da cinque, e l'etichetta
+   resta su UNA riga. Prima le colonne erano "quante ce ne stanno" e "HANNO CLICCATO" andava a
+   capo, spingendo il suo numero piu' in basso dei vicini (Marino: "e' leggermente sfalsato"). ── */
+.kl-misure { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; align-items: start; }
+.kl-misura-et { font-size: 10px; font-weight: 640; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 768px) { .kl-misure { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── "Dati in aggiornamento" nella barra in alto ── */
+.ly-in-aggiornamento { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px; border-radius: var(--r-m); border: 1px solid var(--border); background: var(--surface); color: var(--text3); font-size: 11.5px; font-weight: 650; white-space: nowrap; }
+.ly-in-aggiornamento i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: ly-battito 1.4s ease-in-out infinite; }
+@keyframes ly-battito { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ly-in-aggiornamento i { animation: none; } }
+@media (max-width: 768px) { .ly-in-aggiornamento { display: none; } }
+
+/* ── Sintesi della Dashboard, seconda stesura: piccola, al centro, una riga. ── */
+.ly-sintesi { margin: 0 auto var(--s-5); padding: 4px 0 var(--s-5); border-bottom: 1px solid var(--border); position: relative; z-index: 2; text-align: center; }
+.ly-sintesi-numeri { display: inline-grid; grid-template-columns: repeat(3, minmax(150px, 220px)); justify-content: center; }
+.ly-sintesi-numero { min-width: 0; padding: 2px 28px; }
+.ly-sintesi-numero + .ly-sintesi-numero { border-left: 1px solid var(--border); }
+.ly-sintesi-et { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); }
+/* La cifra non va a capo (tabular-nums + nowrap): se e' lunga USCIVA dalla
+   scheda. Misurato in produzione: "€32.692" occupava 129 px in una cella da
+   123 px — bastava un periodo di un mese. Ora il corpo scende di un gradino
+   quando le cifre aumentano, cosi' il numero resta grande quando puo' e sta
+   sempre dentro. I gradini sono calcolati sulla larghezza reale della cella. */
+.ly-sintesi-val { margin-top: 6px; font-size: var(--t-titolo2); font-weight: 600; letter-spacing: -.035em; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ly-sintesi-val[data-lung='lungo'] { font-size: var(--t-forte); }
+.ly-sintesi-piede { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; min-height: 22px; font-size: 11.5px; color: var(--text3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ly-sintesi-nota { margin-top: 5px; font-size: 11.5px; color: var(--text3); opacity: .8; }
+.ly-sintesi-didascalia { margin: 16px 0 0; font-size: 11.5px; color: var(--text3); letter-spacing: .01em; }
+@media (max-width: 768px) {
+  .ly-sintesi { padding-bottom: var(--s-4); margin-bottom: var(--s-4); }
+  .ly-sintesi-numeri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ly-sintesi-numero { padding: 0 6px; }
+  .ly-sintesi-et { font-size: 10px; letter-spacing: .08em; }
+  .ly-sintesi-val { margin-top: 4px; }
+  .ly-sintesi-piede { flex-direction: column; gap: 3px; margin-top: 6px; font-size: 11.5px; }
+  .ly-sintesi-nota { display: none; }
+  .ly-sintesi-didascalia { margin-top: 10px; font-size: 11.5px; }
+}
+
+/* ── Prodotti Google: "Dove va il budget" e l'editor delle soglie ── */
+.gpv-bud { margin: 14px 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--r-l, 16px); background: var(--surface); box-shadow: var(--ombra-scheda); }
+.gpv-bud-titolo { font-size: 15px; font-weight: 620; color: var(--text); letter-spacing: -.01em; }
+.gpv-bud-sotto, .gpv-bud-nota { font-size: 11.5px; color: var(--text3); margin-top: 3px; }
+.gpv-bud-barra { display: flex; height: 8px; margin: 14px 0 16px; border-radius: 99px; overflow: hidden; background: var(--neutro-bg); }
+.gpv-bud-barra .venduto { background: var(--text); }
+.gpv-bud-barra .vuoto { background: repeating-linear-gradient(135deg, var(--text3) 0 4px, transparent 4px 8px); }
+.gpv-bud-numeri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.gpv-bud-val { font-size: var(--t-titolo2); font-weight: 600; letter-spacing: -.035em; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.gpv-bud-et { margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--text2); line-height: 1.35; }
+.gpv-bud-consiglio { margin: 16px 0 12px; font-size: 13px; line-height: 1.5; color: var(--text3); max-width: 880px; }
+.gpv-bud-consiglio b { color: var(--text2); font-weight: 650; }
+.gpv-bud-elenco { margin-top: 12px; max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: var(--r-m); }
+.gpv-soglie { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 9px; }
+.gpv-soglie-titolo { font-size: 13px; font-weight: 620; color: var(--text); }
+.gpv-soglia { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 13px; color: var(--text2); }
+html body .gpv-soglia input { width: 66px; padding: 6px 8px; border-radius: var(--r-s, 8px); border: 1px solid var(--border2, var(--border)); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; outline: none; }
+html body .gpv-soglia input:focus { border-color: var(--text3); }
+.gpv-soglia i { font-style: normal; color: var(--text3); margin-left: -3px; }
+@media (max-width: 768px) { .gpv-bud { padding: 14px; } .gpv-bud-numeri { grid-template-columns: 1fr; gap: 12px; } }
+
+/* ── Intestazione di tabella galleggiante (ui/IntestazioniFerme.jsx) ── */
+.ly-testa-ferma { position: fixed; z-index: 60; overflow: hidden; pointer-events: none; background: var(--surface); border-bottom: 1px solid var(--border2, var(--border)); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.ly-testa-ferma table { margin: 0; background: var(--surface); }
+.ly-testa-ferma th { position: static !important; }
+:root[data-theme='dark'] .ly-testa-ferma { box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+body:has(.ly-pannello-velo) .ly-testa-ferma { display: none; }
+
+/* ── Menu: preferiti e recenti ── */
+.app-nav-rapide { padding: 2px 8px 10px; margin-bottom: 8px; border-bottom: 1px solid var(--border); display: grid; gap: 1px; }
+.app-nav-rapide-titolo { padding: 8px 12px 5px; font-size: 10px; font-weight: 620; letter-spacing: .12em; text-transform: uppercase; color: var(--text3); }
+html body .app-nav-rapida { width: 100%; border: 0; border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; text-align: left; background: transparent; color: var(--text2); font: inherit; font-size: 13px; font-weight: 500; }
+html body .app-nav-rapida:hover { background: var(--neutro-bg); color: var(--text); }
+html body .app-nav-rapida.attiva { background: var(--neutro-bg); color: var(--text); font-weight: 600; }
+.app-nav-rapida .app-nav-icon { width: 20px; display: inline-flex; justify-content: center; color: var(--text3); }
+.app-nav-stella { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin: -4px -6px -4px 0; border-radius: 6px; color: var(--text3); opacity: 0; transition: opacity .12s ease, color .12s ease; }
+.app-nav-item:hover .app-nav-stella, .app-nav-stella:focus-visible, .app-nav-stella.accesa { opacity: 1; }
+.app-nav-stella:hover { color: var(--text); }
+.app-nav-stella.accesa { color: var(--text); }
+.app-nav-stella.accesa svg { fill: currentColor; }
+@media (hover: none) { .app-nav-stella { opacity: .55; } }
+
+/* ── Copia con un clic (ui/Copia.jsx) ── */
+.ly-copia { cursor: copy; border-radius: 6px; padding: 1px 3px; margin: -1px -3px; transition: background-color .12s ease, color .12s ease; }
+.ly-copia:hover, .ly-copia:focus-visible { background: var(--neutro-bg); color: var(--text); outline: none; }
+
+/* ── Accesso (AuthShell): la prima pagina, con lo stile di tutte le altre ──
+   I vecchi fogli del tema chiaro nascondono o ridipingono pezzi di .auth-shell/.auth-card con
+   !important: qui si vince con la classe ripetuta, e si dichiara tutto (sfondo compreso). */
+html body .ly-auth.ly-auth { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 40px 20px; background: var(--bg) !important; color: var(--text); font-family: inherit; position: relative; overflow: visible; }
+html body .ly-auth .ly-auth-scheda.ly-auth-scheda { width: 100%; max-width: 400px; padding: 36px 32px 32px !important; border-radius: 16px !important; border: 1px solid var(--border) !important; background: var(--surface) !important; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.06) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; animation: ly-auth-entra .35s cubic-bezier(.2,.8,.2,1) both; }
+:root[data-theme='dark'] html body .ly-auth .ly-auth-scheda.ly-auth-scheda, :root[data-theme='dark'] .ly-auth .ly-auth-scheda.ly-auth-scheda { box-shadow: 0 20px 60px rgba(0,0,0,.6) !important; }
+@keyframes ly-auth-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+html body .ly-auth .ly-auth-marchio.ly-auth-marchio { display: flex !important; align-items: center; gap: 10px; margin-bottom: 28px; }
+.ly-auth-marchio span { font-size: 20px; font-weight: 620; letter-spacing: -.035em; color: var(--text); }
+.ly-auth-titolo { margin: 0 0 6px; font-size: 24px; font-weight: 600; letter-spacing: -.03em; line-height: 1.2; color: var(--text); }
+.ly-auth-sotto { margin: 0 0 26px; font-size: 13px; line-height: 1.5; color: var(--text3); }
+.ly-auth-titolo + form, .ly-auth-titolo + div { margin-top: 22px; }
+html body .ly-auth .ly-auth-campo label { display: block; margin-bottom: 7px; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--text2) !important; }
+html body .ly-auth .ly-auth-campo input { width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 12px !important; border: 1px solid var(--border2, var(--border)) !important; background: var(--surface) !important; color: var(--text) !important; font: inherit; font-size: 15px; outline: none; box-shadow: none !important; transition: border-color .15s ease, box-shadow .15s ease; }
+html body .ly-auth .ly-auth-campo input::placeholder { color: var(--text3); opacity: .7; }
+html body .ly-auth .ly-auth-campo input:focus { border-color: var(--text) !important; box-shadow: 0 0 0 3px var(--neutro-bg) !important; }
+html body .ly-auth .ly-auth-occhio { position: absolute; right: 6px; top: 50%; transform: translateY(-50%) !important; width: 34px; height: 34px; min-height: 0 !important; padding: 0 !important; display: grid; place-items: center; border: none !important; border-radius: 8px !important; background: none !important; color: var(--text3) !important; cursor: pointer; }
+html body .ly-auth .ly-auth-occhio:hover { color: var(--text) !important; }
+.ly-auth-nota { margin-top: 6px; font-size: 11.5px; line-height: 1.4; color: var(--text3); }
+html body .ly-auth .ly-auth-bottone.ly-auth-bottone { width: 100%; min-height: 48px; margin-top: 6px; padding: 13px 16px !important; display: flex; align-items: center; justify-content: center; gap: 9px; border: none !important; border-radius: 999px !important; background: var(--btn-primario) !important; color: var(--btn-primario-testo) !important; font: inherit; font-size: 15px !important; font-weight: 650 !important; letter-spacing: 0 !important; cursor: pointer; box-shadow: none !important; transition: filter .15s ease, transform .08s ease; }
+html body .ly-auth .ly-auth-bottone:hover:not(:disabled) { filter: brightness(1.08); }
+html body .ly-auth .ly-auth-bottone:active:not(:disabled) { transform: scale(.985) !important; }
+html body .ly-auth .ly-auth-bottone:disabled { opacity: .6 !important; cursor: wait !important; }
+.ly-auth-giro { width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; opacity: .8; animation: spin 1s linear infinite; }
+html body .ly-auth .ly-auth-errore.ly-auth-errore { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border2, var(--border)); background: var(--neutro-bg); color: var(--rosso, #d70015) !important; font-size: 13px; line-height: 1.45; }
+html body .ly-auth a { color: var(--text3); text-decoration: none; }
+html body .ly-auth a:hover { color: var(--text) !important; text-decoration: underline; }
+.ly-auth-lingue { display: flex; gap: 2px; }
+html body .ly-auth .ly-auth-lingue button { min-height: 0 !important; padding: 6px 9px !important; border: none !important; border-radius: 8px !important; background: none !important; color: var(--text3) !important; font: inherit; font-size: 11.5px !important; font-weight: 650 !important; letter-spacing: .06em !important; cursor: pointer; }
+html body .ly-auth .ly-auth-lingue button:hover { color: var(--text) !important; }
+html body .ly-auth .ly-auth-lingue button.scelta { color: var(--text) !important; background: var(--neutro-bg) !important; }
+@media (max-width: 768px) { html body .ly-auth.ly-auth { padding: 24px 16px calc(40px + env(safe-area-inset-bottom)) !important; justify-content: flex-start; padding-top: 12vh !important; } html body .ly-auth .ly-auth-scheda.ly-auth-scheda { padding: 28px 22px 24px !important; } .ly-auth-titolo { font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { html body .ly-auth .ly-auth-scheda.ly-auth-scheda { animation: none; } }
+
+/* ── Il posto di una tab mentre arriva il suo codice (solo se la si apre nei primi secondi) ── */
+.ly-scheletro-tab { min-height: 360px; border-radius: var(--r-l, 16px); background: linear-gradient(90deg, var(--neutro-bg) 25%, transparent 50%, var(--neutro-bg) 75%); background-size: 200% 100%; animation: ly-scorri 1.4s ease-in-out infinite; opacity: .6; }
+@keyframes ly-scorri { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ly-scheletro-tab { animation: none; } }
+
+/* ── "Come nasce questo numero" (SpiegaNumero.jsx) ── */
+html body .ly-kpi.si-spiega { cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+html body .ly-kpi.si-spiega:hover { border-color: var(--text3); }
+html body .ly-kpi.si-spiega:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.sn-valore { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+.sn-valore b { font-size: var(--t-titolo2); font-weight: 650; letter-spacing: -.035em; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.sn-valore span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text3); }
+.sn-valore i { font-style: normal; }
+.sn-blocco { margin-top: 22px; }
+.sn-blocco h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 11.5px; font-weight: 620; letter-spacing: .13em; text-transform: uppercase; color: var(--text3); }
+.sn-conto { border: 1px solid var(--border); border-radius: var(--r-m, 12px); overflow: hidden; }
+.sn-riga { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 11px 14px; font-size: 13px; color: var(--text2); }
+.sn-riga + .sn-riga { border-top: 1px solid var(--border); }
+.sn-segno { font-weight: 600; color: var(--text3); text-align: center; }
+.sn-nome { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.sn-cifra { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sn-totale { background: var(--neutro-bg); }
+.sn-totale .sn-nome, .sn-totale .sn-cifra { font-weight: 620; color: var(--text); }
+.sn-nota { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text2); }
+.sn-grafico svg { display: block; width: 100%; height: 150px; }
+.sn-linea { fill: none; stroke: var(--text); stroke-width: 1.8; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.sn-area { fill: var(--text); opacity: .05; }
+.sn-asse { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sn-punto { fill: var(--text); }
+.sn-grafico-piede { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 11.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+@media (max-width: 768px) { .sn-riga { font-size: 13px; padding: 10px 12px; } }
+
+/* ── Briefing del mattino ── */
+.br-blocco + .br-blocco { margin-top: 24px; }
+.br-blocco h4 { margin: 0 0 12px; font-size: 11.5px; font-weight: 620; letter-spacing: .13em; text-transform: uppercase; color: var(--text3); }
+.br-blocco h4::first-letter { text-transform: uppercase; }
+.br-numeri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.br-numeri b { display: block; font-size: var(--t-titolo2); font-weight: 650; letter-spacing: -.03em; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+.br-numeri span { display: block; margin-top: 5px; font-size: 11.5px; color: var(--text3); }
+.br-quiete { margin: 0; font-size: 13px; color: var(--text2); }
+.br-avvisi { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.br-avvisi li { padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--r-m, 12px); font-size: 13px; line-height: 1.45; color: var(--text2); }
+.br-avvisi li.urgente { border-left: 3px solid var(--rosso, #ff453a); color: var(--text); }
+@media (max-width: 768px) { .br-numeri { gap: 8px; } }
+
+/* ── Barra in basso su telefono (AppShell) ── */
+.ly-barra-basso { display: none; }
+@media (max-width: 768px) {
+  .ly-barra-basso { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: saturate(1.6) blur(18px); -webkit-backdrop-filter: saturate(1.6) blur(18px); border-top: 1px solid var(--border); }
+  html body .ly-barra-basso button { min-height: 0 !important; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px !important; border: none !important; border-radius: 12px !important; background: none !important; color: var(--text3) !important; font: inherit; cursor: pointer; min-width: 0; }
+  .ly-barra-basso button span { display: inline-flex; height: 20px; align-items: center; }
+  .ly-barra-basso button svg { width: 19px; height: 19px; }
+  .ly-barra-basso button i { font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html body .ly-barra-basso button.attiva { color: var(--text) !important; }
+  .ly-barra-basso button.attiva i { font-weight: 620; }
+  /* il contenuto e il cervello laterale lasciano il posto alla barra */
+  html body .app-main { padding-bottom: calc(132px + env(safe-area-inset-bottom)) !important; }
+  html body .brain-launcher { bottom: calc(74px + env(safe-area-inset-bottom)) !important; }
+  body:has(.ly-pannello-velo) .ly-barra-basso, body:has(.app-sidebar.open) .ly-barra-basso { display: none; }
+  /* il burger in alto non serve piu': il menu sta nella barra */
+  html body .app-burger { display: none !important; }
+}
+
+/* ── Passaggio fra le tab: una dissolvenza breve, solo sul contenuto (il menu e la barra restano fermi) ── */
+.app-sidebar { view-transition-name: menu; }
+.app-header { view-transition-name: testata; }
+.ly-barra-basso { view-transition-name: barra-basso; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .16s; animation-timing-function: ease-out; }
+::view-transition-group(menu), ::view-transition-group(testata), ::view-transition-group(barra-basso) { animation: none; }
+::view-transition-old(menu), ::view-transition-new(menu), ::view-transition-old(barra-basso), ::view-transition-new(barra-basso) { animation: none; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
+
+/* ── Dashboard in stile Live View ──
+   Come la Live View di Shopify (dalla registrazione di Marino): il GLOBO riempie tutta la parte
+   destra ed e' FISSO; scorre solo la colonna dei KPI. Il blocco e' alto quanto lo spazio sotto la
+   testata (--lv-alto, misurato in page.js), quindi la pagina in se' non scorre. */
+@media (min-width: 1101px) {
+  /* white-system.css rimette 88px sotto con ':root[data-theme] .app-main' (specificita' piu' alta):
+     erano proprio quegli 88px a far scorrere ANCHE la pagina (doppio scorrimento). */
+  html:root body .app-main.app-main[data-tab='dashboard'] { padding-bottom: 0 !important; overflow: hidden !important; }
+  html body .dash-live-hero.lv { display: grid !important; grid-template-columns: minmax(0, 470px) minmax(0, 1fr); gap: 8px; align-items: stretch; height: calc(100dvh - var(--lv-alto, 150px)); min-height: 0; overflow: visible; margin: 0 !important; position: relative; }
+  html body .dash-live-hero.lv .dash-live-left { grid-column: 1; grid-row: 1; max-width: none; width: 100%; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 2px 14px 28px 2px; position: relative; z-index: 2; scrollbar-width: thin; }
+  html body .dash-live-hero.lv .dash-live-globe { grid-column: 2; grid-row: 1; position: relative !important; inset: auto; width: 100%; max-width: none; height: 100%; opacity: 1; }
+  .lv-colonna .ly-sintesi-val { font-size: var(--t-titolo2); }
+  .lv-colonna .ly-sintesi-val[data-lung='lungo'] { font-size: var(--t-forte); }
+}
+/* Nella colonna la sintesi e' una scheda come le altre, tutta allineata a SINISTRA
+   (Marino: "allineale tutta a sinistra sopra le altre card cosi' e' + pulito"). */
+.lv-colonna .ly-sintesi { margin: 0; padding: 18px 20px 16px; border: 1px solid var(--border); border-radius: var(--r-l, 16px); background: var(--surface); text-align: left; }
+.lv-colonna .ly-sintesi-numeri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: start; }
+.lv-colonna .ly-sintesi-numero { padding: 0 10px; }
+.lv-colonna .ly-sintesi-numero:first-child { padding-left: 0; }
+.lv-colonna .ly-sintesi-numero:last-child { padding-right: 0; }
+.lv-colonna .ly-sintesi-piede { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px; min-height: 0; }
+.lv-colonna .ly-sintesi-didascalia { margin-top: 12px; text-align: left; }
+/* Telefono: il globo in ALTO (Marino: "da mobile il mondo l'hai messo sotto, portalo sopra"). */
+@media (max-width: 768px) {
+  html body .dash-live-hero.lv .dash-live-globe { order: -1 !important; }
+  html body .dash-live-hero.lv .dash-live-left { order: 0 !important; }
+  .lv-colonna .ly-sintesi { padding: 14px 14px 12px; }
+  .lv-colonna .ly-sintesi-numero { padding: 0 8px; }
+}
+.lv-colonna { display: flex; flex-direction: column; gap: 14px; }
+html body .lv-colonna .m-stack { margin-bottom: 0 !important; }
+.lv-griglia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.lv-scheda { padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--r-l, 16px); background: var(--surface);box-shadow: var(--ombra-scheda); }
+.lv-scheda h3 { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--text3); }
+.lv-passi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lv-passi span { display: block; font-size: 11.5px; color: var(--text3); line-height: 1.3; min-height: 30px; }
+.lv-passi b { display: block; margin-top: 4px; font-size: var(--t-titolo2); font-weight: 650; letter-spacing: -.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.lv-passi i { display: block; margin-top: 3px; font-style: normal; font-size: 11.5px; color: var(--text3); }
+.lv-prodotti { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.lv-prodotti li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; color: var(--text2); }
+.lv-prodotti li + li { border-top: 1px solid var(--border); }
+.lv-prodotti img, .lv-segnaposto { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; background: var(--neutro-bg); }
+.lv-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.lv-pezzi { font-size: 11.5px; color: var(--text3); white-space: nowrap; }
+.lv-prodotti b { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lv-vuoto { margin: 0; font-size: 13px; color: var(--text3); }
+/* niente riga ne' vuoto sotto: subito dopo vengono le Key Metrics (Marino: "diminuisci lo spazio") */
+.lv-efficienza { margin-bottom: 0; }
+.lv-efficienza-titolo { margin: 0 0 14px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+@media (max-width: 768px) { .lv-passi b { font-size: 22px; } .lv-scheda { padding: 16px; } }
+
+/* ── Sala di controllo (MissionControl.jsx) ──
+   Telemetria in vetro SOPRA il globo, come quella di un lancio: pochi numeri grandi, una curva,
+   un cursore. Nero, bianco e velature; il colore solo allo stato quando c'e' un'anomalia e alle
+   variazioni. Su telefono il vetro diventa una scheda normale sotto il globo. */
+.dash-live-globe { position: relative; }
+.lv-globo-tela { width: 100%; height: 100%; }
+.mc-telemetria { position: absolute; inset: 18px 18px 18px 18px; z-index: 3; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+.mc-telemetria > * { pointer-events: auto; }
+.mc-stato { display: inline-flex; align-items: center; gap: 9px; height: 32px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4); font-size: 11.5px; font-weight: 650; line-height: 1; font-family: inherit; letter-spacing: .16em; text-transform: uppercase; color: var(--text2); cursor: default; }
+.mc-stato i { width: 7px; height: 7px; border-radius: 50%; background: var(--green, #1a7f37); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green, #1a7f37) 55%, transparent); animation: mcPolso 2.4s ease-out infinite; }
+.mc-stato.guai { cursor: pointer; color: var(--red, #b3261e); border-color: color-mix(in srgb, var(--red, #b3261e) 35%, var(--border)); }
+.mc-stato.guai i { background: var(--red, #b3261e); box-shadow: 0 0 0 0 color-mix(in srgb, var(--red, #b3261e) 55%, transparent); }
+@keyframes mcPolso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+.mc-vetro { align-self: stretch; padding: 20px 24px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--border) 80%, transparent); background: color-mix(in srgb, var(--surface) 74%, transparent); -webkit-backdrop-filter: blur(26px) saturate(1.5); backdrop-filter: blur(26px) saturate(1.5); box-shadow: 0 18px 50px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.35); }
+.mc-testa { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.mc-occhiello { font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--text3); }
+.mc-numero { margin-top: 6px; font-size: var(--t-titolo2); font-weight: 600; letter-spacing: -.035em; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.mc-sotto { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.mc-sotto b, .mc-perche b { font-weight: 600; }
+.mc-telemetria .su, .mc-mosse .su { color: var(--green, #1a7f37); }
+.mc-telemetria .giu, .mc-mosse .giu { color: var(--red, #b3261e); }
+.mc-lati { margin: 0; display: flex; gap: 26px; }
+.mc-lati div { text-align: right; }
+.mc-lati dt { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+.mc-lati dd { margin: 5px 0 0; font-size: 15px; font-weight: 620; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-grafico { position: relative; margin-top: 12px; }
+.mc-rif-et { position: absolute; right: 0; transform: translateY(-135%); font-size: 10px; letter-spacing: .04em; color: var(--text3); font-variant-numeric: tabular-nums; pointer-events: none; }
+.mc-curva { display: block; width: 100%; height: clamp(96px, 15vh, 150px); overflow: visible; }
+.mc-curva path, .mc-curva line { vector-effect: non-scaling-stroke; fill: none; }
+.mc-vero { stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mc-previsto { stroke: var(--text); stroke-width: 1.6; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .55; transition: d .35s cubic-bezier(.2,.8,.2,1); }
+.mc-curva .mc-fascia { fill: var(--text); opacity: .07; stroke: none; transition: d .35s cubic-bezier(.2,.8,.2,1); }
+.mc-rif { stroke: var(--text3); stroke-width: 1; stroke-dasharray: 1 6; opacity: .6; }
+.mc-oggi { fill: var(--text); }
+.mc-polso { fill: var(--text); opacity: .14; transform-box: fill-box; transform-origin: center; animation: mcRespiro 2.6s ease-in-out infinite; }
+@keyframes mcRespiro { 0%, 100% { transform: scale(.7); opacity: .18; } 50% { transform: scale(1.25); opacity: .05; } }
+.mc-cursore { display: grid; grid-template-columns: auto minmax(120px, 1fr) minmax(190px, auto); align-items: center; gap: 16px; margin-top: 10px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent); font-size: 11.5px; color: var(--text3); }
+.mc-cursore output { text-align: right; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-cursore input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; outline: none !important; border: 0 !important; box-shadow: none !important; padding: 0; }
+.mc-cursore input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--text) 18%, transparent), 0 2px 8px rgba(0,0,0,.22); }
+.mc-cursore input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 0 calc(50% - 1px), var(--text3) calc(50% - 1px) calc(50% + 1px), var(--border) calc(50% + 1px)); }
+.mc-cursore input[type=range]::-moz-range-track { height: 3px; border-radius: 6px; background: var(--border); }
+.mc-cursore input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8.5px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.22); transition: transform .15s ease; }
+.mc-cursore input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.mc-cursore input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+@media (prefers-reduced-motion: reduce) { .mc-stato i, .mc-polso { animation: none; } }
+
+/* le mosse, nella colonna */
+.mc-mosse h3 { display: flex; justify-content: space-between; align-items: baseline; }
+.mc-mosse h3 span { font-size: 13px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+.mc-bilancio { margin: -6px 0 12px; font-size: 11.5px; line-height: 1.45; color: var(--text3); }
+.mc-elenco { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.mc-mossa { padding: 14px 0; }
+.mc-mossa + .mc-mossa { border-top: 1px solid var(--border); }
+.mc-mossa:first-child { padding-top: 0; } .mc-mossa:last-child { padding-bottom: 2px; }
+.mc-mossa-testa { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.mc-mossa-titolo { font-size: 15px; font-weight: 640; letter-spacing: -.012em; line-height: 1.3; color: var(--text); }
+.mc-effetto { font-size: 15px; font-weight: 650; letter-spacing: -.03em; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-effetto small { margin-left: 2px; font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: var(--text3); }
+.mc-perche { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--text2); }
+.mc-elenco-apri { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 0; border: 0; background: none; font-size: 11.5px; font-weight: 500; line-height: 1; font-family: inherit; color: var(--text3); cursor: pointer; }
+.mc-elenco-apri:hover { color: var(--text); }
+.mc-pila { display: inline-flex; }
+.mc-pila img, .mc-pila i { width: 24px; height: 24px; border-radius: 8px; object-fit: cover; background: var(--neutro-bg); border: 1.5px solid var(--surface); }
+.mc-pila > * + * { margin-left: -8px; }
+.mc-prodotti { margin: 10px 0 0; padding: 0; list-style: none; max-height: 220px; overflow-y: auto; border-top: 1px solid var(--border); }
+.mc-prodotti li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; padding: 7px 0; font-size: 11.5px; color: var(--text2); border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.mc-prodotti li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.mc-prodotti li em { font-style: normal; color: var(--text3); }
+.mc-prodotti li b { font-weight: 600; color: var(--text); }
+.mc-prodotti li.mc-altri { display: block; color: var(--text3); border-bottom: 0; }
+.mc-azioni { display: flex; gap: 8px; margin-top: 12px; }
+.mc-approva, .mc-nonora { height: 34px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; line-height: 1; font-family: inherit; cursor: pointer; transition: transform .12s ease, opacity .12s ease; }
+.mc-approva { border: 1px solid var(--text); background: var(--text); color: var(--bg, #fff); }
+.mc-nonora { border: 1px solid var(--border); background: transparent; color: var(--text2); }
+.mc-approva:active, .mc-nonora:active { transform: scale(.97); }
+.mc-approva:disabled, .mc-nonora:disabled { opacity: .5; cursor: wait; }
+.mc-fare p { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--neutro-bg); font-size: 11.5px; line-height: 1.5; color: var(--text2); }
+.mc-attesa { display: flex; align-items: center; gap: 7px; margin: 10px 0 0; font-size: 11.5px; color: var(--text3); }
+.mc-errore { margin: 10px 0 0; font-size: 11.5px; color: var(--red, #b3261e); }
+
+@media (max-width: 1100px) {
+  /* sotto il computer la telemetria sta SOTTO il globo: il contenitore cresce, la tela ha la sua altezza */
+  html body .dash-live-hero.lv .dash-live-globe { height: auto !important; }
+  .lv-globo-tela { height: 420px; }
+  .mc-telemetria { position: static; inset: auto; gap: 12px; margin-top: 12px; }
+  .mc-telemetria.mc-solo-stato { margin-top: 10px; }
+  .mc-vetro { padding: 16px 16px 12px; border-radius: 16px; background: var(--surface); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .mc-testa { flex-direction: column; align-items: stretch; gap: 14px; }
+  .mc-lati { justify-content: space-between; gap: 12px; } .mc-lati div { text-align: left; }
+  .mc-cursore { grid-template-columns: 1fr; gap: 4px; } .mc-cursore output { text-align: left; }
+}
+@media (max-width: 768px) { .lv-globo-tela { height: 300px; } }
+
+/* ── Capsula viva in testata (CapsulaViva.jsx) ── */
+.cap-viva { display: inline-flex; align-items: center; gap: 8px; height: 36px; max-width: 320px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .005em; white-space: nowrap; overflow: hidden; }
+button.cap-viva { cursor: pointer; } button.cap-viva:hover { border-color: var(--text3); }
+.cap-viva i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--text); }
+.cap-viva.quieto { color: var(--text3); } .cap-viva.quieto i { background: var(--green, #1a7f37); }
+.cap-viva.attivo i { animation: ly-battito 1.2s ease-in-out infinite; }
+.cap-viva.allarme { color: var(--red, #b3261e); border-color: color-mix(in srgb, var(--red, #b3261e) 30%, var(--border)); } .cap-viva.allarme i { background: var(--red, #b3261e); }
+.cap-testo { overflow: hidden; text-overflow: ellipsis; animation: capEntra .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes capEntra { from { opacity: 0; transform: translateY(7px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@media (max-width: 900px) { .cap-viva { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cap-testo, .cap-viva.attivo i { animation: none; } }
+
+/* ── Il film della settimana (ReportFilm.jsx), 2ª versione ──
+   Lo stile dell'app: chiaro, schede, stessi caratteri; segue il tema. Ogni quadro: a sinistra numero
+   e frase, a destra il grafico o le foto. Comandi sempre in vista in basso. */
+.flm { position: fixed; inset: 0; z-index: 12000; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--bg); color: var(--text); animation: flmApre .45s cubic-bezier(.2,.8,.2,1); }
+.flm::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 50% at 78% 40%, color-mix(in srgb, var(--text) 5%, transparent), transparent 70%); }
+@keyframes flmApre { from { opacity: 0; transform: scale(1.015); } to { opacity: 1; transform: none; } }
+.flm-testa { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; padding: max(18px, env(safe-area-inset-top)) clamp(18px, 4vw, 56px) 0; }
+.flm-barre { flex: 1; display: flex; gap: 6px; }
+.flm-barre button { flex: 1; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: center; }
+.flm-barre i { position: relative; display: block; width: 100%; height: 3px; border-radius: 6px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; transition: height .15s ease; }
+.flm-barre button:hover i { height: 5px; }
+.flm-barre .fatta i { background: var(--text); }
+.flm-barre .ora i::after { content: ''; position: absolute; inset: 0; background: var(--text); transform-origin: left; animation: flmBarra var(--durata, 9000ms) linear forwards; }
+.flm-barre .ferma i::after { animation-play-state: paused; }
+.flm-barre .ora.ferma:last-child i::after { animation: none; }
+@keyframes flmBarra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.flm-tondo { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: grid; place-items: center; cursor: pointer; padding: 0; transition: transform .12s ease, border-color .12s ease; }
+.flm-tondo:hover:not(:disabled) { border-color: var(--text3); } .flm-tondo:active:not(:disabled) { transform: scale(.94); }
+.flm-tondo:disabled { opacity: .35; cursor: default; }
+.flm-tondo.gira svg { transform: rotate(180deg); }
+.flm-tondo.pieno { width: 52px; height: 52px; border-color: var(--text); background: var(--text); color: var(--bg); }
+.flm-pausa { width: 10px; height: 13px; border-left: 3.5px solid currentColor; border-right: 3.5px solid currentColor; }
+.flm-attesa { display: grid; place-items: center; font-size: 13px; color: var(--text3); }
+.flm-quadro { position: relative; z-index: 1; align-self: center; width: min(1320px, 100%); margin: 0 auto; padding: 0 clamp(18px, 4vw, 56px); display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); gap: clamp(28px, 5vw, 84px); align-items: center; }
+.flm-testo > * { animation: flmSale .7s cubic-bezier(.2,.8,.2,1) both; }
+.flm-testo > *:nth-child(2) { animation-delay: .07s; } .flm-testo > *:nth-child(3) { animation-delay: .14s; } .flm-testo > *:nth-child(4) { animation-delay: .22s; } .flm-testo > *:nth-child(5) { animation-delay: .3s; }
+@keyframes flmSale { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.flm-occhiello { margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--text3); }
+.flm-numero { margin-top: 14px; font-size: clamp(52px, 8.2vw, 128px); font-weight: 650; letter-spacing: -.055em; line-height: .98; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flm-numero small { margin-left: 6px; font-size: .22em; font-weight: 500; letter-spacing: 0; color: var(--text3); }
+.flm-titolo { margin: 14px 0 0; font-size: clamp(32px, 4.6vw, 68px); font-weight: 650; letter-spacing: -.04em; line-height: 1.04; }
+.flm-delta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 20px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.flm-delta b { padding: 5px 11px; border-radius: 999px; font-weight: 650; font-size: 13px; }
+.flm-delta.su b { color: var(--green, #1a7f37); background: color-mix(in srgb, var(--green, #1a7f37) 11%, transparent); }
+.flm-delta.giu b { color: var(--red, #b3261e); background: color-mix(in srgb, var(--red, #b3261e) 10%, transparent); }
+.flm-delta span { color: var(--text3); }
+.flm-frase { margin: 22px 0 0; max-width: 34em; font-size: clamp(15px, 1.35vw, 19px); line-height: 1.55; color: var(--text2); }
+.flm-vai { margin-top: 28px; height: 46px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--text); color: var(--bg); font-family: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.flm-visivo { min-width: 0; padding: clamp(20px, 2.4vw, 36px); border-radius: 28px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 30px 80px rgba(0,0,0,.06); animation: flmSale .8s .12s cubic-bezier(.2,.8,.2,1) both; }
+.flm-legenda { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; font-size: 11.5px; color: var(--text3); }
+.flm-legenda i { width: 10px; height: 10px; border-radius: 6px; background: var(--text); } .flm-legenda i.prima { margin-left: 12px; background: color-mix(in srgb, var(--text) 16%, transparent); }
+/* colonne */
+.flm-colonne { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(6px, 1.2vw, 18px); height: clamp(230px, 42vh, 400px); }
+.flm-colonne > div { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; text-align: center; min-width: 0; }
+.flm-col-val { font-size: 11.5px; font-weight: 600; color: var(--text3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flm-colonne .top .flm-col-val { color: var(--text); }
+.flm-col-coppia { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.flm-col-coppia i { flex: 1; max-width: 34px; height: var(--h); min-height: 3px; border-radius: 8px 8px 3px 3px; background: color-mix(in srgb, var(--text) 78%, transparent); transform-origin: bottom; animation: flmCresce .8s var(--r, 0ms) cubic-bezier(.2,.8,.2,1) both; }
+.flm-col-coppia i.prima { background: color-mix(in srgb, var(--text) 14%, transparent); }
+.flm-colonne .top .flm-col-coppia i:not(.prima) { background: var(--text); }
+.flm-colonne em { font-style: normal; font-size: 11.5px; color: var(--text3); text-transform: capitalize; }
+@keyframes flmCresce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes flmAllarga { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* righe (canali, clienti, prodotti con foto) */
+.flm-righe { margin: 0; padding: 0; list-style: none; display: grid; gap: 18px; }
+.flm-righe li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+.flm-righe li.con-foto { grid-template-columns: 64px minmax(0, 1fr) auto; }
+.flm-righe img, .flm-segnaposto { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; background: var(--neutro-bg); }
+.flm-righe b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flm-righe div i { display: block; margin-top: 9px; width: var(--w); height: 7px; min-width: 4px; border-radius: 8px; background: var(--text); transform-origin: left; animation: flmAllarga .8s var(--r, 0ms) cubic-bezier(.2,.8,.2,1) both; }
+.flm-righe li + li div i { background: color-mix(in srgb, var(--text) 55%, transparent); }
+.flm-righe strong { font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flm-righe small { font-size: 11.5px; font-weight: 500; color: var(--text3); }
+/* imbuto */
+.flm-imbuto { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }
+.flm-imbuto li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'nome num pct' 'barra barra barra'; align-items: baseline; gap: 8px 14px; }
+.flm-imbuto span { grid-area: nome; font-size: 13px; font-weight: 600; } .flm-imbuto b { grid-area: num; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.flm-imbuto em { grid-area: pct; min-width: 56px; text-align: right; font-style: normal; font-size: 13px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.flm-imbuto div { grid-area: barra; height: 12px; border-radius: 12px; background: var(--neutro-bg); overflow: hidden; }
+.flm-imbuto div i { display: block; width: var(--w); height: 100%; border-radius: 12px; background: var(--text); transform-origin: left; animation: flmAllarga .9s var(--r, 0ms) cubic-bezier(.2,.8,.2,1) both; }
+/* rotta */
+.flm-rotta { display: block; width: 100%; height: clamp(220px, 40vh, 380px); overflow: visible; }
+.flm-rotta path { fill: none; vector-effect: non-scaling-stroke; }
+.flm-rotta .vero { stroke: var(--text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: flmTraccia 1.4s .15s cubic-bezier(.4,0,.2,1) forwards; }
+.flm-rotta .previsto { stroke: var(--text); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; opacity: .5; }
+.flm-rotta .fascia { fill: var(--text); opacity: .07; }
+@keyframes flmTraccia { to { stroke-dashoffset: 0; } }
+/* mosaico di foto */
+.flm-mosaico { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.flm-mosaico.n1 { grid-template-columns: 1fr; } .flm-mosaico.n2, .flm-mosaico.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.flm-mosaico img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; background: var(--neutro-bg); animation: flmFoto .7s var(--r, 0ms) cubic-bezier(.2,.8,.2,1) both; }
+@keyframes flmFoto { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.flm-comandi { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; gap: 14px; padding: 18px 0 max(22px, env(safe-area-inset-bottom)); }
+.flm-conto { position: absolute; right: clamp(18px, 4vw, 56px); font-size: 13px; color: var(--text3); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+  .flm-quadro { grid-template-columns: 1fr; gap: 22px; align-self: start; padding-top: 18px; overflow-y: auto; max-height: 100%; }
+  .flm-visivo { padding: 16px; border-radius: 16px; } .flm-colonne { height: 200px; } .flm-rotta { height: 180px; }
+  .flm-frase { margin-top: 14px; } .flm-righe img, .flm-segnaposto { width: 48px; height: 48px; border-radius: 12px; } .flm-righe li.con-foto { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .flm-conto { position: static; }
+}
+@media (prefers-reduced-motion: reduce) { .flm, .flm *, .flm *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; } .flm-barre .ora i::after { animation-duration: var(--durata, 9000ms) !important; } }
+.mc-cima { display: flex; flex-wrap: wrap; gap: 8px; }
+.mc-stato.mc-film { cursor: pointer; color: var(--text); gap: 7px; }
+.mc-stato.mc-film:hover { border-color: var(--text3); }
+
+/* la giornata rigiocata: una capsula con ora, linea del tempo e conto che sale */
+.mc-rigioca { display: inline-flex; align-items: center; gap: 12px; height: 32px; padding: 0 6px 0 5px; border-radius: 999px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4); font-size: 11.5px; color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-rigioca b { min-width: 40px; font-size: 13px; font-weight: 650; color: var(--text); }
+.mc-rigioca input[type=range] { -webkit-appearance: none; appearance: none; width: clamp(120px, 16vw, 260px); height: 20px; background: transparent; cursor: pointer; outline: none !important; border: 0 !important; box-shadow: none !important; padding: 0; }
+.mc-rigioca input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 6px; background: var(--border); }
+.mc-rigioca input[type=range]::-moz-range-track { height: 3px; border-radius: 6px; background: var(--border); }
+.mc-rigioca input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: var(--text); border: 0; }
+.mc-rigioca input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 0; }
+.mc-rigioca-tasto { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--text); color: var(--bg, #fff); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.mc-rigioca-tasto:last-child { background: transparent; color: var(--text3); }
+.mc-pausa { width: 7px; height: 8px; border-left: 2.5px solid currentColor; border-right: 2.5px solid currentColor; }
+@media (max-width: 768px) { .mc-rigioca { width: 100%; height: 40px; } .mc-rigioca input[type=range] { flex: 1; width: auto; } }
+/* il pulsante del Cervello sta in basso a destra: il vetro gli lascia il posto */
+@media (min-width: 1101px) { .mc-vetro { margin-right: 76px; } }
+
+/* Traiettoria compatta (Marino, 19 set: "e' troppo grande. Possiamo farla piu' piccola?") */
+@media (min-width: 1101px) {
+  .mc-vetro { align-self: flex-start; width: min(520px, calc(100% - 76px)); margin-right: 0; padding: 14px 18px 10px; border-radius: 16px; }
+  .mc-numero { margin-top: 4px; }
+  .mc-occhiello { font-size: 10px; } .mc-sotto { margin-top: 6px; font-size: 11.5px; gap: 2px 10px; }
+  /* Alla testata del vetro (numero a sinistra, tre colonne a destra) servivano 506 px e il vetro ne
+     lascia 484: andava a capo SEMPRE, anche a 1920 px, col blocco ancorato a sinistra e mezza scheda
+     vuota. Non e' colpa del capo ma della larghezza: le etichette sono passate da 8,5 a 10 px con la
+     riduzione a sei grandezze. Si recupera sulle distanze — spazio fra le colonne e fra le lettere —
+     invece di rimpicciolire il testo fuori scala. */
+  .mc-lati { gap: 6px; } .mc-lati dt { font-size: 10px; letter-spacing: 0; } .mc-lati dd { font-size: 13px; margin-top: 3px; }
+  /* Sotto i ~1300 px il vetro e' stretto (210-290 px) e il capo serve davvero: «MER» sporgeva di 160
+     px. Li' le colonne vanno sotto al numero, ma restano a DESTRA (margin-left: auto), non ancorate
+     a sinistra. */
+  .mc-testa { flex-wrap: wrap; row-gap: 8px; gap: 8px 14px; }
+  .mc-lati { flex-wrap: wrap; row-gap: 6px; min-width: 0; margin-left: auto; }
+  .mc-grafico { margin-top: 6px; } .mc-curva { height: 64px; } .mc-rif-et { font-size: 10px; }
+  .mc-cursore { grid-template-columns: auto minmax(80px, 1fr) auto; gap: 10px; margin-top: 4px; padding-top: 8px; font-size: 11.5px; }
+  .mc-cursore input[type=range]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -6.5px; }
+}
+/* Marino, 19 set: "queste 2 sezioni falle centrali, non a sinistra" — la riga dei pulsanti e il vetro
+   della traiettoria stanno al CENTRO del globo. */
+@media (min-width: 1101px) {
+  .mc-telemetria { align-items: center; }
+  .mc-cima { justify-content: center; }
+  .mc-vetro { align-self: center; }
+  .mc-grafico { margin-top: 16px; }
+}
+
+/* ── Tab Prezzi (PrezziTab.jsx) ── */
+.prz { display: grid; gap: 18px; }
+.prz-testa { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 28px; }
+.prz-testa h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.prz-testa p { margin: 6px 0 0; max-width: 62ch; font-size: 13px; line-height: 1.5; color: var(--text3); }
+.prz-aggiungi { display: flex; gap: 8px; flex: 1 1 320px; max-width: 460px; }
+.prz-aggiungi input, .prz-cerca { flex: 1; min-width: 0; height: 38px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+.prz-aggiungi input:focus, .prz-cerca:focus { border-color: var(--text3); }
+.prz-errore { display: flex; align-items: center; gap: 7px; margin: 12px 0 0; font-size: 13px; color: var(--red, #b3261e); }
+.prz-elenco { margin: 16px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.prz-elenco li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 16px; }
+.prz-elenco li > i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); } .prz-elenco li > i.ok { background: var(--green, #1a7f37); } .prz-elenco li > i.ko { background: var(--red, #b3261e); }
+.prz-elenco b { display: block; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz-elenco span { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz-elenco button { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--text3); cursor: pointer; display: grid; place-items: center; } .prz-elenco button:hover:not(:disabled) { background: var(--neutro-bg); color: var(--text); } .prz-elenco button:disabled { opacity: .4; cursor: wait; }
+.prz-barra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.prz-cerca { flex: 0 1 280px; }
+.prz-articolo { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 12px; }
+.prz-articolo img, .prz-articolo > span { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: var(--neutro-bg); }
+.prz-articolo b { display: block; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 340px; }
+.prz-articolo small, .prz small { font-size: 11.5px; color: var(--text3); }
+.prz-pieno { margin-left: 6px; text-decoration: line-through; }
+.prz-link { display: inline-flex; align-items: center; gap: 5px; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); } .prz-link:hover { border-color: var(--text); }
+.prz-niente { margin: 8px 0; font-size: 13px; color: var(--text3); }
+.prz-altri { display: flex; justify-content: center; margin-top: 14px; }
+
+.prz-mercato { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; font-size: 11.5px; color: var(--text3); }
+.prz-mercato i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); } .prz-mercato i.ok { background: var(--green, #1a7f37); }
+.prz-marchi { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.prz-marchi button { flex: none; display: grid; gap: 3px; padding: 10px 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); text-align: left; cursor: pointer; font-family: inherit; }
+.prz-marchi button:hover { border-color: var(--text3); } .prz-marchi button.attivo { border-color: var(--text); background: var(--text); }
+.prz-marchi b { font-size: 11.5px; font-weight: 650; letter-spacing: .04em; color: var(--text); } .prz-marchi span { font-size: 11.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.prz-marchi button.attivo b { color: var(--bg); } .prz-marchi button.attivo span { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+.prz-gmc { margin: 12px 0 0; padding: 14px 16px; border-radius: 16px; background: var(--neutro-bg); display: grid; gap: 10px; }
+.prz-gmc p { margin: 0; max-width: 90ch; font-size: 13px; line-height: 1.55; color: var(--text2); overflow-wrap: anywhere; }
+.prz-gmc form { display: flex; flex-wrap: wrap; gap: 8px; } .prz-gmc input { flex: 1 1 240px; max-width: 340px; height: 38px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+.prz-gmc > .ly-btn { justify-self: start; }
+
+/* Prezzi, 2a versione: tabella come "Prodotti Google" */
+.prz-tab tbody tr { cursor: pointer; }
+.prz-fascia { display: inline-flex; align-items: center; gap: 6px; }
+.prz-vuoto { color: var(--text3); opacity: .45; }
+.prz-senza { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--text3); } .prz-senza b { color: var(--text2); font-weight: 600; }
+.prz-fonti-testa { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; font-family: inherit; color: var(--text3); }
+.prz-fonti-testa h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.prz-fonti-testa p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 5px 0 0; font-size: 11.5px; color: var(--text3); }
+.prz-fonti-testa p i { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); } .prz-fonti-testa p i.ok { background: var(--green, #1a7f37); }
+.prz-freccia { display: grid; transition: transform .2s ease; } .prz-freccia.giu { transform: rotate(90deg); }
+.prz-concorrenti .prz-testa { margin-top: 16px; align-items: center; } .prz-concorrenti .prz-testa p { margin: 0; }
+.prz-scheda table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.prz-scheda th { padding: 0 0 8px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); text-align: right; }
+.prz-scheda td { padding: 11px 0; border-top: 1px solid var(--border); text-align: right; color: var(--text); } .prz-scheda td:first-child { text-align: left; color: var(--text2); }
+.prz-scheda tr.tu td { font-weight: 650; } .prz-scheda tr.tu td:first-child { color: var(--text); }
+.prz-scheda dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.prz-scheda dt { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); } .prz-scheda dd { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.prz-previsione, .prz-nota { margin: 18px 0 0; font-size: 13px; line-height: 1.55; color: var(--text2); } .prz-nota { margin-top: 10px; color: var(--text3); font-size: 11.5px; } .prz-previsione em { color: var(--text3); }
+/* La tabella larga deve scorrere DENTRO la sua scheda: senza min-width:0 un elemento di griglia si
+   allarga quanto il suo contenuto e porta fuori schermo tutta la pagina (Marino, 19 set). */
+.prz { grid-template-columns: minmax(0, 1fr); }
+.prz > * { min-width: 0; max-width: 100%; }
+.prz .ly-scheda { min-width: 0; overflow: hidden; }
+.prz .ly-kpi-griglia { min-width: 0; }
+
+/* Prezzi, 3a versione: tutto nello schermo, niente scorrimento laterale */
+.prz-tab { width: 100%; min-width: 0 !important; table-layout: fixed; border-collapse: collapse; }
+.prz-tab th, .prz-tab td { white-space: normal; }
+.prz-tab thead tr.reg-colonne th:first-child, .prz-tab td.reg-primo { width: 27%; position: static; }
+.prz-tab td { vertical-align: middle; }
+.prz-tab .reg-valore { font-size: 13px; }
+.prz-tab .reg-pillola { padding: 2px 7px; font-size: 11.5px; vertical-align: 1px; }
+.prz-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz-perdita { color: var(--red, #b3261e) !important; font-weight: 600; }
+.prz-c-righello { width: 13%; }
+.prz-righello { position: relative; height: 22px; margin: 0 2px; }
+.prz-righello .pista { position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; border-radius: 6px; background: var(--border); }
+.segno { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; box-sizing: border-box; border: 1.5px solid var(--text2); background: var(--surface); border-radius: 50%; }
+.segno.suggerito { border-radius: 6px; transform: rotate(45deg); width: 8px; height: 8px; margin: -4px 0 0 -4px; }
+.segno.casa { border-radius: 6px; }
+.segno.tu { width: 12px; height: 12px; margin: -6px 0 0 -6px; border: 0; background: var(--text); z-index: 2; }
+.prz-righello.caro .segno.tu { background: var(--red, #b3261e); } .prz-righello.conveniente .segno.tu { background: var(--green, #1a7f37); }
+.prz-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin: 4px 0 12px; font-size: 11.5px; color: var(--text3); }
+.prz-legenda span { display: inline-flex; align-items: center; gap: 7px; } .prz-legenda .segno { position: static; margin: 0; transform: none; } .prz-legenda .segno.suggerito { transform: rotate(45deg); }
+.prz-legenda em { font-style: normal; opacity: .8; }
+@media (max-width: 1320px) { .prz-c-effetto { display: none; } .prz-f-mercato { } }
+@media (max-width: 1100px) { .prz-c-clic { display: none; } }
+@media (max-width: 900px) { .prz-c-casa, .prz-c-righello { display: none; } .prz-tab thead tr.reg-colonne th:first-child, .prz-tab td.reg-primo { width: 46%; } }
+/* con table-layout: fixed comanda la PRIMA riga (quella delle fasce): la larghezza dell'articolo va data li' */
+.prz-tab thead tr.reg-fasce th.reg-primo { width: 31%; }
+.prz-tab .reg-riga-nome { min-width: 0; } .prz-tab .reg-riga-nome > div:last-child { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 900px) { .prz-tab thead tr.reg-fasce th.reg-primo { width: 46%; } }
+
+/* ═══ Prezzi, 4a versione: sobria. Niente fasce colorate, niente tinte, una pastiglia per riga. ═══ */
+.prz-t { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.prz-t th { padding: 0 14px 10px; font-size: 11.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); text-align: right; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+.prz-t th.sx { width: 36%; cursor: default; } .prz-t th.sx, .prz-t td.sx { text-align: left; padding-left: 0; }
+.prz-t th.centro, .prz-t td.centro { text-align: center; } .prz-t th.prz-c-righello { width: 15%; }
+.prz-t th.attiva { color: var(--text); }
+.prz-t td { padding: 13px 14px; text-align: right; vertical-align: middle; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.25; }
+.prz-t tbody tr { cursor: pointer; transition: background-color .12s ease; }
+.prz-t tbody tr:hover, .prz-t tbody tr.aperta { background: var(--neutro-bg); }
+.prz-t tbody tr:last-child td { border-bottom: 0; }
+.prz-t td > b { font-weight: 620; letter-spacing: -.01em; }
+.prz-t td > small { display: block; margin-top: 4px; font-size: 11.5px; color: var(--text3); }
+.prz-t td > small.perdita, .prz-margine.perdita i, .prz-margine.perdita strong { color: var(--red, #b3261e); }
+.prz-t td > em { font-style: normal; font-size: 11.5px; color: var(--text3); } .prz-t td > em.su { color: var(--red, #b3261e); } .prz-t td > em.giu { color: var(--green, #1a7f37); }
+.prz-art { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 14px; }
+.prz-art img, .prz-art .foto-vuota { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; background: var(--neutro-bg); }
+.prz-art b { display: block; font-size: 13px; font-weight: 600; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz-art small { display: block; margin-top: 3px; font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz-pill { display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: var(--text2); background: var(--neutro-bg); }
+.prz-pill.su { color: var(--red, #b3261e); background: color-mix(in srgb, var(--red, #b3261e) 9%, transparent); }
+.prz-pill.giu { color: var(--green, #1a7f37); background: color-mix(in srgb, var(--green, #1a7f37) 10%, transparent); }
+.prz-t .prz-righello { max-width: 170px; margin: 0 auto; }
+.prz-legenda { margin: 2px 0 16px; }
+@media (max-width: 1180px) { .prz-t .prz-c-clic { display: none; } }
+@media (max-width: 980px) { .prz-t .prz-c-righello { display: none; } .prz-t th.sx { width: 44%; } }
+@media (max-width: 720px) { .prz-t .prz-c-sugg { display: none; } .prz-t td, .prz-t th { padding-left: 8px; padding-right: 0; } }
+/* pop-up: i tre scenari */
+.prz-righello-grande { padding: 6px 4px 18px; } .prz-righello-grande .prz-righello { height: 28px; }
+.prz-scenari { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.prz-scenario { display: grid; align-content: start; gap: 4px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; }
+.prz-scenario.tu { background: var(--neutro-bg); border-color: transparent; }
+.prz-scenario > span { font-size: 11.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); }
+.prz-scenario > b { margin-top: 4px; font-size: 22px; font-weight: 640; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.prz-scenario > em { font-style: normal; font-size: 11.5px; color: var(--text3); }
+.prz-margine { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.prz-margine i { font-style: normal; font-size: 11.5px; color: var(--text3); } .prz-margine strong { font-size: 15px; font-weight: 640; font-variant-numeric: tabular-nums; }
+.prz-scenario > small { font-size: 11.5px; line-height: 1.4; color: var(--text3); }
+.prz-siti { margin: 16px 0 0; padding: 0; list-style: none; }
+.prz-siti li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; font-variant-numeric: tabular-nums; }
+.prz-siti small { font-size: 11.5px; color: var(--text3); } .prz-siti b { font-weight: 620; }
+.prz-scheda dl { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 12px; padding-top: 18px; border-top: 1px solid var(--border); }
+.prz-t th { background: transparent !important; }
+.prz-t td > b, .prz-t td .prz-pill, .prz-t td > em { white-space: nowrap; }
+@media (max-width: 1500px) { .prz-t th.sx { width: 30%; } .prz-t th.prz-c-righello { width: 13%; } .prz-t td, .prz-t th { padding-left: 10px; padding-right: 10px; } .prz-t td.sx, .prz-t th.sx { padding-left: 0; } }
+@media (max-width: 1180px) { .prz-t th.sx { width: 36%; } }
+html body .prz .prz-t thead th { background: transparent !important; box-shadow: none !important; }
+@media (max-width: 1360px) { .prz-t .prz-c-clic { display: none; } }
+@media (max-width: 1180px) { .prz-t .prz-c-righello { display: none; } .prz-t th.sx { width: 40%; } }
+/* white-system.css:201 da' a OGNI intestazione di tabella un fondo grigio con :root[data-theme] body .app-main table thead th */
+:root[data-theme] body .app-main .prz table.prz-t.prz-t thead th, :root body .app-main .prz table.prz-t.prz-t thead th { background: transparent !important; color: var(--text3) !important; }
+:root[data-theme] body .app-main .prz table.prz-t.prz-t thead th.attiva, :root body .app-main .prz table.prz-t.prz-t thead th.attiva { color: var(--text) !important; }
+
+/* ═══ Prezzi, 5a versione: la STESSA tabella delle altre tab (reg-tab/gpv-tab), senza scorrimento ═══ */
+.prz-avvolge { overflow-x: visible; max-width: 100%; min-width: 0; }
+.prz .prz-tab { width: 100%; min-width: 0 !important; table-layout: auto; }
+.prz .prz-tab td.reg-primo, .prz .prz-tab th.reg-primo { position: static; width: 34%; max-width: 0; }
+.prz .prz-tab .gpv-titolo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prz .prz-tab td, .prz .prz-tab th { white-space: nowrap; }
+.prz .prz-tab .prz-perdita { color: #ef4444 !important; }
+@media (max-width: 1420px) { .prz .prz-tab .prz-n1 { display: none; } }
+@media (max-width: 1180px) { .prz .prz-tab .prz-n2 { display: none; } }
+@media (max-width: 760px) { .prz-avvolge { overflow-x: auto; } }
+
+/* Prezzi: a quando si riferiscono i dati + marchi come pastiglie che vanno a capo (mai di lato) */
+.prz-quando { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
+.prz-quando p { margin: 0; font-size: 13px; color: var(--text3); }
+.prz-marchi2 { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.prz-marchi2 button { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .01em; cursor: pointer; white-space: nowrap; transition: border-color .12s ease, background-color .12s ease; }
+.prz-marchi2 button:hover { border-color: var(--text3); }
+.prz-marchi2 button i { font-style: normal; font-weight: 500; font-size: 11.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.prz-marchi2 button.attivo { background: var(--text); border-color: var(--text); color: var(--bg); } .prz-marchi2 button.attivo i { color: color-mix(in srgb, var(--bg) 65%, transparent); }
+.prz-marchio-riga { margin: 0 0 12px; font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; } .prz-marchio-riga b { color: var(--text); }
+
+/* pop-up dei Prezzi: tre colonne di numeri nel conto (stesse righe del pop-up di Prodotti Google) */
+.gpv-voce .prz-col { width: 108px; } .gpv-voce .prz-col.oggi { color: var(--text); }
+.gpv-voce:not(.forte):not(.gpv-voce-testa) .prz-col:not(.oggi) { font-weight: 600; }
+@media (max-width: 640px) { .gpv-voce .prz-col { width: 78px; font-size: 13px; } .gpv-voce.forte .prz-col { font-size: 13px; } }
+
+/* ── Le spiegazioni al passaggio del mouse (ui/Spiegazioni.jsx): una nuvoletta sola per tutta l'app ──
+   SEGUE IL TEMA: di giorno una scheda bianca col testo scuro, di notte una scheda scura col testo chiaro.
+   La prima versione era "invertita" (fondo var(--text)): nel tema chiaro tema-chiaro.css forza il testo
+   scuro su ogni [role='tooltip'] ("mai lastre nere di giorno") e il risultato era scuro su scuro,
+   contrasto 1,6 — illeggibile (Marino, 20 set). Ora il colore del testo lo decide il tema e il fondo
+   gli va dietro: contrasto misurato > 10 in entrambi i temi. */
+.ly-spiega { position: fixed; left: 0; top: 0; z-index: 13000; max-width: min(340px, calc(100vw - 16px)); padding: 10px 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 11.5px; line-height: 1.5; font-weight: 500; letter-spacing: .005em; text-align: left; white-space: pre-line; box-shadow: 0 14px 36px rgba(31,42,53,.14); pointer-events: none; opacity: 0; transition: opacity .12s ease; }
+.ly-spiega.vista { opacity: 1; }
+:root[data-theme='light'] .ly-spiega[role='tooltip'] { background: #ffffff !important; }
+:root:not([data-theme='light']) .ly-spiega { background: #2c2c2c; color: #f5f5f5; border-color: rgba(255,255,255,.14); box-shadow: 0 14px 40px rgba(0,0,0,.55); }
+@media (prefers-reduced-motion: reduce) { .ly-spiega { transition: none; } }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   GIRO "SENTIRE" (20 set 2026) — il prodotto risponde al tocco.
+   Niente di nuovo da guardare: cambia come si SENTE. Una curva sola, tre durate, scala mai
+   sotto .96. A riposo non cambia un pixel. Tutto si spegne con prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sentire 1: la pressione si sente ──
+   Le icone della testata e i bottoni di vetro oggi non rispondono al clic: component-system.css:24
+   impone `transform: none !important` e vince per specificita'. Qui si ripete la classe per battere
+   quella regola, invece di cancellarla (cosi' il giro si toglie togliendo questo blocco). */
+html body .app-main .ly-icona-btn.ly-icona-btn,
+html body .app-main .btn-glass.btn-glass { transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s var(--ease); }
+html body .app-main .ly-icona-btn.ly-icona-btn:active:not(:disabled),
+html body .app-main .btn-glass.btn-glass:active:not(:disabled) { transform: scale(.96) !important; }
+.ly-icona-btn[data-suggerimento]:active::after { opacity: 0 !important; }
+html body .ly-pannello-btn { transition: color .15s ease, border-color .15s ease, transform .1s var(--ease); }
+html body .ly-pannello-btn:active:not(:disabled) { transform: scale(.96); }
+html body .ly-btn { transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s var(--ease); }
+html body .ly-btn:active:not(:disabled) { transform: scale(.97); }
+/* la barra in basso sta FUORI da .app-main: si stringe l'icona, non il bottone */
+.ly-barra-basso button span { transition: transform .12s var(--ease); }
+.ly-barra-basso button:active span { transform: scale(.94); }
+/* di notte le voci del menu non si schiarivano al passaggio (nessuna regola hover scura) */
+:root:not([data-theme='light']) .app-sidebar .app-nav-item:not([aria-current='page']):hover { background: var(--neutro-bg) !important; color: var(--text) !important; }
+/* le schede KPI cliccabili segnano il bordo: nessun movimento, nessun fondo */
+html body .ly-kpi[role='button'] { transition: border-color .15s ease; }
+html body .ly-kpi[role='button']:hover { border-color: var(--text3) !important; }
+
+/* ── Sentire 2: il pop-up e la ricerca rapida se ne vanno con garbo ──
+   Entravano in .2 s e si smontavano di colpo. Ora il velo sfuma e la scheda rientra a .97. */
+@keyframes lyVeloVia { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lyPannelloVia { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.97); } }
+.ly-pannello-velo.via { animation: lyVeloVia .14s ease forwards; pointer-events: none; }
+.ly-pannello-velo.via .ly-pannello { animation: lyPannelloVia .14s var(--ease) forwards; }
+.rr-velo { animation: lyVeloEntra .16s ease; }
+.rr-velo.via { animation: lyVeloVia .12s ease forwards; pointer-events: none; }
+.rr-velo.via .rr-pannello { animation: lyPannelloVia .12s var(--ease) forwards; }
+@keyframes lyVeloEntra { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Sentire 3: il cambio tab ── il TITOLO cambia di colpo, sfuma solo il contenuto ──
+   Marino, 20 set: "il titolo della tab, con l'effetto che hai messo, sembra che lagga". Misurato
+   (.audit-titolo-lag.mjs): con la dissolvenza il titolo era nitido dopo 290-350 ms dal clic, senza
+   dopo 8-50 ms. Per un terzo di secondo si vedevano il titolo vecchio e il nuovo sovrapposti in
+   trasparenza. Il testo non si dissolve: l'istantanea vecchia della testata sparisce subito e la
+   nuova compare piena. */
+::view-transition-old(testata) { display: none; }
+::view-transition-new(testata) { animation: none; }
+
+/* ── Sentire 4: il tema cambia in una dissolvenza sola ──
+   Prima solo poche superfici avevano una transizione: tutto il resto scattava insieme, un lampo
+   disordinato. Ora l'istantanea vecchia sfuma su quella nuova in 280 ms. */
+::view-transition-group(tema) { animation-duration: .28s; }
+html.cambio-tema::view-transition-old(root) { animation: lyVeloVia .28s ease forwards; }
+html.cambio-tema::view-transition-new(root) { animation: lyVeloEntra .28s ease; }
+html.cambio-tema::view-transition-old(menu), html.cambio-tema::view-transition-new(menu),
+html.cambio-tema::view-transition-old(testata), html.cambio-tema::view-transition-new(testata),
+html.cambio-tema::view-transition-old(barra-basso), html.cambio-tema::view-transition-new(barra-basso) { animation: none; }
+html.cambio-tema::view-transition-group(menu), html.cambio-tema::view-transition-group(testata), html.cambio-tema::view-transition-group(barra-basso) { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html body .app-main .ly-icona-btn.ly-icona-btn:active, html body .app-main .btn-glass.btn-glass:active,
+  html body .ly-pannello-btn:active, html body .ly-btn:active, .ly-barra-basso button:active span { transform: none !important; }
+  .ly-pannello-velo.via, .ly-pannello-velo.via .ly-pannello, .rr-velo, .rr-velo.via, .rr-velo.via .rr-pannello { animation: none !important; }
+  html.cambio-tema::view-transition-old(root), html.cambio-tema::view-transition-new(root) { animation: none !important; }
+}
+
+/* ── Sentire 5: il pulsante del Cervello non ruba piu' la scena ──
+   Stava a z-index 9999: restava nitido SOPRA il velo sfocato della ricerca rapida e copriva
+   l'ultima colonna di ogni tabella. Ora vive sotto i veli (900/1100/1200) e si ritrae mentre si
+   scorre, tornando quando ci si ferma. */
+html body .brain-launcher { z-index: 40; box-shadow: 0 4px 16px rgba(0,0,0,.16); transition: opacity .18s var(--ease), transform .18s var(--ease), box-shadow .18s ease; }
+html body .brain-launcher:hover { box-shadow: 0 8px 26px rgba(0,0,0,.22); }
+html body .brain-launcher:active { transform: scale(.94); }
+html body .brain-launcher.via { opacity: 0; transform: translateY(14px) scale(.9); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { html body .brain-launcher, html body .brain-launcher.via { transition: none; opacity: 1; transform: none; } }
+
+/* ── Sentire 6: i titoli di sezione parlano con una voce sola ──
+   Ogni pagina aveva il suo: 17px nero, 22px ardesia, maiuscoletto spaziato col pallino, con la
+   barretta viola. Una classe sola, e tutti uguali. */
+.titolo-sezione { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.sottotitolo-sezione { margin: 4px 0 0; font-size: 13px; color: var(--text2); }
+
+/* ── La piastrella dei loghi delle piattaforme ──
+   Era un fondo scritto in linea (`background: var(--text)`): i fogli del tema chiaro lo
+   ridipingevano di bianco, ma al passaggio del mouse quella correzione perdeva e il riquadro
+   diventava nero sotto il puntatore. Ora il colore lo decide il tema e resta fermo: il logo tiene
+   i suoi colori, la piastrella e' solo il foglio su cui sta. */
+html body .ly-piastrella { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; background: #ffffff !important; border: 1px solid rgba(0,0,0,.08); box-shadow: none !important; }
+html body .ly-piastrella.scura { background: #1d1d1d !important; border-color: rgba(255,255,255,.12); }
+:root:not([data-theme='light']) body .ly-piastrella { border-color: rgba(255,255,255,.14); }
+html body .ly-piastrella:hover { background: #ffffff !important; }
+/* senza questa il riquadro SCURO diventava bianco sotto il puntatore: la regola
+   c'era ma era scritta ":root html body", che non seleziona niente. */
+html body .ly-piastrella.scura:hover { background: #1d1d1d !important; }
+
+
+/* ── Schede dei report: le cifre sulla stessa linea ──
+   La riga tiene la cifra (22px) e il grafichetto (30px), centrati verticalmente. Dove il grafichetto
+   non c'e' — perche' i dati sono piatti e il componente non lo disegna — la riga e' piu' bassa e la
+   cifra sale: misurato in Weekly, «€4.610» stava 4px piu' in alto delle sorelle. Un'altezza minima
+   pari al grafichetto le rimette tutte in riga. */
+.rep-kpi-row { min-height: 30px; }
+/* e la cifra alta quanto la riga, o il centro cade mezzo pixel piu' su dove il grafichetto manca */
+.rep-kpi-row .metric-value { line-height: 30px; }
+/* un <svg> e' inline: senza questo, sotto di lui resta lo spazio della linea di base */
+.rep-kpi-row svg { display: block; }
+
+/* ── Il corpo di partenza dell'app ──
+   Nessuno lo dichiarava: chi non aveva un corpo suo ereditava i 16px del browser, una settima
+   grandezza fuori scala (misurato: un contatore in KPI Brain, i trattini «—» in Meta dettaglio).
+   I campi di testo restano a 16px su telefono per conto loro (iOS). */
+html body .app-main { font-size: var(--t-base); }
+
+/* ── Sentire 7: la gerarchia la fa la SCALA, non il grassetto ──
+   Alleggerire tutto della stessa percentuale non si vede: l'occhio legge i RAPPORTI. Qui la cifra
+   della scheda cresce (22 -> 31px) e l'etichetta si ritira (peso 640 -> 500): il rapporto fra i due
+   passa da 1:2,2 a 1:3,1 e la scheda si legge in un colpo solo. Stessa regola per le schede dei
+   pop-up e per i riquadri del pilota, cosi' tutte le schede del prodotto respirano uguale. */
+html body .ly-kpi-corpo { margin-top: 7px; }
+/* Qui c'era "font-size: 24px !important": scavalcava il corpo che ogni pop-up sceglie per se'
+   (17px scritti nel componente dei Prezzi) e l'EAN, 13 cifre, USCIVA dalla scheda (Marino, 20 set).
+   Il corpo torna a deciderlo il pop-up. E un valore lungo va a capo, non esce mai dal riquadro. */
+html body .prov-kpi-val { font-weight: 600 !important; letter-spacing: -.02em; min-width: 0; overflow-wrap: anywhere; }
+html body .prov-kpi { min-width: 0; }
+html body .prov-kpi-et { font-weight: 500 !important; letter-spacing: .08em; }
+
+
+/* ── Sentire 8: una sola scala numerica e una sola micro-etichetta ──
+   Il numero piu' importante della pagina (la scheda in cima alla Dashboard) era piu' PICCOLO di uno
+   secondario: tre gradini, uno solo per ruolo — 40px la scheda in cima, 31px le schede KPI, il
+   corpo nelle tabelle. E la micro-etichetta maiuscola esisteva in tre versioni (schede, scheda in
+   cima, gruppi del menu), con il menu scuro addirittura in bianco pieno e piu' grande del chiaro:
+   ora e' una sola, uguale nei due temi. */
+html body .app-nav-group-toggle { font-size: 10px !important; font-weight: 560 !important; letter-spacing: .08em !important; text-transform: uppercase !important; }
+/* ATTENZIONE: ":root html body X" non seleziona NIENTE — :root E' <html>, e
+   quel selettore cerca un <html> dentro <html>. Queste quattro regole (i colori
+   della micro-etichetta) erano scritte cosi' e non hanno mai fatto effetto. */
+:root:not([data-theme='light']) body .app-nav-group-toggle { color: #9a9a9a !important; }
+:root[data-theme='light'] body .app-nav-group-toggle { color: #6b6b6b !important; }
+html body .app-nav-group-toggle > span:last-child { margin-left: 8px; }
+/* le micro-etichette non devono smagrire fino a sparire */
+html body :is(.ly-kpi-et, .ly-sintesi-et, .prov-kpi-et) { font-weight: 560; }
+:root[data-theme='light'] body :is(.ly-kpi-et, .ly-sintesi-et, .prov-kpi-et) { color: #6b6b6b; }
+:root:not([data-theme='light']) body :is(.ly-kpi-et, .ly-sintesi-et, .prov-kpi-et) { color: #9a9a9a; }

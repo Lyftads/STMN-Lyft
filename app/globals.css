@@ -7,18 +7,32 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* Tabella Performance prodotti: le tinte delle fasce e le linee cambiano
+     col tema. Il colore della riga alternata e' PIENO e non trasparente,
+     perche' la colonna del prodotto resta ferma mentre il resto scorre: con
+     un velo, i numeri le passerebbero sotto restando visibili. */
+  --gpv-google:      #eab308;
+  --gpv-google-bg:   rgba(234,179,8,.10);
+  --gpv-economia:    #a78bfa;
+  --gpv-economia-bg: rgba(139,92,246,.10);
+  --gpv-shopify:     #22c55e;
+  --gpv-shopify-bg:  rgba(34,197,94,.10);
+  --gpv-resa:        #60a5fa;
+  --gpv-resa-bg:     rgba(41,151,255,.10);
+  --gpv-linea:       rgba(255,255,255,0.10);
+  --gpv-riga:        #0e0e0e;
   --bg:       #000000;
-  --bg2:      #050510;
-  --surface:  #0a0a14;
-  --surface2: #0f0f1a;
+  --bg2:      #060606;
+  --surface:  #0b0b0b;
+  --surface2: #101010;
   --glass:    rgba(255,255,255,0.03);
   --glass2:   rgba(255,255,255,0.06);
   --border:   rgba(255,255,255,0.06);
   --border2:  rgba(255,255,255,0.10);
   --border3:  rgba(255,255,255,0.15);
-  --text:     #f5f5f7;
-  --text2:    #e9e9ee;
-  --text3:    #c4c4cc;
+  --text:     #f5f5f5;
+  --text2:    #e9e9e9;
+  --text3:    #c5c5c5;
   --accent:   #2997ff;
   --accent2:  #6366f1;
   --card:     rgba(255,255,255,0.02);
@@ -27,6 +41,12 @@
   --blue:     #2997ff;
   --yellow:   #ffd60a;
   --orange:   #ff9f0a;
+  /* Stato del rapporto LTV:CAC come CANALI rgb: lo stesso token serve il
+     colore pieno rgb(var(--…)) e le velature rgba(var(--…), .07). */
+  --stat-nd-rgb: 138,138,148;
+  --stat-bad-rgb: 239,68,68;
+  --stat-warn-rgb: 245,158,11;
+  --stat-ok-rgb: 34,197,94;
   --purple:   #bf5af2;
   --cyan:     #64d2ff;
 }
@@ -47,7 +67,7 @@ body {
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
 input[type=number]::-webkit-inner-spin-button,
@@ -222,7 +242,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(0,0,0,0.45);
   backdrop-filter: blur(60px) saturate(1.3);
   -webkit-backdrop-filter: blur(60px) saturate(1.3);
-  border-radius: 20px;
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -299,7 +319,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   border: 1.5px solid rgba(255,255,255,0.06);
   border-top-color: rgba(255,255,255,0.10);
   border-bottom-color: rgba(0,0,0,0.45);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow:
     0 25px 70px rgba(0,0,0,0.80),
     0 10px 20px rgba(0,0,0,0.60),
@@ -327,7 +347,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: rgba(0,0,0,0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 24px;
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -378,7 +398,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 .heading-xl {
   font-size: 48px;
-  font-weight: 800;
+  font-weight: 640;
   letter-spacing: -0.04em;
   line-height: 1.05;
   color: var(--text);
@@ -386,7 +406,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 .heading-lg {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text);
@@ -394,7 +414,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 .heading-md {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--text);
@@ -409,7 +429,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--text2);
@@ -425,18 +445,21 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 /* ── Metric value ─────────────────────────────────────── */
 
+/* La stessa cifra di tutte le schede del prodotto (--t-titolo2, 22px): Marino, 20 set, ha scelto UNA
+   misura sola per i numeri. Stava a 34px/640, e il tema chiaro gli dava un peso e una crenatura
+   diversi dallo scuro: lo stesso elemento scritto in due modi a seconda del tema. */
 .metric-value {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: var(--t-titolo2, 22px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
   line-height: 1;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .metric-value-sm {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--t-titolo2, 22px);
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--text);
@@ -448,13 +471,13 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 .delta-up {
   color: var(--green);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .delta-down {
   color: var(--red);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── Interactive button ───────────────────────────────── */
@@ -465,7 +488,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   color: var(--text);
   border-radius: 12px;
   padding: 10px 18px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -546,7 +569,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   position: absolute;
   left: 0; top: 12px; bottom: 12px;
   width: 3px;
-  border-radius: 2px;
+  border-radius: 6px;
   background: var(--fx-accent, transparent);
   opacity: 0.5;
   transition: opacity 0.3s, box-shadow 0.3s;
@@ -572,7 +595,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   border: 1px solid rgba(255,255,255,0.08);
   border-bottom-color: rgba(255,255,255,0.12);
   padding: 18px 20px 16px;
-  border-radius: 14px 14px 10px 10px;
+  border-radius: 16px 14px 10px 10px;
   margin-bottom: 4px;
 }
 
@@ -591,7 +614,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   width: 28px; height: 28px;
   border-radius: 8px;
   display: grid; place-items: center;
-  font-size: 14px; font-weight: 900;
+  font-size: 13px; font-weight: 680;
   background: var(--fx-section-bg);
   color: var(--fx-section-color);
   box-shadow: 0 0 16px var(--fx-section-glow);
@@ -606,16 +629,16 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .fx-section-title {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 640;
   text-transform: uppercase;
   letter-spacing: 0.16em;
   color: var(--fx-section-color, var(--text2));
 }
 
 .fx-cell-label {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--text2);
@@ -623,15 +646,15 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .fx-cell-month {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
 }
 
 .fx-cell-value {
-  font-size: 19px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 640;
   letter-spacing: -0.02em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -650,7 +673,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: linear-gradient(155deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
   border: 1.5px solid rgba(255,255,255,0.07);
   border-top-color: rgba(255,255,255,0.14);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 22px 22px 18px;
   overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease;
@@ -713,8 +736,8 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 .fx-chart-title {
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 640;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text);
@@ -730,7 +753,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 .fx-chart-spark span {
   width: 2px;
-  border-radius: 1px;
+  border-radius: 6px;
   background: var(--fx-chart-glow);
   opacity: 0.6;
   animation: fx-spark 1.4s ease-in-out infinite;
@@ -887,10 +910,10 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     width: 42px; height: 40px; flex-shrink: 0;
     background: var(--glass2);
     border: 1px solid var(--border2);
-    border-radius: 10px; cursor: pointer; padding: 0;
+    border-radius: 12px; cursor: pointer; padding: 0;
   }
   .app-burger span {
-    display: block; width: 17px; height: 2px; border-radius: 2px;
+    display: block; width: 17px; height: 2px; border-radius: 6px;
     background: var(--text);
   }
 
@@ -904,7 +927,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     row-gap: 12px;
     margin-bottom: 24px !important;
   }
-  .app-header h1 { font-size: 24px !important; }
+  .app-header h1 { font-size: 20px !important; }
 
   /* Tabelle larghe: scroll orizzontale dentro la tab, non su tutta la pagina */
   .app-main table {

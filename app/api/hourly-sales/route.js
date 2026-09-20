@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
-import { KOONGO_EXCLUDE } from '../../../lib/shopify/koongo'
+import { clausolaSenzaCanali } from '../../../lib/shopify/koongo'
+import { canaliEsclusiDelCliente } from '../../../lib/team/canaliCliente'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
 
 // ============================================================================
@@ -69,8 +70,11 @@ function weekdayOccurrences(range) {
   return occ
 }
 
-async function compute(range) {
-  const salesRows = await shopifyQL(`FROM sales SHOW orders, total_sales WHERE ${KOONGO_EXCLUDE} GROUP BY day_of_week, hour_of_day SINCE ${range.since} UNTIL ${range.until} ORDER BY day_of_week, hour_of_day LIMIT 500`)
+async function compute(range, canali = []) {
+  // Canali del cliente, non una costante: vuoto = nessun filtro.
+  const c = clausolaSenzaCanali(canali)
+  const dove = c ? `WHERE ${c} ` : ''
+  const salesRows = await shopifyQL(`FROM sales SHOW orders, total_sales ${dove}GROUP BY day_of_week, hour_of_day SINCE ${range.since} UNTIL ${range.until} ORDER BY day_of_week, hour_of_day LIMIT 500`)
   const sessRows = await shopifyQL(`FROM sessions SHOW sessions, conversion_rate GROUP BY day_of_week, hour_of_day SINCE ${range.since} UNTIL ${range.until} ORDER BY day_of_week, hour_of_day LIMIT 500`)
 
   const grid = Array.from({ length: 7 }, () => Array.from({ length: 24 }, (_, h) => ({ hour: h, sessions: 0, orders: 0, revenue: 0, convSessions: 0 })))
@@ -139,7 +143,7 @@ export async function GET(req) {
     const range = resolveRange(searchParams)
     if (!range?.since || !range?.until) return NextResponse.json({ ok: false, error: 'Periodo non valido' }, { status: 400 })
     return swrSnapshot(req, { tab: 'hourlySales', ttlMs: 30 * 60 * 1000, compute: async () => {
-      try { return await compute(range) }
+      try { return await compute(range, await canaliEsclusiDelCliente()) }
       catch (e) { return { ok: false, error: e?.message || 'Errore Shopify', range, __noCache: true } }
     } })
   })

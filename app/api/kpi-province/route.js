@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle, getMeta } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
-import { isKoongoOrder } from '../../../lib/shopify/koongo'
+import { ordineDaCanaleEscluso } from '../../../lib/shopify/koongo'
+import { canaliEsclusiDelCliente } from '../../../lib/team/canaliCliente'
 import { regioneDiProvincia, regioneCanonica } from '../../../lib/geo/regioniItalia'
 import { metaEscludiDriveToStore } from '../../../lib/ads/driveToStore'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
@@ -391,7 +392,7 @@ function resolveRange(sp) {
   return getRange(preset, sp)
 }
 
-async function calcola(range) {
+async function calcola(range, canaliCliente = []) {
   // Partono subito: girano mentre si sfogliano gli ordini, non dopo.
   const inArrivo = Promise.all([spesaMetaPerRegione(range), spesaGooglePerRegione(range), sessioniPerRegione(range)])
   const q = `created_at:>=${range.since}T00:00:00Z created_at:<=${range.until}T23:59:59Z financial_status:paid`
@@ -413,7 +414,7 @@ async function calcola(range) {
     const conn = data?.orders
     for (const e of (conn?.edges || [])) {
       const n = e.node
-      if (isKoongoOrder(n)) { koongo += 1; continue }
+      if (ordineDaCanaleEscluso(n, canaliCliente)) { koongo += 1; continue }
       const totale = num(n.currentTotalPriceSet?.shopMoney?.amount)
       const reso = Math.abs(num(n.totalRefundedSet?.shopMoney?.amount))
       ordiniTotali += 1
@@ -682,7 +683,7 @@ export async function GET(req) {
     }
     return swrSnapshot(req, { tab: 'kpiProvince@12', ttlMs: 6 * ORE, compute: async () => {
       try {
-        const out = await calcola(range)
+        const out = await calcola(range, await canaliEsclusiDelCliente())
         // Un pezzo mancato per un inciampo esterno (limite di Shopify o di Meta, rete) NON si
         // conserva: prima la risposta con l'errore dentro restava in cache 6 ORE e veniva
         // riservita a tutti — per questo "Rate limited" sembrava capitare cosi' spesso.

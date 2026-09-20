@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
-import { KOONGO_EXCLUDE, isKoongoOrder } from '../../../lib/shopify/koongo'
+import { clausolaSenzaCanali, ordineDaCanaleEscluso } from '../../../lib/shopify/koongo'
+import { canaliEsclusiDelCliente } from '../../../lib/team/canaliCliente'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
 
 // ============================================================================
@@ -182,7 +183,7 @@ async function productMeta(ids) {
 // unitario sotto il listino pieno del prodotto (il caso dei saldi fatti
 // riprezzando la variante, dove Shopify non registra nessuno sconto).
 //
-// I campi source_name/tags/app_id servono a isKoongoOrder: senza, i saldi
+// I campi source_name/tags/app_id servono a riconoscere i canali esclusi dal cliente: senza, i saldi
 // conterebbero i marketplace mentre il resto della sezione brand li esclude.
 const ORDER_FIELDS = 'id,created_at,taxes_included,line_items,refunds,cancelled_at,source_name,tags,app_id'
 
@@ -240,7 +241,7 @@ async function saldiDagliOrdini(range, meta, scadenza) {
   const perProdotto = new Map()
 
   const onOrder = (o) => {
-    if (isKoongoOrder(o)) return
+    if (ordineDaCanaleEscluso(o, canali)) return
     if (o.cancelled_at) return
 
     // Resi RIGA PER RIGA. Il fatturato del brand arriva da ShopifyQL
@@ -362,9 +363,12 @@ function previousOf(range) {
 // risposta, gli snapshot salvati prima restano validi fino a 24 ore e i campi
 // nuovi arrivano al client semplicemente assenti — senza errori. Quando cambia
 // la FORMA della risposta, alzare il numero.
-const W = `WHERE ${KOONGO_EXCLUDE}`
+// I canali da escludere sono del CLIENTE, non una costante: chi non vende su marketplace non
+// subisce nessun filtro (clausola vuota = nessuna WHERE).
+const doveSenzaCanali = (canali) => { const c = clausolaSenzaCanali(canali); return c ? `WHERE ${c}` : '' }
 
-async function compute(range, prevRange) {
+async function compute(range, prevRange, canali = []) {
+  const W = doveSenzaCanali(canali)
   // In fila, non in parallelo: Shopify strozza le raffiche di ShopifyQL.
   const brandRows = await shopifyQL(`FROM sales SHOW total_sales, orders, net_items_sold ${W} GROUP BY product_vendor SINCE ${range.since} UNTIL ${range.until} ORDER BY total_sales DESC LIMIT 300`)
   const productRows = await shopifyQL(`FROM sales SHOW total_sales, net_items_sold ${W} GROUP BY product_id, product_vendor SINCE ${range.since} UNTIL ${range.until} ORDER BY total_sales DESC LIMIT 5000`)
@@ -554,7 +558,7 @@ export async function GET(req) {
     }
     return swrSnapshot(req, { tab: 'brandSales@4', ttlMs: 30 * 60 * 1000, compute: async () => {
       try {
-        return await compute(range, prevRange)
+        return await compute(range, prevRange, await canaliEsclusiDelCliente())
       } catch (e) {
         return { ok: false, error: e?.message || 'Errore Shopify', range, __noCache: true }
       }

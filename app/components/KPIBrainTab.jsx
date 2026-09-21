@@ -1282,6 +1282,9 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                 {province.fuori?.estero > 0 && (
                   <div>{t('kpi.provAbroad', { n: province.fuori.estero }, `${province.fuori.estero} ordini dall’estero, fuori da questa tabella.`)}</div>
                 )}
+                {province.fuori?.troncato && (
+                  <div>{t('kpi.provTruncated', null, 'Periodo molto ampio: i totali sono completi, ma comuni, marchi e prodotti sono limitati alle combinazioni più vendute.')}</div>
+                )}
                 <div>{t('kpi.provSessionsNote2', { c: province.analytics?.copertura ?? 0 },
                   `Sessioni di Shopify, solo Italia (le stesse del pannello Shopify). Shopify conosce la città della sessione, non la provincia: la città si lega alla provincia grazie agli ordini. Copertura ${province.analytics?.copertura ?? 0}% delle sessioni italiane.`)}</div>
               </div>

@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle, getMeta } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
-import { ordineDaCanaleEscluso } from '../../../lib/shopify/koongo'
+import { clausolaSenzaCanali } from '../../../lib/shopify/koongo'
 import { canaliEsclusiDelCliente } from '../../../lib/team/canaliCliente'
 import { regioneDiProvincia, regioneCanonica } from '../../../lib/geo/regioniItalia'
 import { metaEscludiDriveToStore } from '../../../lib/ads/driveToStore'
@@ -20,6 +20,18 @@ import { shopifyql } from '../../../lib/shopify/shopifyql'
 //  l'indirizzo completo, quindi provincia e comune sono un dato, non una
 //  stima.
 //
+//  DAI TOTALI DI SHOPIFY, NON SFOGLIANDO GLI ORDINI (21 set 2026). Prima si
+//  leggevano gli ordini uno per uno, 60 alla volta, per al massimo 40 pagine:
+//  2.400 ordini, a partire dal PIU' VECCHIO. Su Saracino, 1 luglio – 21
+//  settembre, la tabella si fermava ai primi 2.400 (242.539 €) mentre il
+//  riquadro in alto diceva 906.570 €, e il MER per regione usciva 1,36 invece
+//  di 5,17 perche' la spesa era quella di tutto il periodo. Il segnale
+//  `troncato` c'era, ma la pagina non lo mostrava. Ora vendite, ordini, nuovi
+//  e di ritorno, resi, comuni, marchi e prodotti per provincia vengono da
+//  ShopifyQL (`FROM sales ... GROUP BY shipping_region`), con le STESSE misure
+//  del fatturato in alto (total_sales: resi gia' tolti; senza i canali esclusi
+//  del cliente): esatti per qualunque numero di ordini, e in pochi secondi.
+//
 //  IL RIPIEGO CHE RECUPERA UN TERZO DEL FATTURATO. Verificato sul negozio: su
 //  trenta giorni, 60 ordini per 6.571 € arrivano SENZA provincia di
 //  spedizione — piu' di Roma, che e' la prima. Sono i clienti che scrivono i
@@ -28,10 +40,9 @@ import { shopifyql } from '../../../lib/shopify/shopifyql'
 //  provincia di spedizione, e dove manca quella di fatturazione. Quel che
 //  resta senza nessuna delle due si dichiara, non si nasconde.
 //
-//  NUOVI E DI RITORNO: `customer.numberOfOrders <= 1` ⇒ nuovo. E' lo stesso
-//  criterio del resto dell'app (metrics), e i due numeri devono combaciare.
-//  ShopifyQL non serve: `FROM orders` non esiste come insieme e `customer_type`
-//  non e' una colonna di `sales` — verificato, non dedotto.
+//  NUOVI E DI RITORNO: `orders_first_time` / `orders_returning` di ShopifyQL,
+//  la stessa classificazione di Shopify che usano i riquadri in alto
+//  (/api/shopify-countries): i due numeri devono combaciare.
 //
 //  MARKETPLACE FUORI: un ordine Koongo non nasce da una sessione sul sito e
 //  non ha una provincia che significhi qualcosa per la pubblicita'.
@@ -74,27 +85,6 @@ async function gql(query, variables, tentativo = 1) {
   if (!res.ok || errs.length) throw new Error(errs[0]?.message || `Shopify HTTP ${res.status}`)
   return json?.data
 }
-
-const Q_ORDINI = `
-  query O($q: String!, $cursor: String) {
-    orders(first: 60, query: $q, after: $cursor, sortKey: CREATED_AT) {
-      edges { node {
-        currentTotalPriceSet { shopMoney { amount } }
-        totalRefundedSet { shopMoney { amount } }
-        customer { numberOfOrders }
-        app { name }
-        shippingAddress { province provinceCode city countryCodeV2 }
-        billingAddress  { province provinceCode city countryCodeV2 }
-        lineItems(first: 40) { edges { node {
-          quantity
-          vendor
-          originalTotalSet { shopMoney { amount } }
-          product { id }
-        } } }
-      } }
-      pageInfo { hasNextPage endCursor }
-    }
-  }`
 
 // Il genere sta in uno di quattro metacampi, a seconda di quando e' stato
 // caricato il prodotto: si prende il primo che risponde.
@@ -395,12 +385,12 @@ function resolveRange(sp) {
 async function calcola(range, canaliCliente = []) {
   // Partono subito: girano mentre si sfogliano gli ordini, non dopo.
   const inArrivo = Promise.all([spesaMetaPerRegione(range), spesaGooglePerRegione(range), sessioniPerRegione(range)])
-  const q = `created_at:>=${range.since}T00:00:00Z created_at:<=${range.until}T23:59:59Z financial_status:paid`
   const province = new Map()   // nome provincia → aggregato
   const idProdotti = new Set()
   let ordiniTotali = 0, fatturatoTotale = 0
   let senzaProvincia = 0, fatturatoSenzaProvincia = 0
-  let daFatturazione = 0, estero = 0, koongo = 0
+  let daFatturazione = 0, estero = 0
+  let troncato = false, vecchi = false
 
   const nuovaProvincia = (nome) => ({
     provincia: nome, ordini: 0, fatturato: 0, resi: 0,
@@ -408,69 +398,78 @@ async function calcola(range, canaliCliente = []) {
     comuni: new Map(), marchi: new Map(), prodotti: new Map(),
   })
 
-  let cursore = null, pagine = 0
-  while (pagine < 40) {
-    const data = await gql(Q_ORDINI, { q, cursor: cursore })
-    const conn = data?.orders
-    for (const e of (conn?.edges || [])) {
-      const n = e.node
-      if (ordineDaCanaleEscluso(n, canaliCliente)) { koongo += 1; continue }
-      const totale = num(n.currentTotalPriceSet?.shopMoney?.amount)
-      const reso = Math.abs(num(n.totalRefundedSet?.shopMoney?.amount))
-      ordiniTotali += 1
-      fatturatoTotale += totale
-
-      const sped = n.shippingAddress || {}
-      const fatt = n.billingAddress || {}
-      const paese = sped.countryCodeV2 || fatt.countryCodeV2 || null
-      if (paese && paese !== 'IT') { estero += 1; continue }
-
-      // Il ripiego: la spedizione prima, poi la fatturazione.
-      const daSpedizione = (sped.province || '').trim()
-      const nomeProv = daSpedizione || (fatt.province || '').trim()
-      if (!daSpedizione && nomeProv) daFatturazione += 1
-      const comune = ((sped.city || fatt.city || '').trim()) || null
-      if (!nomeProv) { senzaProvincia += 1; fatturatoSenzaProvincia += totale; continue }
-
-      if (!province.has(nomeProv)) province.set(nomeProv, nuovaProvincia(nomeProv))
-      const p = province.get(nomeProv)
-      p.ordini += 1
-      p.fatturato += totale
-      p.resi += reso
-      const nuovo = Number(n.customer?.numberOfOrders || 0) <= 1
-      if (nuovo) { p.nuovi += 1; p.fatturatoNuovi += totale }
-      else { p.ritorno += 1; p.fatturatoRitorno += totale }
-
-      if (comune) {
-        const k = comune
-        if (!p.comuni.has(k)) p.comuni.set(k, { comune: k, ordini: 0, fatturato: 0 })
-        const c = p.comuni.get(k)
-        c.ordini += 1; c.fatturato += totale
-      }
-
-      for (const le of (n.lineItems?.edges || [])) {
-        const li = le.node
-        const valore = num(li.originalTotalSet?.shopMoney?.amount)
-        const pezzi = Math.round(num(li.quantity))
-        const marchio = (li.vendor || '').trim() || null
-        if (marchio) {
-          if (!p.marchi.has(marchio)) p.marchi.set(marchio, { marchio, fatturato: 0, pezzi: 0 })
-          const m = p.marchi.get(marchio)
-          m.fatturato += valore; m.pezzi += pezzi
-        }
-        if (li.product?.id) {
-          idProdotti.add(li.product.id)
-          const gia = p.prodotti.get(li.product.id) || { id: li.product.id, fatturato: 0, pezzi: 0 }
-          gia.fatturato += valore; gia.pezzi += pezzi
-          p.prodotti.set(li.product.id, gia)
-        }
-      }
-    }
-    pagine += 1
-    if (!conn?.pageInfo?.hasNextPage) { cursore = null; break }
-    cursore = conn.pageInfo.endCursor
+  // Le interrogazioni: tutte dalla porta unica, tutte senza i canali esclusi del cliente.
+  const canali = clausolaSenzaCanali(canaliCliente)
+  const dove = (extra) => { const c = [extra, canali].filter(Boolean).join(' AND '); return c ? `WHERE ${c}` : '' }
+  const periodo = `SINCE ${range.since} UNTIL ${range.until}`
+  const LIMITE = 20000
+  const chiedi = async (q) => {
+    const righe = await shopifyql(q)
+    if (righe?.stale) vecchi = true
+    if (righe.length >= LIMITE) troncato = true
+    return righe
   }
-  const troncato = cursore != null
+  const IT = "shipping_country = 'Italy'"
+  const [totali, perComune, perMarchio, perProdotto] = [
+    // Paese e provincia di spedizione e di fatturazione: la seconda e' il ripiego
+    // di chi scrive i propri dati solo nell'indirizzo di fatturazione.
+    await chiedi(`FROM sales SHOW total_sales, orders, orders_first_time, orders_returning, total_sales_first_time, total_sales_returning, returns ${dove('')} GROUP BY shipping_country, shipping_region, billing_country, billing_region ${periodo} ORDER BY total_sales DESC LIMIT ${LIMITE}`),
+    await chiedi(`FROM sales SHOW total_sales, orders ${dove(IT)} GROUP BY shipping_region, shipping_city ${periodo} ORDER BY total_sales DESC LIMIT ${LIMITE}`),
+    await chiedi(`FROM sales SHOW total_sales, net_items_sold ${dove(IT)} GROUP BY shipping_region, product_vendor ${periodo} ORDER BY total_sales DESC LIMIT ${LIMITE}`),
+    await chiedi(`FROM sales SHOW total_sales, net_items_sold ${dove(IT)} GROUP BY shipping_region, product_id ${periodo} ORDER BY total_sales DESC LIMIT ${LIMITE}`),
+  ]
+
+  for (const r of totali) {
+    const ordini = Math.round(num(r.orders))
+    const vendite = num(r.total_sales)          // resi gia' tolti, come il riquadro in alto
+    const reso = Math.abs(num(r.returns))
+    ordiniTotali += ordini
+    fatturatoTotale += vendite
+    const paese = !vuoto(r.shipping_country) ? String(r.shipping_country) : (!vuoto(r.billing_country) ? String(r.billing_country) : null)
+    if (paese && paese !== 'Italy') { estero += ordini; continue }
+    // Il ripiego: la spedizione prima, poi la fatturazione.
+    const daSpedizione = vuoto(r.shipping_region) ? '' : String(r.shipping_region).trim()
+    const nomeProv = daSpedizione || (vuoto(r.billing_region) ? '' : String(r.billing_region).trim())
+    if (!daSpedizione && nomeProv) daFatturazione += ordini
+    if (!nomeProv) { senzaProvincia += ordini; fatturatoSenzaProvincia += vendite; continue }
+    if (!province.has(nomeProv)) province.set(nomeProv, nuovaProvincia(nomeProv))
+    const p = province.get(nomeProv)
+    p.ordini += ordini
+    // `fatturato` resta il LORDO dei resi e `resi` a parte: piu' sotto netto = fatturato − resi,
+    // cioe' esattamente total_sales.
+    p.fatturato += vendite + reso
+    p.resi += reso
+    p.nuovi += Math.round(num(r.orders_first_time))
+    p.ritorno += Math.round(num(r.orders_returning))
+    p.fatturatoNuovi += num(r.total_sales_first_time)
+    p.fatturatoRitorno += num(r.total_sales_returning)
+  }
+
+  // Comuni, marchi e prodotti: per provincia di SPEDIZIONE (il ripiego sulla fatturazione vale
+  // per i totali qui sopra; per il dettaglio resterebbe fuori solo quel poco).
+  const diProvincia = (r) => (vuoto(r.shipping_region) ? null : province.get(String(r.shipping_region).trim())) || null
+  for (const r of perComune) {
+    const p = diProvincia(r); if (!p || vuoto(r.shipping_city)) continue
+    const k = String(r.shipping_city).trim()
+    const c = p.comuni.get(k) || { comune: k, ordini: 0, fatturato: 0 }
+    c.ordini += Math.round(num(r.orders)); c.fatturato += num(r.total_sales)
+    p.comuni.set(k, c)
+  }
+  for (const r of perMarchio) {
+    const p = diProvincia(r); if (!p || vuoto(r.product_vendor)) continue
+    const marchio = String(r.product_vendor).trim()
+    const m = p.marchi.get(marchio) || { marchio, fatturato: 0, pezzi: 0 }
+    m.fatturato += num(r.total_sales); m.pezzi += Math.round(num(r.net_items_sold))
+    p.marchi.set(marchio, m)
+  }
+  for (const r of perProdotto) {
+    const p = diProvincia(r); if (!p || vuoto(r.product_id)) continue
+    const id = `gid://shopify/Product/${String(r.product_id).replace(/\D/g, '')}`
+    idProdotti.add(id)
+    const g = p.prodotti.get(id) || { id, fatturato: 0, pezzi: 0 }
+    g.fatturato += num(r.total_sales); g.pezzi += Math.round(num(r.net_items_sold))
+    p.prodotti.set(id, g)
+  }
 
   // Categorie, generi e prodotti: dai prodotti venduti ai loro metacampi, in
   // blocco, una volta sola per tutte le province.
@@ -657,8 +656,8 @@ async function calcola(range, canaliCliente = []) {
       fatturatoSenzaProvincia: r2(fatturatoSenzaProvincia),
       recuperatiDallaFatturazione: daFatturazione,
       estero,
-      marketplace: koongo,
       troncato,
+      datiVecchi: vecchi,
     },
     analytics: ga ? {
       sessioniItalia: ga.totali,
@@ -681,7 +680,7 @@ export async function GET(req) {
     if (!range?.since || !range?.until) {
       return NextResponse.json({ ok: false, error: 'Periodo non valido' }, { status: 400 })
     }
-    return swrSnapshot(req, { tab: 'kpiProvince@12', ttlMs: 6 * ORE, compute: async () => {
+    return swrSnapshot(req, { tab: 'kpiProvinceTotali@1', ttlMs: 6 * ORE, compute: async () => {
       try {
         const out = await calcola(range, await canaliEsclusiDelCliente())
         // Un pezzo mancato per un inciampo esterno (limite di Shopify o di Meta, rete) NON si
@@ -689,6 +688,8 @@ export async function GET(req) {
         // riservita a tutti — per questo "Rate limited" sembrava capitare cosi' spesso.
         // "Non collegato" invece e' uno stato, non un inciampo: quello si puo' conservare.
         const inciampi = ['meta', 'google', 'sessioni'].filter(k => { const e = out?.spesaRegioni?.[k]?.errore; return e && !/non collegat/i.test(e) })
+        // Shopify ha dato l'ultimo dato buono invece di quello nuovo: si mostra, ma non si conserva.
+        if (out?.fuori?.datiVecchi) inciampi.push('shopify')
         return inciampi.length ? { ...out, inRitardo: inciampi, __noCache: true } : out
       }
       catch (e) { return { ok: false, error: e?.message || 'Errore Shopify', range, __noCache: true } }

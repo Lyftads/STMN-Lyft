@@ -4,6 +4,7 @@ export const maxDuration = 60
 import { fitIncrementality, responseCurve, forecast } from '../../../lib/incrementality/model'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
+import { oggiNegozio, piuGiorni } from '../../../lib/periodi'
 
 // Chiama un endpoint interno inoltrando i cookie del tenant (riusa auth + cache).
 async function internal(req, path) {
@@ -60,10 +61,8 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const days = Math.min(365, Math.max(30, parseInt(searchParams.get('days') || '150', 10)))
   const locale = (searchParams.get('locale') || 'it').slice(0, 2)
-  const until = new Date()
-  const since = new Date(Date.now() - days * 86400000)
-  const sIso = since.toISOString().slice(0, 10)
-  const uIso = until.toISOString().slice(0, 10)
+  const uIso = oggiNegozio()   // il giorno del negozio, non quello UTC
+  const sIso = piuGiorni(uIso, -days)
 
   return withTenantContext(req, async () => swrSnapshot(req, {
     tab: `incrementality_v7_${days}_${locale}`,

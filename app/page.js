@@ -37,6 +37,7 @@ import ReportFilm from './components/ReportFilm'
 // pezzo di codice a parte costerebbe un giro di rete in piu' per 3 KB che servono sempre.
 import PlanUsageBanner from './components/PlanUsageBanner'
 import dynamic from 'next/dynamic'
+import { oggiNegozio } from '../lib/periodi'
 
 // ── Il CODICE delle tab si carica dopo il primo disegno; i DATI restano tutti precaricati ──
 // Misurato il 19 set 2026 sul fork (31 tab importate insieme): 1,5 MB di JavaScript all'avvio e
@@ -2122,7 +2123,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
             // giorno: il report perdeva sei giorni dell'ultima settimana e confrontava N settimane con
             // N−1. Ora finisce la domenica (o oggi, se la settimana e' in corso), come la tabella.
             const d = new Date(`${weeklyCustom.until}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 6)
-            const domenica = d.toISOString().slice(0, 10), oggi = new Date().toISOString().slice(0, 10)
+            const domenica = d.toISOString().slice(0, 10), oggi = oggiNegozio()
             return { since: weeklyCustom.since, until: domenica > oggi ? oggi : domenica, label: 'Settimane selezionate' }
           })() : undefined}
         /></div>
@@ -2133,7 +2134,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
         const chiavi = (tfWeeks || []).map(w => w.key).filter(Boolean).sort()
         if (!chiavi.length) return null
         const fine = new Date(`${chiavi[chiavi.length - 1]}T12:00:00Z`); fine.setUTCDate(fine.getUTCDate() + 6)
-        const oggi = new Date().toISOString().slice(0, 10)
+        const oggi = oggiNegozio()
         const until = fine.toISOString().slice(0, 10) > oggi ? oggi : fine.toISOString().slice(0, 10)
         return <DriveToStoreCard since={chiavi[0]} until={until} />
       })()}
@@ -2411,7 +2412,7 @@ export default function App() {
     // prewarm) → snapshot già caldo, risposta immediata. Una finestra diversa
     // (es. 365g) creava una chiave cache fredda → computo pesante → timeout →
     // margine mai arrivato → 100% anche coi costi inseriti.
-    const until = new Date().toISOString().slice(0, 10)
+    const until = oggiNegozio()
     const since = new Date(Date.now() - 30 * 86400e3).toISOString().slice(0, 10)
     const tryFetch = (attempt) => {
       fetch(`/api/product-performance?since=${since}&until=${until}`)
@@ -2575,6 +2576,16 @@ export default function App() {
 
   fetchLiveRef.current = fetchLive
   useEffect(() => { fetchLive() }, [fetchLive])
+
+  // Su "Oggi" i numeri cambiano mentre si guarda: ogni 10 minuti, a pagina visibile, si rileggono i
+  // dati vivi (e con loro la spesa Google) con la cache normale — niente force, quindi niente
+  // interrogazioni in piu' a Shopify oltre a quelle che la cache del server gia' fa. Prima su "Oggi"
+  // restava tutto fermo finche' non si premeva Aggiorna (Marino, 21 set 2026).
+  useEffect(() => {
+    if (preset !== 'today') return
+    const giro = setInterval(() => { if (!document.hidden) fetchLiveRef.current?.(false) }, 10 * 60_000)
+    return () => clearInterval(giro)
+  }, [preset])
 
   // Prefetch staggered al primo mount: warma la cache per i preset piu' usati
   // cosi' cambiare tab e' istantaneo. Stagger 250ms per non saturare la rete.
@@ -3511,7 +3522,7 @@ export default function App() {
             <span className="rep-cmp" style={{fontSize:11.5,color:'var(--text3)'}}>{tfLabel}</span>
           </div>
 
-          {(() => { const o = new Date().toISOString().slice(0, 10); return <DriveToStoreCard since={`${o.slice(0, 7)}-01`} until={o} /> })()}
+          {(() => { const o = oggiNegozio(); return <DriveToStoreCard since={`${o.slice(0, 7)}-01`} until={o} /> })()}
 
           {/* Summary KPI Cards with sparkline + delta */}
           <div className="stagger-zoom m-grid2 rep-kpis" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:14,marginBottom:20}}>
@@ -3939,7 +3950,7 @@ export default function App() {
             {(() => {
               const [anno, q] = String(q0).split('-Q').map(Number)
               if (!anno || !q) return null
-              const oggi = new Date().toISOString().slice(0, 10)
+              const oggi = oggiNegozio()
               const since = `${anno}-${String((q - 1) * 3 + 1).padStart(2, '0')}-01`
               const ultimo = new Date(Date.UTC(anno, q * 3, 0)).toISOString().slice(0, 10)
               return <DriveToStoreCard since={since} until={ultimo > oggi ? oggi : ultimo} />
@@ -4339,7 +4350,7 @@ export default function App() {
             </div>
 
             {(() => {
-              const oggi = new Date().toISOString().slice(0, 10)
+              const oggi = oggiNegozio()
               const ultimo = `${y0}-12-31`
               return <DriveToStoreCard since={`${y0}-01-01`} until={ultimo > oggi ? oggi : ultimo} />
             })()}

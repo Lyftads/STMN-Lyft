@@ -7,6 +7,7 @@ import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { campagnaDaEscludere } from '../../../lib/ads/driveToStore'
 import { etichettaDelCliente } from '../../../lib/team/canaliCliente'
+import { oggiNegozio } from '../../../lib/periodi'
 
 // ============================================================================
 //  La spesa Drive to Store, mostrata A PARTE.
@@ -70,7 +71,7 @@ export async function GET(req) {
       return swrSnapshot(req, { tab: 'driveToStoreMonthly@2', ttlMs: 6 * 60 * 60 * 1000, compute: async () => {
         const oggi = new Date()
         const da = new Date(Date.UTC(oggi.getUTCFullYear() - 2, 0, 1)).toISOString().slice(0, 10)
-        const { errore, righe } = await leggi({ time_range: JSON.stringify({ since: da, until: oggi.toISOString().slice(0, 10) }), time_increment: 'monthly' }, etichetta)
+        const { errore, righe } = await leggi({ time_range: JSON.stringify({ since: da, until: oggiNegozio() }), time_increment: 'monthly' }, etichetta)
         if (errore) return { ok: false, error: errore, __noCache: true }
         const perMese = {}
         for (const r of righe) { const k = String(r.date_start || '').slice(0, 7); if (k) perMese[k] = r2((perMese[k] || 0) + num(r.spend)) }

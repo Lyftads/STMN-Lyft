@@ -6,6 +6,7 @@ import { format, subDays } from 'date-fns'
 import { withTenantContext, getShopify, getMeta, getTenantInfo, isFresco } from '../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../lib/supabase/server'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
+import { oggiNegozio } from '../../../lib/periodi'
 
 // fetch esterno con timeout: un socket Shopify/Meta che stalla non deve
 // bruciare i 60s della funzione (dashboard/report/agent a cascata).
@@ -123,7 +124,9 @@ function addDays(date, amount) {
 }
 
 function getPresetRange(preset = 'last_90d') {
-  const today = new Date()
+  // Mezzogiorno UTC del giorno del NEGOZIO: toDateString da' quel giorno e addDays conta in UTC.
+  // Prima era l'istante UTC: fra mezzanotte e le 2 italiane "Oggi" era ancora ieri.
+  const today = new Date(`${oggiNegozio()}T12:00:00Z`)
   const until = toDateString(today)
 
   // Range custom dal date-picker BM: codificato come "custom_<since>_<until>"
@@ -174,12 +177,12 @@ function getPresetRange(preset = 'last_90d') {
   }
 
   if (preset === 'this_week') {
-    const dow = (today.getDay() + 6) % 7 // lun=0
+    const dow = (today.getUTCDay() + 6) % 7 // lun=0
     return { since: toDateString(addDays(today, -dow)), until, label: 'Questa settimana' }
   }
 
   if (preset === 'last_week') {
-    const dow = (today.getDay() + 6) % 7
+    const dow = (today.getUTCDay() + 6) % 7
     const lwEnd = addDays(today, -dow - 1)   // domenica scorsa
     const lwStart = addDays(lwEnd, -6)       // lunedì scorso
     return { since: toDateString(lwStart), until: toDateString(lwEnd), label: 'Settimana scorsa' }
@@ -190,8 +193,8 @@ function getPresetRange(preset = 'last_90d') {
   }
 
   if (preset === 'last_month') {
-    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-    const end = new Date(today.getFullYear(), today.getMonth(), 0)
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1))
+    const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0))
     return { since: toDateString(d), until: toDateString(end), label: 'Mese scorso' }
   }
 

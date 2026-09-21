@@ -11,6 +11,7 @@ import { getCached, inMemoria, invalidate, leggi, swrFetch } from '../../lib/cli
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import FxCard from './ui/FxCard'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { oggiNegozio } from '../../lib/periodi'
 
 const WINDOWS = [6, 12, 18, 24]
 
@@ -94,7 +95,7 @@ export default function LtvCohortsTab() {
   useEffect(() => {
     let cancelled = false
     setMarginSrc({ status: 'loading' })
-    const until = new Date().toISOString().slice(0, 10)
+    const until = oggiNegozio()
     const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)
     fetch(`/api/product-performance?since=${since}&until=${until}`, { signal: AbortSignal.timeout(55000) })
       .then(r => r.ok ? r.json() : null)

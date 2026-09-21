@@ -1,6 +1,7 @@
 import { cercaSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
+import { oggiNegozio, piuGiorni } from '../../../lib/periodi'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -80,8 +81,9 @@ export async function GET(req) {
       port: 443,
     })
 
-    const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
-    const until = new Date().toISOString().slice(0, 10)
+    // Fino a OGGI del negozio: in UTC, fra mezzanotte e le 2 italiane, "oggi" mancava del tutto.
+    const until = oggiNegozio()
+    const since = piuGiorni(until, -365)
 
     const query = `SELECT segments.month, metrics.cost_micros, metrics.impressions, metrics.clicks FROM campaign WHERE segments.date BETWEEN '${since}' AND '${until}'`
 

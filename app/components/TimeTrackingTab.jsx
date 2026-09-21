@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Icon from './ui/Icon'
 import Avatar from './Avatar'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { oggiNegozio } from '../../lib/periodi'
 
 // Lyftimer — time tracking professionale. Ogni membro avvia un timer scegliendo
 // progetto, (opz.) task e una descrizione di cosa sta facendo. Allo stop la voce
@@ -61,13 +62,13 @@ export default function TimeTrackingTab({ standalone = false }) {
   const mondayOf = (d) => { const x = new Date(d); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); x.setHours(0, 0, 0, 0); return x }
   const [approveWeek, setApproveWeek] = useState(() => { const x = new Date(); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x.toISOString().slice(0, 10) })
   const [approvals, setApprovals] = useState({ rows: [], loaded: false })
-  const [attDay, setAttDay] = useState(() => new Date().toISOString().slice(0, 10))
+  const [attDay, setAttDay] = useState(() => oggiNegozio())
   const [attendance, setAttendance] = useState({ rows: [], loaded: false })
   const [timeoff, setTimeoff] = useState([])
   const [showOff, setShowOff] = useState(false)
   const [offForm, setOffForm] = useState({ type: 'ferie', start_date: '', end_date: '', note: '', member_id: '' })
   const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10) }
-  const todayStr = () => new Date().toISOString().slice(0, 10)
+  const todayStr = () => oggiNegozio()
   const [range, setRange] = useState({ from: monthStart(), to: todayStr() })
   const [groupBy, setGroupBy] = useState('project')
   const [report, setReport] = useState([])

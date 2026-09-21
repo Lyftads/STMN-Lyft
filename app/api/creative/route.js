@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
+import { oggiNegozio } from '../../../lib/periodi'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -88,12 +89,12 @@ function round(n, d = 2) {
 }
 
 function todayYMD() {
-  return new Date().toISOString().slice(0, 10)
+  return oggiNegozio()   // il giorno del negozio, non quello UTC
 }
 
 function addDays(date, days) {
   const d = new Date(date)
-  d.setDate(d.getDate() + days)
+  d.setUTCDate(d.getUTCDate() + days)   // in UTC: le date partono da mezzanotte UTC (new Date('YYYY-MM-DD'))
   return d
 }
 
@@ -156,12 +157,12 @@ function getRange(preset, sp = null) {
   }
 
   if (preset === 'this_week') {
-    const dow = (today.getDay() + 6) % 7 // lun=0
+    const dow = (today.getUTCDay() + 6) % 7 // lun=0
     return { since: ymd(addDays(today, -dow)), until: ymd(today) }
   }
 
   if (preset === 'last_week') {
-    const dow = (today.getDay() + 6) % 7
+    const dow = (today.getUTCDay() + 6) % 7
     const lwEnd = addDays(today, -dow - 1)
     return { since: ymd(addDays(lwEnd, -6)), until: ymd(lwEnd) }
   }

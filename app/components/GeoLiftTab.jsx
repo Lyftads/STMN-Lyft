@@ -7,6 +7,7 @@ import { swrFetch, getCached, invalidate } from '../../lib/clientCache'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import RecosCard from './ui/RecosCard'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { oggiNegozio } from '../../lib/periodi'
 
 // Restano SOLO come colori delle due linee del grafico (test e controllo): li'
 // il colore distingue una serie dall'altra. Nell'interfaccia non si usano piu'.
@@ -27,7 +28,7 @@ export default function GeoLiftTab() {
   const [testsDbMissing, setTestsDbMissing] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [creating, setCreating] = useState(false)
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState(() => oggiNegozio())
   const [testName, setTestName] = useState('')
 
   const load = (force = false) => {

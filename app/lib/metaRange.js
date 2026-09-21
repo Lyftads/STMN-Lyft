@@ -1,3 +1,4 @@
+import { oggiNegozio } from '../../lib/periodi'
 // Risoluzione preset → finestra + periodo precedente (lato server, per gli
 // endpoint Meta: creative-fatigue, budget-advisor). Periodo precedente =
 // finestra di pari lunghezza immediatamente prima.
@@ -6,7 +7,7 @@ function iso(d) { return d.toISOString().slice(0, 10) }
 function addDays(dateStr, n) { const d = new Date(`${dateStr}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return iso(d) }
 
 export function getRange(preset) {
-  const today = iso(new Date())
+  const today = oggiNegozio()   // il giorno del negozio, non quello UTC
 
   if (typeof preset === 'string' && preset.startsWith('month_')) {
     const [y, mm] = preset.slice(6).split('-').map(Number)

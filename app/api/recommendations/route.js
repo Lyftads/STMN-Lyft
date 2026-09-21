@@ -8,6 +8,7 @@ import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/serve
 import { buildBrandContext } from '../../../lib/tenant/brand'
 import { recall, buildKnowledgeBlock } from '../../../lib/tenant/agentMemory'
 import { complete } from '../../../lib/agent/router'
+import { oggiNegozio } from '../../../lib/periodi'
 
 // ============================================================================
 //  Proactive Recommendations
@@ -158,7 +159,7 @@ ${ACTION_QUALITY}`
   // questo avviso il modello leggeva "fatturato 0 vs 1.028 ieri" e proponeva
   // come URGENTE di controllare se il sito era rotto, su un negozio che
   // semplicemente non aveva ancora ricevuto ordini alle nove del mattino.
-  const _today = new Date().toISOString().slice(0, 10)
+  const _today = oggiNegozio()   // il giorno del negozio
   const _sr = metrics?.shopifyRange || {}
   const partialDay = String(_sr.since || '').slice(0, 10) === _today && String(_sr.until || '').slice(0, 10) === _today
   const partialNote = partialDay

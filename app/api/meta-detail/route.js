@@ -4,6 +4,7 @@ export const maxDuration = 45
 import { NextResponse } from 'next/server'
 import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
+import { oggiNegozio, piuGiorni, fineMeseScorso } from '../../../lib/periodi'
 
 // Tenant-aware getter (env-only mode di default)
 const metaToken   = () => getMeta().accessToken
@@ -37,23 +38,17 @@ function getAccounts() {
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return oggiNegozio()   // il giorno del negozio, non quello UTC
 }
 
-function addDays(date, days) {
-  const d = new Date(`${date}T00:00:00`)
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
-}
+const addDays = (date, days) => piuGiorni(date, days)   // in UTC su date nude (lib/periodi.js)
 
 function startOfMonth(date) {
   return `${date.slice(0, 7)}-01`
 }
 
 function endOfPreviousMonth(date) {
-  const d = new Date(`${startOfMonth(date)}T00:00:00`)
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().slice(0, 10)
+  return fineMeseScorso(date)
 }
 
 function startOfPreviousMonth(date) {
@@ -100,12 +95,12 @@ function getRange(preset, searchParams) {
   }
 
   if (preset === 'this_week') {
-    const dow = (new Date(`${today}T00:00:00`).getDay() + 6) % 7 // lun=0
+    const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7 // lun=0
     return { since: addDays(today, -dow), until: today }
   }
 
   if (preset === 'last_week') {
-    const dow = (new Date(`${today}T00:00:00`).getDay() + 6) % 7
+    const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7
     const lwEnd = addDays(today, -dow - 1)
     return { since: addDays(lwEnd, -6), until: lwEnd }
   }
@@ -133,8 +128,7 @@ function getRange(preset, searchParams) {
   }
 
   // Preset sconosciuto → 28gg come gli altri resolver (mai "oggi" in silenzio)
-  const d28 = new Date(); d28.setDate(d28.getDate() - 28)
-  return { since: d28.toISOString().slice(0, 10), until: today }
+  return { since: addDays(today, -28), until: today }
 }
 
 function getPreviousRange(range) {

@@ -1,3 +1,4 @@
+import { oggiNegozio } from '../../lib/periodi'
 // Risolve un preset (o una finestra esplicita) in { since, until, prevSince,
 // prevUntil, label }. Il periodo precedente è la finestra di pari lunghezza
 // immediatamente precedente. Usato dal bottone "Scarica report PDF".
@@ -17,7 +18,7 @@ function withPrev(since, until, label) {
 }
 
 export function presetToRange(preset, custom) {
-  const today = iso(new Date())
+  const today = oggiNegozio()   // il giorno del negozio, non quello UTC
 
   if (custom?.since && custom?.until) return withPrev(custom.since, custom.until, custom.label || `${custom.since} → ${custom.until}`)
 

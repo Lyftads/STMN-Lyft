@@ -4,6 +4,7 @@ export const maxDuration = 120 // account grandi: 7 risorse paginate andavano in
 import { NextResponse } from 'next/server'
 import { withTenantContext, getKlaviyo, getTenantInfo } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
+import { mezzanotteNegozio } from '../../../lib/periodi'
 
 // Cache server-side: la tab fa molte chiamate Klaviyo (lente). 5 min TTL così
 // riaprire la tab è istantaneo. ?force=1 bypassa.
@@ -188,8 +189,9 @@ async function queryMetric(metricId, measurement, days, { by = null, pickDim = n
   const now = new Date()
   const start = new Date(now)
   if (days === 0) {
-    // "Oggi": da mezzanotte (locale Europe/Rome ~UTC+2 estate) a now.
-    start.setHours(0, 0, 0, 0)
+    // "Oggi": dalla mezzanotte del NEGOZIO. setHours(0) sul server (UTC) partiva dalle 2 di notte
+    // italiane (dall'1 d'inverno): le prime ore del giorno mancavano.
+    start.setTime(mezzanotteNegozio().getTime())
   } else {
     start.setDate(start.getDate() - days)
   }

@@ -100,12 +100,8 @@ const YearAgent = PigraMuta('YearAgent', () => import('./components/YearAgent'))
 const SimulatorAgent = PigraMuta('SimulatorAgent', () => import('./components/SimulatorAgent'))
 // Le dodici tab in fondo alla coda: si usano meno delle altre, quindi il loro codice si scarica
 // per ultimo e non ruba banda alla Dashboard appena aperta.
-const PerformanceAgentTab = Pigra('PerformanceAgentTab', () => import('./components/PerformanceAgentTab'))
-const CreativeIntelTab = Pigra('CreativeIntelTab', () => import('./components/CreativeIntelTab'))
 const TeamTab = Pigra('TeamTab', () => import('./components/TeamTab'))
 const TimeTrackingTab = Pigra('TimeTrackingTab', () => import('./components/TimeTrackingTab'))
-const LighthouseTab = Pigra('LighthouseTab', () => import('./components/LighthouseTab'))
-const GoogleLighthouseTab = Pigra('GoogleLighthouseTab', () => import('./components/GoogleLighthouseTab'))
 const BudgetAdvisorPanel = Pigra('BudgetAdvisorPanel', () => import('./components/BudgetAdvisorPanel'))
 const GoogleBudgetAdvisorPanel = Pigra('GoogleBudgetAdvisorPanel', () => import('./components/GoogleBudgetAdvisorPanel'))
 const IncrContributionTab = Pigra('IncrContributionTab', () => import('./components/IncrContributionTab'))
@@ -2731,15 +2727,22 @@ export default function App() {
   // (/api/oggi-vs-ieri). Contro le 24 ore di ieri, a meta' giornata ogni KPI risulta in calo
   // solo perche' il giorno non e' finito (Marino, 19 set). Finche' quei numeri non arrivano
   // resta il confronto di prima; vale per tutti i riquadri, che leggono tutti da qui.
-  const io = preset === 'today' ? stessaOra?.ieriAllaStessaOra : null
+  // Il confronto alla stessa ora vale solo se «oggi» e' lo STESSO giorno per le due fonti.
+  // /api/metrics decide la data in UTC, /api/oggi-vs-ieri nel fuso del negozio: fra
+  // mezzanotte e le due (ora legale) la Dashboard mostra ancora il giorno prima, e confrontarlo
+  // con «ieri fino alle 00:30» lo farebbe sembrare cresciuto di cento volte. Se le date non
+  // coincidono si torna al confronto di prima, che almeno e' fatto sulla stessa giornata.
+  const oggiDashboard = live?.kpiBrain?.range?.since || null
+  const stessaOraValida = (preset === 'today' && stessaOra?.ieriAllaStessaOra && (!oggiDashboard || oggiDashboard === stessaOra.oggi)) ? stessaOra : null
+  const io = stessaOraValida ? stessaOraValida.ieriAllaStessaOra : null
   const prevTotals = io ? {
     revenue: io.fatturato ?? 0, orders: io.ordini ?? 0, nc: io.nuovi ?? 0, rc: io.abituali ?? 0,
     // sessioni e clic: la quota di ieri a quest'ora applicata al numero di ieri della Dashboard
-    sessions: stessaOra?.quote?.sessioni != null && Number(spr.sessions) > 0 ? Math.round(Number(spr.sessions) * stessaOra.quote.sessioni) : (io.sessioni ?? 0),
+    sessions: stessaOraValida?.quote?.sessioni != null && Number(spr.sessions) > 0 ? Math.round(Number(spr.sessions) * stessaOraValida.quote.sessioni) : (io.sessioni ?? 0),
     resi: Number(spr.resi) || 0,
     metaSpend: io.spesaMeta ?? 0, googleSpend: googleAuto.configured ? (io.spesaGoogle ?? 0) : 0,
     impressions: io.impressioni ?? 0,
-    clicks: stessaOra?.quote?.clic != null && Number(mpr.clicks) > 0 ? Math.round(Number(mpr.clicks) * stessaOra.quote.clic) : (io.clic ?? 0),
+    clicks: stessaOraValida?.quote?.clic != null && Number(mpr.clicks) > 0 ? Math.round(Number(mpr.clicks) * stessaOraValida.quote.clic) : (io.clic ?? 0),
     koongo: io.marketplace ?? 0,
   } : {
     revenue: Number(spr.revenue)  || sumField(swPrev, 'fatturato'),
@@ -3066,7 +3069,7 @@ export default function App() {
   // ── "Come nasce questo numero": una spiegazione per ogni riquadro della Dashboard ──────────
   // Il conto con le cifre vere dentro, da dove viene, e l'andamento settimanale. Il confronto e'
   // quello dei riquadri: periodo precedente, oppure ieri alla stessa ora quando il periodo e' Oggi.
-  const etPrima = (preset === 'today' && stessaOra?.ieriAllaStessaOra) ? t('sn.yesterdayAt', { h: stessaOra.alle }, `ieri alle ${stessaOra.alle}`) : t('sn.before', null, 'periodo prima')
+  const etPrima = stessaOraValida ? t('sn.yesterdayAt', { h: stessaOraValida.alle }, `ieri alle ${stessaOraValida.alle}`) : t('sn.before', null, 'periodo prima')
   const settimane = (elenco, campo) => (elenco || []).slice(-26).map(w => ({ x: w.date, v: Number(w[campo]) || 0 }))
   const rapportoSettimane = (num, campoN, den, campoD) => { const d = new Map((den || []).map(w => [w.date, Number(w[campoD]) || 0])); return (num || []).slice(-26).map(w => ({ x: w.date, v: d.get(w.date) > 0 ? (Number(w[campoN]) || 0) / d.get(w.date) : null })).filter(p => p.v != null) }
   const prevSpesa = (prevTotals.metaSpend || 0) + (prevTotals.googleSpend || 0)
@@ -3178,7 +3181,7 @@ export default function App() {
             <div className="dash-live-globe"><div className="lv-globo-tela"><QuandoFermo><DashboardGlobe /></QuandoFermo></div><TelemetriaGlobo /></div>
             <div className="dash-live-left lv-colonna">
               <SintesiDashboard t={t}
-            stessaOra={preset === 'today' ? stessaOra : null} periodo={rangeLabel(globalPresetToTf(preset), t, intlLocale)}
+            stessaOra={stessaOraValida} periodo={rangeLabel(globalPresetToTf(preset), t, intlLocale)}
             fatturato={totFat} spesa={totSpend} mer={avgMER} ordini={totOrd}
             prima={{ fatturato: prevTotals.revenue, spesa: (prevTotals.metaSpend || 0) + (prevTotals.googleSpend || 0) }} />
               <MossePilota />
@@ -4505,16 +4508,8 @@ export default function App() {
   <CorrispettiviTab />
 )}
 
-{tab === 'googleLighthouse' && (
-  <GoogleLighthouseTab />
-)}
-
 {tab === 'googleBudgetAdvisor' && (
   <GoogleBudgetAdvisorPanel />
-)}
-
-{tab === 'lighthouse' && (
-  <LighthouseTab />
 )}
 
 {tab === 'incrContribution' && (
@@ -4556,18 +4551,9 @@ export default function App() {
   <LtvCohortsTab />
 )}
 
-{/* PERFORMANCE AGENT TAB */}
-{tab === 'performanceAgent' && (
-  <PerformanceAgentTab cfg={cfg} preset={preset} />
-)}
-
 {/* KLAVIYO TAB */}
 {tab === 'klaviyo' && (
   <EmailMarketingTab />
-)}
-
-{tab === 'creativeIntel' && (
-  <CreativeIntelTab />
 )}
 
 {tab === 'inventory' && (

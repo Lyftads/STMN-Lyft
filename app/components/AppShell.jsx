@@ -227,7 +227,6 @@ export default function AppShell({
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
         { id: 'creativeLibrary', label: 'Creatività', icon: <Icon name="image" /> },
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
-        { id: 'performanceAgent', label: 'Performance Agent', icon: <Icon name="sparkle" /> },
       ],
     },
     {
@@ -237,7 +236,6 @@ export default function AppShell({
         { id: 'cro', label: 'CRO', icon: <Icon name="funnel" /> },
         { id: 'webScanner', label: 'AI Website Scanner', icon: <Icon name="scan" /> },
         { id: 'seoAudit', label: 'SEO Audit', icon: <Icon name="search" /> },
-        { id: 'creativeIntel', label: 'Creative Intel', icon: <Icon name="eye" /> },
       ],
     },
     {
@@ -247,7 +245,6 @@ export default function AppShell({
         { id: 'creative', label: 'Creative', icon: <Icon name="image" /> },
         { id: 'metaDetail', label: 'Meta Detail', icon: <Icon name="list" /> },
         { id: 'metaKpi', label: 'Meta KPI', icon: <Icon name="gauge" /> },
-        { id: 'lighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'creativeFatigue', label: 'Creative Fatigue', icon: <Icon name="pulse" /> },
         { id: 'budgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
         { id: 'metaLeadgen', label: 'Lead Gen', icon: <Icon name="users" /> },
@@ -261,7 +258,6 @@ export default function AppShell({
         { id: 'googleProducts', label: 'Prodotti', icon: <Icon name="bag" /> },
         { id: 'googleVerdicts', label: 'Verdetti prodotti', icon: <Icon name="rocket" /> },
         { id: 'googleKpi', label: 'Google KPI', icon: <Icon name="gauge" /> },
-        { id: 'googleLighthouse', label: 'Lighthouse', icon: <Icon name="warning" /> },
         { id: 'googleBudgetAdvisor', label: 'Budget Advisor', icon: <Icon name="wallet" /> },
       ],
     },
@@ -670,7 +666,7 @@ export default function AppShell({
               <AlertsBell />
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
-              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','lighthouse','googleDetail','googleKpi','googleVerdicts','googleLighthouse','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','corrispettivi','clienti','inventory','productPerformance','productCosts','googleProducts','metaLeadgen','ltvCohorts'].includes(tab) && (
+              {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','googleDetail','googleKpi','googleVerdicts','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','corrispettivi','clienti','inventory','productPerformance','productCosts','googleProducts','metaLeadgen','ltvCohorts'].includes(tab) && (
                 <BottoneIcona icona="refresh" titolo={loading ? t('shell.refreshing') : t('shell.refresh')} onClick={onRefresh} disabled={loading} gira={loading} />
               )}
               {/* Nei report il PDF sta nella barra della tab, come in Weekly:

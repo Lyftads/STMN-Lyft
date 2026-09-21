@@ -2373,13 +2373,16 @@ export default function App() {
     return () => { alive = false }
   }, [])
 
-  // Spesa Google Ads automatica dal collegamento (/api/google) — una volta.
-  // Se il collegamento è attivo costruiamo una mappa mese→spesa; altrimenti
-  // (non configurato / errore / token Test) resta vuota e si usa il manuale.
-  useEffect(() => {
-    let alive = true
-    fetch('/api/google').then(r => r.json()).then(j => {
-      if (!alive || !j?.configured || !Array.isArray(j.monthly)) return
+  // Spesa Google Ads automatica dal collegamento (/api/google). Se il collegamento è attivo
+  // costruiamo una mappa mese→spesa e i giorni; altrimenti (non configurato / errore / token Test)
+  // resta vuota e si usa il manuale.
+  // Prima si leggeva UNA volta, all'apertura, e basta: su "Oggi" la spesa Google restava quella
+  // di quel momento anche premendo Aggiorna (AV, 21 set 2026: 32 € in pagina, 82 € veri), mentre
+  // Shopify e Meta si aggiornavano. Ora si rilegge insieme ai dati vivi (fetchLive: Aggiorna e
+  // cambio di periodo). /api/google non ha cache: il dato e' sempre quello di Google adesso.
+  const caricaGoogle = useCallback(() => (
+    fetch('/api/google', { cache: 'no-store' }).then(r => r.json()).then(j => {
+      if (!j?.configured || !Array.isArray(j.monthly)) return
       const byMonth = {}
       const byMonthDetail = {}
       for (const m of j.monthly) {
@@ -2394,8 +2397,8 @@ export default function App() {
       }
       setGoogleAuto({ configured: true, byMonth, byMonthDetail, daily: Array.isArray(j.daily) ? j.daily : [] })
     }).catch(() => {})
-    return () => { alive = false }
-  }, [])
+  ), [])
+  useEffect(() => { caricaGoogle() }, [caricaGoogle])
 
   // Margine REALE dai costi prodotto (per l'LTV netto): se i costi sono
   // inseriti (coverage > 0) il margine calcolato vince su default e manuale;
@@ -2516,6 +2519,7 @@ export default function App() {
   const fetchLiveRef = useRef(null)
   const fetchLive = useCallback(async (force = false) => {
     const key = `metrics:${preset}`
+    caricaGoogle()   // la spesa Google viaggia con i dati vivi, non solo all'apertura
     __liveKey = key // anti-race: la risposta di un preset vecchio non deve sovrascrivere quello attivo
     const cached = !force ? getCached(key) : null
 
@@ -2567,7 +2571,7 @@ export default function App() {
     finally {
       if (!cached) setLoading(false)
     }
-  }, [preset])
+  }, [preset, caricaGoogle])
 
   fetchLiveRef.current = fetchLive
   useEffect(() => { fetchLive() }, [fetchLive])

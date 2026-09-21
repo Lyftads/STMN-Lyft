@@ -267,8 +267,11 @@ async function spesaMetaPerRegione(range) {
       url.searchParams.set('time_range', JSON.stringify({ since: range.since, until: range.until }))
       url.searchParams.set('limit', '500')
       url.searchParams.set('access_token', m.accessToken)
+      // Si seguono TUTTE le pagine (prima: al massimo 10 da 500 righe campagna×regione, poi la
+      // spesa per regione restava sottostimata senza dirlo). Il tetto e' solo una sicura: se lo
+      // si raggiunge, la spesa per regione si dichiara incompleta invece di sembrare giusta.
       let prossima = url.toString(), giri = 0
-      while (prossima && giri < 10) {
+      while (prossima && giri < 200) {
         const res = await fetch(prossima, { cache: 'no-store', signal: AbortSignal.timeout(25000) })
         const j = await res.json().catch(() => ({}))
         if (j?.error) return { errore: `Meta: ${String(j.error.message || '').slice(0, 120)}` }
@@ -286,6 +289,7 @@ async function spesaMetaPerRegione(range) {
         prossima = j?.paging?.next || null
         giri += 1
       }
+      if (prossima) return { errore: 'Meta: troppe righe per regione, spesa incompleta' }
     }
     return { perRegione, totale, sconosciute }
   } catch (e) { return { errore: `Meta: ${String(e.message).slice(0, 120)}` } }

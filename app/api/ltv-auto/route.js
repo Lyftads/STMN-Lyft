@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
@@ -31,7 +31,7 @@ const iso = (d) => d.toISOString().slice(0, 10)
 // Clienti creati in [from, to) — filtro server-side, pagine solo per il range.
 // GOTCHA Shopify: sulla connection customers il filtro data si chiama
 // `customer_date` — `created_at` viene IGNORATO in silenzio (testato).
-async function fetchCustomersRange(fromIso, toIso, maxPages = 100) {
+async function fetchCustomersRange(fromIso, toIso, maxPages = 400) {
   const out = []
   let partial = false
   const q = `customer_date:>=${fromIso} customer_date:<${toIso}`
@@ -42,18 +42,25 @@ async function fetchCustomersRange(fromIso, toIso, maxPages = 100) {
     }
   }`
   let cursor = null, pages = 0
+  const attendi = (ms) => new Promise(r => setTimeout(r, ms))
   while (pages < maxPages) {
     pages++
-    const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
-      method: 'POST',
-      headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: gql, variables: { cursor, q } }),
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) { if (pages === 1) throw new Error(`Shopify ${res.status}`); partial = true; break }
-    const j = await res.json()
-    const conn = j?.data?.customers
-    if (!conn) { if (pages === 1 && j?.errors) throw new Error(j.errors[0]?.message || 'GraphQL error'); partial = true; break }
+    // Shopify dice "throttled" con una risposta 200 e `errors`: prima ci si fermava al primo
+    // rifiuto (partial) e il parziale restava in cache 6 ore. Ora si aspetta e si riprova.
+    let conn = null, ultimo = null
+    for (let tentativo = 1; tentativo <= 4 && !conn; tentativo++) {
+      const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: gql, variables: { cursor, q } }),
+        signal: AbortSignal.timeout(20000),
+      }).catch(() => null)
+      const j = res?.ok ? await res.json().catch(() => null) : null
+      conn = j?.data?.customers || null
+      ultimo = j?.errors?.[0]?.message || `Shopify ${res?.status || 'rete'}`
+      if (!conn) await attendi(1500 * tentativo)
+    }
+    if (!conn) { if (pages === 1) throw new Error(ultimo); partial = true; break }
     for (const e of (conn.edges || [])) out.push(e.node)
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
@@ -144,7 +151,8 @@ export async function GET(req) {
         curve,
         updatedAt: new Date().toISOString(),
       }
-      cache.set(key, { at: Date.now(), payload })
+      // Un calcolo interrotto si mostra ma non si conserva: la prossima richiesta ci riprova.
+      if (!partial) cache.set(key, { at: Date.now(), payload })
       return NextResponse.json(payload)
     } catch (err) {
       return NextResponse.json({ configured: false, error: err?.message || 'Errore' }, { status: 200 })

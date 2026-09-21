@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
+import { fetchAllCustomersBulk } from '../../../lib/customers/bulk'
 
 // ── LTV & Coorti (additivo, isolato, tenant-aware) ──────────────────────────
 // Usa la Admin GraphQL `customers` (aggregati LIFETIME: createdAt, numberOfOrders,
@@ -18,8 +19,22 @@ const r2 = (n) => Math.round(num(n) * 100) / 100
 
 const MONTH_LABELS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
+// I clienti acquisiti nella finestra, TUTTI.
+//
+// Prima: 80 pagine da 250 dai piu' recenti = 20.000 account (compresi quelli senza ordini), poi
+// stop. Su Saracino (21 set 2026) con 12 e con 24 mesi uscivano gli stessi ~14.500 clienti: le
+// coorti piu' vecchie mancavano e il CAC della tab (spesa di TUTTA la finestra ÷ clienti letti)
+// usciva gonfiato. E se Shopify rifiutava una pagina ("throttled") ci si fermava senza dirlo.
+// Ora: l'operazione bulk di Shopify (la stessa della tab Clienti: tutti i clienti in un file, senza
+// pagine ne' limiti). Solo se non riesce si ripiega sulle pagine, e ogni interruzione e' dichiarata.
 async function fetchCustomers(startTs) {
   if (!storeUrl() || !token()) return { customers: [], truncated: false }
+  try {
+    const tutti = await fetchAllCustomersBulk(storeUrl(), token(), Date.now() + 200000)
+    const customers = tutti.filter(c => { const ts = new Date(c.createdAt).getTime(); return Number.isFinite(ts) && ts >= startTs })
+    return { customers, truncated: false }
+  } catch (e) { console.log('[ltv-cohorts] bulk non riuscita, ripiego sulle pagine:', e?.message) }
+
   const out = []
   // Più recenti prima: così raccolgo solo la finestra e mi fermo appena
   // arrivo a clienti più vecchi dell'inizio periodo.
@@ -29,23 +44,31 @@ async function fetchCustomers(startTs) {
       pageInfo { hasNextPage endCursor }
     }
   }`
+  const attendi = (ms) => new Promise(r => setTimeout(r, ms))
   let cursor = null
   let pages = 0
-  const MAX_PAGES = 80
+  const MAX_PAGES = 400
+  const scadenza = Date.now() + 200000
   let truncated = false
   let done = false
-  while (pages < MAX_PAGES && !done) {
+  while (!done) {
+    if (pages >= MAX_PAGES || Date.now() > scadenza) { truncated = true; break }
     pages++
-    const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
-      method: 'POST',
-      headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: gql, variables: { cursor } }),
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) { if (pages === 1) throw new Error(`Shopify ${res.status}`); break }
-    const j = await res.json()
-    const conn = j?.data?.customers
-    if (!conn) { if (pages === 1 && j?.errors) throw new Error(j.errors[0]?.message || 'GraphQL error'); break }
+    let conn = null
+    for (let tentativo = 1; tentativo <= 4 && !conn; tentativo++) {
+      const res = await fetch(`https://${storeUrl()}/admin/api/2024-01/graphql.json`, {
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': token() || '', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: gql, variables: { cursor } }),
+        signal: AbortSignal.timeout(20000),
+      }).catch(() => null)
+      const j = res?.ok ? await res.json().catch(() => null) : null
+      conn = j?.data?.customers || null
+      if (conn) break
+      if (pages === 1 && tentativo === 4) throw new Error(j?.errors?.[0]?.message || `Shopify ${res?.status || 'rete'}`)
+      await attendi(1500 * tentativo)   // "throttled" arriva come 200 con errors: si aspetta e si riprova
+    }
+    if (!conn) { truncated = true; break }
     for (const e of (conn.edges || [])) {
       const ts = new Date(e.node.createdAt).getTime()
       if (Number.isFinite(ts) && ts < startTs) { done = true; break } // più vecchio della finestra → stop
@@ -53,7 +76,6 @@ async function fetchCustomers(startTs) {
     }
     if (done || !conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
-    if (pages >= MAX_PAGES && conn.pageInfo?.hasNextPage) truncated = true
   }
   return { customers: out, truncated }
 }
@@ -70,7 +92,7 @@ export async function GET(req) {
 
     // tab key versionata 'ltvCohorts2': invalida snapshot vecchi (es. calcolati
     // sotto la chiave owner prima del fix cache per-tenant).
-    return swrSnapshot(req, { tab: 'ltvCohorts2', compute: async () => {
+    return swrSnapshot(req, { tab: 'ltvCohortsTutti@1', ttlMs: 2 * 60 * 60 * 1000, compute: async () => {
     try {
       const { customers, truncated } = await fetchCustomers(start.getTime())
 

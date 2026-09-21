@@ -60,6 +60,7 @@ async function fetchFeesByMonth(sinceISO) {
   const byMonth = {}
   let url = `https://${storeUrl()}/admin/api/2024-01/shopify_payments/balance/transactions.json?limit=250`
   let pages = 0
+  let arrivatoAllInizio = false
   try {
     while (url && pages < 40) {
       pages++
@@ -80,7 +81,14 @@ async function fetchFeesByMonth(sinceISO) {
       const link = res.headers.get('link') || ''
       const next = /<([^>]+)>;\s*rel="next"/.exec(link)
       url = next ? next[1] : null
-      if (oldest && new Date(oldest) < new Date(sinceISO)) break
+      if (oldest && new Date(oldest) < new Date(sinceISO)) { arrivatoAllInizio = true; break }
+    }
+    // Fermati dal tetto di pagine prima di arrivare all'inizio del periodo: il mese piu' vecchio
+    // letto e' letto solo in parte, e passerebbe per una fee "reale" piu' bassa del vero. Si toglie:
+    // quel mese, come i precedenti, usa la stima.
+    if (url && !arrivatoAllInizio) {
+      const piuVecchio = Object.keys(byMonth).sort()[0]
+      if (piuVecchio) delete byMonth[piuVecchio]
     }
     for (const k in byMonth) byMonth[k] = r2(byMonth[k])
     return byMonth

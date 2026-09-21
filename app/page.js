@@ -2330,7 +2330,10 @@ export default function App() {
   const [months, setMonths] = useState({})
   const [weeks, setWeeks] = useState({})
   const [updated, setUpdated] = useState(null)
-  const [preset, setPreset] = useState('today')
+  // La demo pubblica parte sugli ultimi 28 giorni: i suoi dati d'esempio sono mensili, e sotto
+  // «Oggi» mostrava come numeri di oggi quelli di un mese, confrontati con un «ieri» senza la
+  // spesa Google (spesa +96%, MER -38%, in rosso, nella prima schermata che vede un visitatore).
+  const [preset, setPreset] = useState(() => (typeof window !== 'undefined' && window.location.pathname.startsWith('/demo')) ? 'last_28d' : 'today')
   const [monthlyTF, setMonthlyTF] = useState('this_month')
   const [monthlyCustom, setMonthlyCustom] = useState({ since: '', until: '' })
   const [weeklyTF, setWeeklyTF] = useState('this_week')

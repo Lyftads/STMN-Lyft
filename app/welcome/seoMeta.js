@@ -5,24 +5,24 @@ const SITE = process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
 // ~60/155 caratteri di Google e far cliccare), quindi vivono separate.
 export const SEO = {
   it: {
-    title: 'LyftAI — il consulente AI per il tuo brand Shopify',
-    description: 'Collega Shopify, Meta, Google e le email: LyftAI legge i tuoi dati e ti dice dove stai crescendo e dove stai bruciando budget. Per brand e-commerce e agenzie.',
+    title: 'LyftAI — Quanto vendi, quanto spendi, quanto ti resta',
+    description: 'Vendite, spesa pubblicitaria e margine da Shopify, Meta, Google e email in un conto solo, e un’AI che ti dice cosa fare dopo. Per brand Shopify e agenzie.',
   },
   en: {
-    title: 'LyftAI — the AI advisor for your Shopify brand',
-    description: 'Connect Shopify, Meta, Google and email: LyftAI reads your data and tells you where you are growing and where you are burning budget. For e-commerce brands and agencies.',
+    title: 'LyftAI — What you sell, what you spend, what you keep',
+    description: 'Sales, ad spend and margin from Shopify, Meta, Google and email in one place, and an AI that tells you what to do next. For Shopify brands and agencies.',
   },
   es: {
-    title: 'LyftAI — el consultor con IA para tu marca Shopify',
-    description: 'Conecta Shopify, Meta, Google y el email: LyftAI lee tus datos y te dice dónde estás creciendo y dónde estás quemando presupuesto. Para marcas de e-commerce y agencias.',
+    title: 'LyftAI — Cuánto vendes, cuánto gastas, cuánto te queda',
+    description: 'Ventas, gasto publicitario y margen de Shopify, Meta, Google y email, todo junto, y una IA que te dice qué hacer después. Para marcas Shopify y agencias.',
   },
   fr: {
-    title: 'LyftAI — le consultant IA pour votre marque Shopify',
-    description: 'Connectez Shopify, Meta, Google et vos emails : LyftAI lit vos données et vous dit où vous progressez et où vous brûlez du budget. Pour les marques e-commerce et les agences.',
+    title: 'LyftAI — Ce que vous vendez, dépensez et ce qu’il vous reste',
+    description: 'Ventes, budget pub et marge de Shopify, Meta, Google et email au même endroit, et une IA qui vous dit quoi faire ensuite. Pour marques Shopify et agences.',
   },
   de: {
-    title: 'LyftAI — der KI-Berater für deine Shopify-Marke',
-    description: 'Verbinde Shopify, Meta, Google und E-Mail: LyftAI liest deine Daten und zeigt dir, wo du wächst und wo du Budget verbrennst. Für E-Commerce-Marken und Agenturen.',
+    title: 'LyftAI — Was du verkaufst, ausgibst und was dir bleibt',
+    description: 'Umsatz, Werbekosten und Marge aus Shopify, Meta, Google und E-Mail an einem Ort, plus eine KI für den nächsten Schritt. Für Shopify-Marken und Agenturen.',
   },
 }
 
@@ -50,8 +50,9 @@ export function landingMetadata(lang) {
       title: s.title,
       description: s.description,
       locale: { it: 'it_IT', en: 'en_US', es: 'es_ES', fr: 'fr_FR', de: 'de_DE' }[lang],
-      images: ['/icon-512.png'],
+      // L'anteprima nei link condivisi e' il prodotto vero, nella lingua della pagina.
+      images: [{ url: `/landing/${lang}/dashboard.webp`, width: 1920, height: 1200 }],
     },
-    twitter: { card: 'summary_large_image', title: s.title, description: s.description, images: ['/icon-512.png'] },
+    twitter: { card: 'summary_large_image', title: s.title, description: s.description, images: [`/landing/${lang}/dashboard.webp`] },
   }
 }

@@ -15,6 +15,7 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
 import { LOCALES, DEFAULT_LOCALE, LOCALE_INTL } from './locales'
 import { browserToLocale } from './geoLocale'
+import { linguaNumeri } from '../client/numeri'
 import it from './dictionaries/it'
 import en from './dictionaries/en'
 import es from './dictionaries/es'
@@ -90,11 +91,14 @@ export function I18nProvider({ children, initialLocale }) {
     return () => { alive = false }
   }, [initialLocale])
 
-  const setLocale = useCallback((next) => {
+  // { profilo: false } = cambia solo QUESTA pagina (la landing, che ha la sua lingua): non
+  // scrive sul profilo di chi e' gia' registrato solo perche' ha sfogliato il sito in tedesco.
+  const setLocale = useCallback((next, { profilo = true } = {}) => {
     if (!LOCALES.includes(next)) return
     userChosen.current = true
     setLocaleState(next)
     try { localStorage.setItem(STORAGE_KEY, next) } catch {}
+    if (!profilo) return
     // Persisti sul profilo (per-cliente) — best effort, non blocca nulla.
     try {
       fetch('/api/profile', {
@@ -121,6 +125,11 @@ export function I18nProvider({ children, initialLocale }) {
     return str
   }, [locale])
 
+  // I numeri (soldi.js, numeri.js) si scrivono nella lingua che si sta disegnando.
+  linguaNumeri(locale)
+  // E la pagina dichiara la lingua in cui e' scritta (lettori di schermo, traduttori del browser):
+  // prima restava «it» anche con l'interfaccia in inglese, se la lingua arrivava dalla cache.
+  useEffect(() => { try { document.documentElement.lang = locale } catch {} }, [locale])
   const value = { locale, setLocale, t, intlLocale: LOCALE_INTL[locale] || LOCALE_INTL[DEFAULT_LOCALE] }
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

@@ -44,6 +44,8 @@ body:has([aria-modal='true']) .theme-switcher:not(.theme-switcher--embedded) { v
 }
 .app-skip-link:focus { transform: none; }
 body:has(.app-shell) > .theme-switcher { display: none; }
+/* La landing e' sempre chiara: il selettore del tema li' non ha niente da cambiare. */
+body:has(.landing-pagina) > .theme-switcher { display: none; }
 .app-theme-row { padding: 8px 20px 14px; flex-shrink: 0; }
 .theme-switcher.theme-switcher--embedded { position: static; display: inline-flex; box-shadow: none !important; z-index: auto; }
 :root[data-theme='light'] .app-sidebar .theme-switcher button[aria-pressed='true'] { background: #262626 !important; color: #fff !important; }

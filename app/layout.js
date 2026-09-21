@@ -10,6 +10,8 @@ import './mobile-system.css'
 // non esistono piu' (.kb-metric-row, che il KPI Brain di questo repo usa tuttora).
 import './mobile-report.css'
 import PWARegister from './components/PWARegister'
+import AutoTheme from './components/AutoTheme'
+import ViewportFrame from './components/ViewportFrame'
 import CookieConsent from './components/CookieConsent'
 import { I18nProvider } from '../lib/i18n/I18nProvider'
 
@@ -18,7 +20,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://lyftai.io'
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: 'LyftAI — Dashboard',
-  description: 'LyftAI — analytics LTV, CAC, retention e creative intel per brand Shopify.',
+  description: 'LyftAI — vendite, pubblicità e margine del tuo negozio Shopify in un conto solo, con un’AI che ti dice cosa fare.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -34,28 +36,53 @@ export const metadata = {
     siteName: 'LyftAI',
     url: SITE_URL,
     title: 'LyftAI — il consulente AI che conosce il tuo brand',
-    description: 'Connetti Shopify, Meta e Klaviyo. LyftAI legge i tuoi dati e ogni mattina ti dice dove crescere e dove stai bruciando budget.',
+    description: 'Collega Shopify, Meta, Google e le email: LyftAI mette in fila vendite, spesa e margine, e ti dice cosa fare dopo.',
     images: ['/icon-512.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'LyftAI — il consulente AI che conosce il tuo brand',
-    description: 'Analytics, ads, SEO e AI advisor per brand Shopify, in un\'unica piattaforma.',
+    description: 'Vendite, pubblicità, margine e clienti del tuo negozio Shopify, in un posto solo.',
     images: ['/icon-512.png'],
   },
 }
 
 export const viewport = {
-  themeColor: '#0b0b14',
+  themeColor: '#f5f5f5',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
 }
 
+// Il tema si applica PRIMA del primo disegno, leggendo la scelta salvata: senza, la pagina nasce
+// col tema di partenza del CSS (scuro) e poi scatta. Il prodotto parte in CHIARO.
+//
+// Nel SaaS questo script e <AutoTheme /> mancavano (c'erano solo sul fork, lyft-av): la scelta
+// fatta dal pop-up del profilo valeva finche' non si ricaricava la pagina, poi tutto tornava
+// scuro — «lo switch del tema da giorno a notte» che non teneva. Trovato il 21 set 2026 rifacendo
+// la landing: anche la demo pubblica usciva scura, perche' nessuno applicava il tema.
+const themeBootstrap = `
+(function () {
+  try {
+    var savedTheme = localStorage.getItem('lyft-theme');
+    var theme = savedTheme === 'auto' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : (savedTheme === 'dark' ? 'dark' : 'light');
+    var root = document.documentElement;
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  } catch (_) {}
+})();
+`
+
 export default function RootLayout({ children }) {
   return (
-    <html lang="it">
+    // suppressHydrationWarning: lo script qui sotto cambia data-theme prima che React arrivi.
+    <html lang="it" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body>
+        <ViewportFrame />
+        <AutoTheme />
         <I18nProvider>
           {children}
           <CookieConsent />

@@ -2,6 +2,7 @@
 
 import { useEffect, Component } from 'react'
 import Icon from '../components/ui/Icon'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 import App from '../page'
 import { demoData, demoLocalStorage } from '../../lib/demo/data'
 
@@ -116,6 +117,7 @@ function scrub(root) {
 }
 
 export default function DemoApp() {
+  const { t } = useI18n()
   useEffect(() => {
     installPatch()
     return () => { if (_orig) { window.fetch = _orig; _orig = null } }
@@ -135,18 +137,20 @@ export default function DemoApp() {
 
   return (
     <>
-      {/* Nastro DEMO */}
+      {/* Nastro DEMO. Era un gradiente viola-blu, l'unica tinta della pagina, e diceva le sue tre
+          frasi solo in italiano anche a chi guardava la demo in tedesco. Ora ha i colori del
+          prodotto (fondo, bordo, testo) e parla la lingua di chi guarda. */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
-        padding: '7px 16px', fontSize: 12.5, fontWeight: 700,
-        background: 'linear-gradient(90deg,#7b5bff,#5b8bff)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap',
+        minHeight: 34, padding: '6px 16px', fontSize: 13, fontWeight: 500,
+        background: 'var(--surface)', color: 'var(--text2)', borderBottom: '1px solid var(--border)',
       }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Icon name="search" size={14} /> Demo interattiva di LyftAI — dati di esempio, account "Acme Store"</span>
-        <a href="/register" target="_top" style={{ color: '#fff', textDecoration: 'underline', fontWeight: 800 }}>Inizia gratis →</a>
+        <span>{t('demo.banner', null, 'Demo con dati di esempio · account «Acme Store»')}</span>
+        <a href="/register" target="_top" style={{ color: 'var(--text)', fontWeight: 600, textDecoration: 'none' }}>{t('demo.start', null, 'Prova gratis →')}</a>
         {/* "Torna al sito" solo se a schermo intero (NON nell'iframe della landing) */}
         {typeof window !== 'undefined' && window.self === window.top && (
-          <a href="/welcome" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>← Torna al sito</a>
+          <a href="/welcome" style={{ color: 'var(--text3)', textDecoration: 'none' }}>{t('demo.back', null, '← Torna al sito')}</a>
         )}
       </div>
       <div style={{ paddingTop: 34 }}>

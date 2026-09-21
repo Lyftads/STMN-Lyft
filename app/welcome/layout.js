@@ -1,10 +1,10 @@
 export const metadata = {
-  title: 'LyftAI — Il cervello AI del tuo brand Shopify',
-  description: 'Un solo cervello AI su Shopify, Meta, Google, SEO ed email: cosa funziona, quanto rendono davvero le ads e cosa fare — per brand e-commerce e agenzie.',
+  title: 'LyftAI — quanto vendi, quanto spendi, quanto ti resta',
+  description: 'Vendite, pubblicità e margine del tuo negozio Shopify in un conto solo, con un’AI che ti dice cosa fare. Per negozi e agenzie.',
   alternates: { canonical: 'https://lyftai.io/welcome' },
   openGraph: {
-    title: 'LyftAI — Il cervello AI del tuo brand Shopify',
-    description: 'Analytics, ads, SEO, email, CRM e inventario in un solo software con agenti AI.',
+    title: 'LyftAI — quanto vendi, quanto spendi, quanto ti resta',
+    description: 'Vendite, pubblicità, margine e clienti del tuo negozio Shopify, in un posto solo.',
     url: 'https://lyftai.io/welcome',
     siteName: 'LyftAI',
   },

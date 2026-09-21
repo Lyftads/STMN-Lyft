@@ -62,8 +62,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
         background: 'var(--glass2)',
         border: '1px solid var(--border2)',
       }}>
-        <span style={{ fontSize: 18 }}>🎉</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text)' }}>{t('ap.founder', null, 'Founder: −30% FOR LIFE for the first 100 sign-ups')}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{t('ap.founder', null, 'Founder: −30% for life for the first 100 businesses')}</span>
         <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>{t('ap.founderCumulative', null, '· stacks with the annual discount')}</span>
       </div>
 
@@ -76,12 +75,12 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
               <button key={x.id} type="button" onClick={() => setCad(x.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10, cursor: 'pointer',
                 border: 'none', background: on ? ACCENT : 'transparent', color: on ? 'var(--btn-primario-testo)' : 'var(--text2)',
-                fontSize: 13.5, fontWeight: 800,
+                fontSize: 13.5, fontWeight: 600,
               }}>
                 {t(x.labelKey, null, x.id)}
                 {x.off > 0 && (
                   <span style={{
-                    fontSize: 10.5, fontWeight: 900, padding: '2px 7px', borderRadius: 999,
+                    fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
                     background: on ? 'rgba(127,127,127,0.18)' : 'var(--positivo-bg)', color: on ? 'var(--btn-primario-testo)' : 'var(--positivo)',
                   }}>{t('ap.twoMonthsFree', null, '2 months free')}</span>
                 )}
@@ -115,24 +114,24 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
               borderRadius: 18, padding: '22px 20px',
             }}>
               {p.popular && (
-                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: 'var(--btn-primario-testo)', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('ap.mostChosen', null, 'MOST CHOSEN')}</span>
+                <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: 'var(--btn-primario-testo)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('ap.mostChosen', null, 'MOST CHOSEN')}</span>
               )}
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.accent }}>{p.name}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: p.accent }}>{p.name}</div>
 
               {p.custom ? (
                 <div style={{ margin: '12px 0 6px' }}>
-                  <span style={{ fontSize: 34, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('ap.custom', null, 'Custom')}</span>
+                  <span style={{ fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>{t('ap.custom', null, 'Custom')}</span>
                 </div>
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '12px 0 2px' }}>
-                    <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{eur(effMonthly)}</span>
+                    <span style={{ fontSize: 36, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>{eur(effMonthly)}</span>
                     <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700 }}>{t('ap.perMonth', null, '/mo')}</span>
                   </div>
                   {(c.off > 0 && !p.flat) ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'line-through' }}>{eur(p.price)}{t('ap.perMonth', null, '/mo')}</span>
-                      <span style={{ fontSize: 11, fontWeight: 900, padding: '2px 8px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)' }}>{t('ap.youSave', { amount: eur(savings) }, 'You save {amount}')}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: 'var(--positivo-bg)', color: 'var(--positivo)' }}>{t('ap.youSave', { amount: eur(savings) }, 'You save {amount}')}</span>
                     </div>
                   ) : (
                     <div style={{ fontSize: 12, color: 'var(--text3)' }}>{t('ap.billedMonthly', null, 'billed monthly')}</div>
@@ -147,7 +146,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
                 {Array.from({ length: p.featureCount }).map((_, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--text2)' }}>
-                    <span style={{ color: 'var(--text3)', fontWeight: 900, flexShrink: 0 }}>✓</span>{t(`ap.${p.id}.f${i + 1}`, null, '')}
+                    <span style={{ color: 'var(--text3)', fontWeight: 700, flexShrink: 0 }}>✓</span>{t(`ap.${p.id}.f${i + 1}`, null, '')}
                   </li>
                 ))}
               </ul>
@@ -159,7 +158,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
                   marginTop: 18, padding: '11px 14px', borderRadius: 11, width: '100%', display: 'block', textAlign: 'center', boxSizing: 'border-box',
                   border: `1px solid ${p.popular ? ACCENT : 'var(--border)'}`,
                   background: p.popular ? ACCENT : 'transparent',
-                  color: p.popular ? 'var(--btn-primario-testo)' : 'var(--text)', fontSize: 13, fontWeight: 800,
+                  color: p.popular ? 'var(--btn-primario-testo)' : 'var(--text)', fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', textDecoration: 'none',
                 }
                 const label = t('ap.selectCta', null, 'Inizia')
@@ -179,7 +178,7 @@ export default function AgencyPricing({ compact = false, checkout = false }) {
       </div>
 
       <div style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--text3)' }}>
-        {t('ap.footer', null, 'Included companies up to 2,000 orders/mo each · high-volume client (2,000–7,000) +€99 · White-label +€199/mo')}
+        {t('ap.footer', null, 'Included companies up to 2,000 orders/mo each · high-volume client (2,000–7,000) +€99')}
       </div>
     </div>
   )

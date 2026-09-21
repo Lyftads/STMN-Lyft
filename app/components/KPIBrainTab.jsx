@@ -479,35 +479,8 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     { label: 'Clienti di Ritorno', value: c.rc },
   ].filter(r => r.value > 0)
 
-  // ── Insight a regole: le osservazioni che non chiedono niente all'AI ──────
-  //  Restano accanto all'agente (in fondo alla tab): sono immediate, gratuite e
-  //  non dipendono da nessun provider. L'agente aggiunge, non sostituisce.
-  const insights = useMemo(() => {
-    const items = []
-    if (c.roas != null) {
-      if (c.roas >= 3) items.push({sev:'positive',text:`ROAS Meta a ${ratio(c.roas)}: rendimento eccellente, le campagne generano un ritorno triplo.`})
-      else if (c.roas >= 1.5) items.push({sev:'neutral',text:`ROAS Meta a ${ratio(c.roas)}: profittabile ma sotto 3x. Ottimizzare creative e targeting.`})
-      else if (c.roas < 1) items.push({sev:'warning',text:`ROAS Meta a ${ratio(c.roas)}: sotto break-even, si perde denaro sulle campagne.`})
-    }
-    if (c.aov && p.aov) {
-      const d = ((c.aov-p.aov)/p.aov)*100
-      if (d > 10) items.push({sev:'positive',text:`AOV in crescita del ${d.toFixed(1)}% (${money2(c.aov)} vs ${money2(p.aov)}).`})
-      if (d < -10) items.push({sev:'warning',text:`AOV in calo del ${Math.abs(d).toFixed(1)}% (${money2(c.aov)} vs ${money2(p.aov)}). Verificare prodotti e upsell.`})
-    }
-    if (c.repeatRate != null && c.repeatRate < 15) items.push({sev:'warning',text:`Repeat Rate al ${pct(c.repeatRate)}: pochi clienti ritornano. Valutare programmi fedeltà e email post-acquisto.`})
-    if (c.repeatRate != null && c.repeatRate >= 25) items.push({sev:'positive',text:`Repeat Rate al ${pct(c.repeatRate)}: ottima fidelizzazione.`})
-    if (c.ctr != null && c.ctr < 1) items.push({sev:'warning',text:`CTR Meta a ${pct(c.ctr)}: le creatività non attraggono click. Rinnovare copy e visual.`})
-    if (c.fat > 0 && p.fat > 0) {
-      const d = ((c.fat-p.fat)/p.fat)*100
-      if (d > 15) items.push({sev:'positive',text:`Revenue in crescita del ${d.toFixed(1)}% vs periodo precedente.`})
-      if (d < -15) items.push({sev:'warning',text:`Revenue in calo del ${Math.abs(d).toFixed(1)}% vs periodo precedente. Analizzare cause.`})
-    }
-    return items
-  }, [c, p])
-
   const card = { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:16, padding:20 }
   const panel = { background:'var(--glass)', border:'1px solid var(--border)', borderRadius:16, padding:22 }
-  const sevColor = s => ({positive:'#22c55e',warning:'#f59e0b',neutral:'#8b5cf6'}[s]||'#8b8aa0')
   // Uno zero e' un fatto — "nessun cliente di ritorno" e' un'informazione, un
   // trattino sembra un dato che manca. Il trattino resta per cio' che davvero
   // non e' misurabile (null).
@@ -1312,28 +1285,6 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
         </div>
       </div>
       )}
-
-      {/* Insight a regole — le osservazioni immediate, accanto all'agente */}
-      <div className="glass-section reveal-zoom" style={{marginTop:18,background:'var(--glass)',border:'1px solid var(--border)',borderRadius:16,padding:24}}>
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18}}>
-          <div style={{width:36,height:36,borderRadius:10,background:'#06b6d422',color:'#06b6d4',display:'flex',alignItems:'center',justifyContent:'center'}}><Icon name="sparkle" size={18} /></div>
-          <div>
-            <div style={{fontSize:15,fontWeight:680,color:'var(--text)'}}>{t('kpi.insightsTitle', null, 'Insight & Riepilogo')}</div>
-            <div style={{color:'var(--text2)',fontSize:13}}>{insights.length} {t('kpi.observations', null, 'osservazioni sul periodo')}</div>
-          </div>
-        </div>
-        <div style={{display:'grid',gap:12}}>
-          {insights.length > 0 ? insights.map((item,i) => (
-            <div key={i} style={{padding:16,borderRadius:12,background:'var(--glass)',borderLeft:`3px solid ${sevColor(item.sev)}`}}>
-              <div style={{color:'var(--text)',fontSize:13,lineHeight:1.6}}>{item.text}</div>
-            </div>
-          )) : (
-            <div style={{border:'1px solid #22c55e44',background:'#22c55e10',borderRadius:12,padding:18,color:'#22c55e',fontWeight:640}}>
-              {t('kpi.noIssues', null, 'Nessuna criticità rilevata.')}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* L'agente della tab: legge gli stessi numeri e risponde a domande.
           Esiste solo qui nel SaaS — il fork l'aveva tolto. */}

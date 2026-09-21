@@ -53,8 +53,6 @@ const Pigra = (nome, importa) => { importatori[nome] = importa; return dynamic(i
 // sarebbe un rettangolo grigio piantato in mezzo alla pagina.
 const PigraMuta = (nome, importa) => { importatori[nome] = importa; return dynamic(importa, { ssr: false }) }
 const KPIBrainTab = Pigra('KPIBrainTab', () => import('./components/KPIBrainTab'))
-const AlertsPanel = PigraMuta('AlertsPanel', () => import('./components/AlertsPanel'))
-const RecommendationsFeed = PigraMuta('RecommendationsFeed', () => import('./components/RecommendationsFeed'))
 const ClientiTab = Pigra('ClientiTab', () => import('./components/ClientiTab'))
 const HelpCenterTab = Pigra('HelpCenterTab', () => import('./components/HelpCenterTab'))
 const CreativeTab = Pigra('CreativeTab', () => import('./components/CreativeTab'))
@@ -3147,11 +3145,6 @@ export default function App() {
               <Stat label={t('dash.returnsReturning', null, 'Resi clienti ritorno')} value={totResiRC>0?f0(totResiRC):'—'} sources={['shopify']} dim />
             </div>
           )}
-      {/* Avvisi e consigli stanno qui sotto e non piu' in Dashboard: la Dashboard nuova mostra
-          cosa sta succedendo adesso, questi due dicono cosa c'e' da fare — che e' il mestiere di
-          KPI Brain. Stessi dati (`live`) e stesso periodo dei riquadri qui sopra. */}
-      <AlertsPanel live={live} />
-      <RecommendationsFeed metrics={live} preset={preset} />
     </section>
   )
 
@@ -3189,7 +3182,7 @@ export default function App() {
               spesa di Meta e di Google; i dati che escono vanno in KPI Brain". Qui restano: i tre
               numeri in cima, chi c'e' adesso sul sito, sessioni e ordini, nuovi e abituali, spesa Meta
               e Google, il comportamento dei clienti, le sedi, i prodotti piu' venduti — e il globo.
-              AOV, MER, LTV, CAC, rapporto LTV:CAC, marketplace, resi, Drive to Store e raccomandazioni
+              AOV, MER, LTV, CAC, rapporto LTV:CAC, marketplace, resi e Drive to Store
               sono in KPI Brain (bloccoEfficienza): stessi numeri, stesso periodo. */}
           <div className="dash-live-hero lv" ref={heroLv}>
             <div className="dash-live-globe"><div className="lv-globo-tela"><QuandoFermo><DashboardGlobe /></QuandoFermo></div><TelemetriaGlobo /></div>
